@@ -26,12 +26,13 @@ type Props = {
 
 export default class RepositoryProjectPathConfigForm extends React.Component<Props> {
   get initialData() {
-    const {existingConfig} = this.props;
+    const {existingConfig, integration} = this.props;
     return {
       defaultBranch: 'master',
       stackRoot: '',
       sourceRoot: '',
       repositoryId: existingConfig?.repoId,
+      integrationId: integration.id,
       ...pick(existingConfig, ['projectId', 'defaultBranch', 'stackRoot', 'sourceRoot']),
     };
   }
@@ -105,16 +106,10 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
   }
 
   render() {
-    const {
-      organization,
-      integration,
-      onSubmitSuccess,
-      onCancel,
-      existingConfig,
-    } = this.props;
+    const {organization, onSubmitSuccess, onCancel, existingConfig} = this.props;
 
     // endpoint changes if we are making a new row or updating an existing one
-    const baseEndpoint = `/organizations/${organization.slug}/integrations/${integration.id}/repo-project-path-configs/`;
+    const baseEndpoint = `/organizations/${organization.slug}/repo-project-path-configs/`;
     const endpoint = existingConfig
       ? `${baseEndpoint}${existingConfig.id}/`
       : baseEndpoint;

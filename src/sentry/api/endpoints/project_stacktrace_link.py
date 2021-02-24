@@ -52,7 +52,10 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         # xxx(meredith): if there are ever any changes to this query, make
         # sure that we are still ordering by `id` because we want to make sure
         # the ordering is deterministic
-        configs = RepositoryProjectPathConfig.objects.filter(project=project)
+        # codepath mappings must have an associated integration for stacktrace linking.
+        configs = RepositoryProjectPathConfig.objects.filter(
+            project=project, organization_integration__isnull=False
+        )
         with configure_scope() as scope:
             for config in configs:
 

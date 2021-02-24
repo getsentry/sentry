@@ -13,7 +13,7 @@ import {
   Integration,
   Organization,
   Project,
-  RepositoryProjectPathConfig,
+  RepositoryProjectPathConfigWithIntegration,
 } from 'app/types';
 import {Event} from 'app/types/event';
 import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
@@ -35,7 +35,7 @@ type Props = AsyncComponent['props'] & {
 //format of the ProjectStacktraceLinkEndpoint response
 type StacktraceResultItem = {
   integrations: Integration[];
-  config?: RepositoryProjectPathConfig;
+  config?: RepositoryProjectPathConfigWithIntegration;
   sourceUrl?: string;
   error?: 'file_not_found' | 'stack_root_mismatch';
 };
@@ -257,7 +257,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       </CodeMappingButtonContainer>
     );
   }
-  renderMatchWithUrl(config: RepositoryProjectPathConfig, url: string) {
+  renderMatchWithUrl(config: RepositoryProjectPathConfigWithIntegration, url: string) {
     url = `${url}#L${this.props.frame.lineNo}`;
     return (
       <OpenInContainer columnQuantity={2}>

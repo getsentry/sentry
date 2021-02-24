@@ -21,8 +21,8 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             name="example", organization_id=self.org.id, integration_id=self.integration.id
         )
         self.url = reverse(
-            "sentry-api-0-organization-integration-repository-project-path-config",
-            args=[self.org.slug, self.integration.id],
+            "sentry-api-0-organization-repository-project-path-config",
+            args=[self.org.slug],
         )
 
     def make_post(self, data=None):
@@ -37,23 +37,24 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             config_data.update(data)
         return self.client.post(self.url, data=config_data, format="json")
 
-    def test_basic_get(self):
-        path_config1 = RepositoryProjectPathConfig.objects.create(
+    def test_basic_get_with_integrationId(self):
+        path_config1 = self.create_code_mapping(
             organization_integration=self.org_integration,
             project=self.project1,
-            repository=self.repo1,
+            repo=self.repo1,
             stack_root="stack/root",
             source_root="source/root",
-            default_branch="master",
         )
-        path_config2 = RepositoryProjectPathConfig.objects.create(
+        path_config2 = self.create_code_mapping(
             organization_integration=self.org_integration,
             project=self.project2,
-            repository=self.repo1,
+            repo=self.repo1,
             stack_root="another/path",
             source_root="hey/there",
         )
-        response = self.client.get(self.url, format="json")
+
+        url_path = f"{self.url}?integrationId={self.integration.id}"
+        response = self.client.get(url_path, format="json")
 
         assert response.status_code == 200, response.content
 
@@ -96,11 +97,85 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             "integrationId": str(self.integration.id),
             "stackRoot": "another/path",
             "sourceRoot": "hey/there",
-            "defaultBranch": None,
+            "defaultBranch": "master",
         }
 
-    def test_basic_post(self):
-        response = self.make_post()
+    def test_basic_get_with_projectId(self):
+        path_config1 = RepositoryProjectPathConfig.objects.create(
+            organization_integration=self.org_integration,
+            project=self.project1,
+            repository=self.repo1,
+            stack_root="stack/root",
+            source_root="source/root",
+            default_branch="master",
+        )
+
+        url_path = f"{self.url}?projectId={self.project1.id}"
+        response = self.client.get(url_path, format="json")
+
+        assert response.status_code == 200, response.content
+
+        assert response.data[0] == {
+            "id": str(path_config1.id),
+            "projectId": str(self.project1.id),
+            "projectSlug": self.project1.slug,
+            "repoId": str(self.repo1.id),
+            "repoName": self.repo1.name,
+            "provider": {
+                "aspects": {},
+                "features": ["commits", "issue-basic"],
+                "name": "GitHub",
+                "canDisable": False,
+                "key": "github",
+                "slug": "github",
+                "canAdd": True,
+            },
+            "integrationId": str(self.integration.id),
+            "stackRoot": "stack/root",
+            "sourceRoot": "source/root",
+            "defaultBranch": "master",
+        }
+
+    def test_basic_get_with_no_integrationId_and_projectId(self):
+        RepositoryProjectPathConfig.objects.create(
+            organization_integration=self.org_integration,
+            project=self.project1,
+            repository=self.repo1,
+            stack_root="stack/root",
+            source_root="source/root",
+            default_branch="master",
+        )
+
+        RepositoryProjectPathConfig.objects.create(
+            organization_integration=self.org_integration,
+            project=self.project2,
+            repository=self.repo1,
+            stack_root="another/path",
+            source_root="hey/there",
+        )
+
+        url_path = f"{self.url}"
+        response = self.client.get(url_path, format="json")
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": 'Missing valid "projectId" or "integrationId"'}
+
+    def test_basic_get_with_invalid_integrationId(self):
+
+        url_path = f"{self.url}?integrationId=100"
+        response = self.client.get(url_path, format="json")
+
+        assert response.status_code == 404, response.content
+
+    def test_basic_get_with_invalid_projectId(self):
+
+        url_path = f"{self.url}?projectId=100"
+        response = self.client.get(url_path, format="json")
+
+        assert response.status_code == 404, response.content
+
+    def test_basic_post_with_valid_integrationId(self):
+        response = self.make_post({"integrationId": self.integration.id})
         assert response.status_code == 201, response.content
         assert response.data == {
             "id": str(response.data["id"]),
@@ -123,6 +198,26 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             "defaultBranch": "master",
         }
 
+    def test_basic_post_with_invalid_integrationId(self):
+        response = self.make_post({"integrationId": 100})
+        assert response.status_code == 404, response.content
+
+    def test_basic_post_with_no_integrationId(self):
+        response = self.make_post()
+        assert response.status_code == 201, response.content
+        assert response.data == {
+            "id": str(response.data["id"]),
+            "projectId": str(self.project1.id),
+            "projectSlug": self.project1.slug,
+            "repoId": str(self.repo1.id),
+            "repoName": self.repo1.name,
+            "provider": None,
+            "integrationId": None,
+            "stackRoot": "/stack/root",
+            "sourceRoot": "/source/root",
+            "defaultBranch": "master",
+        }
+
     def test_empty_roots_post(self):
         response = self.make_post({"stackRoot": "", "sourceRoot": ""})
         assert response.status_code == 201, response.content
@@ -134,11 +229,25 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {"projectId": ["Project does not exist"]}
 
-    def test_repo_does_not_exist(self):
+    def test_repo_does_not_exist_on_given_integrationId(self):
         bad_integration = Integration.objects.create(provider="github", external_id="radsfas")
         bad_integration.add_organization(self.org, self.user)
         bad_repo = Repository.objects.create(
             name="another", organization_id=self.org.id, integration_id=bad_integration.id
+        )
+        response = self.make_post(
+            {"repositoryId": bad_repo.id, "integrationId": self.integration.id}
+        )
+
+        assert response.status_code == 400
+        assert response.data == {"repositoryId": ["Repository does not exist"]}
+
+    def test_repo_does_not_exist_on_given_organization(self):
+        bad_org = self.create_organization(owner=self.user, name="foo")
+        bad_integration = Integration.objects.create(provider="github", external_id="radsfas")
+        bad_integration.add_organization(bad_org, self.user)
+        bad_repo = Repository.objects.create(
+            name="another", organization_id=bad_org.id, integration_id=bad_integration.id
         )
         response = self.make_post({"repositoryId": bad_repo.id})
 

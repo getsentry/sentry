@@ -5,7 +5,7 @@ from sentry.models import Integration, Repository, RepositoryProjectPathConfig
 from sentry.testutils import APITestCase
 
 
-class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
+class OrganizationIntegrationRepositoryProjectPathConfigDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
 
@@ -30,17 +30,17 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         )
 
         self.url = reverse(
-            "sentry-api-0-organization-integration-repository-project-path-config-details",
-            args=[self.org.slug, self.integration.id, self.config.id],
+            "sentry-api-0-organization-repository-project-path-config-details",
+            args=[self.org.slug, self.config.id],
         )
 
     def make_put(self, data):
         # reconstruct the original object
         config_data = serialize(self.config, self.user)
-        config_data["repositoryId"] = str(self.repo.id)
-        # update with the new fields
-        config_data.update(data)
-        return self.client.put(self.url, config_data)
+        return self.client.put(
+            self.url,
+            {**config_data, **data, "repositoryId": self.repo.id},
+        )
 
     def test_basic_delete(self):
         resp = self.client.delete(self.url)

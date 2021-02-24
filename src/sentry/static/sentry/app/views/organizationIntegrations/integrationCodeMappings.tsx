@@ -76,7 +76,8 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     return [
       [
         'pathConfigs',
-        `/organizations/${orgSlug}/integrations/${this.integrationId}/repo-project-path-configs/`,
+        `/organizations/${orgSlug}/repo-project-path-configs/`,
+        {query: {integrationId: this.integrationId}},
       ],
       ['repos', `/organizations/${orgSlug}/repos/`, {query: {status: 'active'}}],
     ];
@@ -103,8 +104,8 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   }
 
   handleDelete = async (pathConfig: RepositoryProjectPathConfig) => {
-    const {organization, integration} = this.props;
-    const endpoint = `/organizations/${organization.slug}/integrations/${integration.id}/repo-project-path-configs/${pathConfig.id}/`;
+    const {organization} = this.props;
+    const endpoint = `/organizations/${organization.slug}/repo-project-path-configs/${pathConfig.id}/`;
     try {
       await this.api.requestPromise(endpoint, {
         method: 'DELETE',
