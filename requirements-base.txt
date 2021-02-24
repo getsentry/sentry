@@ -32,7 +32,7 @@ progressbar2==3.32.0
 psycopg2-binary==2.7.7
 PyJWT==1.5.3
 pyrsistent==0.17.3
-python-dateutil==2.8.1
+python-dateutil>=2.0.0,<3.0.0
 python-memcached==1.59
 python-u2flib-server==5.0.0
 python3-saml==1.4.1
