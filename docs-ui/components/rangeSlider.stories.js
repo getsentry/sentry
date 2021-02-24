@@ -3,7 +3,7 @@ import React from 'react';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 
 export default {
-  title: 'Core/Forms/Controls',
+  title: 'Forms/Controls',
 };
 
 export const _RangeSlider = () => (

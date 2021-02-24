@@ -10,8 +10,8 @@ import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {formatVersion} from 'app/utils/formatters';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
-import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 import {getCrashFreePercent} from 'app/views/releases/utils';
 import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
@@ -84,7 +84,7 @@ export function getReleaseEventView(
       const threshold =
         yAxis === YAxis.COUNT_DURATION
           ? organization?.apdexThreshold
-          : WEB_VITAL_DETAILS[vitalType].failureThreshold;
+          : WEB_VITAL_DETAILS[vitalType].poorThreshold;
       return EventView.fromSavedQuery({
         ...baseQuery,
         query: stringifyQueryObject(

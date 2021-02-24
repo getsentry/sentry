@@ -33,7 +33,11 @@ const FILE_EXTENSION_TO_PLATFORM = {
  */
 export function getFileExtension(fileName: string): string | undefined {
   // this won't work for something like .spec.jsx
-  return fileName.split('.').pop();
+  const segments = fileName.split('.');
+  if (segments.length > 1) {
+    return segments.pop();
+  }
+  return undefined;
 }
 
 /**

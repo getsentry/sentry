@@ -11,9 +11,14 @@ import {OrganizationSummary, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
+import {
+  EventLite,
+  QuickTraceQueryChildrenProps,
+  TraceLite,
+} from 'app/utils/performance/quickTrace/quickTraceQuery';
+import {isTransaction} from 'app/utils/performance/quickTrace/utils';
 import withProjects from 'app/utils/withProjects';
 
-import QuickTraceQuery, {EventLite, TraceLite} from './quickTraceQuery';
 import {
   DropdownItem,
   EventNode,
@@ -27,7 +32,6 @@ import {
   generateChildrenEventTarget,
   generateSingleEventTarget,
   generateTraceTarget,
-  isTransaction,
   parseTraceLite,
 } from './utils';
 
@@ -35,9 +39,15 @@ type Props = {
   event: Event;
   location: Location;
   organization: OrganizationSummary;
+  quickTrace: QuickTraceQueryChildrenProps;
 };
 
-export default function QuickTrace({event, location, organization}: Props) {
+export default function QuickTrace({
+  event,
+  location,
+  organization,
+  quickTrace: {isLoading, error, trace},
+}: Props) {
   // non transaction events are currently unsupported
   if (!isTransaction(event)) {
     return null;
@@ -46,40 +56,32 @@ export default function QuickTrace({event, location, organization}: Props) {
   const traceId = event.contexts?.trace?.trace_id ?? null;
   const traceTarget = generateTraceTarget(event, organization);
 
+  const body = isLoading ? (
+    <Placeholder height="33px" />
+  ) : error || trace === null ? (
+    '\u2014'
+  ) : (
+    <QuickTraceLite
+      event={event}
+      trace={trace}
+      location={location}
+      organization={organization}
+    />
+  );
+
   return (
-    <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
-      {({isLoading, error, trace}) => {
-        const body = isLoading ? (
-          <Placeholder height="33px" />
-        ) : error || trace === null ? (
+    <MetaData
+      headingText={t('Quick Trace')}
+      tooltipText={t('A minified version of the full trace.')}
+      bodyText={body}
+      subtext={
+        traceId === null ? (
           '\u2014'
         ) : (
-          <QuickTraceLite
-            event={event}
-            trace={trace}
-            location={location}
-            organization={organization}
-          />
-        );
-
-        return (
-          <MetaData
-            headingText={t('Quick Trace')}
-            tooltipText={t('A minified version of the full trace.')}
-            bodyText={body}
-            subtext={
-              traceId === null ? (
-                '\u2014'
-              ) : (
-                <Link to={traceTarget}>
-                  {t('Trace ID: %s', getShortEventId(traceId))}
-                </Link>
-              )
-            }
-          />
-        );
-      }}
-    </QuickTraceQuery>
+          <Link to={traceTarget}>{t('Trace ID: %s', getShortEventId(traceId))}</Link>
+        )
+      }
+    />
   );
 }
 
@@ -104,6 +106,7 @@ const QuickTraceLite = withProjects(
     if (root) {
       nodes.push(
         <EventNodeDropdown
+          key="root-node"
           organization={organization}
           projects={projects}
           location={location}
@@ -120,7 +123,7 @@ const QuickTraceLite = withProjects(
           </Tooltip>
         </EventNodeDropdown>
       );
-      nodes.push(<TraceConnector />);
+      nodes.push(<TraceConnector key="root-connector" />);
     }
 
     const traceTarget = generateTraceTarget(event, organization);
@@ -128,6 +131,7 @@ const QuickTraceLite = withProjects(
     if (root && current && root.event_id !== current.parent_event_id) {
       nodes.push(
         <EventNodeDropdown
+          key="ancestors-node"
           comingSoon
           organization={organization}
           projects={projects}
@@ -146,11 +150,11 @@ const QuickTraceLite = withProjects(
           </Tooltip>
         </EventNodeDropdown>
       );
-      nodes.push(<TraceConnector />);
+      nodes.push(<TraceConnector key="ancestors-connector" />);
     }
 
     nodes.push(
-      <EventNode key="current" type="black">
+      <EventNode key="current-node" type="black">
         {t('This Event')}
       </EventNode>
     );
@@ -163,9 +167,10 @@ const QuickTraceLite = withProjects(
         projects,
         location
       );
-      nodes.push(<TraceConnector />);
+      nodes.push(<TraceConnector key="children-connector" />);
       nodes.push(
         <EventNodeDropdown
+          key="children-node"
           organization={organization}
           projects={projects}
           location={location}
@@ -191,9 +196,10 @@ const QuickTraceLite = withProjects(
         </EventNodeDropdown>
       );
 
-      nodes.push(<TraceConnector />);
+      nodes.push(<TraceConnector key="descendants-connector" />);
       nodes.push(
         <EventNodeDropdown
+          key="descendants-node"
           comingSoon
           organization={organization}
           projects={projects}
