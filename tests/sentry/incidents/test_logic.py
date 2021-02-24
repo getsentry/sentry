@@ -11,6 +11,7 @@ from django.core import mail
 from django.utils import timezone
 
 from sentry.api.event_search import InvalidSearchQuery
+from sentry.api.fields.actor import Actor
 from sentry.incidents.events import (
     IncidentCommentCreatedEvent,
     IncidentCreatedEvent,
@@ -839,7 +840,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project],
             "alert rule 1",
-            self.user,
+            Actor.from_actor_identifier(self.user.id),
             "level:error",
             "count()",
             1,
@@ -852,7 +853,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project],
             "alert rule 2",
-            self.team,
+            Actor.from_actor_identifier(f"team:{self.team.id}"),
             "level:error",
             "count()",
             1,
@@ -1077,6 +1078,45 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert action_snapshot.target_type == action.target_type
             assert action_snapshot.target_identifier == action.target_identifier
             assert action_snapshot.target_display == action.target_display
+
+    def test_alert_rule_owner(self):
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "alert rule 1",
+            Actor.from_actor_identifier(self.user.id),
+            "level:error",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+        )
+        assert alert_rule.owner_id() == f"user:{self.user.id}"
+        assert alert_rule.owner().get_actor_id() == f"user:{self.user.id}"
+        update_alert_rule(
+            alert_rule=alert_rule,
+            owner=Actor.from_actor_identifier(f"team:{self.team.id}"),
+        )
+        assert alert_rule.owner_id() == f"team:{self.team.id}"
+        assert alert_rule.owner().get_actor_id() == f"team:{self.team.id}"
+        update_alert_rule(
+            alert_rule=alert_rule,
+            owner=Actor.from_actor_identifier(f"user:{self.user.id}"),
+        )
+        assert alert_rule.owner_id() == f"user:{self.user.id}"
+        assert alert_rule.owner().get_actor_id() == f"user:{self.user.id}"
+        update_alert_rule(
+            alert_rule=alert_rule,
+            owner=Actor.from_actor_identifier(self.user.id),
+        )
+        assert alert_rule.owner_id() == f"user:{self.user.id}"
+        assert alert_rule.owner().get_actor_id() == f"user:{self.user.id}"
+        update_alert_rule(
+            alert_rule=alert_rule,
+            name="not updating owner",
+        )
+        assert alert_rule.owner_id() == f"user:{self.user.id}"
+        assert alert_rule.owner().get_actor_id() == f"user:{self.user.id}"
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):

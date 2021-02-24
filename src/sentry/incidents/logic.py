@@ -30,8 +30,10 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentStatusMethod,
     IncidentSubscription,
+    Team,
     TimeSeriesSnapshot,
     TriggerStatus,
+    User,
 )
 from sentry.models import Integration, Project, PagerDutyService, SentryApp
 from sentry.snuba.dataset import Dataset
@@ -627,7 +629,6 @@ def create_alert_rule(
 
     :return: The created `AlertRule`
     """
-    print("huh")
     resolution = DEFAULT_ALERT_RULE_RESOLUTION
     validate_alert_rule_query(query)
     if AlertRule.objects.filter(organization=organization, name=name).exists():
@@ -642,28 +643,12 @@ def create_alert_rule(
             environment,
             event_types=event_types,
         )
-
-        # try:
-        from sentry.models import User, Team
-
-        print("owner:", owner)
-        print("owner.type:", owner.type)
-        print("owner.type.lower name:", owner.type.__name__.lower())
-        print("team:", Team)
-        print("team type?:", type(Team))
-        print("team type?:", type(Team))
-        print("owner type?:", typeof(owner.type))
-        print("type is a team::", isinstance(owner.type, Team))
-        if isinstance(owner.type, User):
-            team_id = None
+        team_id = None
+        user_id = None
+        if owner.type == User:
             user_id = owner.id
-        elif isinstance(owner.type, Team):
+        elif owner.type == Team:
             team_id = owner.id
-            user_id = None
-        # except Exception e:
-        # print("exception!")
-        # team_id = None
-        # user_id = None
 
         alert_rule = AlertRule.objects.create(
             organization=organization,
@@ -810,14 +795,12 @@ def update_alert_rule(
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
     if owner is not None:
-        from sentry.models import User, Team
-
-        if isinstance(owner, User):
-            updated_query_fields["team"] = None
-            updated_query_fields["user"] = owner
-        elif isinstance(owner, Team):
-            updated_query_fields["team"] = owner
-            updated_query_fields["user"] = None
+        updated_fields["team"] = None
+        updated_fields["user"] = None
+        if owner.type == User:
+            updated_fields["user"] = owner.resolve()
+        elif owner.type == Team:
+            updated_fields["team"] = owner.resolve()
 
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
