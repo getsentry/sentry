@@ -6,7 +6,7 @@ import SelectCreatableField from 'app/components/forms/selectCreatableField';
 import SelectField from 'app/components/forms/selectField';
 
 export default {
-  title: 'Core/Forms/Fields/Old',
+  title: 'Forms/Fields/Old',
 };
 
 export const _SelectField = () => (
