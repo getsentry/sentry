@@ -1,10 +1,10 @@
 import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, LooseFieldKey} from 'app/utils/discover/fields';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
   getQueryDatasource,
 } from 'app/views/alerts/utils';
-import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 import {
   AlertRuleThresholdType,
   Dataset,

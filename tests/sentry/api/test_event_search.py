@@ -2389,9 +2389,14 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["epm(30)"]
+            fields = ["epm(0)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "epm(30): interval argument invalid: 30 must be greater than or equal to 60" in str(
+        assert "epm(0): interval argument invalid: 0 must be greater than or equal to 1" in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["epm(-1)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "epm(-1): interval argument invalid: -1 must be greater than or equal to 1" in str(
             err
         )
 
@@ -3147,6 +3152,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["min(timestamp)", "timestamp"],
             ["max(timestamp)", "timestamp"],
             ["p95()", "transaction.duration"],
+            ["any(measurements.fcp)", "measurements.fcp"],
         ]
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as error:

@@ -70,5 +70,5 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
                 remove_excess_recent_searches(organization, request.user, result["type"])
             status = 201 if created else 204
 
-            return Response("", status=status)
+            return Response(status=status)
         return Response(serializer.errors, status=400)
