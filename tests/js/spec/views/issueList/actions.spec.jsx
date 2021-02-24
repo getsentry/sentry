@@ -3,7 +3,7 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {selectByLabel} from 'sentry-test/select';
+import {selectByLabel} from 'sentry-test/select-new';
 
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import {IssueListActions} from 'app/views/issueList/actions';
@@ -365,8 +365,7 @@ describe('IssueListActions', function () {
           realtimeActive={false}
           statsPeriod="24h"
           queryCount={100}
-          queryMaxCount={100}
-          pageCount={3}
+          displayCount="3 of 3"
           hasInbox
         />,
         TestStubs.routerContext()

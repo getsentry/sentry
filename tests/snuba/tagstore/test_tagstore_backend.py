@@ -3,7 +3,7 @@ import pytest
 
 from django.utils import timezone
 
-from sentry.models import Environment, EventUser
+from sentry.models import Environment, EventUser, ReleaseProjectEnvironment, Release
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,
@@ -17,14 +17,16 @@ from sentry.testutils.helpers.datetime import iso_format
 
 class TagStorageTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(TagStorageTest, self).setUp()
+        super().setUp()
 
         self.ts = SnubaTagStorage()
 
         self.proj1 = self.create_project()
         env1 = "test"
         env2 = "test2"
-
+        self.env3 = Environment.objects.create(
+            organization_id=self.proj1.organization_id, name="test3"
+        )
         self.now = timezone.now().replace(microsecond=0)
 
         exception = {
@@ -124,9 +126,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
             )
         )
         tags = [r.key for r in result]
-        assert set(tags) == set(
-            ["foo", "baz", "environment", "sentry:release", "sentry:user", "level"]
-        )
+        assert set(tags) == {"foo", "baz", "environment", "sentry:release", "sentry:user", "level"}
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == "baz"
@@ -137,7 +137,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert result[4].count == 2
         top_release_values = result[4].top_values
         assert len(top_release_values) == 2
-        assert set(v.value for v in top_release_values) == set(["100", "200"])
+        assert {v.value for v in top_release_values} == {"100", "200"}
         assert all(v.times_seen == 1 for v in top_release_values)
 
         # Now with only a specific set of keys,
@@ -150,7 +150,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
             )
         )
         tags = [r.key for r in result]
-        assert set(tags) == set(["environment", "sentry:release"])
+        assert set(tags) == {"environment", "sentry:release"}
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == "environment"
@@ -159,7 +159,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert result[1].key == "sentry:release"
         top_release_values = result[1].top_values
         assert len(top_release_values) == 2
-        assert set(v.value for v in top_release_values) == set(["100", "200"])
+        assert {v.value for v in top_release_values} == {"100", "200"}
         assert all(v.times_seen == 1 for v in top_release_values)
 
     def test_get_top_group_tag_values(self):
@@ -181,9 +181,15 @@ class TagStorageTest(TestCase, SnubaTestCase):
         )
 
     def test_get_tag_keys(self):
-        expected_keys = set(
-            ["baz", "browser", "environment", "foo", "sentry:release", "sentry:user", "level"]
-        )
+        expected_keys = {
+            "baz",
+            "browser",
+            "environment",
+            "foo",
+            "sentry:release",
+            "sentry:user",
+            "level",
+        }
         keys = {
             k.key: k
             for k in self.ts.get_tag_keys(
@@ -226,9 +232,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 environment_ids=[self.proj1env1.id],
             )
         }
-        assert set(keys) == set(
-            ["baz", "environment", "foo", "sentry:release", "sentry:user", "level"]
-        )
+        assert set(keys) == {"baz", "environment", "foo", "sentry:release", "sentry:user", "level"}
 
     def test_get_group_tag_value(self):
         with pytest.raises(GroupTagValueNotFound):
@@ -247,7 +251,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 environment_id=self.proj1env1.id,
                 key="notreal",
             )
-            == set([])
+            == set()
         )
 
         assert (
@@ -341,21 +345,22 @@ class TagStorageTest(TestCase, SnubaTestCase):
     def test_get_group_ids_for_users(self):
         assert self.ts.get_group_ids_for_users(
             [self.proj1.id], [EventUser(project_id=self.proj1.id, ident="user1")]
-        ) == set([self.proj1group1.id, self.proj1group2.id])
+        ) == {self.proj1group1.id, self.proj1group2.id}
 
         assert self.ts.get_group_ids_for_users(
             [self.proj1.id], [EventUser(project_id=self.proj1.id, ident="user2")]
-        ) == set([self.proj1group1.id])
+        ) == {self.proj1group1.id}
 
     def test_get_group_tag_values_for_users(self):
         result = self.ts.get_group_tag_values_for_users(
             [EventUser(project_id=self.proj1.id, ident="user1")]
         )
         assert len(result) == 2
-        assert set(v.group_id for v in result) == set([self.proj1group1.id, self.proj1group2.id])
-        assert set(v.last_seen for v in result) == set(
-            [self.now - timedelta(seconds=1), self.now - timedelta(seconds=2)]
-        )
+        assert {v.group_id for v in result} == {self.proj1group1.id, self.proj1group2.id}
+        assert {v.last_seen for v in result} == {
+            self.now - timedelta(seconds=1),
+            self.now - timedelta(seconds=2),
+        }
         result.sort(key=lambda x: x.last_seen)
         assert result[0].last_seen == self.now - timedelta(seconds=2)
         assert result[1].last_seen == self.now - timedelta(seconds=1)
@@ -370,7 +375,9 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert result[0].last_seen == self.now - timedelta(seconds=2)
 
     def test_get_release_tags(self):
-        tags = list(self.ts.get_release_tags([self.proj1.id], None, ["100"]))
+        tags = list(
+            self.ts.get_release_tags(self.proj1.organization_id, [self.proj1.id], None, ["100"])
+        )
 
         assert len(tags) == 1
         one_second_ago = self.now - timedelta(seconds=1)
@@ -379,10 +386,69 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert tags[0].times_seen == 1
         assert tags[0].key == "sentry:release"
 
+    def test_get_release_tags_uses_release_project_environment(self):
+        tags = list(
+            self.ts.get_release_tags(self.proj1.organization_id, [self.proj1.id], None, ["100"])
+        )
+
+        assert len(tags) == 1
+        one_second_ago = self.now - timedelta(seconds=1)
+        assert tags[0].last_seen == one_second_ago
+        assert tags[0].first_seen == one_second_ago
+        assert tags[0].times_seen == 1
+
+        one_day_ago = self.now - timedelta(days=1)
+        two_days_ago = self.now - timedelta(days=2)
+        self.store_event(
+            data={
+                "event_id": "5" * 32,
+                "message": "message3",
+                "platform": "python",
+                "environment": None,
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(one_day_ago),
+                "tags": {
+                    "sentry:release": 100,
+                },
+            },
+            project_id=self.proj1.id,
+        )
+
+        release = Release.objects.create(version="100", organization=self.organization)
+        ReleaseProjectEnvironment.objects.create(
+            release_id=release.id,
+            project_id=self.proj1.id,
+            environment_id=self.env3.id,
+            first_seen=one_day_ago,
+        )
+
+        self.store_event(
+            data={
+                "event_id": "6" * 32,
+                "message": "message3",
+                "platform": "python",
+                "environment": None,
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(two_days_ago),
+                "tags": {
+                    "sentry:release": 100,
+                },
+            },
+            project_id=self.proj1.id,
+        )
+        tags = list(
+            self.ts.get_release_tags(self.proj1.organization_id, [self.proj1.id], None, ["100"])
+        )
+        assert tags[0].last_seen == one_second_ago
+        assert tags[0].first_seen == one_day_ago
+        assert (
+            tags[0].times_seen == 2
+        )  # Isn't 3 because start was limited by the ReleaseProjectEnvironment entry
+
     def test_get_group_event_filter(self):
         assert self.ts.get_group_event_filter(
             self.proj1.id, self.proj1group1.id, [self.proj1env1.id], {"foo": "bar"}, None, None
-        ) == {"event_id__in": set(["1" * 32, "2" * 32])}
+        ) == {"event_id__in": {"1" * 32, "2" * 32}}
 
         assert (
             self.ts.get_group_event_filter(
@@ -393,7 +459,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 (self.now - timedelta(seconds=1)),
                 None,
             )
-            == {"event_id__in": set(["1" * 32])}
+            == {"event_id__in": {"1" * 32}}
         )
 
         assert (
@@ -405,7 +471,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 None,
                 (self.now - timedelta(seconds=1)),
             )
-            == {"event_id__in": set(["2" * 32])}
+            == {"event_id__in": {"2" * 32}}
         )
 
         assert (
@@ -417,7 +483,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 None,
                 None,
             )
-            == {"event_id__in": set(["1" * 32, "2" * 32, "4" * 32])}
+            == {"event_id__in": {"1" * 32, "2" * 32, "4" * 32}}
         )
 
         assert (
@@ -429,7 +495,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 None,
                 None,
             )
-            == {"event_id__in": set(["2" * 32])}
+            == {"event_id__in": {"2" * 32}}
         )
 
         assert (
@@ -441,7 +507,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 None,
                 None,
             )
-            == {"event_id__in": set(["3" * 32])}
+            == {"event_id__in": {"3" * 32}}
         )
 
         assert (

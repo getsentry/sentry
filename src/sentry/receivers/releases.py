@@ -8,6 +8,7 @@ from sentry.models import (
     Commit,
     Group,
     GroupAssignee,
+    GroupInboxRemoveAction,
     GroupLink,
     GroupSubscription,
     GroupSubscriptionReason,
@@ -122,7 +123,7 @@ def resolved_in_commit(instance, created, **kwargs):
                 Group.objects.filter(id=group.id).update(
                     status=GroupStatus.RESOLVED, resolved_at=current_datetime
                 )
-                remove_group_from_inbox(group, action="resolved")
+                remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
         except IntegrityError:
             pass
         else:

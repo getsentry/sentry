@@ -1,10 +1,9 @@
 import logging
-import six
+import pickle
 
 from django.db.models import TextField
 
 from sentry.db.models.utils import Creator
-from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
 
 __all__ = ("GzippedDictField",)
@@ -23,11 +22,11 @@ class GzippedDictField(TextField):
         Add a descriptor for backwards compatibility
         with previous Django behavior.
         """
-        super(GzippedDictField, self).contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name)
         setattr(cls, name, Creator(self))
 
     def to_python(self, value):
-        if isinstance(value, six.string_types) and value:
+        if isinstance(value, str) and value:
             try:
                 value = pickle.loads(decompress(value))
             except Exception as e:
@@ -41,9 +40,9 @@ class GzippedDictField(TextField):
         if not value and self.null:
             # save ourselves some storage
             return None
-        # enforce six.text_type strings to guarantee consistency
-        if isinstance(value, six.binary_type):
-            value = six.text_type(value)
+        # enforce strings to guarantee consistency
+        if isinstance(value, bytes):
+            value = str(value)
         # db values need to be in unicode
         return compress(pickle.dumps(value))
 

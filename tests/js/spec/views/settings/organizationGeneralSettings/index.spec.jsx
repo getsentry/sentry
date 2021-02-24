@@ -7,8 +7,6 @@ import {mountGlobalModal} from 'sentry-test/modal';
 
 import OrganizationGeneralSettings from 'app/views/settings/organizationGeneralSettings';
 
-jest.mock('jquery');
-
 describe('OrganizationGeneralSettings', function () {
   let organization;
   let routerContext;
@@ -67,7 +65,7 @@ describe('OrganizationGeneralSettings', function () {
       .simulate('change', {target: {value: 'new-slug'}})
       .simulate('blur');
 
-    wrapper.find('SaveButton').simulate('click');
+    wrapper.find('button[aria-label="Save"]').simulate('click');
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
       expect.objectContaining({

@@ -145,7 +145,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             for item, version in zip(serialized_releases, versions)
         ]
 
-    @rate_limit_endpoint(limit=10, window=1)
+    @rate_limit_endpoint(limit=5, window=1)
     def get(self, request, group):
         """
         Retrieve an Issue
@@ -273,7 +273,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
             raise
 
-    @rate_limit_endpoint(limit=10, window=1)
+    @rate_limit_endpoint(limit=5, window=1)
     def put(self, request, group):
         """
         Update an Issue
@@ -302,16 +302,12 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         try:
-            from sentry.utils import snuba
-
             discard = request.data.get("discard")
 
             # TODO(dcramer): we need to implement assignedTo in the bulk mutation
             # endpoint
             response = client.put(
-                path="/projects/{}/{}/issues/".format(
-                    group.project.organization.slug, group.project.slug
-                ),
+                path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
                 params={"id": group.id},
                 data=request.data,
                 request=request,
@@ -338,26 +334,18 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     )
                 ),
             )
-            metrics.incr(
-                "group.update.http_response",
-                sample_rate=1.0,
-                tags={"status": response.status_code, "detail": "group_details:put:response"},
-            )
             return Response(serialized, status=response.status_code)
         except client.ApiError as e:
+            logging.error(
+                "group_details:put client.ApiError",
+                exc_info=True,
+            )
             metrics.incr(
-                "group.update.http_response",
+                "workflowslo.http_response",
                 sample_rate=1.0,
                 tags={"status": e.status_code, "detail": "group_details:put:client.ApiError"},
             )
             return Response(e.body, status=e.status_code)
-        except snuba.RateLimitExceeded:
-            metrics.incr(
-                "group.update.http_response",
-                sample_rate=1.0,
-                tags={"status": 429, "detail": "group_details:put:snuba.RateLimitExceeded"},
-            )
-            raise
         except Exception:
             metrics.incr(
                 "group.update.http_response",
@@ -366,7 +354,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
             raise
 
-    @rate_limit_endpoint(limit=10, window=1)
+    @rate_limit_endpoint(limit=5, window=1)
     def delete(self, request, group):
         """
         Remove an Issue

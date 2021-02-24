@@ -13,7 +13,7 @@ class AvatarSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
-        attrs = super(AvatarSerializer, self).validate(attrs)
+        attrs = super().validate(attrs)
         if attrs.get("avatar_type") == "upload":
             model_type = self.context["type"]
             has_existing_file = model_type.objects.filter(
@@ -26,7 +26,7 @@ class AvatarSerializer(serializers.Serializer):
         return attrs
 
 
-class AvatarMixin(object):
+class AvatarMixin:
     object_type = None
     model = None
 
@@ -38,7 +38,7 @@ class AvatarMixin(object):
         return {"type": self.model, "kwargs": {self.object_type: obj}}
 
     def get_avatar_filename(self, obj):
-        return "{}.png".format(obj.id)
+        return f"{obj.id}.png"
 
     def put(self, request, **kwargs):
         obj = kwargs[self.object_type]

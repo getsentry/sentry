@@ -1,5 +1,7 @@
 import {ImageStatus} from 'app/types/debugImage';
 
+export const IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT = 400;
+
 export function getStatusWeight(status?: ImageStatus | null) {
   switch (status) {
     case null:
@@ -24,7 +26,10 @@ export function combineStatus(
   return combined || ImageStatus.UNUSED;
 }
 
-export function getFileName(path: string) {
+export function getFileName(path?: string) {
+  if (!path) {
+    return undefined;
+  }
   const directorySeparator = /^([a-z]:\\|\\\\)/i.test(path) ? '\\' : '/';
   return path.split(directorySeparator).pop();
 }

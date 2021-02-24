@@ -1,7 +1,7 @@
 from django.conf import settings
 
 
-class NoIfModifiedSinceMiddleware(object):
+class NoIfModifiedSinceMiddleware:
     def __init__(self):
         if not settings.DEBUG:
             from django.core.exceptions import MiddlewareNotUsed

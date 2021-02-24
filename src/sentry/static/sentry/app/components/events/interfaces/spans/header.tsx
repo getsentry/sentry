@@ -8,6 +8,7 @@ import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
 import MeasurementsPanel from './measurementsPanel';
+import * as ScrollbarManager from './scrollbarManager';
 import {zIndex} from './styles';
 import {
   ParsedTraceType,
@@ -44,7 +45,36 @@ type PropType = {
   event: EventTransaction;
 };
 
-class TraceViewHeader extends React.Component<PropType> {
+type State = {
+  minimapWidth: number | undefined;
+};
+
+class TraceViewHeader extends React.Component<PropType, State> {
+  state: State = {
+    minimapWidth: undefined,
+  };
+
+  componentDidMount() {
+    this.fetchMinimapWidth();
+  }
+
+  componentDidUpdate() {
+    this.fetchMinimapWidth();
+  }
+
+  fetchMinimapWidth() {
+    const {minimapInteractiveRef} = this.props;
+    if (minimapInteractiveRef.current) {
+      const minimapWidth = minimapInteractiveRef.current.getBoundingClientRect().width;
+      if (minimapWidth !== this.state.minimapWidth) {
+        // eslint-disable-next-line react/no-did-update-set-state
+        this.setState({
+          minimapWidth,
+        });
+      }
+    }
+  }
+
   renderCursorGuide({
     cursorGuideHeight,
     showCursorGuide,
@@ -173,6 +203,90 @@ class TraceViewHeader extends React.Component<PropType> {
     );
   }
 
+  renderTicks() {
+    const {trace} = this.props;
+    const {minimapWidth} = this.state;
+
+    const duration = Math.abs(trace.traceEndTimestamp - trace.traceStartTimestamp);
+
+    let numberOfParts = 5;
+    if (minimapWidth) {
+      if (minimapWidth <= 350) {
+        numberOfParts = 4;
+      }
+      if (minimapWidth <= 280) {
+        numberOfParts = 3;
+      }
+      if (minimapWidth <= 160) {
+        numberOfParts = 2;
+      }
+      if (minimapWidth <= 130) {
+        numberOfParts = 1;
+      }
+    }
+
+    if (numberOfParts === 1) {
+      return (
+        <TickLabel
+          key="1"
+          duration={duration * 0.5}
+          style={{
+            left: toPercent(0.5),
+          }}
+        />
+      );
+    }
+
+    const segment = 1 / (numberOfParts - 1);
+
+    const ticks: React.ReactNode[] = [];
+    for (let currentPart = 0; currentPart < numberOfParts; currentPart++) {
+      if (currentPart === 0) {
+        ticks.push(
+          <TickLabel
+            key="first"
+            align={TickAlignment.Left}
+            hideTickMarker
+            duration={0}
+            style={{
+              left: space(1),
+            }}
+          />
+        );
+        continue;
+      }
+
+      if (currentPart === numberOfParts - 1) {
+        ticks.push(
+          <TickLabel
+            key="last"
+            duration={duration}
+            align={TickAlignment.Right}
+            hideTickMarker
+            style={{
+              right: space(1),
+            }}
+          />
+        );
+        continue;
+      }
+
+      const progress = segment * currentPart;
+
+      ticks.push(
+        <TickLabel
+          key={String(currentPart)}
+          duration={duration * progress}
+          style={{
+            left: toPercent(progress),
+          }}
+        />
+      );
+    }
+
+    return ticks;
+  }
+
   renderTimeAxis({
     showCursorGuide,
     mouseLeft,
@@ -180,66 +294,9 @@ class TraceViewHeader extends React.Component<PropType> {
     showCursorGuide: boolean;
     mouseLeft: number | undefined;
   }) {
-    const {trace} = this.props;
-
-    const duration = Math.abs(trace.traceEndTimestamp - trace.traceStartTimestamp);
-
-    const firstTick = (
-      <TickLabel
-        align={TickAlignment.Left}
-        hideTickMarker
-        duration={0}
-        style={{
-          left: space(1),
-        }}
-      />
-    );
-
-    const secondTick = (
-      <TickLabel
-        duration={duration * 0.25}
-        style={{
-          left: '25%',
-        }}
-      />
-    );
-
-    const thirdTick = (
-      <TickLabel
-        duration={duration * 0.5}
-        style={{
-          left: '50%',
-        }}
-      />
-    );
-
-    const fourthTick = (
-      <TickLabel
-        duration={duration * 0.75}
-        style={{
-          left: '75%',
-        }}
-      />
-    );
-
-    const lastTick = (
-      <TickLabel
-        duration={duration}
-        align={TickAlignment.Right}
-        hideTickMarker
-        style={{
-          right: space(1),
-        }}
-      />
-    );
-
     return (
       <TimeAxis>
-        {firstTick}
-        {secondTick}
-        {thirdTick}
-        {fourthTick}
-        {lastTick}
+        {this.renderTicks()}
         {this.renderCursorGuide({
           showCursorGuide,
           mouseLeft,
@@ -302,7 +359,21 @@ class TraceViewHeader extends React.Component<PropType> {
                   // the width of this component is shrunk to compensate for half of the width of the divider line
                   width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
                 }}
-              />
+              >
+                <ScrollbarManager.Consumer>
+                  {({virtualScrollbarRef, onDragStart}) => {
+                    return (
+                      <VirtualScrollBar
+                        data-type="virtual-scrollbar"
+                        ref={virtualScrollbarRef}
+                        onMouseDown={onDragStart}
+                      >
+                        <VirtualScrollBarGrip />
+                      </VirtualScrollBar>
+                    );
+                  }}
+                </ScrollbarManager.Consumer>
+              </ScrollBarContainer>
               <DividerSpacer />
               {hasMeasurements ? (
                 <MeasurementsPanel
@@ -321,66 +392,96 @@ class TraceViewHeader extends React.Component<PropType> {
   render() {
     return (
       <HeaderContainer>
-        <ActualMinimap trace={this.props.trace} />
-        <CursorGuideHandler.Consumer>
-          {({displayCursorGuide, hideCursorGuide, mouseLeft, showCursorGuide}) => (
-            <div
-              ref={this.props.minimapInteractiveRef}
-              style={{
-                width: '100%',
-                height: `${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px`,
-                position: 'absolute',
-                left: 0,
-                top: 0,
-              }}
-              onMouseEnter={event => {
-                displayCursorGuide(event.pageX);
-              }}
-              onMouseLeave={() => {
-                hideCursorGuide();
-              }}
-              onMouseMove={event => {
-                displayCursorGuide(event.pageX);
-              }}
-              onMouseDown={event => {
-                const target = event.target;
+        <DividerHandlerManager.Consumer>
+          {dividerHandlerChildrenProps => {
+            const {dividerPosition} = dividerHandlerChildrenProps;
+            return (
+              <React.Fragment>
+                <OperationsBreakdown
+                  style={{
+                    width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                  }}
+                />
+                <DividerSpacer
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                    height: `${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px`,
+                  }}
+                />
+                <ActualMinimap
+                  trace={this.props.trace}
+                  dividerPosition={dividerPosition}
+                />
+                <CursorGuideHandler.Consumer>
+                  {({
+                    displayCursorGuide,
+                    hideCursorGuide,
+                    mouseLeft,
+                    showCursorGuide,
+                  }) => (
+                    <RightSidePane
+                      ref={this.props.minimapInteractiveRef}
+                      style={{
+                        width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
+                        left: `calc(${toPercent(dividerPosition)} + 0.5px)`,
+                      }}
+                      onMouseEnter={event => {
+                        displayCursorGuide(event.pageX);
+                      }}
+                      onMouseLeave={() => {
+                        hideCursorGuide();
+                      }}
+                      onMouseMove={event => {
+                        displayCursorGuide(event.pageX);
+                      }}
+                      onMouseDown={event => {
+                        const target = event.target;
 
-                if (
-                  target instanceof Element &&
-                  target.getAttribute &&
-                  target.getAttribute('data-ignore')
-                ) {
-                  // ignore this event if we need to
-                  return;
-                }
+                        if (
+                          target instanceof Element &&
+                          target.getAttribute &&
+                          target.getAttribute('data-ignore')
+                        ) {
+                          // ignore this event if we need to
+                          return;
+                        }
 
-                this.props.dragProps.onWindowSelectionDragStart(event);
-              }}
-            >
-              <MinimapContainer>
-                {this.renderFog(this.props.dragProps)}
-                {this.renderCursorGuide({
-                  showCursorGuide,
-                  mouseLeft,
-                  cursorGuideHeight: MINIMAP_HEIGHT,
-                })}
-                {this.renderViewHandles(this.props.dragProps)}
-                {this.renderWindowSelection(this.props.dragProps)}
-              </MinimapContainer>
-              {this.renderTimeAxis({
-                showCursorGuide,
-                mouseLeft,
-              })}
-            </div>
-          )}
-        </CursorGuideHandler.Consumer>
-        {this.renderSecondaryHeader()}
+                        this.props.dragProps.onWindowSelectionDragStart(event);
+                      }}
+                    >
+                      <MinimapContainer>
+                        {this.renderFog(this.props.dragProps)}
+                        {this.renderCursorGuide({
+                          showCursorGuide,
+                          mouseLeft,
+                          cursorGuideHeight: MINIMAP_HEIGHT,
+                        })}
+                        {this.renderViewHandles(this.props.dragProps)}
+                        {this.renderWindowSelection(this.props.dragProps)}
+                      </MinimapContainer>
+                      {this.renderTimeAxis({
+                        showCursorGuide,
+                        mouseLeft,
+                      })}
+                    </RightSidePane>
+                  )}
+                </CursorGuideHandler.Consumer>
+                {this.renderSecondaryHeader()}
+              </React.Fragment>
+            );
+          }}
+        </DividerHandlerManager.Consumer>
       </HeaderContainer>
     );
   }
 }
 
-class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
+class ActualMinimap extends React.PureComponent<{
+  trace: ParsedTraceType;
+  dividerPosition: number;
+}> {
   renderRootSpan(): React.ReactNode {
     const {trace} = this.props;
 
@@ -523,8 +624,15 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
   }
 
   render() {
+    const {dividerPosition} = this.props;
     return (
-      <MinimapBackground>
+      <MinimapBackground
+        style={{
+          // the width of this component is shrunk to compensate for half of the width of the divider line
+          width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
+          left: `calc(${toPercent(dividerPosition)} + 0.5px)`,
+        }}
+      >
         <BackgroundSlider id="minimap-background-slider">
           {this.renderRootSpan()}
         </BackgroundSlider>
@@ -544,6 +652,7 @@ const TimeAxis = styled('div')`
   color: ${p => p.theme.gray300};
   font-size: 10px;
   font-weight: 500;
+  overflow: hidden;
 `;
 
 const TickLabelContainer = styled('div')`
@@ -634,16 +743,16 @@ const HeaderContainer = styled('div')`
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
   height: ${MINIMAP_CONTAINER_HEIGHT}px;
+  border-top-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
 `;
 
 const MinimapBackground = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
   max-height: ${MINIMAP_HEIGHT}px;
   overflow: hidden;
-  width: 100%;
   position: absolute;
   top: 0;
-  left: 0;
 `;
 
 const MinimapContainer = styled('div')`
@@ -676,7 +785,8 @@ const ViewHandle = styled('div')<{isDragging: boolean}>`
 `;
 
 const Fog = styled('div')`
-  background-color: rgba(108, 95, 199, 0.1);
+  background-color: ${p => p.theme.textColor};
+  opacity: 0.1;
   position: absolute;
   top: 0;
 `;
@@ -733,7 +843,8 @@ const WindowSelection = styled('div')`
   position: absolute;
   top: 0;
   height: ${MINIMAP_HEIGHT}px;
-  background-color: rgba(69, 38, 80, 0.1);
+  background-color: ${p => p.theme.textColor};
+  opacity: 0.1;
 `;
 
 const SecondaryHeader = styled('div')`
@@ -749,7 +860,7 @@ const SecondaryHeader = styled('div')`
 
 const DividerSpacer = styled('div')`
   width: 1px;
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.border};
 `;
 
 const ScrollBarContainer = styled('div')`
@@ -760,9 +871,43 @@ const ScrollBarContainer = styled('div')`
   left: 0;
   bottom: 0;
   & > div[data-type='virtual-scrollbar'].dragging > div {
-    background-color: ${p => p.theme.gray500};
+    background-color: ${p => p.theme.textColor};
+    opacity: 0.8;
     cursor: grabbing;
   }
+`;
+
+const OperationsBreakdown = styled('div')`
+  height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
+  position: absolute;
+  left: 0;
+  top: 0;
+`;
+
+const RightSidePane = styled('div')`
+  height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
+  position: absolute;
+  top: 0;
+`;
+
+const VirtualScrollBar = styled('div')`
+  height: 8px;
+  width: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+  position: relative;
+  top: 0;
+  left: 0;
+  cursor: grab;
+`;
+
+const VirtualScrollBarGrip = styled('div')`
+  height: 8px;
+  width: 100%;
+  border-radius: 20px;
+  transition: background-color 150ms ease;
+  background-color: ${p => p.theme.textColor};
+  opacity: 0.5;
 `;
 
 export default TraceViewHeader;

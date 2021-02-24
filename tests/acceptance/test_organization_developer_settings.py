@@ -7,16 +7,14 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
     """
 
     def setUp(self):
-        super(OrganizationDeveloperSettingsNewAcceptanceTest, self).setUp()
+        super().setUp()
         self.team = self.create_team(organization=self.organization, name="Tesla Motors")
         self.project = self.create_project(
             organization=self.organization, teams=[self.team], name="Model S"
         )
 
         self.login_as(self.user)
-        self.org_developer_settings_path = "/settings/{}/developer-settings/".format(
-            self.organization.slug
-        )
+        self.org_developer_settings_path = f"/settings/{self.organization.slug}/developer-settings/"
 
     def load_page(self, url):
         self.browser.get(url)
@@ -53,7 +51,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
     """
 
     def setUp(self):
-        super(OrganizationDeveloperSettingsEditAcceptanceTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Tesla", owner=self.user)
         self.team = self.create_team(organization=self.org, name="Tesla Motors")
@@ -65,8 +63,8 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-        self.org_developer_settings_path = "/settings/{}/developer-settings/{}".format(
-            self.org.slug, self.sentry_app.slug
+        self.org_developer_settings_path = (
+            f"/settings/{self.org.slug}/developer-settings/{self.sentry_app.slug}"
         )
 
     def load_page(self, url):
@@ -94,7 +92,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
     def test_remove_tokens_internal_app(self):
         internal_app = self.create_internal_integration(name="Internal App", organization=self.org)
-        url = "/settings/{}/developer-settings/{}".format(self.org.slug, internal_app.slug)
+        url = f"/settings/{self.org.slug}/developer-settings/{internal_app.slug}"
 
         self.load_page(url)
 
@@ -107,7 +105,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
     def test_add_tokens_internal_app(self):
         internal_app = self.create_internal_integration(name="Internal App", organization=self.org)
-        url = "/settings/{}/developer-settings/{}".format(self.org.slug, internal_app.slug)
+        url = f"/settings/{self.org.slug}/developer-settings/{internal_app.slug}"
 
         self.load_page(url)
 

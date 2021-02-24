@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import {IconAdd, IconDelete} from 'app/icons';
+import {IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -13,6 +13,7 @@ import {
 import {Widget} from 'app/views/dashboardsV2/types';
 import ColumnEditCollection from 'app/views/eventsV2/table/columnEditCollection';
 import {QueryField} from 'app/views/eventsV2/table/queryField';
+import {FieldValueKind} from 'app/views/eventsV2/table/types';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Field from 'app/views/settings/components/forms/field';
 
@@ -49,7 +50,7 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
     event.preventDefault();
 
     const newFields = [...fields];
-    newFields.splice(fieldIndex, fieldIndex + 1);
+    newFields.splice(fieldIndex, 1);
     onChange(newFields);
   }
 
@@ -84,6 +85,10 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
     );
   }
 
+  const showAddYAxisButton = !(
+    ['world_map', 'big_number'].includes(displayType) && fields.length === 1
+  );
+
   return (
     <Field
       data-test-id="y-axis"
@@ -100,6 +105,9 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
             fieldValue={explodeField({field})}
             fieldOptions={fieldOptions}
             onChange={value => handleChangeField(value, i)}
+            filterPrimaryOptions={option => {
+              return option.value.kind === FieldValueKind.FUNCTION;
+            }}
           />
           {fields.length > 1 && (
             <Button
@@ -107,16 +115,18 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
               borderless
               onClick={event => handleRemove(event, i)}
               icon={<IconDelete />}
-              title={t('Remove this overlay')}
-              label={t('Remove this overlay')}
+              title={t('Remove this Y-Axis')}
+              label={t('Remove this Y-Axis')}
             />
           )}
         </QueryFieldWrapper>
       ))}
       <div>
-        <Button size="small" onClick={handleAdd} icon={<IconAdd isCircled />}>
-          {t('Add an overlay')}
-        </Button>
+        {showAddYAxisButton && (
+          <Button size="small" onClick={handleAdd}>
+            {t('Add Overlay')}
+          </Button>
+        )}
       </div>
     </Field>
   );

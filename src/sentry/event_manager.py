@@ -1,8 +1,6 @@
 import logging
-
-
+from io import BytesIO
 import ipaddress
-import six
 
 from datetime import datetime, timedelta
 from django.conf import settings
@@ -20,6 +18,7 @@ from sentry.constants import (
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
 )
+from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     get_grouping_config_dict_for_event_data,
@@ -58,10 +57,11 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry import quotas
 from sentry.signals import first_event_received, issue_unresolved
+from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
+from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.utils.dates import to_timestamp, to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
@@ -167,7 +167,7 @@ class ScoreClause(Func):
         # times_seen is likely an F-object that needs the value extracted
         if hasattr(self.times_seen, "rhs"):
             self.times_seen = self.times_seen.rhs.value
-        super(ScoreClause, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __int__(self):
         # Calculate the score manually when coercing to an int.
@@ -187,7 +187,7 @@ class ScoreClause(Func):
         return (sql, [])
 
 
-class EventManager(object):
+class EventManager:
     """
     Handles normalization in both the store endpoint and the save task. The
     intention is to swap this class out with a reimplementation in Rust.
@@ -251,9 +251,9 @@ class EventManager(object):
             project_id=self._project.id if self._project else project_id,
             client_ip=self._client_ip,
             client=self._auth.client if self._auth else None,
-            key_id=six.text_type(self._key.id) if self._key else None,
+            key_id=str(self._key.id) if self._key else None,
             grouping_config=self._grouping_config,
-            protocol_version=six.text_type(self.version) if self.version is not None else None,
+            protocol_version=str(self.version) if self.version is not None else None,
             is_renormalize=self._is_renormalize,
             remove_other=self._remove_other,
             normalize_user_agent=True,
@@ -358,12 +358,14 @@ class EventManager(object):
             # event.  If that config has since been deleted (because it was an
             # experimental grouping config) we fall back to the default.
             try:
-                hashes = job["event"].get_hashes()
+                flat_hashes, hierarchical_hashes = job["event"].get_hashes()
             except GroupingConfigNotFound:
                 job["data"]["grouping_config"] = get_grouping_config_dict_for_project(project)
-                hashes = job["event"].get_hashes()
+                flat_hashes, hierarchical_hashes = job["event"].get_hashes()
 
-        job["data"]["hashes"] = hashes
+        job["data"]["hashes"] = flat_hashes
+        if hierarchical_hashes:
+            job["data"]["hierarchical_hashes"] = hierarchical_hashes
 
         _materialize_metadata_many(jobs)
 
@@ -396,7 +398,7 @@ class EventManager(object):
 
         try:
             job["group"], job["is_new"], job["is_regression"] = _save_aggregate(
-                event=job["event"], hashes=hashes, release=job["release"], **kwargs
+                event=job["event"], flat_hashes=flat_hashes, release=job["release"], **kwargs
             )
         except HashDiscarded:
             discard_event(job, attachments)
@@ -443,7 +445,7 @@ class EventManager(object):
         _materialize_event_metrics(jobs)
 
         for attachment in attachments:
-            key = "bytes.stored.%s" % (attachment.type,)
+            key = f"bytes.stored.{attachment.type}"
             old_bytes = job["event_metrics"].get(key) or 0
             job["event_metrics"][key] = old_bytes + attachment.size
 
@@ -519,7 +521,6 @@ def _pull_out_data(jobs, projects):
         data = job["data"]
 
         # Pull the toplevel data we're interested in
-        job["culprit"] = get_culprit(data)
 
         transaction_name = data.get("transaction")
         if transaction_name:
@@ -577,7 +578,7 @@ def _get_or_create_release_many(jobs, projects):
         if old_datetime is None or new_datetime > old_datetime:
             release_date_added[release_key] = new_datetime
 
-    for (project_id, version), jobs_to_update in six.iteritems(jobs_with_releases):
+    for (project_id, version), jobs_to_update in jobs_with_releases.items():
         release = Release.get_or_create(
             project=projects[project_id],
             version=version,
@@ -616,9 +617,7 @@ def _get_event_user_many(jobs, projects):
 @metrics.wraps("save_event.derive_plugin_tags_many")
 def _derive_plugin_tags_many(jobs, projects):
     # XXX: We ought to inline or remove this one for sure
-    plugins_for_projects = {
-        p.id: plugins.for_project(p, version=None) for p in six.itervalues(projects)
-    }
+    plugins_for_projects = {p.id: plugins.for_project(p, version=None) for p in projects.values()}
 
     for job in jobs:
         for plugin in plugins_for_projects[job["project_id"]]:
@@ -636,7 +635,7 @@ def _derive_interface_tags_many(jobs):
     # XXX: We ought to inline or remove this one for sure
     for job in jobs:
         data = job["data"]
-        for path, iface in six.iteritems(job["event"].interfaces):
+        for path, iface in job["event"].interfaces.items():
             for k, v in iface.iter_tags():
                 set_tag(data, k, v)
 
@@ -654,7 +653,12 @@ def _materialize_metadata_many(jobs):
         # picks up the data right from the snuba topic.  For most usage
         # however the data is dynamically overridden by Event.title and
         # Event.location (See Event.as_dict)
+        #
+        # We also need to ensure the culprit is accurately reflected at
+        # the point of metadata materialization as we need to ensure that
+        # processing happens before.
         data = job["data"]
+        job["culprit"] = get_culprit(data)
         job["materialized_metadata"] = metadata = materialize_metadata(data)
         data.update(metadata)
         data["culprit"] = job["culprit"]
@@ -751,7 +755,18 @@ def _tsdb_record_all_metrics(jobs):
 def _nodestore_save_many(jobs):
     for job in jobs:
         # Write the event to Nodestore
-        job["event"].data.save()
+        subkeys = {}
+
+        if job["group"]:
+            event = job["event"]
+            data = event_processing_store.get(
+                cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
+                unprocessed=True,
+            )
+            if data is not None:
+                subkeys["unprocessed"] = data
+
+        job["event"].data.save(subkeys=subkeys)
 
 
 @metrics.wraps("save_event.eventstream_insert_many")
@@ -820,7 +835,7 @@ def _get_event_user_impl(project, data, metrics_tags):
 
     if ip_address:
         try:
-            ipaddress.ip_address(six.text_type(ip_address))
+            ipaddress.ip_address(str(ip_address))
         except ValueError:
             ip_address = None
 
@@ -836,7 +851,7 @@ def _get_event_user_impl(project, data, metrics_tags):
     if not euser.hash:
         return
 
-    cache_key = "euserid:1:{}:{}".format(project.id, euser.hash)
+    cache_key = f"euserid:1:{project.id}:{euser.hash}"
     euser_id = cache.get(cache_key)
     if euser_id is None:
         metrics_tags["cache_hit"] = "false"
@@ -890,11 +905,11 @@ def get_culprit(data):
     )
 
 
-def _save_aggregate(event, hashes, release, **kwargs):
+def _save_aggregate(event, flat_hashes, release, **kwargs):
     project = event.project
 
     # attempt to find a matching hash
-    all_hashes = _find_hashes(project, hashes)
+    all_hashes = _find_hashes(project, flat_hashes)
 
     existing_group_id = None
     for h in all_hashes:
@@ -1317,7 +1332,7 @@ def save_attachment(
         type=attachment.type,
         headers={"Content-Type": attachment.content_type},
     )
-    file.putfile(six.BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
+    file.putfile(BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
 
     EventAttachment.objects.create(
         event_id=event_id,
@@ -1385,7 +1400,7 @@ def _materialize_event_metrics(jobs):
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):
             if event_metrics.get(metric_name):
-                metrics.incr("event_manager.save.event_metrics.%s" % (metric_name,))
+                metrics.incr(f"event_manager.save.event_metrics.{metric_name}")
 
         job["event_metrics"] = event_metrics
 
@@ -1393,7 +1408,7 @@ def _materialize_event_metrics(jobs):
 @metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
-        organization_ids = set(project.organization_id for project in six.itervalues(projects))
+        organization_ids = {project.organization_id for project in projects.values()}
 
     with metrics.timer("event_manager.save_transactions.fetch_organizations"):
         organizations = {
@@ -1401,7 +1416,7 @@ def save_transaction_events(jobs, projects):
         }
 
     with metrics.timer("event_manager.save_transactions.set_organization_cache"):
-        for project in six.itervalues(projects):
+        for project in projects.values():
             try:
                 project._organization_cache = organizations[project.organization_id]
             except KeyError:

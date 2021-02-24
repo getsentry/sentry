@@ -3,31 +3,37 @@ import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
+import {ImageCandidate} from 'app/types/debugImage';
+
+import Status from './status';
+import {getStatusTooltipDescription} from './utils';
 
 type Props = {
-  children: React.ReactElement;
-  label: React.ReactNode;
-  description?: React.ReactNode;
-  disabled?: boolean;
+  candidate: ImageCandidate;
 };
 
-function StatusTagTooltip({label, description, disabled, children}: Props) {
+function StatusTooltip({candidate}: Props) {
+  const {download} = candidate;
+  const {label, description, disabled} = getStatusTooltipDescription(candidate);
+
   return (
     <Tooltip
       title={
-        <Title>
-          <Label>{label}</Label>
-          {description && <div>{description}</div>}
-        </Title>
+        label && (
+          <Title>
+            <Label>{label}</Label>
+            {description && <div>{description}</div>}
+          </Title>
+        )
       }
       disabled={disabled}
     >
-      {children}
+      <Status status={download.status} />
     </Tooltip>
   );
 }
 
-export default StatusTagTooltip;
+export default StatusTooltip;
 
 const Title = styled('div')`
   text-align: left;

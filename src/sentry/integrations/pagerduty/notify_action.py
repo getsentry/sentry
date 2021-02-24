@@ -2,7 +2,6 @@
 Used for notifying a *specific* plugin
 """
 
-import six
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
@@ -20,7 +19,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
         integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
         services = kwargs.pop("services")
 
-        super(PagerDutyNotifyServiceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if integrations:
             self.fields["account"].initial = integrations[0][0]
 
@@ -34,7 +33,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
         self.fields["service"].widget.choices = self.fields["service"].choices
 
     def clean(self):
-        cleaned_data = super(PagerDutyNotifyServiceForm, self).clean()
+        cleaned_data = super().clean()
 
         integration_id = cleaned_data.get("account")
         service_id = cleaned_data.get("service")
@@ -68,7 +67,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
     integration_key = "account"
 
     def __init__(self, *args, **kwargs):
-        super(PagerDutyNotifyServiceAction, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.form_fields = {
             "account": {
                 "type": "choice",
@@ -100,7 +99,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 self.logger.info(
                     "rule.fail.pagerduty_trigger",
                     extra={
-                        "error": six.text_type(e),
+                        "error": str(e),
                         "service_name": service.service_name,
                         "service_id": service.id,
                     },
@@ -119,7 +118,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 },
             )
 
-        key = "pagerduty:{}".format(integration.id)
+        key = f"pagerduty:{integration.id}"
         yield self.future(send_notification, key=key)
 
     def get_services(self):

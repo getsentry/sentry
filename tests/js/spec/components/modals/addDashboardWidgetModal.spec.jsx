@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {findOption, openMenu, selectByLabel} from 'sentry-test/select-new';
+import {selectByLabel} from 'sentry-test/select-new';
 
 import AddDashboardWidgetModal from 'app/components/modals/addDashboardWidgetModal';
 import TagStore from 'app/stores/tagStore';
@@ -34,6 +34,10 @@ async function clickSubmit(wrapper) {
   return tick();
 }
 
+function getDisplayType(wrapper) {
+  return wrapper.find('input[name="displayType"]');
+}
+
 describe('Modals -> AddDashboardWidgetModal', function () {
   const initialData = initializeOrg({
     organization: {
@@ -45,19 +49,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     {name: 'browser.name', key: 'browser.name'},
     {name: 'custom-field', key: 'custom-field'},
   ];
-  const discoverQuery = TestStubs.DiscoverSavedQuery({
-    name: 'Users with errors',
-    query: 'event.type: error',
-    fields: ['title', 'count_unique(user)'],
-    yAxis: 'count_unique(user)',
-  });
 
   beforeEach(function () {
     TagStore.onLoadTagsSuccess(tags);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/discover/saved/',
-      body: [discoverQuery],
-    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
@@ -67,6 +61,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {data: [{'event.type': 'error'}], meta: {'event.type': 'string'}},
     });
   });
 
@@ -133,7 +131,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     // Click the add button
-    const add = wrapper.find('button[aria-label="Add an overlay"]');
+    const add = wrapper.find('button[aria-label="Add Overlay"]');
     add.simulate('click');
     wrapper.update();
 
@@ -177,39 +175,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     // Nested object error should display
     const conditionError = wrapper.find('WidgetQueryForm FieldErrorReason');
     expect(conditionError).toHaveLength(1);
-  });
-
-  it('can set query state using discover queries', async function () {
-    let widget = undefined;
-    const wrapper = mountModal({
-      initialData,
-      onAddWidget: data => {
-        widget = data;
-      },
-    });
-    // Choose existing query source
-    wrapper.find('RadioGroup input[aria-label="existing"]').simulate('change');
-    await wrapper.update();
-
-    openMenu(wrapper, {name: 'discoverQuery', control: true});
-
-    // Multiple updates for react-select.
-    await wrapper.update();
-    await wrapper.update();
-    await wrapper.update();
-
-    findOption(
-      wrapper,
-      {label: 'Users with errors'},
-      {name: 'discoverQuery', control: true}
-    )
-      .at(0)
-      .simulate('click');
-
-    await clickSubmit(wrapper);
-
-    expect(widget.queries[0].conditions).toEqual(discoverQuery.query);
-    expect(widget.queries[0].fields).toEqual([discoverQuery.yAxis]);
   });
 
   it('can edit a widget', async function () {
@@ -297,6 +262,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       widget.displayType
     );
     expect(wrapper.find('WidgetQueryForm')).toHaveLength(1);
+    // Should have an orderby select
+    expect(wrapper.find('WidgetQueryForm SelectControl[name="orderby"]')).toHaveLength(1);
 
     // Add a column, and choose a value,
     wrapper.find('button[aria-label="Add a Column"]').simulate('click');
@@ -310,5 +277,100 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     // A new field should be added.
     expect(widget.queries[0].fields).toHaveLength(3);
     expect(widget.queries[0].fields[2]).toEqual('trace');
+  });
+
+  it('uses count() columns if there are no aggregate fields remaining when switching from table to chart', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+    // No delete button as there is only one field.
+    expect(wrapper.find('IconDelete')).toHaveLength(0);
+
+    // Select Table display
+    selectByLabel(wrapper, 'Table', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('table');
+
+    // Add field column
+    selectByLabel(wrapper, 'event.type', {name: 'field', at: 0, control: true});
+    let fieldColumn = wrapper.find('input[name="field"]');
+    expect(fieldColumn.props().value).toEqual({
+      kind: 'field',
+      meta: {dataType: 'string', name: 'event.type'},
+    });
+
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('line');
+
+    // Expect event.type field to be converted to count()
+    fieldColumn = wrapper.find('input[name="field"]');
+    expect(fieldColumn.props().value).toEqual({
+      kind: 'function',
+      meta: {name: 'count', parameters: []},
+    });
+
+    await clickSubmit(wrapper);
+
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['count()']);
+  });
+
+  it('should filter out non-aggregate fields when switching from table to chart', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+    // No delete button as there is only one field.
+    expect(wrapper.find('IconDelete')).toHaveLength(0);
+
+    // Select Table display
+    selectByLabel(wrapper, 'Table', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('table');
+
+    // Click the add button
+    const add = wrapper.find('button[aria-label="Add a Column"]');
+    add.simulate('click');
+    wrapper.update();
+
+    // Add columns
+    selectByLabel(wrapper, 'event.type', {name: 'field', at: 0, control: true});
+    let fieldColumn = wrapper.find('input[name="field"]').at(0);
+    expect(fieldColumn.props().value).toEqual({
+      kind: 'field',
+      meta: {dataType: 'string', name: 'event.type'},
+    });
+
+    selectByLabel(wrapper, 'p95(\u2026)', {name: 'field', at: 1, control: true});
+    fieldColumn = wrapper.find('input[name="field"]').at(1);
+    expect(fieldColumn.props().value).toMatchObject({
+      kind: 'function',
+      meta: {
+        name: 'p95',
+        parameters: [{defaultValue: 'transaction.duration', kind: 'column'}],
+      },
+    });
+
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('line');
+
+    // Expect event.type field to be converted to count()
+    fieldColumn = wrapper.find('input[name="field"]');
+    expect(fieldColumn.length).toEqual(1);
+    expect(fieldColumn.props().value).toMatchObject({
+      kind: 'function',
+      meta: {
+        name: 'p95',
+        parameters: [{defaultValue: 'transaction.duration', kind: 'column'}],
+      },
+    });
+
+    await clickSubmit(wrapper);
+
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
   });
 });

@@ -80,6 +80,30 @@ PREBUILT_DASHBOARDS = {
             "createdBy": "",
             "widgets": [
                 {
+                    "title": "Number of Errors",
+                    "displayType": "big_number",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "conditions": "!event.type:transaction",
+                            "fields": ["count()"],
+                        }
+                    ],
+                },
+                {
+                    "title": "Number of Issues",
+                    "displayType": "big_number",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "conditions": "!event.type:transaction",
+                            "fields": ["count_unique(issue)"],
+                        }
+                    ],
+                },
+                {
                     "title": "Events",
                     "displayType": "line",
                     "interval": "5m",
@@ -98,12 +122,12 @@ PREBUILT_DASHBOARDS = {
                     "queries": [
                         {
                             "name": "Known Users",
-                            "conditions": "has:user.email",
+                            "conditions": "has:user.email !event.type:transaction",
                             "fields": ["count_unique(user.email)"],
                         },
                         {
                             "name": "Anonymous Users",
-                            "conditions": "!has:user.email",
+                            "conditions": "!has:user.email !event.type:transaction",
                             "fields": ["count()"],
                         },
                     ],
@@ -123,6 +147,30 @@ PREBUILT_DASHBOARDS = {
                             "conditions": "error.handled:false",
                             "fields": ["count()"],
                         },
+                    ],
+                },
+                {
+                    "title": "Errors by Country",
+                    "displayType": "world_map",
+                    "queries": [
+                        {
+                            "name": "Error counts",
+                            "conditions": "!event.type:transaction has:geo.country_code",
+                            "fields": ["count()"],
+                        }
+                    ],
+                },
+                {
+                    "title": "Errors by Browser",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "conditions": "!event.type:transaction has:browser.name",
+                            "fields": ["browser.name", "count()"],
+                            "orderby": "-count",
+                        }
                     ],
                 },
             ],

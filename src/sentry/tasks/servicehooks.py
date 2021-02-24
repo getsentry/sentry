@@ -1,5 +1,3 @@
-import six
-
 from time import time
 
 from sentry.api.serializers import serialize
@@ -17,7 +15,7 @@ def get_payload_v0(event):
     group_context["url"] = group.get_absolute_url()
 
     event_context = serialize(event)
-    event_context["url"] = "{}events/{}/".format(group.get_absolute_url(), event.event_id)
+    event_context["url"] = f"{group.get_absolute_url()}events/{event.event_id}/"
     data = {
         "project": {"slug": project.slug, "name": project.name},
         "group": group_context,
@@ -46,7 +44,7 @@ def process_service_hook(servicehook_id, event, **kwargs):
 
     headers = {
         "Content-Type": "application/json",
-        "X-ServiceHook-Timestamp": six.text_type(int(time())),
+        "X-ServiceHook-Timestamp": str(int(time())),
         "X-ServiceHook-GUID": servicehook.guid,
         "X-ServiceHook-Signature": servicehook.build_signature(json.dumps(payload)),
     }

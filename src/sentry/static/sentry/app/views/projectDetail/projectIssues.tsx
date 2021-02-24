@@ -7,6 +7,7 @@ import Button from 'app/components/button';
 import {SectionHeading} from 'app/components/charts/styles';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import GroupList from 'app/components/issues/groupList';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel, PanelBody} from 'app/components/panels';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -34,7 +35,7 @@ function ProjectIssues({organization, location}: Props) {
     const selectedTimePeriod = location.query.start
       ? null
       : DEFAULT_RELATIVE_PERIODS[
-          decodeScalar(location.query.statsPeriod) ?? DEFAULT_STATS_PERIOD
+          decodeScalar(location.query.statsPeriod, DEFAULT_STATS_PERIOD)
         ];
     const displayedPeriod = selectedTimePeriod
       ? selectedTimePeriod.toLowerCase()
@@ -43,10 +44,12 @@ function ProjectIssues({organization, location}: Props) {
     return (
       <Panel>
         <PanelBody>
-          <EmptyStateWarning small withIcon={false}>
-            {tct('No issues for the [timePeriod].', {
-              timePeriod: displayedPeriod,
-            })}
+          <EmptyStateWarning>
+            <p>
+              {tct('No issues for the [timePeriod].', {
+                timePeriod: displayedPeriod,
+              })}
+            </p>
           </EmptyStateWarning>
         </PanelBody>
       </Panel>
@@ -56,8 +59,9 @@ function ProjectIssues({organization, location}: Props) {
   const endpointPath = `/organizations/${organization.slug}/issues/`;
   const queryParams = {
     limit: 5,
-    ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
+    ...getParams(pick(location.query, [...Object.values(URL_PARAM), 'cursor'])),
     query: 'is:unresolved',
+    sort: 'freq',
   };
 
   const issueSearch = {
@@ -68,7 +72,7 @@ function ProjectIssues({organization, location}: Props) {
   return (
     <React.Fragment>
       <ControlsWrapper>
-        <SectionHeading>{t('Project Issues')}</SectionHeading>
+        <SectionHeading>{t('Frequent Issues')}</SectionHeading>
         <Button
           data-test-id="issues-open"
           size="small"

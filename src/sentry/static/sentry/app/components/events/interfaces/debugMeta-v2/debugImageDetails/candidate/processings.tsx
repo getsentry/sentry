@@ -1,12 +1,12 @@
 import React from 'react';
 
+import NotAvailable from 'app/components/notAvailable';
 import {
   CandidateDownloadStatus,
   ImageCandidate,
   ImageCandidateOk,
 } from 'app/types/debugImage';
 
-import NotAvailable from '../../notAvailable';
 import ProcessingItem from '../../processing/item';
 import ProcessingList from '../../processing/list';
 
@@ -19,7 +19,10 @@ type Props = {
 function Processings({candidate}: Props) {
   const items: React.ComponentProps<typeof ProcessingList>['items'] = [];
 
-  if (candidate.download.status !== CandidateDownloadStatus.OK) {
+  if (
+    candidate.download.status !== CandidateDownloadStatus.OK &&
+    candidate.download.status !== CandidateDownloadStatus.DELETED
+  ) {
     return <NotAvailable />;
   }
 

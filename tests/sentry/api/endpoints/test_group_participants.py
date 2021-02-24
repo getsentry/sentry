@@ -1,5 +1,3 @@
-import six
-
 from sentry.models import GroupSubscription
 from sentry.testutils import APITestCase
 
@@ -14,9 +12,9 @@ class GroupParticipantsTest(APITestCase):
             user=self.user, group=group, project=group.project, is_active=True
         )
 
-        url = "/api/0/issues/{}/participants/".format(group.id)
+        url = f"/api/0/issues/{group.id}/participants/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.user.id)
+        assert response.data[0]["id"] == str(self.user.id)

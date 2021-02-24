@@ -28,7 +28,11 @@ export const displayCrashFreePercent = (
     return `<1\u0025`;
   }
 
-  const rounded = getCrashFreePercent(percent, decimalThreshold, decimalPlaces);
+  const rounded = getCrashFreePercent(
+    percent,
+    decimalThreshold,
+    decimalPlaces
+  ).toLocaleString();
 
   return `${rounded}\u0025`;
 };

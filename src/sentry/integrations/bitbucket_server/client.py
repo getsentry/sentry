@@ -2,14 +2,14 @@ import logging
 
 from oauthlib.oauth1 import SIGNATURE_RSA
 from requests_oauthlib import OAuth1
-from six.moves.urllib.parse import parse_qsl
+from urllib.parse import parse_qsl
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
 
 
-class BitbucketServerAPIPath(object):
+class BitbucketServerAPIPath:
     """
     project is the short key of the project
     repo is the fully qualified slug
@@ -101,7 +101,7 @@ class BitbucketServer(ApiClient):
     integration_name = "bitbucket_server"
 
     def __init__(self, base_url, credentials, verify_ssl):
-        super(BitbucketServer, self).__init__(verify_ssl)
+        super().__init__(verify_ssl)
 
         self.base_url = base_url
         self.credentials = credentials
@@ -143,8 +143,13 @@ class BitbucketServer(ApiClient):
 
     def get_commits(self, project, repo, from_hash, to_hash, limit=1000):
         logger.info(
-            "Loading commits",
-            extra={"repo": repo, "project": project, "from_hash": from_hash, "to_hash": to_hash},
+            "load.commits",
+            extra={
+                "bitbucket_repo": repo,
+                "bitbucket_project": project,
+                "bitbucket_from_hash": from_hash,
+                "bitbucket_to_hash": to_hash,
+            },
         )
 
         return self._get_values(
@@ -161,7 +166,12 @@ class BitbucketServer(ApiClient):
 
     def get_commit_filechanges(self, project, repo, commit, limit=1000):
         logger.info(
-            "Loading filechanges", extra={"repo": repo, "project": project, "commit": commit}
+            "load.filechanges",
+            extra={
+                "bitbucket_repo": repo,
+                "bitbucket_project": project,
+                "bitbucket_commit": commit,
+            },
         )
 
         return self._get_values(
@@ -184,8 +194,12 @@ class BitbucketServer(ApiClient):
         start = 0
 
         logger.info(
-            "Loading values for paginated uri",
-            extra={"uri": uri, "max_pages": max_pages, "params": params},
+            "load.paginated_uri",
+            extra={
+                "bitbucket_uri": uri,
+                "bitbucket_max_pages": max_pages,
+                "bitbucket_params": params,
+            },
         )
 
         for i in range(max_pages):
@@ -210,8 +224,11 @@ class BitbucketServer(ApiClient):
                 start = data["nextPageStart"]
 
         logger.warn(
-            "Reached max number of pages (%s) for paginated uri. Values will be missing.",
-            max_pages,
-            extra={"uri": uri, "params": params},
+            "load.paginated_uri.max_pages",
+            extra={
+                "bitbucket_uri": uri,
+                "bitbucket_params": params,
+                "bitbucket_max_pages": max_pages,
+            },
         )
         return values

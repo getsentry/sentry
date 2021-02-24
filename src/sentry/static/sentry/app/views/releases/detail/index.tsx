@@ -2,12 +2,15 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
+import moment from 'moment';
 
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {IconInfo, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -30,12 +33,15 @@ import AsyncView from 'app/views/asyncView';
 import PickProjectToContinue from './pickProjectToContinue';
 import ReleaseHeader from './releaseHeader';
 
+const DEFAULT_FRESH_RELEASE_STATS_PERIOD = '24h';
+
 type ReleaseContext = {
   release: ReleaseWithHealth;
   project: Required<ReleaseProject>;
   deploys: Deploy[];
   releaseMeta: ReleaseMeta;
   refetchData: () => void;
+  defaultStatsPeriod: string;
 };
 const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
 
@@ -48,6 +54,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   selection: GlobalSelection;
   releaseMeta: ReleaseMeta;
+  defaultStatsPeriod: string;
 };
 
 type State = {
@@ -75,10 +82,12 @@ class ReleasesDetail extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, location, params, releaseMeta} = this.props;
+    const {organization, location, params, releaseMeta, defaultStatsPeriod} = this.props;
 
     const query = {
-      ...pick(location.query, [...Object.values(URL_PARAM)]),
+      ...getParams(pick(location.query, [...Object.values(URL_PARAM)]), {
+        defaultStatsPeriod,
+      }),
       health: 1,
     };
 
@@ -124,7 +133,13 @@ class ReleasesDetail extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, location, selection, releaseMeta} = this.props;
+    const {
+      organization,
+      location,
+      selection,
+      releaseMeta,
+      defaultStatsPeriod,
+    } = this.props;
     const {release, deploys, reloading} = this.state;
     const project = release?.projects.find(p => p.id === selection.projects[0]);
 
@@ -154,6 +169,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
               deploys,
               releaseMeta,
               refetchData: this.fetchData,
+              defaultStatsPeriod,
             }}
           >
             {this.props.children}
@@ -223,6 +239,12 @@ class ReleasesDetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>>
     const {organization, params, router} = this.props;
     const {releaseMeta} = this.state;
     const {projects} = releaseMeta;
+    const isFreshRelease = moment(releaseMeta.released).isAfter(
+      moment().subtract(24, 'hours')
+    );
+    const defaultStatsPeriod = isFreshRelease
+      ? DEFAULT_FRESH_RELEASE_STATS_PERIOD
+      : DEFAULT_STATS_PERIOD;
 
     if (this.isProjectMissingInUrl()) {
       return (
@@ -244,8 +266,20 @@ class ReleasesDetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>>
         disableMultipleProjectSelection
         showProjectSettingsLink
         projectsFooterMessage={this.renderProjectsFooterMessage()}
+        defaultSelection={{
+          datetime: {
+            start: null,
+            end: null,
+            utc: false,
+            period: defaultStatsPeriod,
+          },
+        }}
       >
-        <ReleasesDetail {...this.props} releaseMeta={releaseMeta} />
+        <ReleasesDetail
+          {...this.props}
+          releaseMeta={releaseMeta}
+          defaultStatsPeriod={defaultStatsPeriod}
+        />
       </GlobalSelectionHeader>
     );
   }

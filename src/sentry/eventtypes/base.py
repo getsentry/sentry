@@ -1,5 +1,3 @@
-import six
-
 from warnings import warn
 
 from sentry.utils.strings import truncatechars, strip
@@ -8,7 +6,7 @@ from sentry.utils.safe import get_path
 # Note: Detecting eventtypes is implemented in the Relay Rust library.
 
 
-class BaseEvent(object):
+class BaseEvent:
     id = None
 
     def get_metadata(self, data):
@@ -16,7 +14,7 @@ class BaseEvent(object):
         title = data.get("title")
         if title is not None:
             metadata["title"] = title
-        for key, value in six.iteritems(self.extract_metadata(data)):
+        for key, value in self.extract_metadata(data).items():
             # If we already have a custom title, do not override with the
             # computed title.
             if key not in metadata:

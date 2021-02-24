@@ -9,9 +9,11 @@ import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -23,8 +25,6 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
-
-import {HeaderTitleLegend} from '../styles';
 
 const QUERY_KEYS = [
   'environment',
@@ -86,17 +86,7 @@ class DurationChart extends React.Component<Props> {
 
     const legend = {
       right: 10,
-      top: 0,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left' as const,
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
+      top: 5,
       selected: getSeriesSelection(location),
     };
 
@@ -141,7 +131,7 @@ class DurationChart extends React.Component<Props> {
             )}
           />
         </HeaderTitleLegend>
-        <ChartZoom router={router} period={statsPeriod}>
+        <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
           {zoomRenderProps => (
             <EventsRequest
               api={api}
@@ -207,7 +197,7 @@ class DurationChart extends React.Component<Props> {
                               series={[...series, ...releaseSeries]}
                             />
                           ),
-                          fixed: 'Duration Chart',
+                          fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                         })}
                       </TransitionChart>
                     )}

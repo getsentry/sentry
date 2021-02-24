@@ -14,50 +14,78 @@ export enum DynamicSamplingRuleType {
 }
 
 export enum DynamicSamplingConditionOperator {
-  OR = 'or',
-  AND = 'and',
+  /**
+   * The not combinator has a similar structure with the only difference that "inner" is not an array
+   * and contains directly the negated condition
+   */
   NOT = 'not',
+  /**
+   * Combine multiple sub-conditions with the operator 'or'
+   */
+  OR = 'or',
+  /**
+   * Combine multiple sub-conditions with the operator 'and'
+   */
+  AND = 'and',
+}
+
+export enum DynamicSamplingInnerOperator {
   /**
    * It uses glob matches for checking (e.g. releases use glob matching "1.1.*" will match release 1.1.1 and 1.1.2)
    */
-  GLOB_MATCH = 'globMatch',
+  GLOB_MATCH = 'glob',
   /**
    * It uses simple equality for checking
    */
-  EQUAL = 'equal',
-  /**
-   * It uses a case insensitive string comparison
-   */
-  STR_EQUAL_NO_CASE = 'strEqualNoCase',
+  EQUAL = 'eq',
 }
 
-type DynamicSamplingConditionLogicalInner = {
-  operator:
-    | DynamicSamplingConditionOperator.STR_EQUAL_NO_CASE
-    | DynamicSamplingConditionOperator.GLOB_MATCH
-    | DynamicSamplingConditionOperator.EQUAL;
-  name: string;
+export enum DynamicSamplingInnerName {
+  TRACE_RELEASE = 'trace.release',
+  TRACE_ENVIRONMENT = 'trace.environment',
+  TRACE_USER = 'trace.user',
+  EVENT_RELEASE = 'event.release',
+  EVENT_ENVIRONMENT = 'event.environment',
+  EVENT_USER = 'event.user',
+  LEGACY_BROWSERS = 'legacy-browsers',
+}
+
+type DynamicSamplingConditionLogicalInnerGlob = {
+  op: DynamicSamplingInnerOperator.GLOB_MATCH;
+  name: DynamicSamplingInnerName;
   value: Array<string>;
 };
 
-export type DynamicSamplingConditionLogicalNot = {
-  operator: DynamicSamplingConditionOperator.NOT;
+type DynamicSamplingConditionLogicalInnerEq = {
+  op: DynamicSamplingInnerOperator.EQUAL;
+  name: DynamicSamplingInnerName;
+  value: Array<string>;
+  ignoreCase: boolean;
+};
+
+export type DynamicSamplingConditionLogicalInner =
+  | DynamicSamplingConditionLogicalInnerGlob
+  | DynamicSamplingConditionLogicalInnerEq;
+
+export type DynamicSamplingConditionNegation = {
+  op: DynamicSamplingConditionOperator.NOT;
   inner: DynamicSamplingConditionLogicalInner;
 };
 
-export type DynamicSamplingConditionLogicalOthers = {
-  operator: DynamicSamplingConditionOperator.AND | DynamicSamplingConditionOperator.OR;
+export type DynamicSamplingConditionMultiple = {
+  op: DynamicSamplingConditionOperator.AND | DynamicSamplingConditionOperator.OR;
   inner: Array<DynamicSamplingConditionLogicalInner>;
 };
 
-export type DynamicSamplingConditionOthers = DynamicSamplingConditionLogicalInner;
-
 export type DynamicSamplingCondition =
-  | DynamicSamplingConditionLogicalNot
-  | DynamicSamplingConditionLogicalOthers
-  | DynamicSamplingConditionOthers;
+  | DynamicSamplingConditionNegation
+  | DynamicSamplingConditionMultiple;
 
 export type DynamicSamplingRule = {
+  /**
+   * Describes the type of rule
+   */
+  type: DynamicSamplingRuleType;
   /**
    * It is a possibly empty list of conditions to which the rule applies.
    * The conditions are combined using the and operator (so all the conditions must be satisfied for the rule to apply).
@@ -68,10 +96,6 @@ export type DynamicSamplingRule = {
    * It is the sampling rate that will be applied if the rule is selected
    */
   sampleRate: number;
-  /**
-   * Describes the type of rule
-   */
-  ty: DynamicSamplingRuleType;
 };
 
 export type DynamicSamplingRules = Array<DynamicSamplingRule>;

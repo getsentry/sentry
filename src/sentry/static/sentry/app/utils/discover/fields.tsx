@@ -148,6 +148,17 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'area',
   },
+  any: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['string', 'integer', 'number', 'duration', 'date', 'boolean'],
+        required: true,
+      },
+    ],
+    outputType: null,
+    isSortable: true,
+  },
   last_seen: {
     parameters: [],
     outputType: 'date',
@@ -307,7 +318,7 @@ export type AggregationOutputType = Extract<
   'number' | 'integer' | 'date' | 'duration' | 'percentage' | 'string'
 >;
 
-export type PlotType = 'line' | 'area';
+export type PlotType = 'bar' | 'line' | 'area';
 
 type DefaultValueInputs = {
   parameter: AggregateParameter;
@@ -491,26 +502,6 @@ export const FIELD_TAGS = Object.freeze(
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
-// This list contains fields/functions that are available with performance-view feature.
-export const TRACING_FIELDS = [
-  'avg',
-  'sum',
-  'transaction.duration',
-  'transaction.op',
-  'transaction.status',
-  'p50',
-  'p75',
-  'p95',
-  'p99',
-  'p100',
-  'percentile',
-  'failure_rate',
-  'apdex',
-  'user_misery',
-  'eps',
-  'epm',
-];
-
 export enum WebVital {
   FP = 'measurements.fp',
   FCP = 'measurements.fcp',
@@ -530,6 +521,27 @@ const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
   [WebVital.TTFB]: 'duration',
   [WebVital.RequestTime]: 'duration',
 };
+
+// This list contains fields/functions that are available with performance-view feature.
+export const TRACING_FIELDS = [
+  'avg',
+  'sum',
+  'transaction.duration',
+  'transaction.op',
+  'transaction.status',
+  'p50',
+  'p75',
+  'p95',
+  'p99',
+  'p100',
+  'percentile',
+  'failure_rate',
+  'apdex',
+  'user_misery',
+  'eps',
+  'epm',
+  ...Object.keys(MEASUREMENTS),
+];
 
 export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
 

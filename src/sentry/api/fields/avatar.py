@@ -1,8 +1,9 @@
 from base64 import b64decode
+from io import BytesIO
+
 from django.conf import settings
 from rest_framework import serializers
 from PIL import Image
-from six import BytesIO
 
 from sentry.api.exceptions import SentryAPIException
 
@@ -26,7 +27,7 @@ class AvatarField(serializers.Field):
         max_dimension=MAX_DIMENSION,
         **kwargs,
     ):
-        super(AvatarField, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.max_size = max_size
         self.min_dimension = min_dimension
         self.max_dimension = max_dimension

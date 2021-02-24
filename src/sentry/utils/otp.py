@@ -1,4 +1,3 @@
-import six
 import time
 import hmac
 import base64
@@ -6,7 +5,7 @@ import qrcode
 import hashlib
 
 from datetime import datetime
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 from sentry.utils.dates import to_timestamp
 
@@ -22,7 +21,7 @@ def _pack_int(i):
     while i != 0:
         result.append(i & 0xFF)
         i >>= 8
-    return six.binary_type(bytearray(reversed(result)).rjust(8, b"\0"))
+    return bytes(bytearray(reversed(result)).rjust(8, b"\0"))
 
 
 def _get_ts(ts):
@@ -33,7 +32,7 @@ def _get_ts(ts):
     return int(ts)
 
 
-class TOTP(object):
+class TOTP:
     def __init__(self, secret=None, digits=6, interval=30, default_window=2):
         if secret is None:
             secret = generate_secret_key()
@@ -62,7 +61,7 @@ class TOTP(object):
             | (h[offset + 2] & 0xFF) << 8
             | (h[offset + 3] & 0xFF)
         )
-        str_code = six.text_type(code % 10 ** self.digits)
+        str_code = str(code % 10 ** self.digits)
         return ("0" * (self.digits - len(str_code))) + str_code
 
     def verify(self, otp, ts=None, window=None, return_counter=False, check_counter_func=None):
@@ -86,7 +85,7 @@ class TOTP(object):
     def get_provision_url(self, user, issuer=None):
         if issuer is None:
             issuer = "Sentry"
-        rv = "otpauth://totp/%s?issuer=%s&secret=%s" % (
+        rv = "otpauth://totp/{}?issuer={}&secret={}".format(
             quote(user.encode("utf-8")),
             quote(issuer.encode("utf-8")),
             self.secret,

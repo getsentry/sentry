@@ -1,5 +1,4 @@
 import inspect
-import six
 import time
 
 from django.http import Http404
@@ -15,9 +14,9 @@ def add_request_metric_tags(request, **kwargs):
     request._metric_tags.update(**kwargs)
 
 
-class ResponseCodeMiddleware(object):
+class ResponseCodeMiddleware:
     def process_response(self, request, response):
-        metrics.incr("response", instance=six.text_type(response.status_code), skip_internal=False)
+        metrics.incr("response", instance=str(response.status_code), skip_internal=False)
         return response
 
     def process_exception(self, request, exception):
@@ -25,7 +24,7 @@ class ResponseCodeMiddleware(object):
             metrics.incr("response", instance="500", skip_internal=False)
 
 
-class RequestTimingMiddleware(object):
+class RequestTimingMiddleware:
     allowed_methods = ("POST", "GET", "PUT")
     allowed_paths = getattr(
         settings, "SENTRY_REQUEST_METRIC_ALLOWED_PATHS", ("sentry.web.api", "sentry.api.endpoints")
@@ -43,7 +42,7 @@ class RequestTimingMiddleware(object):
             view = view.__class__
 
         try:
-            path = "%s.%s" % (view.__module__, view.__name__)
+            path = f"{view.__module__}.{view.__name__}"
         except AttributeError:
             return
 

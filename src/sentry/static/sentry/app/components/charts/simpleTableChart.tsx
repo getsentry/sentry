@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import PanelTable from 'app/components/panels/panelTable';
+import PanelTable, {PanelTableHeader} from 'app/components/panels/panelTable';
 import {Organization} from 'app/types';
 import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
@@ -16,8 +16,9 @@ type Props = {
   loading: boolean;
   fields: string[];
   title: string;
-  metadata: TableData['meta'];
-  data: TableData['data'];
+  metadata: TableData['meta'] | undefined;
+  data: TableData['data'] | undefined;
+  className?: string;
 };
 
 class SimpleTableChart extends React.Component<Props> {
@@ -37,13 +38,14 @@ class SimpleTableChart extends React.Component<Props> {
   }
 
   render() {
-    const {loading, fields, metadata, data, title} = this.props;
+    const {className, loading, fields, metadata, data, title} = this.props;
     const meta = metadata ?? {};
     const columns = decodeColumnOrder(fields.map(field => ({field})));
     return (
-      <TableWrapper>
+      <React.Fragment>
         {title && <h4>{title}</h4>}
-        <PanelTable
+        <StyledPanelTable
+          className={className}
           isLoading={loading}
           headers={columns.map((column, index) => {
             const align = fieldAlignment(column.name, column.type, meta);
@@ -54,19 +56,23 @@ class SimpleTableChart extends React.Component<Props> {
             );
           })}
         >
-          {data.map((row, index) => this.renderRow(index, row, meta, columns))}
-        </PanelTable>
-      </TableWrapper>
+          {data?.map((row, index) => this.renderRow(index, row, meta, columns))}
+        </StyledPanelTable>
+      </React.Fragment>
     );
   }
 }
-const TableWrapper = styled('div')`
-  /* align height with charts */
-  height: 160px;
-  overflow-y: scroll;
 
-  /* Space away from where the widget title is */
-  margin-top: 40px;
+const StyledPanelTable = styled(PanelTable)`
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+
+  margin: 0;
+  ${/* sc-selector */ PanelTableHeader} {
+    height: min-content;
+  }
 `;
 
 type HeadCellProps = {

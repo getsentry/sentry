@@ -1,13 +1,13 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import PieChart from 'app/components/charts/pieChart';
 
 export default {
   title: 'DataVisualization/Charts/PieChart',
+  component: PieChart,
 };
 
-export const _PieChart = withInfo('PieChart')(() => (
+export const _PieChart = () => (
   <PieChart
     startDate={new Date()}
     series={[
@@ -30,8 +30,4 @@ export const _PieChart = withInfo('PieChart')(() => (
       },
     ]}
   />
-));
-
-_PieChart.story = {
-  name: 'PieChart',
-};
+);

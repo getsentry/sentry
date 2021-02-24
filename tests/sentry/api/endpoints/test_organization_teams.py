@@ -1,5 +1,3 @@
-import six
-
 from django.core.urlresolvers import reverse
 from exam import fixture
 
@@ -16,7 +14,7 @@ class OrganizationTeamsListTest(APITestCase):
 
         self.create_member(organization=org, user=user, has_global_access=False, teams=[team1])
 
-        path = "/api/0/organizations/{}/teams/".format(org.slug)
+        path = f"/api/0/organizations/{org.slug}/teams/"
 
         self.login_as(user=user)
 
@@ -24,9 +22,9 @@ class OrganizationTeamsListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]["id"] == six.text_type(team2.id)
+        assert response.data[0]["id"] == str(team2.id)
         assert not response.data[0]["isMember"]
-        assert response.data[1]["id"] == six.text_type(team1.id)
+        assert response.data[1]["id"] == str(team1.id)
         assert response.data[1]["isMember"]
 
     def test_teams_without_membership(self):
@@ -38,7 +36,7 @@ class OrganizationTeamsListTest(APITestCase):
 
         self.create_member(organization=org, user=user, has_global_access=False, teams=[team1])
 
-        path = "/api/0/organizations/{}/teams/?is_not_member=1".format(org.slug)
+        path = f"/api/0/organizations/{org.slug}/teams/?is_not_member=1"
 
         self.login_as(user=user)
 
@@ -46,9 +44,9 @@ class OrganizationTeamsListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]["id"] == six.text_type(team2.id)
+        assert response.data[0]["id"] == str(team2.id)
         assert not response.data[0]["isMember"]
-        assert response.data[1]["id"] == six.text_type(team3.id)
+        assert response.data[1]["id"] == str(team3.id)
         assert not response.data[1]["isMember"]
 
     def test_simple_results_no_projects(self):
@@ -59,7 +57,7 @@ class OrganizationTeamsListTest(APITestCase):
 
         self.create_member(organization=org, user=user, has_global_access=False, teams=[team1])
 
-        path = "/api/0/organizations/{}/teams/?detailed=0".format(org.slug)
+        path = f"/api/0/organizations/{org.slug}/teams/?detailed=0"
 
         self.login_as(user=user)
 
@@ -79,14 +77,14 @@ class OrganizationTeamsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        path = "/api/0/organizations/{}/teams/?query=bar".format(org.slug)
+        path = f"/api/0/organizations/{org.slug}/teams/?query=bar"
         response = self.client.get(path)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(team.id)
+        assert response.data[0]["id"] == str(team.id)
 
-        path = "/api/0/organizations/{}/teams/?query=baz".format(org.slug)
+        path = f"/api/0/organizations/{org.slug}/teams/?query=baz"
         response = self.client.get(path)
 
         assert response.status_code == 200, response.content

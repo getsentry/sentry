@@ -1,8 +1,7 @@
-import six
 import logging
 from uuid import uuid4
 
-from six.moves.urllib.parse import urlparse, urlencode, urlunparse
+from urllib.parse import urlparse, urlencode, urlunparse
 from sentry.http import safe_urlread
 from sentry.coreapi import APIError
 from sentry.mediators import Mediator, Param
@@ -25,9 +24,9 @@ class SelectRequester(Mediator):
 
     install = Param("sentry.models.SentryAppInstallation")
     project = Param("sentry.models.Project", required=False)
-    uri = Param(six.string_types)
-    query = Param(six.string_types, required=False)
-    dependent_data = Param(six.string_types, required=False)
+    uri = Param((str,))
+    query = Param((str,), required=False)
+    dependent_data = Param((str,), required=False)
 
     def call(self):
         return self._make_request()
@@ -67,11 +66,11 @@ class SelectRequester(Mediator):
             logger.info(
                 "select-requester.error",
                 extra={
-                    "sentry_app": self.sentry_app.slug,
-                    "install": self.install.uuid,
-                    "project": self.project and self.project.slug,
+                    "sentry_app_slug": self.sentry_app.slug,
+                    "install_uuid": self.install.uuid,
+                    "project_slug": self.project and self.project.slug,
                     "uri": self.uri,
-                    "error_message": six.text_type(e),
+                    "error_message": str(e),
                 },
             )
             response = {}

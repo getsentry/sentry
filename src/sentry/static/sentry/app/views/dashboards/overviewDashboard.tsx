@@ -65,7 +65,7 @@ type DashboardLandingProps = {
 function DashboardLanding(props: DashboardLandingProps) {
   const {organization, params, ...restProps} = props;
 
-  const showDashboardV2 = organization.features.includes('dashboards-v2');
+  const showDashboardV2 = organization.features.includes('dashboards-basic');
 
   if (showDashboardV2) {
     const updatedParams = {...params, dashboardId: ''};

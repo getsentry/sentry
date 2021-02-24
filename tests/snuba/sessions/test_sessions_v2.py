@@ -1,3 +1,5 @@
+import math
+
 from freezegun import freeze_time
 from django.http import QueryDict
 
@@ -10,7 +12,7 @@ from sentry.snuba.sessions_v2 import (
 
 
 def _make_query(qs):
-    return QueryDefinition(QueryDict(qs), [])
+    return QueryDefinition(QueryDict(qs), {})
 
 
 def result_sorted(result):
@@ -326,6 +328,56 @@ def test_massage_virtual_groupby_timeseries():
                 # so in the *whole* time window, that one user is not counted as healthy,
                 # so the `0` here is expected, as thats an example of the `count_unique` behavior.
                 "totals": {"count_unique(user)": 0, "sum(session)": 5},
+            },
+        ],
+    }
+
+    actual_result = result_sorted(massage_sessions_result(query, result_totals, result_timeseries))
+
+    assert actual_result == expected_result
+
+
+@freeze_time("2020-12-18T11:14:17.105Z")
+def test_nan_duration():
+    query = _make_query(
+        "statsPeriod=1d&interval=6h&field=avg(session.duration)&field=p50(session.duration)"
+    )
+
+    result_totals = [
+        {
+            "duration_avg": math.nan,
+            "duration_quantiles": [math.inf, math.inf, math.inf, math.inf, math.inf, math.inf],
+        },
+    ]
+    result_timeseries = [
+        {
+            "duration_avg": math.nan,
+            "duration_quantiles": [math.nan, math.nan, math.nan, math.nan, math.nan, math.nan],
+            "bucketed_started": "2020-12-17T12:00:00+00:00",
+        },
+        {
+            "duration_avg": math.inf,
+            "duration_quantiles": [math.inf, math.inf, math.inf, math.inf, math.inf, math.inf],
+            "bucketed_started": "2020-12-18T06:00:00+00:00",
+        },
+    ]
+
+    expected_result = {
+        "query": "",
+        "intervals": [
+            "2020-12-17T12:00:00Z",
+            "2020-12-17T18:00:00Z",
+            "2020-12-18T00:00:00Z",
+            "2020-12-18T06:00:00Z",
+        ],
+        "groups": [
+            {
+                "by": {},
+                "series": {
+                    "avg(session.duration)": [None, None, None, None],
+                    "p50(session.duration)": [None, None, None, None],
+                },
+                "totals": {"avg(session.duration)": None, "p50(session.duration)": None},
             },
         ],
     }

@@ -1,8 +1,5 @@
 import re
-import six
 from collections import defaultdict
-
-import sentry_sdk
 
 from django.db.models import Q
 
@@ -46,7 +43,7 @@ def unfurl_issues(integration, url_by_issue_id, event_id_by_url=None):
         return {}
 
     out = {}
-    for issue_id, url in six.iteritems(url_by_issue_id):
+    for issue_id, url in url_by_issue_id.items():
         if issue_id in group_by_id:
             group = group_by_id[issue_id]
             # lookup the event by the id
@@ -63,7 +60,7 @@ def unfurl_incidents(integration, incident_map, event_id_by_url=None):
     # Since we don't have real ids here, we have to also extract the org slug
     # from the url so that we can make sure the identifiers correspond to the
     # correct organization.
-    for identifier, url in six.iteritems(incident_map):
+    for identifier, url in incident_map.items():
         org_slug = _org_slug_regexp.match(url).group(1)
         filter_query |= Q(identifier=identifier, organization__slug=org_slug)
 
@@ -80,8 +77,11 @@ def unfurl_incidents(integration, incident_map, event_id_by_url=None):
         return {}
 
     return {
-        v: build_incident_attachment(results[k])
-        for k, v in six.iteritems(incident_map)
+        v: build_incident_attachment(
+            action=None,
+            incident=results[k],
+        )
+        for k, v in incident_map.items()
         if k in results
     }
 
@@ -160,58 +160,58 @@ class SlackEventEndpoint(Endpoint):
         try:
             client.post("/chat.postMessage", headers=headers, data=payload, json=True)
         except ApiError as e:
-            logger.error("slack.event.on-message-error", extra={"error": six.text_type(e)})
+            logger.error("slack.event.on-message-error", extra={"error": str(e)})
 
         return self.respond()
 
     def on_link_shared(self, request, integration, token, data):
-        with sentry_sdk.start_transaction(
-            op="slack.link_shared", name="SlackLinkShared", sampled=1.0
-        ) as span:
-            parsed_issues = defaultdict(dict)
-            event_id_by_url = {}
-            for item in data["links"]:
-                try:
-                    span.set_tag("link", parse_link(item["url"]))
-                except Exception as e:
-                    logger.error("slack.parse-link-error", extra={"error": six.text_type(e)})
-                event_type, instance_id, event_id = self._parse_url(item["url"])
-                if not instance_id:
-                    continue
-                # note that because we store the url by the issue,
-                # we will only unfurl one link per issue even if there are
-                # multiple links to different events
-                parsed_issues[event_type][instance_id] = item["url"]
-                event_id_by_url[item["url"]] = event_id
-
-            if not parsed_issues:
-                return
-
-            results = {}
-            for event_type, instance_map in parsed_issues.items():
-                results.update(
-                    self.event_handlers[event_type](integration, instance_map, event_id_by_url)
-                )
-
-            if not results:
-                return
-
-            access_token = self._get_access_token(integration)
-
-            payload = {
-                "token": access_token,
-                "channel": data["channel"],
-                "ts": data["message_ts"],
-                "unfurls": json.dumps(results),
-            }
-
-            client = SlackClient()
+        parsed_issues = defaultdict(dict)
+        event_id_by_url = {}
+        for item in data["links"]:
             try:
-                client.post("/chat.unfurl", data=payload)
-            except ApiError as e:
-                logger.error("slack.event.unfurl-error", extra={"error": six.text_type(e)})
+                # we're logging to Kibana because the Slackbot is filtered in Relay
+                logger.info(
+                    "slack.link-shared", extra={"slack_shared_link": parse_link(item["url"])}
+                )
+            except Exception as e:
+                logger.error("slack.parse-link-error", extra={"error": str(e)})
+            event_type, instance_id, event_id = self._parse_url(item["url"])
+            if not instance_id:
+                continue
+            # note that because we store the url by the issue,
+            # we will only unfurl one link per issue even if there are
+            # multiple links to different events
+            parsed_issues[event_type][instance_id] = item["url"]
+            event_id_by_url[item["url"]] = event_id
 
-            return self.respond()
+        if not parsed_issues:
+            return
+
+        results = {}
+        for event_type, instance_map in parsed_issues.items():
+            results.update(
+                self.event_handlers[event_type](integration, instance_map, event_id_by_url)
+            )
+
+        if not results:
+            return
+
+        access_token = self._get_access_token(integration)
+
+        payload = {
+            "token": access_token,
+            "channel": data["channel"],
+            "ts": data["message_ts"],
+            "unfurls": json.dumps(results),
+        }
+
+        client = SlackClient()
+        try:
+            client.post("/chat.unfurl", data=payload)
+        except ApiError as e:
+            logger.error("slack.event.unfurl-error", extra={"error": str(e)})
+
+        return self.respond()
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
     @transaction_start("SlackEventEndpoint")

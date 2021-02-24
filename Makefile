@@ -53,22 +53,15 @@ apply-migrations: ensure-venv
 reset-db: drop-db create-db apply-migrations
 
 setup-pyenv:
-ifdef BIG_SUR
-	# NOTE: Once we have a new release of pyenv and once a newer Python version we can remove these
-	# https://github.com/pyenv/pyenv/pull/1711
-	# cat is used since pyenv would finish to soon when the Python version is already installed
-	curl -sSL https://github.com/python/cpython/commit/8ea6353.patch | cat | \
-		LDFLAGS="-L$(shell xcrun --show-sdk-path)/usr/lib ${LDFLAGS}" \
-		pyenv install --skip-existing --patch 3.6.10
-else
-	@cat .python-version | xargs -n1 pyenv install --skip-existing
-endif
+	./scripts/pyenv_setup.sh
 
 ensure-venv:
 	@./scripts/ensure-venv.sh
 
-ensure-pinned-pip: ensure-venv
-	$(PIP) install --no-cache-dir --upgrade "pip>=20.0.2"
+ensure-pinned-pip: ensure-venv upgrade-pip
+
+upgrade-pip:
+	bash ./scripts/python.sh upgrade-pip
 
 setup-git-config:
 	@git config --local branch.autosetuprebase always
@@ -98,12 +91,8 @@ install-js-dev: node-version-check
 	# Add an additional check against `node_modules`
 	yarn check --verify-tree || yarn install --check-files
 
-install-py-dev: ensure-pinned-pip
-	@echo "--> Installing Sentry (for development)"
-	# SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
-	# Webpacked assets are only necessary for devserver (which does it lazily anyways)
-	# and acceptance tests, which webpack automatically if run.
-	SENTRY_LIGHT_BUILD=1 $(PIP) install -e ".[dev]"
+install-py-dev:
+	bash ./scripts/python.sh install-py-dev
 
 build-js-po: node-version-check
 	mkdir -p build

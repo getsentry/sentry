@@ -1,5 +1,4 @@
 from rest_framework.response import Response
-from six.moves import range
 
 from sentry import tsdb
 from sentry.api.base import EnvironmentMixin, StatsMixin

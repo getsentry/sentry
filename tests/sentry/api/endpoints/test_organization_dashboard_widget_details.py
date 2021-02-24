@@ -17,7 +17,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type:error", "fields": ["count()"]}
             ],
         }
-        response = self.client.post(
+        response = self.do_request(
+            "post",
             self.url(),
             data=data,
         )
@@ -35,7 +36,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type: tag:foo", "fields": ["count()"]}
             ],
         }
-        response = self.client.post(
+        response = self.do_request(
+            "post",
             self.url(),
             data=data,
         )
@@ -55,7 +57,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type:error", "fields": ["p95(user)"]}
             ],
         }
-        response = self.client.post(
+        response = self.do_request(
+            "post",
             self.url(),
             data=data,
         )
@@ -71,9 +74,23 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type:error", "fields": ["count()"]}
             ],
         }
-        response = self.client.post(
+        response = self.do_request(
+            "post",
             self.url(),
             data=data,
         )
         assert response.status_code == 400, response.data
         assert "displayType" in response.data, response.data
+
+    def test_valid_epm_widget(self):
+        data = {
+            "title": "EPM Big Number",
+            "displayType": "big_number",
+            "queries": [{"name": "", "fields": ["epm()"], "conditions": "", "orderby": ""}],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data

@@ -16,6 +16,7 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -60,6 +61,11 @@ class DashboardDetail extends React.Component<Props, State> {
     if (!dashboard) {
       return;
     }
+    trackAnalyticsEvent({
+      eventKey: 'dashboards2.edit.start',
+      eventName: 'Dashboards2: Edit start',
+      organization_id: parseInt(this.props.organization.id, 10),
+    });
     this.setState({
       dashboardState: 'edit',
       modifiedDashboard: cloneDashboard(dashboard),
@@ -83,6 +89,11 @@ class DashboardDetail extends React.Component<Props, State> {
   };
 
   onCreate = () => {
+    trackAnalyticsEvent({
+      eventKey: 'dashboards2.create.start',
+      eventName: 'Dashboards2: Create start',
+      organization_id: parseInt(this.props.organization.id, 10),
+    });
     this.setState({
       dashboardState: 'create',
       modifiedDashboard: cloneDashboard(EMPTY_DASHBOARD),
@@ -90,6 +101,19 @@ class DashboardDetail extends React.Component<Props, State> {
   };
 
   onCancel = () => {
+    if (this.state.dashboardState === 'create') {
+      trackAnalyticsEvent({
+        eventKey: 'dashboards2.create.cancel',
+        eventName: 'Dashboards2: Create cancel',
+        organization_id: parseInt(this.props.organization.id, 10),
+      });
+    } else if (this.state.dashboardState === 'edit') {
+      trackAnalyticsEvent({
+        eventKey: 'dashboards2.edit.cancel',
+        eventName: 'Dashboards2: Edit cancel',
+        organization_id: parseInt(this.props.organization.id, 10),
+      });
+    }
     this.setState({
       dashboardState: 'view',
       modifiedDashboard: null,
@@ -109,6 +133,11 @@ class DashboardDetail extends React.Component<Props, State> {
         dashboardState: 'pending_delete',
       },
       () => {
+        trackAnalyticsEvent({
+          eventKey: 'dashboards2.delete',
+          eventName: 'Dashboards2: Delete',
+          organization_id: parseInt(this.props.organization.id, 10),
+        });
         deleteDashboard(api, organization.slug, dashboard.id)
           .then(() => {
             addSuccessMessage(t('Dashboard deleted'));
@@ -145,7 +174,11 @@ class DashboardDetail extends React.Component<Props, State> {
           createDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
-
+              trackAnalyticsEvent({
+                eventKey: 'dashboards2.create.complete',
+                eventName: 'Dashboards2: Create complete',
+                organization_id: parseInt(organization.id, 10),
+              });
               this.setState({
                 dashboardState: 'view',
                 modifiedDashboard: null,
@@ -178,6 +211,11 @@ class DashboardDetail extends React.Component<Props, State> {
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard updated'));
+              trackAnalyticsEvent({
+                eventKey: 'dashboards2.edit.complete',
+                eventName: 'Dashboards2: Edit complete',
+                organization_id: parseInt(organization.id, 10),
+              });
 
               this.setState({
                 dashboardState: 'view',
@@ -245,6 +283,7 @@ class DashboardDetail extends React.Component<Props, State> {
     const {modifiedDashboard, dashboardState} = this.state;
 
     const isEditing = ['edit', 'create', 'pending_delete'].includes(dashboardState);
+    const canEdit = organization.features.includes('dashboards-edit');
 
     return (
       <GlobalSelectionHeader
@@ -283,6 +322,7 @@ class DashboardDetail extends React.Component<Props, State> {
                     onCommit={this.onCommit({dashboard, reloadData})}
                     onDelete={this.onDelete(dashboard)}
                     dashboardState={dashboardState}
+                    canEdit={canEdit}
                   />
                 </StyledPageHeader>
                 {error ? (
@@ -313,7 +353,7 @@ const StyledPageHeader = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.textColor};
   height: 40px;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     flex-direction: column;

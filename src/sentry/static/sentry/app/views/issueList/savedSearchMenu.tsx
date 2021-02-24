@@ -12,6 +12,8 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, SavedSearch} from 'app/types';
 
+import {getSortLabel} from './utils';
+
 type Props = {
   organization: Organization;
   savedSearchList: SavedSearch[];
@@ -36,10 +38,13 @@ function SavedSearchMenu({
       {savedSearchList.map((search, index) => (
         <Tooltip
           title={
-            <span>
+            <React.Fragment>
               {`${search.name} \u2022 `}
               <TooltipSearchQuery>{search.query}</TooltipSearchQuery>
-            </span>
+              {` \u2022 `}
+              {t('Sort: ')}
+              {getSortLabel(search.sort)}
+            </React.Fragment>
           }
           containerDisplayMode="block"
           delay={1000}
@@ -52,6 +57,10 @@ function SavedSearchMenu({
             <MenuItemLink tabIndex={-1} onClick={() => onSavedSearchSelect(search)}>
               <SearchTitle>{search.name}</SearchTitle>
               <SearchQuery>{search.query}</SearchQuery>
+              <SearchSort>
+                {t('Sort: ')}
+                {getSortLabel(search.sort)}
+              </SearchSort>
             </MenuItemLink>
             {search.isGlobal === false && search.isPinned === false && (
               <Access
@@ -85,8 +94,6 @@ export default SavedSearchMenu;
 
 const SearchTitle = styled('strong')`
   color: ${p => p.theme.textColor};
-  padding: 0;
-  background: inherit;
 
   &:after {
     content: ' \u2022 ';
@@ -97,6 +104,17 @@ const SearchQuery = styled('code')`
   color: ${p => p.theme.textColor};
   padding: 0;
   background: inherit;
+`;
+
+const SearchSort = styled('span')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  &:before {
+    font-size: ${p => p.theme.fontSizeMedium};
+    color: ${p => p.theme.textColor};
+    content: ' \u2022 ';
+  }
 `;
 
 const TooltipSearchQuery = styled('span')`
@@ -125,11 +143,17 @@ const StyledMenuItem = styled(MenuItem)<{isActive: boolean; last: boolean}>`
   ${p =>
     p.isActive &&
     `
-  ${SearchTitle}, ${SearchQuery} {
+  ${SearchTitle}, ${SearchQuery}, ${SearchSort} {
+    color: ${p.theme.white};
+  }
+  ${SearchSort}:before {
     color: ${p.theme.white};
   }
   &:hover {
-    ${SearchTitle}, ${SearchQuery} {
+    ${SearchTitle}, ${SearchQuery}, ${SearchSort} {
+      color: ${p.theme.black};
+    }
+    ${SearchSort}:before {
       color: ${p.theme.black};
     }
   }

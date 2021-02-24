@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import {doEventsRequest} from 'app/actionCreators/events';
@@ -8,6 +9,7 @@ import {
   getInterval,
   isMultiSeriesStats,
 } from 'app/components/charts/utils';
+import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {t} from 'app/locale';
 import {
   EventsStats,
@@ -19,7 +21,10 @@ import {Series} from 'app/types/echarts';
 import {getUtcDateString, parsePeriodToHours} from 'app/utils/dates';
 import {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {doDiscoverQuery} from 'app/utils/discover/genericDiscoverQuery';
+import {
+  DiscoverQueryRequestParams,
+  doDiscoverQuery,
+} from 'app/utils/discover/genericDiscoverQuery';
 
 import {Widget, WidgetQuery} from './types';
 
@@ -27,16 +32,19 @@ import {Widget, WidgetQuery} from './types';
 const MAX_BIN_COUNT = 4000;
 
 function getWidgetInterval(
-  desired: string,
+  widget: Widget,
   datetimeObj: Partial<GlobalSelection['datetime']>
 ): string {
-  const desiredPeriod = parsePeriodToHours(desired);
+  // Bars charts are daily totals to aligned with discover. It also makes them
+  // usefully different from line/area charts until we expose the interval control, or remove it.
+  const interval = widget.displayType === 'bar' ? '1d' : widget.interval;
+  const desiredPeriod = parsePeriodToHours(interval);
   const selectedRange = getDiffInMinutes(datetimeObj);
 
   if (selectedRange / desiredPeriod > MAX_BIN_COUNT) {
     return getInterval(datetimeObj, true);
   }
-  return desired;
+  return interval;
 }
 
 type RawResult = EventsStats | MultiSeriesEventsStats;
@@ -120,114 +128,155 @@ class WidgetQueries extends React.Component<Props, State> {
       !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widget.queries, prevProps.widget.queries) ||
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
-      !isEqual(selection, prevProps.selection)
+      !isSelectionEqual(selection, prevProps.selection)
     ) {
       this.fetchData();
     }
   }
 
-  async fetchData() {
+  fetchEventData() {
     const {selection, api, organization, widget} = this.props;
+
+    const {start, end, period: statsPeriod} = selection.datetime;
+    const {projects} = selection;
+
+    let tableResults: TableDataWithTitle[] = [];
+    // Table, world map, and stat widgets use table results and need
+    // to do a discover 'table' query instead of a 'timeseries' query.
+    this.setState({tableResults: []});
+
+    const promises = widget.queries.map(query => {
+      const eventView = EventView.fromSavedQuery({
+        id: undefined,
+        name: query.name,
+        version: 2,
+        fields: query.fields,
+        query: query.conditions,
+        orderby: query.orderby,
+        projects,
+        range: statsPeriod,
+        start: start ? getUtcDateString(start) : undefined,
+        end: end ? getUtcDateString(end) : undefined,
+      });
+
+      let url: string = '';
+      const params: DiscoverQueryRequestParams = {
+        per_page: 5,
+      };
+      if (widget.displayType === 'table') {
+        url = `/organizations/${organization.slug}/eventsv2/`;
+        params.referrer = 'api.dashboards.tablewidget';
+      } else if (widget.displayType === 'big_number') {
+        url = `/organizations/${organization.slug}/eventsv2/`;
+        params.per_page = 1;
+        params.referrer = 'api.dashboards.bignumberwidget';
+      } else if (widget.displayType === 'world_map') {
+        url = `/organizations/${organization.slug}/events-geo/`;
+        delete params.per_page;
+        params.referrer = 'api.dashboards.worldmapwidget';
+      } else {
+        throw Error(
+          'Expected widget displayType to be either big_number, table or world_map'
+        );
+      }
+
+      return doDiscoverQuery<TableData>(api, url, {
+        ...eventView.generateQueryStringObject(),
+        ...params,
+      });
+    });
+
+    let completed = 0;
+    promises.forEach(async (promise, i) => {
+      try {
+        const [data] = await promise;
+        // Cast so we can add the title.
+        const tableData = data as TableDataWithTitle;
+        tableData.title = widget.queries[i]?.name ?? '';
+
+        // Overwrite the local var to work around state being stale in tests.
+        tableResults = [...tableResults, tableData];
+
+        completed++;
+        this.setState(prevState => {
+          return {
+            ...prevState,
+            tableResults,
+            loading: completed === promises.length ? false : true,
+          };
+        });
+      } catch (err) {
+        const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
+        this.setState({errorMessage});
+
+        // We always want to make sure an useful error message is set.
+        if (!err?.responseJSON?.detail) {
+          Sentry.captureException(err);
+        }
+      }
+    });
+  }
+
+  fetchTimeseriesData() {
+    const {selection, api, organization, widget} = this.props;
+    this.setState({timeseriesResults: []});
+
+    const {environments, projects} = selection;
+    const {start, end, period: statsPeriod} = selection.datetime;
+    const interval = getWidgetInterval(widget, {
+      start,
+      end,
+      period: statsPeriod,
+    });
+    const promises = widget.queries.map(query => {
+      const requestData = {
+        organization,
+        interval,
+        start,
+        end,
+        project: projects,
+        environment: environments,
+        period: statsPeriod,
+        query: query.conditions,
+        yAxis: query.fields,
+        orderby: query.orderby,
+        includePrevious: false,
+        referrer: 'api.dashboards.timeserieswidget',
+      };
+      return doEventsRequest(api, requestData);
+    });
+
+    let completed = 0;
+    promises.forEach(async (promise, i) => {
+      try {
+        const rawResults = await promise;
+        completed++;
+        this.setState(prevState => {
+          const timeseriesResults = prevState.timeseriesResults?.concat(
+            transformResult(widget.queries[i], rawResults)
+          );
+          return {
+            ...prevState,
+            timeseriesResults,
+            loading: completed === promises.length ? false : true,
+          };
+        });
+      } catch (err) {
+        const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
+        this.setState({errorMessage});
+      }
+    });
+  }
+
+  fetchData() {
+    const {widget} = this.props;
 
     this.setState({loading: true, errorMessage: undefined});
 
-    const {start, end} = selection.datetime;
-    const {projects, environments} = selection;
-
-    if (widget.displayType === 'table') {
-      let tableResults: TableDataWithTitle[] = [];
-      // Table and stat widgets use table results and need
-      // to do a discover 'table' query instead of a 'timeseries' query.
-      this.setState({tableResults: []});
-      const promises = widget.queries.map(query => {
-        const eventView = EventView.fromSavedQuery({
-          id: undefined,
-          name: query.name,
-          version: 2,
-          fields: query.fields,
-          query: query.conditions,
-          projects,
-          start: start ? getUtcDateString(start) : undefined,
-          end: end ? getUtcDateString(end) : undefined,
-        });
-        const url = `/organizations/${organization.slug}/eventsv2/`;
-        return doDiscoverQuery<TableData>(api, url, {
-          ...eventView.generateQueryStringObject(),
-          per_page: 5,
-        });
-      });
-
-      let completed = 0;
-      promises.forEach(async (promise, i) => {
-        try {
-          const [data] = await promise;
-          // Cast so we can add the title.
-          const tableData = data as TableDataWithTitle;
-          tableData.title = widget.queries[i]?.name ?? '';
-
-          // Overwrite the local var to work around state being stale in tests.
-          tableResults = [...tableResults, tableData];
-
-          completed++;
-          this.setState(prevState => {
-            return {
-              ...prevState,
-              tableResults,
-              loading: completed === promises.length ? false : true,
-            };
-          });
-        } catch (err) {
-          const errorMessage =
-            err?.responseJSON?.detail || t('An unknown error occurred.');
-          this.setState({errorMessage});
-        }
-      });
+    if (['table', 'world_map', 'big_number'].includes(widget.displayType)) {
+      this.fetchEventData();
     } else {
-      this.setState({timeseriesResults: []});
-
-      const statsPeriod = selection.datetime.period;
-      const interval = getWidgetInterval(widget.interval, {
-        start,
-        end,
-        period: statsPeriod,
-      });
-      const promises = widget.queries.map(query => {
-        const requestData = {
-          organization,
-          interval,
-          start,
-          end,
-          project: projects,
-          environment: environments,
-          period: statsPeriod,
-          query: query.conditions,
-          yAxis: query.fields,
-          includePrevious: false,
-        };
-        return doEventsRequest(api, requestData);
-      });
-
-      let completed = 0;
-      promises.forEach(async (promise, i) => {
-        try {
-          const rawResults = await promise;
-          completed++;
-          this.setState(prevState => {
-            const timeseriesResults = prevState.timeseriesResults?.concat(
-              transformResult(widget.queries[i], rawResults)
-            );
-            return {
-              ...prevState,
-              timeseriesResults,
-              loading: completed === promises.length ? false : true,
-            };
-          });
-        } catch (err) {
-          const errorMessage =
-            err?.responseJSON?.detail || t('An unknown error occurred.');
-          this.setState({errorMessage});
-        }
-      });
+      this.fetchTimeseriesData();
     }
   }
 

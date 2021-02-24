@@ -246,7 +246,7 @@ class AuthLoginNewsletterTest(TestCase):
         return reverse("sentry-login")
 
     def setUp(self):
-        super(AuthLoginNewsletterTest, self).setUp()
+        super().setUp()
 
         def disable_newsletter():
             newsletter.backend.disable()

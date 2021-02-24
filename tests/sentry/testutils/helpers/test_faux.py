@@ -1,6 +1,5 @@
 from unittest import TestCase
 
-import six
 from sentry.utils.compat.mock import patch
 from sentry.testutils.helpers.faux import faux
 
@@ -34,7 +33,7 @@ class TestFaux(TestCase):
         try:
             faux(mock).called_with(False)
         except AssertionError as e:
-            assert six.text_type(e) == "Expected to be called with (False). Received (1)."
+            assert str(e) == "Expected to be called with (False). Received (1)."
 
     def test_kwargs_contain(self, mock):
         fakefunc(foo=1)
@@ -46,7 +45,7 @@ class TestFaux(TestCase):
         try:
             faux(mock).kwargs_contain("bar")
         except AssertionError as e:
-            assert six.text_type(e) == "Expected kwargs to contain key 'bar'. Received (foo=1)."
+            assert str(e) == "Expected kwargs to contain key 'bar'. Received (foo=1)."
 
     def test_kwarg_equals(self, mock):
         fakefunc(foo=1, bar=2)
@@ -58,7 +57,7 @@ class TestFaux(TestCase):
         try:
             faux(mock).kwarg_equals("bar", True)
         except AssertionError as e:
-            assert six.text_type(e) == "Expected kwargs[bar] to equal True. Received 2."
+            assert str(e) == "Expected kwargs[bar] to equal True. Received 2."
 
     def test_args_contain(self, mock):
         fakefunc(1, False, None)
@@ -70,7 +69,7 @@ class TestFaux(TestCase):
         try:
             faux(mock).args_contain(True)
         except AssertionError as e:
-            assert six.text_type(e) == "Expected args to contain True. Received (1, None, False)."
+            assert str(e) == "Expected args to contain True. Received (1, None, False)."
 
     def test_args_equal(self, mock):
         fakefunc(1, False, None)
@@ -82,4 +81,4 @@ class TestFaux(TestCase):
         try:
             faux(mock).args_equals(["beep"])
         except AssertionError as e:
-            assert six.text_type(e) == "Expected args to equal (['beep']). Received (1, False)."
+            assert str(e) == "Expected args to equal (['beep']). Received (1, False)."

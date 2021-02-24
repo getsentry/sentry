@@ -1,7 +1,6 @@
 // eslint-disable-next-line simple-import-sort/imports
 import React from 'react';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {IntegrationWithConfig, Organization, ServerlessFunction} from 'app/types';
@@ -47,9 +46,8 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
 
   onLoadAllEndpointsSuccess() {
     trackIntegrationEvent(
+      'integrations.serverless_functions_viewed',
       {
-        eventKey: 'integrations.serverless_functions_viewed',
-        eventName: 'Integrations: Serverless Functions Viewed',
         integration: this.props.integration.provider.key,
         integration_type: 'first_party',
         num_functions: this.serverlessFunctions.length,
@@ -58,8 +56,15 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
     );
   }
 
-  handleFunctionUpdate = (serverlessFunction: ServerlessFunction, index: number) => {
-    const serverlessFunctions = cloneDeep(this.serverlessFunctions);
+  handleFunctionUpdate = (
+    serverlessFunctionUpdate: Partial<ServerlessFunction>,
+    index: number
+  ) => {
+    const serverlessFunctions = [...this.serverlessFunctions];
+    const serverlessFunction = {
+      ...serverlessFunctions[index],
+      ...serverlessFunctionUpdate,
+    };
     serverlessFunctions[index] = serverlessFunction;
     this.setState({serverlessFunctions});
   };
@@ -69,7 +74,7 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
       <React.Fragment>
         <Alert type="info">
           {t(
-            'Manage your AWS Lambda functions below. Only Node runtimes are currently supported.'
+            'Manage your AWS Lambda functions below. Only Node and Python runtimes are currently supported.'
           )}
         </Alert>
         <Panel>
@@ -83,8 +88,8 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
               <IntegrationServerlessRow
                 key={serverlessFunction.name}
                 serverlessFunction={serverlessFunction}
-                onUpdateFunction={(response: ServerlessFunction) =>
-                  this.handleFunctionUpdate(response, i)
+                onUpdateFunction={(update: Partial<ServerlessFunction>) =>
+                  this.handleFunctionUpdate(update, i)
                 }
                 {...this.props}
               />

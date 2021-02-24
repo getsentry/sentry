@@ -3,6 +3,7 @@ import React from 'react';
 import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadcasts';
 import {Client} from 'app/api';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import BroadcastSdkUpdates from 'app/components/sidebar/broadcastSdkUpdates';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
@@ -12,7 +13,7 @@ import {t} from 'app/locale';
 import {Broadcast, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 
-import {CommonSidebarProps} from './types';
+import {CommonSidebarProps, SidebarPanelKey} from './types';
 
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 600000; // 10 minute poll (60 * 10 * 1000)
@@ -114,7 +115,7 @@ class Broadcasts extends React.Component<Props, State> {
   }
 
   render() {
-    const {orientation, collapsed, currentPanel, showPanel, hidePanel} = this.props;
+    const {orientation, collapsed, currentPanel, hidePanel} = this.props;
     const {broadcasts, loading} = this.state;
 
     const unseenPosts = this.unseenIds;
@@ -125,7 +126,7 @@ class Broadcasts extends React.Component<Props, State> {
           data-test-id="sidebar-broadcasts"
           orientation={orientation}
           collapsed={collapsed}
-          active={currentPanel === 'broadcasts'}
+          active={currentPanel === SidebarPanelKey.Broadcasts}
           badge={unseenPosts.length}
           icon={<IconBroadcast size="md" />}
           label={t("What's new")}
@@ -133,7 +134,7 @@ class Broadcasts extends React.Component<Props, State> {
           id="broadcasts"
         />
 
-        {showPanel && currentPanel === 'broadcasts' && (
+        {currentPanel === SidebarPanelKey.Broadcasts && (
           <SidebarPanel
             data-test-id="sidebar-broadcasts-panel"
             orientation={orientation}
@@ -141,6 +142,7 @@ class Broadcasts extends React.Component<Props, State> {
             title={t("What's new in Sentry")}
             hidePanel={hidePanel}
           >
+            <BroadcastSdkUpdates />
             {loading ? (
               <LoadingIndicator />
             ) : broadcasts.length === 0 ? (

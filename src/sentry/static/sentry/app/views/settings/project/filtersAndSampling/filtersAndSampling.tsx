@@ -1,12 +1,15 @@
 import React from 'react';
+import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
+import Alert from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
-import {PlatformKey} from 'app/data/platformCategories';
 import {t, tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {
+  DynamicSamplingConditionOperator,
   DynamicSamplingRule,
   DynamicSamplingRules,
   DynamicSamplingRuleType,
@@ -21,7 +24,7 @@ import ErrorRuleModal from './modals/errorRuleModal';
 import TransactionRuleModal from './modals/transactionRuleModal';
 import {modalCss} from './modals/utils';
 import RulesPanel from './rulesPanel';
-import {getPlatformDocLink} from './utils';
+import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
 
 type Props = AsyncView['props'] & {
   project: Project;
@@ -30,7 +33,9 @@ type Props = AsyncView['props'] & {
 };
 
 type State = AsyncView['state'] & {
+  errorRules: DynamicSamplingRules;
   transactionRules: DynamicSamplingRules;
+  projectDetails: Project | null;
 };
 
 class FiltersAndSampling extends AsyncView<Props, State> {
@@ -41,94 +46,64 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
+      errorRules: [],
       transactionRules: [],
-      project: null,
+      projectDetails: null,
     };
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    // TODO(PRISCILA): it will come soon
-    return [['', '']];
+    const {organization, project} = this.props;
+    return [['projectDetails', `/projects/${organization.slug}/${project.slug}/`]];
   }
 
   componentDidMount() {
     this.getRules();
   }
 
+  componentDidUpdate(_prevProps: Props, prevState: State) {
+    if (prevState.projectDetails !== this.state.projectDetails) {
+      this.getRules();
+      return;
+    }
+  }
+
   getRules() {
-    const dynamicSampling: DynamicSamplingRules = [
-      {
-        condition: {
-          operator: 'globMatch',
-          name: 'releases',
-          value: ['1.1.1', '1.1.2'],
-        },
-        sampleRate: 0.7,
-        ty: 'trace',
-      },
-      {
-        condition: {
-          operator: 'and',
-          inner: [
-            {
-              operator: 'strEqualNoCase',
-              name: 'environments',
-              value: ['dev', 'prod'],
-            },
-            {
-              operator: 'strEqualNoCase',
-              name: 'userSegments',
-              value: ['FirstSegment', 'SeCoNd'],
-            },
-          ],
-        },
-        sampleRate: 0.8,
-        ty: 'error',
-      },
-      {
-        condition: {
-          operator: 'not',
-          inner: {
-            operator: 'strEqualNoCase',
-            name: 'environments',
-            value: ['dev', 'prod'],
-          },
-        },
-        sampleRate: 0.8,
-        ty: 'error',
-      },
-      {
-        condition: {
-          operator: 'strEqualNoCase',
-          name: 'environments',
-          value: ['dev', 'prod'],
-        },
-        sampleRate: 0.8,
-        ty: 'error',
-      },
-    ] as DynamicSamplingRules;
+    const {projectDetails} = this.state;
+
+    if (!projectDetails) {
+      return;
+    }
+
+    const {dynamicSampling} = projectDetails;
+    const rules = dynamicSampling?.rules ?? [];
 
     const [errorRules, transactionRules] = partition(
-      dynamicSampling,
-      rule => rule.ty === DynamicSamplingRuleType.ERROR
+      rules,
+      rule => rule.type === DynamicSamplingRuleType.ERROR
     );
 
     this.setState({errorRules, transactionRules});
   }
 
-  handleSaveRule = async () => {
-    // TODO(Priscila): Finalize this logic according to the new structure
+  successfullySubmitted = (projectDetails: Project) => {
+    this.setState({projectDetails});
   };
 
-  handleAddErrorRule = (platformDocLink?: string) => () => {
-    const {organization} = this.props;
+  handleOpenErrorRule = (rule?: DynamicSamplingRule) => () => {
+    const {organization, project} = this.props;
+    const {errorRules, transactionRules} = this.state;
     return openModal(
       modalProps => (
         <ErrorRuleModal
           {...modalProps}
+          api={this.api}
           organization={organization}
-          onSubmit={this.handleSaveRule}
-          platformDocLink={platformDocLink}
+          project={project}
+          rule={rule}
+          errorRules={errorRules}
+          transactionRules={transactionRules}
+          onSubmitSuccess={this.successfullySubmitted}
         />
       ),
       {
@@ -137,15 +112,20 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     );
   };
 
-  handleAddTransactionRule = (platformDocLink?: string) => () => {
-    const {organization} = this.props;
+  handleOpenTransactionRule = (rule?: DynamicSamplingRule) => () => {
+    const {organization, project} = this.props;
+    const {errorRules, transactionRules} = this.state;
     return openModal(
       modalProps => (
         <TransactionRuleModal
           {...modalProps}
+          api={this.api}
           organization={organization}
-          onSubmit={this.handleSaveRule}
-          platformDocLink={platformDocLink}
+          project={project}
+          rule={rule}
+          errorRules={errorRules}
+          transactionRules={transactionRules}
+          onSubmitSuccess={this.successfullySubmitted}
         />
       ),
       {
@@ -154,48 +134,116 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     );
   };
 
+  handleAddRule = <T extends keyof Pick<State, 'errorRules' | 'transactionRules'>>(
+    type: T
+  ) => () => {
+    if (type === 'errorRules') {
+      this.handleOpenErrorRule()();
+      return;
+    }
+
+    this.handleOpenTransactionRule()();
+  };
+
   handleEditRule = (rule: DynamicSamplingRule) => () => {
-    // TODO(Priscila): Finalize this logic according to the new structure
-    // eslint-disable-next-line no-console
-    console.log(rule);
+    if (rule.type === DynamicSamplingRuleType.ERROR) {
+      this.handleOpenErrorRule(rule)();
+      return;
+    }
+
+    this.handleOpenTransactionRule(rule)();
   };
 
   handleDeleteRule = (rule: DynamicSamplingRule) => () => {
-    // TODO(Priscila): Finalize this logic according to the new structure
-    // eslint-disable-next-line no-console
-    console.log(rule);
+    const {errorRules, transactionRules} = this.state;
+
+    const newErrorRules =
+      rule.type === DynamicSamplingRuleType.ERROR
+        ? errorRules.filter(errorRule => !isEqual(errorRule, rule))
+        : errorRules;
+
+    const newTransactionRules =
+      rule.type !== DynamicSamplingRuleType.ERROR
+        ? transactionRules.filter(transactionRule => !isEqual(transactionRule, rule))
+        : transactionRules;
+
+    const newRules = [...newErrorRules, ...newTransactionRules];
+
+    this.submitRules(
+      newRules,
+      t('Successfully deleted dynamic sampling rule'),
+      t('An error occurred while deleting dynamic sampling rule')
+    );
   };
+
+  handleUpdateRules = (rules: Array<DynamicSamplingRule>) => {
+    const {errorRules, transactionRules} = this.state;
+    if (rules[0].type === DynamicSamplingRuleType.ERROR) {
+      this.submitRules([...rules, ...transactionRules]);
+      return;
+    }
+    this.submitRules([...errorRules, ...rules]);
+  };
+
+  async submitRules(
+    newRules: DynamicSamplingRules,
+    successMessage?: string,
+    errorMessage?: string
+  ) {
+    const {organization, project} = this.props;
+    try {
+      const projectDetails = await this.api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
+      );
+      this.setState({projectDetails});
+      if (successMessage) {
+        addSuccessMessage(successMessage);
+      }
+    } catch (error) {
+      this.getRules();
+      if (errorMessage) {
+        addErrorMessage(errorMessage);
+      }
+    }
+  }
 
   renderBody() {
     const {errorRules, transactionRules} = this.state;
-    const {project, hasAccess} = this.props;
-
-    const platformDocLink = getPlatformDocLink(project.platform as PlatformKey);
+    const {hasAccess} = this.props;
     const disabled = !hasAccess;
+
+    const hasNotSupportedConditionOperator = [...errorRules, ...transactionRules].some(
+      rule => rule.condition.op !== DynamicSamplingConditionOperator.AND
+    );
+
+    if (hasNotSupportedConditionOperator) {
+      return (
+        <Alert type="error">
+          {t('A condition operator has been found that is not yet supported.')}
+        </Alert>
+      );
+    }
 
     return (
       <React.Fragment>
         <SettingsPageHeader title={this.getTitle()} />
         <PermissionAlert />
         <TextBlock>
-          {platformDocLink
-            ? tct(
-                'Manage the inbound data you want to store. To change the sampling rate or rate limits, [link:update your SDK configuration]. The rules added below will apply on top of your SDK configuration.',
-                {
-                  link: <ExternalLink href={platformDocLink} />,
-                }
-              )
-            : t(
-                'Manage the inbound data you want to store. To change the sampling rate or rate limits, update your SDK configuration. The rules added below will apply on top of your SDK configuration.'
-              )}
+          {tct(
+            'Manage the inbound data you want to store. To change the sampling rate or rate limits, [link:update your SDK configuration]. The rules added below will apply on top of your SDK configuration.',
+            {
+              link: <ExternalLink href={DYNAMIC_SAMPLING_DOC_LINK} />,
+            }
+          )}
         </TextBlock>
         <RulesPanel
           rules={errorRules}
-          platformDocLink={platformDocLink}
-          onAddRule={this.handleAddErrorRule(platformDocLink)}
+          disabled={disabled}
+          onAddRule={this.handleAddRule('errorRules')}
           onEditRule={this.handleEditRule}
           onDeleteRule={this.handleDeleteRule}
-          disabled={disabled}
+          onUpdateRules={this.handleUpdateRules}
         />
         <TextBlock>
           {t(
@@ -204,11 +252,11 @@ class FiltersAndSampling extends AsyncView<Props, State> {
         </TextBlock>
         <RulesPanel
           rules={transactionRules}
-          platformDocLink={platformDocLink}
-          onAddRule={this.handleAddTransactionRule(platformDocLink)}
+          disabled={disabled}
+          onAddRule={this.handleAddRule('transactionRules')}
           onEditRule={this.handleEditRule}
           onDeleteRule={this.handleDeleteRule}
-          disabled={disabled}
+          onUpdateRules={this.handleUpdateRules}
         />
       </React.Fragment>
     );

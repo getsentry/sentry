@@ -5,7 +5,7 @@ from sentry.utils.retries import TimedRetryPolicy
 
 class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationSwitchTest, self).setUp()
+        super().setUp()
 
         self.primary_projects = [
             self.create_project(organization=self.organization, teams=[self.team], name=name)
@@ -82,4 +82,4 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
 
     @staticmethod
     def url_creator(page_path, org_slug):
-        return "organizations/{org_id}/{page_path}/".format(org_id=org_slug, page_path=page_path)
+        return f"organizations/{org_slug}/{page_path}/"

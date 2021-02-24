@@ -227,6 +227,10 @@
       background-image: url(../images/logos/context/netcore.svg);
     }
 
+    &.net .context-item-icon {
+      background-image: url(../images/logos/context/dotnet.svg);
+    }
+
     &.mono .context-item-icon {
       background-image: url(../images/logos/context/mono-gorilla.svg);
     }
@@ -840,7 +844,7 @@ div.traceback > ul {
       left: 8px;
       top: 6px;
       opacity: 0.25;
-      .transition(0.1s opacity linear);
+      transition: 0.1s opacity linear;
     }
 
     &.key-value {
@@ -1250,7 +1254,12 @@ ul.crumbs {
           display: block;
           width: 100%;
           height: 15px;
-          #gradient > .vertical(rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));;
+          background-image: linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 1) 100%
+          );
+          background-repeat: repeat-x;
           z-index: 1;
         }
 

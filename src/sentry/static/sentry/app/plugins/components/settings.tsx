@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 
 import PluginComponentBase from 'app/components/bases/pluginComponentBase';
 import {Form, FormState} from 'app/components/forms';
@@ -9,7 +8,8 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct} from 'app/locale';
 import {Organization, Plugin, Project} from 'app/types';
 import {parseRepo} from 'app/utils';
-import {SingleIntegrationEvent, trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 type Props = {
   organization: Organization;
@@ -34,12 +34,6 @@ class PluginSettings<
   P extends Props = Props,
   S extends State = State
 > extends PluginComponentBase<P, S> {
-  static propTypes: any = {
-    organization: PropTypes.object.isRequired,
-    project: PropTypes.object.isRequired,
-    plugin: PropTypes.object.isRequired,
-  };
-
   constructor(props: P, context: any) {
     super(props, context);
 
@@ -56,17 +50,14 @@ class PluginSettings<
     });
   }
 
-  trackPluginEvent = (
-    options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>
-  ) => {
+  trackPluginEvent = (eventKey: IntegrationAnalyticsKey) => {
     trackIntegrationEvent(
+      eventKey,
       {
         integration: this.props.plugin.id,
         integration_type: 'plugin',
         view: 'plugin_details',
-        project_id: this.props.project.id,
         already_installed: this.state.wasConfiguredOnPageLoad,
-        ...options,
       },
       this.props.organization
     );
@@ -95,10 +86,7 @@ class PluginSettings<
     if (!this.state.wasConfiguredOnPageLoad) {
       //Users cannot install plugins like other integrations but we need the events for the funnel
       //we will treat a user saving a plugin that wasn't already configured as an installation event
-      this.trackPluginEvent({
-        eventKey: 'integrations.installation_start',
-        eventName: 'Integrations: Installation Start',
-      });
+      this.trackPluginEvent('integrations.installation_start');
     }
 
     let repo = this.state.formData.repo;
@@ -120,16 +108,10 @@ class PluginSettings<
           initialData,
           errors: {},
         });
-        this.trackPluginEvent({
-          eventKey: 'integrations.config_saved',
-          eventName: 'Integrations: Config Saved',
-        });
+        this.trackPluginEvent('integrations.config_saved');
 
         if (!this.state.wasConfiguredOnPageLoad) {
-          this.trackPluginEvent({
-            eventKey: 'integrations.installation_complete',
-            eventName: 'Integrations: Installation Complete',
-          });
+          this.trackPluginEvent('integrations.installation_complete');
         }
       }),
       error: this.onSaveError.bind(this, error => {

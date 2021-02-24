@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import {Client} from 'app/api';
 import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {IconInfo} from 'app/icons';
@@ -12,28 +12,26 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, Organization, Project} from 'app/types';
 import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
+import withApi from 'app/utils/withApi';
 import InputField from 'app/views/settings/components/forms/inputField';
 
-type Props = AsyncComponent['props'] &
-  ModalRenderProps & {
-    filename: string;
-    organization: Organization;
-    project: Project;
-    integrations: Integration[];
-    onSubmit: () => void;
-  };
+type Props = ModalRenderProps & {
+  api: Client;
+  filename: string;
+  integrations: Integration[];
+  onSubmit: () => void;
+  organization: Organization;
+  project: Project;
+};
 
-type State = AsyncComponent['state'] & {
+type State = {
   sourceCodeInput: string;
 };
 
-class StacktraceLinkModal extends AsyncComponent<Props, State> {
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      sourceCodeInput: '',
-    };
-  }
+class StacktraceLinkModal extends React.Component<Props, State> {
+  state: State = {
+    sourceCodeInput: '',
+  };
 
   onHandleChange(sourceCodeInput: string) {
     this.setState({
@@ -43,9 +41,8 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
 
   onManualSetup(provider: string) {
     trackIntegrationEvent(
+      'integrations.stacktrace_manual_option_clicked',
       {
-        eventKey: 'integrations.stacktrace_manual_option_clicked',
-        eventName: 'Integrations: Stacktrace Manual Option Clicked',
         view: 'stacktrace_issue_details',
         setup_type: 'manual',
         provider,
@@ -56,20 +53,19 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
 
   handleSubmit = async () => {
     const {sourceCodeInput} = this.state;
-    const {organization, filename, project} = this.props;
+    const {api, closeModal, filename, onSubmit, organization, project} = this.props;
     trackIntegrationEvent(
+      'integrations.stacktrace_submit_config',
       {
-        eventKey: 'integrations.stacktrace_submit_config',
-        eventName: 'Integrations: Stacktrace Submit Config',
         setup_type: 'automatic',
         view: 'stacktrace_issue_details',
       },
-      this.props.organization
+      organization
     );
 
     const parsingEndpoint = `/projects/${organization.slug}/${project.slug}/repo-path-parsing/`;
     try {
-      const configData = await this.api.requestPromise(parsingEndpoint, {
+      const configData = await api.requestPromise(parsingEndpoint, {
         method: 'POST',
         data: {
           sourceUrl: sourceCodeInput,
@@ -78,24 +74,23 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
       });
 
       const configEndpoint = `/organizations/${organization.slug}/integrations/${configData.integrationId}/repo-project-path-configs/`;
-      await this.api.requestPromise(configEndpoint, {
+      await api.requestPromise(configEndpoint, {
         method: 'POST',
         data: {...configData, projectId: project.id},
       });
 
       addSuccessMessage(t('Stack trace configuration saved.'));
       trackIntegrationEvent(
+        'integrations.stacktrace_complete_setup',
         {
-          eventKey: 'integrations.stacktrace_complete_setup',
-          eventName: 'Integrations: Stacktrace Complete Setup',
           setup_type: 'automatic',
           provider: configData.config?.provider.key,
           view: 'stacktrace_issue_details',
         },
-        this.props.organization
+        organization
       );
-      this.props.closeModal();
-      this.props.onSubmit();
+      closeModal();
+      onSubmit();
     } catch (err) {
       const errors = err?.responseJSON
         ? Array.isArray(err?.responseJSON)
@@ -107,7 +102,7 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
     }
   };
 
-  renderBody() {
+  render() {
     const {sourceCodeInput} = this.state;
     const {Header, Body, Footer, filename, integrations, organization} = this.props;
     const baseUrl = `/settings/${organization.slug}/integrations`;
@@ -188,8 +183,6 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
   }
 }
 
-export default StacktraceLinkModal;
-
 const SourceCodeInput = styled('div')`
   display: grid;
   grid-template-columns: 5fr 1fr;
@@ -218,3 +211,5 @@ const StyledInputField = styled(InputField)`
 const IntegrationName = styled('p')`
   padding-left: 10px;
 `;
+
+export default withApi(StacktraceLinkModal);

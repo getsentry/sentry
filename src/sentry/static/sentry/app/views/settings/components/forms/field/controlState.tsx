@@ -6,43 +6,46 @@ import {fadeOut, pulse} from 'app/styles/animations';
 import Spinner from 'app/views/settings/components/forms/spinner';
 
 type Props = {
+  /**
+   * Display the saving state
+   */
   isSaving?: boolean;
+  /**
+   * Display the "was just saved" state
+   */
   isSaved?: boolean;
+  /**
+   * Display the  error indicator
+   */
   error?: string | boolean;
 };
 
 /**
  * ControlState (i.e. loading/error icons) for form fields
  */
-class ControlState extends React.Component<Props> {
-  render() {
-    const {isSaving, isSaved, error} = this.props;
+const ControlState = ({isSaving, isSaved, error}: Props) => (
+  <React.Fragment>
+    {isSaving ? (
+      <ControlStateWrapper>
+        <FormSpinner />
+      </ControlStateWrapper>
+    ) : isSaved ? (
+      <ControlStateWrapper>
+        <FieldIsSaved>
+          <IconCheckmark size="18px" />
+        </FieldIsSaved>
+      </ControlStateWrapper>
+    ) : null}
 
-    return (
-      <React.Fragment>
-        {isSaving ? (
-          <ControlStateWrapper>
-            <FormSpinner />
-          </ControlStateWrapper>
-        ) : isSaved ? (
-          <ControlStateWrapper>
-            <FieldIsSaved>
-              <IconCheckmark size="18px" />
-            </FieldIsSaved>
-          </ControlStateWrapper>
-        ) : null}
-
-        {error ? (
-          <ControlStateWrapper>
-            <FieldError>
-              <IconWarning size="18px" />
-            </FieldError>
-          </ControlStateWrapper>
-        ) : null}
-      </React.Fragment>
-    );
-  }
-}
+    {error ? (
+      <ControlStateWrapper>
+        <FieldError>
+          <IconWarning size="18px" />
+        </FieldError>
+      </ControlStateWrapper>
+    ) : null}
+  </React.Fragment>
+);
 
 const ControlStateWrapper = styled('div')`
   padding: 0 8px;

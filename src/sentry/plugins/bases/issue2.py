@@ -1,5 +1,3 @@
-import six
-
 from rest_framework.response import Response
 from social_auth.models import UserSocialAuth
 
@@ -54,7 +52,7 @@ class IssueTrackingPlugin2(Plugin):
 
     def get_group_body(self, request, group, event, **kwargs):
         result = []
-        for interface in six.itervalues(event.interfaces):
+        for interface in event.interfaces.values():
             output = safe_execute(interface.to_string, event, _with_transaction=False)
             if output:
                 result.append(output)
@@ -162,7 +160,7 @@ class IssueTrackingPlugin2(Plugin):
         """
         if isinstance(issue, dict):
             return "#{}".format(issue["id"])
-        return "#{}".format(issue)
+        return f"#{issue}"
 
     def create_issue(self, request, group, form_data, **kwargs):
         """
@@ -179,7 +177,6 @@ class IssueTrackingPlugin2(Plugin):
 
         Returns ``{'id': '1', 'title': issue_title}``
         """
-        pass
 
     def has_auth_configured(self, **kwargs):
         if not self.auth_provider:
@@ -200,13 +197,13 @@ class IssueTrackingPlugin2(Plugin):
         # XXX(dcramer): legacy support
         conf_key = self.get_conf_key()
         if self.issue_fields is None:
-            return {"id": "{}:tid".format(conf_key)}
-        return {key: "{}:issue_{}".format(conf_key, key) for key in self.issue_fields}
+            return {"id": f"{conf_key}:tid"}
+        return {key: f"{conf_key}:issue_{key}" for key in self.issue_fields}
 
     def build_issue(self, group):
         issue_field_map = self.get_issue_field_map()
         issue = {}
-        for key, meta_name in six.iteritems(issue_field_map):
+        for key, meta_name in issue_field_map.items():
             issue[key] = GroupMeta.objects.get_value(group, meta_name, None)
         if not any(issue.values()):
             return None
@@ -217,7 +214,7 @@ class IssueTrackingPlugin2(Plugin):
 
     def unlink_issue(self, request, group, issue, **kwargs):
         issue_field_map = self.get_issue_field_map()
-        for meta_name in six.itervalues(issue_field_map):
+        for meta_name in issue_field_map.values():
             GroupMeta.objects.unset_value(group, meta_name)
         return self.redirect(group.get_absolute_url())
 
@@ -255,7 +252,7 @@ class IssueTrackingPlugin2(Plugin):
             issue = {"id": issue}
 
         issue_field_map = self.get_issue_field_map()
-        for key, meta_name in six.iteritems(issue_field_map):
+        for key, meta_name in issue_field_map.items():
             if key in issue:
                 GroupMeta.objects.set_value(group, meta_name, issue[key])
             else:
@@ -324,7 +321,7 @@ class IssueTrackingPlugin2(Plugin):
             issue["id"] = request.data["issue_id"]
 
         issue_field_map = self.get_issue_field_map()
-        for key, meta_name in six.iteritems(issue_field_map):
+        for key, meta_name in issue_field_map.items():
             if key in issue:
                 GroupMeta.objects.set_value(group, meta_name, issue[key])
             else:

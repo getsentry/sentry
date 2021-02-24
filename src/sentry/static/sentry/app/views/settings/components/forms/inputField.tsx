@@ -1,11 +1,13 @@
 import React from 'react';
 import omit from 'lodash/omit';
-import PropTypes from 'prop-types';
 
 import Input from 'app/views/settings/components/forms/controls/input';
 import FormField from 'app/views/settings/components/forms/formField';
 
 type Props = {
+  // TODO(ts) Add base types for this. Each input field
+  // has different props, but we could use have a base type that contains
+  // the common properties.
   field?: (props) => React.ReactNode;
   value?: any;
 } & Omit<FormField['props'], 'children'> &
@@ -17,12 +19,6 @@ type Props = {
 export type onEvent = (value, event?: React.FormEvent<HTMLInputElement>) => void;
 
 export default class InputField extends React.Component<Props> {
-  static propTypes = {
-    ...FormField.propTypes,
-    field: PropTypes.func,
-    value: PropTypes.any,
-  };
-
   static defaultProps = {
     field: ({
       onChange,

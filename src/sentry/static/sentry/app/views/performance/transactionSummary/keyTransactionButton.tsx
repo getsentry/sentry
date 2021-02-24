@@ -131,7 +131,7 @@ class KeyTransactionButton extends React.Component<Props, State> {
         icon={
           <IconStar
             size="xs"
-            color={isKeyTransaction ? 'yellow300' : 'gray200'}
+            color={isKeyTransaction ? 'yellow300' : 'gray500'}
             isSolid={!!isKeyTransaction}
           />
         }

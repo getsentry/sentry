@@ -13,6 +13,7 @@ import {PageContent} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {isAggregateField, WebVital} from 'app/utils/discover/fields';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -21,7 +22,7 @@ import withProjects from 'app/utils/withProjects';
 
 import {getTransactionName} from '../utils';
 
-import {PERCENTILE, VITAL_GROUPS, WEB_VITAL_DETAILS} from './constants';
+import {PERCENTILE, VITAL_GROUPS} from './constants';
 import RumContent from './content';
 
 type Props = {
@@ -137,7 +138,7 @@ function generateRumEventView(
   if (transactionName === undefined) {
     return undefined;
   }
-  const query = decodeScalar(location.query.query) || '';
+  const query = decodeScalar(location.query.query, '');
   const conditions = tokenizeSearch(query);
   conditions
     .setTagValues('event.type', ['transaction'])
@@ -161,8 +162,7 @@ function generateRumEventView(
         ...vitals.map(vital => `percentile(${vital}, ${PERCENTILE})`),
         ...vitals.map(vital => `count_at_least(${vital}, 0)`),
         ...vitals.map(
-          vital =>
-            `count_at_least(${vital}, ${WEB_VITAL_DETAILS[vital].failureThreshold})`
+          vital => `count_at_least(${vital}, ${WEB_VITAL_DETAILS[vital].poorThreshold})`
         ),
       ],
       query: stringifyQueryObject(conditions),

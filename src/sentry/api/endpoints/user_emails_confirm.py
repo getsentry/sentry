@@ -13,7 +13,7 @@ logger = logging.getLogger("sentry.accounts")
 
 class InvalidEmailResponse(Response):
     def __init__(self):
-        super(InvalidEmailResponse, self).__init__(
+        super().__init__(
             {"detail": "Invalid email", "email": "Invalid email"},
             status=status.HTTP_400_BAD_REQUEST,
         )
@@ -44,7 +44,7 @@ class UserEmailsConfirmEndpoint(UserEndpoint):
         from sentry.app import ratelimiter
 
         if ratelimiter.is_limited(
-            "auth:confirm-email:{}".format(user.id),
+            f"auth:confirm-email:{user.id}",
             limit=10,
             window=60,  # 10 per minute should be enough for anyone
         ):

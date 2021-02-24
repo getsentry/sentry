@@ -1,5 +1,4 @@
 import operator
-import six
 
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Group
@@ -37,8 +36,7 @@ def score_path_match_length(path_a, path_b):
     return score
 
 
-def _get_frame_paths(event):
-    data = event.data
+def get_frame_paths(data):
     frames = get_path(data, "stacktrace", "frames", filter=True)
     if frames:
         return frames
@@ -47,7 +45,7 @@ def _get_frame_paths(event):
 
 
 def release_cache_key(release):
-    return "release_commits:{}".format(release.id)
+    return f"release_commits:{release.id}"
 
 
 def _get_commits(releases):
@@ -136,7 +134,7 @@ def _get_committers(annotated_frames, commits):
 
     user_dicts = [
         {
-            "author": users_by_author.get(six.text_type(author_id)),
+            "author": users_by_author.get(str(author_id)),
             "commits": [
                 (commit, score) for (commit, score) in commits if commit.author_id == author_id
             ],
@@ -154,33 +152,50 @@ def get_previous_releases(project, start_version, limit=5):
     rv = cache.get(key)
     if rv is None:
         try:
-            release_dates = (
-                Release.objects.filter(
-                    organization_id=project.organization_id, version=start_version, projects=project
-                )
-                .values("date_released", "date_added")
-                .get()
-            )
+            first_release = Release.objects.filter(
+                organization_id=project.organization_id, version=start_version, projects=project
+            ).get()
         except Release.DoesNotExist:
             rv = []
         else:
-            start_date = release_dates["date_released"] or release_dates["date_added"]
+            start_date = first_release.date_released or first_release.date_added
 
+            # XXX: This query could be very inefficient for projects with a large
+            # number of releases. To work around this, we only check 100 releases
+            # ordered by highest release id, which is generally correlated with
+            # most recent releases for a project. This isn't guaranteed to be correct,
+            # since `date_released` could end up out of order, but should be close
+            # enough for what we need this for with suspect commits.
+            # To make this better, we should denormalize the coalesce of date_released
+            # and date_added onto `ReleaseProject`, which would have benefits for other
+            # similar queries.
             rv = list(
-                Release.objects.filter(projects=project, organization_id=project.organization_id)
-                .extra(
-                    select={"date": "COALESCE(date_released, date_added)"},
-                    where=["COALESCE(date_released, date_added) <= %s"],
-                    params=[start_date],
+                Release.objects.raw(
+                    """
+                        SELECT sr.*
+                        FROM sentry_release as sr
+                        INNER JOIN (
+                            SELECT release_id
+                            FROM sentry_release_project
+                            WHERE project_id = %s
+                            AND sentry_release_project.release_id <= %s
+                            ORDER BY release_id desc
+                            LIMIT 100
+                        ) AS srp ON (sr.id = srp.release_id)
+                        WHERE sr.organization_id = %s
+                        AND coalesce(sr.date_released, sr.date_added) <= %s
+                        ORDER BY coalesce(sr.date_released, sr.date_added) DESC
+                        LIMIT %s;
+                    """,
+                    [project.id, first_release.id, project.organization_id, start_date, limit],
                 )
-                .extra(order_by=["-date"])[:limit]
             )
         cache.set(key, rv, 60)
     return rv
 
 
-def get_event_file_committers(project, event, frame_limit=25):
-    group = Group.objects.get_from_cache(id=event.group_id)
+def get_event_file_committers(project, group_id, event_frames, event_platform, frame_limit=25):
+    group = Group.objects.get_from_cache(id=group_id)
 
     first_release_version = group.get_first_release()
 
@@ -196,7 +211,7 @@ def get_event_file_committers(project, event, frame_limit=25):
     if not commits:
         raise Commit.DoesNotExist
 
-    frames = _get_frame_paths(event) or ()
+    frames = event_frames or ()
     app_frames = [frame for frame in frames if frame["in_app"]][-frame_limit:]
     if not app_frames:
         app_frames = [frame for frame in frames][-frame_limit:]
@@ -206,7 +221,7 @@ def get_event_file_committers(project, event, frame_limit=25):
     # the Java SDK might generate better file paths, but for now we use the module
     # path to approximate the file path so that we can intersect it with commit
     # file paths.
-    if event.platform == "java":
+    if event_platform == "java":
         for frame in frames:
             if frame.get("filename") is None:
                 continue
@@ -247,7 +262,10 @@ def get_event_file_committers(project, event, frame_limit=25):
 
 
 def get_serialized_event_file_committers(project, event, frame_limit=25):
-    committers = get_event_file_committers(project, event, frame_limit=frame_limit)
+    event_frames = get_frame_paths(event.data)
+    committers = get_event_file_committers(
+        project, event.group_id, event_frames, event.platform, frame_limit=frame_limit
+    )
     commits = [commit for committer in committers for commit in committer["commits"]]
     serialized_commits = serialize(
         [c for (c, score) in commits], serializer=CommitSerializer(exclude=["author"])

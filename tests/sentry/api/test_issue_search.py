@@ -1,5 +1,3 @@
-import six
-
 from sentry.api.event_search import (
     InvalidSearchQuery,
     AggregateFilter,
@@ -87,13 +85,11 @@ class ParseSearchQueryTest(TestCase):
         with self.assertRaises(InvalidSearchQuery) as cm:
             parse_search_query("is:wrong")
 
-        assert six.text_type(cm.exception).startswith(
-            'Invalid value for "is" search, valid values are'
-        )
+        assert str(cm.exception).startswith('Invalid value for "is" search, valid values are')
 
     def test_is_query_inbox(self):
-        assert parse_search_query("is:needs_review") == [
-            SearchFilter(key=SearchKey(name="needs_review"), operator="=", value=SearchValue(True))
+        assert parse_search_query("is:for_review") == [
+            SearchFilter(key=SearchKey(name="for_review"), operator="=", value=SearchValue(True))
         ]
 
     def test_numeric_filter(self):

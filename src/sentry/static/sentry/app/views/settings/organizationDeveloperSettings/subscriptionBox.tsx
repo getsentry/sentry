@@ -1,11 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Checkbox from 'app/components/checkbox';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import {
@@ -28,15 +26,6 @@ type Props = DefaultProps & {
 };
 
 export class SubscriptionBox extends React.Component<Props> {
-  static propTypes: any = {
-    resource: PropTypes.string.isRequired,
-    disabledFromPermissions: PropTypes.bool.isRequired,
-    webhookDisabled: PropTypes.bool.isRequired,
-    checked: PropTypes.bool.isRequired,
-    onChange: PropTypes.func.isRequired,
-    organization: SentryTypes.Organization,
-  };
-
   static defaultProps: DefaultProps = {
     webhookDisabled: false,
   };

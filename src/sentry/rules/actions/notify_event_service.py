@@ -10,8 +10,8 @@ from sentry.api.serializers.models.app_platform_event import AppPlatformEvent
 from sentry.api.serializers.models.incident import IncidentSerializer
 from sentry.constants import SentryAppInstallationStatus
 from sentry.incidents.logic import get_alertable_sentry_apps
-from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.incidents.models import INCIDENT_STATUS
+from sentry.integrations.metric_alerts import incident_attachment_info, incident_status_info
 from sentry.models import SentryApp, SentryAppInstallation
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
@@ -24,13 +24,13 @@ from sentry.utils.safe import safe_execute
 logger = logging.getLogger("sentry.integrations.sentry_app")
 
 
-def build_incident_attachment(incident, metric_value=None):
+def build_incident_attachment(action, incident, metric_value=None, method=None):
     from sentry.api.serializers.rest_framework.base import (
         camel_to_snake_case,
         convert_dict_key_case,
     )
 
-    data = incident_attachment_info(incident, metric_value)
+    data = incident_attachment_info(incident, metric_value, action=action, method=method)
     return {
         "metric_alert": convert_dict_key_case(
             serialize(incident, serializer=IncidentSerializer()), camel_to_snake_case
@@ -41,7 +41,7 @@ def build_incident_attachment(incident, metric_value=None):
     }
 
 
-def send_incident_alert_notification(action, incident, metric_value=None):
+def send_incident_alert_notification(action, incident, metric_value=None, method=None):
     """
     When a metric alert is triggered, send incident data to the SentryApp's webhook.
     :param action: The triggered `AlertRuleTriggerAction`.
@@ -76,9 +76,11 @@ def send_incident_alert_notification(action, incident, metric_value=None):
         sentry_app,
         AppPlatformEvent(
             resource="metric_alert",
-            action=INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
+            action=INCIDENT_STATUS[
+                incident_status_info(incident, metric_value, action, method)
+            ].lower(),
             install=install,
-            data=build_incident_attachment(incident, metric_value),
+            data=build_incident_attachment(action, incident, metric_value, method),
         ),
     )
 
@@ -89,7 +91,7 @@ class NotifyEventServiceForm(forms.Form):
     def __init__(self, *args, **kwargs):
         service_choices = [(s.slug, s.title) for s in kwargs.pop("services")]
 
-        super(NotifyEventServiceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields["service"].choices = service_choices
         self.fields["service"].widget.choices = self.fields["service"].choices
@@ -101,7 +103,7 @@ class NotifyEventServiceAction(EventAction):
     prompt = "Send a notification via an integration"
 
     def __init__(self, *args, **kwargs):
-        super(NotifyEventServiceAction, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.form_fields = {
             "service": {
                 "type": "choice",

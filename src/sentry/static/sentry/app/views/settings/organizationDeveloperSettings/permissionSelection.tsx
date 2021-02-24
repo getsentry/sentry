@@ -81,7 +81,7 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 type Props = {
   permissions: Permissions;
   onChange: (permissions: Permissions) => void;
-  appPublished: Boolean;
+  appPublished: boolean;
 };
 
 type State = {
@@ -89,12 +89,6 @@ type State = {
 };
 
 export default class PermissionSelection extends React.Component<Props, State> {
-  static propTypes = {
-    permissions: PropTypes.object.isRequired,
-    onChange: PropTypes.func.isRequired,
-    appPublished: PropTypes.bool,
-  };
-
   static contextTypes = {
     router: PropTypes.object.isRequired,
     form: PropTypes.object,
@@ -144,7 +138,6 @@ export default class PermissionSelection extends React.Component<Props, State> {
 
           return (
             <SelectField
-              deprecatedSelectControl
               // These are not real fields we want submitted, so we use
               // `--permission` as a suffix here, then filter these
               // fields out when submitting the form in

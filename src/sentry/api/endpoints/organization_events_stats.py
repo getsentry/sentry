@@ -1,5 +1,4 @@
 import sentry_sdk
-import six
 
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
@@ -23,24 +22,23 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 span.set_data("using_v1_results", True)
                 return self.get_v1_results(request, organization)
 
-            top_events = "topEvents" in request.GET
-            limit = None
+            top_events = 0
 
-            if top_events:
+            if "topEvents" in request.GET:
                 try:
-                    limit = int(request.GET.get("topEvents", 0))
+                    top_events = int(request.GET.get("topEvents", 0))
                 except ValueError:
                     return Response({"detail": "topEvents must be an integer"}, status=400)
-                if limit > MAX_TOP_EVENTS:
+                if top_events > MAX_TOP_EVENTS:
                     return Response(
-                        {"detail": "Can only get up to {} top events".format(MAX_TOP_EVENTS)},
+                        {"detail": f"Can only get up to {MAX_TOP_EVENTS} top events"},
                         status=400,
                     )
-                elif limit <= 0:
+                elif top_events <= 0:
                     return Response({"detail": "If topEvents needs to be at least 1"}, status=400)
 
         def get_event_stats(query_columns, query, params, rollup):
-            if top_events:
+            if top_events > 0:
                 return discover.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=request.GET.getlist("field")[:],
@@ -48,7 +46,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     params=params,
                     orderby=self.get_orderby(request),
                     rollup=rollup,
-                    limit=limit,
+                    limit=top_events,
                     organization=organization,
                     referrer="api.organization-event-stats.find-topn",
                     allow_empty=False,
@@ -70,7 +68,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         try:
             snuba_args = self.get_snuba_query_args_legacy(request, organization)
         except InvalidSearchQuery as exc:
-            raise ParseError(detail=six.text_type(exc))
+            raise ParseError(detail=str(exc))
         except NoProjects:
             return Response({"data": []})
 
@@ -123,7 +121,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         try:
             resolved = resolve_field_list([y_axis], snuba_filter)
         except InvalidSearchQuery as err:
-            raise ParseError(detail=six.text_type(err))
+            raise ParseError(detail=str(err))
         try:
             aggregate = resolved["aggregations"][0]
         except IndexError:

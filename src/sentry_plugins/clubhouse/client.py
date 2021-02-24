@@ -7,7 +7,7 @@ class ClubhouseClient(ApiClient):
 
     def __init__(self, token):
         self.token = token
-        super(ClubhouseClient, self).__init__()
+        super().__init__()
 
     def request(self, method, path, data=None, params=None):
         params = {"token": self.token}
@@ -31,6 +31,6 @@ class ClubhouseClient(ApiClient):
         return self.get("/search/stories", data={"query": query})
 
     def add_comment(self, story_id, comment):
-        story_url = "/stories/{}/comments".format(story_id)
+        story_url = f"/stories/{story_id}/comments"
         comment_data = {"text": comment}
         return self.post(story_url, data=comment_data)

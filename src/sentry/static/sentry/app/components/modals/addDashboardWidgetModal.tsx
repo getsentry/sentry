@@ -13,9 +13,11 @@ import ButtonBar from 'app/components/buttonBar';
 import WidgetQueryForm from 'app/components/dashboards/widgetQueryForm';
 import SelectControl from 'app/components/forms/selectControl';
 import {PanelAlert} from 'app/components/panels';
+import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
+import {isAggregateField} from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -65,6 +67,7 @@ const newQuery = {
   name: '',
   fields: ['count()'],
   conditions: '',
+  orderby: '',
 };
 
 function mapErrors(
@@ -159,6 +162,42 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
+
+      if (field === 'displayType') {
+        let newQueries = prevState.queries;
+
+        if (['table', 'world_map', 'big_number'].includes(value)) {
+          // Some display types may only support at most 1 query.
+          set(newState, 'queries', prevState.queries.slice(0, 1));
+          newQueries = newState.queries;
+        }
+
+        if (value === 'table') {
+          return newState;
+        }
+
+        // Filter out non-aggregate fields
+        newQueries = newQueries.map(query => {
+          const fields = query.fields.filter(isAggregateField);
+          return {
+            ...query,
+            fields: fields.length ? fields : ['count()'],
+          };
+        });
+
+        if (['world_map', 'big_number'].includes(value)) {
+          // For world map chart, cap fields of the queries to only one field.
+          newQueries = newQueries.map(query => {
+            return {
+              ...query,
+              fields: query.fields.slice(0, 1),
+            };
+          });
+        }
+
+        set(newState, 'queries', newQueries);
+      }
+
       return newState;
     });
   };
@@ -177,9 +216,27 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       const newState = cloneDeep(prevState);
       newState.queries.splice(index, index + 1);
 
+      // If there is only one query, then its name will not be visible.
+      if (newState.queries.length === 1) {
+        newState.queries[0].name = '';
+      }
+
       return newState;
     });
   };
+
+  handleAddOverlay = () => {
+    this.setState(prevState => {
+      const newState = cloneDeep(prevState);
+      newState.queries.push(cloneDeep(newQuery));
+
+      return newState;
+    });
+  };
+
+  canAddOverlay() {
+    return ['line', 'area', 'stacked_area', 'bar'].includes(this.state.displayType);
+  }
 
   render() {
     const {
@@ -225,6 +282,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               <Input
                 type="text"
                 name="title"
+                maxLength={255}
                 required
                 value={state.title}
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,7 +292,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             </Field>
             <Field
               data-test-id="chart-type"
-              label={t('Chart Type')}
+              label={t('Visualization Display')}
               inline={false}
               flexibleControlStateSize
               stacked
@@ -242,11 +300,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               required
             >
               <SelectControl
-                deprecatedSelectControl
                 required
                 options={DISPLAY_TYPE_CHOICES.slice()}
                 name="displayType"
-                label={t('Chart Style')}
+                label={t('Visualization Display')}
                 value={state.displayType}
                 onChange={(option: {label: string; value: Widget['displayType']}) => {
                   this.handleFieldChange('displayType')(option.value);
@@ -283,6 +340,17 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               );
             }}
           </Measurements>
+          {this.canAddOverlay() && (
+            <AddOverlayButton
+              icon={<IconAdd isCircled />}
+              onClick={(event: React.MouseEvent) => {
+                event.preventDefault();
+                this.handleAddOverlay();
+              }}
+            >
+              {t('New Query Overlay')}
+            </AddOverlayButton>
+          )}
           <WidgetCard
             api={api}
             organization={organization}
@@ -296,16 +364,13 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 <PanelAlert type="error">{errorMessage}</PanelAlert>
               )
             }
-            isDragging={false}
-            startWidgetDrag={() => undefined}
+            isSorting={false}
+            currentWidgetDragging={false}
           />
         </Body>
         <Footer>
           <ButtonBar gap={1}>
-            <Button
-              external
-              href="https://docs.sentry.io/product/error-monitoring/dashboards/"
-            >
+            <Button external href="https://docs.sentry.io/product/dashboards/">
               {t('Read the docs')}
             </Button>
             <Button
@@ -330,6 +395,10 @@ const DoubleFieldWrapper = styled('div')`
   grid-template-columns: repeat(2, 1fr);
   grid-column-gap: ${space(1)};
   width: 100%;
+`;
+
+const AddOverlayButton = styled(Button)`
+  margin-bottom: ${space(2)};
 `;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));

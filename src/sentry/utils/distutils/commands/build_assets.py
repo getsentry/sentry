@@ -37,7 +37,7 @@ class BuildAssetsCommand(BaseBuildCommand):
     description = "build static media assets"
 
     def initialize_options(self):
-        self.asset_json_path = "{}/assets.json".format(self.distribution.get_name())
+        self.asset_json_path = f"{self.distribution.get_name()}/assets.json"
         BaseBuildCommand.initialize_options(self)
 
     def get_dist_paths(self):
@@ -59,7 +59,7 @@ class BuildAssetsCommand(BaseBuildCommand):
             version = None
             build = None
         else:
-            log.info("pulled version information from 'sentry' module".format(sentry.__file__))
+            log.info("pulled version information from 'sentry' module")
             version = self.distribution.get_version()
             build = sentry.__build__
         finally:
@@ -73,7 +73,7 @@ class BuildAssetsCommand(BaseBuildCommand):
             except Exception:
                 pass
             else:
-                log.info("pulled version information from '{}'".format(json_path))
+                log.info(f"pulled version information from '{json_path}'")
                 version, build = data["version"], data["build"]
 
         return {"version": version, "build": build}
@@ -119,7 +119,7 @@ class BuildAssetsCommand(BaseBuildCommand):
 
         log.info("writing version manifest")
         manifest = self._write_version_file(version_info)
-        log.info("recorded manifest\n{}".format(json.dumps(manifest, indent=2)))
+        log.info(f"recorded manifest\n{json.dumps(manifest, indent=2)}")
 
     def _build_static(self):
         # By setting NODE_ENV=production, a few things happen
@@ -129,9 +129,7 @@ class BuildAssetsCommand(BaseBuildCommand):
         env["SENTRY_STATIC_DIST_PATH"] = self.sentry_static_dist_path
         env["NODE_ENV"] = "production"
         # TODO: Our JS builds should not require 4GB heap space
-        env["NODE_OPTIONS"] = (
-            (env.get("NODE_OPTIONS", "") + " --max-old-space-size=4096")
-        ).lstrip()
+        env["NODE_OPTIONS"] = (env.get("NODE_OPTIONS", "") + " --max-old-space-size=4096").lstrip()
         self._run_command(["yarn", "tsc", "-p", "config/tsconfig.build.json"], env=env)
         self._run_command(["yarn", "webpack", "--bail"], env=env)
 

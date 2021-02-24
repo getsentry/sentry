@@ -1,4 +1,4 @@
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from django.forms.utils import ErrorList
 from django.http import HttpResponse
@@ -19,7 +19,7 @@ from jwt.exceptions import ExpiredSignatureError
 from sentry.utils.sdk import bind_organization_context, configure_scope
 from sentry.web.decorators import transaction_start
 
-JIRA_KEY = "%s.jira_ac" % (urlparse(absolute_uri()).hostname,)
+JIRA_KEY = f"{urlparse(absolute_uri()).hostname}.jira_ac"
 
 
 class BaseJiraWidgetView(View):
@@ -52,7 +52,7 @@ class JiraUIWidgetView(BaseJiraWidgetView):
                 # make sure this exists and is valid
                 jira_auth = self.get_jira_auth()
             except (ApiError, JiraTenant.DoesNotExist, ExpiredSignatureError) as e:
-                scope.set_tag("result", "error.{}".format(e.__class__.__name__))
+                scope.set_tag("result", f"error.{e.__class__.__name__}")
                 return self.get_response("error.html")
 
             if request.user.is_anonymous():
@@ -82,7 +82,7 @@ class JiraUIWidgetView(BaseJiraWidgetView):
 
 class JiraConfigView(BaseJiraWidgetView):
     def get_context(self):
-        context = super(JiraConfigView, self).get_context()
+        context = super().get_context()
         context["body_class"] = "aui-page-focused aui-page-size-medium"
         return context
 
@@ -177,7 +177,7 @@ class JiraDescriptorView(View):
 class JiraInstalledCallback(View):
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
-        return super(JiraInstalledCallback, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     @method_decorator(csrf_exempt)
     @transaction_start("JiraInstalledCallback.post")

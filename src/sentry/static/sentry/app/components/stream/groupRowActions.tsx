@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {bulkDelete, bulkUpdate} from 'app/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import ResolveActions from 'app/components/actions/resolve';
@@ -22,16 +23,22 @@ type Props = {
   group: Group;
   selection: GlobalSelection;
   query?: string;
+  onMarkReviewed?: (itemIds: string[]) => void;
 };
 
 class GroupRowActions extends React.Component<Props> {
   handleUpdate = (data?: any, event?: React.MouseEvent) => {
     event?.stopPropagation();
-    const {api, group, orgId, query, selection} = this.props;
+    const {api, group, orgId, query, selection, onMarkReviewed} = this.props;
 
     addLoadingMessage(t('Saving changes\u2026'));
 
-    api.bulkUpdate(
+    if (data.inbox === false) {
+      onMarkReviewed?.([group.id]);
+    }
+
+    bulkUpdate(
+      api,
       {
         orgId,
         itemIds: [group.id],
@@ -54,7 +61,8 @@ class GroupRowActions extends React.Component<Props> {
 
     addLoadingMessage(t('Removing events\u2026'));
 
-    api.bulkDelete(
+    bulkDelete(
+      api,
       {
         orgId,
         itemIds: [group.id],

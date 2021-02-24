@@ -9,8 +9,11 @@ import FormField from './formField';
 import SelectControl from './selectControl';
 
 export default class SelectField extends FormField {
+  // TODO(ts) When this is remove also remove the propType assignments
+  // in components/forms/selectControl
   static propTypes = {
-    ...FormField.propTypes,
+    // TODO(ts)
+    // ...FormField.propTypes,
     options: SelectControl.propTypes.options,
     choices: SelectControl.propTypes.choices,
     clearable: SelectControl.propTypes.clearable,

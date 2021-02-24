@@ -1,7 +1,3 @@
-# coding=utf-8
-
-import six
-
 from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
 from sentry.incidents.models import IncidentActivityType
 
@@ -14,7 +10,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
 # all of the memoized fixtures are copypasta due to our inability to use pytest fixtures
 # on a per-class method basis
-class Fixtures(object):
+class Fixtures:
     @cached_property
     def session(self):
         return Factories.create_session()
@@ -156,6 +152,11 @@ class Fixtures(object):
             release = self.release.version
         return Factories.create_artifact_bundle(org, release, *args, **kwargs)
 
+    def create_code_mapping(self, project=None, repo=None, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_code_mapping(project, repo, **kwargs)
+
     def create_repo(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project
@@ -283,7 +284,7 @@ class Fixtures(object):
             alert_rule_trigger = self.create_alert_rule_trigger()
 
         if not target_identifier:
-            target_identifier = six.text_type(self.user.id)
+            target_identifier = str(self.user.id)
 
         if triggered_for_incident is not None:
             Factories.create_incident_trigger(triggered_for_incident, alert_rule_trigger)
@@ -291,6 +292,15 @@ class Fixtures(object):
         return Factories.create_alert_rule_trigger_action(
             alert_rule_trigger, target_identifier=target_identifier, **kwargs
         )
+
+    def create_external_user(self, user=None, organization=None, **kwargs):
+        if not user:
+            user = self.user
+        if not organization:
+            organization = self.organization
+
+        organizationmember = OrganizationMember.objects.get(user=user, organization=organization)
+        return Factories.create_external_user(organizationmember=organizationmember, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

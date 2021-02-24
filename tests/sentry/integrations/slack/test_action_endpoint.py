@@ -1,10 +1,9 @@
 import responses
 
-from six.moves.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 from sentry.utils.compat.mock import patch
 
 from sentry.api import client
-from sentry import options
 from sentry.models import (
     Integration,
     OrganizationIntegration,
@@ -26,7 +25,7 @@ from sentry.integrations.slack.unlink_identity import build_unlinking_url
 
 class BaseEventTest(APITestCase):
     def setUp(self):
-        super(BaseEventTest, self).setUp()
+        super().setUp()
         self.user = self.create_user(is_superuser=False)
         self.org = self.create_organization(owner=None)
         self.team = self.create_team(organization=self.org, members=[self.user])
@@ -55,19 +54,20 @@ class BaseEventTest(APITestCase):
             "https://hooks.slack.com/actions/T47563693/6204672533/x7ZLaiVMoECAW50Gw1ZYAXEM"
         )
 
+    @patch(
+        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
+    )
     def post_webhook(
         self,
+        check_signing_secret_mock,
         action_data=None,
         type="event_callback",
         data=None,
-        token=None,
         team_id="TXXXXXXX1",
         callback_id=None,
         slack_user=None,
         original_message=None,
     ):
-        if token is None:
-            token = options.get("slack.verification-token")
 
         if slack_user is None:
             slack_user = {"id": self.identity.external_id, "domain": "example"}
@@ -79,7 +79,6 @@ class BaseEventTest(APITestCase):
             original_message = {}
 
         payload = {
-            "token": token,
             "team": {"id": team_id, "domain": "example.com"},
             "channel": {"id": "C065W1189", "domain": "forgotten-works"},
             "user": slack_user,
@@ -125,7 +124,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert self.group1.get_status() == GroupStatus.IGNORED
 
-        expect_status = "*Issue ignored by <@{}>*".format(self.identity.external_id)
+        expect_status = f"*Issue ignored by <@{self.identity.external_id}>*"
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
     def test_ignore_issue_with_additional_user_auth(self):
@@ -143,7 +142,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert self.group1.get_status() == GroupStatus.IGNORED
 
-        expect_status = "*Issue ignored by <@{}>*".format(self.identity.external_id)
+        expect_status = f"*Issue ignored by <@{self.identity.external_id}>*"
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_issue(self):
@@ -153,7 +152,7 @@ class StatusActionTest(BaseEventTest):
         # Assign to user
         status_action = {
             "name": "assign",
-            "selected_options": [{"value": "user:{}".format(user2.id)}],
+            "selected_options": [{"value": f"user:{user2.id}"}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -161,14 +160,14 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, user=user2).exists()
 
-        expect_status = "*Issue assigned to {assignee} by <@{assigner}>*".format(
-            assignee=user2.get_display_name(), assigner=self.identity.external_id
+        expect_status = (
+            f"*Issue assigned to {user2.get_display_name()} by <@{self.identity.external_id}>*"
         )
 
         # Assign to team
         status_action = {
             "name": "assign",
-            "selected_options": [{"value": "team:{}".format(self.team.id)}],
+            "selected_options": [{"value": f"team:{self.team.id}"}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -176,9 +175,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, team=self.team).exists()
 
-        expect_status = "*Issue assigned to #{team} by <@{assigner}>*".format(
-            team=self.team.slug, assigner=self.identity.external_id
-        )
+        expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.identity.external_id}>*"
 
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
@@ -196,7 +193,7 @@ class StatusActionTest(BaseEventTest):
 
         status_action = {
             "name": "assign",
-            "selected_options": [{"value": "user:{}".format(user2.id)}],
+            "selected_options": [{"value": f"user:{user2.id}"}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -204,8 +201,8 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, user=user2).exists()
 
-        expect_status = "*Issue assigned to <@{assignee}> by <@{assigner}>*".format(
-            assignee=user2_identity.external_id, assigner=self.identity.external_id
+        expect_status = (
+            f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.identity.external_id}>*"
         )
 
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
@@ -243,7 +240,7 @@ class StatusActionTest(BaseEventTest):
 
         status_action = {
             "name": "assign",
-            "selected_options": [{"value": "user:{}".format(self.user.id)}],
+            "selected_options": [{"value": f"user:{self.user.id}"}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -307,7 +304,7 @@ class StatusActionTest(BaseEventTest):
 
         update_data = json.loads(responses.calls[1].request.body)
 
-        expect_status = "*Issue resolved by <@{}>*".format(self.identity.external_id)
+        expect_status = f"*Issue resolved by <@{self.identity.external_id}>*"
         assert update_data["text"].endswith(expect_status)
 
     def test_permission_denied(self):
@@ -400,27 +397,32 @@ class StatusActionTest(BaseEventTest):
             associate_url=associate_url, user_email=self.user.email, org_name=self.org.name
         )
 
-    def test_invalid_token(self):
-        resp = self.post_webhook(token="invalid")
-        assert resp.status_code == 401
-
-    def test_no_integration(self):
+    @patch(
+        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
+    )
+    def test_no_integration(self, check_signing_secret_mock):
         self.integration.delete()
         resp = self.post_webhook()
         assert resp.status_code == 403
 
-    def test_slack_bad_payload(self):
+    @patch(
+        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
+    )
+    def test_slack_bad_payload(self, check_signing_secret_mock):
         resp = self.client.post("/extensions/slack/action/", data={"nopayload": 0})
         assert resp.status_code == 400
 
-    def test_sentry_docs_link_clicked(self):
+    @patch(
+        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
+    )
+    def test_sentry_docs_link_clicked(self, check_signing_secret_mock):
         payload = {
-            "token": options.get("slack.verification-token"),
             "team": {"id": "TXXXXXXX1", "domain": "example.com"},
             "user": {"id": self.identity.external_id, "domain": "example"},
             "type": "block_actions",
             "actions": [{"value": "sentry_docs_link_clicked"}],
         }
+
         payload = {"payload": json.dumps(payload)}
 
         resp = self.client.post("/extensions/slack/action/", data=payload)

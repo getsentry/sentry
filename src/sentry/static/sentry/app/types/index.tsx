@@ -1,6 +1,6 @@
 import u2f from 'u2f-api';
 
-import {Props as AlertProps} from 'app/components/alert';
+import Alert from 'app/components/alert';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
@@ -179,7 +179,6 @@ export type LightWeightOrganization = OrganizationSummary & {
   apdexThreshold: number;
   onboardingTasks: OnboardingTaskStatus[];
   trustedRelays: Relay[];
-  dynamicSampling: DynamicSamplingRules;
   role?: string;
 };
 
@@ -231,16 +230,19 @@ export type Project = {
   environments: string[];
 
   // XXX: These are part of the DetailedProject serializer
+  dynamicSampling: {
+    rules: DynamicSamplingRules;
+  } | null;
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
+  groupingEnhancementsBase: string;
+  groupingConfig: string;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
   latestRelease?: Release;
-  groupingEnhancementsBase: string;
-  groupingConfig: string;
   options?: Record<string, boolean | string>;
 } & AvatarProject;
 
@@ -361,6 +363,13 @@ export type SDKUpdatesSuggestion =
   | UpdateSdkSuggestion
   | ChangeSdkSuggestion;
 
+export type ProjectSdkUpdates = {
+  projectId: string;
+  sdkName: string;
+  sdkVersion: string;
+  suggestions: SDKUpdatesSuggestion[];
+};
+
 export type EventsStatsData = [number, {count: number}[]][];
 
 // API response format for a single series
@@ -471,6 +480,7 @@ export type SavedSearch = {
   type: SavedSearchType;
   name: string;
   query: string;
+  sort: string;
   isGlobal: boolean;
   isPinned: boolean;
   isOrgCustom: boolean;
@@ -553,72 +563,73 @@ export type GlobalSelection = {
   };
 };
 
-type AuthenticatorDevice = {
+export type AuthenticatorDevice = {
   key_handle: string;
   authId: string;
   name: string;
+  timestamp?: string;
 };
+
+type QRCode = (0 | 1)[][];
 
 export type Authenticator = {
   /**
    * String used to display on button for user as CTA to enroll
    */
   enrollButton: string;
-
   /**
    * Display name for the authenticator
    */
   name: string;
-
   /**
    * Allows multiple enrollments to authenticator
    */
   allowMultiEnrollment: boolean;
-
   /**
    * String to display on button for user to remove authenticator
    */
   removeButton: string | null;
-
   canValidateOtp: boolean;
-
   /**
    * Is user enrolled to this authenticator
    */
   isEnrolled: boolean;
-
   /**
    * String to display on button for additional information about authenticator
    */
   configureButton: string;
-
-  /**
-   * Type of authenticator
-   */
-  id: string;
-
   /**
    * Is this used as a backup interface?
    */
   isBackupInterface: boolean;
-
   /**
    * Description of the authenticator
    */
   description: string;
-
   createdAt: string | null;
-
   lastUsedAt: string | null;
-
   codes: string[];
-
   devices: AuthenticatorDevice[];
-
   phone?: string;
-
-  challenge?: ChallengeData;
-} & Partial<EnrolledAuthenticator>;
+  secret?: string;
+  /**
+   * The form configuration for the authenticator is present during enrollment
+   */
+  form?: Field[];
+} & Partial<EnrolledAuthenticator> &
+  (
+    | {
+        id: 'sms';
+      }
+    | {
+        id: 'totp';
+        qrcode: QRCode;
+      }
+    | {
+        id: 'u2f';
+        challenge: ChallengeData;
+      }
+  );
 
 export type ChallengeData = {
   authenticateRequests: u2f.SignRequest;
@@ -685,16 +696,18 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
+export type InboxReasonDetails = {
+  until?: string | null;
+  count?: number | null;
+  window?: number | null;
+  user_count?: number | null;
+  user_window?: number | null;
+};
+
 export type InboxDetails = {
+  reason_details: InboxReasonDetails;
   date_added?: string;
   reason?: number;
-  reason_details?: {
-    until?: string;
-    count?: number;
-    window?: number;
-    user_count?: number;
-    user_window?: number;
-  };
 };
 
 export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule';
@@ -726,6 +739,7 @@ export enum GroupActivityType {
   UNASSIGNED = 'unassigned',
   MERGE = 'merge',
   REPROCESS = 'reprocess',
+  MARK_REVIEWED = 'mark_reviewed',
 }
 
 type GroupActivityBase = {
@@ -776,6 +790,11 @@ type GroupActivityUnassigned = GroupActivityBase & {
 
 type GroupActivityFirstSeen = GroupActivityBase & {
   type: GroupActivityType.FIRST_SEEN;
+  data: Record<string, any>;
+};
+
+type GroupActivityMarkReviewed = GroupActivityBase & {
+  type: GroupActivityType.MARK_REVIEWED;
   data: Record<string, any>;
 };
 
@@ -889,6 +908,7 @@ export type GroupActivity =
   | GroupActivityMerge
   | GroupActivityReprocess
   | GroupActivityUnassigned
+  | GroupActivityMarkReviewed
   | GroupActivityUnmergeDestination
   | GroupActivitySetPublic
   | GroupActivitySetPrivate
@@ -935,7 +955,7 @@ export type BaseGroup = {
   latestEvent: Event;
   activity: GroupActivity[];
   annotations: string[];
-  assignedTo: User;
+  assignedTo: Actor;
   culprit: string;
   firstRelease: Release;
   firstSeen: string;
@@ -965,7 +985,7 @@ export type BaseGroup = {
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  inbox?: InboxDetails | null;
+  inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
 };
 
@@ -1040,6 +1060,11 @@ export type AccessRequest = {
   id: string;
   team: Team;
   member: Member;
+  requester?: Partial<{
+    name: string;
+    username: string;
+    email: string;
+  }>;
 };
 
 export type Repository = {
@@ -1087,8 +1112,7 @@ type IntegrationDialog = {
 };
 
 type IntegrationAspects = {
-  alerts?: Array<AlertProps & {text: string}>;
-  reauthentication_alert?: {alertText: string};
+  alerts?: Array<React.ComponentProps<typeof Alert> & {text: string}>;
   disable_dialog?: IntegrationDialog;
   removal_dialog?: IntegrationDialog;
   externalInstall?: {
@@ -1496,14 +1520,23 @@ export type SavedQueryState = {
   isLoading: boolean;
 };
 
+/**
+ * The option format used by react-select based components
+ */
 export type SelectValue<T> = {
-  label: string;
+  label: string | number | React.ReactElement;
   value: T;
   disabled?: boolean;
   tooltip?: string;
 };
 
-export type IssueConfigFieldChoices = [number | string, number | string][];
+/**
+ * The 'other' option format used by checkboxes, radios and more.
+ */
+export type Choices = [
+  value: string | number,
+  label: string | number | React.ReactElement
+][];
 
 /**
  * The issue config form fields we get are basically the form fields we use in
@@ -1513,7 +1546,7 @@ export type IssueConfigFieldChoices = [number | string, number | string][];
 export type IssueConfigField = Field & {
   name: string;
   default?: string | number;
-  choices?: IssueConfigFieldChoices;
+  choices?: Choices;
   url?: string;
   multiple?: boolean;
 };
@@ -1551,7 +1584,6 @@ export type OnboardingTaskDescriptor = {
   task: OnboardingTaskKey;
   title: string;
   description: string;
-  detailedDescription?: string;
   /**
    * Can this task be skipped?
    */
@@ -1873,7 +1905,7 @@ export type ExceptionValue = {
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
-  frames: Frame[];
+  frames?: Frame[];
 };
 
 export type ExceptionType = {
@@ -1924,10 +1956,8 @@ export type AuthProvider = {
 };
 
 export type PromptActivity = {
-  data: {
-    snoozed_ts?: number;
-    dismissed_ts?: number;
-  };
+  snoozedTime?: number;
+  dismissedTime?: number;
 };
 
 export type ServerlessFunction = {
@@ -1942,3 +1972,13 @@ export type ServerlessFunction = {
  * File storage service options for debug files
  */
 export type DebugFileSource = 'http' | 's3' | 'gcs';
+
+export type SessionApiResponse = {
+  query: string;
+  intervals: string[];
+  groups: {
+    by: Record<string, string>;
+    totals: Record<string, number>;
+    series: Record<string, number[]>;
+  }[];
+};

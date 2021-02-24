@@ -139,7 +139,7 @@ class GroupDetails extends React.Component<Props, State> {
     } catch (err) {
       // This is an expected error, capture to Sentry so that it is not considered as an unhandled error
       Sentry.captureException(err);
-      this.setState({eventError: true, loading: false});
+      this.setState({eventError: true, loading: false, loadingEvent: false});
     }
   }
 
@@ -397,6 +397,7 @@ class GroupDetails extends React.Component<Props, State> {
       <React.Fragment>
         <GroupHeader
           project={project as Project}
+          event={event}
           group={group}
           currentTab={currentTab}
           baseUrl={baseUrl}

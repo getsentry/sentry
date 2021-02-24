@@ -12,7 +12,8 @@ import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {defined, OmitHtmlDivProps} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import globalTheme from 'app/utils/theme';
+import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
+import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -21,6 +22,7 @@ import {
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './header';
+import * as ScrollbarManager from './scrollbarManager';
 import SpanDetail from './spanDetail';
 import {
   getHatchPattern,
@@ -256,7 +258,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }));
   };
 
-  renderDetail({isVisible}: {isVisible: boolean}) {
+  renderDetail({
+    isVisible,
+    quickTrace,
+  }: {
+    isVisible: boolean;
+    quickTrace?: QuickTraceContextChildrenProps;
+  }) {
     if (!this.state.showDetail || !isVisible) {
       return null;
     }
@@ -282,6 +290,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         trace={trace}
         totalNumberOfErrors={totalNumberOfErrors}
         spanErrors={spanErrors}
+        quickTrace={quickTrace}
       />
     );
   }
@@ -497,7 +506,10 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 
-  renderTitle() {
+  renderTitle(
+    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps
+  ) {
+    const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
     const {span, treeDepth, spanErrors} = this.props;
 
     const operationName = getSpanOperation(span) ? (
@@ -513,7 +525,10 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
     return (
-      <SpanBarTitleContainer>
+      <SpanBarTitleContainer
+        data-debug-id="SpanBarTitleContainer"
+        ref={generateContentSpanBarRef()}
+      >
         {this.renderSpanTreeToggler({left})}
         <SpanBarTitle
           style={{
@@ -734,12 +749,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       // Mock component to preserve layout spacing
       return (
         <DividerLine
+          showDetail
           style={{
             position: 'relative',
-            backgroundColor: getBackgroundColor({
-              theme: globalTheme,
-              showDetail: true,
-            }),
           }}
         />
       );
@@ -785,9 +797,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   renderHeader({
+    scrollbarManagerChildrenProps,
     dividerHandlerChildrenProps,
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
+    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   }) {
     const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
     const startTimestamp: number = span.start_timestamp;
@@ -812,7 +826,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             this.toggleDisplayDetail();
           }}
         >
-          {this.renderTitle()}
+          {this.renderTitle(scrollbarManagerChildrenProps)}
         </SpanRowCell>
         {this.renderDivider(dividerHandlerChildrenProps)}
         <SpanRowCell
@@ -888,16 +902,25 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         showBorder={this.state.showDetail}
         data-test-id="span-row"
       >
-        <DividerHandlerManager.Consumer>
-          {(
-            dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-          ) =>
-            this.renderHeader({
-              dividerHandlerChildrenProps,
-            })
-          }
-        </DividerHandlerManager.Consumer>
-        {this.renderDetail({isVisible: isSpanVisible})}
+        <ScrollbarManager.Consumer>
+          {scrollbarManagerChildrenProps => {
+            return (
+              <DividerHandlerManager.Consumer>
+                {(
+                  dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+                ) =>
+                  this.renderHeader({
+                    dividerHandlerChildrenProps,
+                    scrollbarManagerChildrenProps,
+                  })
+                }
+              </DividerHandlerManager.Consumer>
+            );
+          }}
+        </ScrollbarManager.Consumer>
+        <QuickTraceContext.Consumer>
+          {quickTrace => this.renderDetail({isVisible: isSpanVisible, quickTrace})}
+        </QuickTraceContext.Consumer>
       </SpanRow>
     );
   }
@@ -942,8 +965,8 @@ const CursorGuide = styled('div')`
   height: 100%;
 `;
 
-export const DividerLine = styled('div')`
-  background-color: ${p => p.theme.gray200};
+export const DividerLine = styled('div')<{showDetail?: boolean}>`
+  background-color: ${p => (p.showDetail ? p.theme.textColor : p.theme.border)};
   position: absolute;
   height: 100%;
   width: 1px;

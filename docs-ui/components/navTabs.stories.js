@@ -1,13 +1,13 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import NavTabs from 'app/components/navTabs';
 
 export default {
   title: 'Core/NavTabs',
+  component: NavTabs,
 };
 
-export const Default = withInfo('NavTabs')(() => {
+export const Default = () => {
   return (
     <NavTabs>
       <li className="active">
@@ -18,13 +18,11 @@ export const Default = withInfo('NavTabs')(() => {
       </li>
     </NavTabs>
   );
-});
-
-Default.story = {
-  name: 'default',
 };
 
-export const Underlined = withInfo('NavTabs with bottom border applied')(() => {
+Default.storyName = 'default';
+
+export const Underlined = () => {
   return (
     <NavTabs underlined>
       <li className="active">
@@ -35,8 +33,13 @@ export const Underlined = withInfo('NavTabs with bottom border applied')(() => {
       </li>
     </NavTabs>
   );
-});
+};
 
-Underlined.story = {
-  name: 'underlined',
+Underlined.storyName = 'underlined';
+Underlined.parameters = {
+  docs: {
+    description: {
+      story: 'NavTabs with bottom border applied',
+    },
+  },
 };

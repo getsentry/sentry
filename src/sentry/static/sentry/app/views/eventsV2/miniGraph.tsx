@@ -7,14 +7,17 @@ import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
 import EventsRequest from 'app/components/charts/eventsRequest';
+import LineChart from 'app/components/charts/lineChart';
 import {getInterval} from 'app/components/charts/utils';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconWarning} from 'app/icons';
 import {Organization} from 'app/types';
+import {Series} from 'app/types/echarts';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {axisLabelFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
+import {aggregateMultiPlotType, PlotType} from 'app/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
@@ -76,13 +79,44 @@ class MiniGraph extends React.Component<Props> {
     };
   }
 
-  getChartComponent(
-    showDaily: boolean
-  ): React.ComponentType<BarChart['props']> | React.ComponentType<AreaChart['props']> {
+  getChartType({
+    showDaily,
+    yAxis,
+    timeseriesData,
+  }: {
+    showDaily: boolean;
+    yAxis: string;
+    timeseriesData: Series[];
+  }): PlotType {
     if (showDaily) {
-      return BarChart;
+      return 'bar';
     }
-    return AreaChart;
+    if (timeseriesData.length > 1) {
+      switch (aggregateMultiPlotType(yAxis)) {
+        case 'line':
+          return 'line';
+        case 'area':
+          return 'area';
+        default:
+          throw new Error(`Unknown multi plot type for ${yAxis}`);
+      }
+    }
+    return 'area';
+  }
+
+  getChartComponent(
+    chartType: PlotType
+  ): React.ComponentType<BarChart['props']> | React.ComponentType<AreaChart['props']> {
+    switch (chartType) {
+      case 'bar':
+        return BarChart;
+      case 'line':
+        return LineChart;
+      case 'area':
+        return AreaChart;
+      default:
+        throw new Error(`Unknown multi plot type for ${chartType}`);
+    }
   }
 
   render() {
@@ -137,10 +171,15 @@ class MiniGraph extends React.Component<Props> {
           }
 
           const allSeries = timeseriesData ?? results ?? [];
+          const chartType = this.getChartType({
+            showDaily,
+            yAxis,
+            timeseriesData: allSeries,
+          });
           const data = allSeries.map(series => ({
             ...series,
             lineStyle: {
-              opacity: 0,
+              opacity: chartType === 'line' ? 1 : 0,
             },
             smooth: true,
           }));
@@ -191,7 +230,7 @@ class MiniGraph extends React.Component<Props> {
             stacked: typeof topEvents === 'number' && topEvents > 0,
           };
 
-          const Component = this.getChartComponent(showDaily);
+          const Component = this.getChartComponent(chartType);
           return <Component {...chartOptions} />;
         }}
       </EventsRequest>

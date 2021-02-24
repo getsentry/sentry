@@ -1,6 +1,5 @@
 import copy
 import responses
-import six
 
 from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
 from sentry.models import ExternalIssue, Integration
@@ -51,9 +50,7 @@ class BitbucketIssueTest(APITestCase):
         repo = "myaccount/myrepo"
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}".format(
-                repo=repo, issue_id=issue_id
-            ),
+            f"https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}",
             json={"id": issue_id, "title": "hello", "content": {"html": "This is the description"}},
         )
 
@@ -73,9 +70,7 @@ class BitbucketIssueTest(APITestCase):
         comment = {"comment": "hello I'm a comment"}
         responses.add(
             responses.POST,
-            "https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}/comments".format(
-                repo=repo, issue_id=issue_id
-            ),
+            f"https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}/comments",
             status=201,
             json={"content": {"raw": comment}},
         )
@@ -109,9 +104,7 @@ class BitbucketIssueTest(APITestCase):
             content_type="application/json",
         )
         self.org_integration.config = {
-            "project_issue_defaults": {
-                six.text_type(self.group.project_id): {"repo": "myaccount/repo1"}
-            }
+            "project_issue_defaults": {str(self.group.project_id): {"repo": "myaccount/repo1"}}
         }
         self.org_integration.save()
         installation = self.integration.get_installation(self.organization.id)
@@ -133,9 +126,7 @@ class BitbucketIssueTest(APITestCase):
             content_type="application/json",
         )
         self.org_integration.config = {
-            "project_issue_defaults": {
-                six.text_type(self.group.project_id): {"repo": "myaccount/repo1"}
-            }
+            "project_issue_defaults": {str(self.group.project_id): {"repo": "myaccount/repo1"}}
         }
         self.org_integration.save()
         installation = self.integration.get_installation(self.organization.id)
@@ -280,7 +271,7 @@ class BitbucketIssueTest(APITestCase):
 
         responses.add(
             responses.POST,
-            "https://api.bitbucket.org/2.0/repositories/{repo}/issues".format(repo=repo),
+            f"https://api.bitbucket.org/2.0/repositories/{repo}/issues",
             json={"id": id, "title": title, "content": {"html": content}},
         )
         installation = self.integration.get_installation(self.organization.id)

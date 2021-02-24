@@ -17,7 +17,7 @@ else:
 DB_ERRORS = tuple(DB_ERRORS)
 
 
-class ServicesUnavailableMiddleware(object):
+class ServicesUnavailableMiddleware:
     def process_request(self, request):
         if settings.MAINTENANCE:
             return HttpResponse("Sentry is currently in maintenance mode", status=503)

@@ -11,6 +11,7 @@ import Version from 'app/components/version';
 import {IconCopy} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 
 import DiscoverQuery, {TableData} from './discoverQuery';
@@ -21,7 +22,7 @@ type ChildrenProps = {to: LocationDescriptor};
 type Props = {
   api: Client;
 
-  orgId: string;
+  orgSlug: Organization['slug'];
   traceId: string;
 
   location: Location;
@@ -102,7 +103,7 @@ class TraceHoverCard extends React.Component<Props> {
   }
 
   render() {
-    const {traceId, location, api, orgId} = this.props;
+    const {traceId, location, api, orgSlug} = this.props;
 
     // used to fetch number of transactions to display in hovercard
     const numTransactionsEventView = EventView.fromNewQueryWithLocation(
@@ -131,14 +132,14 @@ class TraceHoverCard extends React.Component<Props> {
       location
     );
 
-    const to = traceEventView.getResultsViewUrlTarget(orgId);
+    const to = traceEventView.getResultsViewUrlTarget(orgSlug);
 
     return (
       <DiscoverQuery
         api={api}
         location={location}
         eventView={numTransactionsEventView}
-        orgSlug={orgId}
+        orgSlug={orgSlug}
       >
         {({isLoading, error, tableData}) => {
           return (

@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {IconSearch} from 'app/icons';
 import space from 'app/styles/space';
@@ -33,14 +32,10 @@ const EmptyStateWarning = ({
     </EmptyStreamWrapper>
   );
 
-EmptyStateWarning.propTypes = {
-  small: PropTypes.bool,
-};
-
 const EmptyStreamWrapper = styled('div')`
   text-align: center;
   font-size: 22px;
-  padding: 48px 0;
+  padding: 48px ${space(1)};
 
   p {
     line-height: 1.2;

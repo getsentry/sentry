@@ -1,6 +1,5 @@
 import math
 import sentry_sdk
-import six
 import logging
 
 from collections import namedtuple
@@ -93,7 +92,7 @@ def zerofill(data, start, end, rollup, orderby):
         else:
             data_by_time[obj["time"]] = [obj]
 
-    for key in six.moves.xrange(start, end, rollup):
+    for key in range(start, end, rollup):
         if key in data_by_time and len(data_by_time[key]) > 0:
             rv = rv + data_by_time[key]
             data_by_time[key] = []
@@ -399,7 +398,7 @@ def create_result_key(result_row, fields, issues):
                     value = value[-1]
                 else:
                     value = ""
-            values.append(six.text_type(value))
+            values.append(str(value))
     return ",".join(values)
 
 
@@ -501,7 +500,7 @@ def top_events_timeseries(
             start=snuba_filter.start,
             end=snuba_filter.end,
             rollup=rollup,
-            orderby="time",
+            orderby=["time"] + snuba_filter.groupby,
             groupby=["time"] + snuba_filter.groupby,
             dataset=Dataset.Discover,
             limit=10000,
@@ -531,7 +530,7 @@ def top_events_timeseries(
         issues = {}
         if "issue" in selected_columns:
             issues = Group.issues_mapping(
-                set([event["issue.id"] for event in top_events["data"]]),
+                {event["issue.id"] for event in top_events["data"]},
                 params["project_id"],
                 organization,
             )
@@ -552,7 +551,7 @@ def top_events_timeseries(
                     "discover.top-events.timeseries.key-mismatch",
                     extra={"result_key": result_key, "top_event_keys": list(results.keys())},
                 )
-        for key, item in six.iteritems(results):
+        for key, item in results.items():
             results[key] = SnubaTSResult(
                 {
                     "data": zerofill(
@@ -684,7 +683,7 @@ def get_facets(query, params, limit=10, referrer=None):
     ) as span:
         span.set_data("tag_count", len(individual_tags))
         for tag_name in individual_tags:
-            tag = "tags[{}]".format(tag_name)
+            tag = f"tags[{tag_name}]"
             tag_values = raw_query(
                 aggregations=[["count", None, "count"]],
                 conditions=snuba_filter.conditions,
@@ -788,9 +787,7 @@ def histogram_query(
         for f in fields:
             measurement = get_measurement_name(f)
             if measurement is None:
-                raise InvalidSearchQuery(
-                    "multihistogram expected all measurements, received: {}".format(f)
-                )
+                raise InvalidSearchQuery(f"multihistogram expected all measurements, received: {f}")
             measurements.append(measurement)
         conditions.append([key_alias, "IN", measurements])
 
@@ -834,12 +831,7 @@ def get_histogram_column(fields, key_column, histogram_params):
     """
 
     field = fields[0] if key_column is None else "measurements_value"
-    return "histogram({}, {:d}, {:d}, {:d})".format(
-        field,
-        histogram_params.bucket_size,
-        histogram_params.start_offset,
-        histogram_params.multiplier,
-    )
+    return f"histogram({field}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})"
 
 
 def find_histogram_params(num_buckets, min_value, max_value, multiplier):
@@ -908,12 +900,12 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
     quartiles = []
     for field in fields:
         if min_value is None:
-            min_columns.append("min({})".format(field))
+            min_columns.append(f"min({field})")
         if max_value is None:
-            max_columns.append("max({})".format(field))
+            max_columns.append(f"max({field})")
         if data_filter == "exclude_outliers":
-            quartiles.append("percentile({}, 0.25)".format(field))
-            quartiles.append("percentile({}, 0.75)".format(field))
+            quartiles.append(f"percentile({field}, 0.25)")
+            quartiles.append(f"percentile({field}, 0.75)")
 
     results = query(
         selected_columns=min_columns + max_columns + quartiles,
@@ -945,8 +937,8 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
         fences = []
         if data_filter == "exclude_outliers":
             for field in fields:
-                q1_alias = get_function_alias("percentile({}, 0.25)".format(field))
-                q3_alias = get_function_alias("percentile({}, 0.75)".format(field))
+                q1_alias = get_function_alias(f"percentile({field}, 0.25)")
+                q3_alias = get_function_alias(f"percentile({field}, 0.75)")
 
                 first_quartile = row[q1_alias]
                 third_quartile = row[q3_alias]
@@ -996,7 +988,7 @@ def normalize_histogram_results(fields, key_column, histogram_params, results):
     for row in results["data"]:
         # Fall back to the first field name if there is no `key_name`,
         # otherwise, this is a measurement name and format it as such.
-        key = fields[0] if key_name is None else "measurements.{}".format(row[key_name])
+        key = fields[0] if key_name is None else f"measurements.{row[key_name]}"
         # we expect the bin the be an integer, this is because all floating
         # point values are rounded during the calculation
         bucket = int(row[bin_name])

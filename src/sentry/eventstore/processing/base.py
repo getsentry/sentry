@@ -7,7 +7,7 @@ def _get_unprocessed_key(key):
     return key + ":u"
 
 
-class BaseEventProcessingStore(object):
+class BaseEventProcessingStore:
     """
     Store for event blobs during processing
 
@@ -38,9 +38,8 @@ class BaseEventProcessingStore(object):
 
     def delete_by_key(self, key):
         self.inner.delete(key)
+        self.inner.delete(_get_unprocessed_key(key))
 
-    def delete(self, event, unprocessed=False):
+    def delete(self, event):
         key = cache_key_for_event(event)
-        if unprocessed:
-            key = _get_unprocessed_key(key)
         self.delete_by_key(key)

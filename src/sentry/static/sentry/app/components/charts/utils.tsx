@@ -7,6 +7,7 @@ import {EventsStats, GlobalSelection, MultiSeriesEventsStats} from 'app/types';
 import {escape} from 'app/utils';
 import {parsePeriodToHours} from 'app/utils/dates';
 import {decodeList} from 'app/utils/queryString';
+import {Theme} from 'app/utils/theme';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
@@ -17,6 +18,11 @@ export const TWO_WEEKS = 20160;
 export const ONE_WEEK = 10080;
 export const TWENTY_FOUR_HOURS = 1440;
 export const ONE_HOUR = 60;
+
+/**
+ * If there are more releases than this number we hide "Releases" series by default
+ */
+export const RELEASE_LINES_THRESHOLD = 50;
 
 export type DateTimeObject = Partial<GlobalSelection['datetime']>;
 
@@ -128,7 +134,7 @@ export function getSeriesSelection(
   location: Location,
   parameter = 'unselectedSeries'
 ): EChartOption.Legend['selected'] {
-  const unselectedSeries = decodeList(location?.query[parameter]) ?? [];
+  const unselectedSeries = decodeList(location?.query[parameter]);
   return unselectedSeries.reduce((selection, series) => {
     selection[series] = false;
     return selection;
@@ -139,4 +145,16 @@ export function isMultiSeriesStats(
   data: MultiSeriesEventsStats | EventsStats | null
 ): data is MultiSeriesEventsStats {
   return data !== null && data.data === undefined && data.totals === undefined;
+}
+
+/**
+ * Constructs the color palette for a chart given the Theme and optionally a
+ * series length
+ */
+export function getColorPalette(theme: Theme, seriesLength: number | undefined | null) {
+  const palette = seriesLength
+    ? theme.charts.getColorPalette(seriesLength)
+    : theme.charts.colors;
+
+  return (palette as unknown) as string[];
 }

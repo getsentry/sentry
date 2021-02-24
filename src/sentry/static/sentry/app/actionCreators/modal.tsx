@@ -21,6 +21,7 @@ export type ModalOptions = {
   modalClassName?: string;
   dialogClassName?: string;
   type?: string;
+  backdrop?: BoostrapModal['props']['backdrop'];
 };
 
 /**
@@ -191,6 +192,7 @@ export type SentryAppDetailsModalOptions = {
 type DebugFileSourceModalOptions = {
   sourceType: DebugFileSource;
   onSave: (data: Record<string, string>) => void;
+  sourceConfig?: Record<string, string>;
 };
 
 export async function openDebugFileSourceModal(options: DebugFileSourceModalOptions) {
@@ -219,5 +221,5 @@ export async function openAddDashboardWidgetModal(options: DashboardWidgetModalO
   );
   const {default: Modal} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {});
+  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static'});
 }

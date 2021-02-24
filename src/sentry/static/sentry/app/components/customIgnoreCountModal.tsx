@@ -4,7 +4,7 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
-import {ResolutionStatusDetails} from 'app/types';
+import {Choices, ResolutionStatusDetails} from 'app/types';
 import InputField from 'app/views/settings/components/forms/inputField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
@@ -17,7 +17,7 @@ type Props = ModalRenderProps & {
   countLabel: string;
   countName: CountNames;
   windowName: WindowNames;
-  windowChoices: string[] | [number, string][];
+  windowChoices: Choices;
 };
 
 type State = {
@@ -77,14 +77,13 @@ class CustomIgnoreCountModal extends React.Component<Props, State> {
             placeholder={t('e.g. 100')}
           />
           <SelectField
-            deprecatedSelectControl
             inline={false}
             flexibleControlStateSize
             stacked
             label={t('Time window')}
             value={window}
             name="window"
-            onChange={val => this.handleChange('window' as 'window', val)}
+            onChange={val => this.handleChange('window' as const, val)}
             choices={windowChoices}
             placeholder={t('e.g. per hour')}
             allowClear

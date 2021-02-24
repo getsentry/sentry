@@ -86,7 +86,7 @@ class IssueListFilters extends React.Component<Props> {
         )}
 
         <SearchContainer isInbox={isInbox}>
-          <IssueListSortOptions sort={sort} onSelect={onSortChange} />
+          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
 
           <SearchSelectorContainer isInbox={isInbox}>
             {!isInbox && (
@@ -103,6 +103,7 @@ class IssueListFilters extends React.Component<Props> {
             <IssueListSearchBar
               organization={organization}
               query={query || ''}
+              sort={sort}
               onSearch={onSearch}
               disabled={isSearchDisabled}
               excludeEnvironment

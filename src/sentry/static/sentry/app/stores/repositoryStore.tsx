@@ -82,4 +82,7 @@ export const RepositoryStoreConfig: Reflux.StoreDefinition & RepositoryStoreInte
 };
 
 type RepositoryStore = Reflux.Store & RepositoryStoreInterface;
-export default Reflux.createStore(RepositoryStoreConfig) as RepositoryStore;
+
+const RepositoryStore = Reflux.createStore(RepositoryStoreConfig) as RepositoryStore;
+
+export default RepositoryStore;

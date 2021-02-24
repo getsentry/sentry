@@ -51,7 +51,6 @@ class GlobalModal extends React.Component<Props> {
     // Action creator
     closeModal();
 
-    // Read description in propTypes
     if (typeof onClose === 'function') {
       onClose();
     }
@@ -85,6 +84,7 @@ class GlobalModal extends React.Component<Props> {
             show={visible}
             animation={false}
             onHide={this.handleCloseModal}
+            backdrop={options?.backdrop}
           >
             {renderedChild}
           </Modal>
