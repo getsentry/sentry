@@ -301,11 +301,9 @@ class File(Model):
 
     name = models.TextField()
     type = models.CharField(max_length=64)
-    timestamp = models.DateTimeField(default=timezone.now, db_index=True)
     headers = JSONField()
     blobs = models.ManyToManyField("sentry.FileBlob", through="sentry.FileBlobIndex")
     size = BoundedPositiveIntegerField(null=True)
-    checksum = models.CharField(max_length=40, null=True, db_index=True)
 
     # <Legacy fields>
     # Remove in 8.1
