@@ -20,6 +20,7 @@ export type EventLite = {
   transaction: string;
   'transaction.duration': number;
   project_id: number;
+  project_slug: string;
   parent_event_id: string | null;
   parent_span_id: string | null;
   is_root: boolean;

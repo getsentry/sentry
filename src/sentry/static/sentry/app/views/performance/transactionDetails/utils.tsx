@@ -2,7 +2,7 @@ import {Location, LocationDescriptor} from 'history';
 
 import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {OrganizationSummary, Project} from 'app/types';
+import {OrganizationSummary} from 'app/types';
 import {Event, EventTransaction} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
 import {generateEventSlug} from 'app/utils/discover/urls';
@@ -25,17 +25,11 @@ export function parseTraceLite(trace: TraceLite, event: Event) {
 export function generateSingleEventTarget(
   event: EventLite,
   organization: OrganizationSummary,
-  projects: Project[],
   location: Location
-): LocationDescriptor | undefined {
-  const project = projects.find(p => parseInt(p.id, 10) === event.project_id);
-  if (project === undefined) {
-    return undefined;
-  }
-
+): LocationDescriptor {
   const eventSlug = generateEventSlug({
     id: event.event_id,
-    project: project.slug,
+    project: event.project_slug,
   });
   return getTransactionDetailsUrl(
     organization,
@@ -49,11 +43,10 @@ export function generateChildrenEventTarget(
   event: EventTransaction,
   children: EventLite[],
   organization: OrganizationSummary,
-  projects: Project[],
   location: Location
-): LocationDescriptor | undefined {
+): LocationDescriptor {
   if (children.length === 1) {
-    return generateSingleEventTarget(children[0], organization, projects, location);
+    return generateSingleEventTarget(children[0], organization, location);
   }
 
   const queryResults = new QueryResults([]);
