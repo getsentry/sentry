@@ -1,14 +1,14 @@
 ---
-created: '2021-02-22T11:41:49.857539Z'
+created: '2020-08-25T09:17:13.909441Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "73b820e39fcb5ac396b0e288dfec33ac"
+  hash: "6492c5a2c66315cff20930ec07f587ad"
   component:
     app*
       chained-exception*
-        exception (ignored because one exception has a stacktrace)
+        exception*
           stacktrace
             frame (non app frame)
               module*
@@ -173,7 +173,7 @@ app:
                 "bind0"
           type*
             "BindException"
-        exception (ignored because one exception has a stacktrace)
+        exception*
           stacktrace
             frame (non app frame)
               module*

@@ -1,5 +1,5 @@
 ---
-created: '2021-02-22T11:41:54.215626Z'
+created: '2021-02-15T10:12:03.907431Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,8 +7,8 @@ app:
   hash: null
   component:
     app (threads of system take precedence)
-      threads (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace (ignored because hash matches system variant)
+      threads (ignored because hash matches system variant)
+        stacktrace*
           frame*
             filename*
               "baz.c"

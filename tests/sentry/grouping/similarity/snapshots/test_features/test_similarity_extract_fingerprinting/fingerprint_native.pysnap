@@ -1,5 +1,5 @@
 ---
-created: '2021-02-22T11:42:01.052688Z'
+created: '2020-08-21T21:07:53.458907Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
@@ -39,9 +39,12 @@ similarity:2020-07-23:stacktrace:frames-pairs: [[["function","tokio_current_thre
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","tokio_current_thread::Entered<T>::tick"]],[["function","tokio_current_thread::scheduler::Scheduler<T>::tick"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","tokio_current_thread::scheduler::Scheduler<T>::tick"]],[["function","tokio_current_thread::CurrentRunner::set_spawn"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","unknown"]],[["function","_start"]]]
+similarity:2020-07-23:type:ident-shingle: "Custom"
 similarity:2020-07-23:type:ident-shingle: "SymCacheError"
 similarity:2020-07-23:value:character-5-shingle: " head"
+similarity:2020-07-23:value:character-5-shingle: " of r"
 similarity:2020-07-23:value:character-5-shingle: " pars"
+similarity:2020-07-23:value:character-5-shingle: " rang"
 similarity:2020-07-23:value:character-5-shingle: " symc"
 similarity:2020-07-23:value:character-5-shingle: " to p"
 similarity:2020-07-23:value:character-5-shingle: "ache "
@@ -56,6 +59,7 @@ similarity:2020-07-23:value:character-5-shingle: "e hea"
 similarity:2020-07-23:value:character-5-shingle: "e sym"
 similarity:2020-07-23:value:character-5-shingle: "eader"
 similarity:2020-07-23:value:character-5-shingle: "ed to"
+similarity:2020-07-23:value:character-5-shingle: "f ran"
 similarity:2020-07-23:value:character-5-shingle: "faile"
 similarity:2020-07-23:value:character-5-shingle: "he he"
 similarity:2020-07-23:value:character-5-shingle: "heade"
@@ -67,10 +71,15 @@ similarity:2020-07-23:value:character-5-shingle: "lid s"
 similarity:2020-07-23:value:character-5-shingle: "mcach"
 similarity:2020-07-23:value:character-5-shingle: "nvali"
 similarity:2020-07-23:value:character-5-shingle: "o par"
+similarity:2020-07-23:value:character-5-shingle: "of ra"
+similarity:2020-07-23:value:character-5-shingle: "out o"
 similarity:2020-07-23:value:character-5-shingle: "parse"
+similarity:2020-07-23:value:character-5-shingle: "range"
 similarity:2020-07-23:value:character-5-shingle: "rse s"
 similarity:2020-07-23:value:character-5-shingle: "se sy"
 similarity:2020-07-23:value:character-5-shingle: "symca"
+similarity:2020-07-23:value:character-5-shingle: "t of "
 similarity:2020-07-23:value:character-5-shingle: "to pa"
+similarity:2020-07-23:value:character-5-shingle: "ut of"
 similarity:2020-07-23:value:character-5-shingle: "valid"
 similarity:2020-07-23:value:character-5-shingle: "ymcac"
