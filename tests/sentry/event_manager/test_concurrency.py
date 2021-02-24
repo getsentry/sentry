@@ -69,6 +69,6 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
         thread.join()
 
     if is_race_free:
-        assert len(set(e.group_id for e in events)) == 1
+        assert len({e.group_id for e in events}) == 1
     else:
-        assert 1 < len(set(e.group_id for e in events)) <= CONCURRENCY
+        assert 1 < len({e.group_id for e in events}) <= CONCURRENCY
