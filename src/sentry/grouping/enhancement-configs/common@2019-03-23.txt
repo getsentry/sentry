@@ -51,9 +51,11 @@ family:native package:**/Frameworks/KSCrash.framework/**             -app
 family:native package:**/Frameworks/SentrySwift.framework/**         -app
 family:native package:**/Frameworks/Sentry.framework/**              -app
 
-# Sentry internal functions in Cocoa SDK
-# Needed for versions < sentry-cocoa 6.3.0 and static linking. Since sentry-cocoa 6.3.0 we
-# only mark the main executable as inApp and not as well dynamic libs inside the application bundle.
+# Needed for versions < sentry-cocoa 6.3.0 and static linking.
+# Before sentry-cocoa 6.3.0, we marked all packages located inside the application bundle as inApp.
+# Since 6.3.0, the Cocoa SKD only marks the main executable as inApp. This change doesn't impact
+# applications using static libraries, as when using static libraries, all of them end up in the
+# main executable.
 family:native function:kscm_*                                     -app -group
 family:native function:sentrycrashcm_*                            -app -group
 family:native function:kscrash_*                                  -app -group
