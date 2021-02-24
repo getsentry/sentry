@@ -365,10 +365,7 @@ class DetailsBody extends React.Component<Props> {
             <Layout.Body>
               <Layout.Main>
                 <ChartControls>
-                  <DropdownControl
-                    buttonProps={{prefix: t('Display')}}
-                    label={timePeriod.label}
-                  >
+                  <DropdownControl label={timePeriod.label}>
                     {TIME_OPTIONS.map(({label, value}) => (
                       <DropdownItem
                         key={value}
