@@ -645,10 +645,11 @@ def create_alert_rule(
         )
         team_id = None
         user_id = None
-        if owner.type == User:
-            user_id = owner.id
-        elif owner.type == Team:
-            team_id = owner.id
+        if owner:
+            if owner.type == User:
+                user_id = owner.id
+            elif owner.type == Team:
+                team_id = owner.id
 
         alert_rule = AlertRule.objects.create(
             organization=organization,
