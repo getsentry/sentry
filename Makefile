@@ -12,6 +12,8 @@ bootstrap: develop init-config run-dependent-services create-db apply-migrations
 
 develop: ensure-pinned-pip setup-git install-js-dev install-py-dev
 
+
+
 clean:
 	@echo "--> Cleaning static cache"
 	rm -rf dist/* static/dist/*
@@ -56,12 +58,12 @@ setup-pyenv:
 	./scripts/pyenv_setup.sh
 
 ensure-venv:
-	@./scripts/ensure-venv.sh
+	./scripts/ensure-venv.sh
 
 ensure-pinned-pip: ensure-venv upgrade-pip
 
 upgrade-pip:
-	bash ./scripts/python.sh upgrade-pip
+	./scripts/python.sh upgrade-pip
 
 setup-git-config:
 	@git config --local branch.autosetuprebase always
@@ -92,7 +94,7 @@ install-js-dev: node-version-check
 	yarn check --verify-tree || yarn install --check-files
 
 install-py-dev:
-	bash ./scripts/python.sh install-py-dev
+	./scripts/python.sh install-py-dev
 
 build-js-po: node-version-check
 	mkdir -p build
