@@ -1,3 +1,4 @@
+import pytest
 from sentry.utils.compat import mock
 
 from django.template.defaultfilters import slugify
@@ -49,3 +50,12 @@ class AuthLoginTest(TestCase):
 
         assert len(Project.objects.filter(organization=org)) == 2
         assert not ProjectKey.objects.filter(project__organization=org).exists()
+
+    @mock.patch("sentry.web.frontend.demo_start.generate_random_name", return_value=org_name)
+    def test_no_owner(self, mock_generate_name):
+        with self.settings(DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email):
+            with pytest.raises(Exception):
+                self.client.post(self.path)
+
+        # verify we are using atomic transactions
+        assert not Organization.objects.filter(name=org_name).exists()
