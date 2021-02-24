@@ -13,6 +13,7 @@ type FormProps = Omit<FormField['props'], 'onChange' | 'name'>;
 type Props = {
   name: string;
   onChange: FormField['props']['onChange'];
+  deprecatedSelectControl?: boolean;
 } & FormProps &
   SelectProps;
 
@@ -111,10 +112,12 @@ export default class SelectField extends FormField<Props> {
       required,
       name,
       isLoading,
+      deprecatedSelectControl,
     } = this.props;
 
     return (
       <StyledSelectControl
+        deprecatedSelectControl={deprecatedSelectControl}
         creatable={creatable}
         id={this.getId()}
         choices={choices}
