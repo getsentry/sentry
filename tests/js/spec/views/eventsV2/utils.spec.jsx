@@ -245,13 +245,23 @@ describe('getExpandedResults()', function () {
     environment: ['staging'],
   };
 
+  it('id should be default column when drilldown results in no columns', () => {
+    const view = new EventView({
+      ...state,
+      fields: [{field: 'count()'}, {field: 'epm()'}, {field: 'eps()'}],
+    });
+
+    const result = getExpandedResults(view, {}, {});
+
+    expect(result.fields).toEqual([{field: 'id', width: -1}]);
+  });
+
   it('preserves aggregated fields', () => {
     let view = new EventView(state);
 
     let result = getExpandedResults(view, {}, {});
     // id should be omitted as it is an implicit property on unaggregated results.
     expect(result.fields).toEqual([
-      {field: 'id', width: -1},
       {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
@@ -273,7 +283,6 @@ describe('getExpandedResults()', function () {
     result = getExpandedResults(view, {}, {});
     // id should be omitted as it is an implicit property on unaggregated results.
     expect(result.fields).toEqual([
-      {field: 'id', width: -1},
       {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},

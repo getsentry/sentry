@@ -172,7 +172,6 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
 const ALIASED_AGGREGATES_COLUMN = {
   last_seen: 'timestamp',
   failure_count: 'transaction.status',
-  count: 'id',
 };
 
 /**
@@ -240,6 +239,10 @@ export function getExpandedResults(
 
     return column;
   });
+
+  if (expandedColumns.length && expandedColumns.every(col => col === null)) {
+    expandedColumns[0] = {kind: 'field', field: 'id'};
+  }
 
   // update the columns according the the expansion above
   const nextView = expandedColumns.reduceRight(
