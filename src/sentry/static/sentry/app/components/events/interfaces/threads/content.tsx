@@ -15,10 +15,11 @@ type CrashContentProps = React.ComponentProps<typeof CrashContent>;
 type Props = {
   event: Event;
   projectId: Project['id'];
-  data: Thread;
-  stackView: STACK_VIEW;
   stackType: STACK_TYPE;
   newestFirst: boolean;
+  hasMissingStacktrace: boolean;
+  stackView?: STACK_VIEW;
+  data?: Thread;
 } & Pick<CrashContentProps, 'exception' | 'stacktrace'>;
 
 const Content = ({
@@ -30,48 +31,42 @@ const Content = ({
   newestFirst,
   exception,
   stacktrace,
-}: Props) => {
-  const renderPills = !isNil(data.id) || !!data.name;
-  const hasMissingStacktrace = !(exception || stacktrace);
+  hasMissingStacktrace,
+}: Props) => (
+  <div className="thread">
+    {data && (!isNil(data?.id) || !!data?.name) && (
+      <Pills>
+        {!isNil(data.id) && <Pill name={t('id')} value={String(data.id)} />}
+        {!!data.name?.trim() && <Pill name={t('name')} value={data.name} />}
+        <Pill name={t('was active')} value={data.current} />
+        <Pill name={t('errored')} className={data.crashed ? 'false' : 'true'}>
+          {data.crashed ? t('yes') : t('no')}
+        </Pill>
+      </Pills>
+    )}
 
-  return (
-    <div className="thread">
-      {renderPills && (
-        <Pills>
-          {!isNil(data.id) && <Pill name={t('id')} value={String(data.id)} />}
-          {!!data.name?.trim() && <Pill name={t('name')} value={data.name} />}
-          <Pill name={t('was active')} value={data.current} />
-          <Pill name={t('errored')} className={data.crashed ? 'false' : 'true'}>
-            {data.crashed ? t('yes') : t('no')}
-          </Pill>
-        </Pills>
-      )}
-
-      {hasMissingStacktrace ? (
-        <div className="traceback missing-traceback">
-          <ul>
-            <li className="frame missing-frame">
-              <div className="title">
-                <i>
-                  {data.crashed ? t('Thread Errored') : t('No or unknown stacktrace')}
-                </i>
-              </div>
-            </li>
-          </ul>
-        </div>
-      ) : (
-        <CrashContent
-          event={event}
-          stackType={stackType}
-          stackView={stackView}
-          newestFirst={newestFirst}
-          projectId={projectId}
-          exception={exception}
-          stacktrace={stacktrace}
-        />
-      )}
-    </div>
-  );
-};
+    {hasMissingStacktrace ? (
+      <div className="traceback missing-traceback">
+        <ul>
+          <li className="frame missing-frame">
+            <div className="title">
+              <i>{data?.crashed ? t('Thread Errored') : t('No or unknown stacktrace')}</i>
+            </div>
+          </li>
+        </ul>
+      </div>
+    ) : (
+      <CrashContent
+        event={event}
+        stackType={stackType}
+        stackView={stackView}
+        newestFirst={newestFirst}
+        projectId={projectId}
+        exception={exception}
+        stacktrace={stacktrace}
+      />
+    )}
+  </div>
+);
 
 export default Content;

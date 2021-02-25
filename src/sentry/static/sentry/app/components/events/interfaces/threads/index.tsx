@@ -31,15 +31,22 @@ type Props = {
 } & typeof defaultProps;
 
 type State = {
-  activeThread: Thread;
-  stackView: STACK_VIEW;
   stackType: STACK_TYPE;
   newestFirst: boolean;
+  activeThread?: Thread;
+  stackView?: STACK_VIEW;
 };
 
 function getIntendedStackView(thread: Thread, event: Event) {
-  const stacktrace = getThreadStacktrace(thread, event, false);
-  return stacktrace && stacktrace.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
+  const exception = getThreadException(event, thread);
+  if (exception) {
+    return !!exception.values.find(value => !!value.stacktrace?.hasSystemFrames)
+      ? STACK_VIEW.APP
+      : STACK_VIEW.FULL;
+  }
+
+  const stacktrace = getThreadStacktrace(false, thread);
+  return stacktrace?.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
 }
 
 class Threads extends React.Component<Props, State> {
@@ -47,7 +54,7 @@ class Threads extends React.Component<Props, State> {
 
   state: State = this.getInitialState();
 
-  getInitialState() {
+  getInitialState(): State {
     const {data, event} = this.props;
     const thread = defined(data.values) ? findBestThread(data.values) : undefined;
     return {
@@ -55,7 +62,7 @@ class Threads extends React.Component<Props, State> {
       stackView: thread ? getIntendedStackView(thread, event) : undefined,
       stackType: STACK_TYPE.ORIGINAL,
       newestFirst: isStacktraceNewestFirst(),
-    } as State;
+    };
   }
 
   handleSelectNewThread = (thread: Thread) => {
@@ -93,13 +100,13 @@ class Threads extends React.Component<Props, State> {
     const threads = data.values;
     const {stackView, stackType, newestFirst, activeThread} = this.state;
 
-    const exception = getThreadException(activeThread, event);
-    const stacktrace = getThreadStacktrace(
-      activeThread,
-      event,
-      stackType !== STACK_TYPE.ORIGINAL
-    );
+    const exception = getThreadException(event, activeThread);
 
+    const stacktrace = !exception
+      ? getThreadStacktrace(stackType !== STACK_TYPE.ORIGINAL, activeThread)
+      : undefined;
+
+    const hasMissingStacktrace = !(exception || stacktrace);
     const hasMoreThanOneThread = threads.length > 1;
 
     return (
@@ -113,12 +120,14 @@ class Threads extends React.Component<Props, State> {
               hideGuide={hideGuide}
               onChange={this.handleChangeNewestFirst}
               beforeTitle={
-                <ThreadSelector
-                  threads={threads}
-                  activeThread={activeThread}
-                  event={event}
-                  onChange={this.handleSelectNewThread}
-                />
+                activeThread && (
+                  <ThreadSelector
+                    threads={threads}
+                    activeThread={activeThread}
+                    event={event}
+                    onChange={this.handleSelectNewThread}
+                  />
+                )
               }
             />
           ) : (
@@ -131,15 +140,17 @@ class Threads extends React.Component<Props, State> {
           )
         }
         actions={
-          <CrashActions
-            stackView={stackView}
-            platform={event.platform}
-            stacktrace={stacktrace}
-            stackType={stackType}
-            thread={hasMoreThanOneThread ? activeThread : undefined}
-            exception={hasMoreThanOneThread ? exception : undefined}
-            onChange={this.handleChangeStackView}
-          />
+          !hasMissingStacktrace && (
+            <CrashActions
+              stackView={stackView}
+              platform={event.platform}
+              stacktrace={stacktrace}
+              stackType={stackType}
+              thread={hasMoreThanOneThread ? activeThread : undefined}
+              exception={exception}
+              onChange={this.handleChangeStackView}
+            />
+          )
         }
         showPermalink={!hasMoreThanOneThread}
         wrapTitle={false}
@@ -153,6 +164,7 @@ class Threads extends React.Component<Props, State> {
           event={event}
           newestFirst={newestFirst}
           projectId={projectId}
+          hasMissingStacktrace={hasMissingStacktrace}
         />
       </EventDataSection>
     );

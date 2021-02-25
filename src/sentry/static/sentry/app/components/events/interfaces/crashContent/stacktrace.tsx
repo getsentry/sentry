@@ -8,11 +8,11 @@ import {Event} from 'app/types/event';
 import {STACK_VIEW, StacktraceType} from 'app/types/stacktrace';
 
 type Props = {
-  stackView: STACK_VIEW;
   stacktrace: StacktraceType;
   event: Event;
   newestFirst: boolean;
   platform: PlatformType;
+  stackView?: STACK_VIEW;
 };
 
 const Stacktrace = ({stackView, stacktrace, event, newestFirst, platform}: Props) => (

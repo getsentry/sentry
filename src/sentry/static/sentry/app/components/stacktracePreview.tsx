@@ -78,7 +78,7 @@ class StacktracePreview extends React.Component<Props, State> {
         .find(e => e.type === 'exception')
         ?.data?.values.filter(({stacktrace}) => defined(stacktrace)) ?? [];
 
-    const exceptionStacktrace = isStacktraceNewestFirst()
+    const exceptionStacktrace: StacktraceType | undefined = isStacktraceNewestFirst()
       ? exceptionsWithStacktrace[exceptionsWithStacktrace.length - 1]?.stacktrace
       : exceptionsWithStacktrace[0]?.stacktrace;
 
@@ -93,7 +93,7 @@ class StacktracePreview extends React.Component<Props, State> {
       return undefined;
     }
 
-    const bestThreadStacktrace = getThreadStacktrace(bestThread, event, false);
+    const bestThreadStacktrace = getThreadStacktrace(false, bestThread);
 
     if (bestThreadStacktrace) {
       return bestThreadStacktrace;

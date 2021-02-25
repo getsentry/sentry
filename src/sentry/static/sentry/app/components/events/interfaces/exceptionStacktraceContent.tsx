@@ -11,12 +11,12 @@ import {defined} from 'app/utils';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type Props = {
-  stackView: STACK_VIEW;
   data: ExceptionValue['stacktrace'];
   event: Event;
   platform: PlatformType;
   stacktrace: ExceptionValue['stacktrace'];
   chainedException: boolean;
+  stackView?: STACK_VIEW;
   expandFirstFrame?: boolean;
   newestFirst?: boolean;
 };
