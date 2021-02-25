@@ -2,6 +2,7 @@ import React from 'react';
 import {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'app/components/dropdownLink';
+import ErrorBoundary from 'app/components/errorBoundary';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import Tooltip from 'app/components/tooltip';
@@ -60,12 +61,14 @@ export default function QuickTrace({
   ) : error || trace === null ? (
     '\u2014'
   ) : (
-    <QuickTraceLite
-      event={event}
-      trace={trace}
-      location={location}
-      organization={organization}
-    />
+    <ErrorBoundary mini>
+      <QuickTraceLite
+        event={event}
+        trace={trace}
+        location={location}
+        organization={organization}
+      />
+    </ErrorBoundary>
   );
 
   return (

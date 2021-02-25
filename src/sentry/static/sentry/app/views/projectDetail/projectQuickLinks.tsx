@@ -51,14 +51,6 @@ function ProjectQuickLinks({organization, project, location}: Props) {
       },
     },
     {
-      title: t('Key Transactions'),
-      to: {
-        pathname: getPerformanceLandingUrl(organization),
-        query: {project: project?.id},
-      },
-      disabled: !organization.features.includes('performance-view'),
-    },
-    {
       title: t('Most Improved/Regressed Transactions'),
       to: getTrendsLink(),
       disabled: !organization.features.includes('performance-view'),

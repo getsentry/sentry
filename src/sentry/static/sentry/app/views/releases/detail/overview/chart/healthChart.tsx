@@ -19,6 +19,7 @@ import {axisDuration} from 'app/utils/discover/charts';
 import {getExactDuration} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
+import {displayCrashFreePercent} from 'app/views/releases/utils';
 
 import {
   getSessionTermDescription,
@@ -121,7 +122,7 @@ class HealthChart extends React.Component<Props> {
           max: 100,
           scale: true,
           axisLabel: {
-            formatter: '{value}%',
+            formatter: (value: number) => displayCrashFreePercent(value),
             color: theme.chartLabel,
           },
         };
@@ -216,16 +217,23 @@ class HealthChart extends React.Component<Props> {
     const otherReleasesVisible = !(selection[sessionTerm.otherReleases] === false);
 
     if (yAxis === YAxis.SESSIONS || yAxis === YAxis.USERS) {
-      selection[sessionTerm.otherErrored] = otherReleasesVisible;
-      selection[sessionTerm.otherCrashed] = otherReleasesVisible;
-      selection[sessionTerm.otherAbnormal] = otherReleasesVisible;
+      selection[sessionTerm.otherErrored] =
+        !selection?.hasOwnProperty(sessionTerm.errored) && otherReleasesVisible;
+      selection[sessionTerm.otherCrashed] =
+        !selection?.hasOwnProperty(sessionTerm.crashed) && otherReleasesVisible;
+      selection[sessionTerm.otherAbnormal] =
+        !selection?.hasOwnProperty(sessionTerm.abnormal) && otherReleasesVisible;
       selection[sessionTerm.otherHealthy] =
         !selection?.hasOwnProperty(sessionTerm.healthy) && otherReleasesVisible;
     }
 
     if (yAxis === YAxis.CRASH_FREE) {
-      selection[sessionTerm.otherCrashFreeSessions] = otherReleasesVisible;
-      selection[sessionTerm.otherCrashFreeUsers] = otherReleasesVisible;
+      selection[sessionTerm.otherCrashFreeSessions] =
+        !selection?.hasOwnProperty(sessionTerm['crash-free-sessions']) &&
+        otherReleasesVisible;
+      selection[sessionTerm.otherCrashFreeUsers] =
+        !selection?.hasOwnProperty(sessionTerm['crash-free-users']) &&
+        otherReleasesVisible;
     }
 
     return selection;
