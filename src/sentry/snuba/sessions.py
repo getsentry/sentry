@@ -171,9 +171,11 @@ def get_release_adoption(project_releases, environments=None, now=None):
 
     # Users Adoption
     total_users = {}
+    # Sessions Adoption
+    total_sessions = {}
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["project_id", "users"],
+        selected_columns=["project_id", "users", "sessions"],
         groupby=["project_id"],
         start=start,
         conditions=total_conditions,
@@ -181,18 +183,6 @@ def get_release_adoption(project_releases, environments=None, now=None):
         referrer="sessions.release-adoption-total-users",
     )["data"]:
         total_users[x["project_id"]] = x["users"]
-
-    # Sessions Adoption
-    total_sessions = {}
-    for x in raw_query(
-        dataset=Dataset.Sessions,
-        selected_columns=["project_id", "sessions"],
-        groupby=["project_id"],
-        start=start,
-        conditions=total_conditions,
-        filter_keys=filter_keys,
-        referrer="sessions.release-adoption-total-sessions",
-    )["data"]:
         total_sessions[x["project_id"]] = x["sessions"]
 
     rv = {}
