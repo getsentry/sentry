@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.utils.encoding import force_text
 
 from sentry.api.event_search import InvalidSearchQuery
+from sentry.api.fields.actor import Actor
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
@@ -331,11 +332,14 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "resolve_threshold": {"required": False},
         }
 
-    def validate_owner(self, owner_id):
+    def validate_owner(self, owner):
         # owner_id should be team:id or user:id
-        from sentry.api.fields.actor import Actor
-
-        return Actor.from_actor_identifier(owner_id)
+        try:
+            return Actor.from_actor_identifier(owner)
+        except serializers.ValidationError:
+            raise serializers.ValidationError(
+                "Could not parse owner. Format should be `type:id` where type is `team` or `user`."
+            )
 
     def validate_query(self, query):
         query_terms = query.split()

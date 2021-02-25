@@ -496,15 +496,6 @@ class TestAlertRuleSerializer(TestCase):
             {"owner": f"meow:{self.user.id}"},
             {"owner": ["Unable to resolve actor identifier"]},
         )
-        # self.run_fail_validation_test(
-        # {"owner": f"user:-1"},
-        # {'owner': ['Unable to resolve actor identifier']},
-        # )
-        # self.run_fail_validation_test(
-        # {"owner": self.user.id},
-        # {'owner': ['Must be a string']},
-        # )
-
         base_params = self.valid_params.copy()
         base_params.update({"owner": f"team:{self.team.id}"})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)

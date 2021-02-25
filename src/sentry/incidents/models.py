@@ -7,10 +7,12 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from enum import Enum
 
+from sentry.api.fields.actor import Actor
 from sentry.db.models import FlexibleForeignKey, Model, UUIDField, OneToOneCascadeDeletes
 from sentry.db.models import ArrayField, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User
+
 from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
@@ -405,18 +407,12 @@ class AlertRule(Model):
             pass
         return None
 
-    def owner_id(self):
-        if self.user:
-            return f"user:{self.user_id}"
-
-        if self.team:
-            return f"team:{self.team_id}"
-
+    @property
     def owner(self):
-        if self.owner_id():
-            from sentry.api.fields.actor import Actor
-
-            return Actor.from_actor_identifier(self.owner_id())
+        owner = self.user if self.user else self.team
+        if owner:
+            owner_id = Actor(owner.id, type(owner)).get_actor_id()
+            return Actor.from_actor_identifier(owner_id)
 
         return None
 
