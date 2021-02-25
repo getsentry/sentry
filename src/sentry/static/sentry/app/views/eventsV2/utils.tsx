@@ -171,6 +171,7 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
 const ALIASED_AGGREGATES_COLUMN = {
   last_seen: 'timestamp',
   failure_count: 'transaction.status',
+  count: 'id',
 };
 
 /**
@@ -228,8 +229,6 @@ export function getExpandedResults(
     if (
       // if expanding the function failed
       column === null ||
-      // id is implicitly a part of all non-aggregate results
-      column.field === 'id' ||
       // the new column is already present
       fieldSet.has(column.field)
     ) {

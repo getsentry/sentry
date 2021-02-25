@@ -251,6 +251,7 @@ describe('getExpandedResults()', function () {
     let result = getExpandedResults(view, {}, {});
     // id should be omitted as it is an implicit property on unaggregated results.
     expect(result.fields).toEqual([
+      {field: 'id', width: -1},
       {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
@@ -272,6 +273,7 @@ describe('getExpandedResults()', function () {
     result = getExpandedResults(view, {}, {});
     // id should be omitted as it is an implicit property on unaggregated results.
     expect(result.fields).toEqual([
+      {field: 'id', width: -1},
       {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
