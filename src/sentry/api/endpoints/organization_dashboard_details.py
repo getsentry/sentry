@@ -86,7 +86,11 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         serializer = DashboardDetailsSerializer(
             data=request.data,
             instance=dashboard,
-            context={"organization": organization, "request": request},
+            context={
+                "organization": organization,
+                "request": request,
+                "projects": self.get_projects(request, organization),
+            },
         )
 
         if not serializer.is_valid():
