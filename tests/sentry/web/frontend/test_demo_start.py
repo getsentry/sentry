@@ -15,7 +15,7 @@ from sentry.models import (
 )
 from sentry.utils.email import create_fake_email
 
-org_owner_email = "elon@tesla.com"
+org_owner_email = "james@example.com"
 org_name = "Org Name"
 
 
