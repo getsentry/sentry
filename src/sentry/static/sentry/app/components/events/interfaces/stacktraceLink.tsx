@@ -183,9 +183,9 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     this.reloadData();
   };
 
-  // let the ErrorBoundary handle errors by raising it
+  // don't show the error boundary if the component fails.
   renderError(): React.ReactNode {
-    throw new Error('Error loading endpoints');
+    return null;
   }
 
   renderLoading() {
