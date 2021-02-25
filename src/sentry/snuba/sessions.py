@@ -220,7 +220,7 @@ def get_release_adoption(project_releases, environments=None, now=None):
             sessions_adoption = float(x["sessions"] / total_sessions_count * 100)
 
         rv[x["project_id"], x["release"]] = {
-            "users_adoption": users_adoption,
+            "adoption": users_adoption,
             "sessions_adoption": sessions_adoption,
             "users_24h": x["users"],
             "sessions_24h": x["sessions"],
