@@ -4,15 +4,18 @@ _builtin_zip = zip
 
 
 def map(a, b, *c):
-    return _builtin_map(a, b, *c)
+    # TODO(joshuarli): Remove all this.
+    return list(_builtin_map(a, b, *c))
 
 
 def filter(a, b):
-    return _builtin_filter(a, b)
+    # TODO(joshuarli): Remove all this.
+    return list(_builtin_filter(a, b))
 
 
 def zip(*a):
-    return _builtin_zip(*a)
+    # TODO(joshuarli): Remove all this.
+    return list(_builtin_zip(*a))
 
 
 from binascii import crc32 as _crc32
