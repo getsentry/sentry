@@ -126,6 +126,7 @@ class Threads extends React.Component<Props, State> {
                     activeThread={activeThread}
                     event={event}
                     onChange={this.handleSelectNewThread}
+                    exception={exception}
                   />
                 )
               }
