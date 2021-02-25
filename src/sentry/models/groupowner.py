@@ -44,7 +44,7 @@ class GroupOwner(Model):
         db_table = "sentry_groupowner"
 
     def save(self, *args, **kwargs):
-        keys = list(list(filter(None, [self.user_id, self.team_id])))
+        keys = list(filter(None, [self.user_id, self.team_id]))
         assert len(keys) == 1, "Must have team or user, not both"
         super().save(*args, **kwargs)
 

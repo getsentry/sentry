@@ -76,7 +76,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
                 key,  # lexicographical sort on key, ascending
             )
 
-        return sorted(list(map(decode_search_result, results)), key=get_comparison_key)
+        return sorted(map(decode_search_result, results), key=get_comparison_key)
 
     def classify(self, scope, items, limit=None, timestamp=None):
         if timestamp is None:

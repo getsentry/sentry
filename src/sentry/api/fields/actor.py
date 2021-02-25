@@ -65,7 +65,7 @@ class Actor(namedtuple("Actor", "id type")):
             for instance in type.objects.filter(id__in=[a.id for a in _actors]):
                 results[(type, instance.id)] = instance
 
-        return list(list(filter(None, [results.get((actor.type, actor.id)) for actor in actors])))
+        return list(filter(None, [results.get((actor.type, actor.id)) for actor in actors]))
 
     @classmethod
     def resolve_dict(cls, actor_dict):

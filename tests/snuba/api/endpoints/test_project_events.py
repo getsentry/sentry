@@ -24,7 +24,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(list(map(lambda x: x["eventID"], response.data))) == sorted(
+        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [event_1.event_id, event_2.event_id]
         )
 

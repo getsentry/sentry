@@ -8,7 +8,7 @@ def psycopg2_version():
     import psycopg2
 
     version = psycopg2.__version__.split()[0].split(".")
-    return tuple(list(map(int, version)))
+    return tuple(map(int, version))
 
 
 @pytest.mark.skipif(psycopg2_version() < (2, 7), reason="Test requires psycopg 2.7+")
