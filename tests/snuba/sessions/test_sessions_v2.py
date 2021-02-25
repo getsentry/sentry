@@ -35,6 +35,44 @@ def test_timestamps():
     assert actual_timestamps == expected_timestamps
 
 
+def test_rounded_end():
+    query = _make_query(
+        "field=sum(session)&interval=1h&start=2021-02-24T00:00:00Z&end=2021-02-25T00:00:00Z"
+    )
+
+    expected_timestamps = [
+        "2021-02-24T00:00:00Z",
+        "2021-02-24T01:00:00Z",
+        "2021-02-24T02:00:00Z",
+        "2021-02-24T03:00:00Z",
+        "2021-02-24T04:00:00Z",
+        "2021-02-24T05:00:00Z",
+        "2021-02-24T06:00:00Z",
+        "2021-02-24T07:00:00Z",
+        "2021-02-24T08:00:00Z",
+        "2021-02-24T09:00:00Z",
+        "2021-02-24T10:00:00Z",
+        "2021-02-24T11:00:00Z",
+        "2021-02-24T12:00:00Z",
+        "2021-02-24T13:00:00Z",
+        "2021-02-24T14:00:00Z",
+        "2021-02-24T15:00:00Z",
+        "2021-02-24T16:00:00Z",
+        "2021-02-24T17:00:00Z",
+        "2021-02-24T18:00:00Z",
+        "2021-02-24T19:00:00Z",
+        "2021-02-24T20:00:00Z",
+        "2021-02-24T21:00:00Z",
+        "2021-02-24T22:00:00Z",
+        "2021-02-24T23:00:00Z",
+        "2021-02-25T00:00:00Z",
+    ]
+    actual_timestamps = _get_timestamps(query)
+
+    assert len(actual_timestamps) == 25
+    assert actual_timestamps == expected_timestamps
+
+
 def test_simple_query():
     query = _make_query("statsPeriod=1d&interval=12h&field=sum(session)")
 

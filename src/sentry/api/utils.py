@@ -88,6 +88,7 @@ def get_date_range_rollup_from_params(
     minimum_interval="1h",
     default_interval="",
     round_range=False,
+    inclusive_end=False,
     max_points=MAX_ROLLUP_POINTS,
 ):
     """
@@ -97,6 +98,12 @@ def get_date_range_rollup_from_params(
     This also optionally rounds the returned range to the given `interval`.
     The rounding uses integer arithmetic on unix timestamps, so might yield
     unexpected results when the interval is > 1d.
+
+    When `round_range` and `inclusive_end` is requested, this adds another
+    `interval` worth to the `end`, as all the downstream users treat the `end`
+    value as *exclusive* otherwise.
+    If for example we have `end=2021-02-25T00:00:00&interval=1d`, the returned
+    `end` value is rounded up to `2021-02-26T00:00:00`.
     """
     minimum_interval = parse_stats_period(minimum_interval).total_seconds()
     interval = parse_stats_period(params.get("interval", default_interval))
@@ -108,6 +115,11 @@ def get_date_range_rollup_from_params(
     interval = int(minimum_interval * math.ceil(interval / minimum_interval))
 
     start, end = get_date_range_from_params(params)
+    # when the `end` is supposed to be inclusive (and only if it was
+    # explicitly given), we simply add a second to it, the rounding logic down
+    # below will take care of the rest.
+    if round_range and inclusive_end and params.get("end"):
+        end += timedelta(seconds=1)
     date_range = end - start
 
     # round the range up to a multiple of the interval

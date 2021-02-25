@@ -246,7 +246,9 @@ class QueryDefinition:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
-        start, end, rollup = get_date_range_rollup_from_params(query, "1h", round_range=True)
+        start, end, rollup = get_date_range_rollup_from_params(
+            query, "1h", round_range=True, inclusive_end=True
+        )
         self.rollup = rollup
         self.start = start
         self.end = end

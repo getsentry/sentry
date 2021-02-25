@@ -106,3 +106,19 @@ class GetDateRangeRollupFromParamsTest(TestCase):
         )
         assert start == datetime.datetime(2021, 1, 12, tzinfo=timezone.utc)
         assert end == datetime.datetime(2021, 1, 18, tzinfo=timezone.utc)
+
+    def test_inclusive_end(self):
+        start, end, interval = get_date_range_rollup_from_params(
+            {"start": "2021-02-24T00:00:00", "end": "2021-02-25T00:00:00", "interval": "1h"},
+            round_range=True,
+        )
+        assert start == datetime.datetime(2021, 2, 24, tzinfo=timezone.utc)
+        assert end == datetime.datetime(2021, 2, 25, tzinfo=timezone.utc)
+
+        start, end, interval = get_date_range_rollup_from_params(
+            {"start": "2021-02-24T00:00:00", "end": "2021-02-25T00:00:00", "interval": "1h"},
+            round_range=True,
+            inclusive_end=True,
+        )
+        assert start == datetime.datetime(2021, 2, 24, tzinfo=timezone.utc)
+        assert end == datetime.datetime(2021, 2, 25, 1, tzinfo=timezone.utc)
