@@ -6,10 +6,8 @@ import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import {IconOpen, IconClose} from 'app/icons;
+import {IconClose} from 'app/icons/iconClose';
 import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
 import {
   Frame,
   Integration,
@@ -68,7 +66,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
 
   get errorText() {
-    const {error} = this.match;
+    const error = this.match.error;
 
     switch (error) {
       case 'stack_root_mismatch':
@@ -181,13 +179,13 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     }
   }
 
-  handleSubmit() {
+  handleSubmit = () => {
     this.reloadData();
-  }
+  };
 
-  // Do not show the component if there is an error from the endpoint.
+  // let the ErrorBoundary handle errors by raising it
   renderError(): React.ReactNode {
-    return null;
+    throw new Error('Error loading endpoints');
   }
 
   renderLoading() {
@@ -300,7 +298,4 @@ export const CodeMappingButtonContainer = styled(OpenInContainer)`
 const StyledIconClose = styled(IconClose)`
   margin: auto;
   cursor: pointer;
-`;
-const StyledIconOpen = styled(IconOpen)`
-  margin-left: ${space(0.5)};
 `;
