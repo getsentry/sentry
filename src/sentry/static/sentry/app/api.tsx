@@ -436,21 +436,31 @@ export class Client {
         let responseJSON: any;
         let responseText: any;
 
-        // Try to get JSON out of the response no matter the status
-        try {
-          responseJSON = await response.json();
-        } catch {
-          // No json came out.. too bad
-        }
+        const {status, statusText} = response;
+        let {ok} = response;
 
         // Try to get text out of the response no matter the status
         try {
-          responseText = await responseClone.text();
+          responseText = await response.text();
         } catch {
           // No text came out.. too bad
         }
 
-        const {ok, status, statusText} = response;
+        const responseContentType = response.headers.get('content-type');
+        const isResponseJSON = responseContentType?.includes('json');
+
+        const isStatus3XX = status >= 300 && status < 400;
+        if (status !== 204 && !isStatus3XX) {
+          try {
+            responseJSON = await responseClone.json();
+          } catch {
+            // If the MIME type is `application/json` but decoding failed,
+            // this should be an error.
+            if (isResponseJSON) {
+              ok = false;
+            }
+          }
+        }
 
         const emulatedJQueryXHR: any = {
           status,
@@ -460,12 +470,8 @@ export class Client {
           getResponseHeader: (header: string) => response.headers.get(header),
         };
 
-        const responseContentType = response.headers.get('content-type');
-
         // Respect the response content-type header
-        const responseData = responseContentType?.includes('json')
-          ? responseJSON
-          : responseText;
+        const responseData = isResponseJSON ? responseJSON : responseText;
 
         if (ok) {
           successHandler(responseData, statusText, emulatedJQueryXHR);
