@@ -11,6 +11,7 @@ from sentry.models import (
     ExternalTeam,
     ExternalUser,
 )
+from sentry.shared_integrations.exceptions import ApiError
 
 
 # converts the provider to JSON
@@ -99,10 +100,15 @@ class OrganizationIntegrationSerializer(Serializer):
             config_data = obj.config
             dynamic_display_information = None
         else:
-            # just doing this to avoid querying for an object we already have
-            installation._org_integration = obj
-            config_data = installation.get_config_data()
-            dynamic_display_information = installation.get_dynamic_display_information()
+            try:
+                # just doing this to avoid querying for an object we already have
+                installation._org_integration = obj
+                config_data = installation.get_config_data()
+                dynamic_display_information = installation.get_dynamic_display_information()
+            except ApiError:
+                # If there is an ApiError from our 3rd party integration providers, assume there is an problem with the configuration and set it to disabled.
+                integration.update({"status": "disabled"})
+                return integration
 
         integration.update({"configData": config_data})
         if dynamic_display_information:
