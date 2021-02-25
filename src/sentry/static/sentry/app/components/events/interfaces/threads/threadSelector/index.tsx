@@ -27,13 +27,13 @@ const DROPDOWN_MAX_HEIGHT = 400;
 
 const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
   const getDropDownItem = (thread: Thread) => {
-    const threadInfo = filterThreadInfo(thread, event);
+    const threadInfo = filterThreadInfo(thread);
 
     const dropDownValue = `#${thread.id}: ${thread.name} ${threadInfo.label} ${threadInfo.filename}`;
     let crashedInfo: undefined | EntryData;
 
     if (thread.crashed) {
-      crashedInfo = getThreadException(thread, event);
+      crashedInfo = getThreadException(event, thread);
     }
 
     return {
@@ -87,7 +87,7 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
           ) : (
             <SelectedOption
               id={activeThread.id}
-              details={filterThreadInfo(activeThread, event)}
+              details={filterThreadInfo(activeThread)}
             />
           )}
         </StyledDropdownButton>

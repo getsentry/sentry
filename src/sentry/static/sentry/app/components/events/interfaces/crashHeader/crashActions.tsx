@@ -5,7 +5,8 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {ExceptionValue} from 'app/types';
+import {ExceptionType, ExceptionValue} from 'app/types';
+import {Thread} from 'app/types/events';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
 type NotifyOptions = {
@@ -14,12 +15,12 @@ type NotifyOptions = {
 };
 
 type Props = {
-  stackView: STACK_VIEW;
+  stackView?: STACK_VIEW;
   stackType?: STACK_TYPE;
   platform?: string;
   stacktrace?: ExceptionValue['stacktrace'];
-  thread?: Record<string, any>;
-  exception?: Record<string, any>;
+  thread?: Thread;
+  exception?: ExceptionType;
   onChange?: (notifyOptions: NotifyOptions) => void;
 };
 
@@ -34,12 +35,11 @@ const CrashActions = ({
 }: Props) => {
   const hasSystemFrames: boolean =
     stacktrace?.hasSystemFrames ||
-    thread?.stacktrace?.hasSystemFrames ||
-    exception?.values.find(x => !!x?.stacktrace?.hasSystemFrames);
+    !!exception?.values?.find(value => !!value.stacktrace?.hasSystemFrames);
 
   const hasMinified = !stackType
     ? false
-    : !!exception?.values.find(x => x.rawStacktrace) || !!thread?.rawStacktrace;
+    : !!exception?.values?.find(value => value.rawStacktrace) || !!thread?.rawStacktrace;
 
   const notify = (options: NotifyOptions) => {
     if (onChange) {
