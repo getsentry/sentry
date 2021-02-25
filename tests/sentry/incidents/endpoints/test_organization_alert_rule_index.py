@@ -36,6 +36,7 @@ class AlertRuleBase:
             "timeWindow": "300",
             "projects": [self.project.slug],
             "name": "JustAValidTestRule",
+            "owner": self.user.id,
             "resolveThreshold": 100,
             "thresholdType": 0,
             "triggers": [
