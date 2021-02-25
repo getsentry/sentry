@@ -400,6 +400,25 @@ describe('getExpandedResults()', function () {
     expect(result.query).toEqual('event.type:error custom_tag:tag_value');
   });
 
+  it('applies array value conditions from event data', () => {
+    const view = new EventView({
+      ...state,
+      fields: [...state.fields, {field: 'error.type'}],
+    });
+    const event = {
+      type: 'error',
+      tags: [
+        {key: 'nope', value: 'nope'},
+        {key: 'custom_tag', value: 'tag_value'},
+      ],
+      'error.type': ['DeadSystem Exception', 'RuntimeException', 'RuntimeException'],
+    };
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual(
+      'event.type:error custom_tag:tag_value error.type:"DeadSystem Exception" error.type:RuntimeException error.type:RuntimeException'
+    );
+  });
+
   it('applies project condition to project property', () => {
     const view = new EventView(state);
 
