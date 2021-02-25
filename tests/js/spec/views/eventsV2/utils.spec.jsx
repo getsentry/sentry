@@ -415,7 +415,7 @@ describe('getExpandedResults()', function () {
     };
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual(
-      'event.type:error custom_tag:tag_value ( error.type:"DeadSystem Exception" OR error.type:RuntimeException OR error.type:RuntimeException )'
+      'event.type:error custom_tag:tag_value error.type:"DeadSystem Exception" error.type:RuntimeException error.type:RuntimeException'
     );
   });
 

@@ -366,19 +366,7 @@ function generateExpandedConditions(
     const value = conditions[key];
 
     if (Array.isArray(value)) {
-      parsedQuery.addOp('(');
-
-      const lastIndex = value.length - 1;
-
-      value.forEach((tagValue, index) => {
-        parsedQuery.addTagValues(key, [tagValue]);
-
-        if (lastIndex !== index) {
-          parsedQuery.addOp('OR');
-        }
-      });
-
-      parsedQuery.addOp(')');
+      parsedQuery.addTagValues(key, value);
       continue;
     }
 
