@@ -366,7 +366,7 @@ function generateExpandedConditions(
     const value = conditions[key];
 
     if (Array.isArray(value)) {
-      parsedQuery.addTagValues(key, value);
+      parsedQuery.setTagValues(key, value);
       continue;
     }
 
