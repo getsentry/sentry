@@ -127,9 +127,11 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardHelp() {
-    return t(
-      'The number of releases for this project and how it has changed since the last period.'
-    );
+    return this.trend
+      ? t(
+          'The number of releases for this project and how it has changed since the last period.'
+        )
+      : t('The number of releases for this project.');
   }
 
   get trend() {
