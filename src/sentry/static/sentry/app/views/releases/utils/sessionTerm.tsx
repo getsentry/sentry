@@ -39,9 +39,7 @@ export const commonTermsDescription = {
     'Percentage of unique users with non-crashed sessions'
   ),
   [SessionTerm.CRASH_FREE_SESSIONS]: t('Percentage of non-crashed sessions'),
-  [SessionTerm.STABILITY]: t(
-    'The percentage of crash free sessions and how it has changed since the last period.'
-  ),
+  [SessionTerm.STABILITY]: t('The percentage of crash free sessions.'),
 };
 
 // This should never be used directly (except in tests)
