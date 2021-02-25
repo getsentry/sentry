@@ -502,7 +502,6 @@ class TestAlertRuleSerializer(TestCase):
         # error is raised during save
         assert serializer.is_valid()
         assert serializer.is_valid(), serializer.errors
-        print("Validated. Saving...")
         alert_rule = serializer.save()
         assert alert_rule.owner() == f"team:{self.team.id}"
 
@@ -511,7 +510,6 @@ class TestAlertRuleSerializer(TestCase):
         # error is raised during save
         assert serializer.is_valid()
         assert serializer.is_valid(), serializer.errors
-        print("Validated. Saving...")
         alert_rule = serializer.save()
         assert alert_rule.owner() == "user:doesntexist"
 
