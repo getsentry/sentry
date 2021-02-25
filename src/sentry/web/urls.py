@@ -67,7 +67,6 @@ if settings.DEBUG:
         )
     ]
 
-# demo mode
 if settings.DEMO_MODE:
     from sentry.web.frontend.demo_start import DemoStartView
 
