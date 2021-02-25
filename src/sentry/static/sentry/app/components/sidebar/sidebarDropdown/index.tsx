@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {logout} from 'app/actionCreators/account';
 import {Client} from 'app/api';
+import DemoModeGate from 'app/components/acl/demoModeGate';
 import Avatar from 'app/components/avatar';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Hook from 'app/components/hook';
@@ -141,9 +142,14 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                     {user.isSuperuser && (
                       <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
                     )}
-                    <SidebarMenuItem data-test-id="sidebarSignout" onClick={handleLogout}>
-                      {t('Sign out')}
-                    </SidebarMenuItem>
+                    <DemoModeGate>
+                      <SidebarMenuItem
+                        data-test-id="sidebarSignout"
+                        onClick={handleLogout}
+                      >
+                        {t('Sign out')}
+                      </SidebarMenuItem>
+                    </DemoModeGate>
                   </div>
                 </React.Fragment>
               )}

@@ -685,6 +685,7 @@ export interface Config {
   distPrefix: string;
   apmSampling: number;
   dsn_requests: string;
+  demoMode: boolean;
 }
 
 export type EventOrGroupType =
