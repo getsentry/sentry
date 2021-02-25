@@ -243,8 +243,10 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             # accidentally use newlines, so we explicitly handle that case. On page
             # refresh, they will see how it got interpreted as `get_config_data` will
             # re-serialize the config as a comma-separated list.
-            ignored_fields_list = filter(
-                None, [field.strip() for field in re.split(r"[,\n\r]+", ignored_fields_text)]
+            ignored_fields_list = list(
+                filter(
+                    None, [field.strip() for field in re.split(r"[,\n\r]+", ignored_fields_text)]
+                )
             )
             data[self.issues_ignored_fields_key] = ignored_fields_list
 

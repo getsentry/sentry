@@ -180,7 +180,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
     def handle_personal_member_add(self, request):
         data = request.data
         # only care if our bot is the new member added
-        matches = filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"])
+        matches = list(filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"]))
         if not matches:
             return self.respond(status=204)
 
@@ -195,7 +195,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         data = request.data
         channel_data = data["channelData"]
         # only care if our bot is the new member added
-        matches = filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"])
+        matches = list(filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"]))
         if not matches:
             return self.respond(status=204)
 
@@ -221,7 +221,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         data = request.data
         channel_data = data["channelData"]
         # only care if our bot is the new member removed
-        matches = filter(lambda x: x["id"] == data["recipient"]["id"], data["membersRemoved"])
+        matches = list(filter(lambda x: x["id"] == data["recipient"]["id"], data["membersRemoved"]))
         if not matches:
             return self.respond(status=204)
 
@@ -425,9 +425,11 @@ class MsTeamsWebhookEndpoint(Endpoint):
             # check the ids of the mentions in the entities
             mentioned = (
                 len(
-                    filter(
-                        lambda x: x.get("mentioned", {}).get("id") == recipient_id,
-                        data.get("entities", []),
+                    list(
+                        filter(
+                            lambda x: x.get("mentioned", {}).get("id") == recipient_id,
+                            data.get("entities", []),
+                        )
                     )
                 )
                 > 0

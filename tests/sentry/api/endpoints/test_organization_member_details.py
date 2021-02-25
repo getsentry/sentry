@@ -358,13 +358,13 @@ class UpdateOrganizationMemberTest(APITestCase):
         assert resp.status_code == 200
 
         member_teams = OrganizationMemberTeam.objects.filter(organizationmember=member_om)
-        team_ids = map(lambda x: x.team_id, member_teams)
+        team_ids = list(map(lambda x: x.team_id, member_teams))
         assert foo.id in team_ids
         assert bar.id in team_ids
 
         member_om = OrganizationMember.objects.get(id=member_om.id)
 
-        teams = map(lambda team: team.slug, member_om.teams.all())
+        teams = list(map(lambda team: team.slug, member_om.teams.all()))
         assert foo.slug in teams
         assert bar.slug in teams
 
@@ -388,7 +388,7 @@ class UpdateOrganizationMemberTest(APITestCase):
         assert resp.status_code == 400
 
         member_om = OrganizationMember.objects.get(id=member_om.id)
-        teams = map(lambda team: team.slug, member_om.teams.all())
+        teams = list(map(lambda team: team.slug, member_om.teams.all()))
         assert len(teams) == 0
 
     def test_can_update_role(self):

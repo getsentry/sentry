@@ -266,7 +266,7 @@ class FlagAction(Action):
 
         sliced_components = self._slice_to_range(components, idx)
         sliced_frames = self._slice_to_range(frames, idx)
-        for component, frame in zip(sliced_components, sliced_frames):
+        for component, frame in list(zip(sliced_components, sliced_frames)):
             if self.key == "group" and self.flag != component.contributes:
                 component.update(
                     contributes=self.flag,
@@ -349,7 +349,7 @@ class Enhancements:
 
         # Apply direct frame actions and update the stack state alongside
         for rule in self.iter_rules():
-            for idx, (component, frame) in enumerate(zip(components, frames)):
+            for idx, (component, frame) in enumerate(list(zip(components, frames))):
                 actions = rule.get_matching_frame_actions(frame, platform)
                 for action in actions or ():
                     action.update_frame_components_contributions(components, frames, idx, rule=rule)

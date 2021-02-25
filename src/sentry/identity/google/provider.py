@@ -37,7 +37,7 @@ class GoogleIdentityProvider(OAuth2Provider):
             raise IdentityNotValid("Missing id_token in OAuth response: %s" % data)
 
         try:
-            _, payload, _ = map(urlsafe_b64decode, id_token.split(".", 2))
+            _, payload, _ = list(map(urlsafe_b64decode, id_token.split(".", 2)))
         except Exception as exc:
             raise IdentityNotValid("Unable to decode id_token: %s" % exc)
 

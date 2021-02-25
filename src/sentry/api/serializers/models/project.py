@@ -599,7 +599,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         latest_release_list = bulk_fetch_project_latest_releases(item_list)
         latest_releases = {
             r.actual_project_id: d
-            for r, d in zip(latest_release_list, serialize(latest_release_list, user))
+            for r, d in list(zip(latest_release_list, serialize(latest_release_list, user)))
         }
 
         for item in item_list:

@@ -24,7 +24,7 @@ class Meta:
         Enters into sub meta data at the specified path. This always returns a
         new ``Meta`` object, regardless whether the path already exists.
         """
-        return Meta(self._meta, path=self._path + map(str, path))
+        return Meta(self._meta, path=self._path + list(map(str, path)))
 
     @property
     def path(self):

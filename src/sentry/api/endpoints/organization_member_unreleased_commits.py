@@ -70,7 +70,7 @@ class OrganizationMemberUnreleasedCommitsEndpoint(OrganizationMemberEndpoint):
                     for c in results
                 ],
                 "repositories": {
-                    str(r.id): d for r, d in zip(repos, serialize(repos, request.user))
+                    str(r.id): d for r, d in list(zip(repos, serialize(repos, request.user)))
                 },
             }
         )

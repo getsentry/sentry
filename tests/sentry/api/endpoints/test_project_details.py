@@ -658,7 +658,7 @@ class CopyProjectSettingsTest(APITestCase):
         assert ownership.schema == self.ownership.schema
 
         rules = Rule.objects.filter(project_id=project.id).order_by("label")
-        for rule, other_rule in zip(rules, self.rules):
+        for rule, other_rule in list(zip(rules, self.rules)):
             assert rule.label == other_rule.label
 
     def assert_settings_not_copied(self, project, teams=()):

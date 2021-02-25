@@ -121,7 +121,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         functions = get_supported_functions(self.client)
         functions.sort(key=lambda x: x["FunctionName"].lower())
 
-        return map(self.serialize_lambda_function, functions)
+        return list(map(self.serialize_lambda_function, functions))
 
     @wrap_lambda_updater()
     def enable_function(self, target):
@@ -238,7 +238,7 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
             pipeline.bind_state("project_id", projects[0].id)
             return pipeline.next_step()
 
-        serialized_projects = map(lambda x: serialize(x, request.user), projects)
+        serialized_projects = list(map(lambda x: serialize(x, request.user), projects))
         return self.render_react_view(
             request, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )
@@ -353,7 +353,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
             # check to see if the user wants to enable this function
             return enabled_lambdas.get(name)
 
-        lambda_functions = filter(is_lambda_enabled, lambda_functions)
+        lambda_functions = list(filter(is_lambda_enabled, lambda_functions))
 
         def _enable_lambda(function):
             try:

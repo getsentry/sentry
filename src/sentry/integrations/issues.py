@@ -265,7 +265,7 @@ class IssueBasicMixin:
         # group annotations by group id
         annotations_by_group_id = defaultdict(list)
         for group_link in group_links:
-            issues_for_group = filter(lambda x: x.id == group_link.linked_id, external_issues)
+            issues_for_group = list(filter(lambda x: x.id == group_link.linked_id, external_issues))
             annotations = self.map_external_issues_to_annotations(issues_for_group)
             annotations_by_group_id[group_link.group_id].extend(annotations)
 

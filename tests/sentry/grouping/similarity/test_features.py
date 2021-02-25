@@ -89,7 +89,7 @@ def test_similarity_extract_fingerprinting(fingerprint_input, insta_snapshot):
 def _get_configurations():
     # Sort configurations by ascending date
     strategies = sorted(CONFIGURATIONS.keys(), key=lambda x: x.split(":")[-1])
-    return list(zip(strategies, strategies[1:]))
+    return list(list(zip(strategies, strategies[1:])))
 
 
 @pytest.mark.parametrize("config,next_config", _get_configurations())

@@ -38,7 +38,6 @@ from sentry.utils.dates import to_datetime, to_timestamp, floor_to_utc_day
 from sentry.testutils.helpers.datetime import iso_format
 
 
-
 @pytest.yield_fixture(scope="module")
 def interval():
     stop = datetime(2016, 9, 12, tzinfo=pytz.utc)
@@ -354,5 +353,5 @@ class ReportTestCase(TestCase, SnubaTestCase):
         )
 
         assert any(
-            map(lambda x: x[1] == (2, 0), response)
+            list(map(lambda x: x[1] == (2, 0), response))
         ), "must show two issues resolved in one rollup window"

@@ -144,4 +144,4 @@ def convert_query_values(search_filters, projects, user, environments):
             )
         return search_filter
 
-    return map(convert_search_filter, search_filters)
+    return list(map(convert_search_filter, search_filters))

@@ -133,12 +133,16 @@ class RedisQuota(Quota):
             return int(result.value or 0) - int(refund_result.value or 0)
 
         if self.is_redis_cluster:
-            results = map(functools.partial(get_usage_for_quota, self.cluster), quotas)
+            results = list(map(functools.partial(get_usage_for_quota, self.cluster), quotas))
         else:
             with self.cluster.fanout() as client:
-                results = map(
-                    functools.partial(get_usage_for_quota, client.target_key(str(organization_id))),
-                    quotas,
+                results = list(
+                    map(
+                        functools.partial(
+                            get_usage_for_quota, client.target_key(str(organization_id))
+                        ),
+                        quotas,
+                    )
                 )
 
         return [get_value_for_result(*r) for r in results]
@@ -245,7 +249,7 @@ class RedisQuota(Quota):
             return NotRateLimited()
 
         worst_case = (0, None)
-        for quota, rejected in zip(quotas, rejections):
+        for quota, rejected in list(zip(quotas, rejections)):
             if not rejected:
                 continue
 

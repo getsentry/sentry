@@ -2451,7 +2451,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             results = response.data["data"]
             assert results[0]["count"] == 1, datum
 
-            for (field, exp) in zip(fields, expected):
+            for (field, exp) in list(zip(fields, expected)):
                 assert results[0][field] == exp, field + str(datum)
 
     def test_failure_count_alias_field(self):

@@ -266,7 +266,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             assert len(data) == 6
 
             rows = data[0:6]
-            for test in zip(event_counts, rows):
+            for test in list(zip(event_counts, rows)):
                 assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
 
     def test_throughput_epm_day_rollup(self):
@@ -344,7 +344,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             assert len(data) == 6
 
             rows = data[0:6]
-            for test in zip(event_counts, rows):
+            for test in list(zip(event_counts, rows)):
                 assert test[1][1][0]["count"] == test[0] / 60.0
 
     def test_throughput_eps_no_rollup(self):

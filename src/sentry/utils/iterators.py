@@ -1,8 +1,6 @@
 import itertools
 
 
-
-
 def advance(n, iterator):
     """Advances an iterator n places."""
     next(itertools.islice(iterator, n, n), None)
@@ -16,10 +14,14 @@ def shingle(n, iterator):
     >>> list(shingle(2, ('foo', 'bar', 'baz')))
     [('foo', 'bar'), ('bar', 'baz')]
     """
-    return zip(
-        *map(
-            lambda i__iterator: advance(i__iterator[0], i__iterator[1]),
-            enumerate(itertools.tee(iterator, n)),
+    return list(
+        zip(
+            *list(
+                map(
+                    lambda i__iterator: advance(i__iterator[0], i__iterator[1]),
+                    enumerate(itertools.tee(iterator, n)),
+                )
+            )
         )
     )
 

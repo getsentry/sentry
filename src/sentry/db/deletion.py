@@ -107,7 +107,7 @@ class BulkDeleteQuery:
                         if position is not None:
                             where.append((f"{quote_name(order_field)} >= %s", [position]))
 
-                    conditions, parameters = zip(*where)
+                    conditions, parameters = list(zip(*where))
                     parameters = list(itertools.chain.from_iterable(parameters))
 
                     query = """

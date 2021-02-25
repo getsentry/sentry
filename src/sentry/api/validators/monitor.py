@@ -38,7 +38,7 @@ class ObjectField(serializers.Field):
 
 class CronJobValidator(serializers.Serializer):
     schedule_type = serializers.ChoiceField(
-        choices=zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys())
+        choices=list(zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys()))
     )
     schedule = ObjectField()
     checkin_margin = EmptyIntegerField(required=False, default=None)
@@ -85,9 +85,9 @@ class MonitorValidator(serializers.Serializer):
     project = ProjectField()
     name = serializers.CharField()
     status = serializers.ChoiceField(
-        choices=zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys()), default="active"
+        choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())), default="active"
     )
-    type = serializers.ChoiceField(choices=zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys()))
+    type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
     config = ObjectField()
 
     def validate(self, attrs):

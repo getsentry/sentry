@@ -455,7 +455,7 @@ def start_chrome(**chrome_args):
 @pytest.fixture(scope="function")
 def browser(request, live_server):
     window_size = request.config.getoption("window_size")
-    window_width, window_height = map(int, window_size.split("x", 1))
+    window_width, window_height = list(map(int, window_size.split("x", 1)))
 
     driver_type = request.config.getoption("selenium_driver")
     headless = not request.config.getoption("no_headless")

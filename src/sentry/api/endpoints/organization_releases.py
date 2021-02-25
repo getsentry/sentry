@@ -80,7 +80,7 @@ def debounce_update_release_health_data(organization, project_ids):
     should_update = {}
     cache_keys = ["debounce-health:%d" % id for id in project_ids]
     cache_data = cache.get_many(cache_keys)
-    for project_id, cache_key in zip(project_ids, cache_keys):
+    for project_id, cache_key in list(zip(project_ids, cache_keys)):
         if cache_data.get(cache_key) is None:
             should_update[project_id] = cache_key
 
@@ -129,7 +129,7 @@ def debounce_update_release_health_data(organization, project_ids):
         release.add_project(project)
 
     # Debounce updates for a minute
-    cache.set_many(dict(zip(should_update.values(), [True] * len(should_update))), 60)
+    cache.set_many(dict(list(zip(should_update.values(), [True] * len(should_update)))), 60)
 
 
 class OrganizationReleasesEndpoint(

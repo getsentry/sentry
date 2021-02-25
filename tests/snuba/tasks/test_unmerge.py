@@ -252,7 +252,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         merge_source, source, destination = list(Group.objects.all())
 
         assert len(events) == 3
-        assert sum(map(len, events.values())) == 17
+        assert sum(list(map(len, events.values()))) == 17
 
         production_environment = Environment.objects.get(
             organization_id=project.organization_id, name="production"
@@ -308,7 +308,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert source.id != destination.id
         assert source.project == destination.project
 
-        destination_event_ids = map(lambda event: event.event_id, list(events.values())[1])
+        destination_event_ids = list(map(lambda event: event.event_id, list(events.values())[1]))
 
         assert set(
             UserReport.objects.filter(group_id=source.id).values_list("event_id", flat=True)
@@ -331,8 +331,8 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             )
         } == {("red", 4), ("green", 3), ("blue", 3)}
 
-        destination_event_ids = map(
-            lambda event: event.event_id, list(events.values())[0] + list(events.values())[2]
+        destination_event_ids = list(
+            map(lambda event: event.event_id, list(events.values())[0] + list(events.values())[2])
         )
 
         assert set(

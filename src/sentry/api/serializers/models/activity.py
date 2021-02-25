@@ -19,7 +19,9 @@ class ActivitySerializer(Serializer):
         }
         if commit_ids:
             commit_list = list(Commit.objects.filter(id__in=commit_ids))
-            commits_by_id = {c.id: d for c, d in zip(commit_list, serialize(commit_list, user))}
+            commits_by_id = {
+                c.id: d for c, d in list(zip(commit_list, serialize(commit_list, user)))
+            }
             commits = {
                 i: commits_by_id.get(i.data["commit"])
                 for i in item_list
@@ -36,7 +38,7 @@ class ActivitySerializer(Serializer):
         if pull_request_ids:
             pull_request_list = list(PullRequest.objects.filter(id__in=pull_request_ids))
             pull_requests_by_id = {
-                c.id: d for c, d in zip(pull_request_list, serialize(pull_request_list, user))
+                c.id: d for c, d in list(zip(pull_request_list, serialize(pull_request_list, user)))
             }
             pull_requests = {
                 i: pull_requests_by_id.get(i.data["pull_request"])

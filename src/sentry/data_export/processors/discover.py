@@ -29,7 +29,7 @@ class DiscoverProcessor:
         # an empty list DOES NOT work
         if self.environments:
             self.params["environment"] = self.environments
-        self.header_fields = map(lambda x: get_function_alias(x), discover_query["field"])
+        self.header_fields = list(map(lambda x: get_function_alias(x), discover_query["field"]))
         self.data_fn = self.get_data_fn(
             fields=discover_query["field"], query=discover_query["query"], params=self.params
         )

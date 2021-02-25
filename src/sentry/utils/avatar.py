@@ -54,7 +54,7 @@ COLOR_COUNT = len(LETTER_AVATAR_COLORS)
 
 def hash_user_identifier(identifier):
     identifier = force_text(identifier, errors="replace")
-    return sum(map(ord, identifier))
+    return sum(list(map(ord, identifier)))
 
 
 def get_letter_avatar_color(identifier):

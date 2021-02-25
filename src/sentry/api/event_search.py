@@ -245,7 +245,7 @@ class ParenExpression(namedtuple("ParenExpression", "children")):
 
 class SearchFilter(namedtuple("SearchFilter", "key operator value")):
     def __str__(self):
-        return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
+        return "".join(list(map(str, (self.key.name, self.operator, self.value.raw_value))))
 
     @cached_property
     def is_negation(self):
@@ -274,7 +274,7 @@ class SearchKey(namedtuple("SearchKey", "name")):
 
 class AggregateFilter(namedtuple("AggregateFilter", "key operator value")):
     def __str__(self):
-        return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
+        return "".join(list(map(str, (self.key.name, self.operator, self.value.raw_value))))
 
 
 class AggregateKey(namedtuple("AggregateKey", "name")):
@@ -364,13 +364,13 @@ class SearchVisitor(NodeVisitor):
         def is_not_optional(child):
             return not (isinstance(child, Node) and isinstance(child.expr, Optional))
 
-        return filter(is_not_optional, children)
+        return list(filter(is_not_optional, children))
 
     def remove_space(self, children):
         def is_not_space(child):
             return not (isinstance(child, Node) and child.text == " " * len(child.text))
 
-        return filter(is_not_space, children)
+        return list(filter(is_not_space, children))
 
     def is_numeric_key(self, key):
         return key in self.numeric_keys or is_measurement(key)
@@ -1189,7 +1189,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
 
     condition, having = None, None
     if lhs_condition or rhs_condition:
-        args = filter(None, [lhs_condition, rhs_condition])
+        args = list(filter(None, [lhs_condition, rhs_condition]))
         if not args:
             condition = None
         elif len(args) == 1:
@@ -1198,7 +1198,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
             condition = [operator, args]
 
     if lhs_having or rhs_having:
-        args = filter(None, [lhs_having, rhs_having])
+        args = list(filter(None, [lhs_having, rhs_having]))
         if not args:
             having = None
         elif len(args) == 1:
@@ -1835,7 +1835,7 @@ class Function:
         arguments = {}
 
         # normalize the arguments before putting them in a dict
-        for argument, column in zip(self.args, columns):
+        for argument, column in list(zip(self.args, columns)):
             try:
                 arguments[argument.name] = argument.normalize(column, params)
             except InvalidFunctionArgument as e:

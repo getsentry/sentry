@@ -105,7 +105,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         try:
-            requested_projects = set(map(int, request.data.get("projects", [])))
+            requested_projects = set(list(map(int, request.data.get("projects", []))))
         except (ValueError, TypeError):
             raise ResourceDoesNotExist()
         projects = self._get_projects_by_id(requested_projects, request, organization)

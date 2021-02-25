@@ -486,7 +486,7 @@ def get_incident_event_stats(incident, start=None, end=None, windowed_stats=Fals
     results = bulk_raw_query(snuba_params, referrer="incidents.get_incident_event_stats")
     # Once we receive the results, if we requested extra buckets we now need to label
     # them with timestamp data, since the query we ran only returns the count.
-    for extra_start, result in zip(extra_buckets, results[1:]):
+    for extra_start, result in list(zip(extra_buckets, results[1:])):
         result["data"][0]["time"] = int(to_timestamp(extra_start))
     merged_data = list(chain(*[r["data"] for r in results]))
     merged_data.sort(key=lambda row: row["time"])

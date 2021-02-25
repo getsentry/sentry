@@ -264,7 +264,7 @@ class BaseTSDB(Service):
                 end,
                 rollup=rollup,
             )
-            rollups[rollup] = map(to_datetime, series)
+            rollups[rollup] = list(map(to_datetime, series))
         return rollups
 
     def make_series(self, default, start, end=None, rollup=None):

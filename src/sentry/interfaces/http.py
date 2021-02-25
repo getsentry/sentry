@@ -1,4 +1,3 @@
-
 __all__ = ("Http",)
 
 import re
@@ -55,7 +54,7 @@ def format_cookies(value):
     if isinstance(value, dict):
         value = value.items()
 
-    return [map(fix_broken_encoding, (k.strip(), v)) for k, v in value]
+    return [list(map(fix_broken_encoding, (k.strip(), v))) for k, v in value]
 
 
 def fix_broken_encoding(value):

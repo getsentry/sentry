@@ -13,7 +13,7 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
             feature_flag_name = "organizations:integrations-%s" % provider.key
             return features.has(feature_flag_name, organization, actor=request.user)
 
-        providers = filter(is_provider_enabled, list(integrations.all()))
+        providers = list(filter(is_provider_enabled, list(integrations.all())))
 
         providers.sort(key=lambda i: i.key)
 

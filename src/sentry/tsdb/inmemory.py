@@ -66,7 +66,7 @@ class InMemoryTSDB(BaseTSDB):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         results = []
-        for timestamp in map(to_datetime, series):
+        for timestamp in list(map(to_datetime, series)):
             norm_epoch = self.normalize_to_rollup(timestamp, rollup)
 
             for key in keys:

@@ -379,7 +379,7 @@ class BaseManager(Manager):
         nested_lookup_cache_keys = []
         nested_lookup_values = []
 
-        for cache_key, value in zip(cache_lookup_cache_keys, cache_lookup_values):
+        for cache_key, value in list(zip(cache_lookup_cache_keys, cache_lookup_values)):
             cache_result = cache_results.get(cache_key)
             if cache_result is None:
                 db_lookup_cache_keys.append(cache_key)
@@ -425,7 +425,7 @@ class BaseManager(Manager):
         cache_writes = []
 
         db_results = {getattr(x, key): x for x in self.filter(**{key + "__in": db_lookup_values})}
-        for cache_key, value in zip(db_lookup_cache_keys, db_lookup_values):
+        for cache_key, value in list(zip(db_lookup_cache_keys, db_lookup_values)):
             db_result = db_results.get(value)
             if db_result is None:
                 continue  # This model ultimately does not exist

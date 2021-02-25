@@ -25,7 +25,7 @@ class FetchUser(AuthView):
             return helper.error(ERR_INVALID_RESPONSE)
 
         try:
-            _, payload, _ = map(urlsafe_b64decode, id_token.split(".", 2))
+            _, payload, _ = list(map(urlsafe_b64decode, id_token.split(".", 2)))
         except Exception as exc:
             logger.error("Unable to decode id_token: %s" % exc, exc_info=True)
             return helper.error(ERR_INVALID_RESPONSE)

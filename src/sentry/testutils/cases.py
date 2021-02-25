@@ -1,4 +1,3 @@
-
 __all__ = (
     "TestCase",
     "TransactionTestCase",
@@ -980,7 +979,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
 
     def assert_widget_queries(self, widget_id, data):
         result_queries = DashboardWidgetQuery.objects.filter(widget_id=widget_id).order_by("order")
-        for ds, expected_ds in zip(result_queries, data):
+        for ds, expected_ds in list(zip(result_queries, data)):
             assert ds.name == expected_ds["name"]
             assert ds.fields == expected_ds["fields"]
             assert ds.conditions == expected_ds["conditions"]

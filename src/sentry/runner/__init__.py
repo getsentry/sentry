@@ -43,31 +43,33 @@ def cli(ctx, config):
 
 # TODO(mattrobenolt): Autodiscover commands?
 list(
-    map(
-        lambda cmd: cli.add_command(import_string(cmd)),
-        (
-            "sentry.runner.commands.backup.export",
-            "sentry.runner.commands.backup.import_",
-            "sentry.runner.commands.cleanup.cleanup",
-            "sentry.runner.commands.config.config",
-            "sentry.runner.commands.createuser.createuser",
-            "sentry.runner.commands.devserver.devserver",
-            "sentry.runner.commands.django.django",
-            "sentry.runner.commands.exec.exec_",
-            "sentry.runner.commands.files.files",
-            "sentry.runner.commands.help.help",
-            "sentry.runner.commands.init.init",
-            "sentry.runner.commands.migrations.migrations",
-            "sentry.runner.commands.plugins.plugins",
-            "sentry.runner.commands.queues.queues",
-            "sentry.runner.commands.repair.repair",
-            "sentry.runner.commands.run.run",
-            "sentry.runner.commands.start.start",
-            "sentry.runner.commands.tsdb.tsdb",
-            "sentry.runner.commands.upgrade.upgrade",
-            "sentry.runner.commands.permissions.permissions",
-            "sentry.runner.commands.devservices.devservices",
-        ),
+    list(
+        map(
+            lambda cmd: cli.add_command(import_string(cmd)),
+            (
+                "sentry.runner.commands.backup.export",
+                "sentry.runner.commands.backup.import_",
+                "sentry.runner.commands.cleanup.cleanup",
+                "sentry.runner.commands.config.config",
+                "sentry.runner.commands.createuser.createuser",
+                "sentry.runner.commands.devserver.devserver",
+                "sentry.runner.commands.django.django",
+                "sentry.runner.commands.exec.exec_",
+                "sentry.runner.commands.files.files",
+                "sentry.runner.commands.help.help",
+                "sentry.runner.commands.init.init",
+                "sentry.runner.commands.migrations.migrations",
+                "sentry.runner.commands.plugins.plugins",
+                "sentry.runner.commands.queues.queues",
+                "sentry.runner.commands.repair.repair",
+                "sentry.runner.commands.run.run",
+                "sentry.runner.commands.start.start",
+                "sentry.runner.commands.tsdb.tsdb",
+                "sentry.runner.commands.upgrade.upgrade",
+                "sentry.runner.commands.permissions.permissions",
+                "sentry.runner.commands.devservices.devservices",
+            ),
+        )
     )
 )
 
@@ -95,9 +97,11 @@ def make_django_command(name, django_command=None, help=None):
 
 
 list(
-    map(
-        cli.add_command,
-        (make_django_command("shell", help="Run a Python interactive interpreter."),),
+    list(
+        map(
+            cli.add_command,
+            (make_django_command("shell", help="Run a Python interactive interpreter."),),
+        )
     )
 )
 

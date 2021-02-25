@@ -82,7 +82,7 @@ class ApiKey(Model):
     def get_allowed_origins(self):
         if not self.allowed_origins:
             return []
-        return filter(bool, self.allowed_origins.split("\n"))
+        return list(filter(bool, self.allowed_origins.split("\n")))
 
     def get_audit_log_data(self):
         return {

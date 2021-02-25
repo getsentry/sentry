@@ -221,7 +221,7 @@ class ListResolver:
                 f"Cannot generate mailing list identifier for {instance!r}"
             )
 
-        label = ".".join(map(str, handler(instance)))
+        label = ".".join(list(map(str, handler(instance))))
         assert is_valid_dot_atom(label)
 
         return f"<{label}.{self.__namespace}>"

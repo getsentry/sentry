@@ -32,7 +32,7 @@ class SentryAppSerializer(Serializer):
 
         if obj.status != SentryAppStatus.INTERNAL:
             features = IntegrationFeature.objects.filter(sentry_app_id=obj.id)
-            data["featureData"] = map(lambda x: serialize(x, user), features)
+            data["featureData"] = list(map(lambda x: serialize(x, user), features))
 
         if obj.status == SentryAppStatus.PUBLISHED and obj.date_published:
             data.update({"datePublished": obj.date_published})

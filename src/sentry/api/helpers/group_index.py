@@ -236,7 +236,7 @@ class GroupValidator(serializers.Serializer):
     inbox = serializers.BooleanField()
     inboxDetails = InboxDetailsValidator()
     status = serializers.ChoiceField(
-        choices=zip(STATUS_UPDATE_CHOICES.keys(), STATUS_UPDATE_CHOICES.keys())
+        choices=list(zip(STATUS_UPDATE_CHOICES.keys(), STATUS_UPDATE_CHOICES.keys()))
     )
     statusDetails = StatusDetailsValidator()
     hasSeen = serializers.BooleanField()

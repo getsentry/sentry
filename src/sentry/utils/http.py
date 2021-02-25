@@ -75,7 +75,7 @@ def get_origins(project=None):
 
     # lowercase and strip the trailing slash from all origin values
     # filter out empty values
-    return frozenset(filter(bool, map(lambda x: (x or "").lower().rstrip("/"), result)))
+    return frozenset(list(filter(bool, list(map(lambda x: (x or "").lower().rstrip("/"), result)))))
 
 
 def parse_uri_match(value):

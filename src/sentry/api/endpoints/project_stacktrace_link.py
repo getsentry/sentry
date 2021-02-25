@@ -45,7 +45,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         # no longer feature gated and is added as an IntegrationFeature
         result["integrations"] = [
             serialize(i, request.user)
-            for i in filter(lambda i: i.get_provider().has_stacktrace_linking, integrations)
+            for i in list(filter(lambda i: i.get_provider().has_stacktrace_linking, integrations))
         ]
 
         # xxx(meredith): if there are ever any changes to this query, make

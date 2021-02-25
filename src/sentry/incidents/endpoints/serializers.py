@@ -448,7 +448,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             )
 
         for i, (trigger, expected_label) in enumerate(
-            zip(triggers, (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL))
+            list(zip(triggers, (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL)))
         ):
             if trigger.get("label", None) != expected_label:
                 raise serializers.ValidationError(

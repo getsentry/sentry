@@ -277,7 +277,7 @@ class RedisTSDB(BaseTSDB):
         self.validate_arguments([model], [environment_id])
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
-        series = map(to_datetime, series)
+        series = list(map(to_datetime, series))
 
         results = []
         cluster, _ = self.get_cluster(environment_id)
@@ -503,7 +503,9 @@ class RedisTSDB(BaseTSDB):
             client = cluster.get_local_client(host)
             with client.pipeline(transaction=False) as pipeline:
                 pipeline.execute_command(
-                    "PFMERGE", destination, *itertools.chain.from_iterable(map(expand_key, keys))
+                    "PFMERGE",
+                    destination,
+                    *itertools.chain.from_iterable(list(map(expand_key, keys))),
                 )
                 pipeline.get(destination)
                 pipeline.delete(destination)
@@ -642,7 +644,7 @@ class RedisTSDB(BaseTSDB):
 
     def make_frequency_table_keys(self, model, rollup, timestamp, key, environment_id):
         prefix = self.make_key(model, rollup, timestamp, key, environment_id)
-        return map(operator.methodcaller("format", prefix), ("{}:i", "{}:e"))
+        return list(map(operator.methodcaller("format", prefix), ("{}:i", "{}:e")))
 
     def record_frequency_multi(self, requests, timestamp=None, environment_id=None):
         self.validate_arguments([model for model, request in requests], [environment_id])
@@ -756,7 +758,7 @@ class RedisTSDB(BaseTSDB):
         results = {}
         cluster, _ = self.get_cluster(environment_id)
         for key, responses in cluster.execute_commands(commands).items():
-            results[key] = zip(series, map(unpack_response, responses))
+            results[key] = list(zip(series, list(map(unpack_response, responses))))
 
         return results
 
@@ -794,8 +796,8 @@ class RedisTSDB(BaseTSDB):
             members = items[key]
 
             chunk = results[key] = []
-            for timestamp, scores in zip(series, responses[0].value):
-                chunk.append((timestamp, dict(zip(members, map(float, scores)))))
+            for timestamp, scores in list(zip(series, responses[0].value)):
+                chunk.append((timestamp, dict(list(zip(members, list(map(float, scores)))))))
 
         return results
 
@@ -834,7 +836,7 @@ class RedisTSDB(BaseTSDB):
                 end=None,
                 rollup=rollup,
             )
-            rollups.append((rollup, map(to_datetime, series)))
+            rollups.append((rollup, list(map(to_datetime, series))))
 
         for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
             exports = defaultdict(list)
@@ -866,7 +868,9 @@ class RedisTSDB(BaseTSDB):
                 results = iter(results)
                 for rollup, series in rollups:
                     for timestamp in series:
-                        for environment_id, payload in zip(environment_ids, next(results).value):
+                        for environment_id, payload in list(
+                            zip(environment_ids, next(results).value)
+                        ):
                             imports.append(
                                 (
                                     CountMinScript,

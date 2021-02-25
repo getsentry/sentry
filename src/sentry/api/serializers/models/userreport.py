@@ -11,7 +11,7 @@ class UserReportSerializer(Serializer):
         # for event_user_id to be None.
         if event_user_ids:
             queryset = list(EventUser.objects.filter(id__in=event_user_ids))
-            event_users = {e.id: d for e, d in zip(queryset, serialize(queryset, user))}
+            event_users = {e.id: d for e, d in list(zip(queryset, serialize(queryset, user)))}
         else:
             event_users = {}
 

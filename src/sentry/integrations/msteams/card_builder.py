@@ -19,7 +19,7 @@ logo = {
 
 
 def generate_action_payload(action_type, event, rules, integration):
-    rule_ids = map(lambda x: x.id, rules)
+    rule_ids = list(map(lambda x: x.id, rules))
     # we need nested data or else Teams won't handle the payload correctly
     return {
         "payload": {

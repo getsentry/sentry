@@ -218,7 +218,7 @@ class ReleaseActivityEmail(ActivityEmail):
 
         resolved_issue_counts = [self.group_counts_by_project.get(p.id, 0) for p in projects]
         return {
-            "projects": zip(projects, release_links, resolved_issue_counts),
+            "projects": list(zip(projects, release_links, resolved_issue_counts)),
             "project_count": len(projects),
         }
 

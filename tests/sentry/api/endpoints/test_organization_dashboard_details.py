@@ -168,7 +168,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         widgets = self.get_widgets(self.dashboard)
         assert len(widgets) == len(list(widget_ids))
 
-        for widget, id in zip(widgets, widget_ids):
+        for widget, id in list(zip(widgets, widget_ids)):
             assert widget.id == id
 
     def test_dashboard_does_not_exist(self):

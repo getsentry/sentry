@@ -54,8 +54,11 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             except (ApiUnauthorized, ApiError):
                 return Response({"detail": "Unable to fetch users from Jira"}, status=400)
 
-            user_tuples = filter(
-                None, [build_user_choice(user, jira_client.user_id_field()) for user in response]
+            user_tuples = list(
+                filter(
+                    None,
+                    [build_user_choice(user, jira_client.user_id_field()) for user in response],
+                )
             )
             users = [{"value": user_id, "label": display} for user_id, display in user_tuples]
             return Response(users)

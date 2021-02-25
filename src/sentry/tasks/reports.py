@@ -140,7 +140,7 @@ def merge_sequences(target, other, function=operator.add):
     if rt_type == range:
         rt_type = list
 
-    return rt_type([function(x, y) for x, y in zip(target, other)])
+    return rt_type([function(x, y) for x, y in list(zip(target, other))])
 
 
 def merge_mappings(target, other, function=lambda x, y: x + y):
@@ -189,7 +189,7 @@ def prepare_project_series(start__stop, project, rollup=60 * 60 * 24):
     return merge_series(
         reduce(
             merge_series,
-            map(clean, tsdb_range.values()),
+            list(map(clean, tsdb_range.values())),
             clean([(timestamp, 0) for timestamp in series]),
         ),
         clean(
@@ -319,7 +319,7 @@ def clean_calendar_data(project, series, start, stop, rollup, timestamp=None):
             value = None
         return (timestamp, value)
 
-    return map(remove_invalid_values, clean_series(start, stop, rollup, series))
+    return list(map(remove_invalid_values, clean_series(start, stop, rollup, series)))
 
 
 def prepare_project_calendar_series(interval, project):
@@ -334,7 +334,7 @@ def prepare_project_calendar_series(interval, project):
 
 
 def build(name, fields):
-    names, prepare_fields, merge_fields = zip(*fields)
+    names, prepare_fields, merge_fields = list(zip(*fields))
 
     cls = namedtuple(name, names)
 
@@ -395,7 +395,7 @@ class DummyReportBackend(ReportBackend):
 
     def fetch(self, timestamp, duration, organization, projects):
         assert all(project.organization_id == organization.id for project in projects)
-        return map(partial(self.build, timestamp, duration), projects)
+        return list(map(partial(self.build, timestamp, duration), projects))
 
 
 class RedisReportBackend(ReportBackend):
@@ -443,7 +443,7 @@ class RedisReportBackend(ReportBackend):
                 [project.id for project in projects],
             )
 
-        return map(self.__decode, result.value)
+        return list(map(self.__decode, result.value))
 
 
 backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)
@@ -618,9 +618,11 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     ]
 
     reports = dict(
-        filter(
-            lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
-            zip(projects, backend.fetch(timestamp, duration, organization, projects)),
+        list(
+            filter(
+                lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
+                list(zip(projects, backend.fetch(timestamp, duration, organization, projects))),
+            )
         )
     )
 
@@ -673,15 +675,17 @@ def build_project_breakdown_series(reports):
 
     # Find the reports with the most total events. (The number of reports to
     # keep is the same as the number of colors available to use in the legend.)
-    instances = map(
-        operator.itemgetter(0),
-        sorted(
-            reports.items(),
-            key=lambda instance__report: sum(
-                sum(values) for timestamp, values in instance__report[1][0]
+    instances = list(
+        map(
+            operator.itemgetter(0),
+            sorted(
+                reports.items(),
+                key=lambda instance__report: sum(
+                    sum(values) for timestamp, values in instance__report[1][0]
+                ),
+                reverse=True,
             ),
-            reverse=True,
-        ),
+        )
     )[: len(project_breakdown_colors)]
 
     # Starting building the list of items to include in the report chart. This
@@ -689,17 +693,19 @@ def build_project_breakdown_series(reports):
     # of values in the series. (This is so when we render the series, the
     # largest color blocks are at the bottom and it feels appropriately
     # weighted.)
-    selections = map(
-        lambda instance__color: (
-            Key(
-                instance__color[0].slug,
-                instance__color[0].get_absolute_url(),
-                instance__color[1],
-                get_legend_data(reports[instance__color[0]]),
+    selections = list(
+        map(
+            lambda instance__color: (
+                Key(
+                    instance__color[0].slug,
+                    instance__color[0].get_absolute_url(),
+                    instance__color[1],
+                    get_legend_data(reports[instance__color[0]]),
+                ),
+                reports[instance__color[0]],
             ),
-            reports[instance__color[0]],
-        ),
-        zip(instances, project_breakdown_colors),
+            list(zip(instances, project_breakdown_colors)),
+        )
     )[::-1]
 
     # Collect any reports that weren't in the selection set, merge them
@@ -748,13 +754,15 @@ def to_context(organization, interval, reports):
         },
         "distribution": {
             "types": list(
-                zip(
-                    (
-                        DistributionType("New", "#DF5120"),
-                        DistributionType("Reopened", "#FF7738"),
-                        DistributionType("Existing", "#F9C7B9"),
-                    ),
-                    report.issue_summaries,
+                list(
+                    zip(
+                        (
+                            DistributionType("New", "#DF5120"),
+                            DistributionType("Reopened", "#FF7738"),
+                            DistributionType("Existing", "#F9C7B9"),
+                        ),
+                        report.issue_summaries,
+                    )
                 )
             ),
             "total": sum(report.issue_summaries),
@@ -859,11 +867,11 @@ def to_calendar(organization, interval, series):
 
     calendar = Calendar(6)
     sheets = []
-    for year, month in map(index_to_month, range(start, stop + 1)):
+    for year, month in list(map(index_to_month, range(start, stop + 1))):
         weeks = []
 
         for week in calendar.monthdatescalendar(year, month):
-            weeks.append(map(get_data_for_date, week))
+            weeks.append(list(map(get_data_for_date, week)))
 
         sheets.append((datetime(year, month, 1, tzinfo=pytz.utc), weeks))
 

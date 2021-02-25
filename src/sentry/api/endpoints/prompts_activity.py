@@ -15,7 +15,9 @@ VALID_STATUSES = frozenset(("snoozed", "dismissed"))
 
 class PromptsActivitySerializer(serializers.Serializer):
     feature = serializers.CharField(required=True)
-    status = serializers.ChoiceField(choices=zip(VALID_STATUSES, VALID_STATUSES), required=True)
+    status = serializers.ChoiceField(
+        choices=list(zip(VALID_STATUSES, VALID_STATUSES)), required=True
+    )
 
     def validate_feature(self, value):
         if value is None:

@@ -368,12 +368,12 @@ def process_payload(data):
 
     sdk_info = get_sdk_from_event(data)
 
-    for raw_image, complete_image in zip(modules, response["modules"]):
+    for raw_image, complete_image in list(zip(modules, response["modules"])):
         _merge_image(raw_image, complete_image, sdk_info, data)
 
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 
-    for sinfo, complete_stacktrace in zip(stacktrace_infos, response["stacktraces"]):
+    for sinfo, complete_stacktrace in list(zip(stacktrace_infos, response["stacktraces"])):
         complete_frames_by_idx = {}
         for complete_frame in complete_stacktrace.get("frames") or ():
             complete_frames_by_idx.setdefault(complete_frame["original_index"], []).append(

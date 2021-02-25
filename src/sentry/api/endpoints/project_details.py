@@ -193,7 +193,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         return data
 
     def validate_allowedDomains(self, value):
-        value = filter(bool, value)
+        value = list(filter(bool, value))
         if len(value) == 0:
             raise serializers.ValidationError(
                 "Empty value will block all requests, use * to accept from all domains"
@@ -347,7 +347,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
         data = serialize(project, request.user, DetailedProjectSerializer())
 
-        include = set(filter(bool, request.GET.get("include", "").split(",")))
+        include = set(list(filter(bool, request.GET.get("include", "").split(","))))
         if "stats" in include:
             data["stats"] = {"unresolved": self._get_unresolved_count(project)}
 

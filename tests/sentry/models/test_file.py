@@ -28,7 +28,7 @@ class FileBlobTest(TestCase):
 
         parts = path.split("/")
         assert len(parts) == 3
-        assert map(len, parts) == [2, 4, 26]
+        assert list(map(len, parts)) == [2, 4, 26]
 
         # Check uniqueness
         path2 = FileBlob.generate_unique_path()

@@ -40,4 +40,4 @@ class ArrayField(models.Field):
             value = []
         if isinstance(value, str):
             value = json.loads(value)
-        return map(self.of.to_python, value)
+        return list(map(self.of.to_python, value))

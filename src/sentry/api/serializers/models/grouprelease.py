@@ -13,7 +13,7 @@ StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 class GroupReleaseSerializer(Serializer):
     def get_attrs(self, item_list, user):
         release_list = list(Release.objects.filter(id__in=[i.release_id for i in item_list]))
-        releases = {r.id: d for r, d in zip(release_list, serialize(release_list, user))}
+        releases = {r.id: d for r, d in list(zip(release_list, serialize(release_list, user)))}
 
         result = {}
         for item in item_list:

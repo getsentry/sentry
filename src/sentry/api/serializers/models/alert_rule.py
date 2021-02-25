@@ -25,7 +25,7 @@ class AlertRuleSerializer(Serializer):
         result = defaultdict(dict)
         triggers = AlertRuleTrigger.objects.filter(alert_rule__in=item_list).order_by("label")
         serialized_triggers = serialize(list(triggers))
-        for trigger, serialized in zip(triggers, serialized_triggers):
+        for trigger, serialized in list(zip(triggers, serialized_triggers)):
             alert_rule_triggers = result[alert_rules[trigger.alert_rule_id]].setdefault(
                 "triggers", []
             )

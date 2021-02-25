@@ -54,7 +54,7 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
 
         # We need to preserve the ordering of the Redis results, as that
         # ordering is directly shown in the UI
-        for group_id, scores in zip(group_ids, group_scores):
+        for group_id, scores in list(zip(group_ids, group_scores)):
             group = serialized_groups.get(group_id)
             if group is None:
                 # TODO(tkaemming): This should log when we filter out a group that is

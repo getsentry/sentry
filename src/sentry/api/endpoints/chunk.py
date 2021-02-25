@@ -114,7 +114,9 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             return Response({"error": "Too many chunks"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            FileBlob.from_files(zip(files, checksums), organization=organization, logger=logger)
+            FileBlob.from_files(
+                list(zip(files, checksums)), organization=organization, logger=logger
+            )
         except OSError as err:
             logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
             return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)

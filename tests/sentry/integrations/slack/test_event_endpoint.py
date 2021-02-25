@@ -227,7 +227,7 @@ class LinkSharedEventTest(BaseEventTest):
 
 
 def get_block_type_text(block_type, data):
-    block = filter(lambda x: x["type"] == block_type, data["blocks"])[0]
+    block = list(filter(lambda x: x["type"] == block_type, data["blocks"]))[0]
     if block_type == "section":
         return block["text"]["text"]
 

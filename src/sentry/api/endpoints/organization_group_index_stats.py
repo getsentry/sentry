@@ -61,7 +61,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
         project_ids = [p.id for p in projects]
 
         try:
-            group_ids = set(map(int, request.GET.getlist("groups")))
+            group_ids = set(list(map(int, request.GET.getlist("groups"))))
         except ValueError:
             raise ParseError(detail="Group ids must be integers")
 

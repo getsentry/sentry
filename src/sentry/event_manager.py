@@ -1381,8 +1381,8 @@ def save_attachments(cache_key, attachments, job):
 
 
 def _find_hashes(project, hash_list):
-    return map(
-        lambda hash: GroupHash.objects.get_or_create(project=project, hash=hash)[0], hash_list
+    return list(
+        map(lambda hash: GroupHash.objects.get_or_create(project=project, hash=hash)[0], hash_list)
     )
 
 

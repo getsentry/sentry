@@ -189,14 +189,15 @@ def get_cluster_from_options(setting, options, cluster_manager=clusters):
         if cluster_option_name in options:
             raise InvalidConfiguration(
                 "Cannot provide both named cluster ({!r}) and cluster configuration ({}) options.".format(
-                    cluster_option_name, ", ".join(map(repr, cluster_constructor_option_names))
+                    cluster_option_name,
+                    ", ".join(list(map(repr, cluster_constructor_option_names))),
                 )
             )
         else:
             warnings.warn(
                 DeprecatedSettingWarning(
                     "{} parameter of {}".format(
-                        ", ".join(map(repr, cluster_constructor_option_names)), setting
+                        ", ".join(list(map(repr, cluster_constructor_option_names))), setting
                     ),
                     f'{setting}["{cluster_option_name}"]',
                     removed_in_version="8.5",
@@ -246,7 +247,7 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
         # NOTE: This assumes there is no routing magic going on here, and
         # all requests to this host are being served by the same database.
         key = f"{host.host}:{host.port}"
-        versions[key] = Version(map(int, info["redis_version"].split(".", 3)))
+        versions[key] = Version(list(map(int, info["redis_version"].split(".", 3))))
 
     check_versions(
         "Redis" if label is None else f"Redis ({label})", versions, required, recommended

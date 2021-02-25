@@ -345,7 +345,7 @@ def tokenize_query(query):
         query_params[state].append(token)
 
     if "query" in query_params:
-        result["query"] = map(format_query, query_params["query"])
+        result["query"] = list(map(format_query, query_params["query"]))
     for tag in query_params["tags"]:
         key, value = format_tag(tag)
         result[key].append(value)

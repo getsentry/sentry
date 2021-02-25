@@ -160,7 +160,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(
 
         # front end handles ordering
         # TODO: Add pagination
-        data = map(lambda x: serialize(x, request.user), queryset)
+        data = list(map(lambda x: serialize(x, request.user), queryset))
         return self.respond(data)
 
     def post(self, request, organization):

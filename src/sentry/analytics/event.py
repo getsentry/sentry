@@ -1,4 +1,3 @@
-
 __all__ = ("Attribute", "Event", "Map")
 
 from uuid import uuid1
@@ -58,7 +57,9 @@ class Map(Attribute):
             data[attr.name] = attr.extract(nv)
 
         if items:
-            raise ValueError("Unknown attributes: {}".format(", ".join(map(str, items.keys()))))
+            raise ValueError(
+                "Unknown attributes: {}".format(", ".join(list(map(str, items.keys()))))
+            )
 
         return data
 

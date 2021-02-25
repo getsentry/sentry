@@ -49,7 +49,7 @@ def get_channel_id(organization, integration_id, name):
 
     # handle searching for channels first
     channel_list = client.get_channel_list(team_id)
-    filtered_channels = list(filter(lambda x: channel_filter(x, name), channel_list))
+    filtered_channels = list(list(filter(lambda x: channel_filter(x, name), channel_list)))
     if len(filtered_channels) > 0:
         return filtered_channels[0].get("id")
 
@@ -60,7 +60,7 @@ def get_channel_id(organization, integration_id, name):
         continuation_token = members.get("continuationToken")
 
         filtered_members = list(
-            filter(lambda x: x.get("name").lower() == name.lower(), member_list)
+            list(filter(lambda x: x.get("name").lower() == name.lower(), member_list))
         )
         if len(filtered_members) > 0:
             # TODO: handle duplicate username case

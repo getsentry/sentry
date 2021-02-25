@@ -7,7 +7,7 @@ from sentry.utils import warnings
 @python_2_unicode_compatible
 class Version(tuple):
     def __str__(self):
-        return ".".join(map(force_text, self))
+        return ".".join(list(map(force_text, self)))
 
 
 def summarize(sequence, max=3):
@@ -22,7 +22,7 @@ def summarize(sequence, max=3):
 
 def make_upgrade_message(service, modality, version, hosts):
     return "{service} {modality} be upgraded to {version} on {hosts}.".format(
-        hosts=",".join(map(force_text, summarize(list(hosts.keys()), 2))),
+        hosts=",".join(list(map(force_text, summarize(list(hosts.keys()), 2)))),
         modality=modality,
         service=service,
         version=version,

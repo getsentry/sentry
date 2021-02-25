@@ -196,12 +196,14 @@ class GroupSerializerBase(Serializer):
             for subscription in GroupSubscription.objects.filter(
                 group__in=list(
                     itertools.chain.from_iterable(
-                        map(
-                            lambda project__groups: project__groups[1]
-                            if not options.get(project__groups[0].id, options.get(None))
-                            == UserOptionValue.no_conversations
-                            else [],
-                            projects.items(),
+                        list(
+                            map(
+                                lambda project__groups: project__groups[1]
+                                if not options.get(project__groups[0].id, options.get(None))
+                                == UserOptionValue.no_conversations
+                                else [],
+                                projects.items(),
+                            )
                         )
                     )
                 ),
@@ -293,7 +295,7 @@ class GroupSerializerBase(Serializer):
                 )
             )
             commit_resolutions = {
-                i.group_id: d for i, d in zip(commit_results, serialize(commit_results, user))
+                i.group_id: d for i, d in list(zip(commit_results, serialize(commit_results, user)))
             }
         else:
             release_resolutions = {}
@@ -303,7 +305,7 @@ class GroupSerializerBase(Serializer):
         actor_ids.update(r.actor_id for r in ignore_items.values())
         if actor_ids:
             users = list(User.objects.filter(id__in=actor_ids, is_active=True))
-            actors = {u.id: d for u, d in zip(users, serialize(users, user))}
+            actors = {u.id: d for u, d in list(zip(users, serialize(users, user)))}
         else:
             actors = {}
 
@@ -849,7 +851,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         )
         seen_data = {
             issue["group_id"]: fix_tag_value_data(
-                dict(filter(lambda key: key[0] != "group_id", issue.items()))
+                dict(list(filter(lambda key: key[0] != "group_id", issue.items())))
             )
             for issue in result["data"]
         }

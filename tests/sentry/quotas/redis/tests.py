@@ -19,11 +19,13 @@ def test_is_rate_limited_script():
     # The item should not be rate limited by either key.
     assert (
         list(
-            map(
-                bool,
-                is_rate_limited(
-                    client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)
-                ),
+            list(
+                map(
+                    bool,
+                    is_rate_limited(
+                        client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)
+                    ),
+                )
             )
         )
         == [False, False]
@@ -32,11 +34,13 @@ def test_is_rate_limited_script():
     # The item should be rate limited by the first key (1).
     assert (
         list(
-            map(
-                bool,
-                is_rate_limited(
-                    client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)
-                ),
+            list(
+                map(
+                    bool,
+                    is_rate_limited(
+                        client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)
+                    ),
+                )
             )
         )
         == [True, False]
@@ -48,11 +52,13 @@ def test_is_rate_limited_script():
     # quota don't affect unrelated items that share a parent quota.
     assert (
         list(
-            map(
-                bool,
-                is_rate_limited(
-                    client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)
-                ),
+            list(
+                map(
+                    bool,
+                    is_rate_limited(
+                        client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)
+                    ),
+                )
             )
         )
         == [True, False]
@@ -73,9 +79,9 @@ def test_is_rate_limited_script():
     # increment
     is_rate_limited(client, ("orange", "baz"), (1, now + 60))
     # test that it's rate limited without refund
-    assert map(bool, is_rate_limited(client, ("orange", "baz"), (1, now + 60))) == [True]
+    assert list(map(bool, is_rate_limited(client, ("orange", "baz"), (1, now + 60)))) == [True]
     # test that refund key is used
-    assert map(bool, is_rate_limited(client, ("orange", "apple"), (1, now + 60))) == [False]
+    assert list(map(bool, is_rate_limited(client, ("orange", "apple"), (1, now + 60)))) == [False]
 
 
 class RedisQuotaTest(TestCase):

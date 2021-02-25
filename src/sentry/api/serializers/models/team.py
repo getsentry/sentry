@@ -144,7 +144,7 @@ class TeamWithProjectsSerializer(TeamSerializer):
 
         projects = [pt.project for pt in project_teams]
         projects_by_id = {
-            project.id: data for project, data in zip(projects, serialize(projects, user))
+            project.id: data for project, data in list(zip(projects, serialize(projects, user)))
         }
 
         project_map = defaultdict(list)

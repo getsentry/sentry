@@ -406,7 +406,7 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
                 get_related_project_ids(k, query_params.filter_keys[k])
                 for k in query_params.filter_keys
             ]
-            project_ids = list(set.union(*map(set, ids)))
+            project_ids = list(set.union(*list(map(set, ids))))
     elif query_params.conditions:
         project_ids = []
         for cond in query_params.conditions:
@@ -640,7 +640,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     if referrer:
         headers["referer"] = referrer
 
-    query_param_list = map(_prepare_query_params, snuba_param_list)
+    query_param_list = list(map(_prepare_query_params, snuba_param_list))
 
     def snuba_query(params):
         query_params, forward, reverse, thread_hub = params

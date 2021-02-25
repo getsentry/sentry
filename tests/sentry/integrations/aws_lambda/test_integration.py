@@ -37,7 +37,9 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
     def test_project_select(self, mock_react_view):
         resp = self.client.get(self.setup_path)
         assert resp.status_code == 200
-        serialized_projects = map(lambda x: serialize(x, self.user), [self.projectA, self.projectB])
+        serialized_projects = list(
+            map(lambda x: serialize(x, self.user), [self.projectA, self.projectB])
+        )
         mock_react_view.assert_called_with(
             ANY, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )

@@ -201,15 +201,17 @@ class RedisBackend(Backend):
                 else:
                     raise
 
-            records = map(
-                lambda key__value__timestamp: Record(
-                    key__value__timestamp[0].decode("utf-8"),
-                    self.codec.decode(key__value__timestamp[1])
-                    if key__value__timestamp[1] is not None
-                    else None,
-                    float(key__value__timestamp[2]),
-                ),
-                response,
+            records = list(
+                map(
+                    lambda key__value__timestamp: Record(
+                        key__value__timestamp[0].decode("utf-8"),
+                        self.codec.decode(key__value__timestamp[1])
+                        if key__value__timestamp[1] is not None
+                        else None,
+                        float(key__value__timestamp[2]),
+                    ),
+                    response,
+                )
             )
 
             # If the record value is `None`, this means the record data was

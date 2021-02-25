@@ -431,7 +431,7 @@ def get_suggested_updates(
         rv.append(suggestion)
         new_setup_states.append(new_setup_state)
 
-    for new_setup_state, suggestion in zip(new_setup_states, rv):
+    for new_setup_state, suggestion in list(zip(new_setup_states, rv)):
         json = suggestion.to_json()
         json["enables"] = list(
             get_suggested_updates(

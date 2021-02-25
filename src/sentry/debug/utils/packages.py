@@ -40,7 +40,7 @@ def get_package_version(module_name, app):
         return None
 
     if isinstance(version, (list, tuple)):
-        version = ".".join(map(str, version))
+        version = ".".join(list(map(str, version)))
 
     return str(version)
 

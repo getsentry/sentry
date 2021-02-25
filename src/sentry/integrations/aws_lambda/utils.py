@@ -102,7 +102,7 @@ def get_option_value(function, option):
     # special lookup for the version since it depends on the region
     if option == OPTION_VERSION:
         region_release_list = cache_value.get("regions", [])
-        matched_regions = filter(lambda x: x["region"] == region, region_release_list)
+        matched_regions = list(filter(lambda x: x["region"] == region, region_release_list))
         # see if there is the specific region in our list
         if matched_regions:
             version = matched_regions[0]["version"]
@@ -134,7 +134,7 @@ def _get_arn_from_layer(layer):
 
 def get_function_layer_arns(function):
     layers = function.get("Layers", [])
-    return map(_get_arn_from_layer, layers)
+    return list(map(_get_arn_from_layer, layers))
 
 
 def get_latest_layer_for_function(function):
@@ -174,9 +174,11 @@ def get_supported_functions(lambda_client):
     for page in response_iterator:
         functions += page["Functions"]
 
-    return filter(
-        lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
-        functions,
+    return list(
+        filter(
+            lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
+            functions,
+        )
     )
 
 

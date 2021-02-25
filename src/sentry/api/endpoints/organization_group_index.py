@@ -284,7 +284,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         # If group ids specified, just ignore any query components
         try:
-            group_ids = set(map(int, request.GET.getlist("group")))
+            group_ids = set(list(map(int, request.GET.getlist("group"))))
         except ValueError:
             return Response({"detail": "Group ids must be integers"}, status=400)
 

@@ -123,7 +123,7 @@ class Event:
             keys = self._snuba_data[tags_key_column]
             values = self._snuba_data[tags_value_column]
             if keys and values and len(keys) == len(values):
-                return sorted(zip(keys, values))
+                return sorted(list(zip(keys, values)))
             else:
                 return []
         # Nodestore implementation

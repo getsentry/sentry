@@ -23,7 +23,7 @@ Note: To configure webhooks over multiple projects, we recommend setting up an
 def split_urls(value):
     if not value:
         return ()
-    return filter(bool, (url.strip() for url in value.splitlines()))
+    return list(filter(bool, (url.strip() for url in value.splitlines())))
 
 
 def validate_urls(value, **kwargs):
