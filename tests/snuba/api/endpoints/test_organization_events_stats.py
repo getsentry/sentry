@@ -8,7 +8,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.utils.compat import zip, mock
+from sentry.utils.compat import mock
 from sentry.utils.samples import load_data
 
 

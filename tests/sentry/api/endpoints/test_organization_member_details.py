@@ -16,7 +16,6 @@ from sentry.auth.authenticators import (
     RecoveryCodeInterface,
 )
 from sentry.testutils import APITestCase
-from sentry.utils.compat import map
 
 
 class UpdateOrganizationMemberTest(APITestCase):

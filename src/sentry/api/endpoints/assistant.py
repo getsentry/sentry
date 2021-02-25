@@ -10,7 +10,6 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.models import AssistantActivity
 from sentry.assistant import manager
-from sentry.utils.compat import zip
 
 VALID_STATUSES = frozenset(("viewed", "dismissed"))
 

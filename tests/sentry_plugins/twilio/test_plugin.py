@@ -6,7 +6,6 @@ from sentry.plugins.base import Notification
 from sentry.testutils import TestCase, PluginTestCase
 from sentry_plugins.twilio.plugin import TwilioConfigurationForm, TwilioPlugin
 from urllib.parse import parse_qs
-from sentry.utils.compat import map
 
 
 class TwilioConfigurationFormTest(TestCase):

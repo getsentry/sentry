@@ -11,7 +11,6 @@ from sentry.models import (
     ProjectKey,
 )
 from sentry.testutils import IntegrationTestCase
-from sentry.utils.compat import map
 from sentry.utils.compat.mock import patch, ANY, MagicMock
 from sentry.testutils.helpers.faux import Mock
 from sentry.pipeline import PipelineView

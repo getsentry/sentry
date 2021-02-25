@@ -2,7 +2,6 @@ from collections import defaultdict, namedtuple
 from rest_framework import serializers
 from sentry.models import User, Team
 from sentry.utils.auth import find_users
-from sentry.utils.compat import filter
 
 
 class Actor(namedtuple("Actor", "id type")):

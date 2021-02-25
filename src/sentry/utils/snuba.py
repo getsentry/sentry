@@ -33,7 +33,6 @@ from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
 from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
-from sentry.utils.compat import map
 
 
 logger = logging.getLogger(__name__)

@@ -45,7 +45,6 @@ from sentry.snuba.subscriptions import (
     update_snuba_query,
 )
 from sentry.snuba.tasks import build_snuba_filter
-from sentry.utils.compat import zip
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import bulk_raw_query, is_measurement, SnubaQueryParams, SnubaTSResult
 from sentry.shared_integrations.exceptions import (

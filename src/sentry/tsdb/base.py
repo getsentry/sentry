@@ -8,7 +8,6 @@ from enum import Enum
 
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.services import Service
-from sentry.utils.compat import map
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60

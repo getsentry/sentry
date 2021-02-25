@@ -13,7 +13,6 @@ from sentry.incidents.logic import translate_aggregate_field
 from sentry.snuba.models import SnubaQueryEventType
 
 from sentry.models import Rule
-from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 
 

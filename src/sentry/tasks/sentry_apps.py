@@ -31,7 +31,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
-from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 

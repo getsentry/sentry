@@ -11,7 +11,6 @@ from sentry.plugins.bases import notify
 from sentry.http import is_valid_url, safe_urlopen
 from sentry.utils.safe import safe_execute
 from sentry.integrations import FeatureDescription, IntegrationFeatures
-from sentry.utils.compat import filter
 
 DESCRIPTION = """
 Trigger outgoing HTTP POST requests from Sentry.

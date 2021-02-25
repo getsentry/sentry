@@ -17,7 +17,6 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 from .query import create_or_update
-from sentry.utils.compat import zip
 
 __all__ = ("BaseManager", "OptionManager")
 

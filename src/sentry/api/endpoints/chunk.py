@@ -12,7 +12,6 @@ from sentry import options
 from sentry.models import FileBlob
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.utils.files import get_max_file_size
-from sentry.utils.compat import zip
 
 
 MAX_CHUNKS_PER_REQUEST = 64

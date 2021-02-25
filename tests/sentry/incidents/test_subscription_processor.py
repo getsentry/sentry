@@ -34,7 +34,6 @@ from sentry.incidents.subscription_processor import (
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils import TestCase
 from sentry.utils.dates import to_timestamp
-from sentry.utils.compat import map
 
 
 EMPTY = object()

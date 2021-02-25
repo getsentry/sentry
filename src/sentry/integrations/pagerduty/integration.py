@@ -4,7 +4,6 @@ from django.db import transaction
 from sentry import options
 
 from sentry.utils import json
-from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.integrations.base import (
     IntegrationInstallation,

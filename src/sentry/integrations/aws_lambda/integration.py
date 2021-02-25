@@ -16,7 +16,6 @@ from sentry.integrations import (
 from sentry.integrations.serverless import ServerlessMixin
 from sentry.models import Project, OrganizationIntegration, ProjectStatus
 from sentry.pipeline import PipelineView
-from sentry.utils.compat import map
 from sentry.utils.sdk import capture_exception
 from sentry.utils import json
 

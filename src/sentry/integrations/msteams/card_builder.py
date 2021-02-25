@@ -6,7 +6,6 @@ from sentry.models import (
     Team,
 )
 from sentry.utils.assets import get_asset_url
-from sentry.utils.compat import map
 from sentry.utils.http import absolute_uri
 
 from .utils import ACTION_TYPE

@@ -8,7 +8,6 @@ from sentry.quotas.base import QuotaConfig, QuotaScope
 from sentry.quotas.redis import is_rate_limited, RedisQuota
 from sentry.testutils import TestCase
 from sentry.utils.redis import clusters
-from sentry.utils.compat import map
 
 
 def test_is_rate_limited_script():

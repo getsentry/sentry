@@ -20,7 +20,6 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.utils import metrics
-from sentry.utils.compat import zip
 from sentry.utils.hashlib import md5_text
 
 

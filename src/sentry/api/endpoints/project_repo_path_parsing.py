@@ -4,7 +4,6 @@ from sentry import integrations
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.models import Integration, Repository
-from sentry.utils.compat import filter, map
 
 
 def find_roots(stack_path, source_path):

@@ -67,7 +67,6 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
-from sentry.utils.compat import map
 from sentry.reprocessing2 import save_unprocessed_event, is_reprocessed_event
 
 logger = logging.getLogger("sentry.events")

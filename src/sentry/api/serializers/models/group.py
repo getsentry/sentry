@@ -50,7 +50,6 @@ from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils import snuba
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
-from sentry.utils.compat import map, zip
 from sentry.utils.snuba import Dataset, raw_query
 from sentry.reprocessing2 import get_progress
 

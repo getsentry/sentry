@@ -18,7 +18,6 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
-from sentry.utils.compat import zip
 
 
 # Keys in the event payload we do not want to send to the event stream / snuba.

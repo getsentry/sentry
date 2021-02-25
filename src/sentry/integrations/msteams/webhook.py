@@ -20,7 +20,6 @@ from sentry.models import (
 )
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.compat import filter
 from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 

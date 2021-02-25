@@ -26,7 +26,6 @@ from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.signals import issue_deleted
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
-from sentry.utils.compat import zip
 from sentry.models.groupinbox import get_inbox_details
 
 delete_logger = logging.getLogger("sentry.deletions.api")

@@ -15,7 +15,7 @@ from sentry.tsdb.base import BaseTSDB
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, SentryScript
 from sentry.utils.versioning import Version
-from sentry.utils.compat import map, zip, crc32
+from sentry.utils.compat import crc32
 
 logger = logging.getLogger(__name__)
 

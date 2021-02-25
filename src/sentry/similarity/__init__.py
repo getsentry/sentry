@@ -17,7 +17,6 @@ from sentry.similarity.features import (
 from sentry.similarity.featuresv2 import GroupingBasedFeatureSet
 from sentry.similarity.signatures import MinHashSignatureBuilder
 from sentry.utils import redis
-from sentry.utils.compat import map
 from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.iterators import shingle
 from sentry import features as feature_flags

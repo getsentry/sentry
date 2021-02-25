@@ -21,7 +21,6 @@ from sentry.models import (
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.sdk import bind_organization_context
-from sentry.utils.compat import map
 
 
 class NoProjects(Exception):

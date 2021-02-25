@@ -17,7 +17,6 @@ from sentry.api.event_search import (
 
 from sentry.models import Group
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
-from sentry.utils.compat import filter
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
     Dataset,

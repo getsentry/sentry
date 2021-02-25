@@ -29,7 +29,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.tasks.merge import merge_groups
 
-from sentry.utils.compat import map
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))

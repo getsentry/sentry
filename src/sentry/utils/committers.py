@@ -12,7 +12,6 @@ from django.core.cache import cache
 
 from collections import defaultdict
 from functools import reduce
-from sentry.utils.compat import zip
 
 PATH_SEPARATORS = frozenset(["/", "\\"])
 

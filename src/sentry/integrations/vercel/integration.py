@@ -27,7 +27,6 @@ from sentry.models import (
     SentryAppInstallation,
     SentryAppInstallationForProvider,
 )
-from sentry.utils.compat import map
 from sentry.shared_integrations.exceptions import IntegrationError, ApiError
 from sentry.mediators.sentry_apps import InternalCreator
 

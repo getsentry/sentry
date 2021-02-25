@@ -43,7 +43,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils.snuba import raw_query
-from sentry.utils.compat import zip
 
 logger = logging.getLogger(__name__)
 

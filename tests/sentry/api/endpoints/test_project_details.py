@@ -26,7 +26,6 @@ from sentry.api.endpoints.project_details import (
     DynamicSamplingConditionSerializer,
 )
 from sentry.testutils import APITestCase
-from sentry.utils.compat import zip
 
 
 def _dyn_sampling_data():

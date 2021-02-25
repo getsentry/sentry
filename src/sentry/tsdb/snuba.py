@@ -7,8 +7,6 @@ from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import snuba, outcomes
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.dates import to_datetime
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
 
 
 SnubaModelQuerySettings = collections.namedtuple(

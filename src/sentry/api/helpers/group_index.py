@@ -65,7 +65,6 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.functional import extract_lazy_object
-from sentry.utils.compat import zip
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 

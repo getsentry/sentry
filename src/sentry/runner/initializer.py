@@ -8,7 +8,6 @@ from django.conf import settings
 from sentry.utils import metrics, warnings
 from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
-from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry.runner.initializer")
 

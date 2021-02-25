@@ -16,7 +16,6 @@ from sentry.models import (
 from sentry.utils.http import absolute_uri
 
 from .mail import MailPreview
-from sentry.utils.compat import zip
 
 
 class DebugNewReleaseEmailView(View):

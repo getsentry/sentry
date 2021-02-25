@@ -7,7 +7,6 @@ from sentry.lang.native.symbolicator import (
     redact_internal_sources,
 )
 from sentry.testutils.helpers import Feature
-from sentry.utils.compat import map
 
 
 CUSTOM_SOURCE_CONFIG = """

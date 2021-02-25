@@ -6,8 +6,6 @@ from operator import itemgetter
 from hashlib import md5
 from django.contrib.staticfiles.management.commands.collectstatic import Command as BaseCommand
 
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
 
 BUFFER_SIZE = 65536
 VERSION_PATH = "version"

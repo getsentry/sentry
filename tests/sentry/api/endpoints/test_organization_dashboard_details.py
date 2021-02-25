@@ -7,7 +7,6 @@ from sentry.models import (
     DashboardWidgetDisplayTypes,
 )
 from sentry.testutils import OrganizationDashboardWidgetTestCase
-from sentry.utils.compat import zip
 
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):

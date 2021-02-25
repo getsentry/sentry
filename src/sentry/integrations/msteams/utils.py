@@ -9,7 +9,6 @@ from sentry.models import (
     IdentityProvider,
 )
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils.compat import filter
 
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
 

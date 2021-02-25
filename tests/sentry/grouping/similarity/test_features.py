@@ -4,7 +4,6 @@ from sentry.models import Group, Project
 from sentry.event_manager import EventManager
 from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
-from sentry.utils.compat import zip
 from sentry.utils import json
 from sentry import eventstore
 

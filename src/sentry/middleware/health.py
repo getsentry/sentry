@@ -1,7 +1,6 @@
 import itertools
 
 from django.http import HttpResponse
-from sentry.utils.compat import filter
 
 
 class HealthCheck:

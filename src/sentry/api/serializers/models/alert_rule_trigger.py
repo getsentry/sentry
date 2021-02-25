@@ -7,7 +7,6 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
 )
-from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 
 

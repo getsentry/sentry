@@ -11,7 +11,6 @@ from sentry import options
 from sentry.models import Project, ProjectKey
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.release_registry import LAYER_INDEX_CACHE_KEY
-from sentry.utils.compat import filter, map
 
 SUPPORTED_RUNTIMES = [
     "nodejs12.x",

@@ -11,7 +11,6 @@ from sentry.models import (
     Repository,
     OrganizationIntegration,
 )
-from sentry.utils.compat import map
 
 
 def gen_path_regex_field():

@@ -17,7 +17,6 @@ from sentry.models import (
     TeamAvatar,
     ExternalTeam,
 )
-from sentry.utils.compat import zip
 
 
 def get_team_memberships(team_list, user):

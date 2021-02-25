@@ -5,7 +5,6 @@ from uuid import uuid4
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.models import EventUser, GroupStatus, UserReport
-from sentry.utils.compat import map
 
 
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):

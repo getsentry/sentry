@@ -15,7 +15,6 @@ from sentry.models import (
 )
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
-from sentry.utils.compat import filter
 from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger("sentry.integrations.vercel.webhooks")

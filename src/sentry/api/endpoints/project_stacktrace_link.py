@@ -4,7 +4,6 @@ from sentry import analytics
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models import Integration, RepositoryProjectPathConfig
 from sentry.api.serializers import serialize
-from sentry.utils.compat import filter
 
 from sentry_sdk import configure_scope
 

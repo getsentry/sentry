@@ -17,7 +17,6 @@ from selenium.webdriver.common.action_chains import ActionChains
 from urllib.parse import urlparse
 
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry.testutils")
 

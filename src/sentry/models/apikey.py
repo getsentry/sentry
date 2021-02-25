@@ -12,7 +12,6 @@ from sentry.db.models import (
     FlexibleForeignKey,
     sane_repr,
 )
-from sentry.utils.compat import filter
 
 
 # TODO(dcramer): pull in enum library

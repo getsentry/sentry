@@ -10,7 +10,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 from sentry.utils import json
 from sentry.utils.samples import load_data
-from sentry.utils.compat import zip, mock
+from sentry.utils.compat import mock
 from sentry.utils.snuba import RateLimitExceeded, QueryIllegalTypeOfArgument, QueryExecutionError
 
 

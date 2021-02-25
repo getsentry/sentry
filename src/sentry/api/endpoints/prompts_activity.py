@@ -8,7 +8,6 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.models import Organization, PromptsActivity, Project
-from sentry.utils.compat import zip
 from sentry.utils.prompts import prompt_config
 
 VALID_STATUSES = frozenset(("snoozed", "dismissed"))

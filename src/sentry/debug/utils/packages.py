@@ -1,5 +1,4 @@
 import sys
-from sentry.utils.compat import map
 
 try:
     import pkg_resources

@@ -26,7 +26,6 @@ from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import is_valid_dot_atom
 from sentry.web.helpers import render_to_string
-from sentry.utils.compat import map
 
 # The maximum amount of recipients to display in human format.
 MAX_RECIPIENTS = 5

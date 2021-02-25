@@ -35,7 +35,6 @@ from sentry.utils.snuba import (
     SNUBA_AND,
     SNUBA_OR,
 )
-from sentry.utils.compat import filter, map, zip
 
 
 WILDCARD_CHARS = re.compile(r"[\*]")

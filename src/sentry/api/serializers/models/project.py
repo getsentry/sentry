@@ -33,7 +33,6 @@ from sentry.models import (
 )
 from sentry.snuba import discover
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.utils.compat import zip
 
 STATUS_LABELS = {
     ProjectStatus.VISIBLE: "active",

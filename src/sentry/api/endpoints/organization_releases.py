@@ -35,7 +35,6 @@ from sentry.snuba.sessions import (
     STATS_PERIODS,
 )
 from sentry.utils.cache import cache
-from sentry.utils.compat import zip as izip
 from sentry.utils.sdk import configure_scope, bind_organization_context
 
 
@@ -81,7 +80,7 @@ def debounce_update_release_health_data(organization, project_ids):
     should_update = {}
     cache_keys = ["debounce-health:%d" % id for id in project_ids]
     cache_data = cache.get_many(cache_keys)
-    for project_id, cache_key in izip(project_ids, cache_keys):
+    for project_id, cache_key in zip(project_ids, cache_keys):
         if cache_data.get(cache_key) is None:
             should_update[project_id] = cache_key
 
@@ -130,7 +129,7 @@ def debounce_update_release_health_data(organization, project_ids):
         release.add_project(project)
 
     # Debounce updates for a minute
-    cache.set_many(dict(izip(should_update.values(), [True] * len(should_update))), 60)
+    cache.set_many(dict(zip(should_update.values(), [True] * len(should_update))), 60)
 
 
 class OrganizationReleasesEndpoint(

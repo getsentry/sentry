@@ -4,7 +4,6 @@ from freezegun import freeze_time
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.utils.compat import map
 
 
 class GroupEventsTest(APITestCase, SnubaTestCase):

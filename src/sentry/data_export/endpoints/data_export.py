@@ -9,7 +9,6 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import Environment
 from sentry.utils import metrics
-from sentry.utils.compat import map
 from sentry.utils.snuba import MAX_FIELDS
 
 from ..base import ExportQueryType

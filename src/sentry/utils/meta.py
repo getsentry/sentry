@@ -1,5 +1,4 @@
 import collections
-from sentry.utils.compat import map
 
 
 class Meta:

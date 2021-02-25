@@ -6,7 +6,6 @@ from rest_framework import serializers
 from sentry.models import MonitorStatus, MonitorType, ScheduleType
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.utils.compat import zip
 
 
 SCHEDULE_TYPES = OrderedDict(

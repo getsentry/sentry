@@ -35,7 +35,6 @@ from sentry.search.snuba.executors import (
     PostgresSnubaQueryExecutor,
 )
 from sentry.snuba import discover
-from sentry.utils.compat import map
 from sentry.utils.cursors import Cursor, CursorResult
 
 from sentry.utils.validators import normalize_event_id

@@ -6,7 +6,6 @@ from sentry.lang.native.utils import image_name
 from sentry.utils.safe import get_path
 
 from symbolic import parse_addr
-from sentry.utils.compat import map
 
 REPORT_VERSION = "104"
 

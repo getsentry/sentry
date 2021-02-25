@@ -22,7 +22,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration, User
-from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.utils.decorators import classproperty
 

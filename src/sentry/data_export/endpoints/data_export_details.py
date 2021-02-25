@@ -7,7 +7,6 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationData
 from sentry.api.serializers import serialize
 from sentry.models import Project
 from sentry.utils import metrics
-from sentry.utils.compat import map
 
 from ..models import ExportedData
 

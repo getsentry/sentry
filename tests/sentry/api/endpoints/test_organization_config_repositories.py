@@ -1,7 +1,6 @@
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
-from sentry.utils.compat import filter
 
 
 class OrganizationConfigRepositoriesTest(APITestCase):

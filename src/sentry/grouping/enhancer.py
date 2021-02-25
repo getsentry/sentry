@@ -14,7 +14,6 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.utils import get_rule_bool
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
-from sentry.utils.compat import zip
 from sentry.utils.strings import unescape_string
 
 

@@ -4,7 +4,6 @@ from uuid import uuid4
 from datetime import timedelta
 from django.db import connections, router
 from django.utils import timezone
-from sentry.utils.compat import zip
 
 
 class BulkDeleteQuery:

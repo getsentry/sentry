@@ -13,7 +13,6 @@ from sentry.models import (
     UserOption,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat import zip
 
 
 class ProjectTest(TestCase):

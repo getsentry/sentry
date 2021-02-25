@@ -8,7 +8,6 @@ from sentry.integrations.slack.utils import build_group_attachment, build_incide
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.utils.compat import filter
 
 UNSET = object()
 
