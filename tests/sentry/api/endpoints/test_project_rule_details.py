@@ -182,7 +182,7 @@ class UpdateProjectRuleTest(APITestCase):
         rule = Rule.objects.get(id=rule.id)
         assert rule.label == "hello world"
         assert rule.team is None
-        assert rule.user is self.user
+        assert rule.user == self.user
         assert rule.environment_id is None
         assert rule.data["action_match"] == "any"
         assert rule.data["filter_match"] == "any"

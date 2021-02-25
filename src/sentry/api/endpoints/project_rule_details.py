@@ -7,7 +7,15 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
-from sentry.models import AuditLogEntryEvent, Rule, RuleActivity, RuleActivityType, RuleStatus
+from sentry.models import (
+    AuditLogEntryEvent,
+    Rule,
+    RuleActivity,
+    RuleActivityType,
+    RuleStatus,
+    Team,
+    User,
+)
 from sentry.web.decorators import transaction_start
 
 
@@ -82,6 +90,20 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
                 "actions": data["actions"],
                 "frequency": data.get("frequency"),
             }
+            owner = data.get("owner")
+            if owner:
+                try:
+                    team = user = None
+                    if owner.type == User:
+                        user = owner.resolve()
+                    elif owner.type == Team:
+                        team = owner.resolve()
+                except Exception:
+                    return Response(
+                        "Could not resolve owner into user or team",
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                kwargs.update({"team": team, "user": user})
 
             if data.get("pending_save"):
                 client = tasks.RedisRuleStatus()

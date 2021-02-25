@@ -12,6 +12,8 @@ class TestCreator(TestCase):
         )
         self.creator = Creator(
             name="New Cool Rule",
+            user=self.user,
+            team=None,
             project=self.project,
             action_match="all",
             filter_match="any",
@@ -36,6 +38,8 @@ class TestCreator(TestCase):
         r = self.creator.call()
         rule = Rule.objects.get(id=r.id)
         assert rule.label == "New Cool Rule"
+        assert rule.team is None
+        assert rule.user == self.user
         assert rule.project == self.project
         assert rule.environment_id is None
         assert rule.data == {
