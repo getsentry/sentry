@@ -3,7 +3,6 @@ from django.db import models
 from django.utils import timezone
 from enum import Enum
 
-from sentry.api.fields.actor import Actor
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     Model,
@@ -76,6 +75,8 @@ class Rule(Model):
 
     @property
     def owner(self):
+        from sentry.api.fields.actor import Actor
+
         owner = self.user if self.user else self.team
         if owner:
             owner_id = Actor(owner.id, type(owner)).get_actor_id()
