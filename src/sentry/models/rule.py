@@ -1,7 +1,9 @@
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from enum import Enum
 
+from sentry.api.fields.actor import Actor
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     Model,
@@ -38,6 +40,9 @@ class Rule(Model):
         db_index=True,
     )
 
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
+    team = FlexibleForeignKey("sentry.Team", null=True)
+
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager(cache_fields=("pk",))
@@ -66,6 +71,15 @@ class Rule(Model):
             return created_activity.user
         except RuleActivity.DoesNotExist:
             pass
+
+        return None
+
+    @property
+    def owner(self):
+        owner = self.user if self.user else self.team
+        if owner:
+            owner_id = Actor(owner.id, type(owner)).get_actor_id()
+            return Actor.from_actor_identifier(owner_id)
 
         return None
 
