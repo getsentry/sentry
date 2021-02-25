@@ -62,4 +62,7 @@ family:native function:kscrash_*                                  -app -group
 family:native function:sentrycrash_*                              -app -group
 family:native function:"?[[]KSCrash*"                             -app -group
 family:native function:"?[[]RNSentry*"                            -app -group
+
+# Projects shipping their own class called "SentryFoo" can then easily override this in their
+# own grouping enhancers.
 family:native function:"?[[]Sentry*"                              -app -group
