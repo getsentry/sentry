@@ -177,7 +177,7 @@ def get_release_adoption(project_releases, environments=None, now=None):
         start=start,
         conditions=total_conditions,
         filter_keys=filter_keys,
-        referrer="sessions.release-adoption-total-users",
+        referrer="sessions.release-adoption-total-users-and-sessions",
     )["data"]:
         total_adoption[x["project_id"]] = [x["users"], x["sessions"]]
 
