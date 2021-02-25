@@ -12,7 +12,7 @@ import {flattenRelevantPaths} from 'app/utils/performance/quickTrace/utils';
 type RequestProps = DiscoverQueryProps & TraceProps;
 
 export type QuickTraceQueryChildrenProps = TraceLiteQueryChildrenProps & {
-  type?: 'partial' | 'full';
+  type: 'empty' | 'partial' | 'full';
 };
 
 type QueryProps = Omit<RequestProps, 'api' | 'eventView'> & {
@@ -36,9 +36,7 @@ export default function QuickTraceQuery({children, ...props}: QueryProps) {
                 trace,
                 type: 'full',
               });
-            }
-
-            if (
+            } else if (
               !traceLiteResults.isLoading &&
               traceLiteResults.error === null &&
               traceLiteResults.trace !== null
@@ -52,6 +50,7 @@ export default function QuickTraceQuery({children, ...props}: QueryProps) {
                 isLoading: traceFullResults.isLoading || traceLiteResults.isLoading,
                 error: traceFullResults.error ?? traceLiteResults.error,
                 trace: [],
+                type: 'empty',
               });
             }
           }}

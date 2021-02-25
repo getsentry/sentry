@@ -10,7 +10,7 @@ import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
-import {TraceLiteQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
+import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/quickTraceQuery';
 import {isTransaction} from 'app/utils/performance/quickTrace/utils';
 import Projects from 'app/utils/projects';
 
@@ -22,7 +22,7 @@ type Props = {
   organization: OrganizationSummary;
   projectId: string;
   location: Location;
-  quickTrace: TraceLiteQueryChildrenProps;
+  quickTrace: QuickTraceQueryChildrenProps;
 };
 
 function EventMetas({event, organization, projectId, location, quickTrace}: Props) {

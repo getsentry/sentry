@@ -23,8 +23,9 @@ import {Organization, Project} from 'app/types';
 import {Event, EventTag} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
-import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
-import {TraceLiteQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
+import QuickTraceQuery, {
+  QuickTraceQueryChildrenProps,
+} from 'app/utils/performance/quickTrace/quickTraceQuery';
 import Projects from 'app/utils/projects';
 import {appendTagCondition, decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
@@ -122,7 +123,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
 
-    const renderContent = (results?: TraceLiteQueryChildrenProps) => (
+    const renderContent = (results?: QuickTraceQueryChildrenProps) => (
       <React.Fragment>
         <Layout.Header>
           <Layout.HeaderContent>

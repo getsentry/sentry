@@ -41,7 +41,7 @@ export default function QuickTrace({
   event,
   location,
   organization,
-  quickTrace: {isLoading, error, trace},
+  quickTrace: {isLoading, error, trace, type},
 }: Props) {
   // non transaction events are currently unsupported
   if (!isTransaction(event)) {
@@ -58,6 +58,7 @@ export default function QuickTrace({
   ) : (
     <ErrorBoundary mini>
       <QuickTracePills
+        type={type}
         event={event}
         trace={trace}
         location={location}
@@ -82,14 +83,14 @@ export default function QuickTrace({
   );
 }
 
-type QuickTraceLiteProps = {
+type QuickTracePillsProps = Pick<QuickTraceQueryChildrenProps, 'type'> & {
   event: Event;
   trace: TraceLite;
   location: Location;
   organization: OrganizationSummary;
 };
 
-function QuickTracePills({event, trace, location, organization}: QuickTraceLiteProps) {
+function QuickTracePills({event, trace, location, organization}: QuickTracePillsProps) {
   // non transaction events are currently unsupported
   if (!isTransaction(event)) {
     return null;
@@ -131,7 +132,8 @@ function QuickTracePills({event, trace, location, organization}: QuickTraceLiteP
       event,
       ancestors,
       organization,
-      location
+      location,
+      'Ancestor'
     );
     nodes.push(
       <EventNodeDropdown
@@ -194,7 +196,8 @@ function QuickTracePills({event, trace, location, organization}: QuickTraceLiteP
       event,
       children,
       organization,
-      location
+      location,
+      'Children'
     );
     nodes.push(<TraceConnector key="children-connector" />);
     nodes.push(
@@ -229,7 +232,8 @@ function QuickTracePills({event, trace, location, organization}: QuickTraceLiteP
       event,
       descendants,
       organization,
-      location
+      location,
+      'Descendant'
     );
     nodes.push(<TraceConnector key="descendants-connector" />);
     nodes.push(

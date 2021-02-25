@@ -29,10 +29,11 @@ export function generateSingleEventTarget(
 }
 
 export function generateMultiEventsTarget(
-  event: EventTransaction,
+  currentEvent: EventTransaction,
   events: EventLite[],
   organization: OrganizationSummary,
-  location: Location
+  location: Location,
+  groupType: 'Ancestor' | 'Children' | 'Descendant'
 ): LocationDescriptor {
   if (events.length === 1) {
     return generateSingleEventTarget(events[0], organization, location);
@@ -49,12 +50,12 @@ export function generateMultiEventsTarget(
   }
 
   const {start, end} = getTraceDateTimeRange({
-    start: event.startTimestamp,
-    end: event.endTimestamp,
+    start: currentEvent.startTimestamp,
+    end: currentEvent.endTimestamp,
   });
   const traceEventView = EventView.fromSavedQuery({
     id: undefined,
-    name: `Child Transactions of Event ID ${event.id}`,
+    name: `${groupType} Transactions of Event ID ${currentEvent.id}`,
     fields: ['transaction', 'project', 'trace.span', 'transaction.duration', 'timestamp'],
     orderby: '-timestamp',
     query: stringifyQueryObject(queryResults),
