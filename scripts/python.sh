@@ -7,20 +7,23 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd -P)"
 source "${HERE}/lib.sh"
 
 ensure-venv() {
-    ./scripts/ensure-venv.sh
+    eval "${HERE}/ensure-venv.sh"
 }
 
 upgrade-pip() {
     # pip versions before 20.1 do not have `pip cache` as a command which is necessary for the CI
     pip install --no-cache-dir --upgrade "pip>=20.1"
+    # The Python version installed via pyenv does not come with wheel pre-installed
+    # Installing wheel will speed up installation of Python dependencies
+    require wheel || pip install wheel
 }
 
 install-py-dev() {
     ensure-venv
     upgrade-pip
-    # The Python version installed via pyenv does not come with wheel pre-installed
-    # Installing wheel will speed up installation of Python dependencies
-    require wheel || pip install wheel
+    # It places us within top src dir to be at the same path as setup.py
+    # This helps when getsentry calls into this script
+    cd "${HERE}/.."
     echo "--> Installing Sentry (for development)"
     # In Big Sur, versions of pip before 20.3 require SYSTEM_VERSION_COMPAT set
     if query_big_sur && python -c 'from sys import exit; import pip; from pip._vendor.packaging.version import parse; exit(1 if parse(pip.__version__) < parse("20.3") else 0)'; then
