@@ -37,7 +37,9 @@
   </script>
   {% endscript %}
 
-  {% include "sentry/partial/preload-data.html" %}
+  {% script %}
+    {% include "sentry/partial/preload-data.html" %}
+  {% endscript %}
 
   {% block scripts %}
   {% locale_js_include %}
