@@ -344,12 +344,12 @@ class NormalizeInApptest(TestCase):
         self.ios_function_name_in_app_detection(function="+[RNSentry ]", isInApp=False)
         self.ios_function_name_in_app_detection(function="-[RNSentry]", isInApp=False)
         self.ios_function_name_in_app_detection(function="-[RNSentry]", isInApp=False)
-        self.ios_function_name_in_app_detection(function="-[MyRNSentry ]", isInApp=True)
+        self.ios_function_name_in_app_detection(function="-[MRNSentry ]", isInApp=True)
 
-        self.ios_function_name_in_app_detection(function="+[Sentry ]", isInApp=True)
-        self.ios_function_name_in_app_detection(function="-[Sentry]", isInApp=True)
-        self.ios_function_name_in_app_detection(function="-[Sentry]", isInApp=True)
-        self.ios_function_name_in_app_detection(function="-[MySentry capture]", isInApp=True)
+        self.ios_function_name_in_app_detection(function="+[Sentry ]", isInApp=False)
+        self.ios_function_name_in_app_detection(function="-[Sentry]", isInApp=False)
+        self.ios_function_name_in_app_detection(function="-[Sentry]", isInApp=False)
+        self.ios_function_name_in_app_detection(function="-[MSentry capture]", isInApp=True)
 
         self.ios_function_name_in_app_detection(
             function="-[SentryHub captureMessage]", isInApp=False
