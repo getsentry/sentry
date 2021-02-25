@@ -245,6 +245,17 @@ describe('getExpandedResults()', function () {
     environment: ['staging'],
   };
 
+  it('id should be default column when drilldown results in no columns', () => {
+    const view = new EventView({
+      ...state,
+      fields: [{field: 'count()'}, {field: 'epm()'}, {field: 'eps()'}],
+    });
+
+    const result = getExpandedResults(view, {}, {});
+
+    expect(result.fields).toEqual([{field: 'id', width: -1}]);
+  });
+
   it('preserves aggregated fields', () => {
     let view = new EventView(state);
 

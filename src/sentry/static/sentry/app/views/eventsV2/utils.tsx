@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import * as Sentry from '@sentry/react';
 import {Location, Query} from 'history';
 import Papa from 'papaparse';
 
@@ -228,8 +229,6 @@ export function getExpandedResults(
     if (
       // if expanding the function failed
       column === null ||
-      // id is implicitly a part of all non-aggregate results
-      column.field === 'id' ||
       // the new column is already present
       fieldSet.has(column.field)
     ) {
@@ -241,6 +240,10 @@ export function getExpandedResults(
     return column;
   });
 
+  if (fieldSet.size === 0) {
+    expandedColumns[0] = {kind: 'field', field: 'id'};
+  }
+
   // update the columns according the the expansion above
   const nextView = expandedColumns.reduceRight(
     (newView, column, index) =>
@@ -249,6 +252,11 @@ export function getExpandedResults(
         : newView.withUpdatedColumn(index, column, undefined),
     eventView.clone()
   );
+
+  if (nextView.isEqualTo(eventView)) {
+    Sentry.captureException(new Error('Failed to drilldown'));
+  }
+
   nextView.query = generateExpandedConditions(nextView, additionalConditions, dataRow);
   return nextView;
 }
