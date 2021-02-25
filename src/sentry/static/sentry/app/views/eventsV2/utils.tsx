@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import * as Sentry from '@sentry/react';
 import {Location, Query} from 'history';
 import Papa from 'papaparse';
 
@@ -248,6 +249,11 @@ export function getExpandedResults(
         : newView.withUpdatedColumn(index, column, undefined),
     eventView.clone()
   );
+
+  if (nextView.isEqualTo(eventView)) {
+    Sentry.captureException(new Error('Failed to drilldown'));
+  }
+
   nextView.query = generateExpandedConditions(nextView, additionalConditions, dataRow);
   return nextView;
 }
