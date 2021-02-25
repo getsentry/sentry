@@ -15,7 +15,8 @@ class GroupExternalIssuesEndpoint(GroupEndpoint):
         logger.info(
             "group_external_issue.get",
             extra={
-                "user": request.user,
+                "user": request.user.username,
+                "is_sentry_app_user": request.user.is_sentry_app,
             },
         )
         return self.paginate(
