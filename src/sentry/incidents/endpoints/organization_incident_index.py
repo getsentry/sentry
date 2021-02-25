@@ -4,7 +4,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.incident import DetailedIncidentSerializer
+from sentry.api.serializers.models.incident import RichIncidentSerializer
 from sentry.incidents.models import Incident, IncidentStatus
 from sentry.snuba.dataset import Dataset
 
@@ -64,7 +64,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
 
         def serialize_results(results):
             if query_detailed:
-                return serialize(results, request.user, DetailedIncidentSerializer())
+                return serialize(results, request.user, RichIncidentSerializer())
             else:
                 return serialize(results, request.user)
 

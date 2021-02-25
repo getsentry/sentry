@@ -2,7 +2,12 @@ from collections import defaultdict
 
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.incidents.models import Incident, IncidentProject, IncidentSubscription
+from sentry.incidents.models import (
+    Incident,
+    IncidentActivity,
+    IncidentProject,
+    IncidentSubscription,
+)
 from sentry.models import User
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.tasks import apply_dataset_query_conditions
@@ -95,3 +100,13 @@ class DetailedIncidentSerializer(IncidentSerializer):
             incident.alert_rule.snuba_query.event_types,
             discover=True,
         )
+
+
+class RichIncidentSerializer(DetailedIncidentSerializer):
+    def serialize(self, obj, attrs, user):
+        context = super().serialize(obj, attrs, user)
+        context["activities"] = serialize(list(
+            IncidentActivity.objects.filter(incident=obj).select_related("user", "incident")
+        ))
+
+        return context
