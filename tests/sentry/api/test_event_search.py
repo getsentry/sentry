@@ -1948,6 +1948,15 @@ class GetSnubaQueryArgsTest(TestCase):
             in str(err)
         )
 
+    def test_not_has_project(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("!has:project")
+        assert "Invalid query for 'has' search: 'project' cannot be empty." in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("!has:project.name")
+        assert "Invalid query for 'has' search: 'project' cannot be empty." in str(err)
+
     def test_transaction_status(self):
         for (key, val) in SPAN_STATUS_CODE_TO_NAME.items():
             result = get_filter(f"transaction.status:{val}")
