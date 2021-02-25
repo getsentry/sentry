@@ -257,7 +257,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
             </GeneralInfo>
             {debugFilesSettingsLink && (
               <SearchInSettingsAction>
-                <Tooltip title={t('Search for this debug file in settings')}>
+                <Tooltip title={t('Search for this debug file in all images for the %s project', projectId)}>
                   <Button to={debugFilesSettingsLink} size="small">
                     {t('Search in Settings')}
                   </Button>
