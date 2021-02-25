@@ -160,12 +160,14 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             (self.project.id, self.session_release): {
                 "sessions_24h": 2,
                 "users_24h": 1,
-                "adoption": 100.0,
+                "users_adoption": 100.0,
+                "sessions_adoption": 66.66666666666666,
             },
             (self.project.id, self.session_crashed_release): {
                 "sessions_24h": 1,
                 "users_24h": 1,
-                "adoption": 100.0,
+                "users_adoption": 100.0,
+                "sessions_adoption": 33.33333333333333,
             },
         }
 
@@ -200,80 +202,14 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             (self.project.id, self.session_release): {
                 "sessions_24h": 2,
                 "users_24h": 1,
-                "adoption": 50.0,
+                "users_adoption": 50.0,
+                "sessions_adoption": 50.0,
             },
             (self.project.id, self.session_crashed_release): {
                 "sessions_24h": 2,
                 "users_24h": 2,
-                "adoption": 100.0,
-            },
-        }
-
-    def test_get_release_adoption_based_on_sessions(self):
-        """
-        Test User adoption based on session data when adoption mode is set to
-        "sessions"
-        """
-        data = get_release_adoption(
-            [
-                (self.project.id, self.session_release),
-                (self.project.id, self.session_crashed_release),
-                (self.project.id, "dummy-release"),
-            ],
-            adoption_mode="sessions",
-        )
-
-        assert data == {
-            (self.project.id, self.session_release): {
-                "sessions_24h": 2,
-                "users_24h": 1,
-                "adoption": 66.66666666666666,
-            },
-            (self.project.id, self.session_crashed_release): {
-                "sessions_24h": 1,
-                "users_24h": 1,
-                "adoption": 33.33333333333333,
-            },
-        }
-
-    def test_get_release_adoption_based_on_sessions_lowered(self):
-        self.store_session(
-            {
-                "session_id": "4574c381-acc5-4e05-b10b-f16cdc2f385a",
-                "distinct_id": "da50f094-10b4-40fb-89fb-cb3aa9014148",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_crashed_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
-
-        data = get_release_adoption(
-            [
-                (self.project.id, self.session_release),
-                (self.project.id, self.session_crashed_release),
-                (self.project.id, "dummy-release"),
-            ],
-            adoption_mode="sessions",
-        )
-
-        assert data == {
-            (self.project.id, self.session_release): {
-                "sessions_24h": 2,
-                "users_24h": 1,
-                "adoption": 50.0,
-            },
-            (self.project.id, self.session_crashed_release): {
-                "sessions_24h": 2,
-                "users_24h": 2,
-                "adoption": 50.0,
+                "users_adoption": 100.0,
+                "sessions_adoption": 50.0,
             },
         }
 
