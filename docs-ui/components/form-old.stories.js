@@ -24,7 +24,7 @@ UndoButton.contextTypes = {
 };
 
 export default {
-  title: 'Core/Forms/Old/Form',
+  title: 'Deprecated/Form',
 };
 
 export const Empty = () => <LegacyForm onSubmit={action('submit')} />;

@@ -20,6 +20,10 @@ import {getUtcDateString} from 'app/utils/dates';
 import getDynamicText from 'app/utils/getDynamicText';
 import theme from 'app/utils/theme';
 
+import {
+  API_INTERVAL_POINTS_LIMIT,
+  API_INTERVAL_POINTS_MIN,
+} from '../rules/details/constants';
 import {Incident, IncidentStats, IncidentStatus} from '../types';
 import {getIncidentMetricPreset, isIssueAlert} from '../utils';
 
@@ -64,15 +68,21 @@ class AlertListRow extends AsyncComponent<Props, State> {
     projects.find(project => project.slug === slug)
   );
 
+  /**
+   * Retrieve the start/end for showing the graph of the metric
+   * Will show at least 150 and no more than 10,000 data points
+   */
   getRuleDetailsQuery(): {start: string; end: string} {
     const {incident} = this.props;
+    const {timeWindow} = incident.alertRule;
+    const timeWindowMillis = timeWindow * 60 * 1000;
+    const minRange = timeWindowMillis * API_INTERVAL_POINTS_MIN;
+    const maxRange = timeWindowMillis * API_INTERVAL_POINTS_LIMIT;
     const now = moment.utc();
     const startDate = moment.utc(incident.dateStarted);
     const endDate = incident.dateClosed ? moment.utc(incident.dateClosed) : now;
-    const range = Math.max(
-      endDate.diff(startDate),
-      3 * incident.alertRule.timeWindow * 60 * 1000
-    );
+    const incidentRange = Math.max(endDate.diff(startDate), 3 * timeWindowMillis);
+    const range = Math.min(maxRange, Math.max(minRange, incidentRange));
     const halfRange = moment.duration(range / 2);
 
     return {

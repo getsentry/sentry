@@ -17,7 +17,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
-import {ReleaseStatsRequestRenderProps} from '../releaseStatsRequest';
+import ReleaseStatsRequest from '../releaseStatsRequest';
 
 import HealthChartContainer from './healthChartContainer';
 import ReleaseChartControls, {
@@ -27,7 +27,7 @@ import ReleaseChartControls, {
 } from './releaseChartControls';
 import {getReleaseEventView} from './utils';
 
-type Props = Omit<ReleaseStatsRequestRenderProps, 'crashFreeTimeBreakdown'> & {
+type Props = {
   releaseMeta: ReleaseMeta;
   selection: GlobalSelection;
   platform: PlatformKey;
@@ -46,6 +46,8 @@ type Props = Omit<ReleaseStatsRequestRenderProps, 'crashFreeTimeBreakdown'> & {
   hasDiscover: boolean;
   hasPerformance: boolean;
   theme: Theme;
+  defaultStatsPeriod: string;
+  projectSlug: string;
 };
 
 class ReleaseChartContainer extends React.Component<Props> {
@@ -220,17 +222,13 @@ class ReleaseChartContainer extends React.Component<Props> {
     );
   }
 
-  renderHealthChart() {
-    const {
-      loading,
-      errored,
-      reloading,
-      chartData,
-      selection,
-      yAxis,
-      router,
-      platform,
-    } = this.props;
+  renderHealthChart(
+    loading: boolean,
+    reloading: boolean,
+    errored: boolean,
+    chartData: Series[]
+  ) {
+    const {selection, yAxis, router, platform} = this.props;
     const {title, help} = this.getChartTitle();
 
     return (
@@ -257,40 +255,58 @@ class ReleaseChartContainer extends React.Component<Props> {
       hasDiscover,
       hasHealthData,
       hasPerformance,
-      chartSummary,
       onYAxisChange,
       onEventTypeChange,
       onVitalTypeChange,
       organization,
+      defaultStatsPeriod,
+      api,
+      version,
+      selection,
+      location,
+      projectSlug,
     } = this.props;
 
-    let chart: React.ReactNode = null;
-    if (
-      (hasDiscover && yAxis === YAxis.EVENTS) ||
-      (hasPerformance && PERFORMANCE_AXIS.includes(yAxis))
-    ) {
-      chart = this.renderStackedChart();
-    } else {
-      chart = this.renderHealthChart();
-    }
-
     return (
-      <Panel>
-        <ChartContainer>{chart}</ChartContainer>
-        <ReleaseChartControls
-          summary={chartSummary}
-          yAxis={yAxis}
-          onYAxisChange={onYAxisChange}
-          eventType={eventType}
-          onEventTypeChange={onEventTypeChange}
-          vitalType={vitalType}
-          onVitalTypeChange={onVitalTypeChange}
-          organization={organization}
-          hasDiscover={hasDiscover}
-          hasHealthData={hasHealthData}
-          hasPerformance={hasPerformance}
-        />
-      </Panel>
+      <ReleaseStatsRequest
+        api={api}
+        organization={organization}
+        projectSlug={projectSlug}
+        version={version}
+        selection={selection}
+        location={location}
+        yAxis={yAxis}
+        eventType={eventType}
+        vitalType={vitalType}
+        hasHealthData={hasHealthData}
+        hasDiscover={hasDiscover}
+        hasPerformance={hasPerformance}
+        defaultStatsPeriod={defaultStatsPeriod}
+      >
+        {({loading, reloading, errored, chartData, chartSummary}) => (
+          <Panel>
+            <ChartContainer>
+              {(hasDiscover && yAxis === YAxis.EVENTS) ||
+              (hasPerformance && PERFORMANCE_AXIS.includes(yAxis))
+                ? this.renderStackedChart()
+                : this.renderHealthChart(loading, reloading, errored, chartData)}
+            </ChartContainer>
+            <ReleaseChartControls
+              summary={chartSummary}
+              yAxis={yAxis}
+              onYAxisChange={onYAxisChange}
+              eventType={eventType}
+              onEventTypeChange={onEventTypeChange}
+              vitalType={vitalType}
+              onVitalTypeChange={onVitalTypeChange}
+              organization={organization}
+              hasDiscover={hasDiscover}
+              hasHealthData={hasHealthData}
+              hasPerformance={hasPerformance}
+            />
+          </Panel>
+        )}
+      </ReleaseStatsRequest>
     );
   }
 }

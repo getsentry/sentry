@@ -18,8 +18,8 @@ type ExceptionStacktraceContentProps = React.ComponentProps<
 type Props = {
   event: Event;
   type: STACK_TYPE;
-  stackView: ExceptionStacktraceContentProps['stackView'];
   platform: ExceptionStacktraceContentProps['platform'];
+  stackView?: ExceptionStacktraceContentProps['stackView'];
   newestFirst?: boolean;
 } & Pick<ExceptionType, 'values'>;
 

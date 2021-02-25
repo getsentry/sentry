@@ -13,7 +13,17 @@ import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-const Delta = ({current, previous, className}) => {
+/**
+ * Note: This file is roughly typed since it scheduled for deletion with v1 dashboards, this is also the reason propTypes has been left in.
+ */
+
+type DeltaProps = {
+  current: number;
+  previous: number;
+  className?: string;
+};
+
+const Delta = ({current, previous, className}: DeltaProps) => {
   if (typeof previous === 'undefined') {
     return null;
   }
@@ -33,7 +43,7 @@ Delta.propTypes = {
   previous: PropTypes.number,
 };
 
-const StyledDelta = styled('div')`
+const StyledDelta = styled('div')<{direction: number}>`
   display: flex;
   align-items: center;
   padding: 0 ${space(0.25)};
@@ -47,7 +57,19 @@ const StyledDelta = styled('div')`
       : p.theme.gray300};
 `;
 
-class PercentageTableChart extends React.Component {
+type Props = {
+  title: React.ReactNode;
+  countTitle: React.ReactNode;
+  extraTitle: React.ReactNode;
+
+  onRowClick: (obj: any, e: any) => void;
+  headerClassName: string;
+  rowClassName: string;
+  getRowLink: () => void;
+  data: any;
+};
+
+class PercentageTableChart extends React.Component<Props> {
   static propTypes = {
     // Main title (left most column) should
     title: PropTypes.node,
@@ -225,7 +247,7 @@ const Percentage = styled('div')`
   width: 60px;
 `;
 
-const Bar = styled('div', {shouldForwardProp: isPropValid})`
+const Bar = styled('div', {shouldForwardProp: isPropValid})<{width: number}>`
   flex: 1;
   width: ${p => p.width}%;
   background-color: ${p => p.theme.border};

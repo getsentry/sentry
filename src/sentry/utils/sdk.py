@@ -32,7 +32,7 @@ SAMPLED_URL_NAMES = {
     "sentry-extensions-jira-issue-hook",
     "sentry-api-0-group-integration-details",
     # integration platform
-    "sentry-api-0-group-external-issues",
+    "external-issues",
     "sentry-api-0-sentry-app-authorizations",
 }
 
