@@ -35,7 +35,7 @@ export enum LandingDisplayField {
 
 export const LANDING_DISPLAYS = [
   {
-    label: 'All',
+    label: 'All Transactions',
     field: LandingDisplayField.ALL,
   },
   {
