@@ -193,16 +193,14 @@ def get_release_adoption(project_releases, environments=None, now=None):
     )["data"]:
         # Users Adoption
         total_users_count = total_adoption.get(x["project_id"])[0]
-        if not total_users_count:
-            users_adoption = None
-        else:
+        users_adoption = None
+        if total_users_count:
             users_adoption = float(x["users"]) / total_users_count * 100
 
         # Sessions Adoption
         total_sessions_count = total_adoption.get(x["project_id"])[1]
-        if not total_sessions_count:
-            sessions_adoption = None
-        else:
+        sessions_adoption = None
+        if total_sessions_count:
             sessions_adoption = float(x["sessions"] / total_sessions_count * 100)
 
         rv[x["project_id"], x["release"]] = {
