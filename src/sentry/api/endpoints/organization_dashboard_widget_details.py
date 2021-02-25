@@ -22,7 +22,11 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         serializer = DashboardWidgetSerializer(
-            data=request.data, context={"organization": organization}
+            data=request.data,
+            context={
+                "organization": organization,
+                "projects": self.get_projects(request, organization),
+            },
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
