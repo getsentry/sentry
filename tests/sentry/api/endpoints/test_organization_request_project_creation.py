@@ -16,7 +16,7 @@ class OrganizationIntegrationRequestTest(APITestCase):
         with self.tasks():
             response = self.get_response(
                 self.organization.slug,
-                targetUserEmail="elon@tesla.com",
+                targetUserEmail="james@example.com",
             )
 
             assert response.status_code == 201
@@ -36,4 +36,4 @@ class OrganizationIntegrationRequestTest(APITestCase):
             },
         }
         builder.assert_called_with(**expected_email_args)
-        builder.return_value.send_async.assert_called_once_with(["elon@tesla.com"])
+        builder.return_value.send_async.assert_called_once_with(["james@example.com"])
