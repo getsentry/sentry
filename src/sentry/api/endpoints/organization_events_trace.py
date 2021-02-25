@@ -12,6 +12,7 @@ from sentry.snuba import discover
 
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE = 100
+NODESTORE_KEYS = ["timestamp", "start_timestamp"]
 
 
 def find_event(items, function, default=None):
@@ -181,6 +182,11 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 current_event = to_check.popleft()
                 event = node_data.get(current_event["id"])
                 previous_event = parent_events[current_event["id"]]
+
+                previous_event.update(
+                    {event_key: event.data.get(event_key) for event_key in NODESTORE_KEYS}
+                )
+
                 for child in event.data.get("spans", []):
                     if child["span_id"] not in parent_map:
                         continue
