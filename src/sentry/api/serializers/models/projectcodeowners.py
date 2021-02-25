@@ -12,7 +12,9 @@ class ProjectCodeOwnersSerializer(Serializer):
             "codeMappingId": str(obj.repository_project_path_config_id),
             "provider": "unknown",
         }
-        if obj.organization_integration:
-            data["provider"] = obj.organization_integration.integration.provider
+        if obj.repository_project_path_config.organization_integration:
+            data[
+                "provider"
+            ] = obj.repository_project_path_config.organization_integration.integration.provider
 
         return data
