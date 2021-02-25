@@ -8,12 +8,12 @@ import {Event} from 'app/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
 type Props = {
-  stackView: STACK_VIEW;
   stackType: STACK_TYPE;
   projectId: Project['id'];
   event: Event;
   newestFirst: boolean;
   platform: PlatformType;
+  stackView?: STACK_VIEW;
 } & Pick<ExceptionType, 'values'>;
 
 const Exception = ({

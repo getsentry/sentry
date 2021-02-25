@@ -53,4 +53,5 @@ const CrashContent = ({
 
   return null;
 };
+
 export default CrashContent;
