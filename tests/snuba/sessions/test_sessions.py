@@ -160,13 +160,13 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             (self.project.id, self.session_release): {
                 "sessions_24h": 2,
                 "users_24h": 1,
-                "users_adoption": 100.0,
+                "adoption": 100.0,
                 "sessions_adoption": 66.66666666666666,
             },
             (self.project.id, self.session_crashed_release): {
                 "sessions_24h": 1,
                 "users_24h": 1,
-                "users_adoption": 100.0,
+                "adoption": 100.0,
                 "sessions_adoption": 33.33333333333333,
             },
         }
