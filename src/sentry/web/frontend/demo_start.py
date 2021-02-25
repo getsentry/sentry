@@ -29,8 +29,10 @@ class DemoStartView(BaseView):
     @transaction.atomic
     @csrf_exempt
     def dispatch(self, request):
+        # need this check for tests since the route will exist even if DEMO_MODE=False
         if not settings.DEMO_MODE:
             raise Http404
+
         # TODO: add way to ensure we generate unique petnames
         name = generate_random_name()
 

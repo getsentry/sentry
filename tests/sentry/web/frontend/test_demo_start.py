@@ -1,8 +1,8 @@
 import pytest
 from sentry.utils.compat import mock
 
+from django.test.utils import override_settings
 from django.template.defaultfilters import slugify
-from django.core.urlresolvers import reverse
 from exam import fixture
 
 from sentry.testutils import TestCase
@@ -22,19 +22,14 @@ org_name = "Org Name"
 class AuthLoginTest(TestCase):
     @fixture
     def path(self):
-        return reverse("sentry-demo-start")
+        return "/demo/start/"
 
-    def test_404_disabled(self):
-        with self.settings(DEMO_MODE=False, DEMO_ORG_OWNER_EMAIL=org_owner_email):
-            resp = self.client.get(self.path)
-            assert resp.status_code == 404
-
+    @override_settings(DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email)
     @mock.patch("sentry.web.frontend.demo_start.generate_random_name", return_value=org_name)
     def test_basic(self, mock_generate_name):
         owner = User.objects.create(email=org_owner_email)
-        with self.settings(DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email):
-            resp = self.client.get(self.path)
-            assert resp.status_code == 302
+        resp = self.client.get(self.path)
+        assert resp.status_code == 302
 
         org = Organization.objects.get(name=org_name)
         slug = slugify(org_name)
@@ -51,11 +46,16 @@ class AuthLoginTest(TestCase):
         assert len(Project.objects.filter(organization=org)) == 2
         assert not ProjectKey.objects.filter(project__organization=org).exists()
 
+    @override_settings(DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email)
     @mock.patch("sentry.web.frontend.demo_start.generate_random_name", return_value=org_name)
     def test_no_owner(self, mock_generate_name):
-        with self.settings(DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email):
-            with pytest.raises(Exception):
-                self.client.get(self.path)
+        with pytest.raises(Exception):
+            self.client.get(self.path)
 
         # verify we are using atomic transactions
         assert not Organization.objects.filter(name=org_name).exists()
+
+    @override_settings(DEMO_MODE=False)
+    def test_disabled(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 404
