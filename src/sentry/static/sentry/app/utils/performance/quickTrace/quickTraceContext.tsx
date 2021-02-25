@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/quickTraceQuery';
+import {TraceLiteQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
 
-export type QuickTraceContextChildrenProps = QuickTraceQueryChildrenProps | undefined;
+export type QuickTraceContextChildrenProps = TraceLiteQueryChildrenProps | undefined;
 
 const QuickTraceContext = React.createContext<QuickTraceContextChildrenProps>(undefined);
 

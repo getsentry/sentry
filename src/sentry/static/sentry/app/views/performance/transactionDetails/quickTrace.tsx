@@ -12,12 +12,9 @@ import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
-import {
-  EventLite,
-  QuickTraceQueryChildrenProps,
-  TraceLite,
-} from 'app/utils/performance/quickTrace/quickTraceQuery';
-import {isTransaction} from 'app/utils/performance/quickTrace/utils';
+import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/quickTraceQuery';
+import {EventLite, TraceLite} from 'app/utils/performance/quickTrace/types';
+import {isTransaction, parseQuickTrace} from 'app/utils/performance/quickTrace/utils';
 
 import {
   DropdownItem,
@@ -25,14 +22,12 @@ import {
   MetaData,
   QuickTraceContainer,
   SectionSubtext,
-  StyledIconEllipsis,
   TraceConnector,
 } from './styles';
 import {
-  generateChildrenEventTarget,
+  generateMultiEventsTarget,
   generateSingleEventTarget,
   generateTraceTarget,
-  parseTraceLite,
 } from './utils';
 
 type Props = {
@@ -62,7 +57,7 @@ export default function QuickTrace({
     '\u2014'
   ) : (
     <ErrorBoundary mini>
-      <QuickTraceLite
+      <QuickTracePills
         event={event}
         trace={trace}
         location={location}
@@ -94,13 +89,14 @@ type QuickTraceLiteProps = {
   organization: OrganizationSummary;
 };
 
-function QuickTraceLite({event, trace, location, organization}: QuickTraceLiteProps) {
+function QuickTracePills({event, trace, location, organization}: QuickTraceLiteProps) {
   // non transaction events are currently unsupported
   if (!isTransaction(event)) {
     return null;
   }
 
-  const {root, current, children} = parseTraceLite(trace, event);
+  const {root, ancestors, parent, children, descendants} = parseQuickTrace(trace, event);
+
   const nodes: React.ReactNode[] = [];
 
   if (root) {
@@ -125,30 +121,61 @@ function QuickTraceLite({event, trace, location, organization}: QuickTraceLitePr
     nodes.push(<TraceConnector key="root-connector" />);
   }
 
-  const traceTarget = generateTraceTarget(event, organization);
-
-  if (root && current && root.event_id !== current.parent_event_id) {
+  if (ancestors.length) {
+    const seeAncestorsText = tn(
+      'View the child transaction of this event.',
+      'View all child transactions of this event.',
+      ancestors.length
+    );
+    const ancestorsTarget = generateMultiEventsTarget(
+      event,
+      ancestors,
+      organization,
+      location
+    );
     nodes.push(
       <EventNodeDropdown
         key="ancestors-node"
-        comingSoon
         organization={organization}
         location={location}
-        seeMoreText={t('See trace in Discover')}
-        seeMoreLink={traceTarget}
+        events={ancestors}
+        seeMoreText={seeAncestorsText}
+        seeMoreLink={ancestorsTarget}
       >
         <Tooltip
           position="top"
           containerDisplayMode="inline-flex"
-          title={t('View all transactions in this trace.')}
+          title={seeAncestorsText}
         >
           <EventNode type="white" pad="right" icon={null}>
-            {t('Ancestors')}
+            {tn('%s Ancestor', '%s Ancestors', ancestors.length)}
           </EventNode>
         </Tooltip>
       </EventNodeDropdown>
     );
     nodes.push(<TraceConnector key="ancestors-connector" />);
+  }
+
+  if (parent) {
+    nodes.push(
+      <EventNodeDropdown
+        key="parent-node"
+        organization={organization}
+        location={location}
+        events={[parent]}
+      >
+        <Tooltip
+          position="top"
+          containerDisplayMode="inline-flex"
+          title={t('View the parent transaction in this trace.')}
+        >
+          <EventNode type="white" pad="right" icon={null}>
+            {t('Parent')}
+          </EventNode>
+        </Tooltip>
+      </EventNodeDropdown>
+    );
+    nodes.push(<TraceConnector key="parent-connector" />);
   }
 
   nodes.push(
@@ -158,7 +185,12 @@ function QuickTraceLite({event, trace, location, organization}: QuickTraceLitePr
   );
 
   if (children.length) {
-    const childrenTarget = generateChildrenEventTarget(
+    const seeChildrenText = tn(
+      'View the child transaction of this event.',
+      'View all child transactions of this event.',
+      children.length
+    );
+    const childrenTarget = generateMultiEventsTarget(
       event,
       children,
       organization,
@@ -170,20 +202,14 @@ function QuickTraceLite({event, trace, location, organization}: QuickTraceLitePr
         key="children-node"
         organization={organization}
         location={location}
-        events={children.sort(
-          (a, b) => b['transaction.duration'] - a['transaction.duration']
-        )}
-        seeMoreText={t('See %s children in Discover', children.length)}
+        events={children}
+        seeMoreText={seeChildrenText}
         seeMoreLink={childrenTarget}
       >
         <Tooltip
           position="top"
           containerDisplayMode="inline-flex"
-          title={tn(
-            'View the child transaction of this event.',
-            'View all child transactions of this event.',
-            children.length
-          )}
+          title={seeChildrenText}
         >
           <EventNode type="white" pad="left" icon={null}>
             {tn('%s Child', '%s Children', children.length)}
@@ -191,24 +217,37 @@ function QuickTraceLite({event, trace, location, organization}: QuickTraceLitePr
         </Tooltip>
       </EventNodeDropdown>
     );
+  }
 
+  if (descendants.length) {
+    const seeDescedantsText = tn(
+      'View the descendant transaction of this event.',
+      'View all descendant transactions of this event.',
+      descendants.length
+    );
+    const descendantsTarget = generateMultiEventsTarget(
+      event,
+      descendants,
+      organization,
+      location
+    );
     nodes.push(<TraceConnector key="descendants-connector" />);
     nodes.push(
       <EventNodeDropdown
         key="descendants-node"
-        comingSoon
         organization={organization}
         location={location}
-        seeMoreText={t('See trace in Discover')}
-        seeMoreLink={traceTarget}
+        events={descendants}
+        seeMoreText={seeDescedantsText}
+        seeMoreLink={descendantsTarget}
       >
         <Tooltip
           position="top"
           containerDisplayMode="inline-flex"
-          title={t('View all transactions in this trace.')}
+          title={seeDescedantsText}
         >
           <EventNode type="white" pad="left" icon={null}>
-            <StyledIconEllipsis size="xs" />
+            {tn('%s Descendant', '%s Descendants', descendants.length)}
           </EventNode>
         </Tooltip>
       </EventNodeDropdown>
