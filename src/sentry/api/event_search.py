@@ -975,6 +975,8 @@ def format_search_filter(term, params):
     name = term.key.name
     value = term.value.value
     if name in (PROJECT_ALIAS, PROJECT_NAME_ALIAS):
+        if term.operator == "=" and value == "":
+            raise InvalidSearchQuery("Invalid query for 'has' search: 'project' cannot be empty.")
         project = None
         try:
             project = Project.objects.get(id__in=params.get("project_id", []), slug=value)
