@@ -158,7 +158,7 @@ def get_rollup_starts_and_buckets(period):
     return seconds, start, buckets
 
 
-def get_release_adoption(project_releases, environments=None, now=None, adoption_mode="users"):
+def get_release_adoption(project_releases, environments=None, now=None):
     """Get the adoption of the last 24 hours (or a difference reference timestamp)."""
     conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
     if now is None:
@@ -169,23 +169,31 @@ def get_release_adoption(project_releases, environments=None, now=None, adoption
     if environments is not None:
         total_conditions.append(["environment", "IN", environments])
 
-    # Represented either in "users" or in "sessions" depending on "adoption_mode"
-    total_adoptors = {}
-    release_adoption_referrer = (
-        "sessions.release-adoption-total-users"
-        if adoption_mode == "users"
-        else "sessions.release-adoption-total-sessions"
-    )
+    # Users Adoption
+    total_users = {}
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["project_id", adoption_mode],
+        selected_columns=["project_id", "users"],
         groupby=["project_id"],
         start=start,
         conditions=total_conditions,
         filter_keys=filter_keys,
-        referrer=release_adoption_referrer,
+        referrer="sessions.release-adoption-total-users",
     )["data"]:
-        total_adoptors[x["project_id"]] = x[adoption_mode]
+        total_users[x["project_id"]] = x["users"]
+
+    # Sessions Adoption
+    total_sessions = {}
+    for x in raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=["project_id", "sessions"],
+        groupby=["project_id"],
+        start=start,
+        conditions=total_conditions,
+        filter_keys=filter_keys,
+        referrer="sessions.release-adoption-total-sessions",
+    )["data"]:
+        total_sessions[x["project_id"]] = x["sessions"]
 
     rv = {}
     for x in raw_query(
@@ -197,13 +205,23 @@ def get_release_adoption(project_releases, environments=None, now=None, adoption
         filter_keys=filter_keys,
         referrer="sessions.release-adoption-list",
     )["data"]:
-        total = total_adoptors.get(x["project_id"])
-        if not total:
-            adoption = None
+        # Users Adoption
+        total_users_count = total_users.get(x["project_id"])
+        if not total_users_count:
+            users_adoption = None
         else:
-            adoption = float(x[adoption_mode]) / total * 100
+            users_adoption = float(x["users"]) / total_users_count * 100
+
+        # Sessions Adoption
+        total_sessions_count = total_sessions.get(x["project_id"])
+        if not total_sessions_count:
+            sessions_adoption = None
+        else:
+            sessions_adoption = float(x["sessions"] / total_sessions_count * 100)
+
         rv[x["project_id"], x["release"]] = {
-            "adoption": adoption,
+            "users_adoption": users_adoption,
+            "sessions_adoption": sessions_adoption,
             "users_24h": x["users"],
             "sessions_24h": x["sessions"],
         }
