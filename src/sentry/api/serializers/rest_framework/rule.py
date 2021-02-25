@@ -158,7 +158,7 @@ class RuleSerializer(serializers.Serializer):
         if self.validated_data.get("frequency"):
             rule.data["frequency"] = self.validated_data["frequency"]
         if self.validated_data.get("owner"):
-            owner = self.validated_data["frequency"]
+            owner = self.validated_data["owner"]
             if owner.type == User:
                 rule.user = owner
                 rule.team = None
