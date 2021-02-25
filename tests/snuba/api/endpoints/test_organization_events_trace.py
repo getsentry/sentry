@@ -12,7 +12,7 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
     FEATURES = ["organizations:trace-view-quick", "organizations:global-views"]
 
     def create_event(self, trace, transaction, spans, parent_span_id, project_id, duration=4000):
-        start = before_now(milliseconds=duration + 60 * 1000)
+        start = before_now(minutes=1, milliseconds=duration)
         end = start + timedelta(milliseconds=duration)
         data = load_data(
             "transaction",
