@@ -4,7 +4,7 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import PlatformExternalIssue
 
-logger = logging.getLogger("sentry.group_external_issues.api")
+logger = logging.getLogger("sentry.api")
 
 
 class GroupExternalIssuesEndpoint(GroupEndpoint):
