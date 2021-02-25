@@ -158,7 +158,7 @@ def get_rollup_starts_and_buckets(period):
     return seconds, start, buckets
 
 
-def get_release_adoption(project_releases, environments=None, now=None):
+def get_release_adoption(project_releases, environments=None, now=None, adoption_mode="users"):
     """Get the adoption of the last 24 hours (or a difference reference timestamp)."""
     conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
     if now is None:
@@ -169,17 +169,23 @@ def get_release_adoption(project_releases, environments=None, now=None):
     if environments is not None:
         total_conditions.append(["environment", "IN", environments])
 
-    total_users = {}
+    # Represented either in "users" or in "sessions" depending on "adoption_mode"
+    total_adoptors = {}
+    release_adoption_referrer = (
+        "sessions.release-adoption-total-users"
+        if adoption_mode == "users"
+        else "sessions.release-adoption-total-sessions"
+    )
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["project_id", "users"],
+        selected_columns=["project_id", adoption_mode],
         groupby=["project_id"],
         start=start,
         conditions=total_conditions,
         filter_keys=filter_keys,
-        referrer="sessions.release-adoption-total-users",
+        referrer=release_adoption_referrer,
     )["data"]:
-        total_users[x["project_id"]] = x["users"]
+        total_adoptors[x["project_id"]] = x[adoption_mode]
 
     rv = {}
     for x in raw_query(
@@ -191,11 +197,11 @@ def get_release_adoption(project_releases, environments=None, now=None):
         filter_keys=filter_keys,
         referrer="sessions.release-adoption-list",
     )["data"]:
-        total = total_users.get(x["project_id"])
+        total = total_adoptors.get(x["project_id"])
         if not total:
             adoption = None
         else:
-            adoption = float(x["users"]) / total * 100
+            adoption = float(x[adoption_mode]) / total * 100
         rv[x["project_id"], x["release"]] = {
             "adoption": adoption,
             "users_24h": x["users"],
