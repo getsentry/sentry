@@ -17,7 +17,7 @@ class MobileAppContainer extends React.Component<MobileApp['props']> {
   }
 
   render() {
-    if (!ConfigStore.get('user')?.isStaff) {
+    if (!(ConfigStore.get('user')?.isStaff || ConfigStore.get('user')?.isSuperuser)) {
       return this.renderNoAccess();
     }
 
