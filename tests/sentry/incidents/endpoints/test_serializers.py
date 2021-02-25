@@ -23,6 +23,7 @@ class TestAlertRuleSerializer(TestCase):
     def valid_params(self):
         return {
             "name": "hello",
+            "owner": self.user.id,
             "time_window": 10,
             "dataset": QueryDatasets.EVENTS.value,
             "query": "level:error",
@@ -94,6 +95,7 @@ class TestAlertRuleSerializer(TestCase):
         field_is_required = ["This field is required."]
         assert serializer.errors == {
             "name": field_is_required,
+            "owner": field_is_required,
             "timeWindow": field_is_required,
             "query": field_is_required,
             "triggers": field_is_required,
