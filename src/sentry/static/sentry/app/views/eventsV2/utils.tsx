@@ -240,7 +240,7 @@ export function getExpandedResults(
     return column;
   });
 
-  if (expandedColumns.length && expandedColumns.every(col => col === null)) {
+  if (fieldSet.size === 0) {
     expandedColumns[0] = {kind: 'field', field: 'id'};
   }
 
