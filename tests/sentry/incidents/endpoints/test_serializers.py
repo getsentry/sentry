@@ -494,24 +494,32 @@ class TestAlertRuleSerializer(TestCase):
     def test_owner_validation(self):
         self.run_fail_validation_test(
             {"owner": f"meow:{self.user.id}"},
-            {"owner": ["Unable to resolve actor identifier"]},
+            {
+                "owner": [
+                    "Could not parse owner. Format should be `type:id` where type is `team` or `user`."
+                ]
+            },
+        )
+        self.run_fail_validation_test(
+            {"owner": "user:1234567"},
+            {"owner": ["Could not resolve owner to existing team or user."]},
+        )
+        self.run_fail_validation_test(
+            {"owner": "team:1234567"},
+            {"owner": ["Could not resolve owner to existing team or user."]},
         )
         base_params = self.valid_params.copy()
         base_params.update({"owner": f"team:{self.team.id}"})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
-        # error is raised during save
-        assert serializer.is_valid()
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
-        assert alert_rule.owner() == f"team:{self.team.id}"
+        assert alert_rule.owner.get_actor_id() == f"team:{self.team.id}"
 
-        base_params.update({"owner": "user:doesntexist"})
+        base_params.update({"name": "another_test", "owner": f"user:{self.user.id}"})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
-        # error is raised during save
-        assert serializer.is_valid()
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
-        assert alert_rule.owner() == "user:doesntexist"
+        assert alert_rule.owner.get_actor_id() == f"user:{self.user.id}"
 
 
 class TestAlertRuleTriggerSerializer(TestCase):

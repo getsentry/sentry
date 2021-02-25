@@ -701,7 +701,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
-        assert alert_rule.owner() is None
+        assert alert_rule.owner is None
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
         assert alert_rule.snuba_query.dataset == QueryDatasets.EVENTS.value
@@ -847,8 +847,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             AlertRuleThresholdType.ABOVE,
             1,
         )
-        assert alert_rule_1.owner_id() == f"user:{self.user.id}"
-        assert alert_rule_1.owner().get_actor_id() == f"user:{self.user.id}"
+        assert alert_rule_1.owner.get_actor_id() == f"user:{self.user.id}"
         alert_rule_2 = create_alert_rule(
             self.organization,
             [self.project],
@@ -860,8 +859,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             AlertRuleThresholdType.ABOVE,
             1,
         )
-        assert alert_rule_2.owner_id() == f"team:{self.team.id}"
-        assert alert_rule_2.owner().get_actor_id() == f"team:{self.team.id}"
+        assert alert_rule_2.owner.get_actor_id() == f"team:{self.team.id}"
 
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -1091,32 +1089,27 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             AlertRuleThresholdType.ABOVE,
             1,
         )
-        assert alert_rule.owner_id() == f"user:{self.user.id}"
-        assert alert_rule.owner().get_actor_id() == f"user:{self.user.id}"
+        assert alert_rule.owner.get_actor_id() == f"user:{self.user.id}"
         update_alert_rule(
             alert_rule=alert_rule,
             owner=Actor.from_actor_identifier(f"team:{self.team.id}"),
         )
-        assert alert_rule.owner_id() == f"team:{self.team.id}"
-        assert alert_rule.owner().get_actor_id() == f"team:{self.team.id}"
+        assert alert_rule.owner.get_actor_id() == f"team:{self.team.id}"
         update_alert_rule(
             alert_rule=alert_rule,
             owner=Actor.from_actor_identifier(f"user:{self.user.id}"),
         )
-        assert alert_rule.owner_id() == f"user:{self.user.id}"
-        assert alert_rule.owner().get_actor_id() == f"user:{self.user.id}"
+        assert alert_rule.owner.get_actor_id() == f"user:{self.user.id}"
         update_alert_rule(
             alert_rule=alert_rule,
             owner=Actor.from_actor_identifier(self.user.id),
         )
-        assert alert_rule.owner_id() == f"user:{self.user.id}"
-        assert alert_rule.owner().get_actor_id() == f"user:{self.user.id}"
+        assert alert_rule.owner.get_actor_id() == f"user:{self.user.id}"
         update_alert_rule(
             alert_rule=alert_rule,
             name="not updating owner",
         )
-        assert alert_rule.owner_id() == f"user:{self.user.id}"
-        assert alert_rule.owner().get_actor_id() == f"user:{self.user.id}"
+        assert alert_rule.owner.get_actor_id() == f"user:{self.user.id}"
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
