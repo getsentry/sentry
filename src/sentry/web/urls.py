@@ -71,7 +71,7 @@ if settings.DEMO_MODE:
     from sentry.web.frontend.demo_start import DemoStartView
 
     urlpatterns += [
-        url(r"$demo/start/", DemoStartView.as_view(), name="sentry-demo-start"),
+        url(r"^demo/start/$", DemoStartView.as_view(), name="sentry-demo-start"),
     ]
 
 urlpatterns += [
