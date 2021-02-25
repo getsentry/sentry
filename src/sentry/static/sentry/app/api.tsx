@@ -451,7 +451,6 @@ export class Client {
 
         const isStatus3XX = status >= 300 && status < 400;
         if (status !== 204 && !isStatus3XX) {
-          // Try to get JSON out of the response no matter the status
           try {
             responseJSON = await responseClone.json();
           } catch {
