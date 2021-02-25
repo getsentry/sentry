@@ -240,7 +240,7 @@ class Chart extends React.Component<ChartProps, ChartState> {
       yAxis: {
         axisLabel: {
           color: theme.gray200,
-          formatter: (value: number) => `${value.toFixed(value === 100 ? 0 : 2)}%`,
+          formatter: (value: number) => displayCrashFreePercent(value),
         },
         scale: true,
         max: 100,
