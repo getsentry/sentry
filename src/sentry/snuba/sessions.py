@@ -169,10 +169,7 @@ def get_release_adoption(project_releases, environments=None, now=None):
     if environments is not None:
         total_conditions.append(["environment", "IN", environments])
 
-    # Users Adoption
-    total_users = {}
-    # Sessions Adoption
-    total_sessions = {}
+    total_adoption = {}
     for x in raw_query(
         dataset=Dataset.Sessions,
         selected_columns=["project_id", "users", "sessions"],
@@ -182,8 +179,7 @@ def get_release_adoption(project_releases, environments=None, now=None):
         filter_keys=filter_keys,
         referrer="sessions.release-adoption-total-users",
     )["data"]:
-        total_users[x["project_id"]] = x["users"]
-        total_sessions[x["project_id"]] = x["sessions"]
+        total_adoption[x["project_id"]] = [x["users"], x["sessions"]]
 
     rv = {}
     for x in raw_query(
@@ -196,14 +192,14 @@ def get_release_adoption(project_releases, environments=None, now=None):
         referrer="sessions.release-adoption-list",
     )["data"]:
         # Users Adoption
-        total_users_count = total_users.get(x["project_id"])
+        total_users_count = total_adoption.get(x["project_id"])[0]
         if not total_users_count:
             users_adoption = None
         else:
             users_adoption = float(x["users"]) / total_users_count * 100
 
         # Sessions Adoption
-        total_sessions_count = total_sessions.get(x["project_id"])
+        total_sessions_count = total_adoption.get(x["project_id"])[1]
         if not total_sessions_count:
             sessions_adoption = None
         else:
