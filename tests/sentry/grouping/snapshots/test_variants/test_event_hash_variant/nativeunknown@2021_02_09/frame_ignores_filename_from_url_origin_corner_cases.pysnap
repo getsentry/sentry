@@ -1,5 +1,5 @@
 ---
-created: '2021-02-09T12:19:25.375021Z'
+created: '2021-02-25T10:16:39.226814Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -47,7 +47,7 @@ system:
             "test"
           context-line*
             "hello world"
-        frame
+        frame*
           filename (ignored because frame points to a URL)
             "foo.js"
           context-line (discarded because from URL origin and no function)

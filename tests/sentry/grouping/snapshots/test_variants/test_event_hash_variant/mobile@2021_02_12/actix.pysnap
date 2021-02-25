@@ -1,5 +1,5 @@
 ---
-created: '2021-02-15T18:20:09.406827Z'
+created: '2021-02-25T10:16:29.996927Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,6 +14,8 @@ app-depth-1:
               "lib.rs"
             function*
               "log::__private_api_log"
+            package
+              "log"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
@@ -35,6 +37,8 @@ app-depth-2:
               "lib.rs"
             function*
               "log::__private_api_log"
+            package
+              "log"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
@@ -61,6 +65,8 @@ app-depth-3:
               "lib.rs"
             function*
               "log::__private_api_log"
+            package
+              "log"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
@@ -92,6 +98,8 @@ app-depth-4:
               "lib.rs"
             function*
               "log::__private_api_log"
+            package
+              "log"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
@@ -128,6 +136,8 @@ app-depth-5:
               "lib.rs"
             function*
               "log::__private_api_log"
+            package
+              "log"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
@@ -150,6 +160,8 @@ app-depth-max:
               "thread.rs"
             function*
               "std::sys::unix::thread::Thread::new::thread_start"
+            package
+              "std"
           frame (marked out of app by stack trace rule (family:native function:alloc::* -app))
             filename*
               "boxed.rs"
@@ -160,16 +172,22 @@ app-depth-max:
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}"
+            package
+              "std"
           frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "panic.rs"
             function*
               "std::panic::catch_unwind"
+            package
+              "std"
           frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "panicking.rs"
             function*
               "std::panicking::try"
+            package
+              "std"
           frame*
             filename*
               "lib.rs"
@@ -180,6 +198,8 @@ app-depth-max:
               "panicking.rs"
             function*
               "std::panicking::try::do_call"
+            package
+              "std"
           frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "panic.rs"
@@ -190,31 +210,43 @@ app-depth-max:
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"
+            package
+              "std"
           frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "backtrace.rs"
             function*
               "std::sys_common::backtrace::__rust_begin_short_backtrace"
+            package
+              "std"
           frame*
             filename*
               "arbiter.rs"
             function*
               "actix::arbiter::Arbiter::new_with_builder::{{closure}}"
+            package
+              "actix"
           frame*
             filename*
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::block_on"
+            package
+              "tokio"
           frame*
             filename*
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter"
+            package
+              "tokio"
           frame*
             filename*
               "lib.rs"
             function*
               "tokio_reactor::with_default"
+            package
+              "tokio_reactor"
           frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
@@ -230,16 +262,22 @@ app-depth-max:
               "lib.rs"
             function*
               "tokio_reactor::with_default::{{closure}}"
+            package
+              "tokio_reactor"
           frame*
             filename*
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}"
+            package
+              "tokio"
           frame*
             filename*
               "clock.rs"
             function*
               "tokio_timer::clock::clock::with_default"
+            package
+              "tokio_timer"
           frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
@@ -255,16 +293,22 @@ app-depth-max:
               "clock.rs"
             function*
               "tokio_timer::clock::clock::with_default::{{closure}}"
+            package
+              "tokio_timer"
           frame*
             filename*
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}"
+            package
+              "tokio"
           frame*
             filename*
               "handle.rs"
             function*
               "tokio_timer::timer::handle::with_default"
+            package
+              "tokio_timer"
           frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
@@ -280,16 +324,22 @@ app-depth-max:
               "handle.rs"
             function*
               "tokio_timer::timer::handle::with_default::{{closure}}"
+            package
+              "tokio_timer"
           frame*
             filename*
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}"
+            package
+              "tokio"
           frame*
             filename*
               "global.rs"
             function*
               "tokio_executor::global::with_default"
+            package
+              "tokio_executor"
           frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
@@ -305,16 +355,22 @@ app-depth-max:
               "global.rs"
             function*
               "tokio_executor::global::with_default::{{closure}}"
+            package
+              "tokio_executor"
           frame*
             filename*
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}"
+            package
+              "tokio"
           frame*
             filename*
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}"
+            package
+              "tokio"
           frame*
             filename*
               "lib.rs"
@@ -355,6 +411,8 @@ app-depth-max:
               "lib.rs"
             function*
               "tokio_current_thread::CurrentRunner::set_spawn"
+            package
+              "tokio_current_thread"
           frame*
             filename*
               "lib.rs"
@@ -390,6 +448,8 @@ app-depth-max:
               "mod.rs"
             function*
               "futures::task_impl::std::set"
+            package
+              "futures"
           frame*
             filename*
               "mod.rs"
@@ -485,6 +545,8 @@ app-depth-max:
               "lib.rs"
             function*
               "log::__private_api_log"
+            package
+              "log"
           frame (non app frame)
             filename*
               "log.rs"
@@ -495,11 +557,15 @@ app-depth-max:
               "hub.rs"
             function*
               "sentry::hub::Hub::with_active"
+            package
+              "sentry"
           frame (non app frame)
             filename*
               "hub.rs"
             function*
               "sentry::hub::Hub::with"
+            package
+              "sentry"
           frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
@@ -515,11 +581,15 @@ app-depth-max:
               "hub.rs"
             function*
               "sentry::hub::Hub::with::{{closure}}"
+            package
+              "sentry"
           frame (non app frame)
             filename*
               "hub.rs"
             function*
               "sentry::hub::Hub::with_active::{{closure}}"
+            package
+              "sentry"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
@@ -542,6 +612,8 @@ system:
               "thread.rs"
             function*
               "std::sys::unix::thread::Thread::new::thread_start"
+            package
+              "std"
           frame* (marked out of app by stack trace rule (family:native function:alloc::* -app))
             filename*
               "boxed.rs"
@@ -552,16 +624,22 @@ system:
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}"
+            package
+              "std"
           frame*
             filename*
               "panic.rs"
             function*
               "std::panic::catch_unwind"
+            package
+              "std"
           frame*
             filename*
               "panicking.rs"
             function*
               "std::panicking::try"
+            package
+              "std"
           frame*
             filename*
               "lib.rs"
@@ -572,6 +650,8 @@ system:
               "panicking.rs"
             function*
               "std::panicking::try::do_call"
+            package
+              "std"
           frame*
             filename*
               "panic.rs"
@@ -582,31 +662,43 @@ system:
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"
+            package
+              "std"
           frame*
             filename*
               "backtrace.rs"
             function*
               "std::sys_common::backtrace::__rust_begin_short_backtrace"
+            package
+              "std"
           frame*
             filename*
               "arbiter.rs"
             function*
               "actix::arbiter::Arbiter::new_with_builder::{{closure}}"
+            package
+              "actix"
           frame*
             filename*
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::block_on"
+            package
+              "tokio"
           frame*
             filename*
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter"
+            package
+              "tokio"
           frame*
             filename*
               "lib.rs"
             function*
               "tokio_reactor::with_default"
+            package
+              "tokio_reactor"
           frame*
             filename*
               "local.rs"
@@ -622,16 +714,22 @@ system:
               "lib.rs"
             function*
               "tokio_reactor::with_default::{{closure}}"
+            package
+              "tokio_reactor"
           frame*
             filename*
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}"
+            package
+              "tokio"
           frame*
             filename*
               "clock.rs"
             function*
               "tokio_timer::clock::clock::with_default"
+            package
+              "tokio_timer"
           frame*
             filename*
               "local.rs"
@@ -647,16 +745,22 @@ system:
               "clock.rs"
             function*
               "tokio_timer::clock::clock::with_default::{{closure}}"
+            package
+              "tokio_timer"
           frame*
             filename*
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}"
+            package
+              "tokio"
           frame*
             filename*
               "handle.rs"
             function*
               "tokio_timer::timer::handle::with_default"
+            package
+              "tokio_timer"
           frame*
             filename*
               "local.rs"
@@ -672,16 +776,22 @@ system:
               "handle.rs"
             function*
               "tokio_timer::timer::handle::with_default::{{closure}}"
+            package
+              "tokio_timer"
           frame*
             filename*
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}"
+            package
+              "tokio"
           frame*
             filename*
               "global.rs"
             function*
               "tokio_executor::global::with_default"
+            package
+              "tokio_executor"
           frame*
             filename*
               "local.rs"
@@ -697,16 +807,22 @@ system:
               "global.rs"
             function*
               "tokio_executor::global::with_default::{{closure}}"
+            package
+              "tokio_executor"
           frame*
             filename*
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}"
+            package
+              "tokio"
           frame*
             filename*
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}"
+            package
+              "tokio"
           frame*
             filename*
               "lib.rs"
@@ -747,6 +863,8 @@ system:
               "lib.rs"
             function*
               "tokio_current_thread::CurrentRunner::set_spawn"
+            package
+              "tokio_current_thread"
           frame*
             filename*
               "lib.rs"
@@ -782,6 +900,8 @@ system:
               "mod.rs"
             function*
               "futures::task_impl::std::set"
+            package
+              "futures"
           frame*
             filename*
               "mod.rs"
@@ -877,6 +997,8 @@ system:
               "lib.rs"
             function*
               "log::__private_api_log"
+            package
+              "log"
           frame*
             filename*
               "log.rs"
@@ -887,11 +1009,15 @@ system:
               "hub.rs"
             function*
               "sentry::hub::Hub::with_active"
+            package
+              "sentry"
           frame*
             filename*
               "hub.rs"
             function*
               "sentry::hub::Hub::with"
+            package
+              "sentry"
           frame*
             filename*
               "local.rs"
@@ -907,11 +1033,15 @@ system:
               "hub.rs"
             function*
               "sentry::hub::Hub::with::{{closure}}"
+            package
+              "sentry"
           frame*
             filename*
               "hub.rs"
             function*
               "sentry::hub::Hub::with_active::{{closure}}"
+            package
+              "sentry"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)

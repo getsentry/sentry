@@ -1,5 +1,5 @@
 ---
-created: '2021-02-09T12:19:26.041399Z'
+created: '2021-02-25T10:16:39.797000Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -20,6 +20,6 @@ system:
   component:
     system
       stacktrace
-        frame
+        frame (ignored single non-URL JavaScript frame)
           filename (ignored because frame points to a URL)
             "7f7aaadf-a006-4217-9ed5-5fbf8585c6c0"

@@ -1,5 +1,5 @@
 ---
-created: '2021-02-12T22:47:17.654076Z'
+created: '2021-02-25T10:16:32.700339Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,21 +14,29 @@ app:
               "main.cpp"
             function*
               "main"
+            package
+              "crash"
           frame (non app frame)
             filename*
               "main.cpp"
             function* (isolated function)
               "(anonymous namespace)::start"
+            package
+              "crash"
           frame (non app frame)
             filename*
               "main.cpp"
             function* (isolated function)
               "(anonymous namespace)::crash"
+            package
+              "crash"
           frame (non app frame)
             filename*
               "main.cpp"
             function* (isolated function)
               "(anonymous namespace)::something::nested::Foo"
+            package
+              "crash"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
       threads (thread has no stacktrace)
@@ -44,20 +52,28 @@ system:
               "main.cpp"
             function*
               "main"
+            package
+              "crash"
           frame*
             filename*
               "main.cpp"
             function* (isolated function)
               "(anonymous namespace)::start"
+            package
+              "crash"
           frame*
             filename*
               "main.cpp"
             function* (isolated function)
               "(anonymous namespace)::crash"
+            package
+              "crash"
           frame*
             filename*
               "main.cpp"
             function* (isolated function)
               "(anonymous namespace)::something::nested::Foo"
+            package
+              "crash"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"

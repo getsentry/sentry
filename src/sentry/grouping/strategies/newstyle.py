@@ -287,9 +287,12 @@ def frame(frame, event, context, **meta):
     if context_line_component is not None:
         values.append(context_line_component)
 
-    if context["use_package_fallback"] and all(component.is_empty() for component in values):
-        package_component = get_package_component(package=frame.package, platform=platform)
-        values.append(package_component)
+    package_component = get_package_component(package=frame.package, platform=platform)
+    use_package_component = context["use_package_fallback"] and all(
+        not component.contributes for component in values
+    )
+    package_component.update(contributes=use_package_component)
+    values.append(package_component)
 
     rv = GroupingComponent(id="frame", values=values)
 

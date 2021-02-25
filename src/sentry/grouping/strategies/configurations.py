@@ -56,8 +56,8 @@ BASE_STRATEGY = create_strategy_configuration(
         # considered for hierarchical grouping (see HIERARCHICAL_VARIANTS
         # constant)
         "hierarchical_grouping": False,
-        # Use the `package` component of a frame if no other information is
-        # available.
+        # Use the `package` component of a frame as fallback where other
+        # information would be used but is not available.
         "use_package_fallback": False,
     },
 )

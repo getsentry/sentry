@@ -1,5 +1,5 @@
 ---
-created: '2021-02-09T12:19:24.674168Z'
+created: '2021-02-25T10:16:38.596768Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -26,6 +26,8 @@ app:
         frame (non app frame)
           function*
             "do_something"
+          package
+            "bar.so"
         frame (non app frame)
           package*
             "bar.so"
@@ -56,6 +58,8 @@ system:
         frame*
           function*
             "do_something"
+          package
+            "bar.so"
         frame*
           package*
             "bar.so"
