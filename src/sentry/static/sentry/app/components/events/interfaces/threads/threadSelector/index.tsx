@@ -5,13 +5,12 @@ import partition from 'lodash/partition';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import {t} from 'app/locale';
-import {EntryData} from 'app/types';
+import {ExceptionType} from 'app/types';
 import {Event} from 'app/types/event';
 import {Thread} from 'app/types/events';
 import theme from 'app/utils/theme';
 
 import filterThreadInfo from './filterThreadInfo';
-import getThreadException from './getThreadException';
 import Header from './header';
 import Option from './option';
 import SelectedOption from './selectedOption';
@@ -20,24 +19,18 @@ type Props = {
   threads: Array<Thread>;
   activeThread: Thread;
   event: Event;
+  exception?: Required<ExceptionType>;
   onChange?: (thread: Thread) => void;
 };
 
 const DROPDOWN_MAX_HEIGHT = 400;
 
-const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
+const ThreadSelector = ({threads, event, exception, activeThread, onChange}: Props) => {
   const getDropDownItem = (thread: Thread) => {
-    const threadInfo = filterThreadInfo(thread, event);
-
-    const dropDownValue = `#${thread.id}: ${thread.name} ${threadInfo.label} ${threadInfo.filename}`;
-    let crashedInfo: undefined | EntryData;
-
-    if (thread.crashed) {
-      crashedInfo = getThreadException(thread, event);
-    }
-
+    const {label, filename, crashedInfo} = filterThreadInfo(event, thread, exception);
+    const threadInfo = {label, filename};
     return {
-      value: dropDownValue,
+      value: `#${thread.id}: ${thread.name} ${label} ${filename}`,
       threadInfo,
       thread,
       label: (
@@ -87,7 +80,7 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
           ) : (
             <SelectedOption
               id={activeThread.id}
-              details={filterThreadInfo(activeThread, event)}
+              details={filterThreadInfo(event, activeThread, exception)}
             />
           )}
         </StyledDropdownButton>
