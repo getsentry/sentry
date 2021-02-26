@@ -1948,6 +1948,15 @@ class GetSnubaQueryArgsTest(TestCase):
             in str(err)
         )
 
+    def test_not_has_project(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("!has:project")
+        assert "Invalid query for 'has' search: 'project' cannot be empty." in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("!has:project.name")
+        assert "Invalid query for 'has' search: 'project' cannot be empty." in str(err)
+
     def test_transaction_status(self):
         for (key, val) in SPAN_STATUS_CODE_TO_NAME.items():
             result = get_filter(f"transaction.status:{val}")
@@ -2389,9 +2398,14 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["epm(30)"]
+            fields = ["epm(0)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "epm(30): interval argument invalid: 30 must be greater than or equal to 60" in str(
+        assert "epm(0): interval argument invalid: 0 must be greater than or equal to 1" in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["epm(-1)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "epm(-1): interval argument invalid: -1 must be greater than or equal to 1" in str(
             err
         )
 
@@ -3147,6 +3161,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["min(timestamp)", "timestamp"],
             ["max(timestamp)", "timestamp"],
             ["p95()", "transaction.duration"],
+            ["any(measurements.fcp)", "measurements.fcp"],
         ]
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as error:

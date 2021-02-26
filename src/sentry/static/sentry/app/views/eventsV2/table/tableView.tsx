@@ -127,8 +127,8 @@ class TableView extends React.Component<TableViewProps> {
       };
 
       return [
-        <Tooltip key={`eventlink${rowIndex}`} title={t('Open Stack')}>
-          <Link to={target} data-test-id="open-stack">
+        <Tooltip key={`eventlink${rowIndex}`} title={t('Open Group')}>
+          <Link to={target} data-test-id="open-group">
             <StyledIcon size="sm" />
           </Link>
         </Tooltip>,

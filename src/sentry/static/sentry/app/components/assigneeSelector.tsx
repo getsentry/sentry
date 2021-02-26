@@ -40,6 +40,11 @@ type Props = {
   size?: number;
   memberList?: User[];
   disabled?: boolean;
+  onAssign?: (
+    type: Actor['type'],
+    assignee: User | Actor,
+    suggestedAssignee?: SuggestedAssignee
+  ) => void;
 };
 
 type State = {
@@ -185,6 +190,15 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     }
 
     e.stopPropagation();
+
+    const {onAssign} = this.props as Props;
+    if (onAssign) {
+      const suggestionType = type === 'member' ? 'user' : type;
+      const suggestion = this.getSuggestedAssignees()?.find(
+        actor => actor.type === suggestionType && actor.id === assignee.id
+      );
+      onAssign?.(type, assignee, suggestion);
+    }
   },
 
   clearAssignTo(e) {
@@ -306,7 +320,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 
   getSuggestedAssignees(): SuggestedAssignee[] | null {
-    const {suggestedOwners} = this.state;
+    const {suggestedOwners} = this.state as State;
     if (!suggestedOwners) {
       return null;
     }
