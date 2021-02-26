@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
     atomic = True
 
     dependencies = [
-        ("sentry", "0164_add_protect_on_delete_codeowners"),
+        ("sentry", "0165_metric_alerts_fix_group_ids"),
     ]
 
     operations = [
