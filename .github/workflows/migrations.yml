@@ -25,7 +25,7 @@ jobs:
     steps:
       - name: Failure because of modified migration
         shell: bash
-        if: needed.changes.outputs.migrations_modified == 'true'
+        if: needs.changes.outputs.migrations_modified == 'true'
         run: |
           echo "We do not allow modifying migrations. Use GH admin if you still need to merge." && exit 1
 
