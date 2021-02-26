@@ -7,6 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.template.defaultfilters import slugify
 
 from sentry import roles
+from sentry.demo.tasks import delete_organization_and_user
 from sentry.demo.data_population import populate_python_project, populate_react_project
 from sentry.models import (
     User,
@@ -67,6 +68,16 @@ class DemoStartView(BaseView):
 
         # delete all DSNs for the org so people don't send events
         ProjectKey.objects.filter(project__organization=org).delete()
+
+        # delete everything after 24 hours
+        countdown = 24 * 60 * 60
+        delete_organization_and_user.apply_async(
+            kwargs={
+                "organization_id": org.id,
+                "user_id": user.id,
+            },
+            countdown=countdown,
+        )
 
         auth.login(request, user)
         return self.redirect(auth.get_login_redirect(request))

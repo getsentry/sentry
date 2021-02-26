@@ -25,8 +25,9 @@ class AuthLoginTest(TestCase):
         return "/demo/start/"
 
     @override_settings(DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email)
+    @mock.patch("sentry.web.frontend.demo_start.delete_organization_and_user")
     @mock.patch("sentry.web.frontend.demo_start.generate_random_name", return_value=org_name)
-    def test_basic(self, mock_generate_name):
+    def test_basic(self, mock_generate_name, mock_delete):
         owner = User.objects.create(email=org_owner_email)
         resp = self.client.get(self.path)
         assert resp.status_code == 302
@@ -45,6 +46,10 @@ class AuthLoginTest(TestCase):
 
         assert len(Project.objects.filter(organization=org)) == 2
         assert not ProjectKey.objects.filter(project__organization=org).exists()
+
+        mock_delete.apply_async.assert_called_once_with(
+            kwargs={"organization_id": org.id, "user_id": user.id}, countdown=24 * 60 * 60
+        )
 
     @override_settings(DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email)
     @mock.patch("sentry.web.frontend.demo_start.generate_random_name", return_value=org_name)
