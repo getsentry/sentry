@@ -1,7 +1,7 @@
 import logging
 import sentry_sdk
 
-from collections import deque
+from collections import defaultdict, deque
 
 from rest_framework.response import Response
 
@@ -112,7 +112,9 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
                 {"extra_roots": extra_roots, **warning_extra},
             )
 
-        parent_map = {item["trace.parent_span"]: item for item in result["data"]}
+        parent_map = defaultdict(list)
+        for item in result["data"]:
+            parent_map[item["trace.parent_span"]].append(item)
         return Response(
             self.serialize(parent_map, root, warning_extra, params, snuba_event, event_id)
         )
@@ -145,8 +147,13 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
             event = eventstore.get_event_by_id(snuba_event["project.id"], event_id)
             for span in event.data.get("spans", []):
                 if span["span_id"] in parent_map:
-                    child_event = parent_map[span["span_id"]]
-                    trace_results.append(self.serialize_event(child_event, event_id))
+                    child_events = parent_map[span["span_id"]]
+                    trace_results.extend(
+                        [
+                            self.serialize_event(child_event, event_id)
+                            for child_event in child_events
+                        ]
+                    )
 
         return trace_results
 
@@ -161,6 +168,11 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         """ For the full event trace, we return the results as a graph instead of a flattened list """
         parent_events = {}
         result = parent_events[root["id"]] = self.serialize_event(root, None, 0, True)
+
+        event_ids = []
+        for span, events in parent_map.items():
+            event_ids.extend(event["id"] for event in events)
+
         with sentry_sdk.start_span(
             op="nodestore", description=f"retrieving {len(parent_map)} nodes"
         ) as span:
@@ -170,7 +182,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 for event in eventstore.get_events(
                     eventstore.Filter(
                         project_ids=params["project_id"],
-                        event_ids=[event["id"] for event in parent_map.values()],
+                        event_ids=event_ids,
                     )
                 )
             }
@@ -191,15 +203,16 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     if child["span_id"] not in parent_map:
                         continue
                     # Avoid potential span loops by popping, so we don't traverse the same nodes twice
-                    child_event = parent_map.pop(child["span_id"])
+                    child_events = parent_map.pop(child["span_id"])
 
-                    parent_events[child_event["id"]] = self.serialize_event(
-                        child_event, current_event["id"], previous_event["generation"] + 1
-                    )
-                    # Add this event to its parent's children
-                    previous_event["children"].append(parent_events[child_event["id"]])
+                    for child_event in child_events:
+                        parent_events[child_event["id"]] = self.serialize_event(
+                            child_event, current_event["id"], previous_event["generation"] + 1
+                        )
+                        # Add this event to its parent's children
+                        previous_event["children"].append(parent_events[child_event["id"]])
 
-                    to_check.append(child_event)
+                        to_check.append(child_event)
                 # Limit iterations just to be safe
                 iteration += 1
                 if iteration > MAX_TRACE_SIZE:
