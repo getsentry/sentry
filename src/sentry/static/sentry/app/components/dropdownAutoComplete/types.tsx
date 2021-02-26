@@ -16,5 +16,3 @@ type Items<T> = Array<
 export type ItemsBeforeFilter = Items<Omit<Item, 'index'>>;
 
 export type ItemsAfterFilter = Items<Item>;
-
-export type GetItemArgs = {item: Item; index: number; style?: React.CSSProperties};

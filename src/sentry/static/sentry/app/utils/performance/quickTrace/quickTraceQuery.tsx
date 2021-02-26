@@ -20,7 +20,9 @@ export type EventLite = {
   transaction: string;
   'transaction.duration': number;
   project_id: number;
+  project_slug: string;
   parent_event_id: string | null;
+  parent_span_id: string | null;
   is_root: boolean;
 };
 
@@ -32,12 +34,15 @@ type QuickTraceProps = {
 
 type RequestProps = DiscoverQueryProps & QuickTraceProps;
 
-type ChildrenProps = Omit<GenericChildrenProps<QuickTraceProps>, 'tableData'> & {
+export type QuickTraceQueryChildrenProps = Omit<
+  GenericChildrenProps<QuickTraceProps>,
+  'tableData' | 'pageLinks'
+> & {
   trace: TraceLite | null;
 };
 
 type QueryProps = Omit<RequestProps, 'eventView'> & {
-  children: (props: ChildrenProps) => React.ReactNode;
+  children: (props: QuickTraceQueryChildrenProps) => React.ReactNode;
 };
 
 function getQuickTraceRequestPayload({eventView, event, location}: RequestProps) {
@@ -81,7 +86,6 @@ function EmptyTrace({children}: Pick<QueryProps, 'children'>) {
       {children({
         isLoading: true,
         error: null,
-        pageLinks: null,
         trace: null,
       })}
     </React.Fragment>
@@ -110,7 +114,16 @@ function QuickTraceQuery({event, children, ...props}: QueryProps) {
       eventView={eventView}
       {...props}
     >
-      {({tableData, ...rest}) => children({trace: tableData ?? null, ...rest})}
+      {({tableData, ...rest}) =>
+        children({
+          // This is using '||` instead of '??` here because
+          // the client returns a empty string when the response
+          // is 204. And we want the empty string, undefined and
+          // null to be converted to null.
+          trace: tableData || null,
+          ...rest,
+        })
+      }
     </GenericDiscoverQuery>
   );
 }

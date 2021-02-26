@@ -31,10 +31,9 @@ from .utils import (
     enable_single_lambda,
     disable_single_lambda,
     get_dsn_for_project,
-    get_invalid_layer_name,
     wrap_lambda_updater,
     ALL_AWS_REGIONS,
-    INVALID_LAYER_TEXT,
+    get_sentry_err_message,
 )
 
 logger = logging.getLogger("sentry.integrations.aws_lambda")
@@ -380,10 +379,8 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                 else:
                     # need to make sure we catch any error to continue to the next function
                     err_message = str(e)
-                    invalid_layer = get_invalid_layer_name(err_message)
-                    if invalid_layer:
-                        err_message = _(INVALID_LAYER_TEXT) % invalid_layer
-                    else:
+                    is_custom_err, err_message = get_sentry_err_message(err_message)
+                    if not is_custom_err:
                         capture_exception(e)
                         err_message = _("Unknown Error")
                     failures.append({"name": function["FunctionName"], "error": err_message})

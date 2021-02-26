@@ -508,6 +508,24 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 use_aggregate_conditions=True,
             )
 
+    def test_any_function(self):
+        data = load_data("transaction", timestamp=before_now(seconds=3))
+        data["transaction"] = "a" * 32
+        self.store_event(data=data, project_id=self.project.id)
+
+        results = discover.query(
+            selected_columns=["count()", "any(transaction)", "any(user.id)"],
+            query="",
+            params={"project_id": [self.project.id]},
+            use_aggregate_conditions=True,
+        )
+
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0]["any_transaction"] == "a" * 32
+        assert data[0]["any_user_id"] == "99"
+        assert data[0]["count"] == 2
+
 
 class QueryTransformTest(TestCase):
     """

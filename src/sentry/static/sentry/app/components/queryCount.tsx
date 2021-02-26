@@ -10,6 +10,7 @@ type Props = {
   hideIfEmpty?: boolean;
   hideParens?: boolean;
   isTag?: boolean;
+  tagProps?: React.ComponentProps<typeof Tag>;
 };
 
 /**
@@ -25,6 +26,7 @@ const QueryCount = ({
   hideIfEmpty = true,
   hideParens = false,
   isTag = false,
+  tagProps = {},
 }: Props) => {
   const countOrMax = defined(count) && defined(max) && count >= max ? `${max}+` : count;
 
@@ -33,7 +35,7 @@ const QueryCount = ({
   }
 
   if (isTag) {
-    return <Tag>{countOrMax}</Tag>;
+    return <Tag {...tagProps}>{countOrMax}</Tag>;
   }
 
   return (
