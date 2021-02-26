@@ -6,6 +6,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.models.integration import ExternalProviders
 
 
 class NotificationSettingTypes(Enum):
@@ -37,17 +38,6 @@ NOTIFICATION_SETTING_OPTION_VALUES = {
     NotificationSettingOptionValues.ALWAYS: "on",
     NotificationSettingOptionValues.SUBSCRIBE_ONLY: "subscribe_only",
     NotificationSettingOptionValues.COMMITTED_ONLY: "committed_only",
-}
-
-
-class NotificationSettingProvider(Enum):
-    EMAIL = 0
-    SLACK = 1
-
-
-NOTIFICATION_SETTING_PROVIDER = {
-    NotificationSettingProvider.EMAIL: "email",
-    NotificationSettingProvider.SLACK: "slack",
 }
 
 
@@ -108,8 +98,8 @@ class NotificationSetting(Model):
 
     provider = BoundedPositiveIntegerField(
         choices=(
-            (NotificationSettingProvider.EMAIL, "email"),
-            (NotificationSettingProvider.SLACK, "slack"),
+            (ExternalProviders.EMAIL, "email"),
+            (ExternalProviders.SLACK, "slack"),
         ),
         null=False,
     )
