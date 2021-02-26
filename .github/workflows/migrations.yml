@@ -22,6 +22,7 @@ jobs:
         if: needs.changes.outputs.migrations_added != 'true' || needs.changes.outputs.migrations_modified != 'true'
         run: |
           echo "Nothing for you to do. We always fail unless we want to trigger the dependent workflows below"
+          exit 1
 
   modified-migration:
     name: check if modified migration
