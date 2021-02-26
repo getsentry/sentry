@@ -2,10 +2,14 @@ name: migrations
 on: pull_request
 
 jobs:
-  did-migration-update:
-    name: check if migration changes
+  did-migration-change:
+    name: check if any migration changes
     runs-on: ubuntu-20.04
     timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      added: ${{ steps.changes.outputs.migrations_added }}
+      modified: ${{ steps.changes.outputs.migrations_modified }}
     steps:
       - name: Checkout sentry
         uses: actions/checkout@v2
@@ -21,8 +25,8 @@ jobs:
     name: check if modified migration
     runs-on: ubuntu-20.04
     timeout-minutes: 4
-    needs: did-migration-update
-    if: needs.changes.outputs.migrations_modified
+    needs: did-migration-change
+    if: needs.did-migration-change.outputs.modified
 
     steps:
       - name: Failure because of modified migration
@@ -34,8 +38,8 @@ jobs:
     name: Generate SQL
     runs-on: ubuntu-20.04
     timeout-minutes: 8
-    needs: did-migration-update
-    if: needs.changes.outputs.migrations_added
+    needs: did-migration-change
+    if: needs.did-migration-change.outputs.added
 
     steps:
       # Checkout master to run all merged migrations.
