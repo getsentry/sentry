@@ -17,30 +17,25 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      - name: If no migration changes -> fail
-        shell: bash
-        if: needs.changes.outputs.migrations_added != 'true' || needs.changes.outputs.migrations_modified != 'true'
-        run: |
-          echo "Nothing for you to do. We always fail unless we want to trigger the dependent workflows below"
-          exit 1
-
   modified-migration:
     name: check if modified migration
     runs-on: ubuntu-20.04
     timeout-minutes: 4
     needs: did-migration-update
+    if: needs.changes.outputs.migrations_modified
+
     steps:
       - name: Failure because of modified migration
         shell: bash
-        if: needs.changes.outputs.migrations_modified == 'true'
         run: |
-          echo "We do not allow modifying migrations. Use GH admin if you still need to merge." && exit 1
+          echo "We do not allow modifying migrations. A GH admin can still merge this." && exit 1
 
   sql:
     name: Generate SQL
     runs-on: ubuntu-20.04
     timeout-minutes: 8
     needs: did-migration-update
+    if: needs.changes.outputs.migrations_modified
 
     steps:
       # Checkout master to run all merged migrations.
