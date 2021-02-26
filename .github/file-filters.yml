@@ -57,3 +57,6 @@ api_docs:
   - *backend
   - 'api-docs/**'
   - 'tests/apidocs/**'
+
+modified-migrations:
+  - modified: 'src/sentry/migrations/*'
