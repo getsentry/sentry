@@ -66,8 +66,8 @@ class RepositoryProjectPathConfig(DefaultFieldsModel):
 class ExternalProviders(Enum):
     GITHUB = 0
     GITLAB = 1
-    EMAIL = 2
-    SLACK = 3
+    EMAIL = 100
+    SLACK = 110
 
 
 EXTERNAL_PROVIDERS = {
