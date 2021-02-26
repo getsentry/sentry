@@ -23,22 +23,16 @@ type Props = {
 /**
  * Component to handle demo mode switches
  */
-class DemoModeGate extends React.Component<Props> {
-  static defaultProps = {
-    demoComponent: null,
-  };
+function DemoModeGate(props: Props) {
+  const {organization, children, demoComponent = null} = props;
 
-  render() {
-    const {organization, children, demoComponent} = this.props;
-
-    if (organization?.role === 'member' && ConfigStore.get('demoMode')) {
-      if (typeof demoComponent === 'function') {
-        return demoComponent({children});
-      }
-      return demoComponent;
+  if (organization?.role === 'member' && ConfigStore.get('demoMode')) {
+    if (typeof demoComponent === 'function') {
+      return demoComponent({children});
     }
-    return children;
+    return demoComponent;
   }
+  return children;
 }
 
 export default withOrganization(DemoModeGate);
