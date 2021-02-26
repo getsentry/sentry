@@ -58,5 +58,8 @@ api_docs:
   - 'api-docs/**'
   - 'tests/apidocs/**'
 
-modified-migrations:
+migrations_added:
+  - added: 'src/sentry/migrations/*'
+
+migrations_modified:
   - modified: 'src/sentry/migrations/*'

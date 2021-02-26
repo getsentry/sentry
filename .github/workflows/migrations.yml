@@ -1,14 +1,39 @@
 name: migrations
-on:
-  pull_request:
-    paths:
-      - 'src/sentry/migrations/*'
+on: pull_request
 
 jobs:
+  did-migration-update:
+    name: check if migration
+    runs-on: ubuntu-20.04
+    timeout-minutes: 3
+    steps:
+      - name: Checkout sentry
+        uses: actions/checkout@v2
+
+      - name: Match migration files
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+  modified-migration:
+    name: check modified migration
+    runs-on: ubuntu-20.04
+    timeout-minutes: 4
+    needs: did-migration-update
+    steps:
+      - name: Failure because of modified migration
+        shell: bash
+        if: needed.changes.outputs.migrations_modified == 'true'
+        run: |
+          echo "We do not allow modifying migrations. Use GH admin if you still need to merge." && exit 1
+
   sql:
     name: Generate SQL
     runs-on: ubuntu-20.04
     timeout-minutes: 8
+    needs: did-migration-update
 
     steps:
       # Checkout master to run all merged migrations.
@@ -54,8 +79,8 @@ jobs:
       - name: Get changed migration files
         id: file
         run: |
-          echo $(git diff --diff-filter=AM --name-only origin/master HEAD)
-          echo "::set-output name=modified::$(git diff --diff-filter=AM --name-only origin/master HEAD | grep 'src/sentry/migrations/')"
+          echo $(git diff --diff-filter=A --name-only origin/master HEAD)
+          echo "::set-output name=added::$(git diff --diff-filter=A --name-only origin/master HEAD | grep 'src/sentry/migrations/')"
 
       - name: Generate SQL for migration
         uses: getsentry/action-migrations@v1.0.7
@@ -63,4 +88,4 @@ jobs:
           SENTRY_LOG_LEVEL: ERROR
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          migration: ${{ steps.file.outputs.modified }}
+          migration: ${{ steps.file.outputs.added }}

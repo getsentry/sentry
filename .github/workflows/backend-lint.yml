@@ -105,26 +105,3 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-
-  modified-migration:
-    name: check modified migration
-    runs-on: ubuntu-20.04
-    timeout-minutes: 4
-
-    steps:
-      - name: Checkout sentry
-        uses: actions/checkout@v2
-
-      - name: Match modified migration files
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          filters: |
-            modified-migrations:
-              - modified: 'src/sentry/migrations/*'
-
-      - name: Failure because of modified migration
-        shell: bash
-        if: steps.changes.outputs.modified-migrations == 'true'
-        run: |
-          echo "We do not allow modifying migrations" && exit 1
