@@ -1,9 +1,8 @@
 import logging
-from django.http import Http404
 
 from rest_framework import status
 from rest_framework.response import Response
-
+from rest_framework.exceptions import NotFound
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ProjectCodeOwners
@@ -27,7 +26,7 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
                 id=codeowners_id, project=kwargs["project"]
             )
         except ProjectCodeOwners.DoesNotExist:
-            raise Http404
+            raise NotFound(detail=f"Cannot find a ProjectCodeOwners with id {codeowners_id}")
 
         return (args, kwargs)
 
@@ -36,8 +35,7 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
         Update a CodeOwners
         `````````````
 
-        :pparam string organization_slug: the slug of the organization the
-                                          file belongs to.
+        :pparam string organization_slug: the slug of the organization.
         :pparam string project_slug: the slug of the project to get.
         :pparam string codeowners_id: id of codeowners object
         :param string raw: the raw CODEOWNERS text

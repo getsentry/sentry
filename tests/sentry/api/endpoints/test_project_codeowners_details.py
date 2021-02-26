@@ -51,6 +51,20 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.data["id"] == str(self.codeowners.id)
         assert response.data["raw"] == data["raw"].strip()
 
+    def test_wrong_codeowners_id(self):
+        self.url = reverse(
+            "sentry-api-0-project-codeowners-details",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_slug": self.project.slug,
+                "codeowners_id": 1000,
+            },
+        )
+
+        response = self.client.put(self.url, self.data)
+        assert response.status_code == 404
+        assert response.data == {"detail": "Cannot find a ProjectCodeOwners with id 1000"}
+
     def test_missing_external_associations_update(self):
         data = {
             "raw": "\n# cool stuff comment\n*.js                    @getsentry/frontend @NisanthanNanthakumar\n# good comment\n\n\n  docs/*  @getsentry/docs @getsentry/ecosystem\nsrc/sentry/*       @AnotherUser\n\n"
