@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {openModal} from 'app/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
@@ -136,6 +137,13 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     ];
   }
 
+  onRequestError(error, args) {
+    Sentry.withScope(scope => {
+      scope.setExtra('errorInfo', args);
+      Sentry.captureException(new Error(error));
+    });
+  }
+
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -184,6 +192,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   };
 
   // don't show the error boundary if the component fails.
+  // capture the endpoint error on onRequestError
   renderError(): React.ReactNode {
     return null;
   }
@@ -269,6 +278,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       </OpenInContainer>
     );
   }
+
   renderBody() {
     const {config, sourceUrl} = this.match || {};
     const {isDismissed, promptLoaded} = this.state;

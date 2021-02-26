@@ -267,6 +267,7 @@ class GitLabApiClient(ApiClient):
             return self.head_cached(request_path, params={"ref": ref})
         except ApiError as e:
             # Gitlab can return 404 or 400 if the file doesn't exist
-            if e.code not in [404, 400]:
+            if e.code != 400:
+
                 raise
             return None
