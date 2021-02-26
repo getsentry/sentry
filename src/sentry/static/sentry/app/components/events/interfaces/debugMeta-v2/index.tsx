@@ -86,7 +86,11 @@ class DebugMeta extends React.PureComponent<Props, State> {
   };
 
   componentDidMount() {
-    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange, undefined);
+    this.unsubscribeFromDebugMetaStore = DebugMetaStore.listen(
+      this.onDebugMetaStoreChange,
+      undefined
+    );
+
     cache.clearAll();
     this.getRelevantImages();
     this.openImageDetailsModal();
@@ -101,17 +105,17 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   componentWillUnmount() {
-    if (this.unsubscribeFromStore) {
-      this.unsubscribeFromStore();
+    if (this.unsubscribeFromDebugMetaStore) {
+      this.unsubscribeFromDebugMetaStore();
     }
   }
 
-  unsubscribeFromStore: any;
+  unsubscribeFromDebugMetaStore: any;
 
   panelTableRef = React.createRef<HTMLDivElement>();
   listRef: List | null = null;
 
-  onStoreChange = (store: {filter: string}) => {
+  onDebugMetaStoreChange = (store: {filter: string}) => {
     const {searchTerm} = this.state;
 
     if (store.filter !== searchTerm) {
