@@ -258,9 +258,15 @@ class GitLabApiClient(ApiClient):
         Path requires file path and ref
         file_path must also be URL encoded Ex. lib%2Fclass%2Erb
         """
-        self.base_url = self.metadata["base_url"]
-        project_id = repo.config["project_id"]
-        encoded_path = quote(path, safe="")
+        try:
+            self.base_url = self.metadata["base_url"]
+            project_id = repo.config["project_id"]
+            encoded_path = quote(path, safe="")
 
-        request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
-        return self.head_cached(request_path, params={"ref": ref})
+            request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
+            return self.head_cached(request_path, params={"ref": ref})
+        except ApiError as e:
+            # Gitlab can return 404 or 400 if the file doesn't exist
+            if e.code != 400:
+                raise
+            return None
