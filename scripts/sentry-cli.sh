@@ -37,11 +37,19 @@ _sentry_err_trap() {
   echo "@exit_code:${_exit_code}" >> "$_SENTRY_TRACEBACK_FILE"
 
   : >> "$_SENTRY_LOG_FILE"
+  cat "$_SENTRY_LOG_FILE"
+  # This command is significantly modified
+  # SENTRY_LAST_EVENT=$(
+  #   SENTRY_DSN=$_SENTRY_DSN /usr/local/bin/sentry-cli \
+  #   bash-hook --send-event \
+  #   --log-level trace \
+  #   --traceback "$_SENTRY_TRACEBACK_FILE" \
+  #   --log "$_SENTRY_LOG_FILE" \
+  #   --no-exit)
   SENTRY_LAST_EVENT=$(
     SENTRY_DSN=$_SENTRY_DSN /usr/local/bin/sentry-cli \
-    bash-hook --send-event \
-    --traceback "$_SENTRY_TRACEBACK_FILE" \
-    --log "$_SENTRY_LOG_FILE" )
+    send-event \
+    --logfile "$_SENTRY_TRACEBACK_FILE")
   echo ""
   echo "*** Issue $SENTRY_LAST_EVENT was reported to Sentry.io"
   cat "$_SENTRY_TRACEBACK_FILE"
