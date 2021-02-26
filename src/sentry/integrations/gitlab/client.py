@@ -268,6 +268,5 @@ class GitLabApiClient(ApiClient):
         except ApiError as e:
             # Gitlab can return 404 or 400 if the file doesn't exist
             if e.code != 400:
-
                 raise
             return None
