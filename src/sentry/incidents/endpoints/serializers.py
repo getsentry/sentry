@@ -304,7 +304,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     )
     threshold_period = serializers.IntegerField(default=1, min_value=1, max_value=20)
     aggregate = serializers.CharField(required=True, min_length=1)
-    owner = serializers.CharField(required=True)
+    owner = serializers.CharField(
+        required=False
+    )  # This will be set to required=True once the frontend starts sending it.
 
     class Meta:
         model = AlertRule

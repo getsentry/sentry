@@ -411,9 +411,7 @@ class AlertRule(Model):
     def owner(self):
         owner = self.user if self.user else self.team
         if owner:
-            owner_id = Actor(owner.id, type(owner)).get_actor_id()
-            return Actor.from_actor_identifier(owner_id)
-
+            return Actor(owner.id, type(owner))
         return None
 
 
