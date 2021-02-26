@@ -116,43 +116,42 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                       <SwitchOrganization canCreateOrganization={canCreateOrg} />
                     </SidebarMenuItem>
                   )}
-
-                  <Divider />
                 </React.Fragment>
               )}
 
-              {!!user && (
-                <React.Fragment>
-                  <UserSummary to="/settings/account/details/">
-                    <UserBadgeNoOverflow user={user} avatarSize={32} />
-                  </UserSummary>
+              <DemoModeGate>
+                {!!user && (
+                  <React.Fragment>
+                    <Divider />
+                    <UserSummary to="/settings/account/details/">
+                      <UserBadgeNoOverflow user={user} avatarSize={32} />
+                    </UserSummary>
 
-                  <div>
-                    <SidebarMenuItem to="/settings/account/">
-                      {t('User settings')}
-                    </SidebarMenuItem>
-                    <SidebarMenuItem to="/settings/account/api/">
-                      {t('API keys')}
-                    </SidebarMenuItem>
-                    {(user.isStaff || user.isSuperuser) && (
-                      <SidebarMenuItem to="/settings/account/api/mobile-app/">
-                        {t('Mobile app')}
+                    <div>
+                      <SidebarMenuItem to="/settings/account/">
+                        {t('User settings')}
                       </SidebarMenuItem>
-                    )}
-                    {user.isSuperuser && (
-                      <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
-                    )}
-                    <DemoModeGate>
+                      <SidebarMenuItem to="/settings/account/api/">
+                        {t('API keys')}
+                      </SidebarMenuItem>
+                      {(user.isStaff || user.isSuperuser) && (
+                        <SidebarMenuItem to="/settings/account/api/mobile-app/">
+                          {t('Mobile app')}
+                        </SidebarMenuItem>
+                      )}
+                      {user.isSuperuser && (
+                        <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
+                      )}
                       <SidebarMenuItem
                         data-test-id="sidebarSignout"
                         onClick={handleLogout}
                       >
                         {t('Sign out')}
                       </SidebarMenuItem>
-                    </DemoModeGate>
-                  </div>
-                </React.Fragment>
-              )}
+                    </div>
+                  </React.Fragment>
+                )}
+              </DemoModeGate>
             </OrgAndUserMenu>
           )}
         </SidebarDropdownRoot>
