@@ -239,7 +239,10 @@ export function getExpandedResults(
     return column;
   });
 
-  if (fieldSet.size === 0) {
+  // id should be default column when expanded results in no columns; but only if
+  // the Discover query's columns is non-empty.
+  // This typically occurs in Discover drilldowns.
+  if (fieldSet.size === 0 && expandedColumns.length) {
     expandedColumns[0] = {kind: 'field', field: 'id'};
   }
 

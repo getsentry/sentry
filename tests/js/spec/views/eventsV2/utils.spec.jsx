@@ -411,6 +411,13 @@ describe('getExpandedResults()', function () {
     expect(result.query).toEqual('event.type:error custom_tag:tag_value');
   });
 
+  it('generate eventview from an empty eventview', () => {
+    const view = EventView.fromLocation({query: {}});
+    const result = getExpandedResults(view, {some_tag: 'value'}, {});
+    expect(result.fields).toEqual([]);
+    expect(result.query).toEqual('some_tag:value');
+  });
+
   it('applies array value conditions from event data', () => {
     const view = new EventView({
       ...state,
