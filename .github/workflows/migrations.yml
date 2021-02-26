@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 8
     needs: did-migration-update
-    if: needs.changes.outputs.migrations_modified
+    if: needs.changes.outputs.migrations_added
 
     steps:
       # Checkout master to run all merged migrations.
