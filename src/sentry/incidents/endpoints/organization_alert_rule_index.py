@@ -46,6 +46,16 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=project_ids
         )
 
+        name = request.get("name", None)
+        teams = request.get("teams", [])
+        if teams:
+            alert_rules = alert_rules.filter(team_id__in=teams)
+            issue_rules = issue_rules.filter(team_id__in=teams)
+
+        if name:
+            alert_rules = alert_rules.filter(name__contains=name)
+            issue_rules = issue_rules.filter(label__contains=name)
+
         is_asc = request.GET.get("asc", False) == "1"
         sort_key = request.GET.get("sort", "date_added")
         rule_sort_key = (
