@@ -136,6 +136,7 @@ class NotificationSetting(Model):
                 "type",
             ),
         )
+        index_together = (("target_type", "target_identifier"),)
 
     __repr__ = sane_repr(
         "scope_type",
