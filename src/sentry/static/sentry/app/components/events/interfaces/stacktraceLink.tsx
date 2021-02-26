@@ -179,9 +179,9 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     }
   }
 
-  handleSubmit() {
+  handleSubmit = () => {
     this.reloadData();
-  }
+  };
 
   // let the ErrorBoundary handle errors by raising it
   renderError(): React.ReactNode {

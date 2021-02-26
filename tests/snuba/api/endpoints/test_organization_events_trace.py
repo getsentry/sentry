@@ -1,4 +1,5 @@
 from uuid import uuid4
+from datetime import timedelta
 
 from django.core.urlresolvers import reverse
 
@@ -7,16 +8,18 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-class OrganizationEventsTrendsEndpointBase(APITestCase, SnubaTestCase):
+class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
     FEATURES = ["organizations:trace-view-quick", "organizations:global-views"]
 
-    def create_event(self, trace, transaction, spans, parent_span_id, project_id):
+    def create_event(self, trace, transaction, spans, parent_span_id, project_id, duration=4000):
+        start = before_now(minutes=1, milliseconds=duration)
+        end = start + timedelta(milliseconds=duration)
         data = load_data(
             "transaction",
             trace=trace,
             spans=spans,
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=5),
+            timestamp=end,
+            start_timestamp=start,
         )
         data["transaction"] = transaction
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
@@ -56,6 +59,7 @@ class OrganizationEventsTrendsEndpointBase(APITestCase, SnubaTestCase):
             ],
             parent_span_id=None,
             project_id=self.project.id,
+            duration=3000,
         )
 
         # First Generation
@@ -75,6 +79,7 @@ class OrganizationEventsTrendsEndpointBase(APITestCase, SnubaTestCase):
                 ],
                 parent_span_id=root_span_id,
                 project_id=self.create_project(organization=self.organization).id,
+                duration=2000,
             )
             for i, (root_span_id, gen1_span_id) in enumerate(
                 zip(self.root_span_ids, self.gen1_span_ids)
@@ -98,6 +103,7 @@ class OrganizationEventsTrendsEndpointBase(APITestCase, SnubaTestCase):
                 ],
                 parent_span_id=gen1_span_id,
                 project_id=self.create_project(organization=self.organization).id,
+                duration=1000,
             )
             for i, (gen1_span_id, gen2_span_id) in enumerate(
                 zip(self.gen1_span_ids, self.gen2_span_ids)
@@ -111,6 +117,7 @@ class OrganizationEventsTrendsEndpointBase(APITestCase, SnubaTestCase):
             spans=[],
             project_id=self.create_project(organization=self.organization).id,
             parent_span_id=self.gen2_span_ids[0],
+            duration=500,
         )
 
         self.url = reverse(
@@ -119,7 +126,7 @@ class OrganizationEventsTrendsEndpointBase(APITestCase, SnubaTestCase):
         )
 
 
-class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpointBase):
+class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace-light"
 
     def test_no_projects(self):
@@ -338,7 +345,7 @@ class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpoint
         assert event["parent_span_id"] == self.gen2_span_ids[0]
 
 
-class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsEndpointBase):
+class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace"
 
     def assert_trace_data(self, root, gen2_no_children=True):
@@ -347,20 +354,29 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsEndpointBase)
         assert root["parent_event_id"] is None
         assert root["parent_span_id"] is None
         assert root["generation"] == 0
+        assert root["transaction.duration"] == 3000
+        assert root["timestamp"] == self.root_event.data["timestamp"]
+        assert root["start_timestamp"] == self.root_event.data["start_timestamp"]
         assert len(root["children"]) == 3
 
         for i, gen1 in enumerate(root["children"]):
             assert gen1["event_id"] == self.gen1_events[i].event_id
             assert gen1["parent_event_id"] == self.root_event.event_id
             assert gen1["parent_span_id"] == self.root_span_ids[i]
+            assert gen1["timestamp"] == self.gen1_events[i].data["timestamp"]
+            assert gen1["start_timestamp"] == self.gen1_events[i].data["start_timestamp"]
             assert gen1["generation"] == 1
+            assert gen1["transaction.duration"] == 2000
             assert len(gen1["children"]) == 1
 
             gen2 = gen1["children"][0]
             assert gen2["event_id"] == self.gen2_events[i].event_id
             assert gen2["parent_event_id"] == self.gen1_events[i].event_id
             assert gen2["parent_span_id"] == self.gen1_span_ids[i]
+            assert gen2["timestamp"] == self.gen2_events[i].data["timestamp"]
+            assert gen2["start_timestamp"] == self.gen2_events[i].data["start_timestamp"]
             assert gen2["generation"] == 2
+            assert gen2["transaction.duration"] == 1000
 
             # Only the first gen2 descendent has a child
             if i == 0:
@@ -369,7 +385,10 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsEndpointBase)
                 assert gen3["event_id"] == self.gen3_event.event_id
                 assert gen3["parent_event_id"] == self.gen2_events[i].event_id
                 assert gen3["parent_span_id"] == self.gen2_span_ids[i]
+                assert gen3["timestamp"] == self.gen3_event.data["timestamp"]
+                assert gen3["start_timestamp"] == self.gen3_event.data["start_timestamp"]
                 assert gen3["generation"] == 3
+                assert gen3["transaction.duration"] == 500
                 assert len(gen3["children"]) == 0
             elif gen2_no_children:
                 assert len(gen2["children"]) == 0
