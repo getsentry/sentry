@@ -28,7 +28,7 @@ function EmptyTrace({children}: Pick<QueryProps, 'children'>) {
   return (
     <React.Fragment>
       {children({
-        isLoading: true,
+        isLoading: false,
         error: null,
         trace: null,
       })}

@@ -83,20 +83,32 @@ export default function QuickTrace({
   );
 }
 
-type QuickTracePillsProps = Pick<QuickTraceQueryChildrenProps, 'type'> & {
+type QuickTracePillsProps = {
+  type: QuickTraceQueryChildrenProps['type'];
   event: Event;
   trace: TraceLite;
   location: Location;
   organization: OrganizationSummary;
 };
 
-function QuickTracePills({event, trace, location, organization}: QuickTracePillsProps) {
+function QuickTracePills({
+  type,
+  event,
+  trace,
+  location,
+  organization,
+}: QuickTracePillsProps) {
   // non transaction events are currently unsupported
   if (!isTransaction(event)) {
     return null;
   }
 
-  const {root, ancestors, parent, children, descendants} = parseQuickTrace(trace, event);
+  const parsedQuickTrace = parseQuickTrace(type, trace, event);
+  if (parsedQuickTrace === null) {
+    return <React.Fragment>{'\u2014'}</React.Fragment>;
+  }
+
+  const {root, ancestors, parent, children, descendants} = parsedQuickTrace;
 
   const nodes: React.ReactNode[] = [];
 
@@ -122,7 +134,7 @@ function QuickTracePills({event, trace, location, organization}: QuickTracePills
     nodes.push(<TraceConnector key="root-connector" />);
   }
 
-  if (ancestors.length) {
+  if (ancestors?.length) {
     const seeAncestorsText = tn(
       'View the child transaction of this event.',
       'View all child transactions of this event.',
@@ -222,7 +234,7 @@ function QuickTracePills({event, trace, location, organization}: QuickTracePills
     );
   }
 
-  if (descendants.length) {
+  if (descendants?.length) {
     const seeDescedantsText = tn(
       'View the descendant transaction of this event.',
       'View all descendant transactions of this event.',

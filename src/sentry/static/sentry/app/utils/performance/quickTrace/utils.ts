@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
 
 import {Client} from 'app/api';
@@ -5,6 +6,7 @@ import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/util
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {Event, EventTransaction} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
+import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/quickTraceQuery';
 import {
   EventLite,
   RequestProps,
@@ -76,61 +78,116 @@ function simplifyEvent(event: TraceFull): EventLite {
   return omit(event, 'children');
 }
 
-export function parseQuickTrace(trace: TraceLite, event: Event) {
+type ParsedQuickTrace = {
+  /**
+   * `null` represents the lack of a root. It may still have a parent
+   */
+  root: EventLite | null;
+  /**
+   * `[]` represents the lack of ancestors in a full quick trace
+   * `null` represents the uncertainty of ancestors in a lite quick trace
+   */
+  ancestors: TraceLite | null;
+  /**
+   * `null` represents either the lack of a direct parent or the uncertainty
+   * of what the parent is
+   */
+  parent: EventLite | null;
+  current: EventLite;
+  /**
+   * `[]` represents the lack of children in a full/lite quick trace
+   */
+  children: TraceLite;
+  /**
+   * `[]` represents the lack of descendants in a full quick trace
+   * `null` represents the uncertainty of descendants in a lite quick trace
+   */
+  descendants: TraceLite | null;
+};
+
+export function parseQuickTrace(
+  traceType: QuickTraceQueryChildrenProps['type'],
+  trace: TraceLite,
+  event: Event
+): ParsedQuickTrace | null {
+  const isFullTrace = traceType === 'full';
+
   const current = trace.find(e => e.event_id === event.id) ?? null;
-  const currentGeneration = current?.generation ?? null;
+  if (current === null) {
+    /**
+     * The current event should always be present in the trace, if not
+     * there is no reason to at the rest for the quick trace.
+     */
+    Sentry.captureException(new Error('Current event not in quick trace'));
+    return null;
+  }
 
-  const parent = trace.find(e => e.event_id === current?.parent_event_id) ?? null;
-  const parentGeneration = parent?.generation ?? null;
+  /**
+   * The parent event is the direct ancestor of the current event.
+   * This takes priority over the root, meaning if the parent is
+   * the root of the trace, this favours showing it as the parent.
+   */
+  const parent = trace.find(e => e.event_id === current.parent_event_id) ?? null;
 
+  /**
+   * The root event is the first event in the trace. This has ower priority
+   * than the parent event, meaning if the root event is the parent event of
+   * the current event, this favours showing it as the parent event.
+   */
   const root =
     trace.find(
       e =>
-        e.event_id !== event.id && e.event_id !== parent?.event_id && e.generation === 0
+        // a root can't be the current event
+        e.event_id !== event.id &&
+        // a root can't be the direct parent
+        e.event_id !== parent?.event_id &&
+        // a root has to to be the first generation
+        e.generation === 0
     ) ?? null;
-  const rootGeneration = root?.generation ?? null;
 
-  const ancestors = trace.filter(({generation}) => {
-    if (generation === null) {
-      return false;
+  const isChildren = e => e.parent_event_id === current.event_id;
+
+  const isDescendant = e =>
+    // the current generation needs to be known to determine a descendant
+    current.generation !== null &&
+    // the event's generation needs to be known to determine a descendant
+    e.generation !== null &&
+    // a descendant is the generation after the direct children
+    current.generation + 1 < e.generation;
+
+  const isAncestor = e =>
+    // the current generation needs to be known to determine an ancestor
+    current.generation !== null &&
+    // the event's generation needs to be known to determine an ancestor
+    e.generation !== null &&
+    // an ancestor cant be the root
+    e.generation > 0 &&
+    // an ancestor is the generation before the direct parent
+    current.generation - 1 > e.generation;
+
+  const ancestors: TraceLite | null = isFullTrace ? [] : null;
+  const children: TraceLite = [];
+  const descendants: TraceLite | null = isFullTrace ? [] : null;
+
+  trace.forEach(e => {
+    if (isChildren(e)) {
+      children.push(e);
+    } else if (isFullTrace) {
+      if (isAncestor(e)) {
+        ancestors?.push(e);
+      } else if (isDescendant(e)) {
+        descendants?.push(e);
+      }
     }
-
-    if (currentGeneration !== null && currentGeneration <= generation) {
-      return false;
-    }
-
-    if (parentGeneration !== null && parentGeneration <= generation) {
-      return false;
-    }
-
-    if (rootGeneration !== null && rootGeneration >= generation) {
-      return false;
-    }
-
-    return true;
-  });
-
-  const children = trace.filter(e => e.parent_event_id === event.id);
-
-  const descendants = trace.filter(({generation}) => {
-    if (generation === null) {
-      return false;
-    }
-
-    if (currentGeneration !== null && currentGeneration + 1 >= generation) {
-      return false;
-    }
-
-    return true;
   });
 
   return {
     root,
-    ancestors: sortTraceLite(ancestors),
+    ancestors: ancestors === null ? null : sortTraceLite(ancestors),
     parent,
     current,
     children: sortTraceLite(children),
-    descendants: sortTraceLite(descendants),
+    descendants: descendants === null ? null : sortTraceLite(descendants),
   };
 }
 
