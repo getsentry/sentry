@@ -329,6 +329,7 @@ def get_release_health_data_overview(
     for key in rv:
         adoption_info = release_adoption.get(key) or {}
         rv[key]["adoption"] = adoption_info.get("adoption")
+        rv[key]["sessions_adoption"] = adoption_info.get("sessions_adoption")
         rv[key]["total_users_24h"] = adoption_info.get("users_24h")
         rv[key]["total_sessions_24h"] = adoption_info.get("sessions_24h")
 
