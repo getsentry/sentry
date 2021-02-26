@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 4
     needs: did-migration-change
-    if: needs.did-migration-change.outputs.modified
+    if: ${{ needs.did-migration-change.outputs.modified == 'true' }}
 
     steps:
       - name: Failure because of modified migration
@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 8
     needs: did-migration-change
-    if: needs.did-migration-change.outputs.added
+    if: ${{ needs.did-migration-change.outputs.added == 'true' }}
 
     steps:
       # Checkout master to run all merged migrations.
