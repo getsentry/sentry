@@ -171,6 +171,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             "timeWindow": "300",
             "projects": [self.project.slug],
             "name": "OneTriggerOnlyCritical",
+            "owner": self.user.id,
             "resolveThreshold": 100,
             "thresholdType": 1,
             "triggers": [
@@ -195,6 +196,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             "timeWindow": "300",
             "projects": [self.project.slug],
             "name": "OneTriggerOnlyCritical",
+            "owner": self.user.id,
             "resolveThreshold": 200,
             "thresholdType": 1,
             "triggers": [
@@ -223,6 +225,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             "thresholdType": AlertRuleThresholdType.ABOVE.value,
             "projects": [self.project.slug],
             "name": "JustATestRuleWithNoTriggers",
+            "owner": self.user.id,
         }
 
         with self.feature("organizations:incidents"):
@@ -238,6 +241,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             "timeWindow": "300",
             "projects": [self.project.slug],
             "name": "JustATestRule",
+            "owner": self.user.id,
             "resolveThreshold": 100,
             "thresholdType": 1,
             "triggers": [
@@ -264,6 +268,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             "timeWindow": "300",
             "projects": [self.project.slug],
             "name": "JustATestRule",
+            "owner": self.user.id,
             "resolveThreshold": 100,
             "thresholdType": 1,
             "triggers": [{"label": "critical", "alertThreshold": 75}],
@@ -287,6 +292,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
                     self.create_project(organization=self.create_organization()).slug,
                 ],
                 name="an alert",
+                owner=self.user.id,
                 thresholdType=1,
                 query="hi",
                 aggregate="count()",
