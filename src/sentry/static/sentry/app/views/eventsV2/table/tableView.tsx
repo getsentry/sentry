@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'app/actionCreators/modal';
@@ -128,7 +129,15 @@ class TableView extends React.Component<TableViewProps> {
 
       return [
         <Tooltip key={`eventlink${rowIndex}`} title={t('Open Group')}>
-          <Link to={target} data-test-id="open-group">
+          <Link
+            to={target}
+            data-test-id="open-group"
+            onClick={() => {
+              if (nextView.isEqualTo(eventView)) {
+                Sentry.captureException(new Error('Failed to drilldown'));
+              }
+            }}
+          >
             <StyledIcon size="sm" />
           </Link>
         </Tooltip>,
