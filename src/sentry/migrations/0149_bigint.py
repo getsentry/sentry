@@ -17,7 +17,6 @@ class Migration(migrations.Migration):
     is_dangerous = True
 
     # This flag is used to decide whether to run this migration in a transaction or not.
-    # foo
     # By default we prefer to run in a transaction, but for migrations where you want
     # to `CREATE INDEX CONCURRENTLY` this needs to be set to False. Typically you'll
     # want to create an index concurrently when adding one to an existing table.
