@@ -1,6 +1,7 @@
 from enum import Enum
 
 from sentry.db.models import (
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     Model,
     sane_repr,
@@ -93,7 +94,7 @@ class NotificationSetting(Model):
         null=False,
     )
     # user_id, organization_id, project_id
-    scope_identifier = BoundedPositiveIntegerField(null=False)
+    scope_identifier = BoundedBigIntegerField(null=False)
 
     target_type = BoundedPositiveIntegerField(
         choices=(
@@ -103,7 +104,7 @@ class NotificationSetting(Model):
         null=False,
     )
     # user_id, team_id
-    target_identifier = BoundedPositiveIntegerField(null=False)
+    target_identifier = BoundedBigIntegerField(null=False)
 
     provider = BoundedPositiveIntegerField(
         choices=(
