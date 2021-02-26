@@ -15,6 +15,7 @@ class Migration(migrations.Migration):
     #   they can be monitored. Since data migrations will now hold a transaction open
     #   this is even more important.
     # - Adding columns to highly active tables, even ones that are NULL.
+    # foo
     is_dangerous = False
 
     # This flag is used to decide whether to run this migration in a transaction or not.
