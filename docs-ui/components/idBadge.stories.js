@@ -19,7 +19,7 @@ const Header = styled('h2')`
 Header.displayName = 'Header';
 
 export default {
-  title: 'Core/Badges+Tags/IdBadge',
+  title: 'Core/Tags/IdBadge',
   components: IdBadge,
 };
 

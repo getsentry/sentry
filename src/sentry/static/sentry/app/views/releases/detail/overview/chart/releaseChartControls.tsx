@@ -12,7 +12,7 @@ import NOT_AVAILABLE_MESSAGES from 'app/constants/notAvailableMessages';
 import {t} from 'app/locale';
 import {Organization, SelectValue} from 'app/types';
 import {WebVital} from 'app/utils/discover/fields';
-import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 
 export enum YAxis {
   SESSIONS = 'sessions',
@@ -140,8 +140,8 @@ const ReleaseChartControls = ({
         return t('Count over %sms', organization.apdexThreshold);
       case YAxis.COUNT_VITAL:
         return vitalType !== WebVital.CLS
-          ? t('Count over %sms', WEB_VITAL_DETAILS[vitalType].failureThreshold)
-          : t('Count over %s', WEB_VITAL_DETAILS[vitalType].failureThreshold);
+          ? t('Count over %sms', WEB_VITAL_DETAILS[vitalType].poorThreshold)
+          : t('Count over %s', WEB_VITAL_DETAILS[vitalType].poorThreshold);
       case YAxis.SESSIONS:
       default:
         return t('Total Sessions');
@@ -153,13 +153,11 @@ const ReleaseChartControls = ({
       <InlineContainer>
         <SectionHeading key="total-label">{getSummaryHeading()}</SectionHeading>
         <SectionValue key="total-value">{summary}</SectionValue>
-        {(yAxis === YAxis.EVENTS || PERFORMANCE_AXIS.includes(yAxis)) && (
-          <QuestionTooltip
-            position="top"
-            size="sm"
-            title="This count includes only the current release."
-          />
-        )}
+        <QuestionTooltip
+          position="top"
+          size="sm"
+          title={t('This value includes only the current release.')}
+        />
       </InlineContainer>
       <InlineContainer>
         <SecondarySelector

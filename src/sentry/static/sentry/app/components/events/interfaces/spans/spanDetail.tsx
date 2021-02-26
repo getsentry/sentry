@@ -18,16 +18,15 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {assert} from 'app/types/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
 import getDynamicText from 'app/utils/getDynamicText';
+import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
 import withApi from 'app/utils/withApi';
-import withProjects from 'app/utils/withProjects';
-import {QuickTraceContextChildrenProps} from 'app/views/performance/transactionDetails/quickTraceContext';
 
 import * as SpanEntryContext from './context';
 import InlineDocs from './inlineDocs';
@@ -47,7 +46,6 @@ type Props = {
   api: Client;
   orgId: string;
   organization: Organization;
-  projects: Project[];
   event: Readonly<EventTransaction>;
   span: Readonly<ProcessedSpanType>;
   isRoot: boolean;
@@ -92,7 +90,7 @@ class SpanDetail extends React.Component<Props, State> {
     spanID: string,
     traceID: string
   ): Promise<{data: TransactionResult[]}> {
-    const {api, organization, projects, quickTrace, trace, event} = this.props;
+    const {api, organization, quickTrace, trace, event} = this.props;
 
     // Skip doing a request if the results will be behind a disabled button.
     if (!organization.features.includes('discover-basic')) {
@@ -105,19 +103,16 @@ class SpanDetail extends React.Component<Props, State> {
       const traceLite = quickTrace.trace;
       const child = traceLite.find(transaction => transaction.parent_span_id === spanID);
       if (child) {
-        const project = projects.find(proj => parseInt(proj.id, 10) === child.project_id);
-        if (project) {
-          return Promise.resolve({
-            data: [
-              {
-                'project.name': project.slug,
-                transaction: child.transaction,
-                'trace.span': child.span_id,
-                id: child.event_id,
-              },
-            ],
-          });
-        }
+        return Promise.resolve({
+          data: [
+            {
+              'project.name': child.project_slug,
+              transaction: child.transaction,
+              'trace.span': child.span_id,
+              id: child.event_id,
+            },
+          ],
+        });
       }
       return Promise.resolve({data: []});
     }
@@ -650,4 +645,4 @@ function generateSlug(result: TransactionResult): string {
   });
 }
 
-export default withProjects(withApi(SpanDetail));
+export default withApi(SpanDetail);

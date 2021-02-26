@@ -428,15 +428,16 @@ export class Client {
     // compatibility layer which mimics that of the jquery response objects.
     fetchRequest
       .then(async response => {
+        // The Response's body can only be resolved/used at most once.
+        // So we clone the response so we can resolve the body content as text content.
+        // Response objects need to be cloned before its body can be used.
+        const responseClone = response.clone();
+
         let responseJSON: any;
         let responseText: any;
 
-        // Try to get JSON out of the response no matter the status
-        try {
-          responseJSON = await response.json();
-        } catch {
-          // No json came out.. too bad
-        }
+        const {status, statusText} = response;
+        let {ok} = response;
 
         // Try to get text out of the response no matter the status
         try {
@@ -445,7 +446,21 @@ export class Client {
           // No text came out.. too bad
         }
 
-        const {ok, status, statusText} = response;
+        const responseContentType = response.headers.get('content-type');
+        const isResponseJSON = responseContentType?.includes('json');
+
+        const isStatus3XX = status >= 300 && status < 400;
+        if (status !== 204 && !isStatus3XX) {
+          try {
+            responseJSON = await responseClone.json();
+          } catch {
+            // If the MIME type is `application/json` but decoding failed,
+            // this should be an error.
+            if (isResponseJSON) {
+              ok = false;
+            }
+          }
+        }
 
         const emulatedJQueryXHR: any = {
           status,
@@ -455,8 +470,11 @@ export class Client {
           getResponseHeader: (header: string) => response.headers.get(header),
         };
 
+        // Respect the response content-type header
+        const responseData = isResponseJSON ? responseJSON : responseText;
+
         if (ok) {
-          successHandler(responseJSON, statusText, emulatedJQueryXHR);
+          successHandler(responseData, statusText, emulatedJQueryXHR);
         } else {
           globalErrorHandlers.forEach(handler => handler(emulatedJQueryXHR));
           errorHandler(emulatedJQueryXHR, statusText, 'Request not OK');

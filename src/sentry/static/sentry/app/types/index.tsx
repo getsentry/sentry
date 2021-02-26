@@ -1086,17 +1086,25 @@ export enum RepositoryStatus {
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
 
-export type RepositoryProjectPathConfig = {
+type BaseRepositoryProjectPathConfig = {
   id: string;
   projectId: string;
   projectSlug: string;
   repoId: string;
   repoName: string;
-  integrationId: string;
-  provider: BaseIntegrationProvider;
   stackRoot: string;
   sourceRoot: string;
   defaultBranch?: string;
+};
+
+export type RepositoryProjectPathConfig = BaseRepositoryProjectPathConfig & {
+  integrationId: string | null;
+  provider: BaseIntegrationProvider | null;
+};
+
+export type RepositoryProjectPathConfigWithIntegration = BaseRepositoryProjectPathConfig & {
+  integrationId: string;
+  provider: BaseIntegrationProvider;
 };
 
 export type PullRequest = {

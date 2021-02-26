@@ -2,18 +2,22 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'app/actionCreators/modal';
+import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
+import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
-import {t} from 'app/locale';
+import {IconClose} from 'app/icons/iconClose';
+import {t, tct} from 'app/locale';
 import {
   Frame,
   Integration,
   Organization,
   Project,
-  RepositoryProjectPathConfig,
+  RepositoryProjectPathConfigWithIntegration,
 } from 'app/types';
 import {Event} from 'app/types/event';
 import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
@@ -31,13 +35,15 @@ type Props = AsyncComponent['props'] & {
 //format of the ProjectStacktraceLinkEndpoint response
 type StacktraceResultItem = {
   integrations: Integration[];
-  config?: RepositoryProjectPathConfig;
+  config?: RepositoryProjectPathConfigWithIntegration;
   sourceUrl?: string;
   error?: 'file_not_found' | 'stack_root_mismatch';
 };
 
 type State = AsyncComponent['state'] & {
   match: StacktraceResultItem;
+  isDismissed: boolean;
+  promptLoaded: boolean;
 };
 
 class StacktraceLink extends AsyncComponent<Props, State> {
@@ -74,6 +80,45 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     }
   }
 
+  componentDidMount() {
+    this.promptsCheck();
+  }
+
+  async promptsCheck() {
+    const {organization} = this.props;
+
+    const prompt = await promptsCheck(this.api, {
+      organizationId: organization.id,
+      projectId: this.project?.id,
+      feature: 'stacktrace_link',
+    });
+
+    this.setState({
+      isDismissed: promptIsDismissed(prompt),
+      promptLoaded: true,
+    });
+  }
+
+  dismissPrompt() {
+    const {organization} = this.props;
+    promptsUpdate(this.api, {
+      organizationId: organization.id,
+      projectId: this.project?.id,
+      feature: 'stacktrace_link',
+      status: 'dismissed',
+    });
+
+    trackIntegrationEvent(
+      'integrations.stacktrace_link_cta_dismissed',
+      {
+        view: 'stacktrace_issue_details',
+      },
+      this.props.organization
+    );
+
+    this.setState({isDismissed: true});
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, frame, event} = this.props;
     const project = this.project;
@@ -97,6 +142,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       showModal: false,
       sourceCodeInput: '',
       match: {integrations: []},
+      isDismissed: false,
+      promptLoaded: false,
     };
   }
 
@@ -132,9 +179,9 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     }
   }
 
-  handleSubmit() {
+  handleSubmit = () => {
     this.reloadData();
-  }
+  };
 
   // let the ErrorBoundary handle errors by raising it
   renderError(): React.ReactNode {
@@ -150,41 +197,47 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const {organization} = this.props;
     const filename = this.props.frame.filename;
     const platform = this.props.event.platform;
-
     if (this.project && this.integrations.length > 0 && filename) {
       return (
-        <CodeMappingButtonContainer columnQuantity={2}>
-          {t('Link your stack trace to your source code.')}
-          <Button
-            onClick={() => {
-              trackIntegrationEvent(
-                'integrations.stacktrace_start_setup',
-                {
-                  view: 'stacktrace_issue_details',
-                  platform,
-                },
-                this.props.organization,
-                {startSession: true}
-              );
-              openModal(
-                deps =>
-                  this.project && (
-                    <StacktraceLinkModal
-                      onSubmit={this.handleSubmit}
-                      filename={filename}
-                      project={this.project}
-                      organization={organization}
-                      integrations={this.integrations}
-                      {...deps}
+        <Access organization={organization} access={['org:integrations']}>
+          {({hasAccess}) =>
+            hasAccess && (
+              <CodeMappingButtonContainer columnQuantity={2}>
+                {tct('[link:Link your stack trace to your source code.]', {
+                  link: (
+                    <a
+                      onClick={() => {
+                        trackIntegrationEvent(
+                          'integrations.stacktrace_start_setup',
+                          {
+                            view: 'stacktrace_issue_details',
+                            platform,
+                          },
+                          this.props.organization,
+                          {startSession: true}
+                        );
+                        openModal(
+                          deps =>
+                            this.project && (
+                              <StacktraceLinkModal
+                                onSubmit={this.handleSubmit}
+                                filename={filename}
+                                project={this.project}
+                                organization={organization}
+                                integrations={this.integrations}
+                                {...deps}
+                              />
+                            )
+                        );
+                      }}
                     />
-                  )
-              );
-            }}
-            size="xsmall"
-          >
-            {t('Set up Stack Trace Linking')}
-          </Button>
-        </CodeMappingButtonContainer>
+                  ),
+                })}
+                <StyledIconClose size="xs" onClick={() => this.dismissPrompt()} />
+              </CodeMappingButtonContainer>
+            )
+          }
+        </Access>
       );
     }
     return null;
@@ -204,7 +257,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       </CodeMappingButtonContainer>
     );
   }
-  renderMatchWithUrl(config: RepositoryProjectPathConfig, url: string) {
+  renderMatchWithUrl(config: RepositoryProjectPathConfigWithIntegration, url: string) {
     url = `${url}#L${this.props.frame.lineNo}`;
     return (
       <OpenInContainer columnQuantity={2}>
@@ -218,11 +271,17 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
   renderBody() {
     const {config, sourceUrl} = this.match || {};
+    const {isDismissed, promptLoaded} = this.state;
+
     if (config && sourceUrl) {
       return this.renderMatchWithUrl(config, sourceUrl);
     }
     if (config) {
       return this.renderMatchNoUrl();
+    }
+
+    if (!promptLoaded || (promptLoaded && isDismissed)) {
+      return null;
     }
 
     return this.renderNoMatch();
@@ -234,4 +293,9 @@ export {StacktraceLink};
 
 export const CodeMappingButtonContainer = styled(OpenInContainer)`
   justify-content: space-between;
+`;
+
+const StyledIconClose = styled(IconClose)`
+  margin: auto;
+  cursor: pointer;
 `;
