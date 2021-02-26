@@ -3,7 +3,7 @@ on: pull_request
 
 jobs:
   did-migration-update:
-    name: check if migration
+    name: check if migration changes
     runs-on: ubuntu-20.04
     timeout-minutes: 3
     steps:
@@ -17,8 +17,14 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
+      - name: If no migration changes -> fail
+        shell: bash
+        if: needs.changes.outputs.migrations_added != 'true' || needs.changes.outputs.migrations_modified != 'true'
+        run: |
+          echo "Nothing for you to do. We always fail unless we want to trigger the dependent workflows below"
+
   modified-migration:
-    name: check modified migration
+    name: check if modified migration
     runs-on: ubuntu-20.04
     timeout-minutes: 4
     needs: did-migration-update
