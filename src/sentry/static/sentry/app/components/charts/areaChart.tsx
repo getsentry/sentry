@@ -30,13 +30,13 @@ class AreaChart extends React.Component<Props> {
             stack: stacked ? 'area' : undefined,
             name: seriesName,
             data: data.map(({name, value}) => [name, value]),
-            color: colors && colors[i],
             lineStyle: {
+              color: colors?.[i],
               opacity: 1,
               width: 0.4,
             },
             areaStyle: {
-              color: colors && colors[i],
+              color: colors?.[i],
               opacity: 1.0,
             },
             animation: false,

@@ -9,6 +9,7 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import NotAvailable from 'app/components/notAvailable';
+import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -182,6 +183,18 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
     return this.sortCandidates(convertedCandidates, unAppliedCandidates);
   }
 
+  getDebugFilesSettingsLink() {
+    const {organization, projectId, image} = this.props;
+    const orgSlug = organization.slug;
+    const debugId = image?.debug_id;
+
+    if (!orgSlug || !projectId || !debugId) {
+      return undefined;
+    }
+
+    return `/settings/${orgSlug}/projects/${projectId}/debug-symbols/?query=${debugId}`;
+  }
+
   handleDelete = async (debugId: string) => {
     const {organization, projectId} = this.props;
 
@@ -214,6 +227,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
 
     const title = getFileName(code_file);
     const imageAddress = image ? <Address image={image} /> : undefined;
+    const debugFilesSettingsLink = this.getDebugFilesSettingsLink();
 
     return (
       <React.Fragment>
@@ -241,6 +255,20 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
               <Label coloredBg>{t('Architecture')}</Label>
               <Value coloredBg>{architecture ?? <NotAvailable />}</Value>
             </GeneralInfo>
+            {debugFilesSettingsLink && (
+              <SearchInSettingsAction>
+                <Tooltip
+                  title={t(
+                    'Search for this debug file in all images for the %s project',
+                    projectId
+                  )}
+                >
+                  <Button to={debugFilesSettingsLink} size="small">
+                    {t('Search in Settings')}
+                  </Button>
+                </Tooltip>
+              </SearchInSettingsAction>
+            )}
             <Candidates
               candidates={candidates}
               organization={organization}
@@ -269,8 +297,13 @@ export default DebugImageDetails;
 
 const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(4)};
+  grid-gap: ${space(3)};
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const SearchInSettingsAction = styled('div')`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 const GeneralInfo = styled('div')`
