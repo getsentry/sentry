@@ -28,7 +28,7 @@ import DashboardTitle from './title';
 import {DashboardDetails, DashboardState, Widget} from './types';
 import {cloneDashboard} from './utils';
 
-const UNSAVED_MESSAGE = t('You have unsaved changes are you sure you want to leave?');
+const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
 type Props = {
   api: Client;
