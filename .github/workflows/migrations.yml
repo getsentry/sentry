@@ -64,25 +64,3 @@ jobs:
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           migration: ${{ steps.file.outputs.modified }}
-
-  modified-migration:
-    name: Check modified migrations
-    runs-on: ubuntu-20.04
-    timeout-minutes: 4
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Check for migrations changed
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          filters: |
-            modified-migrations:
-              - modified: 'src/sentry/migrations/*'
-
-      - name: Fail if migration is modified
-        shell: bash
-        if: steps.changes.outputs.modified-migrations == 'true'
-        run: |
-          echo "We do not allow modifying migrations" && exit 1
