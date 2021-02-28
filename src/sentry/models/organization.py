@@ -129,6 +129,10 @@ class Organization(Model):
                 "disable_new_visibility_features",
                 "Temporarily opt out of new visibility features and ui",
             ),
+            (
+                "demo_mode",
+                "Mark an organization as a demo org so it will be destroyed 24 hours after being created.",
+            ),
         ),
         default=1,
     )

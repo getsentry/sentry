@@ -32,9 +32,11 @@ class AuthLoginTest(TestCase):
         assert resp.status_code == 302
 
         org = Organization.objects.get(name=org_name)
+        assert org.flags.demo_mode
         slug = slugify(org_name)
         email = create_fake_email(slug, "demo")
         user = User.objects.get(email=email)
+        assert user.flags.demo_mode
 
         assert OrganizationMember.objects.filter(
             user=user, organization=org, role="member"
