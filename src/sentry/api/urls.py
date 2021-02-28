@@ -187,7 +187,11 @@ from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
-from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2, OrganizationProjectStats
+from .endpoints.organization_stats_v2 import (
+    OrganizationStatsEndpointV2,
+    OrganizationProjectStatsDetails,
+    OrganizationProjectStatsIndex,
+)
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
@@ -250,7 +254,6 @@ from .endpoints.project_searches import ProjectSearchesEndpoint
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
-from .endpoints.project_stats import ProjectStatsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_tags import ProjectTagsEndpoint
@@ -1222,8 +1225,13 @@ urlpatterns = [
                     name="sentry-api-0-organization-stats_v2",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/stats_v2/projects/(?P<project_slug>[^\/]+)?/$",
-                    OrganizationProjectStats.as_view(),
+                    r"^(?P<organization_slug>[^\/]+)/stats_v2/projects/$",
+                    OrganizationProjectStatsIndex.as_view(),
+                    name="sentry-api-0-organization-stats_v2",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/stats_v2/projects/(?P<project_slug>[^\/]+)$",
+                    OrganizationProjectStatsDetails.as_view(),
                     name="sentry-api-0-organization-stats_v2",
                 ),
                 url(
@@ -1622,11 +1630,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/searches/(?P<search_id>[^\/]+)/$",
                     ProjectSearchDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-search-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stats/$",
-                    ProjectStatsEndpoint.as_view(),
-                    name="sentry-api-0-project-stats",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/tags/$",
