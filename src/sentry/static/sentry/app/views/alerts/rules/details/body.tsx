@@ -455,6 +455,7 @@ class DetailsBody extends React.Component<Props> {
                       </code>
                     ),
                   })}
+                  {(rule?.query || rule?.dataset) && <br />}
                   {(rule?.query || rule?.dataset) &&
                     tct('Filter: [datasetType] [filter]', {
                       datasetType: rule?.dataset && (
@@ -612,17 +613,6 @@ const ChartParameters = styled('div')`
 
   > * {
     position: relative;
-  }
-
-  > *:not(:last-of-type):after {
-    content: '';
-    display: block;
-    height: 70%;
-    width: 1px;
-    background: ${p => p.theme.gray200};
-    position: absolute;
-    right: -${space(2)};
-    top: 15%;
   }
 `;
 
