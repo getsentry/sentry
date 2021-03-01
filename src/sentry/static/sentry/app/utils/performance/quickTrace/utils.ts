@@ -33,7 +33,10 @@ type PathNode = {
  * This method additionally flattens the trace into an array of the transactions in
  * the trace.
  */
-export function flattenRelevantPaths(event: Event, traceFull: TraceFull): TraceLite {
+export function flattenRelevantPaths(
+  currentEvent: Event,
+  traceFull: TraceFull
+): TraceLite {
   const relevantPath: TraceLite = [];
   const events: TraceFull[] = [];
 
@@ -46,7 +49,7 @@ export function flattenRelevantPaths(event: Event, traceFull: TraceFull): TraceL
   const paths: PathNode[] = [{event: traceFull, path: []}];
   while (paths.length) {
     const current = paths.shift()!;
-    if (current.event.event_id === event.id) {
+    if (current.event.event_id === currentEvent.id) {
       for (const node of current.path) {
         relevantPath.push(node);
       }
@@ -110,6 +113,10 @@ export function parseQuickTrace(
   trace: TraceLite,
   event: Event
 ): ParsedQuickTrace | null {
+  if (traceType === 'empty') {
+    return null;
+  }
+
   const isFullTrace = traceType === 'full';
 
   const current = trace.find(e => e.event_id === event.id) ?? null;
