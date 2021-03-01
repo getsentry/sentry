@@ -161,26 +161,20 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         """ For the full event trace, we return the results as a graph instead of a flattened list """
         parent_events = {}
         result = parent_events[root["id"]] = self.serialize_event(root, None, 0, True)
-        with sentry_sdk.start_span(
-            op="nodestore", description=f"retrieving {len(parent_map)} nodes"
-        ) as span:
-            span.set_data("total nodes", len(parent_map))
-            node_data = {
-                event.event_id: event
-                for event in eventstore.get_events(
-                    eventstore.Filter(
-                        project_ids=params["project_id"],
-                        event_ids=[event["id"] for event in parent_map.values()],
-                    )
-                )
-            }
 
         with sentry_sdk.start_span(op="building.trace", description="full trace"):
             to_check = deque([root])
             iteration = 0
             while to_check:
                 current_event = to_check.popleft()
-                event = node_data.get(current_event["id"])
+
+                # This is faster than doing a call to get_events, since get_event_by_id only makes a call to snuba
+                # when non transaction events are included.
+                with sentry_sdk.start_span(op="nodestore", description="get_event_by_id"):
+                    event = eventstore.get_event_by_id(
+                        current_event["project.id"], current_event["id"]
+                    )
+
                 previous_event = parent_events[current_event["id"]]
 
                 previous_event.update(
