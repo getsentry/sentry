@@ -26,25 +26,27 @@ class ArrayValue extends React.Component<Props, State> {
     const {expanded} = this.state;
     const {value} = this.props;
     return (
-      <ArrayContainer>
+      <ArrayContainer expanded={expanded}>
         {expanded &&
           value
             .slice(0, value.length - 1)
             .map((item, i) => <ArrayItem key={`${i}:${item}`}>{item}</ArrayItem>)}
-        <span>
-          {value.slice(-1)[0]}
-          {value.length > 1 ? (
+        <ArrayItem>{value.slice(-1)[0]}</ArrayItem>
+        {value.length > 1 ? (
+          <ButtonContainer>
             <button onClick={this.handleToggle}>
               {expanded ? t('[collapse]') : t('[+%s more]', value.length - 1)}
             </button>
-          ) : null}
-        </span>
+          </ButtonContainer>
+        ) : null}
       </ArrayContainer>
     );
   }
 }
-const ArrayContainer = styled('div')`
-  ${overflowEllipsis};
+
+const ArrayContainer = styled('div')<{expanded: boolean}>`
+  display: flex;
+  flex-direction: ${p => (p.expanded ? 'column' : 'row')};
 
   & button {
     background: none;
@@ -58,8 +60,15 @@ const ArrayContainer = styled('div')`
 `;
 
 const ArrayItem = styled('span')`
+  flex-shrink: 1;
   display: block;
+
   ${overflowEllipsis};
+  width: unset;
+`;
+
+const ButtonContainer = styled('div')`
+  white-space: nowrap;
 `;
 
 export default ArrayValue;
