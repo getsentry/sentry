@@ -44,7 +44,7 @@ jobs:
 
     steps:
       # Checkout master to run all merged migrations.
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
         with:
           ref: master
 
@@ -78,21 +78,10 @@ jobs:
         run: |
           sentry upgrade --noinput
 
-      # Checkout the current ref
-      - uses: actions/checkout@v1
-        with:
-          clean: false
-
-      - name: Get changed migration files
-        id: file
-        run: |
-          echo $(git diff --diff-filter=A --name-only origin/master HEAD)
-          echo "::set-output name=added::$(git diff --diff-filter=A --name-only origin/master HEAD | grep 'src/sentry/migrations/')"
-
       - name: Generate SQL for migration
         uses: getsentry/action-migrations@v1.0.7
         env:
           SENTRY_LOG_LEVEL: ERROR
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          migration: ${{ steps.file.outputs.added }}
+          migration: ${{ steps.changes.outputs.migrations_added_files }}
