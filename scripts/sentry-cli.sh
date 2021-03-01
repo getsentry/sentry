@@ -52,9 +52,10 @@ _sentry_err_trap() {
   # This line is differing from upstream _sentry_err_trap
   _wait_for_file "$_SENTRY_LOG_FILE"
 
+  # The specified DSN reports to `sentry-dev-env` project in Sentry.io
   # shellcheck disable=SC2155
   export SENTRY_LAST_EVENT=$(
-    SENTRY_DSN=$SENTRY_DEVENV_DSN \
+    SENTRY_DSN=https://23670f54c6254bfd9b7de106637808e9@o1.ingest.sentry.io/1492057 \
     /usr/local/bin/sentry-cli bash-hook --send-event \
     --traceback "$_SENTRY_TRACEBACK_FILE" --log "$_SENTRY_LOG_FILE" )
   rm -f "$_SENTRY_TRACEBACK_FILE" "$_SENTRY_LOG_FILE"
