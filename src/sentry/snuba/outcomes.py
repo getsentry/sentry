@@ -12,6 +12,7 @@ from sentry.utils.snuba import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry_relay import DataCategory
+from collections import defaultdict
 
 # from .discover import zerofill
 
@@ -19,10 +20,57 @@ from sentry_relay import DataCategory
 ERROR_DATA_CATEGORIES = [DataCategory.DEFAULT, DataCategory.ERROR, DataCategory.SECURITY]
 
 
+def group_timestamps(result, groupby):
+    tranformed_results = {}
+    # input: {'project_id': 5, 'category': 1, 'time': 1614470400, 'times_seen': 8, 'quantity': 8}
+    # should i be worried about dictorder?
+    # output:
+    # {'project_id': 5, "errors": { 'times_seen': 8, 'quantity': 8} 'time': 1614470400,} "transactions"
+    grouping_key = groupby.copy()
+    if "category" in grouping_key:
+        grouping_key.remove("category")
+    for row in result:
+        row["category"] = (
+            DataCategory.ERROR
+            if row["category"] in ERROR_DATA_CATEGORIES
+            else DataCategory(row["category"])
+        )
+        uniq_key = "-".join([str(row[gb]) for gb in grouping_key])
+        parsed_dc = DataCategory(row["category"]).api_name()
+        if uniq_key in tranformed_results:
+            if parsed_dc in tranformed_results[uniq_key]:
+                tranformed_results[uniq_key][parsed_dc]["quantity"] += row["quantity"]
+                tranformed_results[uniq_key][parsed_dc]["times_seen"] += row["times_seen"]
+            else:
+                tranformed_results[uniq_key][parsed_dc] = {
+                    "quantity": row["quantity"],
+                    "times_seen": row["times_seen"],
+                }
+        else:
+            tranformed_results[uniq_key] = {field: row[field] for field in grouping_key}
+            tranformed_results[uniq_key][parsed_dc] = {
+                "quantity": row["quantity"],
+                "times_seen": row["times_seen"],
+            }
+
+    result = list(tranformed_results.values())
+    return result
+
+
+def group_by_project(result):
+    ret_results = defaultdict(list)
+    for row in result:
+        proj_id = row["project_id"]
+        del row["project_id"]
+        ret_results[proj_id].append(row)
+    return ret_results
+
+
 def query(groupby, start, end, rollup, aggregations, orderby, fields=None, filter_keys=None):
 
     # if roll up >= use hourly, else use raw
     # add spanzzz
+    # what about sessions?
     result = raw_query(
         start=start,
         end=end,
@@ -39,10 +87,21 @@ def query(groupby, start, end, rollup, aggregations, orderby, fields=None, filte
         # offset=offset,
         # referrer=referrer,
     )
-    # add logic for grouping datacategories as errors here
+
+    #
     #
 
-    result = zerofill(result["data"], start, end, rollup, "timestamp")
+    # add logic for grouping datacategories as errors here
+    result = group_timestamps(result["data"], groupby)
+    if "project_id" in groupby:
+        result = group_by_project(result)
+        result = {
+            project_id: zerofill(vals, start, end, rollup, "time")
+            for project_id, vals in result.items()
+        }
+    else:
+        result = zerofill(result, start, end, rollup, "time")
+
     return SnubaTSResult({"data": result}, start, end, rollup)
 
 
