@@ -21,6 +21,7 @@ class Filter:
     project_ids (Sequence[int]): List of project IDs to fetch - default None
     group_ids (Sequence[int]): List of group IDs to fetch - default None
     event_ids (Sequence[int]): List of event IDs to fetch - default None
+    event_identifiers (Sequence[EventIdentifier]): List of event identifiers to fetch - default None
 
     selected_columns (Sequence[str]): List of columns to select
     aggregations (Sequence[Any, str|None, str]): Aggregate functions to fetch.
@@ -41,6 +42,7 @@ class Filter:
         project_ids=None,
         group_ids=None,
         event_ids=None,
+        event_identifiers=None,
         selected_columns=None,
         aggregations=None,
         rollup=None,
@@ -58,6 +60,15 @@ class Filter:
         self.project_ids = project_ids
         self.group_ids = group_ids
         self.event_ids = event_ids
+        self.event_identifiers = event_identifiers
+
+        if event_identifiers is not None:
+            # Even with the specific event identifiers, if we surpass the event limit we will fallback to getting
+            # everything, so need to make sure these attributes still get set.
+            if self.event_ids is None:
+                self.event_ids = [event.event_id for event in event_identifiers]
+            if self.project_ids is None:
+                self.project_ids = list({event.project_id for event in event_identifiers})
 
         self.rollup = rollup
         self.selected_columns = selected_columns if selected_columns is not None else []
@@ -136,7 +147,6 @@ class EventStorage(Service):
         limit=100,
         offset=0,
         referrer="eventstore.get_events",  # NOQA
-        event_list=None,
     ):
         """
         Fetches a list of events given a set of criteria.
@@ -147,7 +157,6 @@ class EventStorage(Service):
         limit (int): Query limit - default 100
         offset (int): Query offset - default 0
         referrer (string): Referrer - default "eventstore.get_events"
-        event_list (Sequence[Event]): List of events to get
         """
         raise NotImplementedError
 

@@ -6,7 +6,7 @@ from collections import deque
 from rest_framework.response import Response
 
 from sentry import features, eventstore
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import EventIdentifier
 from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
 from sentry.snuba import discover
 
@@ -163,20 +163,18 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         result = parent_events[root["id"]] = self.serialize_event(root, None, 0, True)
         with sentry_sdk.start_span(
             op="nodestore", description=f"retrieving {len(parent_map)} nodes"
-        ) as span:
-            span.set_data("total nodes", len(parent_map))
+        ):
             node_data = {
                 event.event_id: event
                 for event in eventstore.get_events(
                     eventstore.Filter(
                         start=params["start"],
                         end=params["end"],
-                        project_ids=params["project_id"],
+                        event_identifiers=[
+                            EventIdentifier(event["project.id"], event["id"])
+                            for event in parent_map.values()
+                        ],
                     ),
-                    event_list=[
-                        Event(project_id=event["project.id"], event_id=event["id"])
-                        for event in parent_map.values()
-                    ],
                 )
             }
 

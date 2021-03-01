@@ -29,6 +29,21 @@ def ref_func(x):
     return x.project_id or x.project.id
 
 
+class EventIdentifier:
+    """
+    Identifier for an event to be retrieved
+    """
+
+    __slots__ = ["project_id", "event_id"]
+
+    def __init__(self, project_id, event_id):
+        self.project_id = project_id
+        self.event_id = event_id
+
+    def to_event(self):
+        return Event(self.project_id, self.event_id)
+
+
 class Event:
     """
     Event backed by nodestore and Snuba.

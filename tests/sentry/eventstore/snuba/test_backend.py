@@ -2,7 +2,7 @@ from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.eventstore.base import Filter
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import EventIdentifier
 from sentry.utils.compat import mock
 from sentry.utils.samples import load_data
 
@@ -96,21 +96,21 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert events[2].event_id == "a" * 32
 
     def test_get_events_with_set_list(self):
-        events = self.eventstore.get_events(
-            filter=Filter(
-                project_ids=[self.project1.id, self.project2.id],
-            ),
-            event_list=[
-                Event(
+        filter = Filter(
+            event_identifiers=[
+                EventIdentifier(
                     project_id=self.project1.id,
                     event_id="a" * 32,
                 ),
-                Event(
+                EventIdentifier(
                     project_id=self.project2.id,
                     event_id="b" * 32,
                 ),
             ],
         )
+        assert filter.project_ids == [self.project1.id, self.project2.id]
+        assert filter.event_ids == ["a" * 32, "b" * 32]
+        events = self.eventstore.get_events(filter=filter)
         assert len(events) == 2
         # Default sort is timestamp desc, event_id desc
         assert events[0].event_id == "b" * 32
