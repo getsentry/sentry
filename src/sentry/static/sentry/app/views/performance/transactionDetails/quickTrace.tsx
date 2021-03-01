@@ -12,8 +12,11 @@ import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
-import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/quickTraceQuery';
-import {EventLite, TraceLite} from 'app/utils/performance/quickTrace/types';
+import {
+  EventLite,
+  QuickTrace as QuickTraceType,
+  QuickTraceQueryChildrenProps,
+} from 'app/utils/performance/quickTrace/types';
 import {isTransaction, parseQuickTrace} from 'app/utils/performance/quickTrace/utils';
 
 import {
@@ -58,9 +61,8 @@ export default function QuickTrace({
   ) : (
     <ErrorBoundary mini>
       <QuickTracePills
-        type={type}
         event={event}
-        trace={trace}
+        quickTrace={{type, trace}}
         location={location}
         organization={organization}
       />
@@ -84,17 +86,15 @@ export default function QuickTrace({
 }
 
 type QuickTracePillsProps = {
-  type: QuickTraceQueryChildrenProps['type'];
+  quickTrace: QuickTraceType;
   event: Event;
-  trace: TraceLite;
   location: Location;
   organization: OrganizationSummary;
 };
 
 function QuickTracePills({
-  type,
   event,
-  trace,
+  quickTrace,
   location,
   organization,
 }: QuickTracePillsProps) {
@@ -103,7 +103,7 @@ function QuickTracePills({
     return null;
   }
 
-  const parsedQuickTrace = parseQuickTrace(type, trace, event);
+  const parsedQuickTrace = parseQuickTrace(quickTrace, event);
   if (parsedQuickTrace === null) {
     return <React.Fragment>{'\u2014'}</React.Fragment>;
   }
@@ -136,8 +136,8 @@ function QuickTracePills({
 
   if (ancestors?.length) {
     const seeAncestorsText = tn(
-      'View the child transaction of this event.',
-      'View all child transactions of this event.',
+      'View the ancestor transaction of this event.',
+      'View all ancestor transactions of this event.',
       ancestors.length
     );
     const ancestorsTarget = generateMultiEventsTarget(

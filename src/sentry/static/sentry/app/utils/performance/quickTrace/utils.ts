@@ -6,10 +6,10 @@ import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/util
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {Event, EventTransaction} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
-import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/quickTraceQuery';
+import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
 import {
   EventLite,
-  RequestProps,
+  QuickTrace,
   TraceFull,
   TraceLite,
 } from 'app/utils/performance/quickTrace/types';
@@ -109,15 +109,16 @@ type ParsedQuickTrace = {
 };
 
 export function parseQuickTrace(
-  traceType: QuickTraceQueryChildrenProps['type'],
-  trace: TraceLite,
+  quickTrace: QuickTrace,
   event: Event
 ): ParsedQuickTrace | null {
-  if (traceType === 'empty') {
+  const {type, trace} = quickTrace;
+
+  if (type === 'empty' || trace === null) {
     return null;
   }
 
-  const isFullTrace = traceType === 'full';
+  const isFullTrace = type === 'full';
 
   const current = trace.find(e => e.event_id === event.id) ?? null;
   if (current === null) {
@@ -134,7 +135,9 @@ export function parseQuickTrace(
    * This takes priority over the root, meaning if the parent is
    * the root of the trace, this favours showing it as the parent.
    */
-  const parent = trace.find(e => e.event_id === current.parent_event_id) ?? null;
+  const parent = current.parent_event_id
+    ? trace.find(e => e.event_id === current.parent_event_id) ?? null
+    : null;
 
   /**
    * The root event is the first event in the trace. This has ower priority
@@ -206,10 +209,7 @@ export function beforeFetch(api: Client) {
   api.clear();
 }
 
-export function getQuickTraceRequestPayload({
-  eventView,
-  location,
-}: Omit<RequestProps, 'event'>) {
+export function getQuickTraceRequestPayload({eventView, location}: DiscoverQueryProps) {
   return omit(eventView.getEventsAPIPayload(location), ['field', 'sort', 'per_page']);
 }
 

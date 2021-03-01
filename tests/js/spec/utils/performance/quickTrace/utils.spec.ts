@@ -163,7 +163,7 @@ describe('Quick Trace Utils', function () {
   describe('parseQuickTrace', function () {
     it('parses empty trace', function () {
       const current = generateEventSelector({generation: 0, offset: 0});
-      const parsedQuickTrace = parseQuickTrace('empty', [], current);
+      const parsedQuickTrace = parseQuickTrace({type: 'empty', trace: []}, current);
       expect(parsedQuickTrace).toEqual(null);
     });
 
@@ -171,14 +171,20 @@ describe('Quick Trace Utils', function () {
       it('parses correctly without the expected event', function () {
         const relevantPath = [generateTransactionLite({generation: 0, offset: 0})];
         const current = generateEventSelector({generation: 1, offset: 0});
-        const parsedQuickTrace = parseQuickTrace('partial', relevantPath, current);
+        const parsedQuickTrace = parseQuickTrace(
+          {type: 'partial', trace: relevantPath},
+          current
+        );
         expect(parsedQuickTrace).toEqual(null);
       });
 
       it('parses only the current event', function () {
         const relevantPath = [generateTransactionLite({generation: 0, offset: 0})];
         const current = generateEventSelector({generation: 0, offset: 0});
-        const parsedQuickTrace = parseQuickTrace('partial', relevantPath, current);
+        const parsedQuickTrace = parseQuickTrace(
+          {type: 'partial', trace: relevantPath},
+          current
+        );
         expect(parsedQuickTrace).toEqual({
           root: null,
           ancestors: null,
@@ -195,7 +201,10 @@ describe('Quick Trace Utils', function () {
           generateTransactionLite({generation: 1, offset: 0}),
         ];
         const current = generateEventSelector({generation: 1, offset: 0});
-        const parsedQuickTrace = parseQuickTrace('partial', relevantPath, current);
+        const parsedQuickTrace = parseQuickTrace(
+          {type: 'partial', trace: relevantPath},
+          current
+        );
         expect(parsedQuickTrace).toEqual({
           root: null,
           ancestors: null,
@@ -212,7 +221,10 @@ describe('Quick Trace Utils', function () {
           generateTransactionLite({generation: 2, offset: 0}),
         ];
         const current = generateEventSelector({generation: 2, offset: 0});
-        const parsedQuickTrace = parseQuickTrace('partial', relevantPath, current);
+        const parsedQuickTrace = parseQuickTrace(
+          {type: 'partial', trace: relevantPath},
+          current
+        );
         expect(parsedQuickTrace).toEqual({
           root: generateTransactionLite({generation: 0, offset: 0}),
           ancestors: null,
@@ -230,7 +242,10 @@ describe('Quick Trace Utils', function () {
           generateTransactionLite({generation: 1, offset: 1}),
         ];
         const current = generateEventSelector({generation: 0, offset: 0});
-        const parsedQuickTrace = parseQuickTrace('partial', relevantPath, current);
+        const parsedQuickTrace = parseQuickTrace(
+          {type: 'partial', trace: relevantPath},
+          current
+        );
         expect(parsedQuickTrace).toEqual({
           root: null,
           ancestors: null,
@@ -251,7 +266,10 @@ describe('Quick Trace Utils', function () {
           generateTransactionLite({generation: 2, offset: 2}),
         ];
         const current = generateEventSelector({generation: 1, offset: 1});
-        const parsedQuickTrace = parseQuickTrace('partial', relevantPath, current);
+        const parsedQuickTrace = parseQuickTrace(
+          {type: 'partial', trace: relevantPath},
+          current
+        );
         expect(parsedQuickTrace).toEqual({
           root: null,
           ancestors: null,
@@ -270,7 +288,10 @@ describe('Quick Trace Utils', function () {
           generateTransactionLite({generation: 3, offset: 5}),
         ];
         const current = generateEventSelector({generation: 2, offset: 2});
-        const parsedQuickTrace = parseQuickTrace('partial', relevantPath, current);
+        const parsedQuickTrace = parseQuickTrace(
+          {type: 'partial', trace: relevantPath},
+          current
+        );
         expect(parsedQuickTrace).toEqual({
           root: generateTransactionLite({generation: 0, offset: 0}),
           ancestors: null,
@@ -290,7 +311,10 @@ describe('Quick Trace Utils', function () {
         const trace = generateTrace(6);
         const current = generateEventSelector({generation: 3, offset: 0});
         const relevantPath = flattenRelevantPaths(current, trace);
-        const parsedQuickTrace = parseQuickTrace('full', relevantPath, current);
+        const parsedQuickTrace = parseQuickTrace(
+          {type: 'full', trace: relevantPath},
+          current
+        );
         expect(parsedQuickTrace).toEqual({
           root: generateTransactionLite({generation: 0, offset: 0}),
           ancestors: [generateTransactionLite({generation: 1, offset: 0})],
@@ -313,7 +337,10 @@ describe('Quick Trace Utils', function () {
         const trace = generateTrace(5);
         const current = generateEventSelector({generation: 2, offset: 0});
         const relevantPath = flattenRelevantPaths(current, trace);
-        const parsedQuickTrace = parseQuickTrace('full', relevantPath, current);
+        const parsedQuickTrace = parseQuickTrace(
+          {type: 'full', trace: relevantPath},
+          current
+        );
         expect(parsedQuickTrace).toEqual({
           root: generateTransactionLite({generation: 0, offset: 0}),
           ancestors: [],
@@ -336,7 +363,10 @@ describe('Quick Trace Utils', function () {
         const trace = generateTrace(5);
         const current = generateEventSelector({generation: 3, offset: 0});
         const relevantPath = flattenRelevantPaths(current, trace);
-        const parsedQuickTrace = parseQuickTrace('full', relevantPath, current);
+        const parsedQuickTrace = parseQuickTrace(
+          {type: 'full', trace: relevantPath},
+          current
+        );
         expect(parsedQuickTrace).toEqual({
           root: generateTransactionLite({generation: 0, offset: 0}),
           ancestors: [generateTransactionLite({generation: 1, offset: 0})],
@@ -354,7 +384,10 @@ describe('Quick Trace Utils', function () {
         const trace = generateTrace(4);
         const current = generateEventSelector({generation: 3, offset: 0});
         const relevantPath = flattenRelevantPaths(current, trace);
-        const parsedQuickTrace = parseQuickTrace('full', relevantPath, current);
+        const parsedQuickTrace = parseQuickTrace(
+          {type: 'full', trace: relevantPath},
+          current
+        );
         expect(parsedQuickTrace).toEqual({
           root: generateTransactionLite({generation: 0, offset: 0}),
           ancestors: [generateTransactionLite({generation: 1, offset: 0})],

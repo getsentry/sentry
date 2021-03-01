@@ -2,10 +2,10 @@ import React from 'react';
 
 import GenericDiscoverQuery from 'app/utils/discover/genericDiscoverQuery';
 import {
-  RequestProps,
   TraceFull,
   TraceFullQueryChildrenProps,
   TraceProps,
+  TraceRequestProps,
 } from 'app/utils/performance/quickTrace/types';
 import {
   beforeFetch,
@@ -15,7 +15,7 @@ import {
 } from 'app/utils/performance/quickTrace/utils';
 import withApi from 'app/utils/withApi';
 
-type QueryProps = Omit<RequestProps, 'eventView'> & {
+type QueryProps = Omit<TraceRequestProps, 'eventView'> & {
   children: (props: TraceFullQueryChildrenProps) => React.ReactNode;
 };
 
@@ -26,6 +26,7 @@ function EmptyTrace({children}: Pick<QueryProps, 'children'>) {
         isLoading: false,
         error: null,
         trace: null,
+        type: 'full',
       })}
     </React.Fragment>
   );
@@ -60,6 +61,7 @@ function TraceFullQuery({event, children, ...props}: QueryProps) {
           // is 204. And we want the empty string, undefined and
           // null to be converted to null.
           trace: tableData || null,
+          type: 'full',
           ...rest,
         })
       }

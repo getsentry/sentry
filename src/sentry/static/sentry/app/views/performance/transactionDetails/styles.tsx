@@ -81,7 +81,7 @@ export const QuickTraceContainer = styled('div')`
 
 const StyledMenuItem = styled(MenuItem)<{first?: boolean}>`
   border-top: ${p => (!p.first ? `1px solid ${p.theme.innerBorder}` : null)};
-  width: 220px;
+  width: 350px;
 `;
 
 const MenuItemContent = styled('div')`

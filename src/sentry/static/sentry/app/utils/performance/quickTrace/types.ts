@@ -4,6 +4,10 @@ import {
   GenericChildrenProps,
 } from 'app/utils/discover/genericDiscoverQuery';
 
+/**
+ * `EventLite` represents the type of a simplified event from
+ * the `events-trace` and `events-trace-light` endpoints.
+ */
 export type EventLite = {
   event_id: string;
   generation: number | null;
@@ -19,6 +23,10 @@ export type EventLite = {
 
 export type TraceLite = EventLite[];
 
+/**
+ * The `events-trace` endpoint returns a tree structure that gives
+ * the parent-child relationships between events.
+ */
 export type TraceFull = EventLite & {
   children: TraceFull[];
 };
@@ -27,18 +35,39 @@ export type TraceProps = {
   event: Event;
 };
 
-export type TraceLiteQueryChildrenProps = Omit<
-  GenericChildrenProps<TraceProps>,
-  'tableData' | 'pageLinks'
-> & {
+export type TraceRequestProps = DiscoverQueryProps & TraceProps;
+
+type EmptyQuickTrace = {
+  type: 'empty';
+  trace: TraceLite;
+};
+
+type PartialQuickTrace = {
+  type: 'partial';
   trace: TraceLite | null;
 };
 
-export type TraceFullQueryChildrenProps = Omit<
-  GenericChildrenProps<TraceProps>,
-  'tableData' | 'pageLinks'
-> & {
-  trace: TraceFull | null;
+type FullQuickTrace = {
+  type: 'full';
+  trace: TraceLite | null;
 };
 
-export type RequestProps = DiscoverQueryProps & TraceProps;
+type BaseTraceChildrenProps = Omit<
+  GenericChildrenProps<TraceProps>,
+  'tableData' | 'pageLinks'
+>;
+
+export type TraceLiteQueryChildrenProps = BaseTraceChildrenProps & PartialQuickTrace;
+
+export type TraceFullQueryChildrenProps = BaseTraceChildrenProps &
+  Omit<FullQuickTrace, 'trace'> & {
+    /**
+     * The `event-trace` endpoint returns a full trace with the parent-child
+     * relationships. It can be flattened into a `TraceLite` if necessary.
+     */
+    trace: TraceFull | null;
+  };
+
+export type QuickTrace = EmptyQuickTrace | PartialQuickTrace | FullQuickTrace;
+
+export type QuickTraceQueryChildrenProps = BaseTraceChildrenProps & QuickTrace;

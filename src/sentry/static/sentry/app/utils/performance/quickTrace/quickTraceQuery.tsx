@@ -1,21 +1,14 @@
 import React from 'react';
 
-import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
 import TraceFullQuery from 'app/utils/performance/quickTrace/traceFullQuery';
 import TraceLiteQuery from 'app/utils/performance/quickTrace/traceLiteQuery';
 import {
-  TraceLiteQueryChildrenProps,
-  TraceProps,
+  QuickTraceQueryChildrenProps,
+  TraceRequestProps,
 } from 'app/utils/performance/quickTrace/types';
 import {flattenRelevantPaths} from 'app/utils/performance/quickTrace/utils';
 
-type RequestProps = DiscoverQueryProps & TraceProps;
-
-export type QuickTraceQueryChildrenProps = TraceLiteQueryChildrenProps & {
-  type: 'empty' | 'partial' | 'full';
-};
-
-type QueryProps = Omit<RequestProps, 'api' | 'eventView'> & {
+type QueryProps = Omit<TraceRequestProps, 'api' | 'eventView'> & {
   children: (props: QuickTraceQueryChildrenProps) => React.ReactNode;
 };
 
@@ -34,17 +27,13 @@ export default function QuickTraceQuery({children, ...props}: QueryProps) {
               return children({
                 ...traceFullResults,
                 trace,
-                type: 'full',
               });
             } else if (
               !traceLiteResults.isLoading &&
               traceLiteResults.error === null &&
               traceLiteResults.trace !== null
             ) {
-              return children({
-                ...traceLiteResults,
-                type: 'partial',
-              });
+              return children(traceLiteResults);
             } else {
               return children({
                 isLoading: traceFullResults.isLoading || traceLiteResults.isLoading,
