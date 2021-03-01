@@ -1,15 +1,13 @@
 #!/bin/bash
 # This code is mostly the output of calling `sentry-cli bash-hook`
+# This is used by direnv's execution path since the default behaviour of
+# `sentry-cli bash hook` does not work with it. For instance,
+# 1) We should not trap EXIT for direnv needs that untrapped
+# 2) There's a bug on SENTRY_LOG_FILE that is not fully written to disk before reporting
 set -e
 
-# sentry-dev-env project in Sentry.io
-_SENTRY_DSN=https://23670f54c6254bfd9b7de106637808e9@o1.ingest.sentry.io/1492057
-_SENTRY_TRACEBACK_FILE=$(mktemp -t sentry-direnv-envrc.XXXXXX.traceback)
-_SENTRY_LOG_FILE=$(mktemp -t sentry-direnv-envrc.XXXXXX.out)
-
-# You will need to decide what trapping makes sense in your calling code
-# trap _sentry_exit_trap EXIT
-# trap _sentry_err_trap ERR
+_SENTRY_TRACEBACK_FILE=$(mktemp -t sentry-direnv-envrc.traceback)
+_SENTRY_LOG_FILE=$(mktemp -t sentry-direnv-envrc.out)
 
 _sentry_shown_traceback=0
 
@@ -21,6 +19,20 @@ _sentry_exit_trap() {
   fi
   rm -f "$_SENTRY_TRACEBACK_FILE" "$_SENTRY_LOG_FILE"
   exit $_exit_code
+}
+
+# Wait for file to be written to disk
+_wait_for_file() {
+  local filesize
+  for i in {0..10}
+  do
+    filesize=$(du -k "$1" | cut -f1)
+    if [[ $filesize -gt 0 ]]; then
+      break
+    else
+      sleep 0.1
+    fi
+  done
 }
 
 _sentry_err_trap() {
@@ -37,24 +49,11 @@ _sentry_err_trap() {
   echo "@exit_code:${_exit_code}" >> "$_SENTRY_TRACEBACK_FILE"
 
   : >> "$_SENTRY_LOG_FILE"
-  cat "$_SENTRY_LOG_FILE"
-  # This command is significantly modified
-  # SENTRY_LAST_EVENT=$(
-  #   SENTRY_DSN=$_SENTRY_DSN /usr/local/bin/sentry-cli \
-  #   bash-hook --send-event \
-  #   --log-level trace \
-  #   --traceback "$_SENTRY_TRACEBACK_FILE" \
-  #   --log "$_SENTRY_LOG_FILE" \
-  #   --no-exit)
-  SENTRY_LAST_EVENT=$(
-    SENTRY_DSN=$_SENTRY_DSN /usr/local/bin/sentry-cli \
-    send-event \
-    --logfile "$_SENTRY_TRACEBACK_FILE")
-  echo ""
-  echo "*** Issue $SENTRY_LAST_EVENT was reported to Sentry.io"
-  cat "$_SENTRY_TRACEBACK_FILE"
-  echo "FOOOOOO"
-  cat "$_SENTRY_LOG_FILE"
+  # This line is differing from upstream _sentry_err_trap
+  _wait_for_file "$_SENTRY_LOG_FILE"
+
+  # shellcheck disable=SC2155
+  export SENTRY_LAST_EVENT=$(/usr/local/bin/sentry-cli bash-hook --send-event --traceback "$_SENTRY_TRACEBACK_FILE" --log "$_SENTRY_LOG_FILE" )
   rm -f "$_SENTRY_TRACEBACK_FILE" "$_SENTRY_LOG_FILE"
 }
 
@@ -66,6 +65,7 @@ _sentry_traceback() {
   local -i j=0
 
   : > "$_SENTRY_TRACEBACK_FILE"
+  # shellcheck disable=SC2004
   for ((i=${start}; i < ${end}; i++)); do
     j=$(( $i - 1 ))
     local function="${FUNCNAME[$i]}"
@@ -75,9 +75,12 @@ _sentry_traceback() {
   done
 }
 
+# Same effect as cat /dev/null > "$_SENTRY_LOG_FILE"
+# However, this does not fork a new process, since ":" is a builtin.
 : > "$_SENTRY_LOG_FILE"
 
 if command -v perl >/dev/null; then
+  # XXX: Breadcumbs don't correctly show the order of the lines. Peharps, it's due to lacking milliseconds
   exec \
     1> >(tee >(perl '-MPOSIX' -ne '$|++; print strftime("%Y-%m-%d %H:%M:%S %z: ", localtime()), "stdout: ", $_;' >> "$_SENTRY_LOG_FILE")) \
     2> >(tee >(perl '-MPOSIX' -ne '$|++; print strftime("%Y-%m-%d %H:%M:%S %z: ", localtime()), "stderr: ", $_;' >> "$_SENTRY_LOG_FILE") >&2)
