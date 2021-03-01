@@ -47,18 +47,6 @@ class ErrorRuleModal extends Form<Props, State> {
     ];
   }
 
-  handleAddCondition = () => {
-    this.setState(state => ({
-      conditions: [
-        ...state.conditions,
-        {
-          category: DynamicSamplingInnerName.EVENT_RELEASE,
-          match: '',
-        },
-      ],
-    }));
-  };
-
   handleSubmit = () => {
     const {sampleRate, conditions, transaction} = this.state;
 
