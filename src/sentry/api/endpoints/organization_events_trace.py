@@ -170,7 +170,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         result = parent_events[root["id"]] = self.serialize_event(root, None, 0, True)
 
         event_ids = []
-        for span, events in parent_map.items():
+        for events in parent_map.values():
             event_ids.extend(event["id"] for event in events)
 
         with sentry_sdk.start_span(
