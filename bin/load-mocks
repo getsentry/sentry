@@ -914,18 +914,31 @@ if __name__ == "__main__":
     from optparse import OptionParser
 
     parser = OptionParser()
-    parser.add_option("--events", dest="num_events", default=1, type=int)
-    parser.add_option("--extra-events", dest="extra_events", default=False, action="store_true")
-    parser.add_option("--load-trends", dest="load_trends", default=False, action="store_true")
-    # load transactions slower so we don't hit clickhouse hard enough to crash it, useful if load-trends crashes
-    # clickhouse
-    parser.add_option("--slow", dest="slow", default=False, action="store_true")
+    parser.add_option("--events", default=1, type=int, help="number of events to generate")
+    parser.add_option(
+        "--extra-events",
+        default=False,
+        action="store_true",
+        help="add multiple events for each error group",
+    )
+    parser.add_option(
+        "--load-trends",
+        default=False,
+        action="store_true",
+        help="load multiple transactions for each id to show trends",
+    )
+    parser.add_option(
+        "--slow",
+        default=False,
+        action="store_true",
+        help="sleep between each transaction to let clickhouse rest",
+    )
 
     (options, args) = parser.parse_args()
 
     try:
         main(
-            num_events=options.num_events,
+            num_events=options.events,
             extra_events=options.extra_events,
             load_trends=options.load_trends,
             slow=options.slow,
