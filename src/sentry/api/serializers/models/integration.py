@@ -1,5 +1,5 @@
+import logging
 from collections import defaultdict
-
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
@@ -12,6 +12,8 @@ from sentry.models import (
     ExternalUser,
 )
 from sentry.shared_integrations.exceptions import ApiError
+
+logger = logging.getLogger(__name__)
 
 
 # converts the provider to JSON
@@ -90,27 +92,32 @@ class OrganizationIntegrationSerializer(Serializer):
             include_config=include_config,
         )
 
-        # TODO: skip adding configData if include_config is False
-        # we need to wait until the Slack migration is complete first
-        # because we have a dependency on configData in the integration directory
+        dynamic_display_information = None
+
         try:
             installation = obj.integration.get_installation(obj.organization_id)
         except NotImplementedError:
             # slack doesn't have an installation implementation
-            config_data = obj.config
-            dynamic_display_information = None
+            config_data = obj.config if include_config else None
         else:
             try:
                 # just doing this to avoid querying for an object we already have
                 installation._org_integration = obj
-                config_data = installation.get_config_data()
+                config_data = installation.get_config_data() if include_config else None
                 dynamic_display_information = installation.get_dynamic_display_information()
-            except ApiError:
+            except ApiError as e:
                 # If there is an ApiError from our 3rd party integration providers, assume there is an problem with the configuration and set it to disabled.
                 integration.update({"status": "disabled"})
-                return integration
+                name = "sentry.serializers.model.organizationintegration"
+                log_info = {
+                    "error": e,
+                    "integration_id": obj.integration.id,
+                    "integration_provider": obj.integration.provider,
+                }
+                logger.info(name, extra=log_info)
 
-        integration.update({"configData": config_data})
+            integration.update({"configData": config_data})
+
         if dynamic_display_information:
             integration.update({"dynamicDisplayInformation": dynamic_display_information})
 
