@@ -29,6 +29,9 @@
     return p;
   };
 
+  var focusable = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  var handleFocus;
+
   var GENERIC_ERROR = buildMessage('message-error', strings.generic_error);
   var FORM_ERROR = buildMessage('message-error', strings.form_error);
   var FORM_SUCCESS = buildMessage('message-success', strings.sent_message);
@@ -70,7 +73,8 @@
       self.submit(self.serialize());
     };
 
-    this._submitBtn = this.element.getElementsByTagName('button')[0];
+    var buttons = this.element.getElementsByTagName('button');
+    this._submitBtn = buttons[0];
     this._submitBtn.onclick = function(e) {
       e.preventDefault();
       self.submit(self.serialize());
@@ -87,24 +91,46 @@
       }
     }
 
-    var linkTags = this.element.getElementsByTagName('a');
-
-    var onclickHandler = function(e) {
+    var cancelHandler = function(e) {
       e.preventDefault();
       self.close();
     };
-
-    for (i = 0; i < linkTags.length; i++) {
-      if (linkTags[i].className === 'close') {
-        linkTags[i].onclick = onclickHandler;
-      }
-    }
+    buttons[1].onclick = cancelHandler;
 
     this._formMap = {};
     var node;
     for (i = 0; i < this._form.elements.length; i++) {
       node = this._form.elements[i];
       this._formMap[node.name] = node.parentNode;
+    }
+
+    if (document.querySelectorAll) {
+      var focusableElements = this.element.querySelectorAll(focusable);
+      var firstFocus = focusableElements[0];
+      var lastFocus = focusableElements[focusableElements.length - 1];
+      // Trap focus to improve UX and help screenreaders.
+      handleFocus = function (event) {
+        var isTab = event.key === 'Tab' || event.keyCode === 9;
+        if (!isTab) {
+          return;
+        }
+        if (event.shiftKey) {
+          if (document.activeElement === firstFocus) {
+            lastFocus.focus();
+            event.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastFocus) {
+            firstFocus.focus();
+            event.preventDefault();
+          }
+        }
+      }
+      document.addEventListener('keydown', handleFocus);
+
+      setTimeout(function () {
+        firstFocus.focus();
+      }, 1)
     }
   };
 
@@ -144,6 +170,9 @@
     this._errorWrapper.innerHTML = '';
     setChild(this._formContent, FORM_SUCCESS);
     this._submitBtn.parentNode.removeChild(this._submitBtn);
+    if (handleFocus) {
+      document.removeEventListener('keydown', handleFocus);
+    }
   };
 
   SentryErrorEmbed.prototype.onFormError = function (data) {
