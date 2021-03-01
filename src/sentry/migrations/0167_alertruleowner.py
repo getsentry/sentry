@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
     atomic = True
 
     dependencies = [
-        ("sentry", "0165_metric_alerts_fix_group_ids"),
+        ("sentry", "0166_create_notificationsetting_table"),
     ]
 
     operations = [
