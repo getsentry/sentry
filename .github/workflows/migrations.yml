@@ -32,7 +32,8 @@ jobs:
       - name: Failure because of modified migration
         shell: bash
         run: |
-          echo "We do not allow modifying migrations. A GH admin can still merge this." && exit 1
+          echo "If you have a valid reason to modify a migration please get approval"
+          echo "from @getsentry/owners-migrations, then ask a Github admin to merge." && exit 1
 
   sql:
     name: Generate SQL
@@ -43,7 +44,7 @@ jobs:
 
     steps:
       # Checkout master to run all merged migrations.
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
         with:
           ref: master
 
