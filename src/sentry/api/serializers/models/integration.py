@@ -93,6 +93,7 @@ class OrganizationIntegrationSerializer(Serializer):
         )
 
         dynamic_display_information = None
+        config_data = None
 
         try:
             installation = obj.integration.get_installation(obj.organization_id)
@@ -116,7 +117,7 @@ class OrganizationIntegrationSerializer(Serializer):
                 }
                 logger.info(name, extra=log_info)
 
-            integration.update({"configData": config_data})
+        integration.update({"configData": config_data})
 
         if dynamic_display_information:
             integration.update({"dynamicDisplayInformation": dynamic_display_information})
