@@ -136,7 +136,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
             saveOnBlur
             allowUndo
             apiMethod="POST"
-            initialData={integration.configData}
+            initialData={integration.configData || {}}
             apiEndpoint={`/organizations/${orgId}/integrations/${integration.id}/`}
           >
             <JsonForm
