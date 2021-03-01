@@ -570,8 +570,6 @@ export type AuthenticatorDevice = {
   timestamp?: string;
 };
 
-type QRCode = (0 | 1)[][];
-
 export type Authenticator = {
   /**
    * String used to display on button for user as CTA to enroll
@@ -623,7 +621,7 @@ export type Authenticator = {
       }
     | {
         id: 'totp';
-        qrcode: QRCode;
+        qrcode: string;
       }
     | {
         id: 'u2f';
@@ -685,6 +683,7 @@ export interface Config {
   distPrefix: string;
   apmSampling: number;
   dsn_requests: string;
+  demoMode: boolean;
 }
 
 export type EventOrGroupType =

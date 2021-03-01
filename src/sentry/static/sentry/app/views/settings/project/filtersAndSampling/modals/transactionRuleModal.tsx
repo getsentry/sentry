@@ -130,6 +130,7 @@ class TransactionRuleModal extends Form<Props, State> {
         [DynamicSamplingInnerName.TRACE_USER, t('Users')],
       ];
     }
+
     return [
       [DynamicSamplingInnerName.EVENT_RELEASE, t('Releases')],
       [DynamicSamplingInnerName.EVENT_ENVIRONMENT, t('Environments')],
@@ -161,20 +162,6 @@ class TransactionRuleModal extends Form<Props, State> {
       </Field>
     );
   }
-
-  handleAddCondition = () => {
-    this.setState(state => ({
-      conditions: [
-        ...state.conditions,
-        {
-          category: state.tracing
-            ? DynamicSamplingInnerName.TRACE_RELEASE
-            : DynamicSamplingInnerName.EVENT_RELEASE,
-          match: '',
-        },
-      ],
-    }));
-  };
 
   handleSubmit = () => {
     const {tracing, sampleRate, conditions, transaction} = this.state;
