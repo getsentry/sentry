@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
-import DropdownControl from 'app/components/dropdownControl';
+import DropdownControl, {Content} from 'app/components/dropdownControl';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import space from 'app/styles/space';
@@ -50,8 +50,6 @@ function Filter({options, onFilter, className}: Props) {
   return (
     <Wrapper className={className}>
       <DropdownControl
-        menuWidth="240px"
-        blendWithActor
         button={({isOpen, getActorProps}) => (
           <DropDownButton
             isOpen={isOpen}
@@ -60,28 +58,38 @@ function Filter({options, onFilter, className}: Props) {
           />
         )}
       >
-        <Content>
-          {Object.keys(options).map(category => (
-            <React.Fragment key={category}>
-              <Header>{category}</Header>
-              <List>
-                {options[category].map(groupedOption => {
-                  const {symbol, isChecked, id} = groupedOption;
-                  return (
-                    <StyledListItem
-                      key={id}
-                      onClick={handleClick(category, groupedOption)}
-                      isChecked={isChecked}
-                    >
-                      {symbol}
-                      <CheckboxFancy isChecked={isChecked} />
-                    </StyledListItem>
-                  );
-                })}
-              </List>
-            </React.Fragment>
-          ))}
-        </Content>
+        {({getMenuProps, isOpen}) => (
+          <StyledContent
+            {...getMenuProps()}
+            alignMenu="left"
+            width="240px"
+            isOpen={isOpen}
+            className="drop-down-filter-menu"
+            blendWithActor
+            blendCorner
+          >
+            {Object.keys(options).map(category => (
+              <React.Fragment key={category}>
+                <Header>{category}</Header>
+                <List>
+                  {options[category].map(groupedOption => {
+                    const {symbol, isChecked, id} = groupedOption;
+                    return (
+                      <StyledListItem
+                        key={id}
+                        onClick={handleClick(category, groupedOption)}
+                        isChecked={isChecked}
+                      >
+                        {symbol}
+                        <CheckboxFancy isChecked={isChecked} />
+                      </StyledListItem>
+                    );
+                  })}
+                </List>
+              </React.Fragment>
+            ))}
+          </StyledContent>
+        )}
       </DropdownControl>
     </Wrapper>
   );
@@ -94,7 +102,7 @@ const Wrapper = styled('div')`
   display: flex;
 `;
 
-const Content = styled('div')`
+const StyledContent = styled(Content)`
   > * :last-child {
     margin-bottom: -1px;
   }
