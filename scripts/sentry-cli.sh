@@ -9,18 +9,6 @@ set -e
 _SENTRY_TRACEBACK_FILE=$(mktemp -t sentry-direnv-envrc.traceback)
 _SENTRY_LOG_FILE=$(mktemp -t sentry-direnv-envrc.out)
 
-_sentry_shown_traceback=0
-
-_sentry_exit_trap() {
-  local _exit_code="$?"
-  local _command="${BASH_COMMAND:-unknown}"
-  if [[ $_exit_code != 0 && "${_sentry_shown_traceback}" != 1 ]]; then
-    _sentry_err_trap "$_command" "$_exit_code"
-  fi
-  rm -f "$_SENTRY_TRACEBACK_FILE" "$_SENTRY_LOG_FILE"
-  exit $_exit_code
-}
-
 # Wait for file to be written to disk
 _wait_for_file() {
   local filesize
@@ -62,7 +50,6 @@ _sentry_err_trap() {
 }
 
 _sentry_traceback() {
-  _sentry_shown_traceback=1
   local -i start=$(( ${1:-0} + 1 ))
   local -i end=${#BASH_SOURCE[@]}
   local -i i=0
