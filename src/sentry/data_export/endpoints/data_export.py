@@ -6,7 +6,7 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
 from sentry.api.event_search import get_filter, InvalidSearchQuery
 from sentry.api.serializers import serialize
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.models import Environment
 from sentry.utils import metrics
 from sentry.utils.compat import map
@@ -56,7 +56,11 @@ class DataExportQuerySerializer(serializers.Serializer):
                 query_info["project"] = [project.id for project in projects]
 
             # make sure to fix the export start/end times to ensure consistent results
-            start, end = get_date_range_from_params(query_info)
+            try:
+                start, end = get_date_range_from_params(query_info)
+            except InvalidParams as e:
+                raise serializers.ValidationError(str(e))
+
             if "statsPeriod" in query_info:
                 del query_info["statsPeriod"]
             if "statsPeriodStart" in query_info:
