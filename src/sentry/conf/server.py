@@ -912,6 +912,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable mobile app pages.
+    "organizations:mobile-app": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -2108,3 +2110,9 @@ SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
 
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS = None
+
+# This controls whether Sentry is run in a demo mode.
+# Enabling this will allow users to create accounts without an email or password.
+DEMO_MODE = False
+
+DEMO_ORG_OWNER_EMAIL = None

@@ -350,7 +350,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Open the stack
-            self.browser.element('[data-test-id="open-stack"]').click()
+            self.browser.element('[data-test-id="open-group"]').click()
             self.wait_until_loaded()
 
             # View Event
@@ -384,7 +384,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Open the stack
-            self.browser.elements('[data-test-id="open-stack"]')[0].click()
+            self.browser.elements('[data-test-id="open-group"]')[0].click()
             self.wait_until_loaded()
 
             # View Event
@@ -417,7 +417,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Open the stack
-            self.browser.elements('[data-test-id="open-stack"]')[0].click()
+            self.browser.elements('[data-test-id="open-group"]')[0].click()
             self.wait_until_loaded()
 
             # View Event

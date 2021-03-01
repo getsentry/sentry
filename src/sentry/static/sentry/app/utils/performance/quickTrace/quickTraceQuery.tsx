@@ -20,6 +20,7 @@ export type EventLite = {
   transaction: string;
   'transaction.duration': number;
   project_id: number;
+  project_slug: string;
   parent_event_id: string | null;
   parent_span_id: string | null;
   is_root: boolean;
@@ -113,7 +114,16 @@ function QuickTraceQuery({event, children, ...props}: QueryProps) {
       eventView={eventView}
       {...props}
     >
-      {({tableData, ...rest}) => children({trace: tableData ?? null, ...rest})}
+      {({tableData, ...rest}) =>
+        children({
+          // This is using '||` instead of '??` here because
+          // the client returns a empty string when the response
+          // is 204. And we want the empty string, undefined and
+          // null to be converted to null.
+          trace: tableData || null,
+          ...rest,
+        })
+      }
     </GenericDiscoverQuery>
   );
 }

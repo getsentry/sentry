@@ -78,20 +78,36 @@ async function createOrganizationResults(
 }
 async function createProjectResults(
   projectsPromise: Promise<Project[]>,
-  orgId: string
+  orgId: string,
+  orgFeatures?: string[]
 ): Promise<ResultItem[]> {
   const projects = (await projectsPromise) || [];
   return flatten(
-    projects.map(project => [
-      {
-        title: `${project.slug} Settings`,
-        description: 'Project Settings',
-        model: project,
-        sourceType: 'project',
-        resultType: 'settings',
-        to: `/settings/${orgId}/projects/${project.slug}/`,
-      },
-    ])
+    projects.map(project => {
+      const projectResults: ResultItem[] = [
+        {
+          title: t('%s Settings', project.slug),
+          description: t('Project Settings'),
+          model: project,
+          sourceType: 'project',
+          resultType: 'settings',
+          to: `/settings/${orgId}/projects/${project.slug}/`,
+        },
+      ];
+
+      if (orgFeatures?.includes('project-detail')) {
+        projectResults.unshift({
+          title: t('%s Dashboard', project.slug),
+          description: t('Project Details'),
+          model: project,
+          sourceType: 'project',
+          resultType: 'route',
+          to: `/organizations/${orgId}/projects/${project.slug}/?project=${project.id}`,
+        });
+      }
+
+      return projectResults;
+    })
   );
 }
 async function createTeamResults(
@@ -457,7 +473,7 @@ class ApiSource extends React.Component<Props, State> {
     const searchResults = flatten(
       await Promise.all([
         createOrganizationResults(organizations),
-        createProjectResults(projects, orgId),
+        createProjectResults(projects, orgId, organization?.features),
         createTeamResults(teams, orgId),
         createMemberResults(members, orgId),
         createIntegrationResults(integrations, orgId),
