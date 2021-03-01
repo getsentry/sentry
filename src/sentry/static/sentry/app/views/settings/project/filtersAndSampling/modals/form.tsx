@@ -172,9 +172,40 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
     throw new Error('Not implemented');
   };
 
-  handleAddCondition = (): never | void => {
-    // Children have to implement this
-    throw new Error('Not implemented');
+  handleAddCondition = () => {
+    const {conditions} = this.state;
+    const categoryOptions = this.getCategoryOptions();
+
+    if (!conditions.length) {
+      this.setState({
+        conditions: [
+          {
+            category: categoryOptions[0][0],
+            match: '',
+          },
+        ],
+      });
+      return;
+    }
+
+    const nextCategory = categoryOptions.find(
+      categoryOption =>
+        !conditions.find(condition => condition.category === categoryOption[0])
+    );
+
+    if (!nextCategory) {
+      return;
+    }
+
+    this.setState({
+      conditions: [
+        ...conditions,
+        {
+          category: nextCategory[0],
+          match: '',
+        },
+      ],
+    });
   };
 
   handleChangeCondition = <T extends keyof Conditions[0]>(
