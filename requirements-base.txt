@@ -37,7 +37,6 @@ python-memcached==1.59
 python-u2flib-server==5.0.0
 python3-saml==1.4.1
 PyYAML==5.3
-qrcode==6.1
 rb==1.8
 redis-py-cluster==2.1.0
 redis==3.3.11
