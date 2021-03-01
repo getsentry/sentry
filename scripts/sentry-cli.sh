@@ -53,7 +53,10 @@ _sentry_err_trap() {
   _wait_for_file "$_SENTRY_LOG_FILE"
 
   # shellcheck disable=SC2155
-  export SENTRY_LAST_EVENT=$(/usr/local/bin/sentry-cli bash-hook --send-event --traceback "$_SENTRY_TRACEBACK_FILE" --log "$_SENTRY_LOG_FILE" )
+  export SENTRY_LAST_EVENT=$(
+    SENTRY_DSN=$SENTRY_DEVENV_DSN \
+    /usr/local/bin/sentry-cli bash-hook --send-event \
+    --traceback "$_SENTRY_TRACEBACK_FILE" --log "$_SENTRY_LOG_FILE" )
   rm -f "$_SENTRY_TRACEBACK_FILE" "$_SENTRY_LOG_FILE"
 }
 
