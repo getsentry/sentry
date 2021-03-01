@@ -354,7 +354,12 @@ export class Client {
         data: {status: resp?.status},
       });
 
-      if (resp && resp.status !== 0 && resp.status !== 404) {
+      if (
+        resp &&
+        resp.status !== 0 &&
+        resp.status !== 404 &&
+        errorThrown !== 'Request was aborted'
+      ) {
         run(Sentry =>
           Sentry.withScope(scope => {
             // `requestPromise` can pass its error object
@@ -372,6 +377,7 @@ export class Client {
             // Setting this to warning because we are going to capture all failed requests
             scope.setLevel(Severity.Warning);
             scope.setTag('http.statusCode', String(resp.status));
+            scope.setTag('error.reason', errorThrown);
             Sentry.captureException(errorObjectToUse);
           })
         );
@@ -438,6 +444,7 @@ export class Client {
 
         const {status, statusText} = response;
         let {ok} = response;
+        let errorReason = 'Request not OK'; // the default error reason
 
         // Try to get text out of the response no matter the status
         try {
@@ -453,11 +460,15 @@ export class Client {
         if (status !== 204 && !isStatus3XX) {
           try {
             responseJSON = await responseClone.json();
-          } catch {
-            // If the MIME type is `application/json` but decoding failed,
-            // this should be an error.
-            if (isResponseJSON) {
+          } catch (error) {
+            if (error.name === 'AbortError') {
               ok = false;
+              errorReason = 'Request was aborted';
+            } else if (isResponseJSON && error instanceof SyntaxError) {
+              // If the MIME type is `application/json` but decoding failed,
+              // this should be an error.
+              ok = false;
+              errorReason = 'JSON parse error';
             }
           }
         }
@@ -477,7 +488,7 @@ export class Client {
           successHandler(responseData, statusText, emulatedJQueryXHR);
         } else {
           globalErrorHandlers.forEach(handler => handler(emulatedJQueryXHR));
-          errorHandler(emulatedJQueryXHR, statusText, 'Request not OK');
+          errorHandler(emulatedJQueryXHR, statusText, errorReason);
         }
 
         completeHandler(emulatedJQueryXHR, statusText);
