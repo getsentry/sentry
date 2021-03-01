@@ -53,7 +53,7 @@ const ProjectProguardRow = ({mapping, onDelete, downloadUrl, downloadRole}: Prop
                   icon={<IconDownload size="sm" />}
                   disabled={!hasRole}
                   href={downloadUrl}
-                  title={t('Download Mapping')}
+                  title={hasRole ? t('Download Mapping') : undefined}
                 />
               </Tooltip>
             )}
@@ -73,7 +73,7 @@ const ProjectProguardRow = ({mapping, onDelete, downloadUrl, downloadRole}: Prop
                   <Button
                     size="small"
                     icon={<IconDelete size="sm" />}
-                    title={t('Remove Mapping')}
+                    title={hasAccess ? t('Remove Mapping') : undefined}
                     label={t('Remove Mapping')}
                     disabled={!hasAccess}
                   />
