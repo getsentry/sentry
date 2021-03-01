@@ -110,7 +110,7 @@ class OrganizationIntegrationSerializer(Serializer):
                 integration.update({"status": "disabled"})
                 name = "sentry.serializers.model.organizationintegration"
                 log_info = {
-                    "error": e,
+                    "error": str(e),
                     "integration_id": obj.integration.id,
                     "integration_provider": obj.integration.provider,
                 }
