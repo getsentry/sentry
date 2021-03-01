@@ -26,7 +26,7 @@ class TransitionChart extends React.Component<Props, State> {
     key: 1,
   };
 
-  static getDerivedStateFromProps(props: Props, state: State) {
+  static getDerivedStateFromProps(props: Readonly<Props>, state: State) {
     // Transitions are controlled using variables called:
     // - loading and,
     // - reloading (also called pending in other apps)
