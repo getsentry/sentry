@@ -25,6 +25,7 @@ class AreaChart extends React.Component<Props> {
     return (
       <BaseChart
         {...props}
+        colors={colors}
         series={series.map(({seriesName, data, ...otherSeriesProps}, i) =>
           AreaSeries({
             stack: stacked ? 'area' : undefined,
