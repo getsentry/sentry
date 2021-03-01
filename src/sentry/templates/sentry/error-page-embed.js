@@ -1,6 +1,6 @@
 /*eslint no-var:0,strict:0,block-scoped-var:0*/
 /*global sentryEmbedCallback:false*/
-(function(window, document, JSON){
+(function (window, document, JSON) {
   'use strict';
   // TODO(dcramer): expose API for building a new error embed so things like
   // JS applications can render this on demand
@@ -13,23 +13,24 @@
     };
    */
 
-  var strings = {{ strings }};
-  var template = /*{{ template }}*/'';
-  var endpoint = /*{{ endpoint }}*/'';
+  var strings = /*{{ strings }}*/ '';
+  var template = /*{{ template }}*/ '';
+  var endpoint = /*{{ endpoint }}*/ '';
 
-  var setChild = function(target, child) {
+  var setChild = function (target, child) {
     target.innerHTML = '';
     target.appendChild(child);
   };
 
-  var buildMessage = function(className, message) {
+  var buildMessage = function (className, message) {
     var p = document.createElement('p');
     p.className = className;
     p.appendChild(document.createTextNode(message));
     return p;
   };
 
-  var focusable = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  var focusable =
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
   var handleFocus;
 
   var GENERIC_ERROR = buildMessage('message-error', strings.generic_error);
@@ -39,7 +40,7 @@
   // XMLHttpRequest.DONE does not exist in all browsers
   var XHR_DONE = 4;
 
-  var serialize = function(form) {
+  var serialize = function (form) {
     var q = [];
     for (var i = 0; i < form.elements.length; i++) {
       q.push(form.elements[i].name + '=' + encodeURIComponent(form.elements[i].value));
@@ -47,35 +48,37 @@
     return q.join('&');
   };
 
-  var onReady = function(f) {
+  var onReady = function (f) {
     /in/.test(document.readyState)
-      ? setTimeout(function() { onReady(f); }, 9)
+      ? setTimeout(function () {
+          onReady(f);
+        }, 9)
       : f();
   };
 
-  var SentryErrorEmbed = function(options) {
+  var SentryErrorEmbed = function () {
     this.build();
   };
 
-  SentryErrorEmbed.prototype.build = function() {
+  SentryErrorEmbed.prototype.build = function () {
     var self = this;
     this.element = document.createElement('div');
     this.element.className = 'sentry-error-embed-wrapper';
     this.element.innerHTML = template;
-    self.element.onclick = function(e){
+    self.element.onclick = function (e) {
       if (e.target !== self.element) return;
       self.close();
     };
 
     this._form = this.element.getElementsByTagName('form')[0];
-    this._form.onsumbit = function(e) {
+    this._form.onsumbit = function (e) {
       e.preventDefault();
       self.submit(self.serialize());
     };
 
     var buttons = this.element.getElementsByTagName('button');
     this._submitBtn = buttons[0];
-    this._submitBtn.onclick = function(e) {
+    this._submitBtn.onclick = function (e) {
       e.preventDefault();
       self.submit(self.serialize());
     };
@@ -91,7 +94,7 @@
       }
     }
 
-    var cancelHandler = function(e) {
+    var cancelHandler = function (e) {
       e.preventDefault();
       self.close();
     };
@@ -125,35 +128,34 @@
             event.preventDefault();
           }
         }
-      }
+      };
       document.addEventListener('keydown', handleFocus);
 
       setTimeout(function () {
         firstFocus.focus();
-      }, 1)
+      }, 1);
     }
   };
 
-  SentryErrorEmbed.prototype.serialize = function() {
+  SentryErrorEmbed.prototype.serialize = function () {
     return serialize(this._form);
   };
 
-  SentryErrorEmbed.prototype.close = function() {
+  SentryErrorEmbed.prototype.close = function () {
     this.element.parentNode.removeChild(this.element);
   };
 
-  SentryErrorEmbed.prototype.submit = function(body) {
+  SentryErrorEmbed.prototype.submit = function (body) {
     var self = this;
-    if (this._submitInProgress)
-      return;
+    if (this._submitInProgress) return;
     this._submitInProgress = true;
 
     var xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
+    xhr.onreadystatechange = function () {
       if (xhr.readyState === XHR_DONE) {
         if (xhr.status === 200) {
           self.onSuccess();
-        } else if (xhr.status == 400) {
+        } else if (xhr.status === 400) {
           self.onFormError(JSON.parse(xhr.responseText));
         } else {
           setChild(self._errorWrapper, GENERIC_ERROR);
@@ -166,7 +168,7 @@
     xhr.send(body);
   };
 
-  SentryErrorEmbed.prototype.onSuccess = function() {
+  SentryErrorEmbed.prototype.onSuccess = function () {
     this._errorWrapper.innerHTML = '';
     setChild(this._formContent, FORM_SUCCESS);
     this._submitBtn.parentNode.removeChild(this._submitBtn);
@@ -190,18 +192,18 @@
     setChild(this._errorWrapper, FORM_ERROR);
   };
 
-  SentryErrorEmbed.prototype.attach = function(parent) {
+  SentryErrorEmbed.prototype.attach = function (parent) {
     parent.appendChild(this.element);
   };
 
   var options = window.sentryConfig || {};
-  var embed = new SentryErrorEmbed(options);
+  var embed = new SentryErrorEmbed();
   if (options.attachOnLoad !== false) {
-    onReady(function(){
+    onReady(function () {
       embed.attach(options.parent || document.body);
       if (window.sentryEmbedCallback && typeof sentryEmbedCallback === 'function') {
         sentryEmbedCallback(embed);
       }
     });
   }
-}(window, document, JSON));
+})(window, document, JSON);
