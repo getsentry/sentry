@@ -131,7 +131,7 @@ class Organization(Model):
             ),
             (
                 "demo_mode",
-                "Mark an organization as a demo org so it will be destroyed 24 hours after being created.",
+                "Mark an organization as a demo org.",
             ),
         ),
         default=1,

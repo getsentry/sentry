@@ -61,7 +61,7 @@ class Migration(migrations.Migration):
                     ),
                     (
                         "demo_mode",
-                        "Mark an organization as a demo org so it will be destroyed 24 hours after being created.",
+                        "Mark an organization as a demo org.",
                     ),
                 ),
                 default=1,
@@ -78,7 +78,7 @@ class Migration(migrations.Migration):
                     ),
                     (
                         "demo_mode",
-                        "Mark an user as a demo user so it will be destroyed 24 hours after being created.",
+                        "Mark an user as a demo user.",
                     ),
                 ),
                 default=0,

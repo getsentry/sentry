@@ -104,7 +104,7 @@ class User(BaseModel, AbstractBaseUser):
             ("newsletter_consent_prompt", "Do we need to ask this user for newsletter consent?"),
             (
                 "demo_mode",
-                "Mark an user as a demo user so it will be destroyed 24 hours after being created.",
+                "Mark an user as a demo user.",
             ),
         ),
         default=0,
