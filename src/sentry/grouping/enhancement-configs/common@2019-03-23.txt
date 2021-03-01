@@ -51,14 +51,18 @@ family:native package:**/Frameworks/KSCrash.framework/**             -app
 family:native package:**/Frameworks/SentrySwift.framework/**         -app
 family:native package:**/Frameworks/Sentry.framework/**              -app
 
-# Sentry internal functions in Cocoa SDK
+# Needed for versions < sentry-cocoa 7.0.0 and static linking.
+# Before sentry-cocoa 7.0.0, we marked all packages located inside the application bundle as inApp.
+# Since 7.0.0, the Cocoa SKD only marks the main executable as inApp. This change doesn't impact
+# applications using static libraries, as when using static libraries, all of them end up in the
+# main executable.
 family:native function:kscm_*                                     -app -group
 family:native function:sentrycrashcm_*                            -app -group
 family:native function:kscrash_*                                  -app -group
 family:native function:sentrycrash_*                              -app -group
-family:native function:"?[[]KSCrash *"                            -app -group
-family:native function:"?[[]SentryCrash *"                        -app -group
-family:native function:"?[[]SentryClient *"                       -app -group
-family:native function:"?[[]SentryHub *"                          -app -group
-family:native function:"?[[]RNSentry *"                           -app -group
-family:native function:"?[[]SentrySDK *"                          -app -group
+family:native function:"?[[]KSCrash*"                             -app -group
+family:native function:"?[[]RNSentry*"                            -app -group
+
+# Projects shipping their own class called "SentryFoo" can then easily override this in their
+# own grouping enhancers.
+family:native function:"?[[]Sentry*"                              -app -group

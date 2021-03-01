@@ -278,7 +278,7 @@ class NormalizeInApptest(TestCase):
         assert frames[0]["in_app"] is True
         assert frames[1]["in_app"] is False
 
-    def test_ios_function_name_in_app_detection(self):
+    def ios_function_name_in_app_detection(self, function, isInApp: bool):
         data = {
             "platform": "cocoa",
             "debug_meta": {"images": []},  # omitted
@@ -288,43 +288,14 @@ class NormalizeInApptest(TestCase):
                         "stacktrace": {
                             "frames": [
                                 {
-                                    "function": "+[RNSentry ]",
+                                    "function": function,
                                     "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
                                     "instruction_addr": 4295098388,
                                 },
+                                # We need two frames otherwise all frames are inApp
                                 {
-                                    "function": "+[SentryHub ]",
-                                    "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
-                                    "instruction_addr": 4295098388,
-                                },
-                                {
-                                    "function": "+[SentryClient ]",
-                                    "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
-                                    "instruction_addr": 4295098388,
-                                },
-                                {
-                                    "function": "kscrash_foobar",
-                                    "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
-                                    "instruction_addr": 4295098388,
-                                },
-                                {
-                                    "function": "kscm_foobar",
-                                    "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
-                                    "instruction_addr": 4295098388,
-                                },
-                                {
-                                    "function": "+[KSCrash ]",
-                                    "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
-                                    "instruction_addr": 4295098388,
-                                },
-                                {
-                                    "function": "+[KSCrash]",
-                                    "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
-                                    "instruction_addr": 4295098388,
-                                },
-                                {
-                                    "function": "+[KSCrashy]",
-                                    "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
+                                    "function": "[KSCrash ]",
+                                    "package": "/usr/lib/system/libdyld.dylib",
                                     "instruction_addr": 4295098388,
                                 },
                             ]
@@ -340,14 +311,85 @@ class NormalizeInApptest(TestCase):
         normalize_stacktraces_for_grouping(data, grouping_config=config)
 
         frames = data["exception"]["values"][0]["stacktrace"]["frames"]
-        assert frames[0]["in_app"] is False
-        assert frames[1]["in_app"] is False
-        assert frames[2]["in_app"] is False
-        assert frames[3]["in_app"] is False
-        assert frames[4]["in_app"] is False
-        assert frames[5]["in_app"] is False
-        assert frames[6]["in_app"] is True
-        assert frames[7]["in_app"] is True
+        assert frames[0]["in_app"] is isInApp, (
+            "For function: " + function + " expected:" + str(isInApp)
+        )
+
+    def test_ios_function_name_in_app_detection(self):
+        self.ios_function_name_in_app_detection(function="kscm_f", isInApp=False)
+        self.ios_function_name_in_app_detection(function="kscm_", isInApp=False)
+        self.ios_function_name_in_app_detection(function=" kscm_", isInApp=False)
+        self.ios_function_name_in_app_detection(function="kscm", isInApp=True)
+
+        self.ios_function_name_in_app_detection(function="sentrycrashcm_f", isInApp=False)
+        self.ios_function_name_in_app_detection(function="sentrycrashcm_", isInApp=False)
+        self.ios_function_name_in_app_detection(function=" sentrycrashcm_", isInApp=False)
+        self.ios_function_name_in_app_detection(function="sentrycrashcm", isInApp=True)
+
+        self.ios_function_name_in_app_detection(function="kscrash_f", isInApp=False)
+        self.ios_function_name_in_app_detection(function="kscrash_", isInApp=False)
+        self.ios_function_name_in_app_detection(function=" kscrash_", isInApp=False)
+        self.ios_function_name_in_app_detection(function="kscrash", isInApp=True)
+
+        self.ios_function_name_in_app_detection(function="sentrycrash_f", isInApp=False)
+        self.ios_function_name_in_app_detection(function="sentrycrash_", isInApp=False)
+        self.ios_function_name_in_app_detection(function=" sentrycrash_", isInApp=False)
+        self.ios_function_name_in_app_detection(function="sentrycrash", isInApp=True)
+
+        self.ios_function_name_in_app_detection(function="+[KSCrash ]", isInApp=False)
+        self.ios_function_name_in_app_detection(function="-[KSCrash]", isInApp=False)
+        self.ios_function_name_in_app_detection(function="-[KSCrashy]", isInApp=False)
+        self.ios_function_name_in_app_detection(function="-[MyKSCrashy ", isInApp=True)
+
+        self.ios_function_name_in_app_detection(function="+[RNSentry ]", isInApp=False)
+        self.ios_function_name_in_app_detection(function="-[RNSentry]", isInApp=False)
+        self.ios_function_name_in_app_detection(function="-[RNSentry]", isInApp=False)
+        self.ios_function_name_in_app_detection(function="-[MRNSentry ]", isInApp=True)
+
+        self.ios_function_name_in_app_detection(function="+[Sentry ]", isInApp=False)
+        self.ios_function_name_in_app_detection(function="-[Sentry]", isInApp=False)
+        self.ios_function_name_in_app_detection(function="-[Sentry]", isInApp=False)
+        self.ios_function_name_in_app_detection(function="-[MSentry capture]", isInApp=True)
+
+        self.ios_function_name_in_app_detection(
+            function="-[SentryHub captureMessage]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="-[SentryClient captureMessage]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="+[SentrySDK captureMessage]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="-[SentryStacktraceBuilder buildStacktraceForCurrentThread]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="-[SentryThreadInspector getCurrentThreads]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="-[SentryClient captureMessage:withScope:]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="-[SentryFrameInAppLogic isInApp:]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="-[SentryFrameRemover removeNonSdkFrames:]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="-[SentryDebugMetaBuilder buildDebugMeta:withScope:]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="-[SentryCrashAdapter crashedLastLaunch]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="-[SentryCrashAdapter isRateLimitActive:]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="-[SentryTransport sendEvent:attachments:]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="-[SentryHttpTransport sendEvent:attachments:]", isInApp=False
+        )
 
 
 @pytest.mark.parametrize(
