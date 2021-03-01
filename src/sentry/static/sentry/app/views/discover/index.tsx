@@ -72,7 +72,7 @@ class DiscoverContainer extends React.Component<Props, State> {
     this.queryBuilder = createQueryBuilder(query, organization);
   }
 
-  static getDerivedStateFromProps(nextProps: Props, currState): State {
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, currState): State {
     const nextState = {...currState};
     nextState.view = getView(nextProps.params, nextProps.location.query.view);
 

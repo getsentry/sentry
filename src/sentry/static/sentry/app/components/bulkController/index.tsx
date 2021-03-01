@@ -74,7 +74,7 @@ class BulkController extends React.Component<Props, State> {
     isAllSelected: false,
   };
 
-  static getDerivedStateFromProps(props: Props, state: State) {
+  static getDerivedStateFromProps(props: Readonly<Props>, state: State) {
     return {
       ...state,
       selectedIds: intersection(state.selectedIds, props.pageIds),
