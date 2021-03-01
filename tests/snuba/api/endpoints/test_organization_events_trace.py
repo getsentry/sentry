@@ -344,6 +344,46 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         # But we still know the parent_span
         assert event["parent_span_id"] == self.gen2_span_ids[0]
 
+    def test_sibling_transactions(self):
+        """ More than one transaction can share a parent_span_id """
+        gen3_event_siblings = [
+            self.create_event(
+                trace=self.trace_id,
+                transaction="/transaction/gen3-1",
+                spans=[],
+                project_id=self.create_project(organization=self.organization).id,
+                parent_span_id=self.gen2_span_ids[1],
+                duration=500,
+            ).event_id,
+            self.create_event(
+                trace=self.trace_id,
+                transaction="/transaction/gen3-2",
+                spans=[],
+                project_id=self.create_project(organization=self.organization).id,
+                parent_span_id=self.gen2_span_ids[1],
+                duration=500,
+            ).event_id,
+        ]
+
+        current_event = self.gen2_events[1].event_id
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"event_id": current_event, "project": -1},
+                format="json",
+            )
+
+        assert len(response.data) == 4
+        events = {item["event_id"]: item for item in response.data}
+
+        for child_event_id in gen3_event_siblings:
+            assert child_event_id in events
+            event = events[child_event_id]
+            assert event["generation"] is None
+            assert event["parent_event_id"] == current_event
+            assert event["parent_span_id"] == self.gen2_span_ids[1]
+
 
 class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace"
@@ -465,3 +505,39 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert gen3_1["event_id"] == gen3_loop_event.event_id
         # We didn't even try to start the loop of spans
         assert len(gen3_1["children"]) == 0
+
+    def test_sibling_transactions(self):
+        """ More than one transaction can share a parent_span_id """
+        gen3_event_siblings = [
+            self.create_event(
+                trace=self.trace_id,
+                transaction="/transaction/gen3-1",
+                spans=[],
+                project_id=self.create_project(organization=self.organization).id,
+                parent_span_id=self.gen2_span_ids[1],
+                duration=500,
+            ).event_id,
+            self.create_event(
+                trace=self.trace_id,
+                transaction="/transaction/gen3-2",
+                spans=[],
+                project_id=self.create_project(organization=self.organization).id,
+                parent_span_id=self.gen2_span_ids[1],
+                duration=500,
+            ).event_id,
+        ]
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        # Should be the same as the simple testcase, but skip checking gen2 children
+        self.assert_trace_data(response.data, gen2_no_children=False)
+        gen2_parent = response.data["children"][1]["children"][0]
+        assert len(gen2_parent["children"]) == 2
+        for child in gen2_parent["children"]:
+            assert child["event_id"] in gen3_event_siblings
