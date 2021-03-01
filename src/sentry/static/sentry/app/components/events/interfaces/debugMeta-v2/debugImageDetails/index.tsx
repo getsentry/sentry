@@ -14,10 +14,11 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {BuiltinSymbolSource, DebugFile} from 'app/types/debugFiles';
-import {CandidateDownloadStatus, Image} from 'app/types/debugImage';
+import {CandidateDownloadStatus, Image, ImageStatus} from 'app/types/debugImage';
 import theme from 'app/utils/theme';
 
 import Address from '../address';
+import Processings from '../debugImage/processings';
 import {getFileName} from '../utils';
 
 import Candidates from './candidates';
@@ -29,7 +30,7 @@ type Props = AsyncComponent['props'] &
   ModalRenderProps & {
     projectId: Project['id'];
     organization: Organization;
-    image?: Image;
+    image?: Image & {status: ImageStatus};
   };
 
 type State = AsyncComponent['state'] & {
@@ -220,7 +221,15 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
     const {Header, Body, Footer, image, organization, projectId} = this.props;
     const {loading, builtinSymbolSources} = this.state;
 
-    const {debug_id, debug_file, code_file, code_id, arch: architecture} = image ?? {};
+    const {
+      debug_id,
+      debug_file,
+      code_file,
+      code_id,
+      arch: architecture,
+      unwind_status,
+      debug_status,
+    } = image ?? {};
 
     const candidates = this.getCandidates();
     const baseUrl = this.api.baseUrl;
@@ -254,6 +263,18 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
 
               <Label coloredBg>{t('Architecture')}</Label>
               <Value coloredBg>{architecture ?? <NotAvailable />}</Value>
+
+              <Label>{t('Processing')}</Label>
+              <Value>
+                {unwind_status || debug_status ? (
+                  <Processings
+                    unwind_status={unwind_status}
+                    debug_status={debug_status}
+                  />
+                ) : (
+                  <NotAvailable />
+                )}
+              </Value>
             </GeneralInfo>
             {debugFilesSettingsLink && (
               <SearchInSettingsAction>

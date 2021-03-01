@@ -207,7 +207,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   openImageDetailsModal() {
-    const {location, organization, projectId, data} = this.props;
+    const {location, organization, projectId} = this.props;
     const {query} = location;
 
     const {imageCodeId, imageDebugId} = query;
@@ -216,10 +216,10 @@ class DebugMeta extends React.PureComponent<Props, State> {
       return;
     }
 
-    const {images} = data;
+    const {filteredImages} = this.state;
     const image =
       imageCodeId !== IMAGE_INFO_UNAVAILABLE || imageDebugId !== IMAGE_INFO_UNAVAILABLE
-        ? images.find(
+        ? filteredImages.find(
             ({code_id, debug_id}) => code_id === imageCodeId || debug_id === imageDebugId
           )
         : undefined;
