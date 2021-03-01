@@ -118,6 +118,7 @@ class UserOption(Model):
     value: { updated: datetime, state: bool }
 
     where key is one of:
+     (please add to this list if adding new keys)
      - clock_24_hours
         - 12hr vs 24hr
      - issue:defaults

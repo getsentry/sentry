@@ -10,16 +10,16 @@ from sentry.models.integration import ExternalProviders
 
 
 class NotificationSettingTypes(Enum):
-    DEFAULT = 0
     # top level config of on/off
     # for workflow also includes SUBSCRIBE_ONLY
     # for deploy also includes COMMITTED_ONLY
-    DEPLOY = 10
+    DEFAULT = 0
     # send deploy notifications
-    ISSUE_ALERTS = 20
+    DEPLOY = 10
     # notifications for issues
-    WORKFLOW = 30
+    ISSUE_ALERTS = 20
     # notifications for changes in assignment, resolution, comments
+    WORKFLOW = 30
 
 
 NOTIFICATION_SETTING_TYPES = {
