@@ -53,7 +53,16 @@ function TraceFullQuery({event, children, ...props}: QueryProps) {
       eventView={eventView}
       {...props}
     >
-      {({tableData, ...rest}) => children({trace: tableData ?? null, ...rest})}
+      {({tableData, ...rest}) =>
+        children({
+          // This is using '||` instead of '??` here because
+          // the client returns a empty string when the response
+          // is 204. And we want the empty string, undefined and
+          // null to be converted to null.
+          trace: tableData || null,
+          ...rest,
+        })
+      }
     </GenericDiscoverQuery>
   );
 }
