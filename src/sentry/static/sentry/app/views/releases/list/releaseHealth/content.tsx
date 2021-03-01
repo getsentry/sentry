@@ -116,6 +116,16 @@ const Content = ({
               totalSessions,
               totalSessions24h,
             } = healthData || {};
+            const selectedAdoption =
+              activeDisplay === DisplayOption.CRASH_FREE_SESSIONS &&
+              supportsSessionAdoption
+                ? sessions_adoption
+                : adoption;
+            const selected24hCount =
+              activeDisplay === DisplayOption.CRASH_FREE_SESSIONS &&
+              supportsSessionAdoption
+                ? totalSessions24h
+                : totalUsers24h;
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
@@ -124,62 +134,32 @@ const Content = ({
                     <ProjectBadge project={project} avatarSize={16} />
                   </Column>
 
-                  {activeDisplay === DisplayOption.CRASH_FREE_SESSIONS &&
-                  supportsSessionAdoption ? (
-                    <AdoptionColumn>
-                      {showPlaceholders ? (
-                        <StyledPlaceholder width="150px" />
-                      ) : defined(sessions_adoption) ? (
-                        <AdoptionWrapper>
-                          <ProgressBarWrapper>
-                            <Tooltip
-                              containerDisplayMode="block"
-                              title={
-                                <AdoptionTooltip
-                                  totalUsers={totalUsers}
-                                  totalSessions={totalSessions}
-                                  totalUsers24h={totalUsers24h}
-                                  totalSessions24h={totalSessions24h}
-                                />
-                              }
-                            >
-                              <ProgressBar value={Math.ceil(sessions_adoption)} />
-                            </Tooltip>
-                          </ProgressBarWrapper>
-                          <Count value={totalSessions24h ?? 0} />
-                        </AdoptionWrapper>
-                      ) : (
-                        <NotAvailable />
-                      )}
-                    </AdoptionColumn>
-                  ) : (
-                    <AdoptionColumn>
-                      {showPlaceholders ? (
-                        <StyledPlaceholder width="150px" />
-                      ) : defined(adoption) ? (
-                        <AdoptionWrapper>
-                          <ProgressBarWrapper>
-                            <Tooltip
-                              containerDisplayMode="block"
-                              title={
-                                <AdoptionTooltip
-                                  totalUsers={totalUsers}
-                                  totalSessions={totalSessions}
-                                  totalUsers24h={totalUsers24h}
-                                  totalSessions24h={totalSessions24h}
-                                />
-                              }
-                            >
-                              <ProgressBar value={Math.ceil(adoption)} />
-                            </Tooltip>
-                          </ProgressBarWrapper>
-                          <Count value={totalUsers24h ?? 0} />
-                        </AdoptionWrapper>
-                      ) : (
-                        <NotAvailable />
-                      )}
-                    </AdoptionColumn>
-                  )}
+                  <AdoptionColumn>
+                    {showPlaceholders ? (
+                      <StyledPlaceholder width="150px" />
+                    ) : defined(selectedAdoption) ? (
+                      <AdoptionWrapper>
+                        <ProgressBarWrapper>
+                          <Tooltip
+                            containerDisplayMode="block"
+                            title={
+                              <AdoptionTooltip
+                                totalUsers={totalUsers}
+                                totalSessions={totalSessions}
+                                totalUsers24h={totalUsers24h}
+                                totalSessions24h={totalSessions24h}
+                              />
+                            }
+                          >
+                            <ProgressBar value={Math.ceil(selectedAdoption)} />
+                          </Tooltip>
+                        </ProgressBarWrapper>
+                        <Count value={selected24hCount ?? 0} />
+                      </AdoptionWrapper>
+                    ) : (
+                      <NotAvailable />
+                    )}
+                  </AdoptionColumn>
 
                   {activeDisplay === DisplayOption.CRASH_FREE_USERS ? (
                     <SessionsColumn>
