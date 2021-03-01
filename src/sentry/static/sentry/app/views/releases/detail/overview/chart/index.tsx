@@ -51,14 +51,20 @@ type Props = {
 };
 
 class ReleaseChartContainer extends React.Component<Props> {
-  getTransactionsChartColors(): [string, string] {
+  /**
+   * This returns an array with 3 colors, one for each of
+   * 1. This Release
+   * 2. Other Releases
+   * 3. Releases (the markers)
+   */
+  getTransactionsChartColors(): [string, string, string] {
     const {yAxis, theme} = this.props;
 
     switch (yAxis) {
       case YAxis.FAILED_TRANSACTIONS:
-        return [theme.red300, theme.red100];
+        return [theme.red300, theme.red100, theme.purple300];
       default:
-        return [theme.purple300, theme.purple100];
+        return [theme.purple300, theme.purple100, theme.purple300];
     }
   }
 
