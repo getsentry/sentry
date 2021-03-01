@@ -70,7 +70,6 @@ export type UnsavedIssueAlertRule = {
   environment?: null | string;
   frequency: number;
   name: string;
-  // the id of the team which owns the alert
   team?: string;
 };
 
