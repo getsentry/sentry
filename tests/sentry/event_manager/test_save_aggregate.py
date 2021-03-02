@@ -1,14 +1,17 @@
 import contextlib
 import pytest
+import time
 
 from threading import Thread
 
-from sentry.event_manager import EventManager
-from sentry.testutils.helpers import Feature
+from sentry.eventstore.models import Event
+from sentry.event_manager import _save_aggregate, _save_aggregate2
 
 
-@pytest.fixture(
-    params=[
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize(
+    "save_aggregate_version",
+    [
         # New group creation code, which is supposed to not have races
         "new_save_aggregate",
         # New group creation code with removed transaction isolation, which is then
@@ -23,13 +26,15 @@ from sentry.testutils.helpers import Feature
         "new_broken_save_aggregate",
         # Old group creation code which is "supposed to" have races
         "old_save_aggregate",
-    ]
+    ],
 )
-def is_race_free(request, monkeypatch):
-    new_variant = request.param in ("new_save_aggregate", "new_broken_save_aggregate")
-    is_race_free = request.param == "new_save_aggregate"
+def test_group_creation_race(monkeypatch, default_project, save_aggregate_version):
+    CONCURRENCY = 2
 
-    if request.param == "new_broken_save_aggregate":
+    new_variant = save_aggregate_version in ("new_save_aggregate", "new_broken_save_aggregate")
+    is_race_free = save_aggregate_version == "new_save_aggregate"
+
+    if save_aggregate_version == "new_broken_save_aggregate":
 
         class FakeTransactionModule:
             @staticmethod
@@ -44,20 +49,32 @@ def is_race_free(request, monkeypatch):
         # select_for_update cannot be used outside of transactions
         monkeypatch.setattr("django.db.models.QuerySet.select_for_update", lambda self: self)
 
-    with Feature({"projects:race-free-group-creation": new_variant}):
-        yield is_race_free
+    if new_variant:
+        save_aggregate = _save_aggregate2
+    else:
+        save_aggregate = _save_aggregate
 
-
-@pytest.mark.django_db(transaction=True)
-def test_group_creation_race(monkeypatch, default_project, is_race_free):
-    CONCURRENCY = 2
-
-    events = []
+    return_values = []
 
     def save_event():
-        mgr = EventManager({"fingerprint": ["group1"]})
-        mgr.normalize()
-        events.append(mgr.save(default_project.id))
+        data = {"timestamp": time.time()}
+        evt = Event(
+            default_project.id,
+            "89aeed6a472e4c5fb992d14df4d7e1b6",
+            data=data,
+        )
+
+        return_values.append(
+            save_aggregate(
+                evt,
+                flat_hashes=["a" * 32, "b" * 32],
+                hierarchical_hashes=[],
+                release=None,
+                data=data,
+                level=10,
+                culprit="",
+            )
+        )
 
     threads = []
     for _ in range(CONCURRENCY):
@@ -69,6 +86,10 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
         thread.join()
 
     if is_race_free:
-        assert len({e.group_id for e in events}) == 1
+        # assert one group is new
+        assert len({rv[0].id for rv in return_values}) == 1
+        assert sum(rv[1] for rv in return_values) == 1
     else:
-        assert 1 < len({e.group_id for e in events}) <= CONCURRENCY
+        # assert many groups are new
+        assert 1 < len({rv[0].id for rv in return_values}) <= CONCURRENCY
+        assert 1 < sum(rv[1] for rv in return_values) <= CONCURRENCY
