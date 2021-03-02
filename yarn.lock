@@ -1794,13 +1794,13 @@
     "@sentry/utils" "6.3.0-beta.0"
     tslib "^1.9.3"
 
-"@sentry/integrations@6.1.0":
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/@sentry/integrations/-/integrations-6.1.0.tgz#4b08b21a0b3f7bb797f4a190a8906b80bcb48cf9"
-  integrity sha512-4KaqQvcdfcIoUcaqgCqAFC4z4pTQrRc3kDiOaF+0qnOxdTNZcfkREkfWQVPxGu0Lw++qKLD7rfJIERU7qemAGg==
+"@sentry/integrations@6.3.0-beta.0":
+  version "6.3.0-beta.0"
+  resolved "https://registry.yarnpkg.com/@sentry/integrations/-/integrations-6.3.0-beta.0.tgz#535b418d0be0c6a84356d94cbc03041a7c05e28e"
+  integrity sha512-cUuFhQq1ufWM2dX/ToWqVfPXhXf7LO4AmlazBBPlPSFkxbhA6dmSqhNtbZzPp4QSC88RnrmNZqD3j3jWv5Db0w==
   dependencies:
-    "@sentry/types" "6.1.0"
-    "@sentry/utils" "6.1.0"
+    "@sentry/types" "6.3.0-beta.0"
+    "@sentry/utils" "6.3.0-beta.0"
     localforage "^1.8.1"
     tslib "^1.9.3"
 
@@ -1868,6 +1868,17 @@
     "@sentry/minimal" "6.1.0"
     "@sentry/types" "6.1.0"
     "@sentry/utils" "6.1.0"
+    tslib "^1.9.3"
+
+"@sentry/tracing@6.3.0-beta.0":
+  version "6.3.0-beta.0"
+  resolved "https://registry.yarnpkg.com/@sentry/tracing/-/tracing-6.3.0-beta.0.tgz#94f6b97f78c1de596d7e36132391158f2ad858b0"
+  integrity sha512-SDMsqcnhI/Ip1IxzL6bjzIoJNpqGvVGMtu8cGsCQbWp3P18NO+snHqL1IrUADWrGTxPwaeOWxjbZf22YlraHHA==
+  dependencies:
+    "@sentry/hub" "6.3.0-beta.0"
+    "@sentry/minimal" "6.3.0-beta.0"
+    "@sentry/types" "6.3.0-beta.0"
+    "@sentry/utils" "6.3.0-beta.0"
     tslib "^1.9.3"
 
 "@sentry/types@6.1.0":
