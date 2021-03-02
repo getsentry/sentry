@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
@@ -124,52 +125,58 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return (
       <StyledLayoutBody>
         <Layout.Main fullWidth>
-          <StyledPanelTable
-            headers={[
-              t('Type'),
-              t('Alert Name'),
-              t('Project'),
-              t('Created By'),
-              // eslint-disable-next-line react/jsx-key
-              <StyledSortLink
-                to={{
-                  pathname: `/organizations/${orgId}/alerts/rules/`,
-                  query: {
-                    ...query,
-                    asc: sort.asc ? undefined : '1',
-                  },
-                }}
+          <Feature features={['organizations:team-alerts-ownership']}>
+            {({hasFeature}) => (
+              <StyledPanelTable
+                headers={[
+                  t('Type'),
+                  t('Alert Name'),
+                  t('Project'),
+                  ...(hasFeature ? [t('Team')] : []),
+                  t('Created By'),
+                  // eslint-disable-next-line react/jsx-key
+                  <StyledSortLink
+                    to={{
+                      pathname: `/organizations/${orgId}/alerts/rules/`,
+                      query: {
+                        ...query,
+                        asc: sort.asc ? undefined : '1',
+                      },
+                    }}
+                  >
+                    {t('Created')}{' '}
+                    <IconArrow
+                      color="gray300"
+                      size="xs"
+                      direction={sort.asc ? 'up' : 'down'}
+                    />
+                  </StyledSortLink>,
+                  t('Actions'),
+                ]}
+                isLoading={loading}
+                isEmpty={ruleList?.length === 0}
+                emptyMessage={this.tryRenderEmpty()}
+                showTeamCol={hasFeature}
               >
-                {t('Created')}{' '}
-                <IconArrow
-                  color="gray300"
-                  size="xs"
-                  direction={sort.asc ? 'up' : 'down'}
-                />
-              </StyledSortLink>,
-              t('Actions'),
-            ]}
-            isLoading={loading}
-            isEmpty={ruleList?.length === 0}
-            emptyMessage={this.tryRenderEmpty()}
-          >
-            <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
-              {({initiallyLoaded, projects}) =>
-                ruleList.map(rule => (
-                  <RuleListRow
-                    // Metric and issue alerts can have the same id
-                    key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
-                    projectsLoaded={initiallyLoaded}
-                    projects={projects as Project[]}
-                    rule={rule}
-                    orgId={orgId}
-                    onDelete={this.handleDeleteRule}
-                    organization={organization}
-                  />
-                ))
-              }
-            </Projects>
-          </StyledPanelTable>
+                <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+                  {({initiallyLoaded, projects}) =>
+                    ruleList.map(rule => (
+                      <RuleListRow
+                        // Metric and issue alerts can have the same id
+                        key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
+                        projectsLoaded={initiallyLoaded}
+                        projects={projects as Project[]}
+                        rule={rule}
+                        orgId={orgId}
+                        onDelete={this.handleDeleteRule}
+                        organization={organization}
+                      />
+                    ))
+                  }
+                </Projects>
+              </StyledPanelTable>
+            )}
+          </Feature>
           <Pagination pageLinks={ruleListPageLinks} />
         </Layout.Main>
       </StyledLayoutBody>
@@ -232,12 +239,13 @@ const StyledSortLink = styled(Link)`
   }
 `;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledPanelTable = styled(PanelTable)<{showTeamCol: boolean}>`
   ${PanelTableHeader} {
     line-height: normal;
   }
   font-size: ${p => p.theme.fontSizeMedium};
-  grid-template-columns: auto 1.5fr 1fr 1fr 1fr auto;
+  grid-template-columns: ${p =>
+    p.showTeamCol ? 'auto 1.5fr 1fr 1fr 1fr 1fr auto' : 'auto 1.5fr 1fr 1fr 1fr auto'};
   margin-bottom: 0;
   white-space: nowrap;
   ${p =>
