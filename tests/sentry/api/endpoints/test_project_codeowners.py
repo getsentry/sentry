@@ -117,7 +117,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert response.status_code == 400
         assert response.data == {
             "raw": [
-                "The following emails do not have an user associated in Sentry: someuser@sentry.io."
+                "The following emails do not have an association in Sentry: someuser@sentry.io."
             ]
         }
 

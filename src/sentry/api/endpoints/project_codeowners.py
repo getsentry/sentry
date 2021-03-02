@@ -52,13 +52,10 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
 
         # Check if there exists Sentry users with the emails listed in CODEOWNERS
         user_emails = UserEmail.objects.filter(email__in=emails)
-        user_emails = [user.email for user in user_emails]
-        user_emails_diff = [email for email in emails if email not in user_emails]
+        user_emails_diff = self._validate_association(emails, user_emails, "emails")
 
         if len(user_emails_diff):
-            external_association_err.append(
-                f'The following emails do not have an user associated in Sentry: {", ".join(user_emails_diff)}.'
-            )
+            external_association_err.extend(user_emails_diff)
 
         # Check if the usernames have an association
         external_users = ExternalUser.objects.filter(
@@ -66,13 +63,10 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
             organizationmember__organization=self.context["project"].organization,
         )
 
-        external_users_names = [user.external_name for user in external_users]
-        external_users_diff = [name for name in usernames if name not in external_users_names]
+        external_users_diff = self._validate_association(usernames, external_users, "usernames")
 
         if len(external_users_diff):
-            external_association_err.append(
-                f'The following usernames do not have an association in Sentry: {", ".join(external_users_diff)}.'
-            )
+            external_association_err.extend(external_users_diff)
 
         # Check if the team names have an association
         external_teams = ExternalTeam.objects.filter(
@@ -80,13 +74,10 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
             team__organization=self.context["project"].organization,
         )
 
-        external_teams_names = [team.external_name for team in external_teams]
-        external_teams_diff = [name for name in teamnames if name not in external_teams_names]
+        external_teams_diff = self._validate_association(teamnames, external_teams, "team names")
 
         if len(external_teams_diff):
-            external_association_err.append(
-                f'The following team names do not have an association in Sentry: {", ".join(external_teams_diff)}.'
-            )
+            external_association_err.extend(external_teams_diff)
 
         if len(external_association_err):
             raise serializers.ValidationError({"raw": "\n".join(external_association_err)})
@@ -109,6 +100,23 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         )
 
         return {**validated_data, **attrs}
+
+    def _validate_association(self, raw_items, associations, type):
+        if type == "emails":
+            # associations are UserEmail objects
+            sentry_items = [item.email for item in associations]
+        else:
+            # associations can be ExternalUser or ExternalTeam objects
+            sentry_items = [item.external_name for item in associations]
+
+        diff = [item for item in raw_items if item not in sentry_items]
+
+        if len(diff):
+            return [
+                f'The following {type} do not have an association in Sentry: {", ".join(diff)}.'
+            ]
+
+        return []
 
     def validate_code_mapping_id(self, code_mapping_id):
         try:
