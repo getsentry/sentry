@@ -23,6 +23,7 @@ class ProjectCodeOwnersSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         data = {
+            "id": str(obj.id),
             "raw": obj.raw,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,

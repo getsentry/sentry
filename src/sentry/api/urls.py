@@ -222,6 +222,7 @@ from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_codeowners import ProjectCodeOwnersEndpoint
+from .endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
@@ -1696,6 +1697,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners/$",
                     ProjectCodeOwnersEndpoint.as_view(),
                     name="sentry-api-0-project-codeowners",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners/(?P<codeowners_id>[^\/]+)/$",
+                    ProjectCodeOwnersDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-codeowners-details",
                 ),
                 # Load plugin project urls
                 url(

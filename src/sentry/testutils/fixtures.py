@@ -302,6 +302,20 @@ class Fixtures:
         organizationmember = OrganizationMember.objects.get(user=user, organization=organization)
         return Factories.create_external_user(organizationmember=organizationmember, **kwargs)
 
+    def create_external_team(self, team=None, **kwargs):
+        if not team:
+            team = self.team
+        return Factories.create_external_team(team=team, **kwargs)
+
+    def create_codeowners(self, project=None, code_mapping=None, **kwargs):
+        if not project:
+            project = self.project
+        if not code_mapping:
+            self.repo = self.create_repo(self.project)
+            code_mapping = self.create_code_mapping(self.project, self.repo)
+
+        return Factories.create_codeowners(project=project, code_mapping=code_mapping, **kwargs)
+
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
         self.insta_snapshot = insta_snapshot
