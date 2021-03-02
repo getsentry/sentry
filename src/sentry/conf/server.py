@@ -1348,10 +1348,7 @@ SENTRY_SCOPE_SETS = (
         ("event:write", "Read and write access to events."),
         ("event:read", "Read access to events."),
     ),
-    (
-        ("alerts:write", "Read and write alerts"),
-        ("alerts:read", "Read alerts"),
-    ),
+    (("alerts:write", "Read and write alerts"), ("alerts:read", "Read alerts"),),
 )
 
 SENTRY_DEFAULT_ROLE = "member"
@@ -1566,8 +1563,20 @@ SENTRY_DEVSERVICES = {
         "image": "postgres:9.6-alpine",
         "pull": True,
         "ports": {"5432/tcp": 5432},
+        "command": [
+            "postgres",
+            "-c",
+            "wal_level=logical",
+            "-c",
+            "max_replication_slots=1",
+            "-c",
+            "max_wal_senders=1",
+        ],
         "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
-        "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
+        "volumes": {
+            "postgres": {"bind": "/var/lib/postgresql/data"},
+            "shared_objects": {"bind": "/usr/local/lib/postgresql"},
+        },
         "healthcheck": {
             "test": ["CMD", "pg_isready"],
             "interval": 1000000000,  # Test every 1 second (in ns).
