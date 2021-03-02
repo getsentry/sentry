@@ -21,7 +21,7 @@ import TimeSince from 'app/components/timeSince';
 import {IconCheckmark} from 'app/icons/iconCheckmark';
 import {IconFire} from 'app/icons/iconFire';
 import {IconWarning} from 'app/icons/iconWarning';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
@@ -159,10 +159,13 @@ class DetailsBody extends React.Component<Props> {
         <span>{t('Time Window')}</span>
         <span>{rule?.timeWindow && <Duration seconds={rule?.timeWindow * 60} />}</span>
 
-        {rule?.query && (
+        {(rule?.dataset || rule?.query) && (
           <React.Fragment>
             <span>{t('Filter')}</span>
-            <span title={rule?.query}>{rule?.query}</span>
+            <span>
+              {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
+              {rule?.query}
+            </span>
           </React.Fragment>
         )}
 
@@ -442,28 +445,6 @@ class DetailsBody extends React.Component<Props> {
               </Layout.Main>
               <Layout.Side>
                 {this.renderMetricStatus()}
-                <ChartParameters>
-                  {tct('Metric: [metric] over [window]', {
-                    metric: <code>{rule?.aggregate ?? '\u2026'}</code>,
-                    window: (
-                      <code>
-                        {rule?.timeWindow ? (
-                          <Duration seconds={rule?.timeWindow * 60} />
-                        ) : (
-                          '\u2026'
-                        )}
-                      </code>
-                    ),
-                  })}
-                  {(rule?.query || rule?.dataset) && <br />}
-                  {(rule?.query || rule?.dataset) &&
-                    tct('Filter: [datasetType] [filter]', {
-                      datasetType: rule?.dataset && (
-                        <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>
-                      ),
-                      filter: rule?.query && <code>{rule.query}</code>,
-                    })}
-                </ChartParameters>
                 <SidebarHeading>
                   <span>{t('Alert Rule')}</span>
                 </SidebarHeading>
@@ -603,17 +584,6 @@ const StatCount = styled('span')`
   margin-left: ${space(0.5)};
   margin-top: ${space(0.25)};
   color: black;
-`;
-
-const ChartParameters = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-  align-items: center;
-  overflow-x: auto;
-
-  > * {
-    position: relative;
-  }
 `;
 
 const RuleDetails = styled('div')`
