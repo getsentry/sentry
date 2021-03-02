@@ -209,12 +209,16 @@ class ErrorPageEmbedView(View):
         context = {
             "endpoint": mark_safe("*/" + json.dumps(absolute_uri(request.get_full_path())) + ";/*"),
             "template": mark_safe("*/" + json.dumps(template) + ";/*"),
-            "strings": json.dumps_htmlsafe(
-                {
-                    "generic_error": str(options["errorGeneric"]),
-                    "form_error": str(options["errorFormEntry"]),
-                    "sent_message": str(options["successMessage"]),
-                }
+            "strings": mark_safe(
+                "*/"
+                + json.dumps_htmlsafe(
+                    {
+                        "generic_error": str(options["errorGeneric"]),
+                        "form_error": str(options["errorFormEntry"]),
+                        "sent_message": str(options["successMessage"]),
+                    }
+                )
+                + ";/*"
             ),
         }
 
