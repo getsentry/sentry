@@ -9,14 +9,16 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import NotAvailable from 'app/components/notAvailable';
+import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {BuiltinSymbolSource, DebugFile} from 'app/types/debugFiles';
-import {CandidateDownloadStatus, Image} from 'app/types/debugImage';
+import {CandidateDownloadStatus, Image, ImageStatus} from 'app/types/debugImage';
 import theme from 'app/utils/theme';
 
 import Address from '../address';
+import Processings from '../debugImage/processings';
 import {getFileName} from '../utils';
 
 import Candidates from './candidates';
@@ -28,7 +30,7 @@ type Props = AsyncComponent['props'] &
   ModalRenderProps & {
     projectId: Project['id'];
     organization: Organization;
-    image?: Image;
+    image?: Image & {status: ImageStatus};
   };
 
 type State = AsyncComponent['state'] & {
@@ -182,6 +184,18 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
     return this.sortCandidates(convertedCandidates, unAppliedCandidates);
   }
 
+  getDebugFilesSettingsLink() {
+    const {organization, projectId, image} = this.props;
+    const orgSlug = organization.slug;
+    const debugId = image?.debug_id;
+
+    if (!orgSlug || !projectId || !debugId) {
+      return undefined;
+    }
+
+    return `/settings/${orgSlug}/projects/${projectId}/debug-symbols/?query=${debugId}`;
+  }
+
   handleDelete = async (debugId: string) => {
     const {organization, projectId} = this.props;
 
@@ -207,13 +221,22 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
     const {Header, Body, Footer, image, organization, projectId} = this.props;
     const {loading, builtinSymbolSources} = this.state;
 
-    const {debug_id, debug_file, code_file, code_id, arch: architecture} = image ?? {};
+    const {
+      debug_id,
+      debug_file,
+      code_file,
+      code_id,
+      arch: architecture,
+      unwind_status,
+      debug_status,
+    } = image ?? {};
 
     const candidates = this.getCandidates();
     const baseUrl = this.api.baseUrl;
 
     const title = getFileName(code_file);
     const imageAddress = image ? <Address image={image} /> : undefined;
+    const debugFilesSettingsLink = this.getDebugFilesSettingsLink();
 
     return (
       <React.Fragment>
@@ -240,7 +263,33 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
 
               <Label coloredBg>{t('Architecture')}</Label>
               <Value coloredBg>{architecture ?? <NotAvailable />}</Value>
+
+              <Label>{t('Processing')}</Label>
+              <Value>
+                {unwind_status || debug_status ? (
+                  <Processings
+                    unwind_status={unwind_status}
+                    debug_status={debug_status}
+                  />
+                ) : (
+                  <NotAvailable />
+                )}
+              </Value>
             </GeneralInfo>
+            {debugFilesSettingsLink && (
+              <SearchInSettingsAction>
+                <Tooltip
+                  title={t(
+                    'Search for this debug file in all images for the %s project',
+                    projectId
+                  )}
+                >
+                  <Button to={debugFilesSettingsLink} size="small">
+                    {t('Search in Settings')}
+                  </Button>
+                </Tooltip>
+              </SearchInSettingsAction>
+            )}
             <Candidates
               candidates={candidates}
               organization={organization}
@@ -269,8 +318,13 @@ export default DebugImageDetails;
 
 const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(4)};
+  grid-gap: ${space(3)};
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const SearchInSettingsAction = styled('div')`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 const GeneralInfo = styled('div')`

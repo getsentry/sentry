@@ -1,9 +1,10 @@
 import React from 'react';
 
+import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
 import {PageContent} from 'app/styles/organization';
+import withOrganization from 'app/utils/withOrganization';
 
 import MobileApp from './mobileApp';
 
@@ -17,12 +18,18 @@ class MobileAppContainer extends React.Component<MobileApp['props']> {
   }
 
   render() {
-    if (!ConfigStore.get('user')?.isStaff) {
-      return this.renderNoAccess();
-    }
+    const {organization} = this.props;
 
-    return <MobileApp {...this.props} />;
+    return (
+      <Feature
+        features={['mobile-app']}
+        organization={organization}
+        renderDisabled={this.renderNoAccess}
+      >
+        <MobileApp {...this.props} />
+      </Feature>
+    );
   }
 }
 
-export default MobileAppContainer;
+export default withOrganization(MobileAppContainer);

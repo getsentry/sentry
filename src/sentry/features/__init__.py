@@ -86,6 +86,7 @@ default_manager.add("organizations:internal-catchall", OrganizationFeature)  # N
 default_manager.add("organizations:invite-members", OrganizationFeature)  # NOQA
 default_manager.add("organizations:images-loaded-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:large-debug-files", OrganizationFeature)  # NOQA
+default_manager.add("organizations:mobile-app", OrganizationFeature)  # NOQA
 default_manager.add("organizations:monitors", OrganizationFeature)  # NOQA
 default_manager.add("organizations:onboarding", OrganizationFeature)  # NOQA
 default_manager.add("organizations:org-saved-searches", OrganizationFeature)  # NOQA
@@ -120,6 +121,7 @@ default_manager.add("organizations:performance-landing-v2", OrganizationFeature)
 default_manager.add("organizations:performance-vitals-overview", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-ops-breakdown", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-tag-explorer", OrganizationFeature)  # NOQA
+default_manager.add("organizations:team-alerts-ownership", OrganizationFeature)  # NOQA
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.

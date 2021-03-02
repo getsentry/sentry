@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {openModal} from 'app/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
@@ -13,7 +14,7 @@ import {
   Integration,
   Organization,
   Project,
-  RepositoryProjectPathConfig,
+  RepositoryProjectPathConfigWithIntegration,
 } from 'app/types';
 import {Event} from 'app/types/event';
 import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
@@ -35,7 +36,7 @@ type Props = AsyncComponent['props'] & {
 //format of the ProjectStacktraceLinkEndpoint response
 type StacktraceResultItem = {
   integrations: Integration[];
-  config?: RepositoryProjectPathConfig;
+  config?: RepositoryProjectPathConfigWithIntegration;
   sourceUrl?: string;
   error?: 'file_not_found' | 'stack_root_mismatch';
 };
@@ -136,6 +137,13 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     ];
   }
 
+  onRequestError(error, args) {
+    Sentry.withScope(scope => {
+      scope.setExtra('errorInfo', args);
+      Sentry.captureException(new Error(error));
+    });
+  }
+
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -179,13 +187,14 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     }
   }
 
-  handleSubmit() {
+  handleSubmit = () => {
     this.reloadData();
-  }
+  };
 
-  // let the ErrorBoundary handle errors by raising it
+  // don't show the error boundary if the component fails.
+  // capture the endpoint error on onRequestError
   renderError(): React.ReactNode {
-    throw new Error('Error loading endpoints');
+    return null;
   }
 
   renderLoading() {
@@ -257,7 +266,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       </CodeMappingButtonContainer>
     );
   }
-  renderMatchWithUrl(config: RepositoryProjectPathConfig, url: string) {
+  renderMatchWithUrl(config: RepositoryProjectPathConfigWithIntegration, url: string) {
     url = `${url}#L${this.props.frame.lineNo}`;
     return (
       <OpenInContainer columnQuantity={2}>
@@ -269,6 +278,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       </OpenInContainer>
     );
   }
+
   renderBody() {
     const {config, sourceUrl} = this.match || {};
     const {isDismissed, promptLoaded} = this.state;
