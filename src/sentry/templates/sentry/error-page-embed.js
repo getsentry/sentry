@@ -142,6 +142,9 @@
   };
 
   SentryErrorEmbed.prototype.close = function () {
+    if (handleFocus) {
+      document.removeEventListener('keydown', handleFocus);
+    }
     this.element.parentNode.removeChild(this.element);
   };
 
