@@ -23,9 +23,8 @@ import {Organization, Project} from 'app/types';
 import {Event, EventTag} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
-import QuickTraceQuery, {
-  QuickTraceQueryChildrenProps,
-} from 'app/utils/performance/quickTrace/quickTraceQuery';
+import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
+import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
 import {appendTagCondition, decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
