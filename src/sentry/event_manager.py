@@ -9,6 +9,7 @@ from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
 from pytz import UTC
+import sentry_sdk
 
 from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
@@ -938,7 +939,14 @@ def _save_aggregate2(event, flat_hashes, hierarchical_hashes, release, **kwargs)
     existing_group_id = _find_group_id(all_hashes)
 
     if existing_group_id is None:
-        with transaction.atomic():
+        with sentry_sdk.start_span(
+            op="event_manager.create_group_transaction"
+        ) as span, metrics.timer(
+            "event_manager.create_group_transaction"
+        ) as metric_tags, transaction.atomic():
+            span.set_tag("create_group_transaction.outcome", "no_group")
+            metric_tags["create_group_transaction.outcome"] = "no_group"
+
             all_hashes = list(
                 GroupHash.objects.filter(id__in=[h.id for h in all_hashes]).select_for_update()
             )
@@ -971,6 +979,9 @@ def _save_aggregate2(event, flat_hashes, hierarchical_hashes, release, **kwargs)
 
                 is_new = True
                 is_regression = False
+
+                span.set_tag("create_group_transaction.outcome", "new_group")
+                metric_tags["create_group_transaction.outcome"] = "new_group"
 
                 metrics.incr(
                     "group.created",
