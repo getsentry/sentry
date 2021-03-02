@@ -41,7 +41,7 @@ type MenuProps = {
 };
 
 export type GetActorPropsFn = (opts?: GetActorArgs) => ActorProps;
-type GetMenuPropsFn = (opts?: GetMenuArgs) => MenuProps;
+export type GetMenuPropsFn = (opts?: GetMenuArgs) => MenuProps;
 
 type RenderProps = {
   isOpen: boolean;

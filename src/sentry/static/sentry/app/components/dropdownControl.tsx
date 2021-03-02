@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import DropdownBubble from 'app/components/dropdownBubble';
 import DropdownButton from 'app/components/dropdownButton';
-import DropdownMenu, {GetActorPropsFn} from 'app/components/dropdownMenu';
+import DropdownMenu, {GetActorPropsFn, GetMenuPropsFn} from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
 
 type ButtonPriority = React.ComponentProps<typeof DropdownButton>['priority'];
@@ -20,7 +20,21 @@ type DefaultProps = {
   menuWidth: string;
 };
 
+type ChildrenArgs = {
+  isOpen: boolean;
+  getMenuProps: GetMenuPropsFn;
+};
+
+type ButtonArgs = {
+  isOpen: boolean;
+  getActorProps: GetActorPropsFn;
+};
+
 type Props = DefaultProps & {
+  children:
+    | ((args: ChildrenArgs) => React.ReactElement)
+    | React.ReactElement
+    | Array<React.ReactElement>;
   /**
    * String or element for the button contents.
    */
@@ -29,7 +43,7 @@ type Props = DefaultProps & {
    * A closure that returns a styled button. Function will get {isOpen, getActorProps}
    * as arguments. Use this if you need to style/replace the dropdown button.
    */
-  button?: (props: {isOpen: boolean; getActorProps: GetActorPropsFn}) => React.ReactNode;
+  button?: (args: ButtonArgs) => React.ReactNode;
   /**
    * Align the dropdown menu to the right. (Default aligns to left)
    */
@@ -62,6 +76,7 @@ class DropdownControl extends React.Component<Props> {
 
   renderButton(isOpen: boolean, getActorProps: GetActorPropsFn) {
     const {label, button, buttonProps, priority} = this.props;
+
     if (button) {
       return button({isOpen, getActorProps});
     }
@@ -77,17 +92,32 @@ class DropdownControl extends React.Component<Props> {
     );
   }
 
-  render() {
-    const {
-      children,
-      alwaysRenderMenu,
-      alignRight,
-      menuWidth,
-      blendWithActor,
-      priority,
-      className,
-    } = this.props;
+  renderChildren(isOpen: boolean, getMenuProps: GetMenuPropsFn) {
+    const {children, alignRight, menuWidth, blendWithActor, priority} = this.props;
+
+    if (typeof children === 'function') {
+      return children({isOpen, getMenuProps});
+    }
+
     const alignMenu = alignRight ? 'right' : 'left';
+
+    return (
+      <Content
+        {...getMenuProps()}
+        priority={priority}
+        alignMenu={alignMenu}
+        width={menuWidth}
+        isOpen={isOpen}
+        blendWithActor={blendWithActor}
+        blendCorner
+      >
+        {children}
+      </Content>
+    );
+  }
+
+  render() {
+    const {alwaysRenderMenu, className} = this.props;
 
     return (
       <Container className={className}>
@@ -95,17 +125,7 @@ class DropdownControl extends React.Component<Props> {
           {({isOpen, getMenuProps, getActorProps}) => (
             <React.Fragment>
               {this.renderButton(isOpen, getActorProps)}
-              <Content
-                {...getMenuProps()}
-                priority={priority}
-                alignMenu={alignMenu}
-                width={menuWidth}
-                isOpen={isOpen}
-                blendWithActor={blendWithActor}
-                blendCorner
-              >
-                {children}
-              </Content>
+              {this.renderChildren(isOpen, getMenuProps)}
             </React.Fragment>
           )}
         </DropdownMenu>
@@ -124,7 +144,7 @@ const StyledDropdownButton = styled(DropdownButton)`
   white-space: nowrap;
 `;
 
-const Content = styled(DropdownBubble)<{priority: ButtonPriority; isOpen: boolean}>`
+const Content = styled(DropdownBubble)<{isOpen: boolean; priority?: ButtonPriority}>`
   display: ${p => (p.isOpen ? 'block' : 'none')};
   border-color: ${p => p.theme.button[p.priority || 'form'].border};
 `;
@@ -134,4 +154,4 @@ const DropdownItem = styled(MenuItem)`
 `;
 
 export default DropdownControl;
-export {DropdownItem};
+export {DropdownItem, Content};
