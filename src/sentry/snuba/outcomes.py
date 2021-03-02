@@ -7,17 +7,16 @@ from sentry.utils.snuba import (
     # resolve_column,
     # SNUBA_AND,
     # SNUBA_OR,
-    SnubaTSResult,
+    # SnubaTSResult,
     to_naive_timestamp,
 )
 from sentry.snuba.dataset import Dataset
 from sentry_relay import DataCategory
 from collections import defaultdict
 
+# from sentry.utils.outcomes import Outcome
+
 # from .discover import zerofill
-
-
-ERROR_DATA_CATEGORIES = [DataCategory.DEFAULT, DataCategory.ERROR, DataCategory.SECURITY]
 
 
 def group_timestamps(result, groupby):
@@ -32,7 +31,7 @@ def group_timestamps(result, groupby):
     for row in result:
         row["category"] = (
             DataCategory.ERROR
-            if row["category"] in ERROR_DATA_CATEGORIES
+            if row["category"] in DataCategory.error_categories()
             else DataCategory(row["category"])
         )
         uniq_key = "-".join([str(row[gb]) for gb in grouping_key])
@@ -88,21 +87,14 @@ def query(groupby, start, end, rollup, aggregations, orderby, fields=None, filte
         # referrer=referrer,
     )
 
-    #
-    #
-
-    # add logic for grouping datacategories as errors here
-    result = group_timestamps(result["data"], groupby)
-    if "project_id" in groupby:
-        result = group_by_project(result)
-        result = {
-            project_id: zerofill(vals, start, end, rollup, "time")
-            for project_id, vals in result.items()
-        }
-    else:
-        result = zerofill(result, start, end, rollup, "time")
-
-    return SnubaTSResult({"data": result}, start, end, rollup)
+    for row in result["data"]:
+        row["category"] = (
+            DataCategory.ERROR
+            if row["category"] in DataCategory.error_categories()
+            else DataCategory(row["category"])
+        )
+    result = result["data"]
+    return result
 
 
 # def get_outcomes_for_org_stats(

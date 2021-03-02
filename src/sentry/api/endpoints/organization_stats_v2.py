@@ -4,6 +4,19 @@ from sentry.api.utils import get_date_range_rollup_from_params
 from sentry.api.bases.project import ProjectEndpoint
 
 from sentry.snuba import outcomes
+from sentry_relay import DataCategory
+from sentry.utils.outcomes import Outcome
+from collections import defaultdict
+
+OUTCOME_TO_STR = {
+    Outcome.ACCEPTED: "accepted",
+    Outcome.FILTERED: "filtered",
+    Outcome.RATE_LIMITED: "spike_protection?",
+}
+
+
+def outcome_to_string(outcome):
+    return OUTCOME_TO_STR[outcome]
 
 
 class OrganizationStatsEndpointV2(OrganizationEndpoint):
@@ -45,13 +58,76 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
             start=start,
             end=end,
             rollup=rollup,
-            groupby=["category", "time"],
+            groupby=["category", "time", "outcome", "reason"],
             aggregations=[["sum", "times_seen", "times_seen"], ["sum", "quantity", "quantity"]],
             filter_keys={"org_id": [organization.id]},
             orderby=["time"],
         )
 
-        return Response(result)
+        default_vals = [
+            ("accepted", {"quantity": 0, "times_seen": 0}),
+            ("filtered", {"quantity": 0, "times_seen": 0}),
+            (
+                "dropped",
+                {
+                    "overQuota": dict([("quantity", 0), ("times_seen", 0)]),
+                    "spikeProtection": dict([("quantity", 0), ("times_seen", 0)]),
+                    "other": dict([("quantity", 0), ("times_seen", 0)]),
+                },
+            ),
+        ]
+        new_res = {
+            "statsErrors": defaultdict(lambda: defaultdict(dict, default_vals)),
+            "statsTransactions": defaultdict(lambda: defaultdict(dict, default_vals)),
+            "statsAttachments": defaultdict(lambda: defaultdict(dict, default_vals)),
+        }
+        for row in result:
+            # uniq_key = "-".join(outcome_to_string(row["outcome"]))
+            uniq_key = row["time"]
+            if row["category"] == DataCategory.ERROR:
+                new_res["statsErrors"][uniq_key].update({"time": row["time"]})
+                if row["outcome"] == Outcome.RATE_LIMITED:
+                    new_res["statsErrors"][uniq_key][outcome_to_string(row["outcome"])].update(
+                        {
+                            row["reason"]: {
+                                "quantity": row["quantity"],
+                                "times_seen": row["times_seen"],
+                            }
+                        }
+                    )
+                else:
+                    new_res["statsErrors"][uniq_key].update(
+                        {
+                            outcome_to_string(row["outcome"]): {
+                                "quantity": row["quantity"],
+                                "times_seen": row["times_seen"],
+                            }
+                        }
+                    )
+            elif row["category"] == DataCategory.TRANSACTION:
+                new_res["statsTransactions"][uniq_key].update({"time": row["time"]})
+                new_res["statsTransactions"][uniq_key].update(
+                    {
+                        outcome_to_string(row["outcome"]): {
+                            "quantity": row["quantity"],
+                            "times_seen": row["times_seen"],
+                        }
+                    }
+                )
+            elif row["category"] == DataCategory.ATTACHMENT:
+                new_res["statsAttachments"][uniq_key].update({"time": row["time"]})
+                new_res["statsAttachments"][uniq_key].update(
+                    {
+                        outcome_to_string(row["outcome"]): {
+                            "quantity": row["quantity"],
+                            "times_seen": row["times_seen"],
+                        }
+                    }
+                )
+        # print(new_res)
+        new_res = {category: list(val.values()) for category, val in new_res.items()}
+
+        return Response(new_res)
 
 
 class OrganizationProjectStatsIndex(OrganizationEndpoint):
@@ -72,11 +148,34 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
             start=start,
             end=end,
             rollup=rollup,
-            groupby=["project_id", "category", "time"],
+            groupby=["project_id", "category", "time", "outcome", "reason"],
             aggregations=[["sum", "times_seen", "times_seen"], ["sum", "quantity", "quantity"]],
             filter_keys={"org_id": [organization.id]},
             orderby=["times_seen", "time"],
         )
+
+        new_res = {"statsErrors": [], "statsTransactions": [], "statsAttachments": []}
+        for row in result:
+            # uniq_key =
+            if row["category"] == DataCategory.ERROR:
+                new_res["statsErrors"].append(row)
+            elif row["category"] == DataCategory.TRANSACTION:
+                new_res["statsTransactions"].append(row)
+            elif row["category"] == DataCategory.ATTACHMENT:
+                new_res["statsAttachments"].append(row)
+
+        #
+        #
+        # add logic for grouping datacategories as errors here
+        # result = group_timestamps(result["data"], groupby)
+        # if "project_id" in groupby:
+        #     result = group_by_project(result)
+        #     result = {
+        #         project_id: zerofill(vals, start, end, rollup, "time")
+        #         for project_id, vals in result.items()
+        #     }
+        # else:
+        #     result = zerofill(result, start, end, rollup, "time")
 
         return Response(result)
 
@@ -89,7 +188,7 @@ class OrganizationProjectStatsDetails(ProjectEndpoint):
             start=start,
             end=end,
             rollup=rollup,
-            groupby=["category", "time"],
+            groupby=["category", "time", "outcome", "reason"],
             aggregations=[["sum", "times_seen", "times_seen"], ["sum", "quantity", "quantity"]],
             filter_keys={"org_id": [project.organization.id], "project_id": [project.id]},
             orderby=["-timestamp"],
