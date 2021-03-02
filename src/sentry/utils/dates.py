@@ -76,7 +76,11 @@ def parse_timestamp(value):
     try:
         rv = datetime.strptime(value[0].decode("ascii"), "%Y-%m-%dT%H:%M:%S")
     except Exception:
-        return None
+        value = value[0].split(b"+", 1)
+        try:
+            rv = datetime.strptime(value[0].decode("ascii"), "%Y-%m-%dT%H:%M:%S")
+        except Exception:
+            return None
     if len(value) == 2:
         try:
             rv = rv.replace(microsecond=int(value[1].ljust(6, b"0")[:6]))
