@@ -15,6 +15,7 @@ register.simple_tag(get_asset_url, name="asset_url")
 
 @register.simple_tag
 def absolute_asset_url(module, path):
+    print("absolute_asset_url")
     """
     Returns a versioned absolute asset URL (located within Sentry's static files).
 
@@ -84,6 +85,11 @@ def script(parser, token):
         return ScriptNode(nodelist, **kwargs)
     except ValueError as err:
         raise template.TemplateSyntaxError(f"`script` tag failed to compile. : {err}")
+
+
+@register.simple_tag
+def other_js_file():
+    return settings.OTHER_JS_FILE
 
 
 class ScriptNode(template.Node):

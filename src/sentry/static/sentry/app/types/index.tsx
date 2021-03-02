@@ -4,6 +4,8 @@ import Alert from 'app/components/alert';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
+import ConfigStore from 'app/stores/configStore';
+import HookStore from 'app/stores/hookStore';
 import {OrgExperiments, UserExperiments} from 'app/types/experiments';
 import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
 import {Query as DiscoverQuery} from 'app/views/discover/types';
@@ -64,6 +66,9 @@ declare global {
      * See sentry/js/ads.js for how this global is disabled.
      */
     adblockSuspected?: boolean;
+
+    HookStore: HookStore;
+    ConfigStore: ConfigStore;
   }
 }
 

@@ -120,4 +120,6 @@ type HookStore = Reflux.Store & HookStoreInterface;
  */
 const HookStore = Reflux.createStore(hookStoreConfig) as HookStore;
 
+window.HookStore = HookStore;
+
 export default HookStore;

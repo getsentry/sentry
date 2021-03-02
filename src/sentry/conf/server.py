@@ -2119,4 +2119,8 @@ SENTRY_EXTRA_WORKERS = None
 # Enabling this will allow users to create accounts without an email or password.
 DEMO_MODE = False
 
+# all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None
+
+# adds an extra JS to HTML template
+OTHER_JS_FILE = None
