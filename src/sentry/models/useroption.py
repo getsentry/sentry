@@ -120,7 +120,7 @@ class UserOption(Model):
     where key is one of:
      (please add to this list if adding new keys)
      - clock_24_hours
-        - 12hr vs 24hr
+        - 12hr vs. 24hr
      - issue:defaults
         - only used in Jira, set default reporter field
      - issues:defaults:jira
