@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'app/components/dropdownLink';
@@ -103,8 +104,12 @@ function QuickTracePills({
     return null;
   }
 
-  const parsedQuickTrace = parseQuickTrace(quickTrace, event);
-  if (parsedQuickTrace === null) {
+  let parsedQuickTrace;
+  try {
+    parsedQuickTrace = parseQuickTrace(quickTrace, event);
+  } catch (error) {
+    Sentry.setTag('currentEventID', event.id);
+    Sentry.captureException(new Error('Current event not in quick trace'));
     return <React.Fragment>{'\u2014'}</React.Fragment>;
   }
 
