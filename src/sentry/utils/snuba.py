@@ -17,7 +17,6 @@ from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
 from urllib.parse import urlparse
 
-from sentry import quotas
 from sentry.models import (
     Environment,
     Group,
@@ -30,7 +29,7 @@ from sentry.models import (
 )
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_timestamp, outside_retention_with_modified_start
 from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
 from sentry.utils.compat import map
@@ -504,13 +503,11 @@ def _prepare_query_params(query_params):
             else:
                 query_params.conditions.append((col, "IN", keys))
 
-    retention = quotas.get_event_retention(organization=Organization(organization_id))
-    if retention:
-        start = max(start, datetime.utcnow() - timedelta(days=retention))
-        if start > end:
-            raise QueryOutsideRetentionError(
-                "Invalid date range. Please try a more recent date range."
-            )
+    expired, start = outside_retention_with_modified_start(
+        start, end, Organization(organization_id)
+    )
+    if expired:
+        raise QueryOutsideRetentionError("Invalid date range. Please try a more recent date range.")
 
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
