@@ -4,24 +4,21 @@ import styled from '@emotion/styled';
 import BulkController from 'app/components/bulkController';
 import {PanelTable} from 'app/components/panels';
 import Switch from 'app/components/switchButton';
+import {LegacyBrowser} from 'app/types/dynamicSampling';
 
-import {LEGACY_BROWSER_LIST} from '../utils';
+import Browser from './browser';
 
-import LegacyBrowser from './legacyBrowser';
-
-type Browser = React.ComponentProps<typeof LegacyBrowser>['browser'];
-
-const legacyBrowsers = Object.keys(LEGACY_BROWSER_LIST) as Array<Browser>;
+const legacyBrowsers = Object.values(LegacyBrowser);
 
 type Props = {
-  onChange: (selectedLegacyBrowsers: Array<Browser>) => void;
+  onChange: (selectedLegacyBrowsers: Array<LegacyBrowser>) => void;
 };
 
 function LegacyBrowsersField({onChange}: Props) {
   function handleChange({
     selectedIds,
   }: Parameters<NonNullable<BulkController['props']['onChange']>>[0]) {
-    onChange(selectedIds as Array<Browser>);
+    onChange(selectedIds as Array<LegacyBrowser>);
   }
 
   return (
@@ -46,7 +43,7 @@ function LegacyBrowsersField({onChange}: Props) {
           ]}
         >
           {legacyBrowsers.map(legacyBrowser => (
-            <LegacyBrowser
+            <Browser
               key={legacyBrowser}
               browser={legacyBrowser}
               isEnabled={selectedIds.includes(legacyBrowser)}

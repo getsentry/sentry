@@ -3,18 +3,17 @@ import styled from '@emotion/styled';
 
 import Switch from 'app/components/switchButton';
 import space from 'app/styles/space';
+import {LegacyBrowser} from 'app/types/dynamicSampling';
 
 import {LEGACY_BROWSER_LIST} from '../utils';
 
-type Browser = keyof typeof LEGACY_BROWSER_LIST;
-
 type Props = {
-  browser: Browser;
+  browser: LegacyBrowser;
   isEnabled: boolean;
   onToggle: () => void;
 };
 
-function LegacyBrowser({browser, isEnabled, onToggle}: Props) {
+function Browser({browser, isEnabled, onToggle}: Props) {
   const {icon, title} = LEGACY_BROWSER_LIST[browser];
   return (
     <React.Fragment>
@@ -29,7 +28,7 @@ function LegacyBrowser({browser, isEnabled, onToggle}: Props) {
   );
 }
 
-export default LegacyBrowser;
+export default Browser;
 
 const BrowserWrapper = styled('div')`
   display: grid;
