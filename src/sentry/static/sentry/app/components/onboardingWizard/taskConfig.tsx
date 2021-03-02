@@ -201,7 +201,7 @@ export function getOnboardingTasks(
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
-      location: `/settings/${organization.slug}/projects/:projectId/alerts/`,
+      location: `/organizations/${organization.slug}/alerts/rules/`,
       display: true,
     },
   ];
