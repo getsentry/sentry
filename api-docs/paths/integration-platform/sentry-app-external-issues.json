@@ -18,12 +18,12 @@
       "content": {
         "application/json": {
           "schema": {
-            "required": ["groupId", "webUrl", "project", "identifier"],
+            "required": ["issueId", "webUrl", "project", "identifier"],
             "type": "object",
             "properties": {
-              "groupId": {
+              "issueId": {
                 "type": "integer",
-                "description": "The ID of the group to link the external issue to."
+                "description": "The ID of the Sentry issue to link the external issue to."
               },
               "webUrl": {
                 "type": "string",
@@ -40,7 +40,7 @@
             }
           },
           "example": {
-            "groupId": 1,
+            "issueId": 1,
             "webUrl": "https://somerandom.io/project/issue-id",
             "project": "ExternalProj",
             "identifier": "issue-1",
@@ -56,12 +56,12 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": ["id", "groupId", "serviceType", "displayName", "webUrl"],
+              "required": ["id", "issueId", "serviceType", "displayName", "webUrl"],
               "properties": {
                 "id": {
                   "type": "string"
                 },
-                "groupId": {
+                "issueId": {
                   "type": "string"
                 },
                 "serviceType": {
@@ -77,7 +77,7 @@
             },
             "example": {
               "id": "1",
-              "groupId": "1",
+              "issueId": "1",
               "serviceType": "testing",
               "displayName": "ExternalProj#issue-1",
               "webUrl": "https://somerandom.io/project/issue-id"
