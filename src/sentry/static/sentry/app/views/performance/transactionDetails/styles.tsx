@@ -6,7 +6,6 @@ import {SectionHeading} from 'app/components/charts/styles';
 import MenuItem from 'app/components/menuItem';
 import QuestionTooltip from 'app/components/questionTooltip';
 import Tag, {Background} from 'app/components/tag';
-import {IconEllipsis} from 'app/icons';
 import space from 'app/styles/space';
 
 type MetaDataProps = {
@@ -80,14 +79,9 @@ export const QuickTraceContainer = styled('div')`
   align-items: center;
 `;
 
-export const StyledIconEllipsis = styled(IconEllipsis)`
-  vertical-align: middle;
-  margin-bottom: 2px;
-`;
-
 const StyledMenuItem = styled(MenuItem)<{first?: boolean}>`
   border-top: ${p => (!p.first ? `1px solid ${p.theme.innerBorder}` : null)};
-  width: 220px;
+  width: 350px;
 `;
 
 const MenuItemContent = styled('div')`

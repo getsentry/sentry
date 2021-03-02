@@ -57,15 +57,14 @@ function Candidate({
       </Column>
 
       <Column>
-        {isInternalSource && (
-          <Actions
-            onDelete={onDelete}
-            baseUrl={baseUrl}
-            projectId={projectId}
-            organization={organization}
-            candidate={candidate}
-          />
-        )}
+        <Actions
+          onDelete={onDelete}
+          baseUrl={baseUrl}
+          projectId={projectId}
+          organization={organization}
+          candidate={candidate}
+          isInternalSource={isInternalSource}
+        />
       </Column>
     </React.Fragment>
   );

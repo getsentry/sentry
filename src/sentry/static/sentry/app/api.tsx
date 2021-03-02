@@ -354,7 +354,12 @@ export class Client {
         data: {status: resp?.status},
       });
 
-      if (resp && resp.status !== 0 && resp.status !== 404) {
+      if (
+        resp &&
+        resp.status !== 0 &&
+        resp.status !== 404 &&
+        errorThrown !== 'Request was aborted'
+      ) {
         run(Sentry =>
           Sentry.withScope(scope => {
             // `requestPromise` can pass its error object
@@ -372,6 +377,7 @@ export class Client {
             // Setting this to warning because we are going to capture all failed requests
             scope.setLevel(Severity.Warning);
             scope.setTag('http.statusCode', String(resp.status));
+            scope.setTag('error.reason', errorThrown);
             Sentry.captureException(errorObjectToUse);
           })
         );
@@ -436,21 +442,36 @@ export class Client {
         let responseJSON: any;
         let responseText: any;
 
-        // Try to get JSON out of the response no matter the status
-        try {
-          responseJSON = await response.json();
-        } catch {
-          // No json came out.. too bad
-        }
+        const {status, statusText} = response;
+        let {ok} = response;
+        let errorReason = 'Request not OK'; // the default error reason
 
         // Try to get text out of the response no matter the status
         try {
-          responseText = await responseClone.text();
+          responseText = await response.text();
         } catch {
           // No text came out.. too bad
         }
 
-        const {ok, status, statusText} = response;
+        const responseContentType = response.headers.get('content-type');
+        const isResponseJSON = responseContentType?.includes('json');
+
+        const isStatus3XX = status >= 300 && status < 400;
+        if (status !== 204 && !isStatus3XX) {
+          try {
+            responseJSON = await responseClone.json();
+          } catch (error) {
+            if (error.name === 'AbortError') {
+              ok = false;
+              errorReason = 'Request was aborted';
+            } else if (isResponseJSON && error instanceof SyntaxError) {
+              // If the MIME type is `application/json` but decoding failed,
+              // this should be an error.
+              ok = false;
+              errorReason = 'JSON parse error';
+            }
+          }
+        }
 
         const emulatedJQueryXHR: any = {
           status,
@@ -460,18 +481,14 @@ export class Client {
           getResponseHeader: (header: string) => response.headers.get(header),
         };
 
-        const responseContentType = response.headers.get('content-type');
-
         // Respect the response content-type header
-        const responseData = responseContentType?.includes('json')
-          ? responseJSON
-          : responseText;
+        const responseData = isResponseJSON ? responseJSON : responseText;
 
         if (ok) {
           successHandler(responseData, statusText, emulatedJQueryXHR);
         } else {
           globalErrorHandlers.forEach(handler => handler(emulatedJQueryXHR));
-          errorHandler(emulatedJQueryXHR, statusText, 'Request not OK');
+          errorHandler(emulatedJQueryXHR, statusText, errorReason);
         }
 
         completeHandler(emulatedJQueryXHR, statusText);

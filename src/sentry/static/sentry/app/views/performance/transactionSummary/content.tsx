@@ -6,6 +6,7 @@ import omit from 'lodash/omit';
 
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
+import SearchBar from 'app/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -21,7 +22,6 @@ import {generateEventSlug} from 'app/utils/discover/urls';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
-import SearchBar from 'app/views/events/searchBar';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import Tags from 'app/views/eventsV2/tags';

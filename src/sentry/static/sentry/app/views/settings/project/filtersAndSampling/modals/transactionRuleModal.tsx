@@ -90,12 +90,9 @@ class TransactionRuleModal extends Form<Props, State> {
         case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
           return DynamicSamplingInnerName.EVENT_ENVIRONMENT;
         default: {
-          Sentry.withScope(scope => {
-            scope.setLevel(Sentry.Severity.Warning);
-            Sentry.captureException(
-              new Error('Unknown dynamic sampling rule condition category')
-            );
-          });
+          Sentry.captureException(
+            new Error('Unknown dynamic sampling rule condition category')
+          );
           return category; //this shall not happen
         }
       }
@@ -109,12 +106,9 @@ class TransactionRuleModal extends Form<Props, State> {
       case DynamicSamplingInnerName.EVENT_USER:
         return DynamicSamplingInnerName.TRACE_USER;
       default: {
-        Sentry.withScope(scope => {
-          scope.setLevel(Sentry.Severity.Warning);
-          Sentry.captureException(
-            new Error('Unknown dynamic sampling rule condition category')
-          );
-        });
+        Sentry.captureException(
+          new Error('Unknown dynamic sampling rule condition category')
+        );
         return category; //this shall not happen
       }
     }
@@ -130,6 +124,7 @@ class TransactionRuleModal extends Form<Props, State> {
         [DynamicSamplingInnerName.TRACE_USER, t('Users')],
       ];
     }
+
     return [
       [DynamicSamplingInnerName.EVENT_RELEASE, t('Releases')],
       [DynamicSamplingInnerName.EVENT_ENVIRONMENT, t('Environments')],
@@ -161,20 +156,6 @@ class TransactionRuleModal extends Form<Props, State> {
       </Field>
     );
   }
-
-  handleAddCondition = () => {
-    this.setState(state => ({
-      conditions: [
-        ...state.conditions,
-        {
-          category: state.tracing
-            ? DynamicSamplingInnerName.TRACE_RELEASE
-            : DynamicSamplingInnerName.EVENT_RELEASE,
-          match: '',
-        },
-      ],
-    }));
-  };
 
   handleSubmit = () => {
     const {tracing, sampleRate, conditions, transaction} = this.state;

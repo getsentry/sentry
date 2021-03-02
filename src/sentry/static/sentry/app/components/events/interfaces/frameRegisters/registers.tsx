@@ -226,7 +226,7 @@ export const REGISTERS_ARM64 = {
   x29: 29,
   fp: 29,
   x30: 30,
-  lr: 31,
+  lr: 30,
   sp: 31,
   pc: 32,
   v0: 64,

@@ -2,22 +2,22 @@ import React from 'react';
 import {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'app/components/dropdownLink';
+import ErrorBoundary from 'app/components/errorBoundary';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
 import {t, tn} from 'app/locale';
-import {OrganizationSummary, Project} from 'app/types';
+import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
 import {
   EventLite,
+  QuickTrace as QuickTraceType,
   QuickTraceQueryChildrenProps,
-  TraceLite,
-} from 'app/utils/performance/quickTrace/quickTraceQuery';
-import {isTransaction} from 'app/utils/performance/quickTrace/utils';
-import withProjects from 'app/utils/withProjects';
+} from 'app/utils/performance/quickTrace/types';
+import {isTransaction, parseQuickTrace} from 'app/utils/performance/quickTrace/utils';
 
 import {
   DropdownItem,
@@ -25,14 +25,12 @@ import {
   MetaData,
   QuickTraceContainer,
   SectionSubtext,
-  StyledIconEllipsis,
   TraceConnector,
 } from './styles';
 import {
-  generateChildrenEventTarget,
+  generateMultiEventsTarget,
   generateSingleEventTarget,
   generateTraceTarget,
-  parseTraceLite,
 } from './utils';
 
 type Props = {
@@ -46,7 +44,7 @@ export default function QuickTrace({
   event,
   location,
   organization,
-  quickTrace: {isLoading, error, trace},
+  quickTrace: {isLoading, error, trace, type},
 }: Props) {
   // non transaction events are currently unsupported
   if (!isTransaction(event)) {
@@ -61,12 +59,14 @@ export default function QuickTrace({
   ) : error || trace === null ? (
     '\u2014'
   ) : (
-    <QuickTraceLite
-      event={event}
-      trace={trace}
-      location={location}
-      organization={organization}
-    />
+    <ErrorBoundary mini>
+      <QuickTracePills
+        event={event}
+        quickTrace={{type, trace}}
+        location={location}
+        organization={organization}
+      />
+    </ErrorBoundary>
   );
 
   return (
@@ -85,149 +85,197 @@ export default function QuickTrace({
   );
 }
 
-type QuickTraceLiteProps = {
+type QuickTracePillsProps = {
+  quickTrace: QuickTraceType;
   event: Event;
-  trace: TraceLite;
   location: Location;
   organization: OrganizationSummary;
-  projects: Project[];
 };
 
-const QuickTraceLite = withProjects(
-  ({event, trace, location, organization, projects}: QuickTraceLiteProps) => {
-    // non transaction events are currently unsupported
-    if (!isTransaction(event)) {
-      return null;
-    }
-
-    const {root, current, children} = parseTraceLite(trace, event);
-    const nodes: React.ReactNode[] = [];
-
-    if (root) {
-      nodes.push(
-        <EventNodeDropdown
-          key="root-node"
-          organization={organization}
-          projects={projects}
-          location={location}
-          events={[root]}
-        >
-          <Tooltip
-            position="top"
-            containerDisplayMode="inline-flex"
-            title={t('View the root transaction in this trace.')}
-          >
-            <EventNode type="white" pad="right" icon={null}>
-              {t('Root')}
-            </EventNode>
-          </Tooltip>
-        </EventNodeDropdown>
-      );
-      nodes.push(<TraceConnector key="root-connector" />);
-    }
-
-    const traceTarget = generateTraceTarget(event, organization);
-
-    if (root && current && root.event_id !== current.parent_event_id) {
-      nodes.push(
-        <EventNodeDropdown
-          key="ancestors-node"
-          comingSoon
-          organization={organization}
-          projects={projects}
-          location={location}
-          seeMoreText={t('See trace in Discover')}
-          seeMoreLink={traceTarget}
-        >
-          <Tooltip
-            position="top"
-            containerDisplayMode="inline-flex"
-            title={t('View all transactions in this trace.')}
-          >
-            <EventNode type="white" pad="right" icon={null}>
-              {t('Ancestors')}
-            </EventNode>
-          </Tooltip>
-        </EventNodeDropdown>
-      );
-      nodes.push(<TraceConnector key="ancestors-connector" />);
-    }
-
-    nodes.push(
-      <EventNode key="current-node" type="black">
-        {t('This Event')}
-      </EventNode>
-    );
-
-    if (children.length) {
-      const childrenTarget = generateChildrenEventTarget(
-        event,
-        children,
-        organization,
-        projects,
-        location
-      );
-      nodes.push(<TraceConnector key="children-connector" />);
-      nodes.push(
-        <EventNodeDropdown
-          key="children-node"
-          organization={organization}
-          projects={projects}
-          location={location}
-          events={children.sort(
-            (a, b) => b['transaction.duration'] - a['transaction.duration']
-          )}
-          seeMoreText={t('See %s children in Discover', children.length)}
-          seeMoreLink={childrenTarget}
-        >
-          <Tooltip
-            position="top"
-            containerDisplayMode="inline-flex"
-            title={tn(
-              'View the child transaction of this event.',
-              'View all child transactions of this event.',
-              children.length
-            )}
-          >
-            <EventNode type="white" pad="left" icon={null}>
-              {tn('%s Child', '%s Children', children.length)}
-            </EventNode>
-          </Tooltip>
-        </EventNodeDropdown>
-      );
-
-      nodes.push(<TraceConnector key="descendants-connector" />);
-      nodes.push(
-        <EventNodeDropdown
-          key="descendants-node"
-          comingSoon
-          organization={organization}
-          projects={projects}
-          location={location}
-          seeMoreText={t('See trace in Discover')}
-          seeMoreLink={traceTarget}
-        >
-          <Tooltip
-            position="top"
-            containerDisplayMode="inline-flex"
-            title={t('View all transactions in this trace.')}
-          >
-            <EventNode type="white" pad="left" icon={null}>
-              <StyledIconEllipsis size="xs" />
-            </EventNode>
-          </Tooltip>
-        </EventNodeDropdown>
-      );
-    }
-
-    return <QuickTraceContainer>{nodes}</QuickTraceContainer>;
+function QuickTracePills({
+  event,
+  quickTrace,
+  location,
+  organization,
+}: QuickTracePillsProps) {
+  // non transaction events are currently unsupported
+  if (!isTransaction(event)) {
+    return null;
   }
-);
+
+  const parsedQuickTrace = parseQuickTrace(quickTrace, event);
+  if (parsedQuickTrace === null) {
+    return <React.Fragment>{'\u2014'}</React.Fragment>;
+  }
+
+  const {root, ancestors, parent, children, descendants} = parsedQuickTrace;
+
+  const nodes: React.ReactNode[] = [];
+
+  if (root) {
+    nodes.push(
+      <EventNodeDropdown
+        key="root-node"
+        organization={organization}
+        location={location}
+        events={[root]}
+      >
+        <Tooltip
+          position="top"
+          containerDisplayMode="inline-flex"
+          title={t('View the root transaction in this trace.')}
+        >
+          <EventNode type="white" pad="right" icon={null}>
+            {t('Root')}
+          </EventNode>
+        </Tooltip>
+      </EventNodeDropdown>
+    );
+    nodes.push(<TraceConnector key="root-connector" />);
+  }
+
+  if (ancestors?.length) {
+    const seeAncestorsText = tn(
+      'View the ancestor transaction of this event.',
+      'View all ancestor transactions of this event.',
+      ancestors.length
+    );
+    const ancestorsTarget = generateMultiEventsTarget(
+      event,
+      ancestors,
+      organization,
+      location,
+      'Ancestor'
+    );
+    nodes.push(
+      <EventNodeDropdown
+        key="ancestors-node"
+        organization={organization}
+        location={location}
+        events={ancestors}
+        seeMoreText={seeAncestorsText}
+        seeMoreLink={ancestorsTarget}
+      >
+        <Tooltip
+          position="top"
+          containerDisplayMode="inline-flex"
+          title={seeAncestorsText}
+        >
+          <EventNode type="white" pad="right" icon={null}>
+            {tn('%s Ancestor', '%s Ancestors', ancestors.length)}
+          </EventNode>
+        </Tooltip>
+      </EventNodeDropdown>
+    );
+    nodes.push(<TraceConnector key="ancestors-connector" />);
+  }
+
+  if (parent) {
+    nodes.push(
+      <EventNodeDropdown
+        key="parent-node"
+        organization={organization}
+        location={location}
+        events={[parent]}
+      >
+        <Tooltip
+          position="top"
+          containerDisplayMode="inline-flex"
+          title={t('View the parent transaction in this trace.')}
+        >
+          <EventNode type="white" pad="right" icon={null}>
+            {t('Parent')}
+          </EventNode>
+        </Tooltip>
+      </EventNodeDropdown>
+    );
+    nodes.push(<TraceConnector key="parent-connector" />);
+  }
+
+  nodes.push(
+    <EventNode key="current-node" type="black">
+      {t('This Event')}
+    </EventNode>
+  );
+
+  if (children.length) {
+    const seeChildrenText = tn(
+      'View the child transaction of this event.',
+      'View all child transactions of this event.',
+      children.length
+    );
+    const childrenTarget = generateMultiEventsTarget(
+      event,
+      children,
+      organization,
+      location,
+      'Children'
+    );
+    nodes.push(<TraceConnector key="children-connector" />);
+    nodes.push(
+      <EventNodeDropdown
+        key="children-node"
+        organization={organization}
+        location={location}
+        events={children}
+        seeMoreText={seeChildrenText}
+        seeMoreLink={childrenTarget}
+      >
+        <Tooltip
+          position="top"
+          containerDisplayMode="inline-flex"
+          title={seeChildrenText}
+        >
+          <EventNode type="white" pad="left" icon={null}>
+            {tn('%s Child', '%s Children', children.length)}
+          </EventNode>
+        </Tooltip>
+      </EventNodeDropdown>
+    );
+  }
+
+  if (descendants?.length) {
+    const seeDescedantsText = tn(
+      'View the descendant transaction of this event.',
+      'View all descendant transactions of this event.',
+      descendants.length
+    );
+    const descendantsTarget = generateMultiEventsTarget(
+      event,
+      descendants,
+      organization,
+      location,
+      'Descendant'
+    );
+    nodes.push(<TraceConnector key="descendants-connector" />);
+    nodes.push(
+      <EventNodeDropdown
+        key="descendants-node"
+        organization={organization}
+        location={location}
+        events={descendants}
+        seeMoreText={seeDescedantsText}
+        seeMoreLink={descendantsTarget}
+      >
+        <Tooltip
+          position="top"
+          containerDisplayMode="inline-flex"
+          title={seeDescedantsText}
+        >
+          <EventNode type="white" pad="left" icon={null}>
+            {tn('%s Descendant', '%s Descendants', descendants.length)}
+          </EventNode>
+        </Tooltip>
+      </EventNodeDropdown>
+    );
+  }
+
+  return <QuickTraceContainer>{nodes}</QuickTraceContainer>;
+}
 
 type NodeProps = {
   location: Location;
   organization: OrganizationSummary;
-  projects: Project[];
   children: React.ReactNode;
   events?: EventLite[];
   numEvents?: number;
@@ -239,7 +287,6 @@ type NodeProps = {
 function EventNodeDropdown({
   location,
   organization,
-  projects,
   children,
   events = [],
   numEvents = 5,
@@ -258,12 +305,7 @@ function EventNodeDropdown({
       {events.length === 0
         ? null
         : events.slice(0, numEvents).map((event, i) => {
-            const target = generateSingleEventTarget(
-              event,
-              organization,
-              projects,
-              location
-            );
+            const target = generateSingleEventTarget(event, organization, location);
             return (
               <DropdownItem key={event.event_id} to={target} first={i === 0}>
                 <Truncate

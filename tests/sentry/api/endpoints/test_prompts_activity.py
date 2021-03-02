@@ -1,4 +1,5 @@
 from django.core.urlresolvers import reverse
+from django.test.utils import override_settings
 
 from sentry.testutils import APITestCase
 
@@ -20,6 +21,7 @@ class PromptsActivityTest(APITestCase):
         )
         self.path = reverse("sentry-api-0-prompts-activity")
 
+    @override_settings(DEMO_MODE=False)
     def test_invalid_feature(self):
         # Invalid feature prompt name
         resp = self.client.put(
@@ -34,6 +36,7 @@ class PromptsActivityTest(APITestCase):
 
         assert resp.status_code == 400
 
+    @override_settings(DEMO_MODE=False)
     def test_invalid_project(self):
         # Invalid project id
         data = {
@@ -56,6 +59,7 @@ class PromptsActivityTest(APITestCase):
         )
         assert resp.status_code == 400
 
+    @override_settings(DEMO_MODE=False)
     def test_dismiss(self):
         data = {
             "organization_id": self.org.id,
@@ -81,6 +85,7 @@ class PromptsActivityTest(APITestCase):
         assert "data" in resp.data
         assert "dismissed_ts" in resp.data["data"]
 
+    @override_settings(DEMO_MODE=False)
     def test_snooze(self):
         data = {
             "organization_id": self.org.id,

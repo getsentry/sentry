@@ -2,40 +2,23 @@ import {Location, LocationDescriptor} from 'history';
 
 import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {OrganizationSummary, Project} from 'app/types';
-import {Event, EventTransaction} from 'app/types/event';
+import {OrganizationSummary} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
 import {generateEventSlug} from 'app/utils/discover/urls';
-import {EventLite, TraceLite} from 'app/utils/performance/quickTrace/quickTraceQuery';
+import {EventLite} from 'app/utils/performance/quickTrace/types';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 import {getTransactionDetailsUrl} from '../utils';
 
-export function parseTraceLite(trace: TraceLite, event: Event) {
-  const root = trace.find(e => e.is_root && e.event_id !== event.id) ?? null;
-  const current = trace.find(e => e.event_id === event.id) ?? null;
-  const children = trace.filter(e => e.parent_event_id === event.id);
-  return {
-    root,
-    current,
-    children,
-  };
-}
-
 export function generateSingleEventTarget(
   event: EventLite,
   organization: OrganizationSummary,
-  projects: Project[],
   location: Location
-): LocationDescriptor | undefined {
-  const project = projects.find(p => parseInt(p.id, 10) === event.project_id);
-  if (project === undefined) {
-    return undefined;
-  }
-
+): LocationDescriptor {
   const eventSlug = generateEventSlug({
     id: event.event_id,
-    project: project.slug,
+    project: event.project_slug,
   });
   return getTransactionDetailsUrl(
     organization,
@@ -45,19 +28,19 @@ export function generateSingleEventTarget(
   );
 }
 
-export function generateChildrenEventTarget(
-  event: EventTransaction,
-  children: EventLite[],
+export function generateMultiEventsTarget(
+  currentEvent: EventTransaction,
+  events: EventLite[],
   organization: OrganizationSummary,
-  projects: Project[],
-  location: Location
-): LocationDescriptor | undefined {
-  if (children.length === 1) {
-    return generateSingleEventTarget(children[0], organization, projects, location);
+  location: Location,
+  groupType: 'Ancestor' | 'Children' | 'Descendant'
+): LocationDescriptor {
+  if (events.length === 1) {
+    return generateSingleEventTarget(events[0], organization, location);
   }
 
   const queryResults = new QueryResults([]);
-  const eventIds = children.map(child => child.event_id);
+  const eventIds = events.map(child => child.event_id);
   for (let i = 0; i < eventIds.length; i++) {
     queryResults.addOp(i === 0 ? '(' : 'OR');
     queryResults.addQuery(`id:${eventIds[i]}`);
@@ -67,16 +50,16 @@ export function generateChildrenEventTarget(
   }
 
   const {start, end} = getTraceDateTimeRange({
-    start: event.startTimestamp,
-    end: event.endTimestamp,
+    start: currentEvent.startTimestamp,
+    end: currentEvent.endTimestamp,
   });
   const traceEventView = EventView.fromSavedQuery({
     id: undefined,
-    name: `Child Transactions of Event ID ${event.id}`,
+    name: `${groupType} Transactions of Event ID ${currentEvent.id}`,
     fields: ['transaction', 'project', 'trace.span', 'transaction.duration', 'timestamp'],
     orderby: '-timestamp',
     query: stringifyQueryObject(queryResults),
-    projects: [...new Set(children.map(child => child.project_id))],
+    projects: [...new Set(events.map(child => child.project_id))],
     version: 2,
     start,
     end,

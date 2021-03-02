@@ -1,40 +1,11 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import SelectAsyncControl from './selectAsyncControl';
 import SelectField from './selectField';
 
 class SelectAsyncField extends SelectField {
-  static propTypes = {
-    // TODO(ts)
-    // ...SelectField.propTypes,
-    ...SelectAsyncControl.propTypes,
-    /**
-     * API endpoint URL
-     */
-    url: PropTypes.string.isRequired,
-
-    /**
-     * Parses the results of API call for the select component
-     */
-    onResults: PropTypes.func,
-
-    /**
-     * Additional query parameters when sending API request
-     */
-    onQuery: PropTypes.func,
-
-    /**
-     * Field ID
-     */
-    id: PropTypes.any,
-
-    deprecatedSelectControl: PropTypes.bool,
-  };
-
   static defaultProps = {
-    // TODO(ts)
-    // ...SelectField.defaultProps,
+    ...SelectField.defaultProps,
     placeholder: 'Start typing to search for an issue',
   };
 

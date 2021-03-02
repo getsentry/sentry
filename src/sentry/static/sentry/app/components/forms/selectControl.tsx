@@ -108,7 +108,7 @@ type LegacyProps = React.ComponentProps<typeof SelectControlLegacy>;
 // This means we cannot fill the SelectValue generic
 // at the call site. We use `any` here to avoid type errors with select
 // controls that have custom option structures
-type GeneralSelectValue = SelectValue<any>;
+export type GeneralSelectValue = SelectValue<any>;
 
 function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
   props: WrappedControlProps<OptionType>

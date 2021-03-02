@@ -11,6 +11,7 @@ import ReleaseSeries from 'app/components/charts/releaseSeries';
 import {HeaderTitleLegend} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import {RELEASE_LINES_THRESHOLD} from 'app/components/charts/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -195,8 +196,16 @@ class Chart extends React.Component<ChartProps, ChartState> {
   };
 
   get legend() {
-    const {theme} = this.props;
+    const {theme, releaseSeries} = this.props;
     const {seriesSelection} = this.state;
+
+    const hideReleasesByDefault =
+      (releaseSeries[0] as any)?.markLine?.data.length >= RELEASE_LINES_THRESHOLD;
+
+    const selected =
+      Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
+        ? {[t('Releases')]: false}
+        : seriesSelection;
 
     return {
       right: 10,
@@ -213,7 +222,7 @@ class Chart extends React.Component<ChartProps, ChartState> {
         fontFamily: theme.text.family,
       },
       data: [t('This Period'), t('Previous Period'), t('Releases')],
-      selected: seriesSelection,
+      selected,
     };
   }
 
@@ -240,7 +249,7 @@ class Chart extends React.Component<ChartProps, ChartState> {
       yAxis: {
         axisLabel: {
           color: theme.gray200,
-          formatter: (value: number) => `${value.toFixed(value === 100 ? 0 : 2)}%`,
+          formatter: (value: number) => displayCrashFreePercent(value),
         },
         scale: true,
         max: 100,
@@ -261,6 +270,7 @@ class Chart extends React.Component<ChartProps, ChartState> {
         }
         previousPeriod={previousTimeSeries}
         onLegendSelectChanged={this.handleLegendSelectChanged}
+        transformSinglePointToBar
       />
     );
   }

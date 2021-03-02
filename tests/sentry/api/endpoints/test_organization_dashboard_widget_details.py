@@ -94,3 +94,31 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             data=data,
         )
         assert response.status_code == 200, response.data
+
+    def test_project_search_condition(self):
+        self.user = self.create_user(is_superuser=False)
+        self.project = self.create_project(
+            name="foo", organization=self.organization, teams=[self.team]
+        )
+        self.create_member(
+            user=self.user, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(self.user)
+        data = {
+            "title": "EPM Big Number",
+            "displayType": "big_number",
+            "queries": [
+                {
+                    "name": "",
+                    "fields": ["epm()"],
+                    "conditions": f"project:{self.project.name}",
+                    "orderby": "",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data

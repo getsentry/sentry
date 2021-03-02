@@ -296,7 +296,7 @@ class ReleasesList extends AsyncView<Props, State> {
             key={`${release.version}-${release.projects[0].slug}`}
             activeDisplay={activeDisplay}
             release={release}
-            orgSlug={organization.slug}
+            organization={organization}
             location={location}
             selection={selection}
             reloading={reloading}

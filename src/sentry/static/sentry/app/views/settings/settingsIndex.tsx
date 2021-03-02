@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
+import DemoModeGate from 'app/components/acl/demoModeGate';
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import ExternalLink from 'app/components/links/externalLink';
@@ -82,35 +83,37 @@ class SettingsIndex extends React.Component<Props> {
       <DocumentTitle title={organization ? `${organization.slug} Settings` : 'Settings'}>
         <SettingsLayout {...this.props}>
           <GridLayout>
-            <GridPanel>
-              <HomePanelHeader>
-                <HomeLinkIcon to="/settings/account/">
-                  <AvatarContainer>
-                    <UserAvatar user={user} size={HOME_ICON_SIZE} />
-                  </AvatarContainer>
-                  {t('My Account')}
-                </HomeLinkIcon>
-              </HomePanelHeader>
+            <DemoModeGate>
+              <GridPanel>
+                <HomePanelHeader>
+                  <HomeLinkIcon to="/settings/account/">
+                    <AvatarContainer>
+                      <UserAvatar user={user} size={HOME_ICON_SIZE} />
+                    </AvatarContainer>
+                    {t('My Account')}
+                  </HomeLinkIcon>
+                </HomePanelHeader>
 
-              <HomePanelBody>
-                <h3>{t('Quick links')}:</h3>
-                <ul>
-                  <li>
-                    <HomeLink to="/settings/account/security/">
-                      {t('Change my password')}
-                    </HomeLink>
-                  </li>
-                  <li>
-                    <HomeLink to="/settings/account/notifications/">
-                      {t('Notification Preferences')}
-                    </HomeLink>
-                  </li>
-                  <li>
-                    <HomeLink to="/settings/account/">{t('Change my avatar')}</HomeLink>
-                  </li>
-                </ul>
-              </HomePanelBody>
-            </GridPanel>
+                <HomePanelBody>
+                  <h3>{t('Quick links')}:</h3>
+                  <ul>
+                    <li>
+                      <HomeLink to="/settings/account/security/">
+                        {t('Change my password')}
+                      </HomeLink>
+                    </li>
+                    <li>
+                      <HomeLink to="/settings/account/notifications/">
+                        {t('Notification Preferences')}
+                      </HomeLink>
+                    </li>
+                    <li>
+                      <HomeLink to="/settings/account/">{t('Change my avatar')}</HomeLink>
+                    </li>
+                  </ul>
+                </HomePanelBody>
+              </GridPanel>
+            </DemoModeGate>
 
             {/* if admin */}
             <GridPanel>
@@ -222,35 +225,37 @@ class SettingsIndex extends React.Component<Props> {
               </HomePanelBody>
             </GridPanel>
 
-            <GridPanel>
-              <HomePanelHeader>
-                <HomeLinkIcon to={LINKS.API}>
-                  <HomeIcon>
-                    <IconLock size="lg" />
-                  </HomeIcon>
-                  {t('API Keys')}
-                </HomeLinkIcon>
-              </HomePanelHeader>
+            <DemoModeGate>
+              <GridPanel>
+                <HomePanelHeader>
+                  <HomeLinkIcon to={LINKS.API}>
+                    <HomeIcon>
+                      <IconLock size="lg" />
+                    </HomeIcon>
+                    {t('API Keys')}
+                  </HomeLinkIcon>
+                </HomePanelHeader>
 
-              <HomePanelBody>
-                <h3>{t('Quick links')}:</h3>
-                <ul>
-                  <li>
-                    <HomeLink to={LINKS.API}>{t('Auth Tokens')}</HomeLink>
-                  </li>
-                  <li>
-                    <HomeLink to={`${organizationSettingsUrl}developer-settings/`}>
-                      {t('Your Integrations')}
-                    </HomeLink>
-                  </li>
-                  <li>
-                    <ExternalHomeLink href={LINKS.DOCUMENTATION_API}>
-                      {t('Documentation')}
-                    </ExternalHomeLink>
-                  </li>
-                </ul>
-              </HomePanelBody>
-            </GridPanel>
+                <HomePanelBody>
+                  <h3>{t('Quick links')}:</h3>
+                  <ul>
+                    <li>
+                      <HomeLink to={LINKS.API}>{t('Auth Tokens')}</HomeLink>
+                    </li>
+                    <li>
+                      <HomeLink to={`${organizationSettingsUrl}developer-settings/`}>
+                        {t('Your Integrations')}
+                      </HomeLink>
+                    </li>
+                    <li>
+                      <ExternalHomeLink href={LINKS.DOCUMENTATION_API}>
+                        {t('Documentation')}
+                      </ExternalHomeLink>
+                    </li>
+                  </ul>
+                </HomePanelBody>
+              </GridPanel>
+            </DemoModeGate>
           </GridLayout>
         </SettingsLayout>
       </DocumentTitle>
