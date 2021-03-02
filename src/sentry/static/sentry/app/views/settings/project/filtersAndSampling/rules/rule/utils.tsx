@@ -15,12 +15,7 @@ export function getInnerNameLabel(name: DynamicSamplingInnerName) {
     case DynamicSamplingInnerName.TRACE_USER:
       return t('User');
     default: {
-      Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
-        Sentry.captureException(
-          new Error('Unknown dynamic sampling condition inner name')
-        );
-      });
+      Sentry.captureException(new Error('Unknown dynamic sampling condition inner name'));
       return null; //this shall never happen
     }
   }
