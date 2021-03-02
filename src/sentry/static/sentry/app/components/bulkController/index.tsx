@@ -66,15 +66,25 @@ type Props = {
    * Maximum number of rows that can be bulk manipulated at once (used in BulkNotice)
    */
   bulkLimit?: number;
+  /**
+   * Array of default selected ids
+   */
+  selectedIds?: string[];
 };
 
 class BulkController extends React.Component<Props, State> {
-  state: State = {
-    selectedIds: [],
-    isAllSelected: false,
-  };
+  state: State = this.getInitialState();
 
-  static getDerivedStateFromProps(props: Readonly<Props>, state: State) {
+  getInitialState() {
+    const {pageIds} = this.props;
+    const selectedIds = intersection(this.props.selectedIds ?? [], pageIds);
+    return {
+      selectedIds,
+      isAllSelected: selectedIds.length === pageIds.length,
+    };
+  }
+
+  static getDerivedStateFromProps(props: Props, state: State) {
     return {
       ...state,
       selectedIds: intersection(state.selectedIds, props.pageIds),
@@ -88,10 +98,14 @@ class BulkController extends React.Component<Props, State> {
   }
 
   handleRowToggle = (id: string) => {
-    this.setState(state => ({
-      selectedIds: xor(state.selectedIds, [id]),
-      isAllSelected: false,
-    }));
+    const {pageIds} = this.props;
+    this.setState(state => {
+      const selectedIds = xor(state.selectedIds, [id]);
+      return {
+        selectedIds,
+        isAllSelected: selectedIds.length === pageIds.length,
+      };
+    });
   };
 
   handleAllRowsToggle = (select: boolean) => {
