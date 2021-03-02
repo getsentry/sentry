@@ -265,7 +265,7 @@ class DashboardDetail extends React.Component<Props, State> {
       return {
         ...prevState,
         modifiedDashboard: {
-          ...prevState.modifiedDashboard,
+          ...prevState.modifiedDashboard!,
           widgets,
         },
       };
