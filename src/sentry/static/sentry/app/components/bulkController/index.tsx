@@ -77,14 +77,13 @@ class BulkController extends React.Component<Props, State> {
 
   getInitialState() {
     const {defaultSelectedIds, pageIds} = this.props;
-    const selectedIds = intersection(defaultSelectedIds ?? [], pageIds);
     return {
-      selectedIds,
-      isAllSelected: selectedIds.length === pageIds.length,
+      selectedIds: intersection(defaultSelectedIds ?? [], pageIds),
+      isAllSelected: false,
     };
   }
 
-  static getDerivedStateFromProps(props: Props, state: State) {
+  static getDerivedStateFromProps(props: Readonly<Props>, state: State) {
     return {
       ...state,
       selectedIds: intersection(state.selectedIds, props.pageIds),
@@ -98,14 +97,10 @@ class BulkController extends React.Component<Props, State> {
   }
 
   handleRowToggle = (id: string) => {
-    const {pageIds} = this.props;
-    this.setState(state => {
-      const selectedIds = xor(state.selectedIds, [id]);
-      return {
-        selectedIds,
-        isAllSelected: selectedIds.length === pageIds.length,
-      };
-    });
+    this.setState(state => ({
+      selectedIds: xor(state.selectedIds, [id]),
+      isAllSelected: false,
+    }));
   };
 
   handleAllRowsToggle = (select: boolean) => {

@@ -107,7 +107,7 @@ describe('BulkController', function () {
 
     it('page is selected by default', function () {
       wrapper = renderedComponent(renderProp, pageIds, pageIds);
-      expect(renderProp).toHaveBeenLastCalledWith(true, true, pageIds);
+      expect(renderProp).toHaveBeenLastCalledWith(false, true, pageIds);
     });
 
     it('toggle the last unchecked option, should change button selectAll to true', function () {
@@ -115,7 +115,7 @@ describe('BulkController', function () {
       wrapper = renderedComponent(renderProp, pageIds, defaultSelectedIds);
       expect(renderProp).toHaveBeenLastCalledWith(false, false, defaultSelectedIds);
       toggleRow.simulate('click');
-      expect(renderProp).toHaveBeenLastCalledWith(true, true, [
+      expect(renderProp).toHaveBeenLastCalledWith(false, true, [
         ...defaultSelectedIds,
         '2',
       ]);
