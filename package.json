@@ -22,7 +22,7 @@
     "@emotion/styled": "^10.0.27",
     "@sentry-internal/global-search": "^0.0.31",
     "@sentry/integrations": "6.1.0",
-    "@sentry/react": "6.1.0",
+    "@sentry/react": "6.3.0-beta.0",
     "@sentry/release-parser": "^0.6.0",
     "@sentry/rrweb": "^0.1.1",
     "@sentry/tracing": "6.1.0",
