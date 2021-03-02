@@ -6,8 +6,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
   DynamicSamplingCondition,
-  DynamicSamplingConditionMultiple,
-  DynamicSamplingConditionNegation,
+  DynamicSamplingConditionLogicalInner,
   DynamicSamplingConditionOperator,
 } from 'app/types/dynamicSampling';
 
@@ -18,11 +17,11 @@ type Props = {
 };
 
 function Conditions({condition}: Props) {
-  function getConvertedValue(value: Array<string>) {
+  function getConvertedValue(value: DynamicSamplingConditionLogicalInner['value']) {
     if (Array.isArray(value)) {
       return (
         <React.Fragment>
-          {value.map((v, index) => (
+          {[...value].map((v, index) => (
             <React.Fragment key={v}>
               <Value>{v}</Value>
               {index !== value.length - 1 && <Separator>{'\u002C'}</Separator>}
@@ -36,9 +35,8 @@ function Conditions({condition}: Props) {
   }
 
   switch (condition.op) {
-    case DynamicSamplingConditionOperator.AND:
-    case DynamicSamplingConditionOperator.OR: {
-      const {inner} = condition as DynamicSamplingConditionMultiple;
+    case DynamicSamplingConditionOperator.AND: {
+      const {inner} = condition;
       if (!inner.length) {
         return <Label>{t('All')}</Label>;
       }
@@ -54,21 +52,8 @@ function Conditions({condition}: Props) {
         </Wrapper>
       );
     }
-    case DynamicSamplingConditionOperator.NOT: {
-      const {inner} = condition as DynamicSamplingConditionNegation;
-      const {value, name} = inner;
-      return (
-        <div>
-          <Label>{getInnerNameLabel(name)}</Label>
-          {getConvertedValue(value)}
-        </div>
-      );
-    }
     default: {
-      Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
-        Sentry.captureException(new Error('Unknown dynamic sampling condition op'));
-      });
+      Sentry.captureException(new Error('Unknown dynamic sampling condition operator'));
       return null; //this shall not happen
     }
   }

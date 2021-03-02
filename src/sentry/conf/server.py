@@ -938,6 +938,8 @@ SENTRY_FEATURES = {
     "organizations:releases-top-charts": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
+    # Enable calculating release adoption based on sessions
+    "organizations:session-adoption": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -968,6 +970,8 @@ SENTRY_FEATURES = {
     "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": False,
+    # Enable teams to have ownership of alert rules
+    "organizations:team-alerts-ownership": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
