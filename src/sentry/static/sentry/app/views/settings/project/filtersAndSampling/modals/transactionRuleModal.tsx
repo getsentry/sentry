@@ -90,12 +90,9 @@ class TransactionRuleModal extends Form<Props, State> {
         case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
           return DynamicSamplingInnerName.EVENT_ENVIRONMENT;
         default: {
-          Sentry.withScope(scope => {
-            scope.setLevel(Sentry.Severity.Warning);
-            Sentry.captureException(
-              new Error('Unknown dynamic sampling rule condition category')
-            );
-          });
+          Sentry.captureException(
+            new Error('Unknown dynamic sampling rule condition category')
+          );
           return category; //this shall not happen
         }
       }
@@ -109,12 +106,9 @@ class TransactionRuleModal extends Form<Props, State> {
       case DynamicSamplingInnerName.EVENT_USER:
         return DynamicSamplingInnerName.TRACE_USER;
       default: {
-        Sentry.withScope(scope => {
-          scope.setLevel(Sentry.Severity.Warning);
-          Sentry.captureException(
-            new Error('Unknown dynamic sampling rule condition category')
-          );
-        });
+        Sentry.captureException(
+          new Error('Unknown dynamic sampling rule condition category')
+        );
         return category; //this shall not happen
       }
     }

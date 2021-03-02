@@ -5,7 +5,7 @@ import Button from 'app/components/button';
 import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {DynamicSamplingInnerName} from 'app/types/dynamicSampling';
+import {DynamicSamplingInnerName, LegacyBrowser} from 'app/types/dynamicSampling';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextareaField from 'app/views/settings/components/forms/textareaField';
 
@@ -14,7 +14,7 @@ import LegacyBrowsersField from './legacyBrowsersField';
 type Condition = {
   category: DynamicSamplingInnerName;
   match: string;
-  legacyBrowsers?: Array<string>;
+  legacyBrowsers?: Array<LegacyBrowser>;
 };
 
 type Props = {
@@ -52,7 +52,8 @@ function ConditionFields({
           ? [selectedCategoryOption, ...availableCategoryOptions]
           : availableCategoryOptions;
 
-        const showLegacyBrowsers = category === DynamicSamplingInnerName.LEGACY_BROWSERS;
+        const showLegacyBrowsers =
+          category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER;
 
         return (
           <FieldsWrapper key={index}>
