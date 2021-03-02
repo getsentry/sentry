@@ -292,5 +292,4 @@ def create_sample_event(
 
     manager = EventManager(data)
     manager.normalize()
-    event = manager.save(project.id, raw=raw)
-    return event
+    return manager.save(project.id, raw=raw)
