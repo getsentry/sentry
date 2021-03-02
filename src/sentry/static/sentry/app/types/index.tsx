@@ -570,8 +570,6 @@ export type AuthenticatorDevice = {
   timestamp?: string;
 };
 
-type QRCode = (0 | 1)[][];
-
 export type Authenticator = {
   /**
    * String used to display on button for user as CTA to enroll
@@ -623,7 +621,7 @@ export type Authenticator = {
       }
     | {
         id: 'totp';
-        qrcode: QRCode;
+        qrcode: string;
       }
     | {
         id: 'u2f';
@@ -685,6 +683,7 @@ export interface Config {
   distPrefix: string;
   apmSampling: number;
   dsn_requests: string;
+  demoMode: boolean;
 }
 
 export type EventOrGroupType =
@@ -1226,16 +1225,6 @@ export type Integration = {
   accountType: string;
   status: ObjectStatus;
   provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
-  //TODO(Steve): move configData to IntegrationWithConfig when we no longer check
-  //for workspace apps
-  configData: object & {
-    //installationType is only for Slack migration and can be removed after migrations are done
-    installationType?:
-      | 'workspace_app'
-      | 'classic_bot'
-      | 'born_as_bot'
-      | 'migrated_to_bot';
-  };
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
@@ -1249,6 +1238,7 @@ export type Integration = {
 // we include the configOrganization when we need it
 export type IntegrationWithConfig = Integration & {
   configOrganization: Field[];
+  configData: object | null;
 };
 
 export type IntegrationExternalIssue = {

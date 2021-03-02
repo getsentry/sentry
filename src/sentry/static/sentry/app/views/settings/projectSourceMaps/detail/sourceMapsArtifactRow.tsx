@@ -67,7 +67,7 @@ const SourceMapsArtifactRow = ({
                   icon={<IconDownload size="sm" />}
                   disabled={!hasRole}
                   href={downloadUrl}
-                  title={t('Download Artifact')}
+                  title={hasRole ? t('Download Artifact') : undefined}
                 />
               </Tooltip>
             )}
@@ -87,7 +87,7 @@ const SourceMapsArtifactRow = ({
                   <Button
                     size="small"
                     icon={<IconDelete size="sm" />}
-                    title={t('Remove Artifact')}
+                    title={hasAccess ? t('Remove Artifact') : undefined}
                     label={t('Remove Artifact')}
                     disabled={!hasAccess}
                   />

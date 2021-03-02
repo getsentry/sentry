@@ -39,7 +39,7 @@ export default class SavedQueries extends React.Component<
   };
 
   static getDerivedStateFromProps(
-    nextProps: SavedQueriesProps,
+    nextProps: Readonly<SavedQueriesProps>,
     prevState: SavedQueriesState
   ): Partial<SavedQueriesState> {
     const nextState: Partial<SavedQueriesState> = {};

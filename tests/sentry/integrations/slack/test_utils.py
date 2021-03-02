@@ -325,7 +325,7 @@ class BuildIncidentAttachmentTest(TestCase):
         assert build_group_attachment(warning_event.group, warning_event)["color"] == "#FFC227"
 
     def test_parse_link(self):
-        link = "https://meowlificent.ngrok.io/organizations/sentry/issues/167/?project=2&amp;query=is%3Aunresolved"
+        link = "https://meowlificent.ngrok.io/organizations/sentry/issues/167/?project=2&query=is%3Aunresolved"
         link2 = "https://meowlificent.ngrok.io/organizations/sentry/issues/1/events/2d113519854c4f7a85bae8b69c7404ad/?project=2"
         link3 = "https://meowlificent.ngrok.io/organizations/sentry/issues/9998089891/events/198e93sfa99d41b993ac8ae5dc384642/events/"
         assert (
