@@ -490,4 +490,33 @@ describe('EventsRequest', function () {
       );
     });
   });
+
+  describe('out of retention', function () {
+    beforeEach(function () {
+      doEventsRequest.mockClear();
+    });
+
+    it('does not make request', async function () {
+      wrapper = mount(
+        <EventsRequest {...DEFAULTS} expired>
+          {mock}
+        </EventsRequest>
+      );
+      expect(doEventsRequest).not.toHaveBeenCalled();
+    });
+
+    it('errors', async function () {
+      wrapper = mount(
+        <EventsRequest {...DEFAULTS} expired>
+          {mock}
+        </EventsRequest>
+      );
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          expired: true,
+          errored: true,
+        })
+      );
+    });
+  });
 });

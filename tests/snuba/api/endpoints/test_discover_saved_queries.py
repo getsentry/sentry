@@ -2,7 +2,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
@@ -46,6 +46,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data[0]["version"] == 1
         assert "createdBy" in response.data[0]
         assert response.data[0]["createdBy"]["username"] == self.user.username
+        assert not response.data[0]["expired"]
 
     def test_get_version_filter(self):
         with self.feature(self.feature_name):
@@ -172,6 +173,26 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.status_code == 200, response.content
         values = [int(item["createdBy"]["id"]) for item in response.data]
         assert values == [self.user.id, uhoh_user.id, whoops_user.id]
+
+    def test_get_expired_query(self):
+        query = {
+            "start": iso_format(before_now(days=90)),
+            "end": iso_format(before_now(days=61)),
+        }
+        DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by=self.user,
+            name="My expired query",
+            query=query,
+            version=2,
+            date_created=before_now(days=90),
+            date_updated=before_now(minutes=10),
+        )
+        with self.options({"system.event-retention-days": 60}), self.feature(self.feature_name):
+            response = self.client.get(self.url, {"query": "name:My expired query"})
+
+        assert response.status_code == 200, response.content
+        assert response.data[0]["expired"]
 
     def test_post(self):
         with self.feature(self.feature_name):
