@@ -121,7 +121,23 @@ function QuickTracePills({
         organization={organization}
         events={[root]}
         text={t('Root')}
-        hoverText={t('View the root transaction in this trace.')}
+        hoverText={
+          <span>
+            <Truncate
+              value={root.transaction}
+              maxLength={30}
+              leftTrim
+              trimRegex={/\.|\//g}
+              expandable={false}
+            />
+            <br />
+            {getDuration(
+              root['transaction.duration'] / 1000,
+              root['transaction.duration'] < 1000 ? 0 : 2,
+              true
+            )}
+          </span>
+        }
         pad="right"
       />
     );
@@ -162,7 +178,23 @@ function QuickTracePills({
         organization={organization}
         events={[parent]}
         text={t('Parent')}
-        hoverText={t('View the parent transaction in this trace.')}
+        hoverText={
+          <span>
+            <Truncate
+              value={parent.transaction}
+              maxLength={30}
+              leftTrim
+              trimRegex={/\.|\//g}
+              expandable={false}
+            />
+            <br />
+            {getDuration(
+              parent['transaction.duration'] / 1000,
+              parent['transaction.duration'] < 1000 ? 0 : 2,
+              true
+            )}
+          </span>
+        }
         pad="right"
       />
     );
@@ -275,8 +307,9 @@ function EventNodeSelector({
             <DropdownItem key={event.event_id} to={target} first={i === 0}>
               <Truncate
                 value={event.transaction}
-                maxLength={30}
+                maxLength={35}
                 leftTrim
+                trimRegex={/\.|\//g}
                 expandable={false}
               />
               <SectionSubtext>
