@@ -263,7 +263,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
         <StyledHovercard
           header={
             error === 'stack_root_mismatch' ? (
-              <span>{t('Mistmatch between filename and stack root')}</span>
+              <span>{t('Mismatch between filename and stack root')}</span>
             ) : (
               <span>{t('Unable to find source code url')}</span>
             )
@@ -360,7 +360,8 @@ const StyledIconClose = styled(IconClose)`
 `;
 
 const StyledIconInfo = styled(IconInfo)`
-  margin-right: ${space(1)};
+  margin-right: ${space(0.5)};
+  margin-bottom: -2px;
   cursor: pointer;
   line-height: 0;
 `;
@@ -387,6 +388,7 @@ const HeaderContainer = styled('div')`
 const HovercardLine = styled('div')`
   padding-bottom: 3px;
 `;
+
 const ErrorInformation = styled('div')`
   padding-right: 5px;
   margin-right: ${space(1)};

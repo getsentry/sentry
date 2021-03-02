@@ -2,7 +2,7 @@ from django.core.urlresolvers import reverse
 from sentry.utils.compat import mock
 
 from sentry.integrations.example.integration import ExampleIntegration
-from sentry.models import RepositoryProjectPathConfig, Integration, OrganizationIntegration
+from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 
 
@@ -25,14 +25,15 @@ class ProjectStacktraceLinkTest(APITestCase):
         self.repo.provider = "example"
         self.repo.save()
 
-        self.config = RepositoryProjectPathConfig.objects.create(
+        self.config = self.create_code_mapping(
             organization_integration=self.oi,
             project=self.project,
-            repository=self.repo,
-            stack_root="/usr/src/getsentry",
+            repo=self.repo,
+            stack_root="usr/src/getsentry/",
             source_root="",
         )
-        self.filepath = "/usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
+
+        self.filepath = "usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
         self.url = reverse(
             "sentry-api-0-project-stacktrace-link",
             kwargs={
@@ -95,11 +96,12 @@ class ProjectStacktraceLinkTest(APITestCase):
             "sourceRoot": self.config.source_root,
             "stackRoot": self.config.stack_root,
             "integrationId": str(self.integration.id),
-            "defaultBranch": None,
+            "defaultBranch": "master",
         }
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "file_not_found"
         assert response.data["integrations"] == [self._serialized_integration()]
+        assert response.data["attemptedUrl"] == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
 
     def test_stack_root_mismatch_error(self):
         self.login_as(user=self.user)
@@ -126,7 +128,7 @@ class ProjectStacktraceLinkTest(APITestCase):
             "sourceRoot": self.config.source_root,
             "stackRoot": self.config.stack_root,
             "integrationId": str(self.integration.id),
-            "defaultBranch": None,
+            "defaultBranch": "master",
         }
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "stack_root_mismatch"
@@ -159,7 +161,7 @@ class ProjectStacktraceLinkTest(APITestCase):
                 "sourceRoot": self.config.source_root,
                 "stackRoot": self.config.stack_root,
                 "integrationId": str(self.integration.id),
-                "defaultBranch": None,
+                "defaultBranch": "master",
             }
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
             assert response.data["integrations"] == [self._serialized_integration()]
