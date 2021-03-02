@@ -63,7 +63,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
 
         response = self.client.put(self.url, self.data)
         assert response.status_code == 404
-        assert response.data == {"detail": "Cannot find a ProjectCodeOwners with id 1000"}
+        assert response.data == {"detail": "The requested resource does not exist"}
 
     def test_missing_external_associations_update(self):
         data = {

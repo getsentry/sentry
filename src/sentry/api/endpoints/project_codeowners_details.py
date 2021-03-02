@@ -2,10 +2,10 @@ import logging
 
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.exceptions import NotFound
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ProjectCodeOwners
+from sentry.api.exceptions import ResourceDoesNotExist
 
 from .project_codeowners import ProjectCodeOwnerSerializer
 
@@ -26,7 +26,7 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
                 id=codeowners_id, project=kwargs["project"]
             )
         except ProjectCodeOwners.DoesNotExist:
-            raise NotFound(detail=f"Cannot find a ProjectCodeOwners with id {codeowners_id}")
+            raise ResourceDoesNotExist
 
         return (args, kwargs)
 
