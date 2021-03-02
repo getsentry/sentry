@@ -400,6 +400,7 @@ class DetailsBody extends React.Component<Props> {
                         !loading && timeseriesData ? (
                           <MetricChart
                             data={timeseriesData}
+                            rule={rule}
                             incidents={incidents}
                             criticalTrigger={criticalTrigger}
                             warningTrigger={warningTrigger}
