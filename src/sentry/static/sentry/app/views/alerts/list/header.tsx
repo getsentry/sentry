@@ -53,6 +53,7 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
               size="small"
               priority="primary"
               referrer="alert_stream"
+              showPermissionGuide
             >
               {t('Create Alert Rule')}
             </CreateAlertButton>
