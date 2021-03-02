@@ -2,6 +2,7 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.utils import get_date_range_rollup_from_params
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.models import Project, Team
 
 from sentry.snuba import outcomes
 from sentry_relay import DataCategory
@@ -114,6 +115,11 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
         # make sure this only has projects user has access to
         start, end, rollup = get_date_range_rollup_from_params(request.GET, "1h", round_range=True)
 
+        project_list = []
+        team_list = Team.objects.get_for_user(organization=organization, user=request.user)
+        for team in team_list:
+            project_list.extend(Project.objects.get_for_user(team=team, user=request.user))
+
         result = outcomes.query(
             start=start,
             end=end,
@@ -123,8 +129,9 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
             filter_keys={"org_id": [organization.id]},
             orderby=["times_seen", "time"],
         )
-
+        # TODO: filter out projects user doesnt have access to.
         # need .copy here?
+        # TODO: zerofill projects
         template = {
             "statsErrors": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
             "statsTransactions": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
@@ -169,7 +176,7 @@ class OrganizationProjectStatsDetails(ProjectEndpoint):
             groupby=["category", "time", "outcome", "reason"],
             aggregations=[["sum", "times_seen", "times_seen"], ["sum", "quantity", "quantity"]],
             filter_keys={"org_id": [project.organization.id], "project_id": [project.id]},
-            orderby=["-timestamp"],
+            orderby=["time"],
         )
 
         # need .copy here?

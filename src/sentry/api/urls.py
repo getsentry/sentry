@@ -1222,17 +1222,17 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/stats_v2/$",
                     OrganizationStatsEndpointV2.as_view(),
-                    name="sentry-api-0-organization-stats_v2",
+                    name="sentry-api-0-organization-stats-v2",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/stats_v2/projects/$",
                     OrganizationProjectStatsIndex.as_view(),
-                    name="sentry-api-0-organization-stats_v2",
+                    name="sentry-api-0-organization-stats-project-index",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/stats_v2/projects/(?P<project_slug>[^\/]+)$",
                     OrganizationProjectStatsDetails.as_view(),
-                    name="sentry-api-0-organization-stats_v2",
+                    name="sentry-api-0-organization-stats-projects-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/teams/$",
