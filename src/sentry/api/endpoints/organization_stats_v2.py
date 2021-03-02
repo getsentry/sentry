@@ -15,33 +15,52 @@ OUTCOME_TO_STR = {
 }
 
 
+CATEGORY_NAME_MAP = {
+    DataCategory.ERROR: "statsErrors",
+    DataCategory.TRANSACTION: "statsTransactions",
+    DataCategory.ATTACHMENT: "statsAttachments",
+}
+
+
+DEFAULT_TS_VAL = [
+    ("accepted", {"quantity": 0, "times_seen": 0}),
+    ("filtered", {"quantity": 0, "times_seen": 0}),
+    (
+        "dropped",
+        {
+            "overQuota": {"quantity": 0, "times_seen": 0},
+            "spikeProtection": {"quantity": 0, "times_seen": 0},
+            "other": {"quantity": 0, "times_seen": 0},
+        },
+    ),
+]
+
+
 def outcome_to_string(outcome):
     return OUTCOME_TO_STR[outcome]
 
 
+def datamapper(row):
+    obj = {"time": row["time"]}
+    if row["outcome"] == Outcome.RATE_LIMITED:
+        # TODO: make this actually work
+        obj[outcome_to_string(row["outcome"])] = {
+            row["reason"]: {
+                "quantity": row["quantity"],
+                "times_seen": row["times_seen"],
+            }
+        }
+
+    else:
+        obj[outcome_to_string(row["outcome"])] = {
+            "quantity": row["quantity"],
+            "times_seen": row["times_seen"],
+        }
+    return obj
+
+
 class OrganizationStatsEndpointV2(OrganizationEndpoint):
     def get(self, request, organization):
-        """
-        Retrieve Event Counts for an Organization
-        `````````````````````````````````````````
-
-        .. caution::
-           This endpoint may change in the future without notice.
-
-        Return a set of points representing a normalized timestamp and the
-        number of events seen in the period.
-
-        :pparam string organization_slug: the slug of the organization for
-                                          which the stats should be
-                                          retrieved.
-        :qparam timestamp start: a timestamp to set the start of the query
-                                 in seconds since UNIX epoch.
-        :qparam timestamp end: a timestamp to set the end of the query
-                                 in seconds since UNIX epoch.
-        :qparam string rollup: an explicit resolution to search
-                                 for (one of ``1hr``, or ``1day``)
-        :auth: required
-        """
         # group = request.GET.get("group", "organization")
         # if group == "organization":
         #     keys = [organization.id]
@@ -63,70 +82,21 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
             filter_keys={"org_id": [organization.id]},
             orderby=["time"],
         )
-
-        default_vals = [
-            ("accepted", {"quantity": 0, "times_seen": 0}),
-            ("filtered", {"quantity": 0, "times_seen": 0}),
-            (
-                "dropped",
-                {
-                    "overQuota": dict([("quantity", 0), ("times_seen", 0)]),
-                    "spikeProtection": dict([("quantity", 0), ("times_seen", 0)]),
-                    "other": dict([("quantity", 0), ("times_seen", 0)]),
-                },
-            ),
-        ]
+        # need .copy here?
         new_res = {
-            "statsErrors": defaultdict(lambda: defaultdict(dict, default_vals)),
-            "statsTransactions": defaultdict(lambda: defaultdict(dict, default_vals)),
-            "statsAttachments": defaultdict(lambda: defaultdict(dict, default_vals)),
+            "statsErrors": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
+            "statsTransactions": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
+            "statsAttachments": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
         }
         for row in result:
-            # uniq_key = "-".join(outcome_to_string(row["outcome"]))
-            uniq_key = row["time"]
-            if row["category"] == DataCategory.ERROR:
-                new_res["statsErrors"][uniq_key].update({"time": row["time"]})
-                if row["outcome"] == Outcome.RATE_LIMITED:
-                    new_res["statsErrors"][uniq_key][outcome_to_string(row["outcome"])].update(
-                        {
-                            row["reason"]: {
-                                "quantity": row["quantity"],
-                                "times_seen": row["times_seen"],
-                            }
-                        }
-                    )
-                else:
-                    new_res["statsErrors"][uniq_key].update(
-                        {
-                            outcome_to_string(row["outcome"]): {
-                                "quantity": row["quantity"],
-                                "times_seen": row["times_seen"],
-                            }
-                        }
-                    )
-            elif row["category"] == DataCategory.TRANSACTION:
-                new_res["statsTransactions"][uniq_key].update({"time": row["time"]})
-                new_res["statsTransactions"][uniq_key].update(
-                    {
-                        outcome_to_string(row["outcome"]): {
-                            "quantity": row["quantity"],
-                            "times_seen": row["times_seen"],
-                        }
-                    }
-                )
-            elif row["category"] == DataCategory.ATTACHMENT:
-                new_res["statsAttachments"][uniq_key].update({"time": row["time"]})
-                new_res["statsAttachments"][uniq_key].update(
-                    {
-                        outcome_to_string(row["outcome"]): {
-                            "quantity": row["quantity"],
-                            "times_seen": row["times_seen"],
-                        }
-                    }
-                )
-        # print(new_res)
-        new_res = {category: list(val.values()) for category, val in new_res.items()}
+            if "category" in row:
+                uniq_key = row["time"]
+                new_res[CATEGORY_NAME_MAP[row["category"]]][uniq_key].update(datamapper(row))
 
+        new_res = {
+            category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")
+            for category, val in new_res.items()
+        }
         return Response(new_res)
 
 
@@ -154,30 +124,38 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
             orderby=["times_seen", "time"],
         )
 
-        new_res = {"statsErrors": [], "statsTransactions": [], "statsAttachments": []}
+        # need .copy here?
+        template = {
+            "statsErrors": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
+            "statsTransactions": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
+            "statsAttachments": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
+        }
+        new_res = {}
         for row in result:
-            # uniq_key =
-            if row["category"] == DataCategory.ERROR:
-                new_res["statsErrors"].append(row)
-            elif row["category"] == DataCategory.TRANSACTION:
-                new_res["statsTransactions"].append(row)
-            elif row["category"] == DataCategory.ATTACHMENT:
-                new_res["statsAttachments"].append(row)
+            if "category" in row:
+                uniq_key = "-".join([str(row["time"]), str(row["project_id"])])
+                if row["project_id"] in new_res:
+                    new_res[row["project_id"]][CATEGORY_NAME_MAP[row["category"]]][uniq_key].update(
+                        datamapper(row)
+                    )
+                else:
+                    new_res[row["project_id"]] = template.copy()
+                    new_res[row["project_id"]][CATEGORY_NAME_MAP[row["category"]]][uniq_key].update(
+                        datamapper(row)
+                    )
 
-        #
-        #
-        # add logic for grouping datacategories as errors here
-        # result = group_timestamps(result["data"], groupby)
-        # if "project_id" in groupby:
-        #     result = group_by_project(result)
-        #     result = {
-        #         project_id: zerofill(vals, start, end, rollup, "time")
-        #         for project_id, vals in result.items()
-        #     }
-        # else:
-        #     result = zerofill(result, start, end, rollup, "time")
-
-        return Response(result)
+        new_res = {
+            project_id: {
+                category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")
+                for category, val in val2.items()
+            }
+            for project_id, val2 in new_res.items()
+        }
+        # new_res = {
+        #     category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")
+        #     for category, val in new_res.items()
+        # }
+        return Response(new_res)
 
 
 class OrganizationProjectStatsDetails(ProjectEndpoint):
@@ -194,4 +172,19 @@ class OrganizationProjectStatsDetails(ProjectEndpoint):
             orderby=["-timestamp"],
         )
 
-        return Response(result)
+        # need .copy here?
+        new_res = {
+            "statsErrors": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
+            "statsTransactions": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
+            "statsAttachments": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
+        }
+        for row in result:
+            if "category" in row:
+                uniq_key = row["time"]
+                new_res[CATEGORY_NAME_MAP[row["category"]]][uniq_key].update(datamapper(row))
+
+        new_res = {
+            category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")
+            for category, val in new_res.items()
+        }
+        return Response(new_res)

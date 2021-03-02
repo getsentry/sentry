@@ -94,7 +94,8 @@ def query(groupby, start, end, rollup, aggregations, orderby, fields=None, filte
             else DataCategory(row["category"])
         )
     result = result["data"]
-    return result
+
+    return zerofill(result, start, end, rollup, "time")
 
 
 # def get_outcomes_for_org_stats(
