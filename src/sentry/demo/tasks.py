@@ -10,8 +10,6 @@ from sentry.tasks.deletion import delete_organization
 
 MAX_RETRIES = 5
 
-MAX_QUERY_RESULTS = 1000
-
 
 @instrumented_task(
     name="sentry.demo.tasks.delete_users_orgs",
@@ -22,6 +20,7 @@ def delete_users_orgs(**kwargs):
     if not settings.DEMO_MODE:
         return
 
+    # delete everything older than a day
     cutoff_time = timezone.now() - timedelta(days=1)
 
     # first mark orgs for deletion
