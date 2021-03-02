@@ -69,7 +69,7 @@ function readShowTagsState() {
 }
 
 class Results extends React.Component<Props, State> {
-  static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     const eventView = EventView.fromLocation(nextProps.location);
     return {...prevState, eventView};
   }
