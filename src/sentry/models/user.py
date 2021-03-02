@@ -10,7 +10,7 @@ from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, sane_repr
+from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, FlexibleForeignKey, sane_repr
 from sentry.models import LostPasswordHash
 from sentry.utils.http import absolute_uri
 
@@ -112,6 +112,7 @@ class User(BaseModel, AbstractBaseUser):
     )
 
     session_nonce = models.CharField(max_length=12, null=True)
+    actor = FlexibleForeignKey("sentry.Actor", db_index=True, null=True)
 
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
