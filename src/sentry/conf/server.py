@@ -1348,7 +1348,10 @@ SENTRY_SCOPE_SETS = (
         ("event:write", "Read and write access to events."),
         ("event:read", "Read access to events."),
     ),
-    (("alerts:write", "Read and write alerts"), ("alerts:read", "Read alerts"),),
+    (
+        ("alerts:write", "Read and write alerts"),
+        ("alerts:read", "Read alerts"),
+    ),
 )
 
 SENTRY_DEFAULT_ROLE = "member"
