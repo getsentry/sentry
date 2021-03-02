@@ -49,6 +49,11 @@
   {% asset_url "sentry" "dist/app.js" as asset_url %}
   {% script src=asset_url data-entry="true" %}{% endscript %}
 
+  {% injected_script_assets as injected_assets %}
+  {% for asset_url in injected_assets %}
+    {% script src=asset_url %}{% endscript %}
+  {% endfor %}
+
   {% script %}
   <script>
     // if the ads.js file loads below it will mark this variable as false
