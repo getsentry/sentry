@@ -77,13 +77,14 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
         user.set_password(password)
 
     try:
-        existing_user_id = User.objects.get(username=email)
+        existing_user_id = User.objects.get(username=email).id
     except User.DoesNotExist:
         existing_user_id = None
 
     if existing_user_id is not None:
         if force_update:
-            user.save(id=existing_user_id, force_update=force_update)
+            user.id = existing_user_id
+            user.save(force_update=force_update)
             click.echo(f"User updated: {email}")
         else:
             click.echo(f"User: {email} exists, use --force-update to force")
