@@ -200,6 +200,7 @@ globals.SentryApp = {
   SystemAlerts: require('app/views/app/systemAlerts').default,
   Indicators: require('app/components/indicators').default,
   SetupWizard: require('app/components/setupWizard').default,
+  HookStore: require('app/stores/hookStore').default,
 };
 
 // Make globals available on the window object

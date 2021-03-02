@@ -86,6 +86,11 @@ def script(parser, token):
         raise template.TemplateSyntaxError(f"`script` tag failed to compile. : {err}")
 
 
+@register.simple_tag
+def injected_script_assets():
+    return settings.INJECTED_SCRIPT_ASSETS
+
+
 class ScriptNode(template.Node):
     def __init__(self, nodelist, **kwargs):
         self.nodelist = nodelist
