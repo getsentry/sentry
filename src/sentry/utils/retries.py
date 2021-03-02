@@ -72,7 +72,11 @@ class ConditionalRetryPolicy(RetryPolicy[T]):
             try:
                 return function()
             except Exception as e:
-                if not self.__test_function(i, e):
+                if self.__test_function(i, e):
+                    logger.warning(
+                        "Caught %r while executing %r (attempt #%s), retrying...", e, function, i
+                    )
+                else:
                     raise
 
 
