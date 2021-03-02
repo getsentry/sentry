@@ -49,10 +49,8 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             organization_integration=self.oi,
             stack_root="webpack://",
         )
-        self.code_owner = ProjectCodeOwners.objects.create(
-            project=self.project,
-            raw="*.js @tiger-team",
-            repository_project_path_config=self.code_mapping,
+        self.code_owner = self.create_codeowners(
+            self.project, self.code_mapping_with_integration, raw="*.js @tiger-team"
         )
 
     def test_no_codeowners(self):
@@ -61,11 +59,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp.data == []
 
     def test_codeowners_without_integrations(self):
-        code_owner = ProjectCodeOwners.objects.create(
-            project=self.project,
-            raw="*.js @tiger-team",
-            repository_project_path_config=self.code_mapping,
-        )
+        code_owner = self.create_codeowners(self.project, self.code_mapping, raw="*.js @tiger-team")
         resp = self.client.get(self.url)
         assert resp.status_code == 200
         resp_data = resp.data[0]
