@@ -25,7 +25,7 @@ function LegacyBrowsersField({onChange, selectedLegacyBrowsers = []}: Props) {
   return (
     <BulkController
       pageIds={legacyBrowsers}
-      selectedIds={selectedLegacyBrowsers}
+      defaultSelectedIds={selectedLegacyBrowsers}
       allRowsCount={legacyBrowsers.length}
       onChange={handleChange}
       columnsCount={0}
