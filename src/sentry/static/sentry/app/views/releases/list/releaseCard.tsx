@@ -10,7 +10,7 @@ import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {GlobalSelection, Release} from 'app/types';
+import {GlobalSelection, Organization, Release} from 'app/types';
 
 import ReleaseHealth from './releaseHealth';
 import {DisplayOption} from './utils';
@@ -35,7 +35,7 @@ function getReleaseProjectId(release: Release, selection: GlobalSelection) {
 
 type Props = {
   release: Release;
-  orgSlug: string;
+  organization: Organization;
   activeDisplay: DisplayOption;
   location: Location;
   selection: GlobalSelection;
@@ -45,7 +45,7 @@ type Props = {
 
 const ReleaseCard = ({
   release,
-  orgSlug,
+  organization,
   activeDisplay,
   location,
   reloading,
@@ -60,9 +60,9 @@ const ReleaseCard = ({
         <ReleaseInfoHeader>
           <GlobalSelectionLink
             to={{
-              pathname: `/organizations/${orgSlug}/releases/${encodeURIComponent(
-                version
-              )}/`,
+              pathname: `/organizations/${
+                organization.slug
+              }/releases/${encodeURIComponent(version)}/`,
               query: {project: getReleaseProjectId(release, selection)},
             }}
           >
@@ -84,7 +84,7 @@ const ReleaseCard = ({
       <ReleaseProjects>
         <ReleaseHealth
           release={release}
-          orgSlug={orgSlug}
+          organization={organization}
           activeDisplay={activeDisplay}
           location={location}
           showPlaceholders={showHealthPlaceholders}
