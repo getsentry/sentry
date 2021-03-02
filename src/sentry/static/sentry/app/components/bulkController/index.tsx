@@ -66,13 +66,22 @@ type Props = {
    * Maximum number of rows that can be bulk manipulated at once (used in BulkNotice)
    */
   bulkLimit?: number;
+  /**
+   * Array of default selected ids
+   */
+  defaultSelectedIds?: string[];
 };
 
 class BulkController extends React.Component<Props, State> {
-  state: State = {
-    selectedIds: [],
-    isAllSelected: false,
-  };
+  state: State = this.getInitialState();
+
+  getInitialState() {
+    const {defaultSelectedIds, pageIds} = this.props;
+    return {
+      selectedIds: intersection(defaultSelectedIds ?? [], pageIds),
+      isAllSelected: false,
+    };
+  }
 
   static getDerivedStateFromProps(props: Readonly<Props>, state: State) {
     return {
