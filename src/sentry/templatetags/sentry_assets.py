@@ -87,8 +87,8 @@ def script(parser, token):
 
 
 @register.simple_tag
-def other_js_file():
-    return settings.OTHER_JS_FILE
+def injected_script_assets():
+    return settings.INJECTED_SCRIPT_ASSETS
 
 
 class ScriptNode(template.Node):

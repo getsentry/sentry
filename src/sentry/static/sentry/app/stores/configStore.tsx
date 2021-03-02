@@ -101,6 +101,4 @@ type ConfigStore = Reflux.Store & ConfigStoreInterface;
 
 const ConfigStore = Reflux.createStore(configStoreConfig) as ConfigStore;
 
-window.ConfigStore = ConfigStore;
-
 export default ConfigStore;
