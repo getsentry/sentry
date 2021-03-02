@@ -15,7 +15,6 @@ register.simple_tag(get_asset_url, name="asset_url")
 
 @register.simple_tag
 def absolute_asset_url(module, path):
-    print("absolute_asset_url")
     """
     Returns a versioned absolute asset URL (located within Sentry's static files).
 
