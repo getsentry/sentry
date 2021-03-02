@@ -11,25 +11,35 @@ class ConditionalRetryPolicyTestCase(TestCase):
     def test_policy_success(self) -> None:
         callable = mock.MagicMock(side_effect=[self.bomb, mock.sentinel.OK])
 
-        always_retry = lambda e: True
+        always_retry = lambda i, e: True
         assert ConditionalRetryPolicy(always_retry)(callable) is mock.sentinel.OK
         assert callable.call_count == 2
 
     def test_poilcy_failure(self) -> None:
         callable = mock.MagicMock(side_effect=self.bomb)
 
-        never_retry = lambda e: False
+        never_retry = lambda i, e: False
         with pytest.raises(Exception) as e:
             ConditionalRetryPolicy(never_retry)(callable)
 
         assert callable.call_count == 1
         assert e.value is self.bomb
 
-    def test_policy_stateful(self) -> None:
+    def test_policy_counter(self) -> None:
+        callable = mock.MagicMock(side_effect=self.bomb)
+
+        retry_once = lambda i, e: i < 2
+        with pytest.raises(Exception) as e:
+            ConditionalRetryPolicy(retry_once)(callable)
+
+        assert callable.call_count == 2
+        assert e.value is self.bomb
+
+    def test_policy_exception_filtering(self) -> None:
         errors = [Exception(), Exception(), Exception()]
         callable = mock.MagicMock(side_effect=errors)
 
-        sometimes_retry = lambda e: e is not errors[-1]
+        sometimes_retry = lambda i, e: e is not errors[-1]
         with pytest.raises(Exception) as e:
             ConditionalRetryPolicy(sometimes_retry)(callable)
 

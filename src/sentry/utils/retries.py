@@ -54,15 +54,15 @@ class RetryPolicy(Generic[T], ABC):
 
 
 class ConditionalRetryPolicy(RetryPolicy[T]):
-    def __init__(self, test_function: Callable[[Exception], bool]) -> None:
+    def __init__(self, test_function: Callable[[int, Exception], bool]) -> None:
         self.__test_function = test_function
 
     def __call__(self, function: Callable[[], T]) -> T:
-        while True:
+        for i in itertools.count(1):
             try:
                 return function()
             except Exception as e:
-                if not self.__test_function(e):
+                if not self.__test_function(i, e):
                     raise
 
 

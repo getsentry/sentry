@@ -12,7 +12,6 @@ from requests.exceptions import RequestException
 
 from sentry import http, options
 from sentry.lang.javascript.processor import (
-    build_fetch_retry_condition,
     cache,
     get_release_file_cache_key,
     get_release_file_cache_key_meta,
@@ -27,6 +26,7 @@ from sentry.lang.javascript.processor import (
     get_max_age,
     CACHE_CONTROL_MAX,
     CACHE_CONTROL_MIN,
+    should_retry_fetch,
 )
 from sentry.lang.javascript.errormapping import rewrite_exception, REACT_MAPPING_URL
 from sentry.models import File, Release, ReleaseFile, EventError
@@ -63,15 +63,15 @@ class JavaScriptStacktraceProcessorTest(TestCase):
 
 
 def test_build_fetch_retry_condition() -> None:
-    should_retry = build_fetch_retry_condition(max_retries=3)
-
     e = OSError()
     e.errno = errno.ESTALE
 
-    assert should_retry(e) is True
-    assert should_retry(e) is True
-    assert should_retry(e) is True
-    assert should_retry(e) is False
+    assert should_retry_fetch(1, e) is True
+    assert should_retry_fetch(2, e) is True
+    assert should_retry_fetch(3, e) is True
+    assert should_retry_fetch(4, e) is False
+
+    assert should_retry_fetch(1, Exception("something else")) is False
 
 
 class FetchReleaseFileTest(TestCase):
