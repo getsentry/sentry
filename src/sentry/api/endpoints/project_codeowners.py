@@ -53,8 +53,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         user_emails = UserEmail.objects.filter(email__in=emails)
         user_emails_diff = self._validate_association(emails, user_emails, "emails")
 
-        if len(user_emails_diff):
-            external_association_err.extend(user_emails_diff)
+        external_association_err.extend(user_emails_diff)
 
         # Check if the usernames have an association
         external_users = ExternalUser.objects.filter(
@@ -64,8 +63,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
 
         external_users_diff = self._validate_association(usernames, external_users, "usernames")
 
-        if len(external_users_diff):
-            external_association_err.extend(external_users_diff)
+        external_association_err.extend(external_users_diff)
 
         # Check if the team names have an association
         external_teams = ExternalTeam.objects.filter(
@@ -75,8 +73,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
 
         external_teams_diff = self._validate_association(teamnames, external_teams, "team names")
 
-        if len(external_teams_diff):
-            external_association_err.extend(external_teams_diff)
+        external_association_err.extend(external_teams_diff)
 
         if len(external_association_err):
             raise serializers.ValidationError({"raw": "\n".join(external_association_err)})
