@@ -128,12 +128,7 @@ class KeyTransactionButton extends React.Component<Props, State> {
 
     return (
       <Button
-        icon={
-          <IconStar
-            color={isKeyTransaction ? 'yellow300' : 'textColor'}
-            isSolid={!!isKeyTransaction}
-          />
-        }
+        icon={isKeyTransaction ? <IconStar color="yellow300" isSolid /> : <IconStar />}
         onClick={this.toggleKeyTransactionHandler}
       >
         {t('Key Transaction')}
