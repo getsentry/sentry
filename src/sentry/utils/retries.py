@@ -54,6 +54,16 @@ class RetryPolicy(Generic[T], ABC):
 
 
 class ConditionalRetryPolicy(RetryPolicy[T]):
+    """
+    A basic policy that can be used to retry a callable based on the result
+    of a test function that determines whether or not to retry after the
+    callable throws an exception.
+
+    The test function takes two arguments: the number of times the callable
+    has unsuccesfully been invoked, and the exception instance that was
+    raised during the last execution attempt.
+    """
+
     def __init__(self, test_function: Callable[[int, Exception], bool]) -> None:
         self.__test_function = test_function
 
