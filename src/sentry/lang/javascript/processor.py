@@ -295,7 +295,7 @@ def fetch_release_file(filename, release, dist=None):
             if cache_meta:
                 z_body_size = int(cache_meta.get("compressed_size"))
 
-        def try_fetch_release_body():
+        def fetch_release_body():
             with ReleaseFile.cache.getfile(releasefile) as fp:
                 if z_body_size and z_body_size > CACHE_MAX_VALUE_SIZE:
                     return None, fp.read()
@@ -304,7 +304,7 @@ def fetch_release_file(filename, release, dist=None):
 
         try:
             with metrics.timer("sourcemaps.release_file_read"):
-                z_body, body = ConditionalRetryPolicy(should_retry_fetch)(try_fetch_release_body)
+                z_body, body = ConditionalRetryPolicy(should_retry_fetch)(fetch_release_body)
         except Exception:
             logger.error("sourcemap.compress_read_failed", exc_info=sys.exc_info())
             result = None
