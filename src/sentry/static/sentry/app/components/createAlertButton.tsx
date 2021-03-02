@@ -320,6 +320,7 @@ type Props = {
   referrer?: string;
   hideIcon?: boolean;
   api: Client;
+  showPermissionGuide?: boolean;
 } & WithRouterProps &
   React.ComponentProps<typeof Button>;
 
@@ -333,6 +334,7 @@ const CreateAlertButton = withApi(
       router,
       hideIcon,
       api,
+      showPermissionGuide,
       ...buttonProps
     }: Props) => {
       function handleClickWithoutProject(event: React.MouseEvent) {
@@ -391,7 +393,7 @@ const CreateAlertButton = withApi(
         </Button>
       );
 
-      const showGuide = !organization.alertsMemberWrite;
+      const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;
 
       return (
         <Access organization={organization} access={['alerts:write']}>
