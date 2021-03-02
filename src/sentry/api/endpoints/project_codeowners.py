@@ -1,6 +1,5 @@
 import logging
 
-from django.db import IntegrityError
 from django.utils import timezone
 
 from rest_framework import serializers, status
@@ -149,13 +148,8 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
             validated_data.pop("id")
         for key, value in validated_data.items():
             setattr(self.instance, key, value)
-        try:
-            self.instance.save()
-            return self.instance
-        except IntegrityError:
-            raise serializers.ValidationError(
-                "There already exists an external user association with this external_name and provider."
-            )
+        self.instance.save()
+        return self.instance
 
 
 class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
