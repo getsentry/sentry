@@ -8,7 +8,7 @@ import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
-import {IncidentRule, Trigger} from 'app/views/settings/incidentRules/types';
+import {Trigger} from 'app/views/settings/incidentRules/types';
 
 import {Incident} from '../../types';
 
@@ -16,7 +16,7 @@ const X_AXIS_BOUNDARY_GAP = 15;
 
 type Props = {
   data: Series[];
-  rule?: IncidentRule;
+  ruleChangeThreshold?: string;
   incidents?: Incident[];
   warningTrigger?: Trigger;
   criticalTrigger?: Trigger;
@@ -28,7 +28,7 @@ type State = {
 };
 
 function createThresholdSeries(lineColor: string, threshold: number): LineChartSeries {
-  const criticalThresholdLine = {
+  return {
     seriesName: 'Threshold Line',
     type: 'line',
     markLine: MarkLine({
@@ -38,7 +38,6 @@ function createThresholdSeries(lineColor: string, threshold: number): LineChartS
     }),
     data: [],
   };
-  return criticalThresholdLine;
 }
 
 export default class MetricChart extends React.PureComponent<Props, State> {
@@ -83,7 +82,7 @@ export default class MetricChart extends React.PureComponent<Props, State> {
 
   getRuleCreatedThresholdElements = () => {
     const {height, width} = this.state;
-    const {data, rule} = this.props;
+    const {data, ruleChangeThreshold} = this.props;
 
     if (!data.length || !data[0].data.length) {
       return [];
@@ -92,7 +91,11 @@ export default class MetricChart extends React.PureComponent<Props, State> {
     const seriesData = data[0].data;
     const seriesStart = seriesData[0].name as number;
     const seriesEnd = seriesData[seriesData.length - 1].name as number;
-    const ruleChanged = moment(rule?.dateModified).valueOf();
+    const ruleChanged = moment(ruleChangeThreshold).valueOf();
+
+    if (ruleChanged < seriesStart) {
+      return [];
+    }
 
     const chartWidth = width - X_AXIS_BOUNDARY_GAP;
     const position =
