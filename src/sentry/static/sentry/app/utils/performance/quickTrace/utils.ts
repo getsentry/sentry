@@ -124,7 +124,7 @@ export function parseQuickTrace(
   if (current === null) {
     /**
      * The current event should always be present in the trace, if not
-     * there is no reason to at the rest for the quick trace.
+     * there is no reason to look at the rest for the quick trace.
      */
     Sentry.captureException(new Error('Current event not in quick trace'));
     return null;
@@ -140,7 +140,7 @@ export function parseQuickTrace(
     : null;
 
   /**
-   * The root event is the first event in the trace. This has ower priority
+   * The root event is the first event in the trace. This has lower priority
    * than the parent event, meaning if the root event is the parent event of
    * the current event, this favours showing it as the parent event.
    */
