@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Sentry from '@sentry/react';
 
 import TraceFullQuery from 'app/utils/performance/quickTrace/traceFullQuery';
 import TraceLiteQuery from 'app/utils/performance/quickTrace/traceLiteQuery';
@@ -23,25 +24,32 @@ export default function QuickTraceQuery({children, ...props}: QueryProps) {
               traceFullResults.error === null &&
               traceFullResults.trace !== null
             ) {
-              const trace = flattenRelevantPaths(props.event, traceFullResults.trace);
-              return children({
-                ...traceFullResults,
-                trace,
-              });
-            } else if (
+              try {
+                const trace = flattenRelevantPaths(props.event, traceFullResults.trace);
+                return children({
+                  ...traceFullResults,
+                  trace,
+                });
+              } catch (error) {
+                Sentry.setTag('currentTraceId', props.event.contexts?.trace?.trace_id);
+                Sentry.captureException(error);
+              }
+            }
+
+            if (
               !traceLiteResults.isLoading &&
               traceLiteResults.error === null &&
               traceLiteResults.trace !== null
             ) {
               return children(traceLiteResults);
-            } else {
-              return children({
-                isLoading: traceFullResults.isLoading || traceLiteResults.isLoading,
-                error: traceFullResults.error ?? traceLiteResults.error,
-                trace: [],
-                type: 'empty',
-              });
             }
+
+            return children({
+              isLoading: traceFullResults.isLoading || traceLiteResults.isLoading,
+              error: traceFullResults.error ?? traceLiteResults.error,
+              trace: [],
+              type: 'empty',
+            });
           }}
         </TraceFullQuery>
       )}
