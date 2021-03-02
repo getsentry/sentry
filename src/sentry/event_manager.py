@@ -1015,7 +1015,7 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
             state=GroupHash.State.LOCKED_IN_MIGRATION
         ).update(group=group)
 
-        if group_is_new and len(new_hashes) >= len(flat_grouphashes):
+        if group_is_new and len(new_hashes) == len(to_update):
             is_new = True
 
     if not is_new:
