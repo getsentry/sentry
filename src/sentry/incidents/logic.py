@@ -30,6 +30,7 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentStatusMethod,
     IncidentSubscription,
+    RULE_OWNER_TYPES,
     Team,
     TimeSeriesSnapshot,
     TriggerStatus,
@@ -643,14 +644,11 @@ def create_alert_rule(
             environment,
             event_types=event_types,
         )
-        team_id = None
-        user_id = None
+        print("owner is:",owner)
         if owner:
-            if owner.type == User:
-                user_id = owner.id
-            elif owner.type == Team:
-                team_id = owner.id
-
+            print("id:",owner.id)
+            print("type:",owner.type)
+            print("get_type_string:",owner.get_type_string())
         alert_rule = AlertRule.objects.create(
             organization=organization,
             snuba_query=snuba_query,
@@ -659,8 +657,8 @@ def create_alert_rule(
             resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
-            team_id=team_id,
-            user_id=user_id,
+            owner_type=RULE_OWNER_TYPES[owner.get_type_string()] if owner else None,
+            owner_identifier=owner.id if owner else None,
         )
 
         if include_all_projects:
@@ -796,13 +794,13 @@ def update_alert_rule(
         updated_query_fields["dataset"] = dataset
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
+    print("owner is:",owner)
     if owner is not None:
-        updated_fields["team"] = None
-        updated_fields["user"] = None
-        if owner.type == User:
-            updated_fields["user"] = owner.resolve()
-        elif owner.type == Team:
-            updated_fields["team"] = owner.resolve()
+        print("id:",owner.id)
+        print("type:",owner.type)
+        print("get_type_string:",owner.get_type_string())
+        updated_fields["owner_type"] = RULE_OWNER_TYPES[owner.get_type_string()]
+        updated_fields["owner_id"] = owner.id
 
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()

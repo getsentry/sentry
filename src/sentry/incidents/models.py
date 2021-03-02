@@ -7,8 +7,8 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from enum import Enum
 
-from sentry.api.fields.actor import Actor
-from sentry.db.models import FlexibleForeignKey, Model, UUIDField, OneToOneCascadeDeletes
+from sentry.api.fields.actor import Actor, ActorModelMixin
+from sentry.db.models import FlexibleForeignKey, Model, UUIDField, OneToOneCascadeDeletes, BoundedPositiveIntegerField, BoundedBigIntegerField
 from sentry.db.models import ArrayField, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User
@@ -355,8 +355,12 @@ class AlertRuleExcludedProjects(Model):
         db_table = "sentry_alertruleexcludedprojects"
         unique_together = (("alert_rule", "project"),)
 
+RULE_OWNER_TYPES = {
+    "user": 1,
+    "team": 2
+}
 
-class AlertRule(Model):
+class AlertRule(Model, ActorModelMixin):
     __core__ = True
 
     objects = AlertRuleManager()
@@ -368,6 +372,13 @@ class AlertRule(Model):
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )
     name = models.TextField()
+
+    owner_type = BoundedPositiveIntegerField(
+        choices=((v,k) for k,v in RULE_OWNER_TYPES.items()),
+        null=True,
+    )
+    owner_identifier = BoundedBigIntegerField(null=True)
+
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     # Determines whether we include all current and future projects from this
     # organization in this rule.
@@ -375,9 +386,6 @@ class AlertRule(Model):
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
     threshold_period = models.IntegerField()
-
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
-    team = FlexibleForeignKey("sentry.Team", null=True)
 
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
@@ -409,10 +417,7 @@ class AlertRule(Model):
 
     @property
     def owner(self):
-        owner = self.user if self.user else self.team
-        if owner:
-            return Actor(owner.id, type(owner))
-        return None
+        return self.actor("owner")
 
 
 class TriggerStatus(Enum):

@@ -1,6 +1,8 @@
 from collections import defaultdict, namedtuple
 from rest_framework import serializers
+from django.conf import settings
 from sentry.models import User, Team
+from sentry.db.models import FlexibleForeignKey
 from sentry.utils.auth import find_users
 from sentry.utils.compat import filter
 
@@ -8,6 +10,9 @@ from sentry.utils.compat import filter
 class Actor(namedtuple("Actor", "id type")):
     def get_actor_id(self):
         return "%s:%d" % (self.type.__name__.lower(), self.id)
+
+    def get_type_string(self):
+        return self.type.__name__.lower()
 
     @classmethod
     def from_actor_identifier(cls, actor_identifier):
@@ -95,3 +100,41 @@ class ActorField(serializers.Field):
             return Actor.from_actor_identifier(data)
         except Exception:
             raise serializers.ValidationError("Unknown actor input")
+
+
+class ActorModelMixin():
+    actor_string="actor"
+    # This requires your model to have two fields:
+    # actor_id and actor_type
+    # user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
+    # team = FlexibleForeignKey("sentry.Team", null=True)
+    # nullable=True
+    # @property
+    # def actor_type_choices(self):
+    #     return ()
+    #     # (
+    #     #     (NotificationTargetType.USER, "user"),
+    #     #     (NotificationTargetType.TEAM, "team"),
+    #     # ),
+
+    # # actor_id = models.Big
+    # # actor_type = 
+
+    # actor_type = BoundedPositiveIntegerField(
+    #     choices=self.actor_type_choices
+    #     null=False,
+    # )
+    # # user_id, team_id, etc
+    # actor_identifier = BoundedBigIntegerField(null=nullable)
+
+    def actor(self, key="actor"):
+        identifier = self.getattr(self, f"{key}_identifier")
+        type = self.getattr(self, f"{key}_type")
+        if identifier and type:
+        # actor = self.user if self.user else self.team
+        # if actor:
+        #     return Actor(actor.id, type(actor))
+        # return None
+        # if actor_identifier and actor_type:
+            return Actor(actor_identifier, actor_type)
+        return None
