@@ -33,10 +33,10 @@ class Migration(migrations.Migration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "sentry_projectcodeowners" DROP COLUMN "organization_integration";
+                    ALTER TABLE "sentry_projectcodeowners" DROP COLUMN "organization_integration_id";
                     """,
                     reverse_sql="""
-                    ALTER TABLE "sentry_projectcodeowners" ADD COLUMN "organization_integration" bigint NULL;
+                    ALTER TABLE "sentry_projectcodeowners" ADD COLUMN "organization_integration_id" bigint NULL;
                     """,
                 )
             ],
