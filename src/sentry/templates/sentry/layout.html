@@ -49,10 +49,10 @@
   {% asset_url "sentry" "dist/app.js" as asset_url %}
   {% script src=asset_url data-entry="true" %}{% endscript %}
 
-  {% injected_script_assets as asset_url %}
-  {% if asset_url %}
+  {% injected_script_assets as injected_assets %}
+  {% for asset_url in injected_assets %}
     {% script src=asset_url %}{% endscript %}
-  {% endif %}
+  {% endfor %}
 
   {% script %}
   <script>

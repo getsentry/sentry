@@ -2123,4 +2123,4 @@ DEMO_MODE = False
 DEMO_ORG_OWNER_EMAIL = None
 
 # adds an extra JS to HTML template
-INJECTED_SCRIPT_ASSETS = None
+INJECTED_SCRIPT_ASSETS = []
