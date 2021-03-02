@@ -34,7 +34,7 @@ type Props = DefaultProps & {
   children:
     | ((args: ChildrenArgs) => React.ReactElement)
     | React.ReactElement
-    | Array<React.ReactNode>;
+    | Array<React.ReactElement>;
   /**
    * String or element for the button contents.
    */
