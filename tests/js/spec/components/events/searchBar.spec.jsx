@@ -3,8 +3,8 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import SearchBar from 'app/components/events/searchBar';
 import TagStore from 'app/stores/tagStore';
-import SearchBar from 'app/views/events/searchBar';
 
 const focusInput = el => el.find('input[name="query"]').simulate('focus');
 const selectFirstAutocompleteItem = async el => {
@@ -32,7 +32,7 @@ const setQuery = async (el, query) => {
   await el.update();
 };
 
-describe('SearchBar', function () {
+describe('Events > SearchBar', function () {
   let options;
   let tagValuesMock;
   let organization;
