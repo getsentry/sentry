@@ -92,12 +92,12 @@ export default class MetricChart extends React.PureComponent<Props, State> {
     const seriesData = data[0].data;
     const seriesStart = seriesData[0].name as number;
     const seriesEnd = seriesData[seriesData.length - 1].name as number;
-    const ruleCreated = moment(rule?.dateCreated).valueOf();
+    const ruleChanged = moment(rule?.dateModified).valueOf();
 
     const chartWidth = width - X_AXIS_BOUNDARY_GAP;
     const position =
       X_AXIS_BOUNDARY_GAP +
-      Math.round((chartWidth * (ruleCreated - seriesStart)) / (seriesEnd - seriesStart));
+      Math.round((chartWidth * (ruleChanged - seriesStart)) / (seriesEnd - seriesStart));
 
     return [
       {
