@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
+        logger.info("eventsv1.request", extra={"organization_id": organization.id})
+
         # Check for a direct hit on event ID
         query = request.GET.get("query", "").strip()
 

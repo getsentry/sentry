@@ -5,6 +5,7 @@ import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import SearchBar from 'app/components/events/searchBar';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -13,7 +14,6 @@ import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
-import SearchBar from 'app/views/events/searchBar';
 
 import Charts from '../charts/index';
 import {

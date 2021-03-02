@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
+import SearchBar from 'app/components/events/searchBar';
 import SelectControl from 'app/components/forms/selectControl';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
@@ -18,7 +19,6 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'app/views/alerts/utils';
-import SearchBar from 'app/views/events/searchBar';
 import FormField from 'app/views/settings/components/forms/formField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 

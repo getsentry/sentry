@@ -116,7 +116,7 @@ describe('Sidebar', function () {
       <SidebarContainer
         organization={{
           ...organization,
-          features: ['discover-basic', 'events', 'discover'],
+          features: ['discover-basic', 'discover'],
         }}
         user={user}
         router={router}
@@ -126,23 +126,21 @@ describe('Sidebar', function () {
 
     // Should only show discover2 tab
     expect(wrapper.find('SidebarItem[id="discover-v2"]')).toHaveLength(1);
-    expect(wrapper.find('SidebarItem[id="events"]')).toHaveLength(0);
     expect(wrapper.find('SidebarItem[id="discover"]')).toHaveLength(0);
   });
 
   it('handles discover feature', function () {
     wrapper = mountWithTheme(
       <SidebarContainer
-        organization={{...organization, features: ['discover', 'events']}}
+        organization={{...organization, features: ['discover']}}
         user={user}
         router={router}
       />,
       routerContext
     );
 
-    // Should show events and discover1 as those features are on.
+    // Should show discover1 as that feature is on.
     expect(wrapper.find('SidebarItem[id="discover-v2"]')).toHaveLength(0);
-    expect(wrapper.find('SidebarItem[id="events"]')).toHaveLength(1);
     expect(wrapper.find('SidebarItem[id="discover"]')).toHaveLength(1);
   });
 
