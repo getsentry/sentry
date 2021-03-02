@@ -43,7 +43,7 @@ export default {
 export const _BulkController = () => (
   <BulkController
     pageIds={pageIds}
-    selectedIds={pageIds.slice(0, 2)}
+    defaultSelectedIds={pageIds.slice(0, 2)}
     allRowsCount={23}
     columnsCount={3}
     bulkLimit={1000}

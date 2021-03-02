@@ -13,7 +13,7 @@ function renderedComponent(
     <BulkController
       allRowsCount={32}
       pageIds={pageIds}
-      selectedIds={defaultSelectedIds}
+      defaultSelectedIds={defaultSelectedIds}
       columnsCount={4}
     >
       {({

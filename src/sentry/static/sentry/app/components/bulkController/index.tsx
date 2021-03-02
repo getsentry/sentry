@@ -69,15 +69,15 @@ type Props = {
   /**
    * Array of default selected ids
    */
-  selectedIds?: string[];
+  defaultSelectedIds?: string[];
 };
 
 class BulkController extends React.Component<Props, State> {
   state: State = this.getInitialState();
 
   getInitialState() {
-    const {pageIds} = this.props;
-    const selectedIds = intersection(this.props.selectedIds ?? [], pageIds);
+    const {defaultSelectedIds, pageIds} = this.props;
+    const selectedIds = intersection(defaultSelectedIds ?? [], pageIds);
     return {
       selectedIds,
       isAllSelected: selectedIds.length === pageIds.length,
