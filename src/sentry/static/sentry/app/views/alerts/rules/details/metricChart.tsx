@@ -41,7 +41,6 @@ function createThresholdSeries(lineColor: string, threshold: number): LineChartS
   return criticalThresholdLine;
 }
 
-
 export default class MetricChart extends React.PureComponent<Props, State> {
   state = {
     width: -1,
@@ -96,7 +95,9 @@ export default class MetricChart extends React.PureComponent<Props, State> {
     const ruleCreated = moment(rule?.dateCreated).valueOf();
 
     const chartWidth = width - X_AXIS_BOUNDARY_GAP;
-    const position = X_AXIS_BOUNDARY_GAP + Math.round(chartWidth * (ruleCreated - seriesStart) / (seriesEnd - seriesStart));
+    const position =
+      X_AXIS_BOUNDARY_GAP +
+      Math.round((chartWidth * (ruleCreated - seriesStart)) / (seriesEnd - seriesStart));
 
     return [
       {
@@ -116,15 +117,15 @@ export default class MetricChart extends React.PureComponent<Props, State> {
         shape: {
           // +1 makes the gray area go midway onto the dashed line above
           width: position - X_AXIS_BOUNDARY_GAP + 1,
-          height: height,
+          height,
         },
         style: {
           fill: color(theme.gray300).alpha(0.25).rgb().string(),
         },
         z: 100,
-      }
+      },
     ];
-  }
+  };
 
   render() {
     const {data, incidents, warningTrigger, criticalTrigger} = this.props;
