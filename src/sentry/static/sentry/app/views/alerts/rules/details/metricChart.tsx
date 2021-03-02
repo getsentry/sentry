@@ -27,13 +27,13 @@ type State = {
   height: number;
 };
 
-function createThresholdSeries(color: string, threshold: number): LineChartSeries {
+function createThresholdSeries(lineColor: string, threshold: number): LineChartSeries {
   const criticalThresholdLine = {
     seriesName: 'Threshold Line',
     type: 'line',
     markLine: MarkLine({
       silent: true,
-      lineStyle: {color, type: 'dashed', width: 1},
+      lineStyle: {color: lineColor, type: 'dashed', width: 1},
       data: [{yAxis: threshold} as any],
     }),
     data: [],
@@ -165,8 +165,7 @@ export default class MetricChart extends React.PureComponent<Props, State> {
         } else {
           resolveTime = lastPoint;
         }
-        const line = [{coord: [detectTime, 0]}, {coord: [resolveTime, 0]}];
-        return line;
+        return [{coord: [detectTime, 0]}, {coord: [resolveTime, 0]}];
       });
       const criticalArea = {
         seriesName: 'Critical Area',
