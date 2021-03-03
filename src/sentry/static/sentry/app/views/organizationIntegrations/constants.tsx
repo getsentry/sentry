@@ -44,6 +44,7 @@ export const POPULARITY_WEIGHT: {
   teamwork: 9,
   quill: 9,
   zepel: 9,
+  'spike-integration': 9,
 
   // Plugins
   webhooks: 10,

@@ -6,6 +6,7 @@ import {
   IconGeneric,
   IconLinear,
   IconRookout,
+  IconSpikesh,
   IconTeamwork,
   IconZepel,
 } from 'app/icons';
@@ -23,6 +24,8 @@ const SentryAppIcon = ({slug}: Props) => {
       return <IconClubhouse size="md" />;
     case 'rookout':
       return <IconRookout size="md" />;
+    case 'spike-integration':
+      return <IconSpikesh size="md" />;
     case 'teamwork':
       return <IconTeamwork size="md" />;
     case 'linear':

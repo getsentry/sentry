@@ -37,6 +37,7 @@ import rookout from 'sentry-images/logos/logo-rookout.svg';
 import segment from 'sentry-images/logos/logo-segment.svg';
 import sentry from 'sentry-images/logos/logo-sentry.svg';
 import slack from 'sentry-images/logos/logo-slack.svg';
+import spikesh from 'sentry-images/logos/logo-spikesh.svg';
 import split from 'sentry-images/logos/logo-split.svg';
 import taiga from 'sentry-images/logos/logo-taiga.svg';
 import teamwork from 'sentry-images/logos/logo-teamwork.svg';
@@ -99,6 +100,7 @@ export const ICON_PATHS = {
   rookout,
   segment,
   slack,
+  'spike-integration': spikesh,
   split,
   taiga,
   teamwork,
