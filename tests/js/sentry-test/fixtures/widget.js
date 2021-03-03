@@ -27,7 +27,7 @@ const DEFAULT_QUERIES = {
 
 export function Widget(queries = {...DEFAULT_QUERIES}, options) {
   return {
-    displayType: 'line',
+    type: 'line',
     queries,
     title: 'Widget',
     ...options,
