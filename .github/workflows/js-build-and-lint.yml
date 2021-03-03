@@ -133,7 +133,7 @@ jobs:
     runs-on: ubuntu-20.04
     needs: files-changed
     timeout-minutes: 10
-    if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
+    if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.frontend == 'true'
 
     steps:
       - uses: actions/checkout@v2
