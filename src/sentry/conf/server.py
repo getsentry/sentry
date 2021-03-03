@@ -938,6 +938,8 @@ SENTRY_FEATURES = {
     "organizations:releases-top-charts": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
+    # Enable calculating release adoption based on sessions
+    "organizations:session-adoption": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -2117,4 +2119,8 @@ SENTRY_EXTRA_WORKERS = None
 # Enabling this will allow users to create accounts without an email or password.
 DEMO_MODE = False
 
+# all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None
+
+# adds an extra JS to HTML template
+INJECTED_SCRIPT_ASSETS = []
