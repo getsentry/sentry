@@ -36,10 +36,6 @@ describe('Sidebar', function () {
       url: '/broadcasts/',
       method: 'PUT',
     });
-    apiMocks.savedQueries = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/discover/saved/`,
-      body: [],
-    });
     apiMocks.sdkUpdates = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sdk-updates/`,
       body: [],
@@ -109,39 +105,6 @@ describe('Sidebar', function () {
     wrapper.update();
 
     expect(wrapper.find('OnboardingStatus TaskSidebarPanel').exists()).toBe(true);
-  });
-
-  it('handles discover-basic feature', function () {
-    wrapper = mountWithTheme(
-      <SidebarContainer
-        organization={{
-          ...organization,
-          features: ['discover-basic', 'discover'],
-        }}
-        user={user}
-        router={router}
-      />,
-      routerContext
-    );
-
-    // Should only show discover2 tab
-    expect(wrapper.find('SidebarItem[id="discover-v2"]')).toHaveLength(1);
-    expect(wrapper.find('SidebarItem[id="discover"]')).toHaveLength(0);
-  });
-
-  it('handles discover feature', function () {
-    wrapper = mountWithTheme(
-      <SidebarContainer
-        organization={{...organization, features: ['discover']}}
-        user={user}
-        router={router}
-      />,
-      routerContext
-    );
-
-    // Should show discover1 as that feature is on.
-    expect(wrapper.find('SidebarItem[id="discover-v2"]')).toHaveLength(0);
-    expect(wrapper.find('SidebarItem[id="discover"]')).toHaveLength(1);
   });
 
   describe('SidebarHelp', function () {
