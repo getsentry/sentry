@@ -272,15 +272,15 @@ class StacktraceLink extends AsyncComponent<Props, State> {
             error === 'stack_root_mismatch' ? (
               <HeaderContainer>
                 <HovercardLine>
-                  {`filename: `} <code>{`${frame.filename}`}</code>
+                  filename: <code>{`${frame.filename}`}</code>
                 </HovercardLine>
                 <HovercardLine>
-                  {`stack root: `} <code>{`${config?.stackRoot}`}</code>
+                  stack root: <code>{`${config?.stackRoot}`}</code>
                 </HovercardLine>
               </HeaderContainer>
             ) : (
               <HeaderContainer>
-                <div>{`${url}`}</div>
+                <HovercardLine>{url}</HovercardLine>
               </HeaderContainer>
             )
           }
