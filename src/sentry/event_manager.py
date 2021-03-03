@@ -908,7 +908,7 @@ def get_culprit(data):
     )
 
 
-def _find_hashes(
+def _find_existing_group_id(
     project,
     flat_grouphashes,
     hierarchical_hashes,
@@ -961,7 +961,7 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
     else:
         root_hierarchical_hash = None
 
-    existing_group_id = _find_hashes(project, flat_grouphashes, hierarchical_hashes)
+    existing_group_id = _find_existing_group_id(project, flat_grouphashes, hierarchical_hashes)
 
     # XXX(dcramer): this has the opportunity to create duplicate groups
     # it should be resolved by the hash merging function later but this
