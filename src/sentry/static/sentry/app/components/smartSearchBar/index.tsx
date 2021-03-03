@@ -116,8 +116,8 @@ const getDropdownElementStyles = (p: {
   }
 `;
 
-const MyCreateSavedSearchButton = (props: {theme: Theme; query; sort; organization}) => {
-  return (
+const ThemedCreateSavedSearchButton = withTheme(
+  (props: {theme: Theme; query; sort; organization}) => (
     <ClassNames>
       {({css}) => (
         <CreateSavedSearchButton
@@ -135,10 +135,8 @@ const MyCreateSavedSearchButton = (props: {theme: Theme; query; sort; organizati
         />
       )}
     </ClassNames>
-  );
-};
-
-const MyThemedCreateSavedSearchButton = withTheme(MyCreateSavedSearchButton);
+  )
+);
 
 type Props = {
   api: Client;
@@ -1249,7 +1247,7 @@ class SmartSearchBar extends React.Component<Props, State> {
                 </DropdownElement>
               )}
               {canCreateSavedSearch && (
-                <MyThemedCreateSavedSearchButton
+                <ThemedCreateSavedSearchButton
                   query={this.state.query}
                   organization={organization}
                   sort={sort}
@@ -1357,9 +1355,9 @@ const StyledDropdownLink = styled(DropdownLink)`
   }
 `;
 
-const DropdownElement = styled('a')`
+const DropdownElement = withTheme(styled('a')`
   ${getDropdownElementStyles}
-`;
+`);
 
 const StyledButtonBar = styled(ButtonBar)`
   margin-right: ${space(1)};
