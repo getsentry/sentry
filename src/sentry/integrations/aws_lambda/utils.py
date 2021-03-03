@@ -14,6 +14,7 @@ from sentry.tasks.release_registry import LAYER_INDEX_CACHE_KEY
 from sentry.utils.compat import filter, map
 
 SUPPORTED_RUNTIMES = [
+    "nodejs14.x",
     "nodejs12.x",
     "nodejs10.x",
     "python2.7",
