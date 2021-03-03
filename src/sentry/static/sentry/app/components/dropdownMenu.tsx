@@ -3,20 +3,26 @@ import * as Sentry from '@sentry/react';
 
 import {MENU_CLOSE_DELAY} from 'app/constants';
 
-type GetActorArgs = {
+export type GetActorArgs = {
   onClick?: (e: React.MouseEvent<Element>) => void;
   onMouseEnter?: (e: React.MouseEvent<Element>) => void;
   onMouseLeave?: (e: React.MouseEvent<Element>) => void;
   onKeyDown?: (e: React.KeyboardEvent<Element>) => void;
+  onFocus?: (e: React.FocusEvent<Element>) => void;
+  onBlur?: (e: React.FocusEvent<Element>) => void;
+  onChange?: (e: React.ChangeEvent<Element>) => void;
   style?: React.CSSProperties;
   className?: string;
 };
 
-type GetMenuArgs = {
+export type GetMenuArgs = {
   onClick?: (e: React.MouseEvent<Element>) => void;
   onMouseEnter?: (e: React.MouseEvent<Element>) => void;
   onMouseLeave?: (e: React.MouseEvent<Element>) => void;
+  onMouseDown?: (e: React.MouseEvent<Element>) => void;
+  onKeyDown?: (event: React.KeyboardEvent<Element>) => void;
   className?: string;
+  itemCount?: number;
 };
 
 // Props for the "actor" element of `<DropdownMenu>`
@@ -35,7 +41,7 @@ type MenuProps = {
 };
 
 export type GetActorPropsFn = (opts?: GetActorArgs) => ActorProps;
-type GetMenuPropsFn = (opts?: GetMenuArgs) => MenuProps;
+export type GetMenuPropsFn = (opts?: GetMenuArgs) => MenuProps;
 
 type RenderProps = {
   isOpen: boolean;
@@ -43,8 +49,8 @@ type RenderProps = {
   getActorProps: GetActorPropsFn;
   getMenuProps: GetMenuPropsFn;
   actions: {
-    open: Function;
-    close: Function;
+    open: (event?: React.MouseEvent<Element>) => void;
+    close: (event?: React.MouseEvent<Element>) => void;
   };
 };
 
@@ -170,11 +176,11 @@ class DropdownMenu extends React.Component<Props, State> {
     // ensure any click handlers are run.
     await new Promise(resolve => setTimeout(resolve));
 
-    this.handleClose(null);
+    this.handleClose();
   };
 
   // Opens dropdown menu
-  handleOpen = (e: React.MouseEvent<Element>) => {
+  handleOpen = (e?: React.MouseEvent<Element>) => {
     const {onOpen, isOpen, alwaysRenderMenu, isNestedDropdown} = this.props;
     const isControlled = typeof isOpen !== 'undefined';
     if (!isControlled) {
@@ -227,7 +233,7 @@ class DropdownMenu extends React.Component<Props, State> {
   };
 
   // Closes dropdown menu
-  handleClose = (e: React.KeyboardEvent<Element> | React.MouseEvent<Element> | null) => {
+  handleClose = (e?: React.KeyboardEvent<Element> | React.MouseEvent<Element>) => {
     const {onClose, isOpen, alwaysRenderMenu, isNestedDropdown} = this.props;
     const isControlled = typeof isOpen !== 'undefined';
 

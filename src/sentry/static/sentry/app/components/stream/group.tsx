@@ -37,12 +37,13 @@ import {
   User,
 } from 'app/types';
 import {defined, percent, valueIsEqual} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import EventView from 'app/utils/discover/eventView';
 import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import {isForReviewQuery} from 'app/views/issueList/utils';
+import {getTabs, isForReviewQuery} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -59,8 +60,10 @@ const DiscoveryExclusionFields: string[] = [
   '__text',
 ];
 
+export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
+
 const defaultProps = {
-  statsPeriod: '24h',
+  statsPeriod: DEFAULT_STREAM_GROUP_STATS_PERIOD,
   canSelect: true,
   withChart: true,
   useFilteredStats: false,
@@ -152,6 +155,59 @@ class StreamGroup extends React.Component<Props, State> {
       return {data, reviewed};
     });
   }
+
+  /** Shared between two events */
+  sharedAnalytics() {
+    const {query, organization} = this.props;
+    const {data} = this.state;
+    const tab = getTabs(organization).find(([tabQuery]) => tabQuery === query)?.[1];
+    const owners = data?.owners || [];
+    return {
+      organization_id: organization.id,
+      group_id: data.id,
+      tab: tab?.analyticsName || 'other',
+      was_shown_suggestion: owners.length > 0,
+    };
+  }
+
+  trackClick = () => {
+    const {query, organization} = this.props;
+    const {data} = this.state;
+    if (isForReviewQuery(query)) {
+      trackAnalyticsEvent({
+        eventKey: 'inbox_tab.issue_clicked',
+        eventName: 'Clicked Issue from Inbox Tab',
+        organization_id: organization.id,
+        group_id: data.id,
+      });
+    }
+
+    if (query !== undefined) {
+      trackAnalyticsEvent({
+        eventKey: 'issues_stream.issue_clicked',
+        eventName: 'Clicked Issue from Issues Stream',
+        ...this.sharedAnalytics(),
+      });
+    }
+  };
+
+  trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] = (
+    type,
+    _assignee,
+    suggestedAssignee
+  ) => {
+    const {query} = this.props;
+    if (query !== undefined) {
+      trackAnalyticsEvent({
+        eventKey: 'issues_stream.issue_assigned',
+        eventName: 'Assigned Issue from Issues Stream',
+        ...this.sharedAnalytics(),
+        did_assign_suggestion: !!suggestedAssignee,
+        assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
+        assigned_type: type,
+      });
+    }
+  };
 
   toggleSelect = (evt: React.MouseEvent<HTMLDivElement>) => {
     const targetElement = evt.target as Partial<HTMLElement>;
@@ -330,6 +386,7 @@ class StreamGroup extends React.Component<Props, State> {
             data={data}
             query={query}
             size="normal"
+            onClick={this.trackClick}
           />
           <EventOrGroupExtraDetails
             hasGuideAnchor={hasGuideAnchor}
@@ -482,7 +539,11 @@ class StreamGroup extends React.Component<Props, State> {
               )}
             </EventUserWrapper>
             <AssigneeWrapper className="hidden-xs hidden-sm">
-              <AssigneeSelector id={data.id} memberList={memberList} />
+              <AssigneeSelector
+                id={data.id}
+                memberList={memberList}
+                onAssign={this.trackAssign}
+              />
             </AssigneeWrapper>
             {canSelect && hasInbox && (
               <ActionsWrapper>

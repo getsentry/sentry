@@ -16,10 +16,10 @@ class ProjectCodeOwners(DefaultFieldsModel):
     __core__ = False
     # no db constraint to prevent locks on the Project table
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    # projectcodeowners should work without a repo-based integration.
-    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration", null=True)
     # repository_project_path_config ⇒ use this to transform CODEOWNERS paths to stacktrace paths
-    repository_project_path_config = FlexibleForeignKey("sentry.RepositoryProjectPathConfig")
+    repository_project_path_config = FlexibleForeignKey(
+        "sentry.RepositoryProjectPathConfig", on_delete=models.PROTECT
+    )
     # raw ⇒ original CODEOWNERS file.
     raw = models.TextField(null=True)
     # schema ⇒ transformed into IssueOwner syntax

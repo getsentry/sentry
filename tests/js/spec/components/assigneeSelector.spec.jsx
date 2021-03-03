@@ -4,8 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
-import {
-  AssigneeSelectorComponent,
+import AssigneeSelectorComponent, {
   putSessionUserFirst,
 } from 'app/components/assigneeSelector';
 import ConfigStore from 'app/stores/configStore';
@@ -327,13 +326,21 @@ describe('AssigneeSelector', function () {
 
   it('successfully shows suggested assignees', async function () {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
+    const onAssign = jest.fn();
     assigneeSelector = mountWithTheme(
-      <AssigneeSelectorComponent id={GROUP_2.id} />,
+      <AssigneeSelectorComponent id={GROUP_2.id} onAssign={onAssign} />,
       TestStubs.routerContext()
     );
-    openMenu();
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
+
+    await tick();
     assigneeSelector.update();
+
+    const avatarTooltip = mountWithTheme(assigneeSelector.find('Tooltip').prop('title'));
+    expect(avatarTooltip.text()).toContain('Suggestion: Jane Bloggs');
+    expect(avatarTooltip.text()).toContain('Based on commit data');
+
+    openMenu();
     expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
     expect(assigneeSelector.find('SuggestedAvatarStack').exists()).toBe(true);
 
@@ -353,5 +360,20 @@ describe('AssigneeSelector', function () {
     // Suggested assignees shouldn't show anymore because we assigned to the suggested actor
     assigneeSelector.update();
     expect(assigneeSelector.find('SuggestedAvatarStack').exists()).toBe(false);
+    expect(onAssign).toHaveBeenCalledWith(
+      'member',
+      expect.objectContaining({id: '1'}),
+      expect.objectContaining({id: '1'})
+    );
+  });
+
+  it('renders unassigned', async function () {
+    jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
+    assigneeSelector = mountWithTheme(
+      <AssigneeSelectorComponent id={GROUP_2.id} />,
+      TestStubs.routerContext()
+    );
+    const avatarTooltip = mountWithTheme(assigneeSelector.find('Tooltip').prop('title'));
+    expect(avatarTooltip.text()).toContain('Unassigned');
   });
 });

@@ -150,6 +150,7 @@
   font-weight: 500;
   cursor: pointer;
   float: left;
+  border: none;
 }
 .sentry-error-embed .form-submit .btn:hover {
   background: #1D87CE;
@@ -253,9 +254,9 @@
 }
 </style>
 
-<div class="sentry-error-embed clearfix">
+<div class="sentry-error-embed clearfix" role="dialog" aria-modal="true" aria-labelledby="sentry-error-embed-heading">
   <header>
-    <h2>{{ title }}</h2>
+    <h2 id="sentry-error-embed-heading">{{ title }}</h2>
     <p>{{ subtitle }} <span>{{ subtitle2 }}</span></p>
   </header>
   <form>
@@ -276,7 +277,7 @@
     </div>
     <div class="form-submit clearfix">
       <button type="submit" class="btn">{{ submit_label }}</button>
-      <a class="close">{{ close_label }}</a>
+      <button class="close">{{ close_label }}</button>
       {% if show_branding %}
       <p class="powered-by">
         {% trans "Crash reports powered by <a href=\"https://sentry.io\">Sentry</a>" %}

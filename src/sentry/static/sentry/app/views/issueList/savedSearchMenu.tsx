@@ -146,8 +146,14 @@ const StyledMenuItem = styled(MenuItem)<{isActive: boolean; last: boolean}>`
   ${SearchTitle}, ${SearchQuery}, ${SearchSort} {
     color: ${p.theme.white};
   }
+  ${SearchSort}:before {
+    color: ${p.theme.white};
+  }
   &:hover {
-    ${SearchTitle}, ${SearchQuery} {
+    ${SearchTitle}, ${SearchQuery}, ${SearchSort} {
+      color: ${p.theme.black};
+    }
+    ${SearchSort}:before {
       color: ${p.theme.black};
     }
   }

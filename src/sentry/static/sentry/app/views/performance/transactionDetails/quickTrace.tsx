@@ -1,43 +1,53 @@
 import React from 'react';
+import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'app/components/dropdownLink';
+import ErrorBoundary from 'app/components/errorBoundary';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
 import {t, tn} from 'app/locale';
-import {OrganizationSummary, Project} from 'app/types';
+import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
-import withProjects from 'app/utils/withProjects';
+import {
+  EventLite,
+  QuickTrace as QuickTraceType,
+  QuickTraceQueryChildrenProps,
+} from 'app/utils/performance/quickTrace/types';
+import {isTransaction, parseQuickTrace} from 'app/utils/performance/quickTrace/utils';
+import {Theme} from 'app/utils/theme';
 
-import QuickTraceQuery, {EventLite, TraceLite} from './quickTraceQuery';
 import {
   DropdownItem,
   EventNode,
   MetaData,
   QuickTraceContainer,
   SectionSubtext,
-  StyledIconEllipsis,
   TraceConnector,
 } from './styles';
 import {
-  generateChildrenEventTarget,
+  generateMultiEventsTarget,
   generateSingleEventTarget,
   generateTraceTarget,
-  isTransaction,
-  parseTraceLite,
 } from './utils';
 
 type Props = {
   event: Event;
   location: Location;
   organization: OrganizationSummary;
+  quickTrace: QuickTraceQueryChildrenProps;
 };
 
-export default function QuickTrace({event, location, organization}: Props) {
+export default function QuickTrace({
+  event,
+  location,
+  organization,
+  quickTrace: {isLoading, error, trace, type},
+}: Props) {
   // non transaction events are currently unsupported
   if (!isTransaction(event)) {
     return null;
@@ -46,239 +56,266 @@ export default function QuickTrace({event, location, organization}: Props) {
   const traceId = event.contexts?.trace?.trace_id ?? null;
   const traceTarget = generateTraceTarget(event, organization);
 
+  const body = isLoading ? (
+    <Placeholder height="33px" />
+  ) : error || trace === null ? (
+    '\u2014'
+  ) : (
+    <ErrorBoundary mini>
+      <QuickTracePills
+        event={event}
+        quickTrace={{type, trace}}
+        location={location}
+        organization={organization}
+      />
+    </ErrorBoundary>
+  );
+
   return (
-    <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
-      {({isLoading, error, trace}) => {
-        const body = isLoading ? (
-          <Placeholder height="33px" />
-        ) : error || trace === null ? (
+    <MetaData
+      headingText={t('Quick Trace')}
+      tooltipText={t('A minified version of the full trace.')}
+      bodyText={body}
+      subtext={
+        traceId === null ? (
           '\u2014'
         ) : (
-          <QuickTraceLite
-            event={event}
-            trace={trace}
-            location={location}
-            organization={organization}
-          />
-        );
-
-        return (
-          <MetaData
-            headingText={t('Quick Trace')}
-            tooltipText={t('A minified version of the full trace.')}
-            bodyText={body}
-            subtext={
-              traceId === null ? (
-                '\u2014'
-              ) : (
-                <Link to={traceTarget}>
-                  {t('Trace ID: %s', getShortEventId(traceId))}
-                </Link>
-              )
-            }
-          />
-        );
-      }}
-    </QuickTraceQuery>
+          <Link to={traceTarget}>{t('Trace ID: %s', getShortEventId(traceId))}</Link>
+        )
+      }
+    />
   );
 }
 
-type QuickTraceLiteProps = {
+type QuickTracePillsProps = {
+  quickTrace: QuickTraceType;
   event: Event;
-  trace: TraceLite;
   location: Location;
   organization: OrganizationSummary;
-  projects: Project[];
 };
 
-const QuickTraceLite = withProjects(
-  ({event, trace, location, organization, projects}: QuickTraceLiteProps) => {
-    // non transaction events are currently unsupported
-    if (!isTransaction(event)) {
-      return null;
-    }
-
-    const {root, current, children} = parseTraceLite(trace, event);
-    const nodes: React.ReactNode[] = [];
-
-    if (root) {
-      nodes.push(
-        <EventNodeDropdown
-          organization={organization}
-          projects={projects}
-          location={location}
-          events={[root]}
-        >
-          <Tooltip
-            position="top"
-            containerDisplayMode="inline-flex"
-            title={t('View the root transaction in this trace.')}
-          >
-            <EventNode type="white" pad="right" icon={null}>
-              {t('Root')}
-            </EventNode>
-          </Tooltip>
-        </EventNodeDropdown>
-      );
-      nodes.push(<TraceConnector />);
-    }
-
-    const traceTarget = generateTraceTarget(event, organization);
-
-    if (root && current && root.event_id !== current.parent_event_id) {
-      nodes.push(
-        <EventNodeDropdown
-          comingSoon
-          organization={organization}
-          projects={projects}
-          location={location}
-          seeMoreText={t('See trace in Discover')}
-          seeMoreLink={traceTarget}
-        >
-          <Tooltip
-            position="top"
-            containerDisplayMode="inline-flex"
-            title={t('View all transactions in this trace.')}
-          >
-            <EventNode type="white" pad="right" icon={null}>
-              {t('Ancestors')}
-            </EventNode>
-          </Tooltip>
-        </EventNodeDropdown>
-      );
-      nodes.push(<TraceConnector />);
-    }
-
-    nodes.push(
-      <EventNode key="current" type="black">
-        {t('This Event')}
-      </EventNode>
-    );
-
-    if (children.length) {
-      const childrenTarget = generateChildrenEventTarget(
-        event,
-        children,
-        organization,
-        projects,
-        location
-      );
-      nodes.push(<TraceConnector />);
-      nodes.push(
-        <EventNodeDropdown
-          organization={organization}
-          projects={projects}
-          location={location}
-          events={children.sort(
-            (a, b) => b['transaction.duration'] - a['transaction.duration']
-          )}
-          seeMoreText={t('See %s children in Discover', children.length)}
-          seeMoreLink={childrenTarget}
-        >
-          <Tooltip
-            position="top"
-            containerDisplayMode="inline-flex"
-            title={tn(
-              'View the child transaction of this event.',
-              'View all child transactions of this event.',
-              children.length
-            )}
-          >
-            <EventNode type="white" pad="left" icon={null}>
-              {tn('%s Child', '%s Children', children.length)}
-            </EventNode>
-          </Tooltip>
-        </EventNodeDropdown>
-      );
-
-      nodes.push(<TraceConnector />);
-      nodes.push(
-        <EventNodeDropdown
-          comingSoon
-          organization={organization}
-          projects={projects}
-          location={location}
-          seeMoreText={t('See trace in Discover')}
-          seeMoreLink={traceTarget}
-        >
-          <Tooltip
-            position="top"
-            containerDisplayMode="inline-flex"
-            title={t('View all transactions in this trace.')}
-          >
-            <EventNode type="white" pad="left" icon={null}>
-              <StyledIconEllipsis size="xs" />
-            </EventNode>
-          </Tooltip>
-        </EventNodeDropdown>
-      );
-    }
-
-    return <QuickTraceContainer>{nodes}</QuickTraceContainer>;
-  }
-);
-
-type NodeProps = {
-  location: Location;
-  organization: OrganizationSummary;
-  projects: Project[];
-  children: React.ReactNode;
-  events?: EventLite[];
-  numEvents?: number;
-  comingSoon?: boolean;
-  seeMoreText?: React.ReactNode;
-  seeMoreLink?: LocationDescriptor;
-};
-
-function EventNodeDropdown({
+function QuickTracePills({
+  event,
+  quickTrace,
   location,
   organization,
-  projects,
-  children,
+}: QuickTracePillsProps) {
+  // non transaction events are currently unsupported
+  if (!isTransaction(event)) {
+    return null;
+  }
+
+  let parsedQuickTrace;
+  try {
+    parsedQuickTrace = parseQuickTrace(quickTrace, event);
+  } catch (error) {
+    Sentry.setTag('currentEventID', event.id);
+    Sentry.captureException(new Error('Current event not in quick trace'));
+    return <React.Fragment>{'\u2014'}</React.Fragment>;
+  }
+
+  const {root, ancestors, parent, children, descendants} = parsedQuickTrace;
+
+  const nodes: React.ReactNode[] = [];
+
+  if (root) {
+    nodes.push(
+      <EventNodeSelector
+        key="root-node"
+        location={location}
+        organization={organization}
+        events={[root]}
+        text={t('Root')}
+        hoverText={t('View the root transaction in this trace.')}
+        pad="right"
+      />
+    );
+    nodes.push(<TraceConnector key="root-connector" />);
+  }
+
+  if (ancestors?.length) {
+    nodes.push(
+      <EventNodeSelector
+        key="ancestors-node"
+        location={location}
+        organization={organization}
+        events={ancestors}
+        text={tn('%s Ancestor', '%s Ancestors', ancestors.length)}
+        hoverText={tn(
+          'View the ancestor transaction of this event.',
+          'View all ancestor transactions of this event.',
+          ancestors.length
+        )}
+        extrasTarget={generateMultiEventsTarget(
+          event,
+          ancestors,
+          organization,
+          location,
+          'Ancestor'
+        )}
+        pad="right"
+      />
+    );
+    nodes.push(<TraceConnector key="ancestors-connector" />);
+  }
+
+  if (parent) {
+    nodes.push(
+      <EventNodeSelector
+        key="parent-node"
+        location={location}
+        organization={organization}
+        events={[parent]}
+        text={t('Parent')}
+        hoverText={t('View the parent transaction in this trace.')}
+        pad="right"
+      />
+    );
+    nodes.push(<TraceConnector key="parent-connector" />);
+  }
+
+  nodes.push(
+    <EventNode key="current-node" type="black">
+      {t('This Event')}
+    </EventNode>
+  );
+
+  if (children.length) {
+    nodes.push(<TraceConnector key="children-connector" />);
+    nodes.push(
+      <EventNodeSelector
+        key="children-node"
+        location={location}
+        organization={organization}
+        events={children}
+        text={tn('%s Child', '%s Children', children.length)}
+        hoverText={tn(
+          'View the child transaction of this event.',
+          'View all child transactions of this event.',
+          children.length
+        )}
+        extrasTarget={generateMultiEventsTarget(
+          event,
+          children,
+          organization,
+          location,
+          'Children'
+        )}
+        pad="left"
+      />
+    );
+  }
+
+  if (descendants?.length) {
+    nodes.push(<TraceConnector key="descendants-connector" />);
+    nodes.push(
+      <EventNodeSelector
+        key="descendants-node"
+        location={location}
+        organization={organization}
+        events={descendants}
+        text={tn('%s Descendant', '%s Descendants', descendants.length)}
+        hoverText={tn(
+          'View the descendant transaction of this event.',
+          'View all descendant transactions of this event.',
+          descendants.length
+        )}
+        extrasTarget={generateMultiEventsTarget(
+          event,
+          descendants,
+          organization,
+          location,
+          'Descendant'
+        )}
+        pad="left"
+      />
+    );
+  }
+
+  return <QuickTraceContainer>{nodes}</QuickTraceContainer>;
+}
+
+type EventNodeSelectorProps = {
+  location: Location;
+  organization: OrganizationSummary;
+  events: EventLite[];
+  text: React.ReactNode;
+  pad: 'left' | 'right';
+  hoverText?: React.ReactNode;
+  extrasTarget?: LocationDescriptor;
+  numEvents?: number;
+};
+
+function EventNodeSelector({
+  location,
+  organization,
   events = [],
+  text,
+  pad,
+  hoverText,
+  extrasTarget,
   numEvents = 5,
-  comingSoon = false,
-  seeMoreText,
-  seeMoreLink,
-}: NodeProps) {
+}: EventNodeSelectorProps) {
+  if (events.length === 1) {
+    /**
+     * When there is only 1 event, clicking the node should take the user directly to
+     * the event without additional steps.
+     */
+    const target = generateSingleEventTarget(events[0], organization, location);
+    return <StyledEventNode text={text} pad={pad} hoverText={hoverText} to={target} />;
+  } else {
+    /**
+     * When there is more than 1 event, clicking the node should expand a dropdown to
+     * allow the user to select which event to go to.
+     */
+    return (
+      <DropdownLink
+        caret={false}
+        title={<StyledEventNode text={text} pad={pad} hoverText={hoverText} />}
+        anchorRight
+      >
+        {events.slice(0, numEvents).map((event, i) => {
+          const target = generateSingleEventTarget(event, organization, location);
+          return (
+            <DropdownItem key={event.event_id} to={target} first={i === 0}>
+              <Truncate
+                value={event.transaction}
+                maxLength={30}
+                leftTrim
+                expandable={false}
+              />
+              <SectionSubtext>
+                {getDuration(
+                  event['transaction.duration'] / 1000,
+                  event['transaction.duration'] < 1000 ? 0 : 2,
+                  true
+                )}
+              </SectionSubtext>
+            </DropdownItem>
+          );
+        })}
+        {events.length > numEvents && hoverText && extrasTarget && (
+          <DropdownItem to={extrasTarget}>{hoverText}</DropdownItem>
+        )}
+      </DropdownLink>
+    );
+  }
+}
+
+type EventNodeProps = {
+  text: React.ReactNode;
+  pad: 'left' | 'right';
+  hoverText: React.ReactNode;
+  to?: LocationDescriptor;
+  type?: keyof Theme['tag'];
+};
+
+function StyledEventNode({text, hoverText, pad, to, type = 'white'}: EventNodeProps) {
   return (
-    <DropdownLink caret={false} title={children} anchorRight>
-      {/* Inserts a temporary place holder until we are able to determine this list. */}
-      {comingSoon && (
-        <DropdownItem to={location} first>
-          {t('Coming soon yo')}
-        </DropdownItem>
-      )}
-      {events.length === 0
-        ? null
-        : events.slice(0, numEvents).map((event, i) => {
-            const target = generateSingleEventTarget(
-              event,
-              organization,
-              projects,
-              location
-            );
-            return (
-              <DropdownItem key={event.event_id} to={target} first={i === 0}>
-                <Truncate
-                  value={event.transaction}
-                  maxLength={20}
-                  leftTrim
-                  expandable={false}
-                />
-                <SectionSubtext>
-                  {getDuration(
-                    event['transaction.duration'] / 1000,
-                    event['transaction.duration'] < 1000 ? 0 : 2,
-                    true
-                  )}
-                </SectionSubtext>
-              </DropdownItem>
-            );
-          })}
-      {(comingSoon || events.length > numEvents) && seeMoreText && seeMoreLink && (
-        <DropdownItem to={seeMoreLink}>{seeMoreText}</DropdownItem>
-      )}
-    </DropdownLink>
+    <Tooltip position="top" containerDisplayMode="inline-flex" title={hoverText}>
+      <EventNode type={type} pad={pad} icon={null} to={to}>
+        {text}
+      </EventNode>
+    </Tooltip>
   );
 }

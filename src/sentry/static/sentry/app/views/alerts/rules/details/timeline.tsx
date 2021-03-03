@@ -128,22 +128,10 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
       title = t('Alert resolved');
       subtext = tct('by [authorName]', {authorName});
     } else if (isDetected) {
-      const nextActivity = activities.find(({previousValue}) => previousValue === '1');
-      const activityDuration = nextActivity
-        ? moment(nextActivity.dateCreated).diff(
-            moment(activity.dateCreated),
-            'milliseconds'
-          )
-        : null;
-
       title = incident?.alertRule
         ? t('Alert was created')
         : tct('[authorName] created an alert', {authorName});
-      subtext =
-        activityDuration !== null &&
-        tct(`Critical: [duration]`, {
-          duration: <Duration abbreviation seconds={activityDuration / 1000} />,
-        });
+      subtext = <DateTime timeOnly date={activity.dateCreated} />;
     } else if (isStarted) {
       const dateEnded = moment(activity.dateCreated)
         .add(rule.timeWindow, 'minutes')
@@ -198,21 +186,21 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
     let color: string = theme.green300;
 
     if (
+      // incident was at max critical
       activities?.find(
         ({type, value}) =>
-          type === IncidentActivityType.DETECTED ||
-          (type === IncidentActivityType.STATUS_CHANGE &&
-            value === `${IncidentStatus.CRITICAL}`)
+          type === IncidentActivityType.STATUS_CHANGE &&
+          value === `${IncidentStatus.CRITICAL}`
       )
     ) {
       Icon = IconFire;
       color = theme.red300;
     } else if (
+      // incident was at max warning
       activities?.find(
         ({type, value}) =>
-          type === IncidentActivityType.STARTED ||
-          (type === IncidentActivityType.STATUS_CHANGE &&
-            value === `${IncidentStatus.CRITICAL}`)
+          type === IncidentActivityType.STATUS_CHANGE &&
+          value === `${IncidentStatus.WARNING}`
       )
     ) {
       Icon = IconWarning;

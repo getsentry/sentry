@@ -111,7 +111,10 @@ from .endpoints.organization_events_trends import (
     OrganizationEventsTrendsEndpoint,
     OrganizationEventsTrendsStatsEndpoint,
 )
-from .endpoints.organization_events_trace import OrganizationEventsTraceLightEndpoint
+from .endpoints.organization_events_trace import (
+    OrganizationEventsTraceLightEndpoint,
+    OrganizationEventsTraceEndpoint,
+)
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
@@ -197,6 +200,7 @@ from .endpoints.organization_user_issues_search import OrganizationUserIssuesSea
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
 from .endpoints.organization_sdk_updates import OrganizationSdkUpdatesEndpoint
+from .endpoints.organization_has_mobile_app_events import OrganizationHasMobileAppEvents
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
 from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
@@ -218,6 +222,7 @@ from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_codeowners import ProjectCodeOwnersEndpoint
+from .endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
@@ -395,7 +400,11 @@ GROUP_URLS = [
     ),
     url(r"^(?P<issue_id>[^\/]+)/attachments/$", GroupAttachmentsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/similar/$", GroupSimilarIssuesEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/external-issues/$", GroupExternalIssuesEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/external-issues/$",
+        GroupExternalIssuesEndpoint.as_view(),
+        name="external-issues",
+    ),
     url(
         r"^(?P<issue_id>[^\/]+)/external-issues/(?P<external_issue_id>\d+)/$",
         GroupExternalIssueDetailsEndpoint.as_view(),
@@ -404,6 +413,7 @@ GROUP_URLS = [
     url(
         r"^(?P<issue_id>[^\/]+)/integrations/(?P<integration_id>\d+)/$",
         GroupIntegrationDetailsEndpoint.as_view(),
+        name="integration-details",
     ),
     url(r"^(?P<issue_id>[^\/]+)/current-release/$", GroupCurrentReleaseEndpoint.as_view()),
     # Load plugin group urls
@@ -708,6 +718,17 @@ urlpatterns = [
                     ChunkUploadEndpoint.as_view(),
                     name="sentry-api-0-chunk-upload",
                 ),
+                # Code Path Mappings
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/repo-project-path-configs/$",
+                    OrganizationIntegrationRepositoryProjectPathConfigEndpoint.as_view(),
+                    name="sentry-api-0-organization-repository-project-path-config",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/repo-project-path-configs/(?P<config_id>[^\/]+)/$",
+                    OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-repository-project-path-config-details",
+                ),
                 # Discover
                 url(
                     r"^(?P<organization_slug>[^\/]+)/discover/query/$",
@@ -845,6 +866,11 @@ urlpatterns = [
                     OrganizationSdkUpdatesEndpoint.as_view(),
                     name="sentry-api-0-organization-sdk-updates",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/has-mobile-app-events/$",
+                    OrganizationHasMobileAppEvents.as_view(),
+                    name="sentry-api-0-organization-has-mobile-events",
+                ),
                 # This is temporary while we alpha test eventsv2
                 url(
                     r"^(?P<organization_slug>[^\/]+)/eventsv2/$",
@@ -907,6 +933,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-trace-light",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/events-trace/(?P<trace_id>[^\/]+)/$",
+                    OrganizationEventsTraceEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-trace",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/issues/new/$",
                     OrganizationIssuesNewEndpoint.as_view(),
                 ),
@@ -924,7 +955,10 @@ urlpatterns = [
                     OrganizationGroupIndexStatsEndpoint.as_view(),
                     name="sentry-api-0-organization-group-index-stats",
                 ),
-                url(r"^(?P<organization_slug>[^\/]+)/(?:issues|groups)/", include(GROUP_URLS)),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?:issues|groups)/",
+                    include(GROUP_URLS, namespace="sentry-api-0-organization-group"),
+                ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/integrations/$",
                     OrganizationIntegrationsEndpoint.as_view(),
@@ -937,16 +971,6 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repos/$",
                     OrganizationIntegrationReposEndpoint.as_view(),
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repo-project-path-configs/$",
-                    OrganizationIntegrationRepositoryProjectPathConfigEndpoint.as_view(),
-                    name="sentry-api-0-organization-integration-repository-project-path-config",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repo-project-path-configs/(?P<config_id>[^\/]+)/$",
-                    OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint.as_view(),
-                    name="sentry-api-0-organization-integration-repository-project-path-config-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/serverless-functions/$",
@@ -1674,6 +1698,11 @@ urlpatterns = [
                     ProjectCodeOwnersEndpoint.as_view(),
                     name="sentry-api-0-project-codeowners",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners/(?P<codeowners_id>[^\/]+)/$",
+                    ProjectCodeOwnersDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-codeowners-details",
+                ),
                 # Load plugin project urls
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins/$",
@@ -1714,7 +1743,7 @@ urlpatterns = [
         ),
     ),
     # Groups
-    url(r"^(?:issues|groups)/", include(GROUP_URLS)),
+    url(r"^(?:issues|groups)/", include(GROUP_URLS, namespace="sentry-api-0-group")),
     url(
         r"^issues/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),

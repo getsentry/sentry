@@ -134,6 +134,8 @@ def pytest_configure(config):
             "aws-lambda.account-number": "1234",
             "aws-lambda.node.layer-name": "my-layer",
             "aws-lambda.node.layer-version": "3",
+            "aws-lambda.python.layer-name": "my-python-layer",
+            "aws-lambda.python.layer-version": "34",
         }
     )
 
@@ -146,6 +148,9 @@ def pytest_configure(config):
     settings.GITHUB_API_SECRET = "123"
     # this isn't the real secret
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
+
+    # enable demo mode so we boot up tests with the demo routes
+    settings.DEMO_MODE = True
 
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable

@@ -98,7 +98,7 @@ const Context = ({
                 isActive &&
                 isExpanded &&
                 frame.filename && (
-                  <ErrorBoundary mini>
+                  <ErrorBoundary customComponent={null}>
                     <StacktraceLink
                       key={index}
                       lineNo={line[0]}

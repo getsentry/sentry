@@ -237,6 +237,17 @@ function routes() {
             component={errorHandler(LazyLoad)}
           />
         </Route>
+
+        <Route path="mobile-app/" name="Mobile App">
+          <IndexRoute
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "MobileAppIndex" */ 'app/views/settings/account/mobileApp'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          />
+        </Route>
       </Route>
 
       <Route
@@ -1570,21 +1581,6 @@ function routes() {
           </Route>
 
           <Route
-            path="/organizations/:orgId/events/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "EventsContainer" */ 'app/views/events')
-            }
-            component={errorHandler(LazyLoad)}
-          >
-            <IndexRoute
-              componentPromise={() =>
-                import(/* webpackChunkName: "Events" */ 'app/views/events/events')
-              }
-              component={errorHandler(LazyLoad)}
-            />
-          </Route>
-
-          <Route
             path="/organizations/:orgId/monitors/"
             componentPromise={() =>
               import(/* webpackChunkName: "MonitorsContainer" */ 'app/views/monitors')
@@ -1809,6 +1805,24 @@ function routes() {
               componentPromise={() =>
                 import(
                   /* webpackChunkName: "PerformanceVitalDetail" */ 'app/views/performance/vitalDetail'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          <Route
+            path="/organizations/:orgId/performance/trace/:traceSlug/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "PerformanceContainer" */ 'app/views/performance'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "PerformanceTraceDetails" */ 'app/views/performance/traceDetails'
                 )
               }
               component={errorHandler(LazyLoad)}

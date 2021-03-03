@@ -86,7 +86,11 @@ class DebugMeta extends React.PureComponent<Props, State> {
   };
 
   componentDidMount() {
-    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange, undefined);
+    this.unsubscribeFromDebugMetaStore = DebugMetaStore.listen(
+      this.onDebugMetaStoreChange,
+      undefined
+    );
+
     cache.clearAll();
     this.getRelevantImages();
     this.openImageDetailsModal();
@@ -101,17 +105,17 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   componentWillUnmount() {
-    if (this.unsubscribeFromStore) {
-      this.unsubscribeFromStore();
+    if (this.unsubscribeFromDebugMetaStore) {
+      this.unsubscribeFromDebugMetaStore();
     }
   }
 
-  unsubscribeFromStore: any;
+  unsubscribeFromDebugMetaStore: any;
 
   panelTableRef = React.createRef<HTMLDivElement>();
   listRef: List | null = null;
 
-  onStoreChange = (store: {filter: string}) => {
+  onDebugMetaStoreChange = (store: {filter: string}) => {
     const {searchTerm} = this.state;
 
     if (store.filter !== searchTerm) {
@@ -203,7 +207,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   openImageDetailsModal() {
-    const {location, organization, projectId, data} = this.props;
+    const {location, organization, projectId} = this.props;
     const {query} = location;
 
     const {imageCodeId, imageDebugId} = query;
@@ -212,10 +216,10 @@ class DebugMeta extends React.PureComponent<Props, State> {
       return;
     }
 
-    const {images} = data;
+    const {filteredImages} = this.state;
     const image =
       imageCodeId !== IMAGE_INFO_UNAVAILABLE || imageDebugId !== IMAGE_INFO_UNAVAILABLE
-        ? images.find(
+        ? filteredImages.find(
             ({code_id, debug_id}) => code_id === imageCodeId || debug_id === imageDebugId
           )
         : undefined;
@@ -482,6 +486,8 @@ class DebugMeta extends React.PureComponent<Props, State> {
       filteredImagesByFilter: images,
     } = this.state;
 
+    const displayFilter = (Object.values(filterOptions ?? {})[0] ?? []).length > 1;
+
     return (
       <StyledEventDataSection
         type="images-loaded"
@@ -501,11 +507,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
         }
         actions={
           <Search>
-            <Filter options={filterOptions} onFilter={this.handleChangeFilter} />
+            {displayFilter && (
+              <Filter options={filterOptions} onFilter={this.handleChangeFilter} />
+            )}
             <StyledSearchBar
               query={searchTerm}
               onChange={value => this.handleChangeSearchTerm(value)}
               placeholder={t('Search images')}
+              blendWithFilter={displayFilter}
             />
           </Search>
         }
@@ -594,6 +603,7 @@ const StyledList = styled(List)<{height: number}>`
 // Search
 const Search = styled('div')`
   display: flex;
+  justify-content: flex-end;
   width: 100%;
   margin-top: ${space(1)};
 
@@ -604,22 +614,29 @@ const Search = styled('div')`
 
 // TODO(matej): remove this once we refactor SearchBar to not use css classes
 // - it could accept size as a prop
-const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
   width: 100%;
   position: relative;
-  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   .search-input {
     height: 32px;
-  }
-  .search-input,
-  .search-input:focus {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
   }
   .search-clear-form,
   .search-input-icon {
     height: 32px;
     display: flex;
     align-items: center;
+  }
+  ${p =>
+    p.blendWithFilter &&
+    `
+      .search-input,
+      .search-input:focus {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+      }
+    `}
+
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    max-width: 600px;
   }
 `;

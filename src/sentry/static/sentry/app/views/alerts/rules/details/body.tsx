@@ -1,5 +1,5 @@
 import React from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
@@ -10,6 +10,8 @@ import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import {SectionHeading} from 'app/components/charts/styles';
+import {getInterval} from 'app/components/charts/utils';
+import DateTime from 'app/components/dateTime';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
 import * as Layout from 'app/components/layouts/thirds';
@@ -19,11 +21,10 @@ import TimeSince from 'app/components/timeSince';
 import {IconCheckmark} from 'app/icons/iconCheckmark';
 import {IconFire} from 'app/icons/iconFire';
 import {IconWarning} from 'app/icons/iconWarning';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project, SelectValue} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
-import {getUtcDateString} from 'app/utils/dates';
 import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 import Timeline from 'app/views/alerts/rules/details/timeline';
@@ -33,14 +34,13 @@ import {
   AlertRuleThresholdType,
   Dataset,
   IncidentRule,
-  TimePeriod,
-  TimeWindow,
 } from 'app/views/settings/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
 
 import {Incident, IncidentStatus} from '../../types';
 import {DATA_SOURCE_LABELS, getIncidentRuleMetricPreset} from '../../utils';
 
+import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS} from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
@@ -49,35 +49,17 @@ type Props = {
   api: Client;
   rule?: IncidentRule;
   incidents?: Incident[];
+  timePeriod: {
+    start: string;
+    end: string;
+    label: string;
+    custom?: boolean;
+  };
   organization: Organization;
   location: Location;
   theme: Theme;
+  handleTimePeriodChange: (value: string) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
-
-const TIME_OPTIONS: SelectValue<string>[] = [
-  {label: t('6 hours'), value: TimePeriod.SIX_HOURS},
-  {label: t('24 hours'), value: TimePeriod.ONE_DAY},
-  {label: t('3 days'), value: TimePeriod.THREE_DAYS},
-  {label: t('7 days'), value: TimePeriod.SEVEN_DAYS},
-];
-
-export const ALERT_RULE_DETAILS_DEFAULT_PERIOD = TimePeriod.ONE_DAY;
-
-const TIME_WINDOWS = {
-  [TimePeriod.SIX_HOURS]: TimeWindow.ONE_HOUR * 6 * 60 * 1000,
-  [TimePeriod.ONE_DAY]: TimeWindow.ONE_DAY * 60 * 1000,
-  [TimePeriod.THREE_DAYS]: TimeWindow.ONE_DAY * 3 * 60 * 1000,
-  [TimePeriod.SEVEN_DAYS]: TimeWindow.ONE_DAY * 7 * 60 * 1000,
-};
-
-export const getStartEndTimesFromPeriod = (
-  period: string
-): {start: string; end: string} => {
-  return {
-    start: getUtcDateString(moment(moment.utc().diff(TIME_WINDOWS[period]))),
-    end: getUtcDateString(moment.utc()),
-  };
-};
 
 class DetailsBody extends React.Component<Props> {
   get metricPreset() {
@@ -103,40 +85,37 @@ class DetailsBody extends React.Component<Props> {
     return `${direction} ${value}`;
   }
 
-  getTimePeriod() {
-    const {location} = this.props;
+  getInterval() {
+    const {
+      timePeriod: {start, end},
+      rule,
+    } = this.props;
+    const startDate = moment.utc(start);
+    const endDate = moment.utc(end);
+    const timeWindow = rule?.timeWindow;
 
-    const timePeriod = location.query.period ?? ALERT_RULE_DETAILS_DEFAULT_PERIOD;
-    const timeOption =
-      TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
+    if (
+      timeWindow &&
+      endDate.diff(startDate) < API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000
+    ) {
+      return `${timeWindow}m`;
+    }
 
-    return {
-      ...timeOption,
-      ...getStartEndTimesFromPeriod(timeOption.value),
-    };
+    return getInterval({start, end}, true);
   }
-
-  handleTimePeriodChange = (value: string) => {
-    const {location} = this.props;
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        period: value,
-      },
-    });
-  };
 
   calculateSummaryPercentages(
     incidents: Incident[] | undefined,
     startTime: string,
-    endTime: string,
-    totalTime: number
+    endTime: string
   ) {
+    const startDate = moment.utc(startTime);
+    const endDate = moment.utc(endTime);
+    const totalTime = endDate.diff(startDate);
+
     let criticalPercent = '0';
     let warningPercent = '0';
     if (incidents) {
-      const startDate = moment.utc(startTime);
       const filteredIncidents = incidents.filter(incident => {
         return !incident.dateClosed || moment(incident.dateClosed).isAfter(startDate);
       });
@@ -145,9 +124,7 @@ class DetailsBody extends React.Component<Props> {
       for (const incident of filteredIncidents) {
         // use the larger of the start of the incident or the start of the time period
         const incidentStart = moment.max(moment(incident.dateStarted), startDate);
-        const incidentClose = incident.dateClosed
-          ? moment(incident.dateClosed)
-          : moment.utc(endTime);
+        const incidentClose = incident.dateClosed ? moment(incident.dateClosed) : endDate;
         criticalDuration += incidentClose.diff(incidentStart);
       }
       criticalPercent = ((criticalDuration / totalTime) * 100).toFixed(2);
@@ -182,10 +159,13 @@ class DetailsBody extends React.Component<Props> {
         <span>{t('Time Window')}</span>
         <span>{rule?.timeWindow && <Duration seconds={rule?.timeWindow * 60} />}</span>
 
-        {rule?.query && (
+        {(rule?.dataset || rule?.query) && (
           <React.Fragment>
             <span>{t('Filter')}</span>
-            <span title={rule?.query}>{rule?.query}</span>
+            <span>
+              {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
+              {rule?.query}
+            </span>
           </React.Fragment>
         )}
 
@@ -251,8 +231,7 @@ class DetailsBody extends React.Component<Props> {
   }
 
   renderChartActions(projects: Project[]) {
-    const {rule, params, incidents} = this.props;
-    const timePeriod = this.getTimePeriod();
+    const {rule, params, incidents, timePeriod} = this.props;
     const preset = this.metricPreset;
     const ctaOpts = {
       orgSlug: params.orgId,
@@ -269,8 +248,7 @@ class DetailsBody extends React.Component<Props> {
     const percentages = this.calculateSummaryPercentages(
       incidents,
       timePeriod.start,
-      timePeriod.end,
-      TIME_WINDOWS[timePeriod.value]
+      timePeriod.end
     );
 
     return (
@@ -318,9 +296,7 @@ class DetailsBody extends React.Component<Props> {
     return (
       <GroupedHeaderItems>
         <ItemTitle>{t('Current Status')}</ItemTitle>
-        <ItemTitle>
-          {activeIncident ? t('Alert Triggered') : t('Alert Resolved')}
-        </ItemTitle>
+        <ItemTitle>{activeIncident ? t('Last Triggered') : t('Last Resolved')}</ItemTitle>
         <ItemValue>
           <AlertBadge color={color} icon={Icon}>
             <AlertIconWrapper>
@@ -362,6 +338,7 @@ class DetailsBody extends React.Component<Props> {
       incidents,
       location,
       organization,
+      timePeriod,
       params: {orgId},
     } = this.props;
 
@@ -369,8 +346,10 @@ class DetailsBody extends React.Component<Props> {
       return this.renderLoading();
     }
 
-    const {query, environment, aggregate, projects: projectSlugs} = rule;
-    const timePeriod = this.getTimePeriod();
+    const {query, environment, aggregate, projects: projectSlugs, triggers} = rule;
+
+    const criticalTrigger = triggers.find(({label}) => label === 'critical');
+    const warningTrigger = triggers.find(({label}) => label === 'warning');
     const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
 
     return (
@@ -379,20 +358,26 @@ class DetailsBody extends React.Component<Props> {
           return initiallyLoaded ? (
             <Layout.Body>
               <Layout.Main>
-                <DropdownControl
-                  buttonProps={{prefix: t('Display')}}
-                  label={timePeriod.label}
-                >
-                  {TIME_OPTIONS.map(({label, value}) => (
-                    <DropdownItem
-                      key={value}
-                      eventKey={value}
-                      onSelect={this.handleTimePeriodChange}
-                    >
-                      {label}
-                    </DropdownItem>
-                  ))}
-                </DropdownControl>
+                <ChartControls>
+                  <DropdownControl label={timePeriod.label}>
+                    {TIME_OPTIONS.map(({label, value}) => (
+                      <DropdownItem
+                        key={value}
+                        eventKey={value}
+                        onSelect={this.props.handleTimePeriodChange}
+                      >
+                        {label}
+                      </DropdownItem>
+                    ))}
+                  </DropdownControl>
+                  {timePeriod.custom && (
+                    <StyledTimeRange>
+                      <DateTime date={timePeriod.start} timeAndDate />
+                      {' — '}
+                      <DateTime date={timePeriod.end} timeAndDate />
+                    </StyledTimeRange>
+                  )}
+                </ChartControls>
                 <ChartPanel>
                   <PanelBody withPadding>
                     <ChartHeader>
@@ -404,16 +389,21 @@ class DetailsBody extends React.Component<Props> {
                       query={queryWithTypeFilter}
                       environment={environment ? [environment] : undefined}
                       project={(projects as Project[]).map(project => Number(project.id))}
-                      // TODO(davidenwang): allow interval to be changed for larger time periods
-                      interval="60s"
-                      period={timePeriod.value}
+                      interval={this.getInterval()}
+                      start={timePeriod.start}
+                      end={timePeriod.end}
                       yAxis={aggregate}
                       includePrevious={false}
                       currentSeriesName={aggregate}
                     >
                       {({loading, timeseriesData}) =>
                         !loading && timeseriesData ? (
-                          <MetricChart data={timeseriesData} incidents={incidents} />
+                          <MetricChart
+                            data={timeseriesData}
+                            incidents={incidents}
+                            criticalTrigger={criticalTrigger}
+                            warningTrigger={warningTrigger}
+                          />
                         ) : (
                           <Placeholder height="200px" />
                         )
@@ -455,27 +445,6 @@ class DetailsBody extends React.Component<Props> {
               </Layout.Main>
               <Layout.Side>
                 {this.renderMetricStatus()}
-                <ChartParameters>
-                  {tct('Metric: [metric] over [window]', {
-                    metric: <code>{rule?.aggregate ?? '\u2026'}</code>,
-                    window: (
-                      <code>
-                        {rule?.timeWindow ? (
-                          <Duration seconds={rule?.timeWindow * 60} />
-                        ) : (
-                          '\u2026'
-                        )}
-                      </code>
-                    ),
-                  })}
-                  {(rule?.query || rule?.dataset) &&
-                    tct('Filter: [datasetType] [filter]', {
-                      datasetType: rule?.dataset && (
-                        <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>
-                      ),
-                      filter: rule?.query && <code>{rule.query}</code>,
-                    })}
-                </ChartParameters>
                 <SidebarHeading>
                   <span>{t('Alert Rule')}</span>
                 </SidebarHeading>
@@ -563,6 +532,16 @@ const SidebarHeading = styled(SectionHeading)`
   justify-content: space-between;
 `;
 
+const ChartControls = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+`;
+
+const StyledTimeRange = styled('div')`
+  margin-left: ${space(2)};
+`;
+
 const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
 `;
@@ -605,28 +584,6 @@ const StatCount = styled('span')`
   margin-left: ${space(0.5)};
   margin-top: ${space(0.25)};
   color: black;
-`;
-
-const ChartParameters = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-  align-items: center;
-  overflow-x: auto;
-
-  > * {
-    position: relative;
-  }
-
-  > *:not(:last-of-type):after {
-    content: '';
-    display: block;
-    height: 70%;
-    width: 1px;
-    background: ${p => p.theme.gray200};
-    position: absolute;
-    right: -${space(2)};
-    top: 15%;
-  }
 `;
 
 const RuleDetails = styled('div')`

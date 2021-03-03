@@ -6,22 +6,44 @@ import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
+import {Trigger} from 'app/views/settings/incidentRules/types';
 
 import {Incident} from '../../types';
 
 type Props = {
   data: Series[];
   incidents?: Incident[];
+  warningTrigger?: Trigger;
+  criticalTrigger?: Trigger;
 };
 
-const MetricChart = ({data, incidents}: Props) => {
-  // Iterate through incidents to add markers to chart
+function createThresholdSeries(color: string, threshold: number): LineChartSeries {
+  const criticalThresholdLine = {
+    seriesName: 'Threshold Line',
+    type: 'line',
+    markLine: MarkLine({
+      silent: true,
+      lineStyle: {color, type: 'dashed', width: 1},
+      data: [{yAxis: threshold} as any],
+    }),
+    data: [],
+  };
+  return criticalThresholdLine;
+}
+
+const MetricChart = ({data, incidents, warningTrigger, criticalTrigger}: Props) => {
   const series: LineChartSeries[] = [...data];
+  // Ensure series data appears above incident lines
+  series[0].z = 100;
   const dataArr = data[0].data;
+  const maxSeriesValue = dataArr.reduce(
+    (currMax, coord) => Math.max(currMax, coord.value),
+    0
+  );
   const firstPoint = Number(dataArr[0].name);
   const lastPoint = dataArr[dataArr.length - 1].name;
   const resolvedArea = {
-    seriesName: 'Critical Area',
+    seriesName: 'Resolved Area',
     type: 'line',
     markLine: MarkLine({
       silent: true,
@@ -62,9 +84,9 @@ const MetricChart = ({data, incidents}: Props) => {
     series.push(criticalArea);
 
     const incidentValueMap: Record<number, string> = {};
-    const incidentLines = filteredIncidents.map(({dateStarted, id}) => {
+    const incidentLines = filteredIncidents.map(({dateStarted, identifier}) => {
       const incidentStart = moment(dateStarted).valueOf();
-      incidentValueMap[incidentStart] = id;
+      incidentValueMap[incidentStart] = identifier;
       return {xAxis: incidentStart};
     });
     const incidentLinesSeries = {
@@ -89,6 +111,21 @@ const MetricChart = ({data, incidents}: Props) => {
     series.push(incidentLinesSeries);
   }
 
+  let maxThresholdValue = 0;
+  if (warningTrigger?.alertThreshold) {
+    const {alertThreshold} = warningTrigger;
+    const warningThresholdLine = createThresholdSeries(theme.yellow300, alertThreshold);
+    series.push(warningThresholdLine);
+    maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
+  }
+
+  if (criticalTrigger?.alertThreshold) {
+    const {alertThreshold} = criticalTrigger;
+    const criticalThresholdLine = createThresholdSeries(theme.red300, alertThreshold);
+    series.push(criticalThresholdLine);
+    maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
+  }
+
   return (
     <LineChart
       isGroupedByDate
@@ -99,6 +136,7 @@ const MetricChart = ({data, incidents}: Props) => {
         top: space(2),
         bottom: 0,
       }}
+      yAxis={maxThresholdValue > maxSeriesValue ? {max: maxThresholdValue} : undefined}
       series={series}
     />
   );

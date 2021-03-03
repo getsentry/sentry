@@ -912,6 +912,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable mobile app pages.
+    "organizations:mobile-app": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -921,6 +923,10 @@ SENTRY_FEATURES = {
     "organizations:performance-landing-v2": False,
     # Enable the views for performance vitals
     "organizations:performance-vitals-overview": False,
+    # Enable views for ops breakdown
+    "organizations:performance-ops-breakdown": False,
+    # Enable views for tag explorer
+    "organizations:performance-tag-explorer": False,
     # Enable the new Project Detail page
     "organizations:project-detail": False,
     # Enable the new Related Events feature
@@ -932,6 +938,8 @@ SENTRY_FEATURES = {
     "organizations:releases-top-charts": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
+    # Enable calculating release adoption based on sessions
+    "organizations:session-adoption": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -962,6 +970,8 @@ SENTRY_FEATURES = {
     "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": False,
+    # Enable teams to have ownership of alert rules
+    "organizations:team-alerts-ownership": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -2104,3 +2114,13 @@ SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
 
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS = None
+
+# This controls whether Sentry is run in a demo mode.
+# Enabling this will allow users to create accounts without an email or password.
+DEMO_MODE = False
+
+# all demo orgs are owned by the user with this email
+DEMO_ORG_OWNER_EMAIL = None
+
+# adds an extra JS to HTML template
+INJECTED_SCRIPT_ASSETS = []

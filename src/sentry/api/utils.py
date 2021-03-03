@@ -77,7 +77,7 @@ def get_date_range_from_params(params, optional=False):
     elif optional:
         return None, None
 
-    if start > end:
+    if start >= end:
         raise InvalidParams("start must be before end")
 
     return start, end
