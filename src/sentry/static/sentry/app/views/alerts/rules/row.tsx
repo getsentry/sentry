@@ -17,7 +17,7 @@ import {IconDelete, IconSettings, IconUser} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Actor, Organization, Project} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 
 import {isIssueAlert} from '../utils';
@@ -54,7 +54,9 @@ class RuleListRow extends React.Component<Props, State> {
     const detailsLink = `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
 
     const ownerId = rule.owner?.split(':')[1];
-    const teamActor = ownerId ? {type: 'team' as 'team', id: ownerId, name: ''} : null;
+    const teamActor = ownerId
+      ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
+      : null;
 
     return (
       <ErrorBoundary>

@@ -244,8 +244,7 @@ const StyledPanelTable = styled(PanelTable)<{showTeamCol: boolean}>`
     line-height: normal;
   }
   font-size: ${p => p.theme.fontSizeMedium};
-  grid-template-columns: ${p =>
-    p.showTeamCol ? 'auto 1.5fr 1fr 1fr 1fr 1fr auto' : 'auto 1.5fr 1fr 1fr 1fr auto'};
+  grid-template-columns: auto 1.5fr 1fr 1fr 1fr ${p => (p.showTeamCol ? '1fr' : '')} auto;
   margin-bottom: 0;
   white-space: nowrap;
   ${p =>
