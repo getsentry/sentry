@@ -111,7 +111,9 @@ class Team(Model):
         ),
         default=TeamStatus.VISIBLE,
     )
-    actor = FlexibleForeignKey("sentry.Actor", db_index=True, null=True, on_delete=models.PROTECT)
+    actor = FlexibleForeignKey(
+        "sentry.Actor", db_index=True, unique=True, null=True, on_delete=models.PROTECT
+    )
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects = TeamManager(cache_fields=("pk", "slug"))
