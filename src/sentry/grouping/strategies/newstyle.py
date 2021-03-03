@@ -325,7 +325,10 @@ def get_contextline_component(frame, platform, function, context):
         return GroupingComponent(id="context-line")
 
     component = GroupingComponent(
-        id="context-line", values=[line], similarity_encoder=ident_encoder
+        id="context-line",
+        values=[line],
+        similarity_encoder=ident_encoder,
+        tree_label=line,
     )
     if line:
         if len(frame.context_line) > 120:

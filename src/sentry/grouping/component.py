@@ -40,6 +40,7 @@ class GroupingComponent:
         variant_provider=False,
         similarity_encoder=None,
         similarity_self_encoder=None,
+        tree_label=None,
     ):
         self.id = id
 
@@ -59,6 +60,8 @@ class GroupingComponent:
 
         self.similarity_encoder = similarity_encoder
         self.similarity_self_encoder = similarity_self_encoder
+
+        self._tree_label = tree_label
 
     @property
     def name(self):
@@ -83,6 +86,17 @@ class GroupingComponent:
         if items and items[-1]:
             return " ".join(items[-1])
         return self.name or "others"
+
+    @property
+    def tree_label(self):
+        """ Use the first label that we can find in the subcomponents """
+        if self._tree_label is not None:
+            return self._tree_label
+        for value in self.values:
+            if isinstance(value, GroupingComponent) and value.contributes:
+                label = value.tree_label
+                if label is not None:
+                    return label
 
     def get_subcomponent(self, id, only_contributing=False):
         """Looks up a subcomponent by the id and returns the first or `None`."""
