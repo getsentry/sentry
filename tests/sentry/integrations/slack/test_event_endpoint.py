@@ -168,7 +168,7 @@ class LinkSharedEventTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         data = dict(parse_qsl(responses.calls[0].request.body))
         unfurls = json.loads(data["unfurls"])
-        issue_url = f"http://testserver/organizations/{self.org.slug}/issues/{group1.id}/bar/"
+        issue_url = f"http://testserver/organizations/{self.org.slug}/issues/{group1.id}/"
         incident_url = (
             f"http://testserver/organizations/{self.org.slug}/incidents/{incident.identifier}/"
         )
