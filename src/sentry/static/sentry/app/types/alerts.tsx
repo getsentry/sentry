@@ -70,7 +70,7 @@ export type UnsavedIssueAlertRule = {
   environment?: null | string;
   frequency: number;
   name: string;
-  team?: string;
+  owner?: string;
 };
 
 // Issue-based alert rule

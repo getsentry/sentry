@@ -430,13 +430,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   getTeamId = () => {
     const {rule} = this.state;
-    const team = rule?.team ?? '';
+    const owner = rule?.owner ?? '';
     // ownership follows the format team:<id>, just grab the id
-    return team.split(':')[1];
+    return owner.split(':')[1];
   };
 
-  handleTeamChange = (optionRecord: {value: string; label: string}) => {
-    this.handleChange('team', `team:${optionRecord.value}`);
+  handleOwnerChange = (optionRecord: {value: string; label: string}) => {
+    // currently only supporting teams as owners
+    this.handleChange('owner', `team:${optionRecord.value}`);
   };
 
   renderLoading() {
@@ -530,7 +531,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                       project={project}
                       organization={organization}
                       value={this.getTeamId()}
-                      onChange={this.handleTeamChange}
+                      onChange={this.handleOwnerChange}
                     />
                   </StyledField>
                 </Feature>
