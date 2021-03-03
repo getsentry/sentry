@@ -8,13 +8,14 @@ import {LegacyBrowser} from 'app/types/dynamicSampling';
 
 import Browser from './browser';
 
-const legacyBrowsers = Object.values(LegacyBrowser);
+const legacyBrowsers = Object.values(LegacyBrowser) as Array<LegacyBrowser>;
 
 type Props = {
   onChange: (selectedLegacyBrowsers: Array<LegacyBrowser>) => void;
+  selectedLegacyBrowsers?: Array<LegacyBrowser>;
 };
 
-function LegacyBrowsersField({onChange}: Props) {
+function LegacyBrowsersField({onChange, selectedLegacyBrowsers = []}: Props) {
   function handleChange({
     selectedIds,
   }: Parameters<NonNullable<BulkController['props']['onChange']>>[0]) {
@@ -24,20 +25,21 @@ function LegacyBrowsersField({onChange}: Props) {
   return (
     <BulkController
       pageIds={legacyBrowsers}
+      defaultSelectedIds={selectedLegacyBrowsers}
       allRowsCount={legacyBrowsers.length}
       onChange={handleChange}
       columnsCount={0}
     >
-      {({selectedIds, onRowToggle, onAllRowsToggle, isAllSelected}) => (
+      {({selectedIds, onRowToggle, onPageRowsToggle, isPageSelected}) => (
         <StyledPanelTable
           headers={[
             '',
             <Switch
               key="switch"
               size="lg"
-              isActive={isAllSelected}
+              isActive={isPageSelected}
               toggle={() => {
-                onAllRowsToggle(!isAllSelected);
+                onPageRowsToggle(!isPageSelected);
               }}
             />,
           ]}
