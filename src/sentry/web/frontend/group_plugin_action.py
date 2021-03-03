@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division
-
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils.http import is_safe_url
@@ -28,5 +26,5 @@ class GroupPluginActionView(ProjectView):
 
         redirect = request.META.get("HTTP_REFERER", "")
         if not is_safe_url(redirect, host=request.get_host()):
-            redirect = u"/{}/{}/".format(organization.slug, group.project.slug)
+            redirect = f"/{organization.slug}/{group.project.slug}/"
         return HttpResponseRedirect(redirect)

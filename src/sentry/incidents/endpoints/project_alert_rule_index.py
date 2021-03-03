@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 from copy import deepcopy
 
 from rest_framework import status
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectAlertRulePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import (
     OffsetPaginator,
@@ -52,6 +50,8 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
 
 
 class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
+    permission_classes = (ProjectAlertRulePermission,)
+
     def get(self, request, project):
         """
         Fetches alert rules for a project
@@ -102,6 +102,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
                     "organization_id": project.organization_id,
                     "uuid": client.uuid,
                     "data": data,
+                    "user_id": request.user.id,
                 }
                 tasks.find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
                 return Response({"uuid": client.uuid}, status=202)

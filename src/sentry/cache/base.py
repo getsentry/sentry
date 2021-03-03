@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.conf import settings
 
 from threading import local
@@ -14,7 +12,7 @@ class BaseCache(local):
             self.prefix = prefix
 
     def make_key(self, key, version=None):
-        return u"{}:{}:{}".format(self.prefix, version or self.version, key)
+        return f"{self.prefix}:{version or self.version}:{key}"
 
     def set(self, key, value, timeout, version=None, raw=False):
         raise NotImplementedError

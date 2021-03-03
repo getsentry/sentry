@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import os
-import six
 import mmap
 import tempfile
 import time
@@ -36,7 +33,7 @@ MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 MAX_FILE_SIZE = 2 ** 31  # 2GB is the maximum offset supported by fileblob
 
 
-class nooplogger(object):
+class nooplogger:
     debug = staticmethod(lambda *a, **kw: None)
     info = staticmethod(lambda *a, **kw: None)
     warning = staticmethod(lambda *a, **kw: None)
@@ -64,7 +61,7 @@ def _get_size_and_checksum(fileobj, logger=nooplogger):
 @contextmanager
 def _locked_blob(checksum, logger=nooplogger):
     logger.debug("_locked_blob.start", extra={"checksum": checksum})
-    lock = locks.get(u"fileblob:upload:{}".format(checksum), duration=UPLOAD_RETRY_TIME)
+    lock = locks.get(f"fileblob:upload:{checksum}", duration=UPLOAD_RETRY_TIME)
     with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance="lock.fileblob.upload")(lock.acquire):
         logger.debug("_locked_blob.acquired", extra={"checksum": checksum})
         # test for presence
@@ -189,7 +186,7 @@ class FileBlob(Model):
                     # go which would let us deadlock otherwise.
                     size, checksum = _get_size_and_checksum(fileobj)
                     if reference_checksum is not None and checksum != reference_checksum:
-                        raise IOError("Checksum mismatch")
+                        raise OSError("Checksum mismatch")
                     if checksum in checksums_seen:
                         continue
                     checksums_seen.add(checksum)
@@ -258,14 +255,14 @@ class FileBlob(Model):
         # when we attempt concurrent uploads for any reason.
         uuid_hex = uuid4().hex
         pieces = [uuid_hex[:2], uuid_hex[2:6], uuid_hex[6:]]
-        return u"/".join(pieces)
+        return "/".join(pieces)
 
     def delete(self, *args, **kwargs):
-        lock = locks.get(u"fileblob:upload:{}".format(self.checksum), duration=UPLOAD_RETRY_TIME)
+        lock = locks.get(f"fileblob:upload:{self.checksum}", duration=UPLOAD_RETRY_TIME)
         with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance="lock.fileblob.delete")(
             lock.acquire
         ):
-            super(FileBlob, self).delete(*args, **kwargs)
+            super().delete(*args, **kwargs)
         if self.path:
             self.deletefile(commit=False)
 
@@ -355,9 +352,19 @@ class File(Model):
             f = self._get_chunked_blob(
                 prefetch=True, prefetch_to=base, delete=False
             ).detach_tempfile()
-            os.rename(f.name, path)
-            f.close()
-            f = None
+
+            # pre-emptively check if the file already exists.
+            # this can happen as a race condition if two processes/threads
+            # are trying to cache the same file and both try to write
+            # at the same time, overwriting each other. Normally this is fine,
+            # but can cause an issue if another process has opened the file
+            # for reading, then the file that was being read gets clobbered.
+            # I don't know if this affects normal filesystems, but it
+            # definitely has an issue if the filesystem is NFS.
+            if not os.path.exists(path):
+                os.rename(f.name, path)
+                f.close()
+                f = None
         finally:
             if f is not None:
                 f.close()
@@ -433,7 +440,7 @@ class File(Model):
 
     def delete(self, *args, **kwargs):
         blob_ids = [blob.id for blob in self.blobs.all()]
-        super(File, self).delete(*args, **kwargs)
+        super().delete(*args, **kwargs)
 
         # Wait to delete blobs. This helps prevent
         # races around frequently used blobs in debug images and release files.
@@ -457,7 +464,7 @@ class FileBlobIndex(Model):
         unique_together = (("file", "blob", "offset"),)
 
 
-class ChunkedFileBlobIndexWrapper(object):
+class ChunkedFileBlobIndexWrapper:
     def __init__(self, indexes, mode=None, prefetch=False, prefetch_to=None, delete=True):
         # eager load from database incase its a queryset
         self._indexes = list(indexes)
@@ -491,7 +498,7 @@ class ChunkedFileBlobIndexWrapper(object):
         old_file = self._curfile
         try:
             try:
-                self._curidx = six.next(self._idxiter)
+                self._curidx = next(self._idxiter)
                 self._curfile = self._curidx.blob.getfile()
             except StopIteration:
                 self._curidx = None
@@ -553,7 +560,7 @@ class ChunkedFileBlobIndexWrapper(object):
             return self._curfile.seek(pos)
 
         if pos < 0:
-            raise IOError("Invalid argument")
+            raise OSError("Invalid argument")
         if pos == 0 and not self._indexes:
             # Empty file, there's no seeking to be done.
             return

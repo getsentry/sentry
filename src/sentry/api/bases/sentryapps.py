@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
 from django.http import Http404
 from functools import wraps
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
-from six import string_types
 
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
@@ -97,7 +94,7 @@ class SentryAppsPermission(SentryPermission):
 class IntegrationPlatformEndpoint(Endpoint):
     def dispatch(self, request, *args, **kwargs):
         add_request_metric_tags(request, integration_platform=True)
-        return super(IntegrationPlatformEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
 
 class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
@@ -105,8 +102,8 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def _get_organization_slug(self, request):
         organization_slug = request.json_body.get("organization")
-        if not organization_slug or not isinstance(organization_slug, string_types):
-            error_message = u"""
+        if not organization_slug or not isinstance(organization_slug, str):
+            error_message = """
                 Please provide a valid value for the 'organization' field.
             """
             raise ValidationError({"organization": to_single_line_str(error_message)})
@@ -116,22 +113,18 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         try:
             return Organization.objects.get(slug=organization_slug)
         except Organization.DoesNotExist:
-            error_message = u"""
-                Organization '{}' does not exist.
-            """.format(
-                organization_slug
-            )
+            error_message = f"""
+                Organization '{organization_slug}' does not exist.
+            """
             raise ValidationError({"organization": to_single_line_str(error_message)})
 
     def _get_organization_for_user(self, user, organization_slug):
         try:
             return user.get_orgs().get(slug=organization_slug)
         except Organization.DoesNotExist:
-            error_message = u"""
-                User does not belong to the '{}' organization.
-            """.format(
-                organization_slug
-            )
+            error_message = f"""
+                User does not belong to the '{organization_slug}' organization.
+            """
             raise PermissionDenied(to_single_line_str(error_message))
 
     def _get_organization(self, request):
@@ -313,7 +306,7 @@ class SentryAppInstallationPermission(SentryPermission):
             and request.method == "PUT"
         ):
             return True
-        return super(SentryAppInstallationPermission, self).has_permission(request, *args, **kwargs)
+        return super().has_permission(request, *args, **kwargs)
 
     def has_object_permission(self, request, view, installation):
         if not hasattr(request, "user") or not request.user:
@@ -350,6 +343,17 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
 
         kwargs["installation"] = installation
         return (args, kwargs)
+
+
+class SentryAppInstallationExternalIssuePermission(SentryAppInstallationPermission):
+    scope_map = {
+        "POST": ("event:read", "event:write", "event:admin"),
+        "DELETE": ("event:admin",),
+    }
+
+
+class SentryAppInstallationExternalIssueBaseEndpoint(SentryAppInstallationBaseEndpoint):
+    permission_classes = (SentryAppInstallationExternalIssuePermission,)
 
 
 class SentryAppAuthorizationsPermission(SentryPermission):

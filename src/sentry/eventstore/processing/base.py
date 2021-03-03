@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from sentry.utils.cache import cache_key_for_event
 
 DEFAULT_TIMEOUT = 60 * 60 * 24
@@ -8,7 +7,7 @@ def _get_unprocessed_key(key):
     return key + ":u"
 
 
-class BaseEventProcessingStore(object):
+class BaseEventProcessingStore:
     """
     Store for event blobs during processing
 

@@ -66,6 +66,13 @@ export default function getConfiguration({
           ),
         },
         {
+          path: `${pathPrefix}/filters-and-sampling/`,
+          title: t('Filters & Sampling'),
+          show: () => !!organization?.features?.includes('filters-and-sampling'),
+          description: t("Manage an organization's inbound data"),
+          badge: () => 'new',
+        },
+        {
           path: `${pathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
           description: t(
@@ -95,13 +102,13 @@ export default function getConfiguration({
           title: t('Debug Files'),
         },
         {
-          path: `${pathPrefix}/source-maps/`,
-          title: t('Source Maps'),
-        },
-        {
           path: `${pathPrefix}/proguard/`,
           title: t('ProGuard'),
           show: () => !!organization?.features?.includes('android-mappings'),
+        },
+        {
+          path: `${pathPrefix}/source-maps/`,
+          title: t('Source Maps'),
         },
       ],
     },

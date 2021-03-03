@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import {logout} from 'app/actionCreators/account';
 import {Client} from 'app/api';
+import DemoModeGate from 'app/components/acl/demoModeGate';
+import Feature from 'app/components/acl/feature';
 import Avatar from 'app/components/avatar';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Hook from 'app/components/hook';
@@ -115,33 +117,42 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                       <SwitchOrganization canCreateOrganization={canCreateOrg} />
                     </SidebarMenuItem>
                   )}
-
-                  <Divider />
                 </React.Fragment>
               )}
 
-              {!!user && (
-                <React.Fragment>
-                  <UserSummary to="/settings/account/details/">
-                    <UserBadgeNoOverflow user={user} avatarSize={32} />
-                  </UserSummary>
+              <DemoModeGate>
+                {!!user && (
+                  <React.Fragment>
+                    <Divider />
+                    <UserSummary to="/settings/account/details/">
+                      <UserBadgeNoOverflow user={user} avatarSize={32} />
+                    </UserSummary>
 
-                  <div>
-                    <SidebarMenuItem to="/settings/account/">
-                      {t('User settings')}
-                    </SidebarMenuItem>
-                    <SidebarMenuItem to="/settings/account/api/">
-                      {t('API keys')}
-                    </SidebarMenuItem>
-                    {user.isSuperuser && (
-                      <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
-                    )}
-                    <SidebarMenuItem data-test-id="sidebarSignout" onClick={handleLogout}>
-                      {t('Sign out')}
-                    </SidebarMenuItem>
-                  </div>
-                </React.Fragment>
-              )}
+                    <div>
+                      <SidebarMenuItem to="/settings/account/">
+                        {t('User settings')}
+                      </SidebarMenuItem>
+                      <SidebarMenuItem to="/settings/account/api/">
+                        {t('API keys')}
+                      </SidebarMenuItem>
+                      <Feature features={['mobile-app']} organization={org}>
+                        <SidebarMenuItem to="/settings/account/api/mobile-app/">
+                          {t('Mobile app')}
+                        </SidebarMenuItem>
+                      </Feature>
+                      {user.isSuperuser && (
+                        <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
+                      )}
+                      <SidebarMenuItem
+                        data-test-id="sidebarSignout"
+                        onClick={handleLogout}
+                      >
+                        {t('Sign out')}
+                      </SidebarMenuItem>
+                    </div>
+                  </React.Fragment>
+                )}
+              </DemoModeGate>
             </OrgAndUserMenu>
           )}
         </SidebarDropdownRoot>

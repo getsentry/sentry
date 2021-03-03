@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
 import re
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from copy import deepcopy
 from datetime import datetime
 
-import six
 from django.utils.functional import cached_property
 from parsimonious.expressions import Optional
 from parsimonious.exceptions import IncompleteParseError, ParseError
@@ -128,7 +125,7 @@ key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / spec
                        / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter
                        / has_filter / is_filter / quoted_basic_filter / basic_filter)
                        spaces
-raw_search           = (!key_val_term ~r"\ *(?!(?i)OR)(?!(?i)AND)([^\ ^\n ()]+)\ *" )*
+raw_search           = (!key_val_term ~r"\ *(?!(?i)OR(?![^\s]))(?!(?i)AND(?![^\s]))([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
 
 # standard key:val filter
@@ -156,7 +153,7 @@ has_filter           = negation? "has" sep (search_key / search_value)
 is_filter            = negation? "is" sep search_value
 tag_filter           = negation? "tags[" search_key "]" sep search_value
 
-aggregate_key        = key space? open_paren space? function_arg* space? closed_paren
+aggregate_key        = key open_paren function_arg* closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
@@ -204,7 +201,7 @@ SEARCH_MAP = {
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 SEARCH_MAP.update(**DATASETS[Dataset.Discover])
 
-no_conversion = set(["start", "end"])
+no_conversion = {"start", "end"}
 
 PROJECT_NAME_ALIAS = "project.name"
 PROJECT_ALIAS = "project"
@@ -214,6 +211,20 @@ RELEASE_ALIAS = "release"
 USER_DISPLAY_ALIAS = "user.display"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
 KEY_TRANSACTION_ALIAS = "key_transaction"
+ARRAY_FIELDS = {
+    "error.mechanism",
+    "error.type",
+    "error.value",
+    "stack.abs_path",
+    "stack.colno",
+    "stack.filename",
+    "stack.function",
+    "stack.in_app",
+    "stack.lineno",
+    "stack.module",
+    "stack.package",
+    "stack.stack_level",
+}
 
 
 class InvalidSearchQuery(Exception):
@@ -235,7 +246,7 @@ class ParenExpression(namedtuple("ParenExpression", "children")):
 
 class SearchFilter(namedtuple("SearchFilter", "key operator value")):
     def __str__(self):
-        return "".join(map(six.text_type, (self.key.name, self.operator, self.value.raw_value)))
+        return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
 
     @cached_property
     def is_negation(self):
@@ -264,7 +275,7 @@ class SearchKey(namedtuple("SearchKey", "name")):
 
 class AggregateFilter(namedtuple("AggregateFilter", "key operator value")):
     def __str__(self):
-        return "".join(map(six.text_type, (self.key.name, self.operator, self.value.raw_value)))
+        return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
 
 
 class AggregateKey(namedtuple("AggregateKey", "name")):
@@ -279,7 +290,7 @@ class SearchValue(namedtuple("SearchValue", "raw_value")):
         return self.raw_value
 
     def is_wildcard(self):
-        if not isinstance(self.raw_value, six.string_types):
+        if not isinstance(self.raw_value, str):
             return False
         return bool(WILDCARD_CHARS.search(self.raw_value))
 
@@ -288,45 +299,41 @@ class SearchVisitor(NodeVisitor):
     # A list of mappers that map source keys to a target name. Format is
     # <target_name>: [<list of source names>],
     key_mappings = {}
-    duration_keys = set(["transaction.duration"])
-    percentage_keys = set(["percentage"])
-    numeric_keys = set(
-        [
-            "project_id",
-            "project.id",
-            "issue.id",
-            "stack.colno",
-            "stack.lineno",
-            "stack.stack_level",
-            "transaction.duration",
-            "apdex",
-            "p75",
-            "p95",
-            "p99",
-            "failure_rate",
-            "user_misery",
-        ]
-    )
-    date_keys = set(
-        [
-            "start",
-            "end",
-            "first_seen",
-            "last_seen",
-            "time",
-            "timestamp",
-            "transaction.start_time",
-            "transaction.end_time",
-        ]
-    )
-    boolean_keys = set(["error.handled", "error.unhandled", "stack.in_app", KEY_TRANSACTION_ALIAS])
+    duration_keys = {"transaction.duration"}
+    percentage_keys = {"percentage"}
+    numeric_keys = {
+        "project_id",
+        "project.id",
+        "issue.id",
+        "stack.colno",
+        "stack.lineno",
+        "stack.stack_level",
+        "transaction.duration",
+        "apdex",
+        "p75",
+        "p95",
+        "p99",
+        "failure_rate",
+        "user_misery",
+    }
+    date_keys = {
+        "start",
+        "end",
+        "first_seen",
+        "last_seen",
+        "time",
+        "timestamp",
+        "transaction.start_time",
+        "transaction.end_time",
+    }
+    boolean_keys = {"error.handled", "error.unhandled", "stack.in_app", KEY_TRANSACTION_ALIAS}
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
     def __init__(self, allow_boolean=True, params=None):
         self.allow_boolean = allow_boolean
         self.params = params if params is not None else {}
-        super(SearchVisitor, self).__init__()
+        super().__init__()
 
     @cached_property
     def key_mappings_lookup(self):
@@ -342,8 +349,7 @@ class SearchVisitor(NodeVisitor):
             # Flatten each group in the list, since nodes can return multiple items
             for item in seq:
                 if isinstance(item, list):
-                    for sub in _flatten(item):
-                        yield sub
+                    yield from _flatten(item)
                 else:
                     yield item
 
@@ -423,7 +429,7 @@ class SearchVisitor(NodeVisitor):
             elif search_value.text.lower() in ("false", "0"):
                 search_value = SearchValue(1 if is_negated else 0)
             else:
-                raise InvalidSearchQuery(u"Invalid boolean field: {}".format(search_key))
+                raise InvalidSearchQuery(f"Invalid boolean field: {search_key}")
             return SearchFilter(search_key, "=", search_value)
         else:
             search_value = SearchValue(search_value.text)
@@ -439,7 +445,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 search_value = SearchValue(float(search_value.text))
             except ValueError:
-                raise InvalidSearchQuery(u"Invalid numeric query: {}".format(search_key))
+                raise InvalidSearchQuery(f"Invalid numeric query: {search_key}")
             return SearchFilter(search_key, operator, search_value)
         else:
             search_value = SearchValue(
@@ -479,9 +485,9 @@ class SearchVisitor(NodeVisitor):
             if aggregate_value is None:
                 aggregate_value = float(search_value.text)
         except ValueError:
-            raise InvalidSearchQuery(u"Invalid aggregate query condition: {}".format(search_key))
+            raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:
-            raise InvalidSearchQuery(six.text_type(exc))
+            raise InvalidSearchQuery(str(exc))
         return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
     def visit_aggregate_date_filter(self, node, children):
@@ -493,7 +499,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 search_value = parse_datetime_string(search_value)
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(six.text_type(exc))
+                raise InvalidSearchQuery(str(exc))
             return AggregateFilter(search_key, operator, SearchValue(search_value))
         else:
             search_value = operator + search_value if operator != "=" else search_value
@@ -507,7 +513,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 from_val, to_val = parse_datetime_range(search_value.text)
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(six.text_type(exc))
+                raise InvalidSearchQuery(str(exc))
 
             if from_val is not None:
                 operator = ">="
@@ -528,7 +534,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 search_value = parse_datetime_string(search_value)
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(six.text_type(exc))
+                raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
         else:
             search_value = operator + search_value if operator != "=" else search_value
@@ -542,7 +548,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 search_value = parse_duration(*search_value.match.groups())
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(six.text_type(exc))
+                raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
         else:
             search_value = operator + search_value.text if operator != "=" else search_value.text
@@ -554,7 +560,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 from_val, to_val = parse_datetime_range(value.text)
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(six.text_type(exc))
+                raise InvalidSearchQuery(str(exc))
 
             # TODO: Handle negations
             if from_val is not None:
@@ -580,7 +586,7 @@ class SearchVisitor(NodeVisitor):
         try:
             from_val, to_val = parse_datetime_value(date_value)
         except InvalidQuery as exc:
-            raise InvalidSearchQuery(six.text_type(exc))
+            raise InvalidSearchQuery(str(exc))
 
         # TODO: Handle negations here. This is tricky because these will be
         # separate filters, and to negate this range we need (< val or >= val).
@@ -618,7 +624,7 @@ class SearchVisitor(NodeVisitor):
         (negation, search_key, _, search_value) = children
         operator = "!=" if self.is_negated(negation) else "="
         if not search_value.raw_value:
-            raise InvalidSearchQuery(u"Empty string after '{}:'".format(search_key.name))
+            raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
 
         return self._handle_basic_filter(search_key, operator, search_value)
 
@@ -626,11 +632,11 @@ class SearchVisitor(NodeVisitor):
         # If a date or numeric key gets down to the basic filter, then it means
         # that the value wasn't in a valid format, so raise here.
         if search_key.name in self.date_keys:
-            raise InvalidSearchQuery("Invalid format for date field")
+            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for date field")
         if search_key.name in self.boolean_keys:
-            raise InvalidSearchQuery("Invalid format for boolean field")
+            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for boolean field")
         if self.is_numeric_key(search_key.name):
-            raise InvalidSearchQuery("Invalid format for numeric field")
+            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for numeric field")
 
         return SearchFilter(search_key, operator, search_value)
 
@@ -641,7 +647,7 @@ class SearchVisitor(NodeVisitor):
         # if it matched search value instead, it's not a valid key
         if isinstance(search_key, SearchValue):
             raise InvalidSearchQuery(
-                u'Invalid format for "has" search: {}'.format(search_key.raw_value)
+                'Invalid format for "has" search: was expecting a field or tag instead'
             )
 
         operator = "=" if self.is_negated(negation) else "!="
@@ -650,7 +656,7 @@ class SearchVisitor(NodeVisitor):
     def visit_tag_filter(self, node, children):
         (negation, _, search_key, _, sep, search_value) = children
         operator = "!=" if self.is_negated(negation) else "="
-        return SearchFilter(SearchKey(u"tags[{}]".format(search_key.name)), operator, search_value)
+        return SearchFilter(SearchKey(f"tags[{search_key.name}]"), operator, search_value)
 
     def visit_is_filter(self, node, children):
         raise InvalidSearchQuery('"is:" queries are only supported in issue search.')
@@ -663,6 +669,7 @@ class SearchVisitor(NodeVisitor):
         children = self.flatten(children)
         children = self.remove_optional_nodes(children)
         children = self.remove_space(children)
+
         if len(children) == 3:
             (function_name, open_paren, close_paren) = children
             args = ""
@@ -705,15 +712,13 @@ class SearchVisitor(NodeVisitor):
         idx = value.find('"')
         if idx == 0:
             raise InvalidSearchQuery(
-                u"Invalid quote at '{}': quotes must enclose text or be escaped.".format(node.text)
+                f"Invalid quote at '{node.text}': quotes must enclose text or be escaped."
             )
 
         while idx != -1:
             if value[idx - 1] != "\\":
                 raise InvalidSearchQuery(
-                    u"Invalid quote at '{}': quotes must enclose text or be escaped.".format(
-                        node.text
-                    )
+                    f"Invalid quote at '{node.text}': quotes must enclose text or be escaped."
                 )
 
             value = value[idx + 1 :]
@@ -742,8 +747,8 @@ def parse_search_query(query, allow_boolean=True, params=None):
         prefix = query[max(0, idx - 5) : idx]
         suffix = query[idx : (idx + 5)]
         raise InvalidSearchQuery(
-            u"{} {}".format(
-                u"Parse error at '{}{}' (column {:d}).".format(prefix, suffix, e.column()),
+            "{} {}".format(
+                f"Parse error at '{prefix}{suffix}' (column {e.column():d}).",
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
@@ -803,14 +808,17 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
             # the regex since we want to find the pattern anywhere in the
             # message. Strip off here
             value = search_filter.value.value[1:-1]
-            return [["match", ["message", u"'(?i){}'".format(value)]], search_filter.operator, 1]
+            return [["match", ["message", f"'(?i){value}'"]], search_filter.operator, 1]
+        elif value == "":
+            operator = "=" if search_filter.operator == "=" else "!="
+            return [["equals", ["message", f"{value}"]], operator, 1]
         else:
             # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
             # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
             # so we should flip the operator here
             operator = "=" if search_filter.operator == "!=" else "!="
             # make message search case insensitive
-            return [["positionCaseInsensitive", ["message", u"'{}'".format(value)]], operator, 0]
+            return [["positionCaseInsensitive", ["message", f"'{value}'"]], operator, 0]
     elif (
         name.startswith("stack.") or name.startswith("error.")
     ) and search_filter.value.is_wildcard():
@@ -827,7 +835,7 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
         internal_value = SPAN_STATUS_NAME_TO_CODE.get(search_filter.value.raw_value)
         if internal_value is None:
             raise InvalidSearchQuery(
-                u"Invalid value for transaction.status condition. Accepted values are {}".format(
+                "Invalid value for transaction.status condition. Accepted values are {}".format(
                     ", ".join(SPAN_STATUS_NAME_TO_CODE.keys())
                 )
             )
@@ -836,10 +844,18 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
         # Handle "has" queries
         if search_filter.value.raw_value == "":
             if search_filter.operator == "=":
-                # Use isNull to get events with no issue (transactions)
-                return [["isNull", [name]], search_filter.operator, 1]
+                # The state of having no issues is represented differently on transactions vs
+                # other events. On the transactions table, it is represented by 0 whereas it is
+                # represented by NULL everywhere else. This means we have to check for both 0
+                # or NULL.
+                return [
+                    [["isNull", [name]], search_filter.operator, 1],
+                    [name, search_filter.operator, 0],
+                ]
             else:
-                # Compare to 0 as group_id is not nullable on issues.
+                # Based the reasoning above, we should be checking that it is not 0 and not NULL.
+                # However, because NULL != 0 evaluates to NULL in Clickhouse, we can simplify it
+                # to check just not 0.
                 return [name, search_filter.operator, 0]
 
         # Skip isNull check on group_id value as we want to
@@ -853,7 +869,7 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
             return [["isNull", [user_display_expr]], search_filter.operator, 1]
         if search_filter.value.is_wildcard():
             return [
-                ["match", [user_display_expr, u"'(?i){}'".format(value)]],
+                ["match", [user_display_expr, f"'(?i){value}'"]],
                 search_filter.operator,
                 1,
             ]
@@ -878,7 +894,10 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
         # Null values and 1 are the same, and both indicate a handled error.
         if value in ("1", 1):
             return [["isHandled", []], "=", 1]
-        if value in ("0", 0,):
+        if value in (
+            "0",
+            0,
+        ):
             return [["notHandled", []], "=", 1]
         raise InvalidSearchQuery(
             "Invalid value for error.handled condition. Accepted values are 1, 0"
@@ -896,6 +915,8 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
         raise InvalidSearchQuery(
             "Invalid value for key_transaction condition. Accepted values are 1, 0"
         )
+    elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
+        return [["notEmpty", [name]], "=", 1 if search_filter.operator == "!=" else 0]
     else:
         value = (
             int(to_timestamp(value)) * 1000
@@ -927,7 +948,7 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
             is_null_condition = [["isNull", [name]], "=", 1]
 
         if search_filter.value.is_wildcard():
-            condition = [["match", [name, u"'(?i){}'".format(value)]], search_filter.operator, 1]
+            condition = [["match", [name, f"'(?i){value}'"]], search_filter.operator, 1]
         else:
             condition = [name, search_filter.operator, value]
 
@@ -954,15 +975,15 @@ def format_search_filter(term, params):
     name = term.key.name
     value = term.value.value
     if name in (PROJECT_ALIAS, PROJECT_NAME_ALIAS):
+        if term.operator == "=" and value == "":
+            raise InvalidSearchQuery("Invalid query for 'has' search: 'project' cannot be empty.")
         project = None
         try:
             project = Project.objects.get(id__in=params.get("project_id", []), slug=value)
         except Exception as e:
             if not isinstance(e, Project.DoesNotExist) or term.operator != "!=":
                 raise InvalidSearchQuery(
-                    u"Invalid query. Project {} does not exist or is not an actively selected project.".format(
-                        value
-                    )
+                    f"Invalid query. Project {value} does not exist or is not an actively selected project."
                 )
         else:
             # Create a new search filter with the correct values
@@ -977,14 +998,19 @@ def format_search_filter(term, params):
         # A blank term value means that this is a has filter
         group_ids = to_list(value)
     elif name == ISSUE_ALIAS:
-        if value != "" and params and "organization_id" in params:
+        operator = term.operator
+        if value == "unknown":
+            # `unknown` is a special value for when there is no issue associated with the event
+            operator = "=" if term.operator == "=" else "!="
+            value = ""
+        elif value != "" and params and "organization_id" in params:
             try:
                 group = Group.objects.by_qualified_short_id(params["organization_id"], value)
             except Exception:
-                raise InvalidSearchQuery(u"Invalid value '{}' for 'issue:' filter".format(value))
+                raise InvalidSearchQuery(f"Invalid value '{value}' for 'issue:' filter")
             else:
                 value = group.id
-        term = SearchFilter(SearchKey("issue.id"), term.operator, SearchValue(value))
+        term = SearchFilter(SearchKey("issue.id"), operator, SearchValue(value))
         converted_filter = convert_search_filter_to_snuba_query(term)
         conditions.append(converted_filter)
     elif name == RELEASE_ALIAS and params and value == "latest":
@@ -1016,7 +1042,7 @@ def convert_condition_to_function(cond):
     function = OPERATOR_TO_FUNCTION.get(cond[1])
     if not function:
         # It's hard to make this error more specific without exposing internals to the end user
-        raise InvalidSearchQuery(u"Operator {} is not a valid condition operator.".format(cond[1]))
+        raise InvalidSearchQuery(f"Operator {cond[1]} is not a valid condition operator.")
 
     return [function, [cond[0], cond[2]]]
 
@@ -1110,23 +1136,19 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
         if prev:
             if SearchBoolean.is_operator(prev) and SearchBoolean.is_operator(term):
                 raise InvalidSearchQuery(
-                    u"Missing condition in between two condition operators: '{} {}'".format(
-                        prev, term
-                    )
+                    f"Missing condition in between two condition operators: '{prev} {term}'"
                 )
         else:
             if SearchBoolean.is_operator(term):
                 raise InvalidSearchQuery(
-                    u"Condition is missing on the left side of '{}' operator".format(term)
+                    f"Condition is missing on the left side of '{term}' operator"
                 )
 
         if term != SearchBoolean.BOOLEAN_AND:
             new_terms.append(term)
         prev = term
     if SearchBoolean.is_operator(term):
-        raise InvalidSearchQuery(
-            u"Condition is missing on the right side of '{}' operator".format(term)
-        )
+        raise InvalidSearchQuery(f"Condition is missing on the right side of '{term}' operator")
     terms = new_terms
 
     # We put precedence on AND, which sort of counter-intuitevely means we have to split the query
@@ -1163,7 +1185,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
 
     if operator == SNUBA_OR and (lhs_condition or rhs_condition) and (lhs_having or rhs_having):
         raise InvalidSearchQuery(
-            u"Having an OR between aggregate filters and normal filters is invalid."
+            "Having an OR between aggregate filters and normal filters is invalid."
         )
 
     condition, having = None, None
@@ -1199,9 +1221,7 @@ def get_filter(query=None, params=None):
         try:
             parsed_terms = parse_search_query(query, allow_boolean=True, params=params)
         except ParseError as e:
-            raise InvalidSearchQuery(
-                u"Parse error: {} (column {:d})".format(e.expr.name, e.column())
-            )
+            raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
     kwargs = {
         "start": None,
@@ -1287,7 +1307,7 @@ def get_filter(query=None, params=None):
     return eventstore.Filter(**kwargs)
 
 
-class PseudoField(object):
+class PseudoField:
     def __init__(self, name, alias, expression=None, expression_fn=None, result_type=None):
         self.name = name
         self.alias = alias
@@ -1312,10 +1332,10 @@ class PseudoField(object):
         return self.alias
 
     def validate(self):
-        assert self.alias is not None, u"{}: alias is required".format(self.name)
+        assert self.alias is not None, f"{self.name}: alias is required"
         assert (
             self.expression is None or self.expression_fn is None
-        ), u"{}: only one of expression, expression_fn is allowed".format(self.name)
+        ), f"{self.name}: only one of expression, expression_fn is allowed"
 
 
 def key_transaction_expression(user_id, organization_id, project_ids):
@@ -1329,7 +1349,9 @@ def key_transaction_expression(user_id, organization_id, project_ids):
 
     key_transactions = (
         KeyTransaction.objects.filter(
-            owner_id=user_id, organization_id=organization_id, project_id__in=project_ids,
+            owner_id=user_id,
+            organization_id=organization_id,
+            project_id__in=project_ids,
         )
         .order_by("transaction", "project_id")
         .values("project_id", "transaction")
@@ -1380,7 +1402,9 @@ FIELD_ALIASES = {
             KEY_TRANSACTION_ALIAS,
             KEY_TRANSACTION_ALIAS,
             expression_fn=lambda params: key_transaction_expression(
-                params.get("user_id"), params.get("organization_id"), params.get("project_id"),
+                params.get("user_id"),
+                params.get("organization_id"),
+                params.get("project_id"),
             ),
             result_type="boolean",
         ),
@@ -1417,38 +1441,47 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
     return snuba_json
 
 
-FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>.*)\)$")
-ALIAS_PATTERN = re.compile(r"(\w+)?(?!\d+)\w+$")
+# Based on general/src/protocol/tags.rs in relay
+VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
+
+# The regex for alias here is to match any word, but exclude anything that is only digits
+# eg. 123 doesn't match, but test_123 will match
+ALIAS_REGEX = r"(\w+)?(?!\d+)\w+"
+
+ALIAS_PATTERN = re.compile(fr"{ALIAS_REGEX}$")
+FUNCTION_PATTERN = re.compile(
+    fr"^(?P<function>[^\(]+)\((?P<columns>.*)\)( (as|AS) (?P<alias>{ALIAS_REGEX}))?$"
+)
 
 
 class InvalidFunctionArgument(Exception):
     pass
 
 
-class ArgValue(object):
+class ArgValue:
     def __init__(self, arg):
         self.arg = arg
 
 
-class FunctionArg(object):
+class FunctionArg:
     def __init__(self, name):
         self.name = name
         self.has_default = False
 
     def get_default(self, params):
-        raise InvalidFunctionArgument(u"{} has no defaults".format(self.name))
+        raise InvalidFunctionArgument(f"{self.name} has no defaults")
 
     def normalize(self, value, params):
         return value
 
     def get_type(self, value):
-        raise InvalidFunctionArgument(u"{} has no type defined".format(self.name))
+        raise InvalidFunctionArgument(f"{self.name} has no type defined")
 
 
 class FunctionAliasArg(FunctionArg):
     def normalize(self, value, params):
         if not ALIAS_PATTERN.match(value):
-            raise InvalidFunctionArgument(u"{} is not a valid function alias".format(value))
+            raise InvalidFunctionArgument(f"{value} is not a valid function alias")
         return value
 
 
@@ -1460,7 +1493,7 @@ class NullColumn(FunctionArg):
     """
 
     def __init__(self, name):
-        super(NullColumn, self).__init__(name)
+        super().__init__(name)
         self.has_default = True
 
     def get_default(self, params):
@@ -1472,7 +1505,7 @@ class NullColumn(FunctionArg):
 
 class CountColumn(FunctionArg):
     def __init__(self, name):
-        super(CountColumn, self).__init__(name)
+        super().__init__(name)
         self.has_default = True
 
     def get_default(self, params):
@@ -1497,9 +1530,22 @@ class CountColumn(FunctionArg):
         return value
 
 
+class FieldColumn(CountColumn):
+    """ Allow any field column, of any type """
+
+    def get_type(self, value):
+        if is_duration_measurement(value):
+            return "duration"
+        elif value == "transaction.duration":
+            return "duration"
+        elif value == "timestamp":
+            return "date"
+        return "string"
+
+
 class StringArg(FunctionArg):
     def __init__(self, name, unquote=False, unescape_quotes=False):
-        super(StringArg, self).__init__(name)
+        super().__init__(name)
         self.unquote = unquote
         self.unescape_quotes = unescape_quotes
 
@@ -1510,7 +1556,7 @@ class StringArg(FunctionArg):
             value = value[1:-1]
         if self.unescape_quotes:
             value = re.sub(r'\\"', '"', value)
-        return u"'{}'".format(value)
+        return f"'{value}'"
 
 
 class DateArg(FunctionArg):
@@ -1521,9 +1567,9 @@ class DateArg(FunctionArg):
             datetime.strptime(value, self.date_format)
         except ValueError:
             raise InvalidFunctionArgument(
-                u"{} is in the wrong format, expected a date like 2020-03-14T15:14:15".format(value)
+                f"{value} is in the wrong format, expected a date like 2020-03-14T15:14:15"
             )
-        return u"'{}'".format(value)
+        return f"'{value}'"
 
 
 class ConditionArg(FunctionArg):
@@ -1540,8 +1586,9 @@ class ConditionArg(FunctionArg):
     def normalize(self, value, params):
         if value not in self.VALID_CONDITIONS:
             raise InvalidFunctionArgument(
-                u"{} is not a valid condition, the only supported conditions are: {}".format(
-                    value, ",".join(self.VALID_CONDITIONS),
+                "{} is not a valid condition, the only supported conditions are: {}".format(
+                    value,
+                    ",".join(self.VALID_CONDITIONS),
                 )
             )
 
@@ -1550,25 +1597,25 @@ class ConditionArg(FunctionArg):
 
 class Column(FunctionArg):
     def __init__(self, name, allowed_columns=None):
-        super(Column, self).__init__(name)
+        super().__init__(name)
         # make sure to map the allowed columns to their snuba names
         self.allowed_columns = [SEARCH_MAP.get(col) for col in allowed_columns]
 
     def normalize(self, value, params):
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column:
-            raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
+            raise InvalidFunctionArgument(f"{value} is not a valid column")
         elif self.allowed_columns is not None and snuba_column not in self.allowed_columns:
-            raise InvalidFunctionArgument(u"{} is not an allowed column".format(value))
+            raise InvalidFunctionArgument(f"{value} is not an allowed column")
         return snuba_column
 
 
 class ColumnNoLookup(Column):
     def __init__(self, name, allowed_columns=None):
-        super(ColumnNoLookup, self).__init__(name, allowed_columns=allowed_columns)
+        super().__init__(name, allowed_columns=allowed_columns)
 
     def normalize(self, value, params):
-        super(ColumnNoLookup, self).normalize(value, params)
+        super().normalize(value, params)
         return value
 
 
@@ -1581,9 +1628,9 @@ class NumericColumn(FunctionArg):
         if not snuba_column and is_measurement(value):
             return value
         if not snuba_column:
-            raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
+            raise InvalidFunctionArgument(f"{value} is not a valid column")
         elif snuba_column not in ["time", "timestamp", "duration"]:
-            raise InvalidFunctionArgument(u"{} is not a numeric column".format(value))
+            raise InvalidFunctionArgument(f"{value} is not a numeric column")
         return snuba_column
 
     def normalize(self, value, params):
@@ -1601,8 +1648,18 @@ class NumericColumn(FunctionArg):
 
 
 class NumericColumnNoLookup(NumericColumn):
+    def __init__(self, name, allow_measurements_value=False):
+        super().__init__(name)
+        self.allow_measurements_value = allow_measurements_value
+
     def normalize(self, value, params):
-        super(NumericColumnNoLookup, self).normalize(value, params)
+        # `measurement_value` is actually an array of Float64s. But when used
+        # in this context, we always want to expand it using `arrayJoin`. The
+        # resulting column will be a numeric column of type Float64.
+        if self.allow_measurements_value and value == "measurements_value":
+            return ["arrayJoin", ["measurements_value"]]
+
+        super().normalize(value, params)
         return value
 
 
@@ -1612,15 +1669,15 @@ class DurationColumn(FunctionArg):
         if not snuba_column and is_duration_measurement(value):
             return value
         if not snuba_column:
-            raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
+            raise InvalidFunctionArgument(f"{value} is not a valid column")
         elif snuba_column != "duration":
-            raise InvalidFunctionArgument(u"{} is not a duration column".format(value))
+            raise InvalidFunctionArgument(f"{value} is not a duration column")
         return snuba_column
 
 
 class DurationColumnNoLookup(DurationColumn):
     def normalize(self, value, params):
-        super(DurationColumnNoLookup, self).normalize(value, params)
+        super().normalize(value, params)
         return value
 
 
@@ -1628,12 +1685,12 @@ class StringArrayColumn(FunctionArg):
     def normalize(self, value, params):
         if value in ["tags.key", "tags.value", "measurements_key"]:
             return value
-        raise InvalidFunctionArgument(u"{} is not a valid string array column".format(value))
+        raise InvalidFunctionArgument(f"{value} is not a valid string array column")
 
 
 class NumberRange(FunctionArg):
     def __init__(self, name, start, end):
-        super(NumberRange, self).__init__(name)
+        super().__init__(name)
         self.start = start
         self.end = end
 
@@ -1641,21 +1698,21 @@ class NumberRange(FunctionArg):
         try:
             value = float(value)
         except ValueError:
-            raise InvalidFunctionArgument(u"{} is not a number".format(value))
+            raise InvalidFunctionArgument(f"{value} is not a number")
 
         if self.start and value < self.start:
             raise InvalidFunctionArgument(
-                u"{:g} must be greater than or equal to {:g}".format(value, self.start)
+                f"{value:g} must be greater than or equal to {self.start:g}"
             )
         elif self.end and value >= self.end:
-            raise InvalidFunctionArgument(u"{:g} must be less than {:g}".format(value, self.end))
+            raise InvalidFunctionArgument(f"{value:g} must be less than {self.end:g}")
 
         return value
 
 
 class IntervalDefault(NumberRange):
     def __init__(self, name, start, end):
-        super(IntervalDefault, self).__init__(name, start, end)
+        super().__init__(name, start, end)
         self.has_default = True
 
     def get_default(self, params):
@@ -1676,7 +1733,7 @@ def with_default(default, argument):
     return argument
 
 
-class Function(object):
+class Function:
     def __init__(
         self,
         name,
@@ -1688,6 +1745,7 @@ class Function(object):
         transform=None,
         result_type_fn=None,
         default_result_type=None,
+        redundant_grouping=False,
         private=False,
     ):
         """
@@ -1712,6 +1770,8 @@ class Function(object):
             be tried first as the source of truth if available.
         :param str default_result_type: The default resulting type of this function. Must be a type
             defined by RESULTS_TYPES.
+        :param bool redundant_grouping: This function will result in redundant grouping if its column
+            is included as a field as well.
         :param bool private: Whether or not this function should be disabled for general use.
         """
 
@@ -1724,6 +1784,7 @@ class Function(object):
         self.transform = transform
         self.result_type_fn = result_type_fn
         self.default_result_type = default_result_type
+        self.redundant_grouping = redundant_grouping
         self.private = private
 
         self.validate()
@@ -1762,10 +1823,10 @@ class Function(object):
             try:
                 default = argument.get_default(params)
             except InvalidFunctionArgument as e:
-                raise InvalidSearchQuery(u"{}: invalid arguments: {}".format(field, e))
+                raise InvalidSearchQuery(f"{field}: invalid arguments: {e}")
 
             # Hacky, but we expect column arguments to be strings so easiest to convert it back
-            columns.append(six.text_type(default) if default else default)
+            columns.append(str(default) if default else default)
 
         return columns
 
@@ -1779,9 +1840,7 @@ class Function(object):
             try:
                 arguments[argument.name] = argument.normalize(column, params)
             except InvalidFunctionArgument as e:
-                raise InvalidSearchQuery(
-                    u"{}: {} argument invalid: {}".format(field, argument.name, e)
-                )
+                raise InvalidSearchQuery(f"{field}: {argument.name} argument invalid: {e}")
 
         # populate any computed args
         for calculation in self.calculated_args:
@@ -1805,27 +1864,27 @@ class Function(object):
         for i, arg in enumerate(self.optional_args):
             assert (
                 arg.has_default
-            ), u"{}: optional argument at index {} does not have default".format(self.name, i)
+            ), f"{self.name}: optional argument at index {i} does not have default"
 
         # assert that the function has only one of the following specified
         # `column`, `aggregate`, or `transform`
         assert (
             sum([self.column is not None, self.aggregate is not None, self.transform is not None])
             == 1
-        ), u"{}: only one of column, aggregate, or transform is allowed".format(self.name)
+        ), f"{self.name}: only one of column, aggregate, or transform is allowed"
 
         # assert that no duplicate argument names are used
         names = set()
         for arg in self.args:
-            assert arg.name not in names, u"{}: argument {} specified more than once".format(
-                self.name, arg.name
-            )
+            assert (
+                arg.name not in names
+            ), f"{self.name}: argument {arg.name} specified more than once"
             names.add(arg.name)
 
         for calculation in self.calculated_args:
             assert (
                 calculation["name"] not in names
-            ), u"{}: argument {} specified more than once".format(self.name, calculation["name"])
+            ), "{}: argument {} specified more than once".format(self.name, calculation["name"])
             names.add(calculation["name"])
 
         self.validate_result_type(self.default_result_type)
@@ -1847,22 +1906,20 @@ class Function(object):
         if args_count != total_args_count:
             required_args_count = self.required_args_count
             if required_args_count == total_args_count:
-                raise InvalidSearchQuery(
-                    u"{}: expected {:g} argument(s)".format(field, total_args_count)
-                )
+                raise InvalidSearchQuery(f"{field}: expected {total_args_count:g} argument(s)")
             elif args_count < required_args_count:
                 raise InvalidSearchQuery(
-                    u"{}: expected at least {:g} argument(s)".format(field, required_args_count)
+                    f"{field}: expected at least {required_args_count:g} argument(s)"
                 )
             elif args_count > total_args_count:
                 raise InvalidSearchQuery(
-                    u"{}: expected at most {:g} argument(s)".format(field, total_args_count)
+                    f"{field}: expected at most {total_args_count:g} argument(s)"
                 )
 
     def validate_result_type(self, result_type):
         assert (
             result_type is None or result_type in RESULT_TYPES
-        ), u"{}: result type {} not one of {}".format(self.name, result_type, list(RESULT_TYPES))
+        ), f"{self.name}: result type {result_type} not one of {list(RESULT_TYPES)}"
 
     def is_accessible(self, acl=None):
         if not self.private:
@@ -1890,59 +1947,68 @@ FUNCTIONS = {
         Function(
             "percentile",
             required_args=[NumericColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
-            aggregate=[u"quantile({percentile:g})", ArgValue("column"), None],
+            aggregate=["quantile({percentile:g})", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "p50",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
-            aggregate=[u"quantile(0.5)", ArgValue("column"), None],
+            aggregate=["quantile(0.5)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "p75",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
-            aggregate=[u"quantile(0.75)", ArgValue("column"), None],
+            aggregate=["quantile(0.75)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "p95",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
-            aggregate=[u"quantile(0.95)", ArgValue("column"), None],
+            aggregate=["quantile(0.95)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "p99",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
-            aggregate=[u"quantile(0.99)", ArgValue("column"), None],
+            aggregate=["quantile(0.99)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "p100",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
-            aggregate=[u"max", ArgValue("column"), None],
+            aggregate=["max", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "eps",
             optional_args=[IntervalDefault("interval", 1, None)],
-            transform=u"divide(count(), {interval:g})",
+            transform="divide(count(), {interval:g})",
             default_result_type="number",
         ),
         Function(
             "epm",
-            optional_args=[IntervalDefault("interval", 60, None)],
-            transform=u"divide(count(), divide({interval:g}, 60))",
+            optional_args=[IntervalDefault("interval", 1, None)],
+            transform="divide(count(), divide({interval:g}, 60))",
             default_result_type="number",
         ),
         Function(
-            "last_seen", aggregate=["max", "timestamp", "last_seen"], default_result_type="date"
+            "last_seen",
+            aggregate=["max", "timestamp", "last_seen"],
+            default_result_type="date",
+            redundant_grouping=True,
         ),
         Function(
             "latest_event",
@@ -1952,14 +2018,14 @@ FUNCTIONS = {
         Function(
             "apdex",
             required_args=[NumberRange("satisfaction", 0, None)],
-            transform=u"apdex(duration, {satisfaction:g})",
+            transform="apdex(duration, {satisfaction:g})",
             default_result_type="number",
         ),
         Function(
             "user_misery",
             required_args=[NumberRange("satisfaction", 0, None)],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-            transform=u"uniqIf(user, greater(duration, {tolerated:g}))",
+            transform="uniqIf(user, greater(duration, {tolerated:g}))",
             default_result_type="number",
         ),
         Function("failure_rate", transform="failure_rate()", default_result_type="percentage"),
@@ -1999,8 +2065,9 @@ FUNCTIONS = {
             private=True,
         ),
         Function(
-            "measurements_histogram",
+            "histogram",
             required_args=[
+                NumericColumnNoLookup("column", allow_measurements_value=True),
                 # the bucket_size and start_offset should already be adjusted
                 # using the multiplier before it is passed here
                 NumberRange("bucket_size", 0, None),
@@ -2026,7 +2093,7 @@ FUNCTIONS = {
                                                     [
                                                         "multiply",
                                                         [
-                                                            ["arrayJoin", ["measurements_value"]],
+                                                            ArgValue("column"),
                                                             ArgValue("multiplier"),
                                                         ],
                                                     ],
@@ -2047,27 +2114,6 @@ FUNCTIONS = {
             ],
             default_result_type="number",
             private=True,
-        ),
-        # The user facing signature for this function is histogram(<column>, <num_buckets>)
-        # Internally, snuba.discover.query() expands the user request into this value by
-        # calculating the bucket size and start_offset.
-        Function(
-            "histogram",
-            required_args=[
-                DurationColumnNoLookup("column"),
-                NumberRange("num_buckets", 1, 500),
-                NumberRange("bucket_size", 0, None),
-                NumberRange("start_offset", 0, None),
-            ],
-            column=[
-                "multiply",
-                [
-                    ["floor", [["divide", [ArgValue("column"), ArgValue("bucket_size")]]]],
-                    ArgValue("bucket_size"),
-                ],
-                None,
-            ],
-            default_result_type="number",
         ),
         Function(
             "count_unique",
@@ -2097,6 +2143,7 @@ FUNCTIONS = {
             aggregate=["min", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "max",
@@ -2104,6 +2151,7 @@ FUNCTIONS = {
             aggregate=["max", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "avg",
@@ -2111,6 +2159,7 @@ FUNCTIONS = {
             aggregate=["avg", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "sum",
@@ -2118,6 +2167,13 @@ FUNCTIONS = {
             aggregate=["sum", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+        ),
+        Function(
+            "any",
+            required_args=[FieldColumn("column")],
+            aggregate=["min", ArgValue("column"), None],
+            result_type_fn=reflective_result_type(),
+            redundant_grouping=True,
         ),
         # Currently only being used by the baseline PoC
         Function(
@@ -2132,128 +2188,95 @@ FUNCTIONS = {
         Function(
             "percentile_range",
             required_args=[
-                DurationColumnNoLookup("column"),
+                NumericColumnNoLookup("column"),
                 NumberRange("percentile", 0, 1),
-                DateArg("start"),
-                DateArg("end"),
-                FunctionAliasArg("query_alias"),
+                ConditionArg("condition"),
+                DateArg("middle"),
             ],
             aggregate=[
-                u"quantileIf({percentile:.2f})",
+                "quantileIf({percentile:.2f})",
                 [
                     ArgValue("column"),
-                    [
-                        "and",
-                        [
-                            # NOTE: These conditions are written in this seemingly backwards way
-                            # because of how snuba special cases the following syntax
-                            # ["a", ["b", ["c", ["d"]]]
-                            #
-                            # This array is can be interpreted 2 ways
-                            # 1. a(b(c(d))) the way snuba interprets it
-                            #   - snuba special cases it when it detects an array where the first
-                            #     element is a literal, and the second element is an array and
-                            #     treats it as a function call rather than 2 separate arguments
-                            # 2. a(b, c(d)) the way we want it to be interpreted
-                            #
-                            # Because of how snuba interprets this expression, it makes it impossible
-                            # to specify a function with 2 arguments whose first argument is a literal
-                            # and the second argument is an expression.
-                            #
-                            # Working with this limitation, we have to invert the conditions in
-                            # order to express a function whose first argument is an expression while
-                            # the second argument is a literal.
-                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
-                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
-                        ],
-                    ],
+                    # NOTE: This condition is written in this seemingly backwards way
+                    # because of how snuba special cases the following syntax
+                    # ["a", ["b", ["c", ["d"]]]
+                    #
+                    # This array is can be interpreted 2 ways
+                    # 1. a(b(c(d))) the way snuba interprets it
+                    #   - snuba special cases it when it detects an array where the first
+                    #     element is a literal, and the second element is an array and
+                    #     treats it as a function call rather than 2 separate arguments
+                    # 2. a(b, c(d)) the way we want it to be interpreted
+                    #
+                    # Because of how snuba interprets this expression, it makes it impossible
+                    # to specify a function with 2 arguments whose first argument is a literal
+                    # and the second argument is an expression.
+                    #
+                    # Working with this limitation, we have to invert the conditions in
+                    # order to express a function whose first argument is an expression while
+                    # the second argument is a literal.
+                    [ArgValue("condition"), [["toDateTime", [ArgValue("middle")]], "timestamp"]],
                 ],
-                "{query_alias}",
+                None,
             ],
             default_result_type="duration",
         ),
         Function(
             "avg_range",
             required_args=[
-                DurationColumnNoLookup("column"),
-                DateArg("start"),
-                DateArg("end"),
-                FunctionAliasArg("query_alias"),
+                NumericColumnNoLookup("column"),
+                ConditionArg("condition"),
+                DateArg("middle"),
             ],
             aggregate=[
-                u"avgIf",
+                "avgIf",
                 [
                     ArgValue("column"),
-                    [
-                        "and",
-                        [
-                            # see `percentile_range` for why the conditions are backwards
-                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
-                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
-                        ],
-                    ],
+                    # see `percentile_range` for why this condition feels backwards
+                    [ArgValue("condition"), [["toDateTime", [ArgValue("middle")]], "timestamp"]],
                 ],
-                "{query_alias}",
+                None,
             ],
             default_result_type="duration",
         ),
         Function(
             "variance_range",
             required_args=[
-                DurationColumnNoLookup("column"),
-                DateArg("start"),
-                DateArg("end"),
-                FunctionAliasArg("query_alias"),
+                NumericColumnNoLookup("column"),
+                ConditionArg("condition"),
+                DateArg("middle"),
             ],
             aggregate=[
-                u"varSampIf",
+                "varSampIf",
                 [
                     ArgValue("column"),
-                    [
-                        "and",
-                        [
-                            # see `percentile_range` for why the conditions are backwards
-                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
-                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
-                        ],
-                    ],
+                    # see `percentile_range` for why this condition feels backwards
+                    [ArgValue("condition"), [["toDateTime", [ArgValue("middle")]], "timestamp"]],
                 ],
-                "{query_alias}",
+                None,
             ],
             default_result_type="duration",
         ),
         Function(
             "count_range",
-            required_args=[DateArg("start"), DateArg("end"), FunctionAliasArg("query_alias")],
+            required_args=[ConditionArg("condition"), DateArg("middle")],
             aggregate=[
-                u"countIf",
-                [
-                    [
-                        "and",
-                        [
-                            # see `percentile_range` for why the conditions are backwards
-                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
-                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
-                        ],
-                    ],
-                ],
-                "{query_alias}",
+                "countIf",
+                # see `percentile_range` for why this condition feels backwards
+                [[ArgValue("condition"), [["toDateTime", [ArgValue("middle")]], "timestamp"]]],
+                None,
             ],
             default_result_type="integer",
         ),
         Function(
             "percentage",
-            required_args=[
-                FunctionAliasArg("numerator"),
-                FunctionAliasArg("denominator"),
-                FunctionAliasArg("query_alias"),
-            ],
+            required_args=[FunctionArg("numerator"), FunctionArg("denominator")],
             # Since percentage is only used on aggregates, it needs to be an aggregate and not a column
             # This is because as a column it will be added to the `WHERE` clause instead of the `HAVING` clause
             aggregate=[
-                u"if(greater({denominator},0),divide({numerator},{denominator}),null)",
+                "if(greater({denominator},0),divide({numerator},{denominator}),null)",
                 None,
-                "{query_alias}",
+                None,
             ],
             default_result_type="percentage",
         ),
@@ -2269,7 +2292,7 @@ FUNCTIONS = {
                 FunctionAliasArg("count_2"),
             ],
             aggregate=[
-                u"divide(minus({avg_1},{avg_2}),sqrt(plus(divide({variance_1},{count_1}),divide({variance_2},{count_2}))))",
+                "divide(minus({avg_1},{avg_2}),sqrt(plus(divide({variance_1},{count_1}),divide({variance_2},{count_2}))))",
                 None,
                 "t_test",
             ],
@@ -2277,12 +2300,8 @@ FUNCTIONS = {
         ),
         Function(
             "minus",
-            required_args=[
-                FunctionAliasArg("minuend"),
-                FunctionAliasArg("subtrahend"),
-                FunctionAliasArg("query_alias"),
-            ],
-            aggregate=[u"minus", [ArgValue("minuend"), ArgValue("subtrahend")], "{query_alias}"],
+            required_args=[FunctionArg("minuend"), FunctionArg("subtrahend")],
+            aggregate=["minus", [ArgValue("minuend"), ArgValue("subtrahend")], None],
             default_result_type="duration",
         ),
         Function(
@@ -2313,7 +2332,7 @@ FUNCTIONS = {
         Function(
             "to_other",
             required_args=[
-                ColumnNoLookup("column", allowed_columns=["release"]),
+                ColumnNoLookup("column", allowed_columns=["release", "trace.parent_span"]),
                 StringArg("value", unquote=True, unescape_quotes=True),
             ],
             optional_args=[
@@ -2355,21 +2374,26 @@ def get_function_alias(field):
     match = FUNCTION_PATTERN.search(field)
     if match is None:
         return field
+
+    if match.group("alias") is not None:
+        return match.group("alias")
     function = match.group("function")
     columns = parse_arguments(function, match.group("columns"))
     return get_function_alias_with_columns(function, columns)
 
 
 def get_function_alias_with_columns(function_name, columns):
-    columns = re.sub("[^\w]", "_", "_".join(columns))
-    return u"{}_{}".format(function_name, columns).rstrip("_")
+    columns = re.sub(r"[^\w]", "_", "_".join(columns))
+    return f"{function_name}_{columns}".rstrip("_")
 
 
 def format_column_arguments(column_args, arguments):
     for i in range(len(column_args)):
         if isinstance(column_args[i], (list, tuple)):
+            if isinstance(column_args[i][0], ArgValue):
+                column_args[i][0] = arguments[column_args[i][0].arg]
             format_column_arguments(column_args[i][1], arguments)
-        elif isinstance(column_args[i], six.string_types):
+        elif isinstance(column_args[i], str):
             column_args[i] = column_args[i].format(**arguments)
         elif isinstance(column_args[i], ArgValue):
             column_args[i] = arguments[column_args[i].arg]
@@ -2432,11 +2456,15 @@ def parse_function(field, match=None, err_msg=None):
 
     if not match or match.group("function") not in FUNCTIONS:
         if err_msg is None:
-            err_msg = u"{} is not a valid function".format(field)
+            err_msg = f"{field} is not a valid function"
         raise InvalidSearchQuery(err_msg)
 
     function = match.group("function")
-    return function, parse_arguments(function, match.group("columns"))
+    return (
+        function,
+        parse_arguments(function, match.group("columns")),
+        match.group("alias"),
+    )
 
 
 FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")
@@ -2447,22 +2475,26 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
     if params is not None and field in params.get("aliases", {}):
         alias = params["aliases"][field]
         return ResolvedFunction(
-            FunctionDetails(field, FUNCTIONS["percentage"], []), None, alias.aggregate,
+            FunctionDetails(field, FUNCTIONS["percentage"], []),
+            None,
+            alias.aggregate,
         )
-    function_name, columns = parse_function(field, match)
+    function_name, columns, alias = parse_function(field, match)
     function = FUNCTIONS[function_name]
     if not function.is_accessible(functions_acl):
-        raise InvalidSearchQuery(u"{}: no access to private function".format(function.name))
+        raise InvalidSearchQuery(f"{function.name}: no access to private function")
 
     arguments = function.format_as_arguments(field, columns, params)
     details = FunctionDetails(field, function, arguments)
 
     if function.transform is not None:
         snuba_string = function.transform.format(**arguments)
+        if alias is None:
+            alias = get_function_alias_with_columns(function.name, columns)
         return ResolvedFunction(
             details,
             None,
-            [snuba_string, None, get_function_alias_with_columns(function.name, columns)],
+            [snuba_string, None, alias],
         )
     elif function.aggregate is not None:
         aggregate = deepcopy(function.aggregate)
@@ -2480,10 +2512,11 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
                 aggregate[1] = [arguments[arg]]
             else:
                 aggregate[1] = arguments[arg]
-        if aggregate[2] is None:
+
+        if alias is not None:
+            aggregate[2] = alias
+        elif aggregate[2] is None:
             aggregate[2] = get_function_alias_with_columns(function.name, columns)
-        else:
-            aggregate[2] = aggregate[2].format(**arguments)
 
         return ResolvedFunction(details, None, aggregate)
     elif function.column is not None:
@@ -2493,9 +2526,14 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
         if isinstance(addition[1], (list, tuple)):
             format_column_arguments(addition[1], arguments)
         if len(addition) < 3:
-            addition.append(get_function_alias_with_columns(function.name, columns))
+            if alias is not None:
+                addition.append(alias)
+            else:
+                addition.append(get_function_alias_with_columns(function.name, columns))
         elif len(addition) == 3:
-            if addition[2] is None:
+            if alias is not None:
+                addition[2] = alias
+            elif addition[2] is None:
                 addition[2] = get_function_alias_with_columns(function.name, columns)
             else:
                 addition[2] = addition[2].format(**arguments)
@@ -2555,11 +2593,11 @@ def resolve_orderby(orderby, fields, aggregations):
 
 def get_aggregate_alias(match):
     column = match.group("column").replace(".", "_")
-    return u"{}_{}".format(match.group("function"), column).rstrip("_")
+    return "{}_{}".format(match.group("function"), column).rstrip("_")
 
 
 def resolve_field(field, params=None, functions_acl=None):
-    if not isinstance(field, six.string_types):
+    if not isinstance(field, str):
         raise InvalidSearchQuery("Field names must be strings")
 
     match = is_function(field)
@@ -2569,7 +2607,14 @@ def resolve_field(field, params=None, functions_acl=None):
     if field in FIELD_ALIASES:
         special_field = FIELD_ALIASES[field]
         return ResolvedFunction(None, special_field.get_field(params), None)
-    return ResolvedFunction(None, field, None)
+
+    tag_match = TAG_KEY_RE.search(field)
+    tag_field = tag_match.group("tag") if tag_match else field
+
+    if VALID_FIELD_PATTERN.match(tag_field):
+        return ResolvedFunction(None, field, None)
+    else:
+        raise InvalidSearchQuery(f"Invalid characters in field {field}")
 
 
 def resolve_field_list(
@@ -2588,6 +2633,7 @@ def resolve_field_list(
     aggregate to a field.
     """
     aggregations = []
+    aggregate_fields = defaultdict(set)
     columns = []
     groupby = []
     project_key = ""
@@ -2606,7 +2652,7 @@ def resolve_field_list(
             fields.append("project.id")
 
     for field in fields:
-        if isinstance(field, six.string_types) and field.strip() == "":
+        if isinstance(field, str) and field.strip() == "":
             continue
         function = resolve_field(field, snuba_filter.params, functions_acl)
         if function.column is not None and function.column not in columns:
@@ -2617,6 +2663,8 @@ def resolve_field_list(
             aggregations.append(function.aggregate)
             if function.details is not None and isinstance(function.aggregate, (list, tuple)):
                 functions[function.aggregate[-1]] = function.details
+                if function.details.instance.redundant_grouping:
+                    aggregate_fields[function.aggregate[1]].add(field)
 
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
@@ -2629,6 +2677,9 @@ def resolve_field_list(
                         function.aggregate, (list, tuple)
                     ):
                         functions[function.aggregate[-1]] = function.details
+
+                        if function.details.instance.redundant_grouping:
+                            aggregate_fields[function.aggregate[1]].add(field)
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:
@@ -2654,15 +2705,15 @@ def resolve_field_list(
         # Clickhouse gets confused when the column contains a period
         # This is specifically for project.name and should be removed once we can stop supporting it
         if "." in project_key:
-            project_key = "`{}`".format(project_key)
+            project_key = f"`{project_key}`"
         columns.append(
             [
                 "transform",
                 [
                     # This is a workaround since having the column by itself currently is being treated as a function
                     ["toString", ["project_id"]],
-                    ["array", [u"'{}'".format(project["id"]) for project in projects]],
-                    ["array", [u"'{}'".format(project["slug"]) for project in projects]],
+                    ["array", ["'{}'".format(project["id"]) for project in projects]],
+                    ["array", ["'{}'".format(project["slug"]) for project in projects]],
                     # Default case, what to do if a project id without a slug is found
                     "''",
                 ],
@@ -2674,8 +2725,11 @@ def resolve_field_list(
         raise InvalidSearchQuery("You cannot use rollup without an aggregate field.")
 
     orderby = snuba_filter.orderby
-    if orderby:
+    # Only sort if there are columns. When there are only aggregates there's no need to sort
+    if orderby and len(columns) > 0:
         orderby = resolve_orderby(orderby, columns, aggregations)
+    else:
+        orderby = None
 
     # If aggregations are present all columns
     # need to be added to the group by so that the query is valid.
@@ -2691,6 +2745,19 @@ def resolve_field_list(
                     continue
                 groupby.append(column[2])
             else:
+                if column in aggregate_fields:
+                    conflicting_functions = list(aggregate_fields[column])
+                    raise InvalidSearchQuery(
+                        "A single field cannot be used both inside and outside a function in the same query. To use {field} you must first remove the function(s): {function_msg}".format(
+                            field=column,
+                            function_msg=", ".join(conflicting_functions[:2])
+                            + (
+                                f" and {len(conflicting_functions) - 2} more."
+                                if len(conflicting_functions) > 2
+                                else ""
+                            ),
+                        )
+                    )
                 groupby.append(column)
 
     return {
@@ -2702,4 +2769,4 @@ def resolve_field_list(
     }
 
 
-TAG_KEY_RE = re.compile(r"^tags\[(.*)\]$")
+TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")

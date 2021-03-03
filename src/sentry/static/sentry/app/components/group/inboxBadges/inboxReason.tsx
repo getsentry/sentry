@@ -1,74 +1,195 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
 
 import DateTime from 'app/components/dateTime';
 import Tag from 'app/components/tag';
-import {t} from 'app/locale';
+import TimeSince, {getRelativeDate} from 'app/components/timeSince';
+import {t, tct} from 'app/locale';
 import {InboxDetails} from 'app/types';
+import {getDuration} from 'app/utils/formatters';
+import getDynamicText from 'app/utils/getDynamicText';
+import {Theme} from 'app/utils/theme';
 
 const GroupInboxReason = {
   NEW: 0,
   UNIGNORED: 1,
   REGRESSION: 2,
   MANUAL: 3,
+  REPROCESSED: 4,
 };
 
 type Props = {
   inbox: InboxDetails;
+  fontSize?: 'sm' | 'md';
+  /** Displays the time an issue was added to inbox */
+  showDateAdded?: boolean;
 };
 
-const InboxReason = ({inbox}: Props) => {
+const EVENT_ROUND_LIMIT = 1000;
+
+function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
   const {reason, reason_details, date_added: dateAdded} = inbox;
+  const relativeDateAdded = getDynamicText({
+    value: dateAdded && getRelativeDate(dateAdded, 'ago', true),
+    fixed: '3s ago',
+  });
 
-  let reasonBadgeText: string;
-  let tooltipText: string | undefined;
-  let tagType: React.ComponentProps<typeof Tag>['type'];
+  const getCountText = (count: number) =>
+    count > EVENT_ROUND_LIMIT
+      ? `More than ${Math.round(count / EVENT_ROUND_LIMIT)}k`
+      : `${count}`;
 
-  if (reason === GroupInboxReason.UNIGNORED) {
-    reasonBadgeText = t('Unignored');
-    tooltipText = t('%(count)s events within %(window)s', {
-      count: reason_details?.count || 0,
-      window: moment.duration(reason_details?.window || 0, 'minutes').humanize(),
-    });
-  } else if (reason === GroupInboxReason.REGRESSION) {
-    tagType = 'error';
-    reasonBadgeText = t('Regression');
-    tooltipText = t('Issue was resolved.');
-  } else if (reason === GroupInboxReason.MANUAL) {
-    tagType = 'highlight';
-    reasonBadgeText = t('Manual');
-    // TODO(scttcper): Add tooltip text for a manual move
-    // Moved to inbox by {full_name}.
-  } else {
-    tagType = 'warning';
-    reasonBadgeText = t('New Issue');
+  function getTooltipDescription() {
+    const {until, count, window, user_count, user_window} = reason_details;
+    if (until) {
+      // Was ignored until `until` has passed.
+      //`until` format: "2021-01-20T03:59:03+00:00"
+      return tct('Was ignored until [window]', {
+        window: <DateTime date={until} dateOnly />,
+      });
+    }
+
+    if (count) {
+      // Was ignored until `count` events occurred
+      // If `window` is defined, than `count` events occurred in `window` minutes.
+      // else `count` events occurred since it was ignored.
+      if (window) {
+        return tct('Was ignored until it occurred [count] time(s) in [duration]', {
+          count: getCountText(count),
+          duration: getDuration(window * 60, 0, true),
+        });
+      }
+
+      return tct('Was ignored until it occurred [count] time(s)', {
+        count: getCountText(count),
+      });
+    }
+
+    if (user_count) {
+      // Was ignored until `user_count` users were affected
+      // If `user_window` is defined, than `user_count` users affected in `user_window` minutes.
+      // else `user_count` events occurred since it was ignored.
+      if (user_window) {
+        return t('Was ignored until it affected [count] user(s) in [duration]', {
+          count: getCountText(user_count),
+          duration: getDuration(user_window * 60, 0, true),
+        });
+      }
+      return t('Was ignored until it affected [count] user(s)', {
+        count: getCountText(user_count),
+      });
+    }
+
+    return undefined;
   }
 
-  const tooltip = (
+  function getReasonDetails(): {
+    tagType: React.ComponentProps<typeof Tag>['type'];
+    reasonBadgeText: string;
+    tooltipText?: string;
+    tooltipDescription?: string | React.ReactElement;
+  } {
+    switch (reason) {
+      case GroupInboxReason.UNIGNORED:
+        return {
+          tagType: 'default',
+          reasonBadgeText: t('Unignored'),
+          tooltipText:
+            dateAdded &&
+            t('Unignored %(relative)s', {
+              relative: relativeDateAdded,
+            }),
+          tooltipDescription: getTooltipDescription(),
+        };
+      case GroupInboxReason.REGRESSION:
+        return {
+          tagType: 'error',
+          reasonBadgeText: t('Regression'),
+          tooltipText:
+            dateAdded &&
+            t('Regressed %(relative)s', {
+              relative: relativeDateAdded,
+            }),
+          // TODO: Add tooltip description for regression move when resolver is added to reason
+          // Resolved by {full_name} {time} ago.
+        };
+      // TODO: Manual moves will go away, remove this then
+      case GroupInboxReason.MANUAL:
+        return {
+          tagType: 'highlight',
+          reasonBadgeText: t('Manual'),
+          tooltipText:
+            dateAdded && t('Moved %(relative)s', {relative: relativeDateAdded}),
+          // TODO: IF manual moves stay then add tooltip description for manual move
+          // Moved to inbox by {full_name}.
+        };
+      case GroupInboxReason.REPROCESSED:
+        return {
+          tagType: 'info',
+          reasonBadgeText: t('Reprocessed'),
+          tooltipText:
+            dateAdded &&
+            t('Reprocessed %(relative)s', {
+              relative: relativeDateAdded,
+            }),
+        };
+      case GroupInboxReason.NEW:
+      default:
+        return {
+          tagType: 'warning',
+          reasonBadgeText: t('New Issue'),
+          tooltipText:
+            dateAdded &&
+            t('Created %(relative)s', {
+              relative: relativeDateAdded,
+            }),
+        };
+    }
+  }
+
+  const {tooltipText, tooltipDescription, reasonBadgeText, tagType} = getReasonDetails();
+
+  const tooltip = (tooltipText || tooltipDescription) && (
     <TooltipWrapper>
       {tooltipText && <div>{tooltipText}</div>}
-      {dateAdded && (
-        <DateWrapper>
-          <DateTime date={dateAdded} />
-        </DateWrapper>
+      {tooltipDescription && (
+        <TooltipDescription>{tooltipDescription}</TooltipDescription>
       )}
+      <TooltipDescription>Mark Reviewed to remove this label</TooltipDescription>
     </TooltipWrapper>
   );
 
   return (
-    <Tag type={tagType} tooltipText={tooltip}>
+    <StyledTag type={tagType} tooltipText={tooltip} fontSize={fontSize}>
       {reasonBadgeText}
-    </Tag>
+      {showDateAdded && dateAdded && (
+        <React.Fragment>
+          <Separator type={tagType ?? 'default'}>{' | '}</Separator>
+          <TimeSince date={dateAdded} suffix="" shorten disabledAbsoluteTooltip />
+        </React.Fragment>
+      )}
+    </StyledTag>
   );
-};
+}
 
 export default InboxReason;
 
-const DateWrapper = styled('div')`
-  color: ${p => p.theme.gray200};
-`;
-
 const TooltipWrapper = styled('div')`
   text-align: left;
+`;
+
+const TooltipDescription = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const Separator = styled('span')<{type: keyof Theme['tag']}>`
+  color: ${p => p.theme.tag[p.type].iconColor};
+  opacity: 80%;
+`;
+
+const StyledTag = styled(Tag, {
+  shouldForwardProp: p => p !== 'fontSize',
+})<{fontSize: 'sm' | 'md'}>`
+  font-size: ${p =>
+    p.fontSize === 'sm' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium};
 `;

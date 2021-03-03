@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
@@ -7,7 +5,7 @@ from sentry.testutils import AcceptanceTestCase
 
 class OrganizationStatsTest(AcceptanceTestCase):
     def setUp(self):
-        super(OrganizationStatsTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Org Name")
         self.team = self.create_team(name="Team Name", organization=self.org, members=[self.user])
@@ -15,7 +13,7 @@ class OrganizationStatsTest(AcceptanceTestCase):
             organization=self.org, teams=[self.team], name="Project Name"
         )
         self.login_as(self.user)
-        self.path = u"/organizations/{}/stats/".format(self.org.slug)
+        self.path = f"/organizations/{self.org.slug}/stats/"
 
     def test_simple(self):
         self.project.update(first_event=timezone.now())

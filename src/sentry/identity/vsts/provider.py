@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import http, options, features
 
 from sentry.identity.oauth2 import OAuth2Provider, OAuth2LoginView, OAuth2CallbackView
@@ -119,7 +117,7 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
     def exchange_token(self, request, pipeline, code):
         from sentry.http import safe_urlopen, safe_urlread
         from sentry.utils.http import absolute_uri
-        from six.moves.urllib.parse import parse_qsl
+        from urllib.parse import parse_qsl
         from sentry.utils import json
 
         req = safe_urlopen(

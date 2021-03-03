@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.discover import DiscoverProcessor
 from sentry.testutils import TestCase, SnubaTestCase
@@ -7,7 +5,7 @@ from sentry.testutils import TestCase, SnubaTestCase
 
 class DiscoverProcessorTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(DiscoverProcessorTest, self).setUp()
+        super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.project1 = self.create_project(organization=self.org)

@@ -1,8 +1,6 @@
-from __future__ import absolute_import
-
 import pytz
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 from datetime import datetime, timedelta
 from django.utils import timezone
 
@@ -10,13 +8,12 @@ from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
 from tests.acceptance.page_objects.issue_details import IssueDetailsPage
 
-event_time = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 now = datetime.utcnow().replace(tzinfo=pytz.utc)
 
 
 class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(IssueDetailsTest, self).setUp()
+        super().setUp()
         patcher = patch("django.utils.timezone.now", return_value=now)
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -52,7 +49,9 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         return event
 
     def test_python_event(self):
-        event = self.create_sample_event(platform="python", time=event_time)
+        self.create_sample_event(platform="python")
+        self.create_sample_event(platform="python")
+        event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
 
         # Wait for tag bars to load
@@ -173,3 +172,35 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page.ignore_issue()
 
         self.browser.snapshot("issue details ignored")
+
+    def test_exception_and_no_threads_event(self):
+        event = self.create_sample_event(platform="exceptions-and-no-threads")
+        self.page.visit_issue(self.org.slug, event.group.id)
+        self.browser.snapshot("issue details exceptions and no threads")
+
+    def test_exception_with_stack_trace_and_crashed_thread_without_stack_trace_event(self):
+        event = self.create_sample_event(
+            platform="exception-with-stack-trace-and-crashed-thread-without-stack-trace"
+        )
+        self.page.visit_issue(self.org.slug, event.group.id)
+        self.browser.snapshot(
+            "issue details exception with stack trace and crashed thread without stack trace"
+        )
+
+    def test_exception_without_stack_trace_and_crashed_thread_with_stack_trace_event(self):
+        event = self.create_sample_event(
+            platform="exception-without-stack-trace-and-crashed-thread-with-stack-trace"
+        )
+        self.page.visit_issue(self.org.slug, event.group.id)
+        self.browser.snapshot(
+            "issue details exception without stack trace and crashed thread with stack trace"
+        )
+
+    def test_exception_with_stack_trace_and_crashed_thread_with_stack_trace_event(self):
+        event = self.create_sample_event(
+            platform="exception-with-stack-trace-and-crashed-thread-with-stack-trace"
+        )
+        self.page.visit_issue(self.org.slug, event.group.id)
+        self.browser.snapshot(
+            "issue details exception with stack trace and crashed thread with stack trace"
+        )

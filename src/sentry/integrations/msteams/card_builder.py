@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models import (
     Project,
@@ -50,13 +48,16 @@ def get_assignee_string(group):
         return None
 
     if actor.type == Team:
-        return u"#{}".format(assigned_actor.slug)
+        return f"#{assigned_actor.slug}"
     else:
         return assigned_actor.email
 
 
 def build_welcome_card(signed_params):
-    url = u"%s?signed_params=%s" % (absolute_uri("/extensions/msteams/configure/"), signed_params,)
+    url = "{}?signed_params={}".format(
+        absolute_uri("/extensions/msteams/configure/"),
+        signed_params,
+    )
     welcome = {
         "type": "TextBlock",
         "weight": "Bolder",
@@ -111,7 +112,7 @@ def build_installation_confirmation_message(organization):
         "type": "TextBlock",
         "weight": "Bolder",
         "size": "Large",
-        "text": u"Installation for {} is successful".format(organization.name),
+        "text": f"Installation for {organization.name} is successful",
         "wrap": True,
     }
     alert_rule_instructions = {
@@ -119,7 +120,7 @@ def build_installation_confirmation_message(organization):
         "text": "Now that setup is complete, you can continue by configuring alerts.",
         "wrap": True,
     }
-    alert_rule_url = absolute_uri("organizations/{}/rules/".format(organization.slug))
+    alert_rule_url = absolute_uri(f"organizations/{organization.slug}/rules/")
     alert_rule_button = {
         "type": "Action.OpenUrl",
         "title": "Add Alert Rules",
@@ -223,7 +224,7 @@ def build_mentioned_card():
 def build_unrecognized_command_card(command_text):
     instruction = {
         "type": "TextBlock",
-        "text": (u"Sorry, I didn't understand '{}'.".format(command_text)),
+        "text": (f"Sorry, I didn't understand '{command_text}'."),
         "wrap": True,
     }
 
@@ -329,8 +330,14 @@ def build_group_title(group):
 
     link = group.get_absolute_url()
 
-    title_text = u"[{}]({})".format(text, link)
-    return {"type": "TextBlock", "size": "Large", "weight": "Bolder", "text": title_text}
+    title_text = f"[{text}]({link})"
+    return {
+        "type": "TextBlock",
+        "size": "Large",
+        "weight": "Bolder",
+        "text": title_text,
+        "wrap": True,
+    }
 
 
 def build_group_descr(group):
@@ -339,7 +346,13 @@ def build_group_descr(group):
     if ev_type == "error":
         ev_metadata = group.get_event_metadata()
         text = ev_metadata.get("value") or ev_metadata.get("function")
-        return {"type": "TextBlock", "size": "Medium", "weight": "Bolder", "text": text}
+        return {
+            "type": "TextBlock",
+            "size": "Medium",
+            "weight": "Bolder",
+            "text": text,
+            "wrap": True,
+        }
     else:
         return None
 
@@ -347,7 +360,7 @@ def build_group_descr(group):
 def build_rule_url(rule, group, project):
     org_slug = group.organization.slug
     project_slug = project.slug
-    rule_url = u"/organizations/{}/alerts/rules/{}/{}/".format(org_slug, project_slug, rule.id)
+    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
     return absolute_uri(rule_url)
 
 
@@ -365,12 +378,12 @@ def build_group_footer(group, rules, project, event):
         "width": "auto",
     }
 
-    text = u"{}".format(group.qualified_short_id)
+    text = f"{group.qualified_short_id}"
     if rules:
         rule_url = build_rule_url(rules[0], group, project)
-        text += u" via [{}]({})".format(rules[0].label, rule_url)
+        text += f" via [{rules[0].label}]({rule_url})"
         if len(rules) > 1:
-            text += u" (+{} other)".format(len(rules) - 1)
+            text += f" (+{len(rules) - 1} other)"
 
     text_column = {
         "type": "Column",
@@ -386,7 +399,7 @@ def build_group_footer(group, rules, project, event):
         date_ts = max(date_ts, event_ts)
 
     date = date_ts.replace(microsecond=0).isoformat()
-    date_text = "{{DATE(%s, SHORT)}} at {{TIME(%s)}}" % (date, date)
+    date_text = f"{{{{DATE({date}, SHORT)}}}} at {{{{TIME({date})}}}}"
     date_column = {
         "type": "Column",
         "items": [
@@ -407,47 +420,6 @@ def build_group_footer(group, rules, project, event):
 def build_group_actions(group, event, rules, integration):
     status = group.get_status()
 
-    # These targets are made so that the button will toggle its element
-    # on or off, and toggle the other elements off.
-
-    # Could probably be done in much fewer lines if we deep
-    # copied a template and then modified for each action
-    resolve_targets = [
-        {"elementId": "resolveTitle"},
-        {"elementId": "resolveInput"},
-        {"elementId": "resolveSubmit"},
-        {"elementId": "ignoreTitle", "isVisible": False},
-        {"elementId": "ignoreInput", "isVisible": False},
-        {"elementId": "ignoreSubmit", "isVisible": False},
-        {"elementId": "assignTitle", "isVisible": False},
-        {"elementId": "assignInput", "isVisible": False},
-        {"elementId": "assignSubmit", "isVisible": False},
-    ]
-
-    ignore_targets = [
-        {"elementId": "resolveTitle", "isVisible": False},
-        {"elementId": "resolveInput", "isVisible": False},
-        {"elementId": "resolveSubmit", "isVisible": False},
-        {"elementId": "ignoreTitle"},
-        {"elementId": "ignoreInput"},
-        {"elementId": "ignoreSubmit"},
-        {"elementId": "assignTitle", "isVisible": False},
-        {"elementId": "assignInput", "isVisible": False},
-        {"elementId": "assignSubmit", "isVisible": False},
-    ]
-
-    assign_targets = [
-        {"elementId": "resolveTitle", "isVisible": False},
-        {"elementId": "resolveInput", "isVisible": False},
-        {"elementId": "resolveSubmit", "isVisible": False},
-        {"elementId": "ignoreTitle", "isVisible": False},
-        {"elementId": "ignoreInput", "isVisible": False},
-        {"elementId": "ignoreSubmit", "isVisible": False},
-        {"elementId": "assignTitle"},
-        {"elementId": "assignInput"},
-        {"elementId": "assignSubmit"},
-    ]
-
     if status == GroupStatus.RESOLVED:
         resolve_action = {
             "type": "Action.Submit",
@@ -456,9 +428,36 @@ def build_group_actions(group, event, rules, integration):
         }
     else:
         resolve_action = {
-            "type": "Action.ToggleVisibility",
+            "type": "Action.ShowCard",
+            "version": "1.2",
             "title": "Resolve",
-            "targetElements": resolve_targets,
+            "card": {
+                "type": "AdaptiveCard",
+                "body": [
+                    {"type": "TextBlock", "text": "Resolve", "weight": "Bolder"},
+                    {
+                        "type": "Input.ChoiceSet",
+                        "id": "resolveInput",
+                        "choices": [
+                            {"title": "Immediately", "value": "resolved"},
+                            {
+                                "title": "In the current release",
+                                "value": "resolved:inCurrentRelease",
+                            },
+                            {"title": "In the next release", "value": "resolved:inNextRelease"},
+                        ],
+                    },
+                ],
+                "actions": [
+                    {
+                        "type": "Action.Submit",
+                        "title": "Resolve",
+                        "data": generate_action_payload(
+                            ACTION_TYPE.RESOLVE, event, rules, integration
+                        ),
+                    }
+                ],
+            },
         }
 
     if status == GroupStatus.IGNORED:
@@ -469,9 +468,40 @@ def build_group_actions(group, event, rules, integration):
         }
     else:
         ignore_action = {
-            "type": "Action.ToggleVisibility",
+            "type": "Action.ShowCard",
+            "version": "1.2",
             "title": "Ignore",
-            "targetElements": ignore_targets,
+            "card": {
+                "type": "AdaptiveCard",
+                "body": [
+                    {
+                        "type": "TextBlock",
+                        "text": "Ignore until this happens again...",
+                        "weight": "Bolder",
+                    },
+                    {
+                        "type": "Input.ChoiceSet",
+                        "id": "ignoreInput",
+                        "choices": [
+                            {"title": "Ignore indefinitely", "value": -1},
+                            {"title": "1 time", "value": 1},
+                            {"title": "10 times", "value": 10},
+                            {"title": "100 times", "value": 100},
+                            {"title": "1,000 times", "value": 1000},
+                            {"title": "10,000 times", "value": 10000},
+                        ],
+                    },
+                ],
+                "actions": [
+                    {
+                        "type": "Action.Submit",
+                        "title": "Ignore",
+                        "data": generate_action_payload(
+                            ACTION_TYPE.IGNORE, event, rules, integration
+                        ),
+                    }
+                ],
+            },
         }
 
     if get_assignee_string(group):
@@ -481,149 +511,73 @@ def build_group_actions(group, event, rules, integration):
             "data": generate_action_payload(ACTION_TYPE.UNASSIGN, event, rules, integration),
         }
     else:
-        assign_text = "Assign"
+        teams_list = group.project.teams.all().order_by("slug")
+        teams = [{"title": f"#{u.slug}", "value": f"team:{u.id}"} for u in teams_list]
+        teams = [{"title": "Me", "value": ME}] + teams
         assign_action = {
-            "type": "Action.ToggleVisibility",
-            "title": assign_text,
-            "targetElements": assign_targets,
+            "type": "Action.ShowCard",
+            "version": "1.2",
+            "title": "Assign",
+            "card": {
+                "type": "AdaptiveCard",
+                "body": [
+                    {"type": "Input.ChoiceSet", "id": "assignInput", "value": ME, "choices": teams}
+                ],
+                "actions": [
+                    {
+                        "type": "Action.Submit",
+                        "title": "Assign",
+                        "data": generate_action_payload(
+                            ACTION_TYPE.ASSIGN, event, rules, integration
+                        ),
+                    }
+                ],
+            },
         }
 
     return {
-        "type": "ColumnSet",
-        "columns": [
-            {
-                "type": "Column",
-                "items": [{"type": "ActionSet", "actions": [resolve_action]}],
-                "width": "auto",
-            },
-            {
-                "type": "Column",
-                "items": [{"type": "ActionSet", "actions": [ignore_action]}],
-                "width": "auto",
-            },
-            {
-                "type": "Column",
-                "items": [{"type": "ActionSet", "actions": [assign_action]}],
-                "width": "auto",
-            },
-        ],
+        "type": "Container",
+        "items": [{"type": "ActionSet", "actions": [resolve_action, ignore_action, assign_action]}],
     }
 
 
 def build_group_resolve_card(group, event, rules, integration):
-    title_card = {
-        "type": "TextBlock",
-        "size": "Large",
-        "text": "Resolve",
-        "weight": "Bolder",
-        "id": "resolveTitle",
-        "isVisible": False,
-    }
-
-    input_card = {
-        "type": "Input.ChoiceSet",
-        "value": "resolved",
-        "id": "resolveInput",
-        "isVisible": False,
-        "choices": [
-            {"title": "Immediately", "value": "resolved"},
-            {"title": "In the current release", "value": "resolved:inCurrentRelease"},
-            {"title": "In the next release", "value": "resolved:inNextRelease"},
-        ],
-    }
-
-    submit_card = {
-        "type": "ActionSet",
-        "id": "resolveSubmit",
-        "isVisible": False,
-        "actions": [
-            {
-                "type": "Action.Submit",
-                "title": "Resolve",
-                "data": generate_action_payload(ACTION_TYPE.RESOLVE, event, rules, integration),
-            }
-        ],
-    }
-
-    return [title_card, input_card, submit_card]
+    return [
+        {
+            "type": "TextBlock",
+            "size": "Large",
+            "text": "Resolve",
+            "weight": "Bolder",
+            "id": "resolveTitle",
+            "isVisible": False,
+        }
+    ]
 
 
 def build_group_ignore_card(group, event, rules, integration):
-    title_card = {
-        "type": "TextBlock",
-        "size": "Large",
-        "text": "Ignore until this happens again...",
-        "weight": "Bolder",
-        "id": "ignoreTitle",
-        "isVisible": False,
-    }
-
-    input_card = {
-        "type": "Input.ChoiceSet",
-        "value": -1,
-        "id": "ignoreInput",
-        "isVisible": False,
-        "choices": [
-            {"title": "Ignore indefinitely", "value": -1},
-            {"title": "1 time", "value": 1},
-            {"title": "10 times", "value": 10},
-            {"title": "100 times", "value": 100},
-            {"title": "1,000 times", "value": 1000},
-            {"title": "10,000 times", "value": 10000},
-        ],
-    }
-
-    submit_card = {
-        "type": "ActionSet",
-        "id": "ignoreSubmit",
-        "isVisible": False,
-        "actions": [
-            {
-                "type": "Action.Submit",
-                "title": "Ignore",
-                "data": generate_action_payload(ACTION_TYPE.IGNORE, event, rules, integration),
-            }
-        ],
-    }
-
-    return [title_card, input_card, submit_card]
+    return [
+        {
+            "type": "TextBlock",
+            "size": "Large",
+            "text": "Ignore until this happens again...",
+            "weight": "Bolder",
+            "id": "ignoreTitle",
+            "isVisible": False,
+        }
+    ]
 
 
 def build_group_assign_card(group, event, rules, integration):
-    teams_list = group.project.teams.all().order_by("slug")
-    teams = [{"title": u"#{}".format(u.slug), "value": u"team:{}".format(u.id)} for u in teams_list]
-    teams = [{"title": "Me", "value": ME}] + teams
-    title_card = {
-        "type": "TextBlock",
-        "size": "Large",
-        "text": "Assign to...",
-        "weight": "Bolder",
-        "id": "assignTitle",
-        "isVisible": False,
-    }
-
-    input_card = {
-        "type": "Input.ChoiceSet",
-        "id": "assignInput",
-        "value": ME,
-        "isVisible": False,
-        "choices": teams,
-    }
-
-    submit_card = {
-        "type": "ActionSet",
-        "id": "assignSubmit",
-        "isVisible": False,
-        "actions": [
-            {
-                "type": "Action.Submit",
-                "title": "Assign",
-                "data": generate_action_payload(ACTION_TYPE.ASSIGN, event, rules, integration),
-            }
-        ],
-    }
-
-    return [title_card, input_card, submit_card]
+    return [
+        {
+            "type": "TextBlock",
+            "size": "Large",
+            "text": "Assign to...",
+            "weight": "Bolder",
+            "id": "assignTitle",
+            "isVisible": False,
+        }
+    ]
 
 
 def build_group_action_cards(group, event, rules, integration):
@@ -665,9 +619,6 @@ def build_group_card(group, event, rules, integration):
     actions = build_group_actions(group, event, rules, integration)
     body.append(actions)
 
-    action_cards = build_group_action_cards(group, event, rules, integration)
-    body.append(action_cards)
-
     return {
         "type": "AdaptiveCard",
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -690,6 +641,8 @@ def build_linking_card(url):
     }
     return {
         "type": "AdaptiveCard",
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
         "body": [desc],
         "actions": [button],
     }
@@ -740,8 +693,8 @@ def build_unlinked_card():
     }
 
 
-def build_incident_attachment(incident, metric_value=None):
-    data = incident_attachment_info(incident, metric_value)
+def build_incident_attachment(action, incident, metric_value=None, method=None):
+    data = incident_attachment_info(incident, metric_value, action=action, method=method)
 
     colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}
 

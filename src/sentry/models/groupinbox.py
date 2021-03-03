@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import jsonschema
 import logging
 
@@ -9,6 +7,8 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, JSONField
+from sentry.models import Activity
+from sentry.signals import inbox_in, inbox_out
 
 INBOX_REASON_DETAILS = {
     "type": ["object", "null"],
@@ -29,6 +29,13 @@ class GroupInboxReason(Enum):
     UNIGNORED = 1
     REGRESSION = 2
     MANUAL = 3
+    REPROCESSED = 4
+
+
+class GroupInboxRemoveAction(Enum):
+    RESOLVED = "resolved"
+    IGNORED = "ignored"
+    MARK_REVIEWED = "mark_reviewed"
 
 
 class GroupInbox(Model):
@@ -43,11 +50,12 @@ class GroupInbox(Model):
     organization = FlexibleForeignKey("sentry.Organization", null=True, db_constraint=False)
     reason = models.PositiveSmallIntegerField(null=False, default=GroupInboxReason.NEW.value)
     reason_details = JSONField(null=True)
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupinbox"
+        index_together = (("project", "date_added"),)
 
 
 def add_group_to_inbox(group, reason, reason_details=None):
@@ -58,7 +66,7 @@ def add_group_to_inbox(group, reason, reason_details=None):
     try:
         jsonschema.validate(reason_details, INBOX_REASON_DETAILS)
     except jsonschema.ValidationError:
-        logging.error("GroupInbox invalid jsonschema: {}".format(reason_details))
+        logging.error(f"GroupInbox invalid jsonschema: {reason_details}")
         reason_details = None
 
     group_inbox, created = GroupInbox.objects.get_or_create(
@@ -70,13 +78,42 @@ def add_group_to_inbox(group, reason, reason_details=None):
             "reason_details": reason_details,
         },
     )
+
+    # Ignore new issues, too many events
+    if reason is not GroupInboxReason.NEW:
+        inbox_in.send_robust(
+            project=group.project,
+            user=None,
+            group=group,
+            sender="add_group_to_inbox",
+            reason=reason.name.lower(),
+        )
     return group_inbox
 
 
-def remove_group_from_inbox(group):
+def remove_group_from_inbox(group, action=None, user=None, referrer=None):
     try:
         group_inbox = GroupInbox.objects.get(group=group)
         group_inbox.delete()
+
+        if action is GroupInboxRemoveAction.MARK_REVIEWED and user is not None:
+            Activity.objects.create(
+                project_id=group_inbox.group.project_id,
+                group_id=group_inbox.group_id,
+                type=Activity.MARK_REVIEWED,
+                user=user,
+            )
+
+        if action:
+            inbox_out.send_robust(
+                group=group_inbox.group,
+                project=group_inbox.group.project,
+                user=user,
+                sender="remove_group_from_inbox",
+                action=action.value,
+                inbox_date_added=group_inbox.date_added,
+                referrer=referrer,
+            )
     except GroupInbox.DoesNotExist:
         pass
 

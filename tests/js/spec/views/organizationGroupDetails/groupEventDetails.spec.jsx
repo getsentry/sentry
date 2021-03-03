@@ -55,13 +55,23 @@ describe('groupEventDetails', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/current-release/`,
+      body: {currentRelease: null},
+    });
+
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
       body: [],
     });
 
     MockApiClient.addMockResponse({
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
       body: promptsActivity,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/has-mobile-app-events/`,
+      body: null,
     });
 
     MockApiClient.addMockResponse({

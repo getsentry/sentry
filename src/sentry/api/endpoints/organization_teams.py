@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
@@ -89,7 +85,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
         if query:
             tokens = tokenize_query(query)
-            for key, value in six.iteritems(tokens):
+            for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))

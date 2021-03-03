@@ -103,4 +103,7 @@ export function getCommitterStoreKey(
 }
 
 type CommitterStore = Reflux.Store & CommitterStoreInterface;
-export default Reflux.createStore(CommitterStoreConfig) as CommitterStore;
+
+const CommitterStore = Reflux.createStore(CommitterStoreConfig) as CommitterStore;
+
+export default CommitterStore;

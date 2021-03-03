@@ -9,6 +9,7 @@ import * as queryString from 'query-string';
 import Reflux from 'reflux';
 
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
+import SidebarPanelActions from 'app/actions/sidebarPanelActions';
 import Feature from 'app/components/acl/feature';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import {
@@ -22,7 +23,6 @@ import {
   IconReleases,
   IconSettings,
   IconSiren,
-  IconStack,
   IconStats,
   IconSupport,
   IconTelescope,
@@ -31,6 +31,7 @@ import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import PreferencesStore from 'app/stores/preferencesStore';
+import SidebarPanelStore from 'app/stores/sidebarPanelStore';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
@@ -43,20 +44,18 @@ import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
-import {getSidebarPanelContainer} from './sidebarPanel';
 import {SidebarOrientation, SidebarPanelKey} from './types';
 
 type Props = {
-  location: Location;
   organization: Organization;
+  activePanel: SidebarPanelKey | '';
   collapsed: boolean;
+  location?: Location;
   children?: never;
 };
 
 type State = {
   horizontal: boolean;
-  showPanel: boolean;
-  currentPanel: SidebarPanelKey;
 };
 
 class Sidebar extends React.Component<Props, State> {
@@ -75,32 +74,13 @@ class Sidebar extends React.Component<Props, State> {
 
   state: State = {
     horizontal: false,
-    currentPanel: '',
-    showPanel: false,
   };
 
   componentDidMount() {
     document.body.classList.add('body-sidebar');
-    document.addEventListener('click', this.panelCloseHandler);
 
-    this.hashChangeHandler();
+    this.checkHash();
     this.doCollapse(this.props.collapsed);
-  }
-
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    const {collapsed, location} = this.props;
-    const nextLocation = nextProps.location;
-
-    // Close active panel if we navigated anywhere
-    if (nextLocation && location && location.pathname !== nextLocation.pathname) {
-      this.hidePanel();
-    }
-
-    if (collapsed === nextProps.collapsed) {
-      return;
-    }
-
-    this.doCollapse(nextProps.collapsed);
   }
 
   // Sidebar doesn't use children, so don't use it to compare
@@ -125,8 +105,21 @@ class Sidebar extends React.Component<Props, State> {
     );
   }
 
+  componentDidUpdate(prevProps: Props) {
+    const {collapsed, location} = this.props;
+
+    // Close active panel if we navigated anywhere
+    if (location?.pathname !== prevProps.location?.pathname) {
+      this.hidePanel();
+    }
+
+    // Collapse
+    if (collapsed !== prevProps.collapsed) {
+      this.doCollapse(collapsed);
+    }
+  }
+
   componentWillUnmount() {
-    document.removeEventListener('click', this.panelCloseHandler);
     document.body.classList.remove('body-sidebar');
 
     if (this.mq) {
@@ -156,9 +149,9 @@ class Sidebar extends React.Component<Props, State> {
     }
   };
 
-  hashChangeHandler = () => {
+  checkHash = () => {
     if (window.location.hash === '#welcome') {
-      this.togglePanel('todos');
+      this.togglePanel(SidebarPanelKey.OnboardingWizard);
     }
   };
 
@@ -168,17 +161,8 @@ class Sidebar extends React.Component<Props, State> {
     });
   };
 
-  // Hide slideout panel
-  hidePanel = () => {
-    if (this.state.currentPanel === '') {
-      return;
-    }
-
-    this.setState({
-      showPanel: false,
-      currentPanel: '',
-    });
-  };
+  togglePanel = (panel: SidebarPanelKey) => SidebarPanelActions.togglePanel(panel);
+  hidePanel = () => SidebarPanelActions.hidePanel();
 
   // Keep the global selection querystring values in the path
   navigateWithGlobalSelection = (
@@ -188,7 +172,6 @@ class Sidebar extends React.Component<Props, State> {
     const globalSelectionRoutes = [
       'dashboards',
       'issues',
-      'events',
       'releases',
       'user-feedback',
       'discover',
@@ -198,7 +181,7 @@ class Sidebar extends React.Component<Props, State> {
 
     // Only keep the querystring if the current route matches one of the above
     if (globalSelectionRoutes.includes(pathname)) {
-      const query = extractSelectionParameters(this.props.location.query);
+      const query = extractSelectionParameters(this.props.location?.query);
 
       // Handle cmd-click (mac) and meta-click (linux)
       if (evt.metaKey) {
@@ -214,88 +197,12 @@ class Sidebar extends React.Component<Props, State> {
     this.hidePanel();
   };
 
-  // Show slideout panel
-  showPanel = (panel: SidebarPanelKey) => {
-    this.setState({
-      showPanel: true,
-      currentPanel: panel,
-    });
-  };
-
-  togglePanel = (panel: SidebarPanelKey) => {
-    if (this.state.currentPanel === panel) {
-      this.hidePanel();
-    } else {
-      this.showPanel(panel);
-    }
-  };
-
-  panelCloseHandler = (evt: MouseEvent) => {
-    if (!(evt.target instanceof Element)) {
-      return;
-    }
-
-    // Ignore if click occurs within sidebar
-    if (this.sidebarRef.current && this.sidebarRef.current.contains(evt.target)) {
-      return;
-    }
-
-    // Ignore if click occurs within the sidebar panel
-    const panel = getSidebarPanelContainer();
-    if (panel && panel.contains(evt.target)) {
-      return;
-    }
-
-    this.hidePanel();
-  };
-
-  /**
-   * Determine which mix of discovers and events tabs to show for an account.
-   */
-  discoverSidebarState() {
-    const {organization} = this.props;
-    // Default all things to off
-    const sidebarState = {
-      discover1: false,
-      discover2: false,
-      events: false,
-    };
-
-    // Bail as we can't do any more checks.
-    if (!organization || !organization.features) {
-      return sidebarState;
-    }
-    const features = organization.features;
-
-    if (features.includes('discover-basic')) {
-      sidebarState.discover2 = true;
-      return sidebarState;
-    }
-
-    // If an account has the old features they continue to have
-    // access to them.
-    if (features.includes('discover')) {
-      sidebarState.discover1 = true;
-    }
-    if (features.includes('events')) {
-      sidebarState.events = true;
-    }
-
-    // If an organization doesn't have events, or discover-basic
-    // Enable the tab so we can show an upsell state in saas.
-    if (!sidebarState.events) {
-      sidebarState.discover2 = true;
-    }
-
-    return sidebarState;
-  }
-
   render() {
-    const {organization, collapsed} = this.props;
-    const {currentPanel, showPanel, horizontal} = this.state;
+    const {activePanel, organization, collapsed} = this.props;
+    const {horizontal} = this.state;
     const config = ConfigStore.getConfig();
     const user = ConfigStore.get('user');
-    const hasPanel = !!currentPanel;
+    const hasPanel = !!activePanel;
     const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
     const sidebarItemProps = {
       orientation,
@@ -304,7 +211,200 @@ class Sidebar extends React.Component<Props, State> {
     };
     const hasOrganization = !!organization;
 
-    const discoverState = this.discoverSidebarState();
+    const projects = hasOrganization && (
+      <SidebarItem
+        {...sidebarItemProps}
+        index
+        onClick={this.hidePanel}
+        icon={<IconProject size="md" />}
+        label={t('Projects')}
+        to={`/organizations/${organization.slug}/projects/`}
+        id="projects"
+      />
+    );
+
+    const issues = hasOrganization && (
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={(_id, evt) =>
+          this.navigateWithGlobalSelection(
+            `/organizations/${organization.slug}/issues/`,
+            evt
+          )
+        }
+        icon={<IconIssues size="md" />}
+        label={t('Issues')}
+        to={`/organizations/${organization.slug}/issues/`}
+        id="issues"
+      />
+    );
+
+    const discover2 = hasOrganization && (
+      <Feature
+        hookName="feature-disabled:discover2-sidebar-item"
+        features={['discover-basic']}
+        organization={organization}
+      >
+        <SidebarItem
+          {...sidebarItemProps}
+          onClick={(_id, evt) =>
+            this.navigateWithGlobalSelection(getDiscoverLandingUrl(organization), evt)
+          }
+          icon={<IconTelescope size="md" />}
+          label={t('Discover')}
+          to={getDiscoverLandingUrl(organization)}
+          id="discover-v2"
+        />
+      </Feature>
+    );
+
+    const performance = hasOrganization && (
+      <Feature
+        hookName="feature-disabled:performance-sidebar-item"
+        features={['performance-view']}
+        organization={organization}
+      >
+        <SidebarItem
+          {...sidebarItemProps}
+          onClick={(_id, evt) =>
+            this.navigateWithGlobalSelection(
+              `/organizations/${organization.slug}/performance/`,
+              evt
+            )
+          }
+          icon={<IconLightning size="md" />}
+          label={t('Performance')}
+          to={`/organizations/${organization.slug}/performance/`}
+          id="performance"
+        />
+      </Feature>
+    );
+
+    const releases = hasOrganization && (
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={(_id, evt) =>
+          this.navigateWithGlobalSelection(
+            `/organizations/${organization.slug}/releases/`,
+            evt
+          )
+        }
+        icon={<IconReleases size="md" />}
+        label={t('Releases')}
+        to={`/organizations/${organization.slug}/releases/`}
+        id="releases"
+      />
+    );
+
+    const userFeedback = hasOrganization && (
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={(_id, evt) =>
+          this.navigateWithGlobalSelection(
+            `/organizations/${organization.slug}/user-feedback/`,
+            evt
+          )
+        }
+        icon={<IconSupport size="md" />}
+        label={t('User Feedback')}
+        to={`/organizations/${organization.slug}/user-feedback/`}
+        id="user-feedback"
+      />
+    );
+
+    const alerts = hasOrganization && (
+      <Feature features={['incidents']}>
+        {({hasFeature}) => {
+          const alertsPath = hasFeature
+            ? `/organizations/${organization.slug}/alerts/`
+            : `/organizations/${organization.slug}/alerts/rules/`;
+          return (
+            <SidebarItem
+              {...sidebarItemProps}
+              onClick={(_id, evt) => this.navigateWithGlobalSelection(alertsPath, evt)}
+              icon={<IconSiren size="md" />}
+              label={t('Alerts')}
+              to={alertsPath}
+              id="alerts"
+            />
+          );
+        }}
+      </Feature>
+    );
+
+    const monitors = hasOrganization && (
+      <Feature features={['monitors']} organization={organization}>
+        <SidebarItem
+          {...sidebarItemProps}
+          onClick={(_id, evt) =>
+            this.navigateWithGlobalSelection(
+              `/organizations/${organization.slug}/monitors/`,
+              evt
+            )
+          }
+          icon={<IconLab size="md" />}
+          label={t('Monitors')}
+          to={`/organizations/${organization.slug}/monitors/`}
+          id="monitors"
+        />
+      </Feature>
+    );
+
+    const dashboards = hasOrganization && (
+      <Feature
+        features={['discover', 'discover-query']}
+        organization={organization}
+        requireAll={false}
+      >
+        <SidebarItem
+          {...sidebarItemProps}
+          index
+          onClick={(_id, evt) =>
+            this.navigateWithGlobalSelection(
+              `/organizations/${organization.slug}/dashboards/`,
+              evt
+            )
+          }
+          icon={<IconGraph size="md" />}
+          label={t('Dashboards')}
+          to={`/organizations/${organization.slug}/dashboards/`}
+          id="customizable-dashboards"
+        />
+      </Feature>
+    );
+
+    const activity = hasOrganization && (
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={this.hidePanel}
+        icon={<IconActivity size="md" />}
+        label={t('Activity')}
+        to={`/organizations/${organization.slug}/activity/`}
+        id="activity"
+      />
+    );
+
+    const stats = hasOrganization && (
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={this.hidePanel}
+        icon={<IconStats size="md" />}
+        label={t('Stats')}
+        to={`/organizations/${organization.slug}/stats/`}
+        id="stats"
+      />
+    );
+
+    const settings = hasOrganization && (
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={this.hidePanel}
+        icon={<IconSettings size="md" />}
+        label={t('Settings')}
+        to={`/settings/${organization.slug}/`}
+        id="settings"
+      />
+    );
 
     return (
       <StyledSidebar ref={this.sidebarRef} collapsed={collapsed}>
@@ -323,216 +423,26 @@ class Sidebar extends React.Component<Props, State> {
             {hasOrganization && (
               <React.Fragment>
                 <SidebarSection>
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    index
-                    onClick={this.hidePanel}
-                    icon={<IconProject size="md" />}
-                    label={t('Projects')}
-                    to={`/organizations/${organization.slug}/projects/`}
-                    id="projects"
-                  />
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={(_id, evt) =>
-                      this.navigateWithGlobalSelection(
-                        `/organizations/${organization.slug}/issues/`,
-                        evt
-                      )
-                    }
-                    icon={<IconIssues size="md" />}
-                    label={t('Issues')}
-                    to={`/organizations/${organization.slug}/issues/`}
-                    id="issues"
-                  />
-                  {discoverState.events && (
-                    <Feature
-                      features={['events']}
-                      hookName="feature-disabled:events-sidebar-item"
-                      organization={organization}
-                    >
-                      <SidebarItem
-                        {...sidebarItemProps}
-                        onClick={(_id, evt) =>
-                          this.navigateWithGlobalSelection(
-                            `/organizations/${organization.slug}/events/`,
-                            evt
-                          )
-                        }
-                        icon={<IconStack size="md" />}
-                        label={t('Events')}
-                        to={`/organizations/${organization.slug}/events/`}
-                        id="events"
-                      />
-                    </Feature>
-                  )}
-                  {discoverState.discover2 && (
-                    <Feature
-                      hookName="feature-disabled:discover2-sidebar-item"
-                      features={['discover-basic']}
-                      organization={organization}
-                    >
-                      <SidebarItem
-                        {...sidebarItemProps}
-                        onClick={(_id, evt) =>
-                          this.navigateWithGlobalSelection(
-                            getDiscoverLandingUrl(organization),
-                            evt
-                          )
-                        }
-                        icon={<IconTelescope size="md" />}
-                        label={t('Discover')}
-                        to={getDiscoverLandingUrl(organization)}
-                        id="discover-v2"
-                      />
-                    </Feature>
-                  )}
-                  <Feature
-                    hookName="feature-disabled:performance-sidebar-item"
-                    features={['performance-view']}
-                    organization={organization}
-                  >
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/performance/`,
-                          evt
-                        )
-                      }
-                      icon={<IconLightning size="md" />}
-                      label={t('Performance')}
-                      to={`/organizations/${organization.slug}/performance/`}
-                      id="performance"
-                    />
-                  </Feature>
-                  <Feature features={['incidents']}>
-                    {({hasFeature}) => {
-                      const alertsPath = hasFeature
-                        ? `/organizations/${organization.slug}/alerts/`
-                        : `/organizations/${organization.slug}/alerts/rules/`;
-                      return (
-                        <SidebarItem
-                          {...sidebarItemProps}
-                          onClick={(_id, evt) =>
-                            this.navigateWithGlobalSelection(alertsPath, evt)
-                          }
-                          icon={<IconSiren size="md" />}
-                          label={t('Alerts')}
-                          to={alertsPath}
-                          id="alerts"
-                          isNew
-                        />
-                      );
-                    }}
-                  </Feature>
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={(_id, evt) =>
-                      this.navigateWithGlobalSelection(
-                        `/organizations/${organization.slug}/releases/`,
-                        evt
-                      )
-                    }
-                    icon={<IconReleases size="md" />}
-                    label={t('Releases')}
-                    to={`/organizations/${organization.slug}/releases/`}
-                    id="releases"
-                  />
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={(_id, evt) =>
-                      this.navigateWithGlobalSelection(
-                        `/organizations/${organization.slug}/user-feedback/`,
-                        evt
-                      )
-                    }
-                    icon={<IconSupport size="md" />}
-                    label={t('User Feedback')}
-                    to={`/organizations/${organization.slug}/user-feedback/`}
-                    id="user-feedback"
-                  />
+                  {projects}
+                  {issues}
+                  {performance}
+                  {releases}
+                  {userFeedback}
+                  {alerts}
+                  {discover2}
                 </SidebarSection>
 
                 <SidebarSection>
-                  <Feature
-                    features={['discover', 'discover-query']}
-                    organization={organization}
-                    requireAll={false}
-                  >
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      index
-                      onClick={this.hidePanel}
-                      icon={<IconGraph size="md" />}
-                      label={t('Dashboards')}
-                      to={`/organizations/${organization.slug}/dashboards/`}
-                      id="customizable-dashboards"
-                    />
-                  </Feature>
-
-                  {discoverState.discover1 && (
-                    <Feature
-                      features={['discover']}
-                      hookName="feature-disabled:discover-sidebar-item"
-                      organization={organization}
-                    >
-                      <SidebarItem
-                        {...sidebarItemProps}
-                        onClick={this.hidePanel}
-                        icon={<IconTelescope size="md" />}
-                        label={t('Discover')}
-                        to={`/organizations/${organization.slug}/discover/`}
-                        id="discover"
-                      />
-                    </Feature>
-                  )}
-                  <Feature features={['monitors']} organization={organization}>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/monitors/`,
-                          evt
-                        )
-                      }
-                      icon={<IconLab size="md" />}
-                      label={t('Monitors')}
-                      to={`/organizations/${organization.slug}/monitors/`}
-                      id="monitors"
-                    />
-                  </Feature>
+                  {dashboards}
+                  {monitors}
                 </SidebarSection>
 
                 <SidebarSection>
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={this.hidePanel}
-                    icon={<IconActivity size="md" />}
-                    label={t('Activity')}
-                    to={`/organizations/${organization.slug}/activity/`}
-                    id="activity"
-                  />
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={this.hidePanel}
-                    icon={<IconStats size="md" />}
-                    label={t('Stats')}
-                    to={`/organizations/${organization.slug}/stats/`}
-                    id="stats"
-                  />
+                  {activity}
+                  {stats}
                 </SidebarSection>
 
-                <SidebarSection>
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={this.hidePanel}
-                    icon={<IconSettings size="md" />}
-                    label={t('Settings')}
-                    to={`/settings/${organization.slug}/`}
-                    id="settings"
-                  />
-                </SidebarSection>
+                <SidebarSection>{settings}</SidebarSection>
               </React.Fragment>
             )}
           </PrimaryItems>
@@ -543,9 +453,8 @@ class Sidebar extends React.Component<Props, State> {
             <SidebarSection noMargin noPadding>
               <OnboardingStatus
                 org={organization}
-                currentPanel={currentPanel}
-                onShowPanel={() => this.togglePanel('todos')}
-                showPanel={showPanel}
+                currentPanel={activePanel}
+                onShowPanel={() => this.togglePanel(SidebarPanelKey.OnboardingWizard)}
                 hidePanel={this.hidePanel}
                 {...sidebarItemProps}
               />
@@ -566,18 +475,16 @@ class Sidebar extends React.Component<Props, State> {
               <Broadcasts
                 orientation={orientation}
                 collapsed={collapsed}
-                showPanel={showPanel}
-                currentPanel={currentPanel}
-                onShowPanel={() => this.togglePanel('broadcasts')}
+                currentPanel={activePanel}
+                onShowPanel={() => this.togglePanel(SidebarPanelKey.Broadcasts)}
                 hidePanel={this.hidePanel}
                 organization={organization}
               />
               <ServiceIncidents
                 orientation={orientation}
                 collapsed={collapsed}
-                showPanel={showPanel}
-                currentPanel={currentPanel}
-                onShowPanel={() => this.togglePanel('statusupdate')}
+                currentPanel={activePanel}
+                onShowPanel={() => this.togglePanel(SidebarPanelKey.StatusUpdate)}
                 hidePanel={this.hidePanel}
               />
             </SidebarSection>
@@ -601,12 +508,16 @@ class Sidebar extends React.Component<Props, State> {
   }
 }
 
-const SidebarContainer = createReactClass<Omit<Props, 'collapsed'>>({
+const SidebarContainer = createReactClass<Omit<Props, 'collapsed' | 'activePanel'>>({
   displayName: 'SidebarContainer',
-  mixins: [Reflux.listenTo(PreferencesStore, 'onPreferenceChange') as any],
+  mixins: [
+    Reflux.listenTo(PreferencesStore, 'onPreferenceChange') as any,
+    Reflux.listenTo(SidebarPanelStore, 'onSidebarPanelChange') as any,
+  ],
   getInitialState() {
     return {
       collapsed: PreferencesStore.getInitialState().collapsed,
+      activePanel: '',
     };
   },
 
@@ -615,17 +526,19 @@ const SidebarContainer = createReactClass<Omit<Props, 'collapsed'>>({
       return;
     }
 
-    this.setState({
-      collapsed: preferences.collapsed,
-    });
+    this.setState({collapsed: preferences.collapsed});
+  },
+
+  onSidebarPanelChange(activePanel: SidebarPanelKey | '') {
+    this.setState({activePanel});
   },
 
   render() {
-    return <Sidebar {...this.props} collapsed={this.state.collapsed} />;
+    const {activePanel, collapsed} = this.state;
+    return <Sidebar {...this.props} {...{activePanel, collapsed}} />;
   },
 });
 
-export {Sidebar};
 export default withOrganization(SidebarContainer);
 
 const responsiveFlex = css`

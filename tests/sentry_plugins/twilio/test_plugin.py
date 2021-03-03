@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 
 from exam import fixture
@@ -7,7 +5,7 @@ from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils import TestCase, PluginTestCase
 from sentry_plugins.twilio.plugin import TwilioConfigurationForm, TwilioPlugin
-from six.moves.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 from sentry.utils.compat import map
 
 
@@ -26,10 +24,10 @@ class TwilioConfigurationFormTest(TestCase):
         self.assertDictEqual(
             form.clean(),
             {
-                "auth_token": u"foo",
-                "sms_to": u"+13305093095,+14045550144",
-                "sms_from": u"+13305093095",
-                "account_sid": u"bar",
+                "auth_token": "foo",
+                "sms_to": "+13305093095,+14045550144",
+                "sms_from": "+13305093095",
+                "account_sid": "bar",
             },
         )
 
@@ -46,10 +44,10 @@ class TwilioConfigurationFormTest(TestCase):
         self.assertDictEqual(
             errors,
             {
-                "auth_token": [u"This field is required."],
-                "account_sid": [u"This field is required."],
-                "sms_from": [u"foobar is not a valid phone number."],
-                "sms_to": [u"911 is not a valid phone number."],
+                "auth_token": ["This field is required."],
+                "account_sid": ["This field is required."],
+                "sms_from": ["foobar is not a valid phone number."],
+                "sms_to": ["911 is not a valid phone number."],
             },
         )
 

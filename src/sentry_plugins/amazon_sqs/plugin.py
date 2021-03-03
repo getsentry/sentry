@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import logging
 
-import six
 import boto3
 from botocore.client import ClientError, Config
 
@@ -141,10 +138,12 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
 
         def log_and_increment(metrics_name):
             logger.info(
-                metrics_name, extra=logging_params,
+                metrics_name,
+                extra=logging_params,
             )
             metrics.incr(
-                metrics_name, tags=metric_tags,
+                metrics_name,
+                tags=metric_tags,
             )
 
         def s3_put_object(*args, **kwargs):
@@ -174,11 +173,11 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             if s3_bucket:
                 # we want something like 2020-08-29 so we can store it by the date
                 date = event.datetime.strftime("%Y-%m-%d")
-                key = u"{}/{}/{}".format(event.project.slug, date, event.event_id)
+                key = f"{event.project.slug}/{date}/{event.event_id}"
                 logger.info("sentry_plugins.amazon_sqs.s3_put_object", extra=logging_params)
                 s3_put_object(Bucket=s3_bucket, Body=json.dumps(payload), Key=key)
 
-                url = u"https://{}.s3-{}.amazonaws.com/{}".format(s3_bucket, region, key)
+                url = f"https://{s3_bucket}.s3-{region}.amazonaws.com/{key}"
                 # just include the s3Url and the event ID in the payload
                 payload = {"s3Url": url, "eventID": event.event_id}
 
@@ -190,17 +189,17 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
 
             sqs_send_message(message)
         except ClientError as e:
-            if six.text_type(e).startswith(
-                "An error occurred (InvalidClientTokenId)"
-            ) or six.text_type(e).startswith("An error occurred (AccessDenied)"):
+            if str(e).startswith("An error occurred (InvalidClientTokenId)") or str(e).startswith(
+                "An error occurred (AccessDenied)"
+            ):
                 # If there's an issue with the user's token then we can't do
                 # anything to recover. Just log and continue.
                 log_and_increment("sentry_plugins.amazon_sqs.access_token_invalid")
                 return False
-            elif six.text_type(e).endswith("must contain the parameter MessageGroupId."):
+            elif str(e).endswith("must contain the parameter MessageGroupId."):
                 log_and_increment("sentry_plugins.amazon_sqs.missing_message_group_id")
                 return False
-            elif six.text_type(e).startswith("An error occurred (NoSuchBucket)"):
+            elif str(e).startswith("An error occurred (NoSuchBucket)"):
                 # If there's an issue with the user's s3 bucket then we can't do
                 # anything to recover. Just log and continue.
                 log_and_increment("sentry_plugins.amazon_sqs.s3_bucket_invalid")

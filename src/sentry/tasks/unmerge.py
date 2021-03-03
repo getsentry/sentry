@@ -1,7 +1,6 @@
-from __future__ import absolute_import
-
 import logging
 from collections import defaultdict, OrderedDict
+from functools import reduce
 
 from django.db import transaction
 
@@ -25,7 +24,6 @@ from sentry.models import (
 )
 from sentry import similarity
 from sentry.tasks.base import instrumented_task
-from six.moves import reduce
 
 
 logger = logging.getLogger(__name__)
@@ -180,7 +178,7 @@ def migrate_events(
         destination = Group.objects.create(
             project_id=project.id,
             short_id=project.next_short_id(),
-            **get_group_creation_attributes(caches, events)
+            **get_group_creation_attributes(caches, events),
         )
 
         destination_id = destination.id
@@ -215,15 +213,15 @@ def migrate_events(
         destination = Group.objects.get(id=destination_id)
         destination.update(**get_group_backfill_attributes(caches, destination, events))
 
-    event_id_set = set(event.event_id for event in events)
+    event_id_set = {event.event_id for event in events}
 
     for event in events:
         event.group = destination
 
-    event_id_set = set(event.event_id for event in events)
+    event_id_set = {event.event_id for event in events}
 
     UserReport.objects.filter(project_id=project.id, event_id__in=event_id_set).update(
-        group=destination_id
+        group_id=destination_id
     )
     EventAttachment.objects.filter(project_id=project.id, event_id__in=event_id_set).update(
         group_id=destination_id

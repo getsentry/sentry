@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import requests
-import six
 
 from django.conf.urls import url
 from django.utils.encoding import force_text
@@ -11,7 +8,7 @@ from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint, 
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
 from sentry.integrations import FeatureDescription, IntegrationFeatures
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
@@ -52,7 +49,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
     ]
 
     def get_group_urls(self):
-        return super(PivotalPlugin, self).get_group_urls() + [
+        return super().get_group_urls() + [
             url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
@@ -83,7 +80,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         ]
 
     def handle_api_error(self, error):
-        msg = u"Error communicating with Pivotal Tracker"
+        msg = "Error communicating with Pivotal Tracker"
         status = 400 if isinstance(error, PluginError) else 502
         return Response({"error_type": "validation", "errors": {"__all__": msg}}, status=status)
 
@@ -93,7 +90,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         if field != "issue_id" or not query:
             return Response({"issue_id": []})
         query = query.encode("utf-8")
-        _url = "%s?%s" % (self.build_api_url(group, "search"), urlencode({"query": query}))
+        _url = "{}?{}".format(self.build_api_url(group, "search"), urlencode({"query": query}))
         try:
             req = self.make_api_request(group.project, _url)
             body = safe_urlread(req)
@@ -108,7 +105,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
 
         resp = json_resp.get("stories", {})
         stories = resp.get("stories", [])
-        issues = [{"text": "(#%s) %s" % (i["id"], i["name"]), "id": i["id"]} for i in stories]
+        issues = [{"text": "(#{}) {}".format(i["id"], i["name"]), "id": i["id"]} for i in stories]
 
         return Response({field: issues})
 
@@ -116,19 +113,19 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         comment = form_data.get("comment")
         if not comment:
             return
-        _url = "%s/%s/comments" % (self.build_api_url(group, "stories"), form_data["issue_id"])
+        _url = "{}/{}/comments".format(self.build_api_url(group, "stories"), form_data["issue_id"])
         try:
             req = self.make_api_request(group.project, _url, json_data={"text": comment})
             body = safe_urlread(req)
         except requests.RequestException as e:
-            msg = six.text_type(e)
-            raise PluginError("Error communicating with Pivotal: %s" % (msg,))
+            msg = str(e)
+            raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         try:
             json_resp = json.loads(body)
         except ValueError as e:
-            msg = six.text_type(e)
-            raise PluginError("Error communicating with Pivotal: %s" % (msg,))
+            msg = str(e)
+            raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         if req.status_code > 399:
             raise PluginError(json_resp["error"])
@@ -136,13 +133,13 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
     def build_api_url(self, group, pivotal_api=None):
         project = self.get_option("project", group.project)
 
-        _url = "https://www.pivotaltracker.com/services/v5/projects/%s/%s" % (project, pivotal_api)
+        _url = f"https://www.pivotaltracker.com/services/v5/projects/{project}/{pivotal_api}"
 
         return _url
 
     def make_api_request(self, project, _url, json_data=None):
         req_headers = {
-            "X-TrackerToken": six.text_type(self.get_option("token", project)),
+            "X-TrackerToken": str(self.get_option("token", project)),
             "Content-Type": "application/json",
         }
         return safe_urlopen(_url, json=json_data, headers=req_headers, allow_redirects=True)
@@ -160,14 +157,14 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             req = self.make_api_request(group.project, _url, json_data=json_data)
             body = safe_urlread(req)
         except requests.RequestException as e:
-            msg = six.text_type(e)
-            raise PluginError("Error communicating with Pivotal: %s" % (msg,))
+            msg = str(e)
+            raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         try:
             json_resp = json.loads(body)
         except ValueError as e:
-            msg = six.text_type(e)
-            raise PluginError("Error communicating with Pivotal: %s" % (msg,))
+            msg = str(e)
+            raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         if req.status_code > 399:
             raise PluginError(json_resp["error"])
@@ -181,7 +178,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         return "https://www.pivotaltracker.com/story/show/%s" % issue_id
 
     def get_issue_title_by_id(self, request, group, issue_id):
-        _url = "%s/%s" % (self.build_api_url(group, "stories"), issue_id)
+        _url = "{}/{}".format(self.build_api_url(group, "stories"), issue_id)
         req = self.make_api_request(group.project, _url)
 
         body = safe_urlread(req)

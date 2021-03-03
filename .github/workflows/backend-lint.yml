@@ -9,11 +9,19 @@ on:
 jobs:
   lint:
     name: backend lint
-    runs-on: ubuntu-16.04
-    timeout-minutes: 3
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v2
+
+      - name: Internal github app token
+        id: token
+        uses: getsentry/action-github-app-token@v1
+        continue-on-error: true
+        with:
+          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
       # creates a status check in the "pending" state. This means that the workflow needs to run
@@ -34,7 +42,7 @@ jobs:
         id: python-version
         if: steps.changes.outputs.backend == 'true'
         run: |
-          echo "::set-output name=python-version::$(grep "3.6" .python-version)"
+          echo "::set-output name=python-version::$(cat .python-version)"
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
@@ -54,9 +62,9 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          key: ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
+            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}
 
       - name: Setup pre-commit
         if: steps.changes.outputs.backend == 'true'
@@ -88,14 +96,12 @@ jobs:
           #      `getconf ARG_MAX` - max # bytes of args + environ for exec()
           pre-commit run --files ${{ steps.files.outputs.all_files }}
 
-      # Apply fixed files via pull request review comments
-      - name: Apply any pre-commit fixed files as Pull Request review comments
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.backend == 'true' && always()
-        continue-on-error: true
-        uses: getsentry/action-git-diff-suggestions@main
+      # If working tree is dirty, commit and update if we have a token
+      - name: Apply any pre-commit fixed files
+        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.backend == 'true' && always()
+        uses: getsentry/action-github-commit@main
         with:
-          message: pre-commit made this change
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.token.outputs.token }}
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts

@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from collections import OrderedDict
 from django.db.models import F
 from rest_framework.response import Response
@@ -35,8 +31,8 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         ):
             # XXX (alex, 08/05/19) key stats were being stored under either key_id or str(key_id)
             # so merge both of those back into one stats result.
-            result = tsdb.get_range(model=model, keys=[key.id, six.text_type(key.id)], **stat_args)
-            for key_id, points in six.iteritems(result):
+            result = tsdb.get_range(model=model, keys=[key.id, str(key.id)], **stat_args)
+            for key_id, points in result.items():
                 for ts, count in points:
                     bucket = stats.setdefault(int(ts), {})
                     bucket.setdefault(name, 0)
@@ -51,6 +47,6 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
                     "filtered": data["filtered"],
                     "accepted": data["total"] - data["dropped"] - data["filtered"],
                 }
-                for ts, data in six.iteritems(stats)
+                for ts, data in stats.items()
             ]
         )

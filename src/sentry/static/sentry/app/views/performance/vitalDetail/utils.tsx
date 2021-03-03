@@ -1,26 +1,50 @@
+import React from 'react';
 import {Location, Query} from 'history';
 
+import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import {Series} from 'app/types/echarts';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-
-import {WEB_VITAL_DETAILS} from '../transactionVitals/constants';
+import {Color} from 'app/utils/theme';
 
 export function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/vitaldetail/`;
 }
 
-export const vitalsThresholdFields = {
-  [WebVital.FCP]: 'count_at_least(measurements.fcp, 3000)',
-  [WebVital.LCP]: 'count_at_least(measurements.lcp, 4000)',
-  [WebVital.FID]: 'count_at_least(measurements.fid, 300)',
-  [WebVital.CLS]: 'count_at_least(measurements.cls, 0.25)',
+export const webVitalPoor = {
+  [WebVital.FP]: 3000,
+  [WebVital.FCP]: 3000,
+  [WebVital.LCP]: 4000,
+  [WebVital.FID]: 300,
+  [WebVital.CLS]: 0.25,
 };
-export const vitalsBaseFields = {
-  [WebVital.FCP]: 'count_at_least(measurements.fcp, 0)',
-  [WebVital.LCP]: 'count_at_least(measurements.lcp, 0)',
-  [WebVital.FID]: 'count_at_least(measurements.fid, 0)',
-  [WebVital.CLS]: 'count_at_least(measurements.cls, 0)',
+
+export const webVitalMeh = {
+  [WebVital.FP]: 1000,
+  [WebVital.FCP]: 1000,
+  [WebVital.LCP]: 2500,
+  [WebVital.FID]: 100,
+  [WebVital.CLS]: 0.1,
+};
+
+export enum VitalState {
+  POOR = 'Poor',
+  MEH = 'Meh',
+  GOOD = 'Good',
+}
+
+export const vitalStateColors: Record<VitalState, Color> = {
+  [VitalState.POOR]: 'red300',
+  [VitalState.MEH]: 'yellow300',
+  [VitalState.GOOD]: 'green300',
+};
+
+export const vitalStateIcons: Record<VitalState, React.ReactNode> = {
+  [VitalState.POOR]: <IconFire color={vitalStateColors[VitalState.POOR]} />,
+  [VitalState.MEH]: <IconWarning color={vitalStateColors[VitalState.MEH]} />,
+  [VitalState.GOOD]: (
+    <IconCheckmark color={vitalStateColors[VitalState.GOOD]} isCircled />
+  ),
 };
 
 export function vitalDetailRouteWithQuery({
@@ -64,8 +88,16 @@ export function vitalNameFromLocation(location: Location): WebVital {
   }
 }
 
-export function getVitalDetailTableStatusFunction(vitalName: WebVital): string {
-  const vitalThreshold = WEB_VITAL_DETAILS[vitalName].failureThreshold;
+export function getVitalDetailTablePoorStatusFunction(vitalName: WebVital): string {
+  const vitalThreshold = webVitalPoor[vitalName];
+  const statusFunction = `compare_numeric_aggregate(${getAggregateAlias(
+    `p75(${vitalName})`
+  )},greater,${vitalThreshold})`;
+  return statusFunction;
+}
+
+export function getVitalDetailTableMehStatusFunction(vitalName: WebVital): string {
+  const vitalThreshold = webVitalMeh[vitalName];
   const statusFunction = `compare_numeric_aggregate(${getAggregateAlias(
     `p75(${vitalName})`
   )},greater,${vitalThreshold})`;

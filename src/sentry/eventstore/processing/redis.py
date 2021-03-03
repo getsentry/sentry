@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from .base import BaseEventProcessingStore
@@ -14,4 +12,4 @@ class RedisClusterEventProcessingStore(BaseEventProcessingStore):
     """
 
     def __init__(self, **options):
-        super(RedisClusterEventProcessingStore, self).__init__(inner=RedisClusterCache(**options))
+        super().__init__(inner=RedisClusterCache(**options))

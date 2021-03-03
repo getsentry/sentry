@@ -3,7 +3,6 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import {fetchPlugins} from 'app/actionCreators/plugins';
-import SentryTypes from 'app/sentryTypes';
 import PluginsStore from 'app/stores/pluginsStore';
 import {Organization, Plugin, Project} from 'app/types';
 import {defined} from 'app/utils';
@@ -13,7 +12,7 @@ import withProject from 'app/utils/withProject';
 
 type WithPluginProps = {
   organization: Organization;
-  project: Project;
+  project?: Project;
 };
 
 type InjectedPluginProps = {
@@ -31,10 +30,6 @@ const withPlugins = <P extends WithPluginProps>(
     withProject(
       createReactClass<Omit<P, keyof InjectedPluginProps> & WithPluginProps, {}>({
         displayName: `withPlugins(${getDisplayName(WrappedComponent)})`,
-        propTypes: {
-          organization: SentryTypes.Organization.isRequired,
-          project: SentryTypes.Project.isRequired,
-        },
         mixins: [Reflux.connect(PluginsStore, 'store') as any],
 
         componentDidMount() {
@@ -60,7 +55,7 @@ const withPlugins = <P extends WithPluginProps>(
           }
 
           const isOrgSame = prevOrg.slug === organization.slug;
-          const isProjectSame = prevProject.slug === project.slug;
+          const isProjectSame = prevProject.slug === project?.slug;
 
           // Don't do anything if org and project are the same
           if (isOrgSame && isProjectSame) {

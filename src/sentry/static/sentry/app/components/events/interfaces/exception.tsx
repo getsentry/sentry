@@ -6,7 +6,8 @@ import CrashActions from 'app/components/events/interfaces/crashHeader/crashActi
 import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import {t} from 'app/locale';
-import {Event, ExceptionType} from 'app/types';
+import {ExceptionType} from 'app/types';
+import {Event} from 'app/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
 const defaultProps = {

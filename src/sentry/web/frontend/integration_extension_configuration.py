@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from django.core.signing import SignatureExpired
 from django.core.urlresolvers import reverse
 from django.utils.http import urlencode
@@ -21,13 +18,10 @@ class ExternalIntegrationPipeline(IntegrationPipeline):
         # add in param string if we have a next page
         param_string = ""
         if "next" in self.request.GET:
-            param_string = u"?%s" % urlencode({"next": self.request.GET["next"]})
+            param_string = "?%s" % urlencode({"next": self.request.GET["next"]})
 
-        redirect_uri = u"/settings/%s/integrations/%s/%s/%s" % (
-            org_slug,
-            provider,
-            integration_id,
-            param_string,
+        redirect_uri = (
+            f"/settings/{org_slug}/integrations/{provider}/{integration_id}/{param_string}"
         )
         return HttpResponseRedirect(redirect_uri)
 
@@ -37,11 +31,12 @@ class IntegrationExtensionConfigurationView(BaseView):
 
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated():
-            configure_uri = u"/extensions/{}/configure/?{}".format(
-                self.provider, urlencode(request.GET.dict()),
+            configure_uri = "/extensions/{}/configure/?{}".format(
+                self.provider,
+                urlencode(request.GET.dict()),
             )
 
-            redirect_uri = u"{}?{}".format(
+            redirect_uri = "{}?{}".format(
                 reverse("sentry-login"), urlencode({"next": configure_uri})
             )
 
@@ -73,13 +68,12 @@ class IntegrationExtensionConfigurationView(BaseView):
                         return pipeline.current_step()
                     except SignatureExpired:
                         return self.respond(
-                            "sentry/pipeline-error.html", {"error": "Installation link expired"},
+                            "sentry/pipeline-error.html",
+                            {"error": "Installation link expired"},
                         )
 
         # if anything before fails, we give up and send them to the link page where we can display errors
-        return self.redirect(
-            u"/extensions/{}/link/?{}".format(self.provider, urlencode(request.GET.dict()))
-        )
+        return self.redirect(f"/extensions/{self.provider}/link/?{urlencode(request.GET.dict())}")
 
     def init_pipeline(self, request, organization, params):
         pipeline = ExternalIntegrationPipeline(
@@ -99,9 +93,7 @@ class IntegrationExtensionConfigurationView(BaseView):
 
     def has_one_required_feature(self, org, user):
         provider = integrations.get(self.provider)
-        integration_features = [
-            u"organizations:integrations-{}".format(f.value) for f in provider.features
-        ]
+        integration_features = [f"organizations:integrations-{f.value}" for f in provider.features]
         for flag_name in integration_features:
             try:
                 if features.has(flag_name, org, actor=user):

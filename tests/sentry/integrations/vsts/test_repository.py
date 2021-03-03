@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 import datetime
 
@@ -71,7 +69,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
 
         assert res == [
             {
-                "patch_set": [{"path": u"/README.md", "type": "M"}],
+                "patch_set": [{"path": "/README.md", "type": "M"}],
                 "author_email": "max@sentry.io",
                 "author_name": "max bittker",
                 "message": "Updated README.md\n\nSecond line\n\nFixes SENTRY-1",
@@ -126,7 +124,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = "integrations:vsts"
 
     def setUp(self):
-        super(AzureDevOpsRepositoryProviderTest, self).setUp()
+        super().setUp()
         self.base_url = "https://visualstudio.com/"
         self.vsts_external_id = "654321"
         self.integration = Integration.objects.create(
@@ -171,7 +169,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
         return VstsRepositoryProvider("integrations:vsts")
 
     def tearDown(self):
-        super(AzureDevOpsRepositoryProviderTest, self).tearDown()
+        super().tearDown()
         responses.reset()
 
     def add_create_repository_responses(self, repository_config):

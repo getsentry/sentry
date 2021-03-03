@@ -6,6 +6,7 @@ import Line from 'app/components/events/interfaces/frame/line';
 
 describe('Frame - Line', function () {
   let data;
+  const event = TestStubs.Event();
 
   describe('renderOriginalSourceInfo()', function () {
     beforeEach(function () {
@@ -21,7 +22,9 @@ describe('Frame - Line', function () {
     });
 
     it('should render the source map information as a HTML string', function () {
-      const frame = mountWithTheme(<Line data={data} registers={{}} components={[]} />);
+      const frame = mountWithTheme(
+        <Line data={data} registers={{}} components={[]} event={event} />
+      );
 
       expect(frame.find('Tooltip')).toSnapshot();
     });
@@ -38,7 +41,7 @@ describe('Frame - Line', function () {
       };
 
       const frame = mountWithTheme(
-        <Line data={data} registers={{}} components={[]} isExpanded />
+        <Line data={data} registers={{}} components={[]} event={event} isExpanded />
       );
       expect(frame.find('ContextLine')).toSnapshot();
     });
@@ -66,9 +69,15 @@ describe('Frame - Line', function () {
       };
 
       const frame = mountWithTheme(
-        <Line data={data} registers={registers} components={[]} isExpanded />
+        <Line
+          data={data}
+          registers={registers}
+          components={[]}
+          event={event}
+          isExpanded
+        />
       );
-      expect(frame.find('FrameRegisters').prop('data')).toEqual(registers);
+      expect(frame.find('FrameRegisters').prop('registers')).toEqual(registers);
     });
 
     it('should not render empty registers', () => {
@@ -76,7 +85,13 @@ describe('Frame - Line', function () {
       const registers = {};
 
       const frame = mountWithTheme(
-        <Line data={data} registers={registers} components={[]} isExpanded />
+        <Line
+          data={data}
+          registers={registers}
+          components={[]}
+          event={event}
+          isExpanded
+        />
       );
 
       expect(frame.find('FrameRegisters')).toHaveLength(0);
@@ -97,7 +112,7 @@ describe('Frame - Line', function () {
       };
 
       const frame = mountWithTheme(
-        <Line data={data} registers={{}} components={[]} isExpanded />
+        <Line data={data} registers={{}} components={[]} event={event} isExpanded />
       );
       expect(frame.find('FrameVariables').prop('data')).toEqual(data.vars);
     });

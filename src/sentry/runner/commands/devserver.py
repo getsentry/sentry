@@ -1,9 +1,6 @@
-from __future__ import absolute_import, print_function
-
 import click
-import six
 import types
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 import threading
 
 from sentry.runner.decorators import configuration, log_options
@@ -33,10 +30,19 @@ _DEFAULT_DAEMONS = {
 }
 
 
+def add_daemon(name, command):
+    """
+    Used by getsentry to add additional workers to the devserver setup.
+    """
+    if name in _DEFAULT_DAEMONS:
+        raise KeyError(f"The {name} worker has already been defined")
+    _DEFAULT_DAEMONS[name] = command
+
+
 def _get_daemon(name, *args, **kwargs):
     display_name = name
     if "suffix" in kwargs:
-        display_name = u"{}-{}".format(name, kwargs["suffix"])
+        display_name = "{}-{}".format(name, kwargs["suffix"])
 
     return (display_name, _DEFAULT_DAEMONS[name] + list(args))
 
@@ -180,7 +186,7 @@ def devserver(
 
         # webpack and/or typescript is causing memory issues
         os.environ["NODE_OPTIONS"] = (
-            (os.environ.get("NODE_OPTIONS", "") + " --max-old-space-size=4096")
+            os.environ.get("NODE_OPTIONS", "") + " --max-old-space-size=4096"
         ).lstrip()
 
         # Replace the webpack watcher with the drop-in webpack-dev-server
@@ -197,7 +203,7 @@ def devserver(
             {
                 # Make sure uWSGI spawns an HTTP server for us as we don't
                 # have a proxy/load-balancer in front in dev mode.
-                "http": "%s:%s" % (host, port),
+                "http": f"{host}:{port}",
                 "protocol": "uwsgi",
                 # This is needed to prevent https://git.io/fj7Lw
                 "uwsgi-socket": None,
@@ -217,6 +223,9 @@ def devserver(
         if eventstream.requires_post_process_forwarder():
             daemons += [_get_daemon("post-process-forwarder")]
 
+        if settings.SENTRY_EXTRA_WORKERS:
+            daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
+
         if settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS:
             if not settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
                 raise click.ClickException(
@@ -230,7 +239,7 @@ def devserver(
         daemons += [_get_daemon("ingest")]
 
     if needs_https and has_https:
-        https_port = six.text_type(parsed_url.port)
+        https_port = str(parsed_url.port)
         https_host = parsed_url.hostname
 
         # Determine a random port for the backend http server

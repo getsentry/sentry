@@ -18,13 +18,14 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, SentryTransactionEvent} from 'app/types';
+import {Organization} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 import {assert} from 'app/types/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
 import getDynamicText from 'app/utils/getDynamicText';
-import theme from 'app/utils/theme';
+import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
 import withApi from 'app/utils/withApi';
 
 import * as SpanEntryContext from './context';
@@ -37,6 +38,7 @@ const SIZE_DATA_KEYS = ['Encoded Body Size', 'Decoded Body Size', 'Transfer Size
 type TransactionResult = {
   'project.name': string;
   transaction: string;
+  'trace.span': string;
   id: string;
 };
 
@@ -44,12 +46,13 @@ type Props = {
   api: Client;
   orgId: string;
   organization: Organization;
-  event: Readonly<SentryTransactionEvent>;
+  event: Readonly<EventTransaction>;
   span: Readonly<ProcessedSpanType>;
   isRoot: boolean;
   trace: Readonly<ParsedTraceType>;
   totalNumberOfErrors: number;
   spanErrors: TableDataRow[];
+  quickTrace?: QuickTraceContextChildrenProps;
 };
 
 type State = {
@@ -83,13 +86,29 @@ class SpanDetail extends React.Component<Props, State> {
       });
   }
 
-  fetchSpanDescendents(spanID: string, traceID: string): Promise<any> {
-    const {api, organization, trace, event} = this.props;
+  fetchSpanDescendents(
+    spanID: string,
+    traceID: string
+  ): Promise<{data: TransactionResult[]}> {
+    const {api, organization, quickTrace, trace, event} = this.props;
 
     // Skip doing a request if the results will be behind a disabled button.
     if (!organization.features.includes('discover-basic')) {
-      return new Promise(resolve => {
-        resolve({data: []});
+      return Promise.resolve({data: []});
+    }
+
+    // Quick trace found some results that we can use to link to child
+    // spans without making additional queries.
+    if (quickTrace?.trace?.length) {
+      return Promise.resolve({
+        data: quickTrace.trace
+          .filter(transaction => transaction.parent_span_id === spanID)
+          .map(child => ({
+            'project.name': child.project_slug,
+            transaction: child.transaction,
+            'trace.span': child.span_id,
+            id: child.event_id,
+          })),
       });
     }
 
@@ -546,7 +565,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const StyledText = styled('p')`
-  font-size: ${theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(2)} ${space(0)};
 `;
 

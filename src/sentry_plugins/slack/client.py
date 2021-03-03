@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry_plugins.client import ApiClient
 
 
@@ -12,7 +10,7 @@ class SlackApiClient(ApiClient):
         self.username = username
         self.icon_url = icon_url
         self.channel = channel
-        super(SlackApiClient, self).__init__()
+        super().__init__()
 
     def request(self, data):
         return self._request(

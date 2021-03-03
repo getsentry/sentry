@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import logging
-import six
 
 from django.conf import settings
 
@@ -33,7 +30,7 @@ def _init_geoip():
         return
 
     def encode_bytes(data):
-        if isinstance(data, six.text_type):
+        if isinstance(data, str):
             return data.encode("ISO-8859-1")
         return data
 

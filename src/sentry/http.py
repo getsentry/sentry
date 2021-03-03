@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-import six
+from io import BytesIO
 import warnings
 import time
 import logging
@@ -10,7 +8,7 @@ from django.core.exceptions import SuspiciousOperation
 from collections import namedtuple
 from django.conf import settings
 from requests.exceptions import RequestException, Timeout, ReadTimeout
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from sentry.models import EventError
 from sentry.exceptions import RestrictedIPAddress
@@ -52,7 +50,7 @@ class BadSource(Exception):
         if data is None:
             data = {}
         data.setdefault("type", self.error_type)
-        super(BadSource, self).__init__(data["type"])
+        super().__init__(data["type"])
         self.data = data
 
 
@@ -113,7 +111,7 @@ def safe_urlopen(
             allow_redirects=allow_redirects,
             timeout=timeout,
             verify=verify_ssl,
-            **kwargs
+            **kwargs,
         )
 
         return response
@@ -125,11 +123,11 @@ def safe_urlread(response):
 
 def expose_url(url):
     if url is None:
-        return u"<unknown>"
+        return "<unknown>"
     if url[:5] == "data:":
-        return u"<data url>"
+        return "<data url>"
     url = truncatechars(url, MAX_URL_LENGTH)
-    if isinstance(url, six.binary_type):
+    if isinstance(url, bytes):
         url = url.decode("utf-8", "replace")
     return url
 
@@ -142,7 +140,7 @@ def fetch_file(
     allow_redirects=True,
     verify_ssl=False,
     timeout=settings.SENTRY_SOURCE_FETCH_SOCKET_TIMEOUT,
-    **kwargs
+    **kwargs,
 ):
     """
     Pull down a URL, returning a UrlResult object.
@@ -150,7 +148,7 @@ def fetch_file(
     # lock down domains that are problematic
     if domain_lock_enabled:
         domain = urlparse(url).netloc
-        domain_key = "source:blacklist:v2:%s" % (md5_text(domain).hexdigest(),)
+        domain_key = f"source:blacklist:v2:{md5_text(domain).hexdigest()}"
         domain_result = cache.get(domain_key)
         if domain_result:
             domain_result["url"] = url
@@ -171,7 +169,7 @@ def fetch_file(
                     headers=headers,
                     timeout=timeout,
                     stream=True,
-                    **kwargs
+                    **kwargs,
                 )
 
                 try:
@@ -183,7 +181,7 @@ def fetch_file(
 
                 return_body = False
                 if outfile is None:
-                    outfile = six.BytesIO()
+                    outfile = BytesIO()
                     return_body = True
 
                 cl = 0
@@ -221,11 +219,11 @@ def fetch_file(
                 elif isinstance(exc, (RequestException, ZeroReturnError, OpenSSLError)):
                     error = {
                         "type": EventError.FETCH_GENERIC_ERROR,
-                        "value": six.text_type(type(exc)),
+                        "value": str(type(exc)),
                         "url": expose_url(url),
                     }
                 else:
-                    logger.exception(six.text_type(exc))
+                    logger.exception(str(exc))
                     error = {"type": EventError.UNKNOWN_ERROR, "url": expose_url(url)}
 
                 # TODO(dcramer): we want to be less aggressive on disabling domains

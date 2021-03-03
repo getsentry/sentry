@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from collections import Iterable
 from sentry.mediators import Mediator, Param
 from sentry.mediators.param import if_param
@@ -9,11 +5,11 @@ from sentry.mediators.param import if_param
 
 class Updater(Mediator):
     rule = Param("sentry.models.Rule")
-    name = Param(six.string_types, required=False)
+    name = Param((str,), required=False)
     environment = Param(int, required=False)
     project = Param("sentry.models.Project")
-    action_match = Param(six.string_types, required=False)
-    filter_match = Param(six.string_types, required=False)
+    action_match = Param((str,), required=False)
+    filter_match = Param((str,), required=False)
     actions = Param(Iterable, required=False)
     conditions = Param(Iterable, required=False)
     frequency = Param(int, required=False)

@@ -1,6 +1,5 @@
-from __future__ import absolute_import
+import sentry_sdk
 
-import six
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from rest_framework.response import Response
@@ -9,7 +8,7 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
 from sentry.api.event_search import get_filter, InvalidSearchQuery
 from sentry.api.serializers import serialize
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.models import Environment
 from sentry.utils import metrics
 from sentry.utils.compat import map
@@ -49,9 +48,7 @@ class DataExportQuerySerializer(serializers.Serializer):
                 fields = [fields]
 
             if len(fields) > MAX_FIELDS:
-                detail = "You can export up to {0} fields at a time. Please delete some and try again.".format(
-                    MAX_FIELDS
-                )
+                detail = f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
                 raise serializers.ValidationError(detail)
 
             query_info["field"] = fields
@@ -61,7 +58,12 @@ class DataExportQuerySerializer(serializers.Serializer):
                 query_info["project"] = [project.id for project in projects]
 
             # make sure to fix the export start/end times to ensure consistent results
-            start, end = get_date_range_from_params(query_info)
+            try:
+                start, end = get_date_range_from_params(query_info)
+            except InvalidParams as e:
+                sentry_sdk.set_tag("query.error_reason", "Invalid date params")
+                raise serializers.ValidationError(str(e))
+
             if "statsPeriod" in query_info:
                 del query_info["statsPeriod"]
             if "statsPeriodStart" in query_info:
@@ -73,12 +75,13 @@ class DataExportQuerySerializer(serializers.Serializer):
 
             # validate the query string by trying to parse it
             processor = DiscoverProcessor(
-                discover_query=query_info, organization_id=organization.id,
+                discover_query=query_info,
+                organization_id=organization.id,
             )
             try:
                 get_filter(query_info["query"], processor.params)
             except InvalidSearchQuery as err:
-                raise serializers.ValidationError(six.text_type(err))
+                raise serializers.ValidationError(str(err))
 
         return data
 
@@ -143,5 +146,5 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
             metrics.incr(
                 "dataexport.invalid", tags={"query_type": data.get("query_type")}, sample_rate=1.0
             )
-            return Response({"detail": six.text_type(e)}, status=400)
+            return Response({"detail": str(e)}, status=400)
         return Response(serialize(data_export, request.user), status=status)

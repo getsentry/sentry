@@ -1,18 +1,26 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import {openModal} from 'app/actionCreators/modal';
+import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
+import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import {t} from 'app/locale';
+import {Body, Header, Hovercard} from 'app/components/hovercard';
+import {IconInfo} from 'app/icons';
+import {IconClose} from 'app/icons/iconClose';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 import {
-  Event,
   Frame,
   Integration,
   Organization,
   Project,
-  RepositoryProjectPathConfig,
+  RepositoryProjectPathConfigWithIntegration,
 } from 'app/types';
+import {Event} from 'app/types/event';
 import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
@@ -30,13 +38,16 @@ type Props = AsyncComponent['props'] & {
 //format of the ProjectStacktraceLinkEndpoint response
 type StacktraceResultItem = {
   integrations: Integration[];
-  config?: RepositoryProjectPathConfig;
+  config?: RepositoryProjectPathConfigWithIntegration;
   sourceUrl?: string;
   error?: 'file_not_found' | 'stack_root_mismatch';
+  attemptedUrl?: string;
 };
 
 type State = AsyncComponent['state'] & {
   match: StacktraceResultItem;
+  isDismissed: boolean;
+  promptLoaded: boolean;
 };
 
 class StacktraceLink extends AsyncComponent<Props, State> {
@@ -63,14 +74,51 @@ class StacktraceLink extends AsyncComponent<Props, State> {
 
     switch (error) {
       case 'stack_root_mismatch':
-        return t('Error matching your configuration, check your stack trace root.');
+        return t('Error matching your configuration.');
       case 'file_not_found':
-        return t(
-          'Could not find source file, check your repository and source code root.'
-        );
+        return t('Source file not found.');
       default:
         return t('There was an error encountered with the code mapping for this project');
     }
+  }
+
+  componentDidMount() {
+    this.promptsCheck();
+  }
+
+  async promptsCheck() {
+    const {organization} = this.props;
+
+    const prompt = await promptsCheck(this.api, {
+      organizationId: organization.id,
+      projectId: this.project?.id,
+      feature: 'stacktrace_link',
+    });
+
+    this.setState({
+      isDismissed: promptIsDismissed(prompt),
+      promptLoaded: true,
+    });
+  }
+
+  dismissPrompt() {
+    const {organization} = this.props;
+    promptsUpdate(this.api, {
+      organizationId: organization.id,
+      projectId: this.project?.id,
+      feature: 'stacktrace_link',
+      status: 'dismissed',
+    });
+
+    trackIntegrationEvent(
+      'integrations.stacktrace_link_cta_dismissed',
+      {
+        view: 'stacktrace_issue_details',
+      },
+      this.props.organization
+    );
+
+    this.setState({isDismissed: true});
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -80,13 +128,21 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       throw new Error('Unable to find project');
     }
     const commitId = event.release?.lastCommit?.id;
+    const platform = event.platform;
     return [
       [
         'match',
         `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
-        {query: {file: frame.filename, commitId}},
+        {query: {file: frame.filename, platform, commitId}},
       ],
     ];
+  }
+
+  onRequestError(error, args) {
+    Sentry.withScope(scope => {
+      scope.setExtra('errorInfo', args);
+      Sentry.captureException(new Error(error));
+    });
   }
 
   getDefaultState(): State {
@@ -95,6 +151,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       showModal: false,
       sourceCodeInput: '',
       match: {integrations: []},
+      isDismissed: false,
+      promptLoaded: false,
     };
   }
 
@@ -102,9 +160,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const provider = this.config?.provider;
     if (provider) {
       trackIntegrationEvent(
+        'integrations.stacktrace_link_clicked',
         {
-          eventKey: 'integrations.stacktrace_link_clicked',
-          eventName: 'Integrations: Stacktrace Link Clicked',
           view: 'stacktrace_issue_details',
           provider: provider.key,
         },
@@ -113,14 +170,14 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       );
     }
   }
+
   onReconfigureMapping() {
     const provider = this.config?.provider;
     const error = this.match.error;
     if (provider) {
       trackIntegrationEvent(
+        'integrations.reconfigure_stacktrace_setup',
         {
-          eventKey: 'integrations.reconfigure_stacktrace_setup',
-          eventName: 'Integrations: Reconfigure Stacktrace Setup',
           view: 'stacktrace_issue_details',
           provider: provider.key,
           error_reason: error,
@@ -131,13 +188,14 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     }
   }
 
-  onClose() {
+  handleSubmit = () => {
     this.reloadData();
-  }
+  };
 
-  // let the ErrorBoundary handle errors by raising it
+  // don't show the error boundary if the component fails.
+  // capture the endpoint error on onRequestError
   renderError(): React.ReactNode {
-    throw new Error('Error loading endpoints');
+    return null;
   }
 
   renderLoading() {
@@ -148,36 +206,116 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   renderNoMatch() {
     const {organization} = this.props;
     const filename = this.props.frame.filename;
-
+    const platform = this.props.event.platform;
     if (this.project && this.integrations.length > 0 && filename) {
       return (
-        <StacktraceLinkModal
-          filename={filename}
-          project={this.project}
-          organization={organization}
-          integrations={this.integrations}
-          onClose={() => this.onClose()}
-        />
+        <Access organization={organization} access={['org:integrations']}>
+          {({hasAccess}) =>
+            hasAccess && (
+              <CodeMappingButtonContainer columnQuantity={2}>
+                {tct('[link:Link your stack trace to your source code.]', {
+                  link: (
+                    <a
+                      onClick={() => {
+                        trackIntegrationEvent(
+                          'integrations.stacktrace_start_setup',
+                          {
+                            view: 'stacktrace_issue_details',
+                            platform,
+                          },
+                          this.props.organization,
+                          {startSession: true}
+                        );
+                        openModal(
+                          deps =>
+                            this.project && (
+                              <StacktraceLinkModal
+                                onSubmit={this.handleSubmit}
+                                filename={filename}
+                                project={this.project}
+                                organization={organization}
+                                integrations={this.integrations}
+                                {...deps}
+                              />
+                            )
+                        );
+                      }}
+                    />
+                  ),
+                })}
+                <StyledIconClose size="xs" onClick={() => this.dismissPrompt()} />
+              </CodeMappingButtonContainer>
+            )
+          }
+        </Access>
       );
     }
     return null;
   }
 
-  renderMatchNoUrl() {
+  renderHovercard() {
+    const error = this.match.error;
+    const url = this.match.attemptedUrl;
+    const {frame} = this.props;
     const {config} = this.match;
+    return (
+      <React.Fragment>
+        <StyledHovercard
+          header={
+            error === 'stack_root_mismatch' ? (
+              <span>{t('Mismatch between filename and stack root')}</span>
+            ) : (
+              <span>{t('Unable to find source code url')}</span>
+            )
+          }
+          body={
+            error === 'stack_root_mismatch' ? (
+              <HeaderContainer>
+                <HovercardLine>
+                  filename: <code>{`${frame.filename}`}</code>
+                </HovercardLine>
+                <HovercardLine>
+                  stack root: <code>{`${config?.stackRoot}`}</code>
+                </HovercardLine>
+              </HeaderContainer>
+            ) : (
+              <HeaderContainer>
+                <HovercardLine>{url}</HovercardLine>
+              </HeaderContainer>
+            )
+          }
+        >
+          <StyledIconInfo size="xs" />
+        </StyledHovercard>
+      </React.Fragment>
+    );
+  }
+
+  renderMatchNoUrl() {
+    const {config, error} = this.match;
     const {organization} = this.props;
-    const text = this.errorText;
     const url = `/settings/${organization.slug}/integrations/${config?.provider.key}/${config?.integrationId}/?tab=codeMappings`;
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
-        {text}
-        <Button onClick={() => this.onReconfigureMapping()} to={url} size="xsmall">
-          {t('Configure Stack Trace Linking')}
-        </Button>
+        <ErrorInformation>
+          {error && this.renderHovercard()}
+          <ErrorText>{this.errorText}</ErrorText>
+          {tct('[link:Configure Stack Trace Linking] to fix this problem.', {
+            link: (
+              <a
+                onClick={() => {
+                  this.onReconfigureMapping();
+                }}
+                href={url}
+              />
+            ),
+          })}
+        </ErrorInformation>
       </CodeMappingButtonContainer>
     );
   }
-  renderMatchWithUrl(config: RepositoryProjectPathConfig, url: string) {
+
+  renderMatchWithUrl(config: RepositoryProjectPathConfigWithIntegration, url: string) {
     url = `${url}#L${this.props.frame.lineNo}`;
     return (
       <OpenInContainer columnQuantity={2}>
@@ -189,15 +327,23 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       </OpenInContainer>
     );
   }
+
   renderBody() {
     const {config, sourceUrl} = this.match || {};
+    const {isDismissed, promptLoaded} = this.state;
+
     if (config && sourceUrl) {
       return this.renderMatchWithUrl(config, sourceUrl);
-    } else if (config) {
-      return this.renderMatchNoUrl();
-    } else {
-      return this.renderNoMatch();
     }
+    if (config) {
+      return this.renderMatchNoUrl();
+    }
+
+    if (!promptLoaded || (promptLoaded && isDismissed)) {
+      return null;
+    }
+
+    return this.renderNoMatch();
   }
 }
 
@@ -206,4 +352,47 @@ export {StacktraceLink};
 
 export const CodeMappingButtonContainer = styled(OpenInContainer)`
   justify-content: space-between;
+`;
+
+const StyledIconClose = styled(IconClose)`
+  margin: auto;
+  cursor: pointer;
+`;
+
+const StyledIconInfo = styled(IconInfo)`
+  margin-right: ${space(0.5)};
+  margin-bottom: -2px;
+  cursor: pointer;
+  line-height: 0;
+`;
+
+const StyledHovercard = styled(Hovercard)`
+  font-weight: normal;
+  width: inherit;
+  line-height: 0;
+  ${Header} {
+    font-weight: strong;
+    font-size: ${p => p.theme.fontSizeSmall};
+    color: ${p => p.theme.subText};
+  }
+  ${Body} {
+    font-weight: normal;
+    font-size: ${p => p.theme.fontSizeSmall};
+  }
+`;
+const HeaderContainer = styled('div')`
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+`;
+const HovercardLine = styled('div')`
+  padding-bottom: 3px;
+`;
+
+const ErrorInformation = styled('div')`
+  padding-right: 5px;
+  margin-right: ${space(1)};
+`;
+const ErrorText = styled('span')`
+  margin-right: ${space(0.5)};
 `;

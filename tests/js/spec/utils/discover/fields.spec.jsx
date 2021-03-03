@@ -2,6 +2,7 @@ import {
   aggregateMultiPlotType,
   aggregateOutputType,
   explodeField,
+  fieldAlignment,
   generateAggregateFields,
   getAggregateAlias,
   isAggregateField,
@@ -218,5 +219,31 @@ describe('generateAggregateFields', function () {
     expect(generateAggregateFields(organization, [], ['count()'])).not.toContainEqual({
       field: 'count()',
     });
+  });
+});
+
+describe('fieldAlignment()', function () {
+  it('works with only field name', function () {
+    expect(fieldAlignment('event.type')).toEqual('left');
+
+    // Should be right, but we don't have any type data.
+    expect(fieldAlignment('transaction.duration')).toEqual('left');
+  });
+
+  it('works with type parameter', function () {
+    expect(fieldAlignment('transaction.duration', 'duration')).toEqual('right');
+    expect(fieldAlignment('device.battery_level', 'number')).toEqual('right');
+    expect(fieldAlignment('min(timestamp)', 'datetime')).toEqual('left');
+  });
+
+  it('can use table metadata', function () {
+    const meta = {
+      'transaction.duration': 'duration',
+      title: 'string',
+    };
+    expect(fieldAlignment('transaction.duration', 'never', meta)).toEqual('right');
+    expect(fieldAlignment('transaction.duration', undefined, meta)).toEqual('right');
+
+    expect(fieldAlignment('title', undefined, meta)).toEqual('left');
   });
 });

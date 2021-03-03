@@ -381,7 +381,7 @@ export default function createQueryBuilder(
     );
 
     if (invalidProjects.length) {
-      openModal((deps: any) => (
+      openModal(deps => (
         <MissingProjectWarningModal
           organization={organization}
           validProjects={validProjects}

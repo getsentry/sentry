@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.integrations.client import ApiClient
 from sentry.eventstore.models import Event
 from sentry.api.serializers import serialize, ExternalEventSerializer
@@ -20,7 +18,7 @@ class PagerDutyClient(ApiClient):
 
     def __init__(self, integration_key):
         self.integration_key = integration_key
-        super(PagerDutyClient, self).__init__()
+        super().__init__()
 
     def request(self, method, path, headers=None, data=None, params=None):
         if not headers:

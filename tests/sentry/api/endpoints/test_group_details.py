@@ -1,7 +1,4 @@
-from __future__ import absolute_import, print_function
-
 from sentry.utils.compat import mock
-import six
 from base64 import b64encode
 
 from datetime import timedelta
@@ -15,7 +12,6 @@ from sentry.models import (
     GroupHash,
     GroupAssignee,
     GroupBookmark,
-    GroupRelease,
     GroupResolution,
     GroupSeen,
     GroupSnooze,
@@ -24,11 +20,9 @@ from sentry.models import (
     GroupTombstone,
     GroupMeta,
     Release,
-    ReleaseEnvironment,
     Integration,
 )
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import MockClock
 from sentry.plugins.base import plugins
 from sentry.utils.compat.mock import patch
 
@@ -39,17 +33,17 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         group = self.create_group()
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(group.id)
+        assert response.data["id"] == str(group.id)
 
-        url = u"/api/0/organizations/{}/issues/{}/".format(group.organization.slug, group.id)
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(group.id)
+        assert response.data["id"] == str(group.id)
 
     def test_with_qualified_short_id(self):
         self.login_as(user=self.user)
@@ -57,15 +51,13 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         assert group.qualified_short_id
 
-        url = u"/api/0/organizations/{}/issues/{}/".format(
-            group.organization.slug, group.qualified_short_id
-        )
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.qualified_short_id}/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(group.id)
+        assert response.data["id"] == str(group.id)
 
-        url = u"/api/0/issues/{}/".format(group.qualified_short_id)
+        url = f"/api/0/issues/{group.qualified_short_id}/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 404, response.content
@@ -77,12 +69,12 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         group = event.group
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(group.id)
+        assert response.data["id"] == str(group.id)
         assert response.data["firstRelease"]["version"] == "1.0"
 
     def test_no_releases(self):
@@ -92,89 +84,12 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         group = event.group
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data["firstRelease"] is None
         assert response.data["lastRelease"] is None
-
-    def _test_current_release(self, group_seen_on_latest_release):
-        clock = MockClock()
-
-        # Create several of everything, to exercise all filtering clauses.
-
-        def set_up_organization():
-            organization = self.create_organization()
-
-            team = self.create_team(organization=organization)
-            self.create_team_membership(team=team, user=self.user)
-
-            prod = self.create_environment(name="production", organization=organization)
-            dev = self.create_environment(name="development", organization=organization)
-            environments = (prod, dev)
-
-            def set_up_project():
-                project = self.create_project(organization=organization, teams=[team])
-                for environment in environments:
-                    environment.add_project(project)
-
-                def set_up_release():
-                    release = self.create_release(project=project)
-                    for environment in environments:
-                        ReleaseEnvironment.get_or_create(project, release, environment, clock())
-                    return release
-
-                groups = [self.create_group(project=project) for i in range(3)]
-                target_group = groups[1]
-
-                early_release = set_up_release()
-                later_release = set_up_release()
-
-                def seen_on(group, release, environment):
-                    return GroupRelease.get_or_create(group, release, environment, clock())
-
-                def set_up_group_releases(environment):
-                    for release in (early_release, later_release):
-                        for group in groups:
-                            if group != target_group:
-                                seen_on(group, release, environment)
-
-                    latest_seen = seen_on(target_group, early_release, environment)
-                    if group_seen_on_latest_release:
-                        latest_seen = seen_on(target_group, later_release, environment)
-                    return latest_seen
-
-                target_group_release = set_up_group_releases(prod)
-                set_up_group_releases(dev)
-
-                return project, target_group, target_group_release
-
-            set_up_project()
-            target_project, target_group, target_group_release = set_up_project()
-            set_up_project()
-
-            return organization, target_project, target_group, target_group_release
-
-        set_up_organization()
-        target_org, target_project, target_group, latest_seen = set_up_organization()
-        set_up_organization()
-
-        self.login_as(user=self.user)
-        url = u"/api/0/issues/{}/".format(target_group.id)
-        response = self.client.get(url, {"environment": "production"}, format="json")
-        assert response.status_code == 200
-        return response.data["currentRelease"], latest_seen
-
-    def test_current_release_has_group(self):
-        current_release, group_release = self._test_current_release(True)
-        assert current_release is not None
-        assert current_release["firstSeen"] == group_release.first_seen
-        assert current_release["lastSeen"] == group_release.last_seen
-
-    def test_current_release_is_later(self):
-        current_release, group_release = self._test_current_release(False)
-        assert current_release is None
 
     def test_pending_delete_pending_merge_excluded(self):
         group1 = self.create_group(status=GroupStatus.PENDING_DELETION)
@@ -184,16 +99,16 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u"/api/0/issues/{}/".format(group1.id)
+        url = f"/api/0/issues/{group1.id}/"
 
         response = self.client.get(url, format="json")
         assert response.status_code == 404
 
-        url = u"/api/0/issues/{}/".format(group2.id)
+        url = f"/api/0/issues/{group2.id}/"
         response = self.client.get(url, format="json")
         assert response.status_code == 404
 
-        url = u"/api/0/issues/{}/".format(group3.id)
+        url = f"/api/0/issues/{group3.id}/"
         response = self.client.get(url, format="json")
         assert response.status_code == 404
 
@@ -203,7 +118,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         environment = Environment.get_or_create(group.project, "production")
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         from sentry.api.endpoints.group_details import tsdb
 
@@ -229,11 +144,11 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             web_url="https://example.com/issues/2",
             display_name="Issue#2",
         )
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
         assert response.data["annotations"] == [
-            u'<a href="https://example.com/issues/2">Issue#2</a>'
+            '<a href="https://example.com/issues/2">Issue#2</a>'
         ]
 
     def test_plugin_external_issue_annotation(self):
@@ -246,12 +161,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
-        assert response.data["annotations"] == [
-            u'<a href="https://trello.com/c/134">Trello-134</a>'
-        ]
+        assert response.data["annotations"] == ['<a href="https://trello.com/c/134">Trello-134</a>']
 
     def test_integration_external_issue_annotation(self):
         group = self.create_group()
@@ -266,11 +179,11 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
         assert response.data["annotations"] == [
-            u'<a href="https://example.com/browse/api-123">api-123</a>'
+            '<a href="https://example.com/browse/api-123">api-123</a>'
         ]
 
     def test_permalink_superuser(self):
@@ -278,12 +191,12 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=superuser, superuser=True)
 
         group = self.create_group()
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
         result = response.data["permalink"]
         assert "http://" in result
-        assert "{}/issues/{}".format(group.organization.slug, group.id) in result
+        assert f"{group.organization.slug}/issues/{group.id}" in result
 
     def test_permalink_sentry_app_installation_token(self):
         project = self.create_project(organization=self.organization, teams=[self.team])
@@ -295,19 +208,21 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         token = internal_app.installations.first().api_token
 
         group = self.create_group(project=project)
-        url = u"/api/0/issues/{}/".format(group.id)
-        response = self.client.get(url, HTTP_AUTHORIZATION="Bearer {}".format(token), format="json")
+        url = f"/api/0/issues/{group.id}/"
+        response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}", format="json")
         result = response.data["permalink"]
         assert "http://" in result
-        assert "{}/issues/{}".format(group.organization.slug, group.id) in result
+        assert f"{group.organization.slug}/issues/{group.id}" in result
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited",
+        autospec=True,
+        return_value=True,
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
         group = self.create_group()
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
         response = self.client.get(url, sort_by="date", limit=1)
         assert response.status_code == 429
 
@@ -318,7 +233,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         response = self.client.put(url, data={"status": "resolved"}, format="json")
         assert response.status_code == 200, response.content
@@ -339,7 +254,7 @@ class GroupUpdateTest(APITestCase):
         group = self.create_group(project=project)
         Release.get_or_create(version="abcd", project=project)
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         response = self.client.put(url, data={"status": "resolvedInNextRelease"})
         assert response.status_code == 200, response.content
@@ -354,7 +269,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         response = self.client.put(
             url, data={"status": "ignored", "ignoreDuration": 30}, format="json"
@@ -381,7 +296,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         response = self.client.put(url, data={"isBookmarked": "1"}, format="json")
 
@@ -399,7 +314,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         response = self.client.put(url, data={"assignedTo": self.user.username}, format="json")
 
@@ -433,7 +348,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         response = self.client.put(url, data={"assignedTo": self.user.id}, format="json")
 
@@ -469,13 +384,13 @@ class GroupUpdateTest(APITestCase):
         # migrating to DRF 3.x.
         api_key = ApiKey.objects.create(organization=self.organization, scope_list=["event:write"])
         group = self.create_group()
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         response = self.client.put(
             url,
             data={"assignedTo": self.user.id},
             format="json",
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(u"{}:".format(api_key.key).encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode("utf-8")),
         )
         assert response.status_code == 200, response.content
         assert GroupAssignee.objects.filter(group=group, user=self.user).exists()
@@ -487,11 +402,9 @@ class GroupUpdateTest(APITestCase):
         team = self.create_team(organization=group.project.organization, members=[self.user])
         group.project.add_team(team)
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
-        response = self.client.put(
-            url, data={"assignedTo": u"team:{}".format(team.id)}, format="json"
-        )
+        response = self.client.put(url, data={"assignedTo": f"team:{team.id}"}, format="json")
 
         assert response.status_code == 200, response.content
 
@@ -517,11 +430,9 @@ class GroupUpdateTest(APITestCase):
         group = self.create_group()
         team = self.create_team(organization=group.project.organization, members=[self.user])
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
-        response = self.client.put(
-            url, data={"assignedTo": u"team:{}".format(team.id)}, format="json"
-        )
+        response = self.client.put(url, data={"assignedTo": f"team:{team.id}"}, format="json")
 
         assert response.status_code == 400, response.content
 
@@ -530,7 +441,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         response = self.client.put(url, data={"hasSeen": "1"}, format="json")
 
@@ -550,7 +461,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         response = self.client.put(url, data={"hasSeen": "1"}, format="json")
 
@@ -562,7 +473,7 @@ class GroupUpdateTest(APITestCase):
         self.login_as(user=self.user)
         group = self.create_group()
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         resp = self.client.put(url, data={"isSubscribed": "true"})
         assert resp.status_code == 200, resp.content
@@ -582,7 +493,7 @@ class GroupUpdateTest(APITestCase):
 
         group_hash = GroupHash.objects.create(hash="x" * 32, project=group.project, group=group)
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         with self.tasks():
             with self.feature("projects:discard-groups"):
@@ -600,12 +511,14 @@ class GroupUpdateTest(APITestCase):
         assert tombstone.data == group.data
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited",
+        autospec=True,
+        return_value=True,
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
         group = self.create_group()
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
         response = self.client.put(url, sort_by="date", limit=1)
         assert response.status_code == 429
 
@@ -618,7 +531,7 @@ class GroupDeleteTest(APITestCase):
         hash = "x" * 32
         GroupHash.objects.create(project=group.project, hash=hash, group=group)
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         response = self.client.delete(url, format="json")
         assert response.status_code == 202, response.content
@@ -630,7 +543,7 @@ class GroupDeleteTest(APITestCase):
 
         Group.objects.filter(id=group.id).update(status=GroupStatus.UNRESOLVED)
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         with self.tasks():
             response = self.client.delete(url, format="json")
@@ -642,11 +555,13 @@ class GroupDeleteTest(APITestCase):
         assert not GroupHash.objects.filter(group_id=group.id).exists()
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited",
+        autospec=True,
+        return_value=True,
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
         group = self.create_group()
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
         response = self.client.delete(url, sort_by="date", limit=1)
         assert response.status_code == 429

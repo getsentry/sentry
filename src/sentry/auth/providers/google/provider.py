@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from sentry import options
 from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Provider, OAuth2Login
@@ -14,10 +12,10 @@ class GoogleOAuth2Login(OAuth2Login):
 
     def __init__(self, client_id, domains=None):
         self.domains = domains
-        super(GoogleOAuth2Login, self).__init__(client_id=client_id)
+        super().__init__(client_id=client_id)
 
     def get_authorize_params(self, state, redirect_uri):
-        params = super(GoogleOAuth2Login, self).get_authorize_params(state, redirect_uri)
+        params = super().get_authorize_params(state, redirect_uri)
         # TODO(dcramer): ideally we could look at the current resulting state
         # when an existing auth happens, and if they're missing a refresh_token
         # we should re-prompt them a second time with ``approval_prompt=force``
@@ -45,7 +43,7 @@ class GoogleOAuth2Provider(OAuth2Provider):
         else:
             version = None
         self.version = version
-        super(GoogleOAuth2Provider, self).__init__(**config)
+        super().__init__(**config)
 
     def get_client_id(self):
         return options.get("auth-google.client-id")

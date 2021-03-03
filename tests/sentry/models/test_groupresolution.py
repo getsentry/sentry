@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import, print_function
-
 from datetime import timedelta
 from django.utils import timezone
 
@@ -11,7 +7,7 @@ from sentry.testutils import TestCase
 
 class GroupResolutionTest(TestCase):
     def setUp(self):
-        super(GroupResolutionTest, self).setUp()
+        super().setUp()
         self.old_release = self.create_release(version="a", project=self.project)
         self.old_release.update(date_added=timezone.now() - timedelta(minutes=30))
         self.new_release = self.create_release(version="b", project=self.project)

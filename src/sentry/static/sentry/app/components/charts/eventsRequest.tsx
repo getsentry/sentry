@@ -1,7 +1,6 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
-import PropTypes from 'prop-types';
 
 import {doEventsRequest} from 'app/actionCreators/events';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -9,7 +8,6 @@ import {Client} from 'app/api';
 import LoadingPanel from 'app/components/charts/loadingPanel';
 import {canIncludePreviousPeriod, isMultiSeriesStats} from 'app/components/charts/utils';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {
   DateString,
   EventsStats,
@@ -94,11 +92,11 @@ type EventsRequestPartialProps = {
   /**
    * List of project ids to query
    */
-  project?: number[];
+  project?: Readonly<number[]>;
   /**
    * List of environments to query
    */
-  environment?: string[];
+  environment?: Readonly<string[]>;
   /**
    * List of fields to group with when doing a topEvents request.
    */
@@ -136,6 +134,14 @@ type EventsRequestPartialProps = {
    * optional and when not passed confirmation is not required.
    */
   confirmedQuery?: boolean;
+  /**
+   * Is query out of retention
+   */
+  expired?: boolean;
+  /**
+   * Query name used for displaying error toast if it is out of retention
+   */
+  name?: string;
 };
 
 type TimeAggregationProps =
@@ -148,6 +154,7 @@ type EventsRequestState = {
   reloading: boolean;
   errored: boolean;
   timeseriesData: null | EventsStats | MultiSeriesEventsStats;
+  fetchedWithPrevious: boolean;
 };
 
 const propNamesToIgnore = ['api', 'children', 'organization', 'loading'];
@@ -155,43 +162,6 @@ const omitIgnoredProps = (props: EventsRequestProps) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
 class EventsRequest extends React.PureComponent<EventsRequestProps, EventsRequestState> {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    project: PropTypes.arrayOf(PropTypes.number),
-    environment: PropTypes.arrayOf(PropTypes.string),
-    period: PropTypes.string,
-    start: PropTypes.instanceOf(Date),
-    end: PropTypes.instanceOf(Date),
-    interval: PropTypes.string,
-    includePrevious: PropTypes.bool,
-    limit: PropTypes.number,
-    query: PropTypes.string,
-    includeTransformedData: PropTypes.bool,
-
-    /**
-     * Include a dataset transform that will aggregate count values for each
-     * timestamp. Be sure to supply a name to `timeAggregationSeriesName`
-     */
-    includeTimeAggregation: PropTypes.bool,
-
-    /**
-     * Name of series of aggregated timeseries
-     */
-    timeAggregationSeriesName: PropTypes.string,
-    loading: PropTypes.bool,
-    errored: PropTypes.bool,
-    showLoading: PropTypes.bool,
-    currentSeriesName: PropTypes.string,
-    yAxis: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
-
-    field: PropTypes.arrayOf(PropTypes.string),
-    topEvents: PropTypes.number,
-    orderby: PropTypes.string,
-
-    confirmedQuery: PropTypes.bool,
-  };
-
   static defaultProps: DefaultProps = {
     period: undefined,
     start: null,
@@ -207,6 +177,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     reloading: !!this.props.loading,
     errored: false,
     timeseriesData: null,
+    fetchedWithPrevious: false,
   };
 
   componentDidMount() {
@@ -227,7 +198,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   private unmounting: boolean = false;
 
   fetchData = async () => {
-    const {api, confirmedQuery, ...props} = this.props;
+    const {api, confirmedQuery, expired, name, ...props} = this.props;
     let timeseriesData: EventsStats | MultiSeriesEventsStats | null = null;
 
     if (confirmedQuery === false) {
@@ -239,18 +210,29 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       errored: false,
     }));
 
-    try {
-      api.clear();
-      timeseriesData = await doEventsRequest(api, props);
-    } catch (resp) {
-      if (resp && resp.responseJSON && resp.responseJSON.detail) {
-        addErrorMessage(resp.responseJSON.detail);
-      } else {
-        addErrorMessage(t('Error loading chart data'));
-      }
+    if (expired) {
+      addErrorMessage(
+        t('%s has an invalid date range. Please try a more recent date range.', name),
+        {append: true}
+      );
+
       this.setState({
         errored: true,
       });
+    } else {
+      try {
+        api.clear();
+        timeseriesData = await doEventsRequest(api, props);
+      } catch (resp) {
+        if (resp && resp.responseJSON && resp.responseJSON.detail) {
+          addErrorMessage(resp.responseJSON.detail);
+        } else {
+          addErrorMessage(t('Error loading chart data'));
+        }
+        this.setState({
+          errored: true,
+        });
+      }
     }
 
     if (this.unmounting) {
@@ -260,6 +242,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     this.setState({
       reloading: false,
       timeseriesData,
+      fetchedWithPrevious: props.includePrevious,
     });
   };
 
@@ -273,9 +256,11 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   getData = (
     data: EventsStatsData
   ): {previous: EventsStatsData | null; current: EventsStatsData} => {
+    const {fetchedWithPrevious} = this.state;
     const {period, includePrevious} = this.props;
 
-    const hasPreviousPeriod = canIncludePreviousPeriod(includePrevious, period);
+    const hasPreviousPeriod =
+      fetchedWithPrevious || canIncludePreviousPeriod(includePrevious, period);
     // Take the floor just in case, but data should always be divisible by 2
     const dataMiddleIndex = Math.floor(data.length / 2);
     return {

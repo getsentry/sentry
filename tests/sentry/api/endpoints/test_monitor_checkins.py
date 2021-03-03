@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import pytest
 from datetime import timedelta
 from django.utils import timezone
@@ -28,7 +26,7 @@ class CreateMonitorCheckInTest(APITestCase):
         self.login_as(user=user)
         with self.feature({"organizations:monitors": True}):
             resp = self.client.post(
-                "/api/0/monitors/{}/checkins/".format(monitor.guid), data={"status": "ok"}
+                f"/api/0/monitors/{monitor.guid}/checkins/", data={"status": "ok"}
             )
 
         assert resp.status_code == 201, resp.content
@@ -58,7 +56,7 @@ class CreateMonitorCheckInTest(APITestCase):
         self.login_as(user=user)
         with self.feature({"organizations:monitors": True}):
             resp = self.client.post(
-                "/api/0/monitors/{}/checkins/".format(monitor.guid), data={"status": "error"}
+                f"/api/0/monitors/{monitor.guid}/checkins/", data={"status": "error"}
             )
 
         assert resp.status_code == 201, resp.content
@@ -89,7 +87,7 @@ class CreateMonitorCheckInTest(APITestCase):
         self.login_as(user=user)
         with self.feature({"organizations:monitors": True}):
             resp = self.client.post(
-                "/api/0/monitors/{}/checkins/".format(monitor.guid), data={"status": "error"}
+                f"/api/0/monitors/{monitor.guid}/checkins/", data={"status": "error"}
             )
 
         assert resp.status_code == 201, resp.content
@@ -120,7 +118,7 @@ class CreateMonitorCheckInTest(APITestCase):
         self.login_as(user=user)
         with self.feature({"organizations:monitors": True}):
             resp = self.client.post(
-                "/api/0/monitors/{}/checkins/".format(monitor.guid), data={"status": "error"}
+                f"/api/0/monitors/{monitor.guid}/checkins/", data={"status": "error"}
             )
 
         assert resp.status_code == 404, resp.content
@@ -143,7 +141,7 @@ class CreateMonitorCheckInTest(APITestCase):
         self.login_as(user=user)
         with self.feature({"organizations:monitors": True}):
             resp = self.client.post(
-                "/api/0/monitors/{}/checkins/".format(monitor.guid), data={"status": "error"}
+                f"/api/0/monitors/{monitor.guid}/checkins/", data={"status": "error"}
             )
 
         assert resp.status_code == 404, resp.content
@@ -162,8 +160,8 @@ class CreateMonitorCheckInTest(APITestCase):
 
         with self.feature({"organizations:monitors": True}):
             resp = self.client.post(
-                "/api/0/monitors/{}/checkins/".format(monitor.guid),
-                HTTP_AUTHORIZATION=u"DSN {}".format(project_key.dsn_public),
+                f"/api/0/monitors/{monitor.guid}/checkins/",
+                HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}",
                 data={"status": "ok"},
             )
 
@@ -189,8 +187,8 @@ class CreateMonitorCheckInTest(APITestCase):
 
         with self.feature({"organizations:monitors": True}):
             resp = self.client.post(
-                "/api/0/monitors/{}/checkins/".format(monitor.guid),
-                HTTP_AUTHORIZATION=u"DSN {}".format(project_key.dsn_public),
+                f"/api/0/monitors/{monitor.guid}/checkins/",
+                HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}",
                 data={"status": "ok"},
             )
 

@@ -8,11 +8,13 @@ import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask
 import {PlatformKey} from 'app/data/platformCategories';
 import {IconWarning} from 'app/icons';
 import {GlobalSelection} from 'app/types';
+import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
 import {ReleaseStatsRequestRenderProps} from '../releaseStatsRequest';
 
 import HealthChart from './healthChart';
 import {YAxis} from './releaseChartControls';
+import {sortSessionSeries} from './utils';
 
 type Props = Omit<
   ReleaseStatsRequestRenderProps,
@@ -56,6 +58,19 @@ class ReleaseChartContainer extends React.Component<Props, State> {
     const {datetime} = selection;
     const {utc, period, start, end} = datetime;
 
+    const timeseriesData = chartData.filter(({seriesName}) => {
+      // There is no concept of Abnormal sessions in javascript
+      if (
+        (seriesName === sessionTerm.abnormal ||
+          seriesName === sessionTerm.otherAbnormal) &&
+        ['javascript', 'node'].includes(platform)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+
     return (
       <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
         {zoomRenderProps => {
@@ -67,16 +82,11 @@ class ReleaseChartContainer extends React.Component<Props, State> {
             );
           }
 
-          // Stack the toolbox under the legend.
-          // so all series names are clickable.
-          zoomRenderProps.toolBox.z = -1;
-
           return (
             <TransitionChart loading={loading} reloading={reloading}>
               <TransparentLoadingMask visible={reloading} />
               <HealthChart
-                utc={utc}
-                timeseriesData={chartData}
+                timeseriesData={timeseriesData.sort(sortSessionSeries)}
                 zoomRenderProps={zoomRenderProps}
                 reloading={reloading}
                 yAxis={yAxis}

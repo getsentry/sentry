@@ -16,7 +16,6 @@ import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import SentryAppInstallationStore from 'app/stores/sentryAppInstallationsStore';
 import space from 'app/styles/space';
 import {
-  Event,
   Group,
   GroupIntegration,
   Organization,
@@ -25,6 +24,7 @@ import {
   SentryAppComponent,
   SentryAppInstallation,
 } from 'app/types';
+import {Event} from 'app/types/event';
 import withOrganization from 'app/utils/withOrganization';
 
 import SidebarSection from './sidebarSection';

@@ -1,22 +1,25 @@
 import React from 'react';
+import LazyLoad from 'react-lazyload';
+import {closestCenter, DndContext} from '@dnd-kit/core';
+import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
-import {IconAdd} from 'app/icons';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
-import {DashboardListItem, Widget} from './types';
-import WidgetCard from './widgetCard';
+import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
+import SortableWidget from './sortableWidget';
+import {DashboardDetails, Widget} from './types';
 
 type Props = {
   api: Client;
   organization: Organization;
-  dashboard: DashboardListItem;
+  dashboard: DashboardDetails;
   selection: GlobalSelection;
   isEditing: boolean;
   /**
@@ -25,9 +28,7 @@ type Props = {
   onUpdate: (widgets: Widget[]) => void;
 };
 
-type State = {};
-
-class Dashboard extends React.Component<Props, State> {
+class Dashboard extends React.Component<Props> {
   componentDidMount() {
     const {isEditing} = this.props;
     // Load organization tags when in edit mode.
@@ -35,6 +36,7 @@ class Dashboard extends React.Component<Props, State> {
       this.fetchTags();
     }
   }
+
   componentDidUpdate(prevProps: Props) {
     const {isEditing} = this.props;
 
@@ -51,10 +53,11 @@ class Dashboard extends React.Component<Props, State> {
   }
 
   handleStartAdd = () => {
-    const {organization, dashboard} = this.props;
+    const {organization, dashboard, selection} = this.props;
     openAddDashboardWidgetModal({
       organization,
       dashboard,
+      selection,
       onAddWidget: this.handleAddComplete,
     });
   };
@@ -63,29 +66,91 @@ class Dashboard extends React.Component<Props, State> {
     this.props.onUpdate([...this.props.dashboard.widgets, widget]);
   };
 
-  renderWidget(widget: Widget, i: number) {
-    // TODO add drag state and drag re-sorting.
+  handleUpdateComplete = (index: number) => (nextWidget: Widget) => {
+    const nextList = [...this.props.dashboard.widgets];
+    nextList[index] = nextWidget;
+    this.props.onUpdate(nextList);
+  };
+
+  handleDeleteWidget = (index: number) => () => {
+    const nextList = [...this.props.dashboard.widgets];
+    nextList.splice(index, 1);
+    this.props.onUpdate(nextList);
+  };
+
+  handleEditWidget = (widget: Widget, index: number) => () => {
+    const {organization, dashboard, selection} = this.props;
+    openAddDashboardWidgetModal({
+      organization,
+      dashboard,
+      widget,
+      selection,
+      onAddWidget: this.handleAddComplete,
+      onUpdateWidget: this.handleUpdateComplete(index),
+    });
+  };
+
+  getWidgetIds() {
+    return [
+      ...this.props.dashboard.widgets.map((widget, index): string => {
+        return generateWidgetId(widget, index);
+      }),
+      ADD_WIDGET_BUTTON_DRAG_ID,
+    ];
+  }
+
+  renderWidget(widget: Widget, index: number) {
+    const {isEditing} = this.props;
+
+    const key = generateWidgetId(widget, index);
+    const dragId = key;
+
     return (
-      <WidgetWrapper key={`${widget.id}:${i}`}>
-        <WidgetCard widget={widget} />
-      </WidgetWrapper>
+      <LazyLoad key={key} once height={240} offset={100}>
+        <SortableWidget
+          widget={widget}
+          dragId={dragId}
+          isEditing={isEditing}
+          onDelete={this.handleDeleteWidget(index)}
+          onEdit={this.handleEditWidget(widget, index)}
+        />
+      </LazyLoad>
     );
   }
 
   render() {
-    const {isEditing, dashboard} = this.props;
+    const {
+      isEditing,
+      onUpdate,
+      dashboard: {widgets},
+    } = this.props;
+
+    const items = this.getWidgetIds();
 
     return (
-      <WidgetContainer>
-        {dashboard.widgets.map((widget, i) => this.renderWidget(widget, i))}
-        {isEditing && (
-          <WidgetWrapper key="add">
-            <AddWidgetWrapper key="add" onClick={this.handleStartAdd}>
-              <IconAdd size="xl" isCircled color="inactive" />
-            </AddWidgetWrapper>
-          </WidgetWrapper>
-        )}
-      </WidgetContainer>
+      <DndContext
+        collisionDetection={closestCenter}
+        onDragEnd={({over, active}) => {
+          const activeDragId = active.id;
+          const getIndex = items.indexOf.bind(items);
+
+          const activeIndex = activeDragId ? getIndex(activeDragId) : -1;
+
+          if (over && over.id !== ADD_WIDGET_BUTTON_DRAG_ID) {
+            const overIndex = getIndex(over.id);
+            if (activeIndex !== overIndex) {
+              onUpdate(arrayMove(widgets, activeIndex, overIndex));
+            }
+          }
+        }}
+      >
+        <WidgetContainer>
+          <SortableContext items={items} strategy={rectSortingStrategy}>
+            {widgets.map((widget, index) => this.renderWidget(widget, index))}
+            {isEditing && <AddWidget onClick={this.handleStartAdd} />}
+          </SortableContext>
+        </WidgetContainer>
+      </DndContext>
     );
   }
 }
@@ -94,21 +159,15 @@ export default withApi(withGlobalSelection(Dashboard));
 
 const WidgetContainer = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-flow: row dense;
   grid-gap: ${space(2)};
-  grid-auto-flow: row;
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
-const WidgetWrapper = styled('div')`
-  position: relative;
-`;
-
-const AddWidgetWrapper = styled('a')`
-  width: 100%;
-  height: 120px;
-  border: 2px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
+function generateWidgetId(widget: Widget, index: number) {
+  return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
+}

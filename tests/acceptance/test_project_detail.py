@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
@@ -10,7 +8,7 @@ FEATURE_NAME = ["organizations:incidents", "organizations:project-detail"]
 
 class ProjectDetailTest(AcceptanceTestCase):
     def setUp(self):
-        super(ProjectDetailTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
 
@@ -66,7 +64,7 @@ class ProjectDetailTest(AcceptanceTestCase):
         self.create_release(project=self.project, version="3.3.3")
 
         self.login_as(self.user)
-        self.path = u"/organizations/{}/projects/{}/".format(self.org.slug, self.project.slug)
+        self.path = f"/organizations/{self.org.slug}/projects/{self.project.slug}/"
 
     def test_simple(self):
         with self.feature(FEATURE_NAME):

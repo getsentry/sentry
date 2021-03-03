@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 import functools
 import logging
@@ -7,24 +5,18 @@ import logging
 from django.utils import timezone
 from rest_framework.response import Response
 
-import sentry_sdk
-
-from sentry import tsdb, tagstore
+from sentry import tsdb, tagstore, features
 from sentry.api import client
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize, GroupSerializer, GroupSerializerSnuba
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSerializer
 from sentry.models import (
     Activity,
     Group,
-    GroupRelease,
     GroupSeen,
     Release,
-    ReleaseEnvironment,
-    ReleaseProject,
     User,
     UserReport,
 )
@@ -35,6 +27,7 @@ from sentry.signals import issue_deleted
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.compat import zip
+from sentry.models.groupinbox import get_inbox_details
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -143,7 +136,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
         }
         serialized_releases = serialize(
-            [releases.get(version) for version in versions], request.user,
+            [releases.get(version) for version in versions],
+            request.user,
         )
         # Default to a dictionary if the release object wasn't found and not serialized
         return [
@@ -151,7 +145,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             for item, version in zip(serialized_releases, versions)
         ]
 
-    @rate_limit_endpoint(limit=10, window=1)
+    @rate_limit_endpoint(limit=5, window=1)
     def get(self, request, group):
         """
         Retrieve an Issue
@@ -171,6 +165,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             organization = group.project.organization
             environments = get_environments(request, organization)
             environment_ids = [e.id for e in environments]
+            expand = request.GET.getlist("expand", [])
+            has_inbox = features.has("organizations:inbox", organization, actor=request.user)
 
             # WARNING: the rest of this endpoint relies on this serializer
             # populating the cache SO don't move this :)
@@ -206,10 +202,10 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 group.project_id, group.id, environment_ids, limit=100
             )
             if not environment_ids:
-                user_reports = UserReport.objects.filter(group=group)
+                user_reports = UserReport.objects.filter(group_id=group.id)
             else:
                 user_reports = UserReport.objects.filter(
-                    group=group, environment_id__in=environment_ids
+                    group_id=group.id, environment_id__in=environment_ids
                 )
 
             now = timezone.now()
@@ -235,6 +231,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
             )
 
+            if "inbox" in expand and has_inbox:
+                inbox_map = get_inbox_details([group])
+                inbox_reason = inbox_map.get(group.id)
+                data.update({"inbox": inbox_reason})
+
             data.update(
                 {
                     "firstRelease": first_release,
@@ -251,54 +252,28 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 }
             )
 
-            # the current release is the 'latest seen' release within the
-            # environment even if it hasn't affected this issue
-            if environments:
-                with sentry_sdk.start_span(op="GroupDetailsEndpoint.get.current_release") as span:
-                    span.set_data("Environment Count", len(environments))
-                    span.set_data(
-                        "Raw Parameters",
-                        {
-                            "group.id": group.id,
-                            "group.project_id": group.project_id,
-                            "group.project.organization_id": group.project.organization_id,
-                            "environments": [{"id": e.id, "name": e.name} for e in environments],
-                        },
-                    )
-
-                    try:
-                        current_release = GroupRelease.objects.filter(
-                            group_id=group.id,
-                            environment__in=[env.name for env in environments],
-                            release_id=(
-                                ReleaseEnvironment.objects.filter(
-                                    release_id__in=ReleaseProject.objects.filter(
-                                        project_id=group.project_id
-                                    ).values_list("release_id", flat=True),
-                                    organization_id=group.project.organization_id,
-                                    environment_id__in=environment_ids,
-                                )
-                                .order_by("-first_seen")
-                                .values_list("release_id", flat=True)
-                            )[:1],
-                        )[0]
-                    except IndexError:
-                        current_release = None
-
-                data["currentRelease"] = serialize(
-                    current_release, request.user, GroupReleaseWithStatsSerializer()
-                )
-
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 200, "detail": "group_details:get:response"},
+            )
             return Response(data)
         except snuba.RateLimitExceeded:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 429, "detail": "group_details:get:snuba.RateLimitExceeded"},
+            )
             raise
         except Exception:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 500, "detail": "group_details:get:Exception"},
+            )
             raise
 
-    @rate_limit_endpoint(limit=10, window=1)
+    @rate_limit_endpoint(limit=5, window=1)
     def put(self, request, group):
         """
         Update an Issue
@@ -327,16 +302,12 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         try:
-            from sentry.utils import snuba
-
             discard = request.data.get("discard")
 
             # TODO(dcramer): we need to implement assignedTo in the bulk mutation
             # endpoint
             response = client.put(
-                path=u"/projects/{}/{}/issues/".format(
-                    group.project.organization.slug, group.project.slug
-                ),
+                path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
                 params={"id": group.id},
                 data=request.data,
                 request=request,
@@ -363,23 +334,27 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     )
                 ),
             )
-            metrics.incr(
-                "group.update.http_response", sample_rate=1.0, tags={"status": response.status_code}
-            )
             return Response(serialized, status=response.status_code)
         except client.ApiError as e:
+            logging.error(
+                "group_details:put client.ApiError",
+                exc_info=True,
+            )
             metrics.incr(
-                "group.update.http_response", sample_rate=1.0, tags={"status": e.status_code}
+                "workflowslo.http_response",
+                sample_rate=1.0,
+                tags={"status": e.status_code, "detail": "group_details:put:client.ApiError"},
             )
             return Response(e.body, status=e.status_code)
-        except snuba.RateLimitExceeded:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
-            raise
         except Exception:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 500, "detail": "group_details:put:Exception"},
+            )
             raise
 
-    @rate_limit_endpoint(limit=10, window=1)
+    @rate_limit_endpoint(limit=5, window=1)
     def delete(self, request, group):
         """
         Remove an Issue
@@ -418,11 +393,23 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     group=group, user=request.user, delete_type="delete", sender=self.__class__
                 )
 
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 200, "detail": "group_details:delete:Reponse"},
+            )
             return Response(status=202)
         except snuba.RateLimitExceeded:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 429, "detail": "group_details:delete:snuba.RateLimitExceeded"},
+            )
             raise
         except Exception:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 500, "detail": "group_details:delete:Exception"},
+            )
             raise

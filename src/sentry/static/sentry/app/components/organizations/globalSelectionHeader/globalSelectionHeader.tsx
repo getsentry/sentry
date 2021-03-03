@@ -2,7 +2,6 @@ import React from 'react';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
-import PropTypes from 'prop-types';
 
 import {
   updateDateTime,
@@ -14,12 +13,13 @@ import HeaderItemPosition from 'app/components/organizations/headerItemPosition'
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
-import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
+import TimeRangeSelector, {
+  ChangeData,
+} from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconArrow} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {
@@ -135,7 +135,7 @@ type Props = {
 
   // Callbacks //
   onChangeProjects?: (val: number[]) => void;
-  onUpdateProjects?: () => void;
+  onUpdateProjects?: (selectedProjects: number[]) => void;
   onChangeEnvironments?: (environments: Environment[]) => void;
   onUpdateEnvironments?: (environments: Environment[]) => void;
   onChangeTime?: (datetime: any) => void;
@@ -174,47 +174,6 @@ type State = {
 };
 
 class GlobalSelectionHeader extends React.Component<Props, State> {
-  static propTypes: any = {
-    organization: SentryTypes.Organization,
-    router: PropTypes.object,
-    projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
-
-    memberProjects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
-
-    nonMemberProjects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
-
-    /**
-     * Slugs of projects to display in project selector (this affects the ^^^projects returned from HoC)
-     */
-    specificProjectSlugs: PropTypes.arrayOf(PropTypes.string),
-    disableMultipleProjectSelection: PropTypes.bool,
-    isGlobalSelectionReady: PropTypes.bool,
-    loadingProjects: PropTypes.bool,
-    shouldForceProject: PropTypes.bool,
-    forceProject: SentryTypes.Project,
-    selection: SentryTypes.GlobalSelection,
-    showEnvironmentSelector: PropTypes.bool,
-    showDateSelector: PropTypes.bool,
-    hasCustomRouting: PropTypes.bool,
-    resetParamsOnChange: PropTypes.arrayOf(PropTypes.string),
-    showAbsolute: PropTypes.bool,
-    showRelative: PropTypes.bool,
-    timeRangeHint: PropTypes.string,
-
-    // Callbacks //
-    onChangeProjects: PropTypes.func,
-    onUpdateProjects: PropTypes.func,
-    onChangeEnvironments: PropTypes.func,
-    onUpdateEnvironments: PropTypes.func,
-    onChangeTime: PropTypes.func,
-    onUpdateTime: PropTypes.func,
-
-    showIssueStreamLink: PropTypes.bool,
-    showProjectSettingsLink: PropTypes.bool,
-    lockedMessageSubject: PropTypes.string,
-    projectsFooterMessage: PropTypes.node,
-  };
-
   static defaultProps = defaultProps;
 
   state = {
@@ -252,7 +211,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     callIfFunction(this.props.onChangeEnvironments, environments);
   };
 
-  handleChangeTime = ({start, end, relative: period, utc}) => {
+  handleChangeTime = ({start, end, relative: period, utc}: ChangeData) => {
     callIfFunction(this.props.onChangeTime, {start, end, period, utc});
   };
 
@@ -372,7 +331,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
               limit={PROJECTS_PER_PAGE}
               slugs={specificProjectSlugs}
             >
-              {({projects, initiallyLoaded, hasMore, onSearch, fetching}) => {
+              {({projects, hasMore, onSearch, fetching}) => {
                 const paginatedProjectSelectorCallbacks = {
                   onScroll: ({clientHeight, scrollHeight, scrollTop}) => {
                     // check if no new projects are being fetched and the user has
@@ -398,10 +357,8 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                     organization={organization}
                     shouldForceProject={shouldForceProject}
                     forceProject={forceProject}
-                    projects={loadingProjects ? projects : memberProjects}
-                    selectedProjects={selectedProjects}
+                    projects={loadingProjects ? (projects as Project[]) : memberProjects}
                     isGlobalSelectionReady={isGlobalSelectionReady}
-                    isLoadingProjects={!initiallyLoaded}
                     nonMemberProjects={nonMemberProjects}
                     value={this.state.projects || this.props.selection.projects}
                     onChange={this.handleChangeProjects}

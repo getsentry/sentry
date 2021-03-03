@@ -12,17 +12,23 @@ import space from 'app/styles/space';
 import {Project} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import EventView from 'app/utils/discover/eventView';
-import {Field, Sort} from 'app/utils/discover/fields';
+import {
+  AggregationKey,
+  Field,
+  generateFieldAsString,
+  Sort,
+} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {
-  ConfidenceLevel,
   NormalizedTrendsTransaction,
   TrendChangeType,
+  TrendColumnField,
   TrendFunction,
   TrendFunctionField,
+  TrendParameter,
   TrendsTransaction,
   TrendView,
 } from './types';
@@ -32,54 +38,57 @@ export const DEFAULT_MAX_DURATION = '15min';
 
 export const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
-    label: 'Duration (p50)',
+    label: 'p50',
     field: TrendFunctionField.P50,
     alias: 'percentile_range',
-    chartLabel: 'p50()',
     legendLabel: 'p50',
   },
   {
-    label: 'Duration (p75)',
+    label: 'p75',
     field: TrendFunctionField.P75,
     alias: 'percentile_range',
-    chartLabel: 'p75()',
     legendLabel: 'p75',
   },
   {
-    label: 'Duration (p95)',
+    label: 'p95',
     field: TrendFunctionField.P95,
     alias: 'percentile_range',
-    chartLabel: 'p95()',
     legendLabel: 'p95',
   },
   {
-    label: 'Duration (p99)',
+    label: 'p99',
     field: TrendFunctionField.P99,
     alias: 'percentile_range',
-    chartLabel: 'p99()',
     legendLabel: 'p99',
   },
   {
-    label: 'Duration (average)',
+    label: 'average',
     field: TrendFunctionField.AVG,
     alias: 'avg_range',
-    chartLabel: 'avg(transaction.duration)',
     legendLabel: 'average',
   },
 ];
 
-export const CONFIDENCE_LEVELS: ConfidenceLevel[] = [
+export const TRENDS_PARAMETERS: TrendParameter[] = [
   {
-    label: 'High',
-    min: 6,
+    label: 'Duration',
+    column: TrendColumnField.DURATION,
   },
   {
-    label: 'Low',
-    min: 0,
-    max: 6,
+    label: 'LCP',
+    column: TrendColumnField.LCP,
   },
   {
-    label: 'Any',
+    label: 'FCP',
+    column: TrendColumnField.FCP,
+  },
+  {
+    label: 'FID',
+    column: TrendColumnField.FID,
+  },
+  {
+    label: 'CLS',
+    column: TrendColumnField.CLS,
   },
 ];
 
@@ -121,17 +130,22 @@ export function getCurrentTrendFunction(location: Location): TrendFunction {
   return trendFunction || TRENDS_FUNCTIONS[0];
 }
 
-export function getCurrentConfidenceLevel(location: Location): ConfidenceLevel {
-  const confidenceLevelLabel = decodeScalar(location?.query?.confidenceLevel);
-  const confidenceLevel = CONFIDENCE_LEVELS.find(
-    ({label}) => label === confidenceLevelLabel
+export function getCurrentTrendParameter(location: Location): TrendParameter {
+  const trendParameterLabel = decodeScalar(location?.query?.trendParameter);
+  const trendParameter = TRENDS_PARAMETERS.find(
+    ({label}) => label === trendParameterLabel
   );
-  return confidenceLevel || CONFIDENCE_LEVELS[0];
+  return trendParameter || TRENDS_PARAMETERS[0];
 }
 
-export function getIntervalRatio(location: Location): number {
-  const intervalFromLocation = decodeScalar(location?.query?.intervalRatio);
-  return intervalFromLocation ? parseFloat(intervalFromLocation) : 0.5;
+export function generateTrendFunctionAsString(
+  trendFunction: TrendFunctionField,
+  trendParameter: string
+): string {
+  return generateFieldAsString({
+    kind: 'function',
+    function: [trendFunction as AggregationKey, trendParameter, undefined],
+  });
 }
 
 export function transformDeltaSpread(from: number, to: number) {
@@ -167,7 +181,7 @@ export function modifyTrendView(
   isProjectOnly?: boolean
 ) {
   const trendFunction = getCurrentTrendFunction(location);
-  const confidenceLevel = getCurrentConfidenceLevel(location);
+  const trendParameter = getCurrentTrendParameter(location);
 
   const transactionField = isProjectOnly ? [] : ['transaction'];
   const fields = [...transactionField, 'project'].map(field => ({
@@ -184,14 +198,13 @@ export function modifyTrendView(
     trendSort.kind = 'desc';
   }
 
-  if (trendFunction) {
-    trendView.trendFunction = trendFunction.field;
+  if (trendFunction && trendParameter) {
+    trendView.trendFunction = generateTrendFunctionAsString(
+      trendFunction.field,
+      trendParameter.column
+    );
   }
-  trendView.query = getLimitTransactionItems(
-    trendView.query,
-    trendsType,
-    confidenceLevel
-  );
+  trendView.query = getLimitTransactionItems(trendView.query, trendsType);
 
   trendView.interval = getQueryInterval(location, trendView);
 
@@ -278,11 +291,7 @@ export function movingAverage(data, index, size) {
 /**
  * This function applies defaults for trend and count percentage, and adds the confidence limit to the query
  */
-function getLimitTransactionItems(
-  query: string,
-  trendChangeType: TrendChangeType,
-  confidenceLevel: ConfidenceLevel
-) {
+function getLimitTransactionItems(query: string, trendChangeType: TrendChangeType) {
   const limitQuery = tokenizeSearch(query);
   if (!limitQuery.hasTag('count_percentage()')) {
     limitQuery.addTagValues('count_percentage()', ['>0.25', '<4']);
@@ -293,19 +302,9 @@ function getLimitTransactionItems(
   if (!limitQuery.hasTag('t_test()')) {
     const tagValues: string[] = [];
     if (trendChangeType === TrendChangeType.REGRESSION) {
-      if (confidenceLevel.hasOwnProperty('min')) {
-        tagValues.push(`<-${confidenceLevel.min}`);
-      }
-      if (confidenceLevel.hasOwnProperty('max')) {
-        tagValues.push(`>=-${confidenceLevel.max}`);
-      }
+      tagValues.push(`<-6`);
     } else {
-      if (confidenceLevel.hasOwnProperty('min')) {
-        tagValues.push(`>${confidenceLevel.min}`);
-      }
-      if (confidenceLevel.hasOwnProperty('max')) {
-        tagValues.push(`<=${confidenceLevel.max}`);
-      }
+      tagValues.push(`>6`);
     }
     limitQuery.addTagValues('t_test()', tagValues);
   }

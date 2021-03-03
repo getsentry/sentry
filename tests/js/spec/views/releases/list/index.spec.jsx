@@ -179,8 +179,8 @@ describe('ReleasesList', function () {
   it('display the right Crash Free column', async function () {
     const displayDropdown = wrapper.find('ReleaseListDisplayOptions');
 
-    const activeDisplay = displayDropdown.find('DropdownButton span');
-    expect(activeDisplay.text()).toEqual('Display:Crash Free Sessions');
+    const activeDisplay = displayDropdown.find('DropdownButton button');
+    expect(activeDisplay.text()).toEqual('DisplayCrash Free Sessions');
 
     const displayOptions = displayDropdown.find('DropdownItem');
     expect(displayOptions).toHaveLength(2);
@@ -318,6 +318,21 @@ describe('ReleasesList', function () {
 
     expect(healthSection.find('ProjectRow').length).toBe(1);
 
-    expect(healthSection.find('ProjectName').text()).toBe('test2');
+    expect(healthSection.find('ProjectBadge').text()).toBe('test2');
+  });
+
+  it('does not hide health rows when "All Projects" are selected in global header', function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [TestStubs.Release({version: '2.0.0'})],
+    });
+    const healthSection = mountWithTheme(
+      <ReleasesList {...props} selection={{projects: [-1]}} />,
+      routerContext
+    ).find('ReleaseHealth');
+
+    expect(healthSection.find('HiddenProjectsMessage').exists()).toBeFalsy();
+
+    expect(healthSection.find('ProjectRow').length).toBe(1);
   });
 });

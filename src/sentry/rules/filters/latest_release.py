@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db.models.signals import post_save, post_delete, pre_delete
 
 from sentry import tagstore
@@ -10,7 +8,7 @@ from sentry.utils.cache import cache
 
 
 def get_project_release_cache_key(project_id):
-    return u"project:{}:latest_release".format(project_id)
+    return f"project:{project_id}:latest_release"
 
 
 # clear the cache given a Release object

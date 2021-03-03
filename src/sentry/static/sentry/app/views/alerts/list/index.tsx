@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 import omit from 'lodash/omit';
 
-import {promptsUpdate} from 'app/actionCreators/prompts';
+import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -111,14 +111,12 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     }
 
     // Check if they have already seen the prompt for the alert stream
-    const prompt = await this.api.requestPromise('/promptsactivity/', {
-      query: {
-        organization_id: organization.id,
-        feature: 'alert_stream',
-      },
+    const prompt = await promptsCheck(this.api, {
+      organizationId: organization.id,
+      feature: 'alert_stream',
     });
 
-    const firstVisitShown = !prompt?.data?.dismissed_ts;
+    const firstVisitShown = !prompt?.dismissedTime;
 
     if (firstVisitShown) {
       // Prompt has not been seen, mark the prompt as seen immediately so they
@@ -175,10 +173,10 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         icon={<IconCheckmark isCircled size="48" />}
         title={
           !hasAlertRule
-            ? t('No metric alert rules exist for these projects.')
+            ? t('No metric alert rules exist for the selected projects.')
             : status === 'open'
-            ? t('No unresolved metric alerts in these projects.')
-            : t('No resolved metric alerts in these projects.')
+            ? t('No unresolved metric alerts in the selected projects.')
+            : t('No resolved metric alerts in the selected projects.')
         }
         description={tct('Learn more about [link:Metric Alerts]', {
           link: <ExternalLink href={DOCS_URL} />,
@@ -193,8 +191,11 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
   renderList() {
     const {loading, incidentList, incidentListPageLinks, hasAlertRule} = this.state;
+    const {
+      params: {orgId},
+      organization,
+    } = this.props;
 
-    const {orgId} = this.props.params;
     const allProjectsFromIncidents = new Set(
       flatten(incidentList?.map(({projects}) => projects))
     );
@@ -238,6 +239,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                           incident={incident}
                           orgId={orgId}
                           filteredStatus={status}
+                          organization={organization}
                         />
                       ))
                     }

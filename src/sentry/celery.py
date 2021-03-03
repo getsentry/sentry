@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.conf import settings
 
 from celery import Celery
@@ -26,7 +24,7 @@ def patch_thread_ident():
         from django.db.backends import BaseDatabaseWrapper, DatabaseError
 
         if "validate_thread_sharing" in BaseDatabaseWrapper.__dict__:
-            from six.moves import _thread as thread
+            import _thread as thread
 
             _get_ident = thread.get_ident
 
@@ -63,7 +61,7 @@ class SentryTask(Task):
 
 class SentryRequest(Request):
     def __init__(self, message, **kwargs):
-        super(SentryRequest, self).__init__(message, **kwargs)
+        super().__init__(message, **kwargs)
         self._request_dict["headers"] = message.headers
 
 

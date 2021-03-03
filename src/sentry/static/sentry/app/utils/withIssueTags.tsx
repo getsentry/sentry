@@ -85,8 +85,8 @@ const withIssueTags = <P extends InjectedTagsProps>(
       const usernames: string[] = users.map(getUsername);
       const teamnames: string[] = teams
         .filter(team => team.isMember)
-        .map(team => `#${team.name}`);
-      const allAssigned = usernames.concat(teamnames);
+        .map(team => `#${team.slug}`);
+      const allAssigned = ['me_or_none', ...usernames.concat(teamnames)];
       allAssigned.unshift('me');
       usernames.unshift('me');
 
@@ -101,8 +101,8 @@ const withIssueTags = <P extends InjectedTagsProps>(
             ...tags.bookmarks,
             values: usernames,
           },
-          owner: {
-            ...tags.owner,
+          assigned_or_suggested: {
+            ...tags.assigned_or_suggested,
             values: allAssigned,
           },
         },

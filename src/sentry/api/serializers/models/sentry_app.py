@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.api.serializers import serialize, Serializer, register
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser

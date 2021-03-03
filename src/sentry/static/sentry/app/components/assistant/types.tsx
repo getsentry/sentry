@@ -1,5 +1,5 @@
 export type GuideStep = {
-  title: string;
+  title?: string;
   /**
    * Step is tied to an anchor target. If the anchor doesn't exist,
    * the step will not be shown. If the anchor exists but is of type
@@ -8,11 +8,17 @@ export type GuideStep = {
    */
   target?: string;
   description: React.ReactNode;
+  nextText?: string;
+  dismissText?: string;
+  cantDismiss?: boolean;
+  hasNextGuide?: boolean;
 };
 
 export type Guide = {
   guide: string;
   requiredTargets: string[];
+  dateThreshold?: Date;
+  carryAssistantForward?: boolean;
   steps: GuideStep[];
   seen: boolean;
 };
@@ -24,6 +30,8 @@ export type GuidesContent = {
    * guide to be shown regardless.
    */
   requiredTargets: string[];
+  dateThreshold?: Date;
+  carryAssistantForward?: boolean;
   steps: GuideStep[];
 }[];
 

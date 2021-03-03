@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from django.utils.translation import ugettext_lazy as _
 from django.db import transaction
 
@@ -54,7 +51,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=PagerDuty%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=PagerDuty%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/pagerduty",
     aspects={"alerts": [setup_alert]},
 )
@@ -182,7 +179,7 @@ class PagerDutyInstallationRedirect(PipelineView):
         setup_url = absolute_uri("/extensions/pagerduty/setup/")
 
         return (
-            u"https://%s.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=2"
+            "https://%s.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=2"
             % (account_name, app_id, setup_url)
         )
 

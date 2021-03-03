@@ -95,6 +95,9 @@
     "/api/0/organizations/{organization_slug}/stats/": {
       "$ref": "paths/organizations/stats.json"
     },
+    "/api/0/organizations/{organization_slug}/sessions/": {
+      "$ref": "paths/organizations/sessions.json"
+    },
     "/api/0/organizations/{organization_slug}/users/": {
       "$ref": "paths/organizations/users.json"
     },

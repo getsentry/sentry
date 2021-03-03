@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 from sentry.api.serializers import Serializer
 from sentry.models import User, Team
 
@@ -18,5 +15,5 @@ class ActorSerializer(Serializer):
         else:
             raise AssertionError("Invalid type to assign to: %r" % type(obj))
 
-        context.update({"type": actor_type, "id": six.text_type(obj.id), "name": name})
+        context.update({"type": actor_type, "id": str(obj.id), "name": name})
         return context

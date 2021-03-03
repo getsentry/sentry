@@ -1,6 +1,7 @@
 import pick from 'lodash/pick';
 import Reflux from 'reflux';
 
+import {mergeGroups} from 'app/actionCreators/group';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -8,7 +9,8 @@ import {
 } from 'app/actionCreators/indicator';
 import GroupingActions from 'app/actions/groupingActions';
 import {Client} from 'app/api';
-import {Event, Group, Organization, Project} from 'app/types';
+import {Group, Organization, Project} from 'app/types';
+import {Event} from 'app/types/event';
 
 // Between 0-100
 const MIN_SCORE = 0.6;
@@ -45,14 +47,14 @@ type State = {
 
 type ScoreMap = Record<string, number | null>;
 
-type Item = {
+export type Fingerprint = {
   id: string;
   latestEvent: Event;
   state?: string;
 };
 
 type ResponseProcessors = {
-  merged: (item: Item) => Item;
+  merged: (item: Fingerprint) => Fingerprint;
   similar: (
     data: [Group, ScoreMap]
   ) => {
@@ -441,7 +443,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
       // Disable merge button
       const {orgId, groupId} = params;
 
-      this.api.merge(
+      mergeGroups(
+        this.api,
         {
           orgId,
           projectId: projectId || params.projectId,
@@ -546,4 +549,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
   },
 };
 
-export default Reflux.createStore(storeConfig) as GroupingStore;
+const GroupingStore = Reflux.createStore(storeConfig) as GroupingStore;
+
+export default GroupingStore;

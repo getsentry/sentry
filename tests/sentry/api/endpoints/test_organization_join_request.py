@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from exam import fixture
 from sentry.utils.compat.mock import patch
 from django.core import mail
@@ -13,7 +11,7 @@ class OrganizationJoinRequestTest(APITestCase):
     method = "post"
 
     def setUp(self):
-        super(OrganizationJoinRequestTest, self).setUp()
+        super().setUp()
         self.email = "test@example.com"
         self.org = self.create_organization(owner=self.user)
 

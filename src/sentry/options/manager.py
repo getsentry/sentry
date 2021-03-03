@@ -1,6 +1,3 @@
-from __future__ import absolute_import, print_function
-
-import six
 import sys
 import logging
 
@@ -42,7 +39,7 @@ DEFAULT_KEY_TTL = 10
 DEFAULT_KEY_GRACE = 60
 
 
-class OptionsManager(object):
+class OptionsManager:
     """
     A backend for storing generic configuration within Sentry.
 
@@ -86,7 +83,7 @@ class OptionsManager(object):
         if coerce:
             value = opt.type(value)
         elif not opt.type.test(value):
-            raise TypeError("got %r, expected %r" % (_type(value), opt.type))
+            raise TypeError(f"got {_type(value)!r}, expected {opt.type!r}")
 
         return self.store.set(opt, value)
 
@@ -213,9 +210,9 @@ class OptionsManager(object):
         # Guess type based on the default value
         if type is None:
             # the default value would be equivalent to '' if no type / default
-            # is specified and we assume six.text_type for safety
+            # is specified and we assume str for safety
             if default_value is None:
-                default_value = u""
+                default_value = ""
 
                 def default():
                     return default_value
@@ -230,7 +227,7 @@ class OptionsManager(object):
 
         # Make sure the type is correct at registration time
         if default_value is not None and not type.test(default_value):
-            raise TypeError("got %r, expected %r" % (_type(default), type))
+            raise TypeError(f"got {_type(default)!r}, expected {type!r}")
 
         # If we don't have a default, but we have a type, pull the default
         # value from the type
@@ -255,7 +252,7 @@ class OptionsManager(object):
             raise UnknownOption(key)
 
     def validate(self, options, warn=False):
-        for k, v in six.iteritems(options):
+        for k, v in options.items():
             try:
                 self.validate_option(k, v)
             except UnknownOption as e:
@@ -267,13 +264,13 @@ class OptionsManager(object):
         opt = self.lookup_key(key)
         assert not (opt.flags & FLAG_STOREONLY), "%r is not allowed to be loaded from config" % key
         if not opt.type.test(value):
-            raise TypeError("%r: got %r, expected %r" % (key, _type(value), opt.type))
+            raise TypeError(f"{key!r}: got {_type(value)!r}, expected {opt.type!r}")
 
     def all(self):
         """
         Return an iterator for all keys in the registry.
         """
-        return six.itervalues(self.registry)
+        return self.registry.values()
 
     def filter(self, flag=None):
         """

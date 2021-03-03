@@ -4,9 +4,8 @@ import Alert from 'app/components/alert';
 import EventDataSection from 'app/components/events/eventDataSection';
 import {IconUpgrade} from 'app/icons';
 import {tct} from 'app/locale';
-import {Event} from 'app/types';
-
-import getSuggestion from './getSuggestion';
+import {Event} from 'app/types/event';
+import getSdkUpdateSuggestion from 'app/utils/getSdkUpdateSuggestion';
 
 type Props = {
   event: Omit<Event, 'sdkUpdates'> & {
@@ -19,7 +18,7 @@ const SdkUpdates = ({event}: Props) => {
 
   const eventDataSectinContent = sdkUpdates
     .map((sdkUpdate, index) => {
-      const suggestion = getSuggestion({suggestion: sdkUpdate, event});
+      const suggestion = getSdkUpdateSuggestion({suggestion: sdkUpdate, sdk: event.sdk});
 
       if (!suggestion) {
         return null;

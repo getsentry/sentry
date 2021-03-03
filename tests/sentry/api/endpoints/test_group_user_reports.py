@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from exam import fixture
 
 from sentry.models import Environment, UserReport
@@ -8,7 +7,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 class GroupUserReport(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(GroupUserReport, self).setUp()
+        super().setUp()
         self.project = self.create_project()
         self.env1 = self.create_environment(self.project, "production")
         self.env2 = self.create_environment(self.project, "staging")
@@ -27,7 +26,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
 
     @fixture
     def path(self):
-        return u"/api/0/groups/{}/user-feedback/".format(self.group.id)
+        return f"/api/0/groups/{self.group.id}/user-feedback/"
 
     def create_environment(self, project, name):
         env = Environment.objects.create(
@@ -54,13 +53,13 @@ class GroupUserReport(APITestCase, SnubaTestCase):
         for i, event in enumerate(events):
             reports.append(
                 UserReport.objects.create(
-                    group=group,
-                    project=project,
+                    group_id=group.id,
+                    project_id=project.id,
                     event_id=event.event_id,
                     name="foo%d" % i,
                     email="bar%d@example.com" % i,
                     comments="It Broke!!!",
-                    environment=environment,
+                    environment_id=environment.id,
                 )
             )
         return reports
@@ -93,7 +92,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
     def test_no_environment(self):
         self.login_as(user=self.user)
 
-        empty_env = self.create_environment(self.project, u"")
+        empty_env = self.create_environment(self.project, "")
         empty_env_events = self.create_events_for_environment(empty_env, 5)
         userreports = self.create_user_report_for_events(
             self.project, self.group, empty_env_events, empty_env

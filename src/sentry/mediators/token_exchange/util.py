@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 from django.utils import timezone
 
@@ -10,7 +8,7 @@ AUTHORIZATION = "authorization_code"
 REFRESH = "refresh_token"
 
 
-class GrantTypes(object):
+class GrantTypes:
     AUTHORIZATION = AUTHORIZATION
     REFRESH = REFRESH
 

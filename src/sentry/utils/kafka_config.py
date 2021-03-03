@@ -1,5 +1,5 @@
-from __future__ import absolute_import
-import six
+from typing import Any, MutableMapping, Optional
+
 from django.conf import settings
 
 SUPPORTED_KAFKA_CONFIGURATION = (
@@ -13,6 +13,20 @@ SUPPORTED_KAFKA_CONFIGURATION = (
     "sasl.password",
     "security.protocol",
     "socket.timeout.ms",
+    "ssl.ca.location",
+    "ssl.ca.certificate.stores",
+    "ssl.certificate.location",
+    "ssl.certificate.pem",
+    "ssl.cipher.suites",
+    "ssl.crl.location",
+    "ssl.curves.list",
+    "ssl.endpoint.identification.algorithm",
+    "ssl.key.location",
+    "ssl.key.password",
+    "ssl.key.pem",
+    "ssl.keystore.location",
+    "ssl.keystore.password",
+    "ssl.sigalgs.list",
 )
 COMMON_SECTION = "common"
 PRODUCERS_SECTION = "producers"
@@ -51,12 +65,8 @@ def _get_kafka_cluster_options(
         # check key validity
         for configuration_key in options:
             if configuration_key not in SUPPORTED_KAFKA_CONFIGURATION:
-                raise ValueError(
-                    "The `{configuration_key}` configuration key is not supported.".format(
-                        configuration_key=configuration_key
-                    )
-                )
-    if not isinstance(options["bootstrap.servers"], six.string_types):
+                raise ValueError(f"The `{configuration_key}` configuration key is not supported.")
+    if not isinstance(options["bootstrap.servers"], str):
         raise ValueError("bootstrap.servers must be a comma separated string")
     if override_params:
         options.update(override_params)
@@ -67,13 +77,17 @@ def get_kafka_producer_cluster_options(cluster_name):
     return _get_kafka_cluster_options(cluster_name, PRODUCERS_SECTION)
 
 
-def get_kafka_consumer_cluster_options(cluster_name, override_params=None):
+def get_kafka_consumer_cluster_options(
+    cluster_name: str, override_params: Optional[MutableMapping[str, Any]] = None
+) -> MutableMapping[Any, Any]:
     return _get_kafka_cluster_options(
         cluster_name, CONSUMERS_SECTION, only_bootstrap=True, override_params=override_params
     )
 
 
-def get_kafka_admin_cluster_options(cluster_name, override_params=None):
+def get_kafka_admin_cluster_options(
+    cluster_name: str, override_params: Optional[MutableMapping[str, Any]] = None
+) -> MutableMapping[Any, Any]:
     return _get_kafka_cluster_options(
         cluster_name, ADMIN_SECTION, only_bootstrap=True, override_params=override_params
     )

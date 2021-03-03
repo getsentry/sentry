@@ -1,10 +1,9 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
 
 import TeamAvatar from 'app/components/avatar/teamAvatar';
 import UserAvatar from 'app/components/avatar/userAvatar';
-import SentryTypes from 'app/sentryTypes';
+import Tooltip from 'app/components/tooltip';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
 import {Actor} from 'app/types';
@@ -22,19 +21,11 @@ type Props = DefaultProps & {
   className?: string;
   onClick?: () => void;
   suggested?: boolean;
+  tooltip?: React.ReactNode;
+  tooltipOptions?: Omit<Tooltip['props'], 'children' | 'title'>;
 };
 
 class ActorAvatar extends React.Component<Props> {
-  static propTypes = {
-    actor: SentryTypes.Actor.isRequired,
-    size: PropTypes.number,
-    default: PropTypes.string,
-    title: PropTypes.string,
-    gravatar: PropTypes.bool,
-    hasTooltip: PropTypes.bool,
-    suggested: PropTypes.bool,
-  };
-
   static defaultProps: DefaultProps = {
     hasTooltip: true,
   };

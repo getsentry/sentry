@@ -94,7 +94,7 @@ class GridEditable<
   // Static methods do not allow the use of generics bounded to the parent class
   // For more info: https://github.com/microsoft/TypeScript/issues/14600
   static getDerivedStateFromProps(
-    props: GridEditableProps<Object, keyof Object>,
+    props: Readonly<GridEditableProps<Object, keyof Object>>,
     prevState: GridEditableState
   ): GridEditableState {
     return {
@@ -368,7 +368,7 @@ class GridEditable<
       <GridRow>
         <GridBodyCellStatus>
           <EmptyStateWarning>
-            <p>{t('No results found')}</p>
+            <p>{t('No results found for your query')}</p>
           </EmptyStateWarning>
         </GridBodyCellStatus>
       </GridRow>

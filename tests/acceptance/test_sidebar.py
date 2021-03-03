@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 from sentry.testutils import AcceptanceTestCase
 
 
 class SidebarTest(AcceptanceTestCase):
     def setUp(self):
-        super(SidebarTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
         self.create_organization(name="Foo Foo Foo Foo Foo Foo Foo", owner=self.user)

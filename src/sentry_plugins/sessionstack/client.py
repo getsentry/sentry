@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import requests
 
 from sentry.utils import json
@@ -13,15 +11,15 @@ DEFAULT_SENTRY_SOURCE = "sentry"
 API_URL = "https://api.sessionstack.com"
 PLAYER_URL = "https://app.sessionstack.com/player"
 
-WEBSITES_ENDPOINT = u"/v1/websites/{}"
-SESSION_ENDPOINT = u"/v1/websites/{}/sessions/{}"
-ACCESS_TOKENS_ENDPOINT = u"/v1/websites/{}/sessions/{}/access_tokens"
+WEBSITES_ENDPOINT = "/v1/websites/{}"
+SESSION_ENDPOINT = "/v1/websites/{}/sessions/{}"
+ACCESS_TOKENS_ENDPOINT = "/v1/websites/{}/sessions/{}/access_tokens"
 SESSION_URL_PATH = "/#/sessions/"
 
 MILLISECONDS_BEFORE_EVENT = 5000
 
 
-class SessionStackClient(object):
+class SessionStackClient:
     def __init__(self, account_email, api_token, website_id, **kwargs):
         self.website_id = website_id
 

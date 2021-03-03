@@ -14,213 +14,43 @@ import HookStore from 'app/stores/hookStore';
 import {
   AppOrProviderOrPlugin,
   DocumentIntegration,
-  Integration,
   IntegrationFeature,
   IntegrationInstallationStatus,
-  IntegrationProvider,
-  IntegrationType,
   Organization,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
-  SentryAppStatus,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {uniqueId} from 'app/utils/guid';
+import {EventParameters, trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
 
-const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
-
-const FEATURES_TO_INCLUDE_IN_ANALYTICS = ['slack-migration'];
-
-export const startAnalyticsSession = () => {
-  const sessionId = uniqueId();
-  window.sessionStorage.setItem(INTEGRATIONS_ANALYTICS_SESSION_KEY, sessionId);
-  return sessionId;
-};
-
-export const clearAnalyticsSession = () => {
-  window.sessionStorage.removeItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
-};
-
-export const getAnalyticsSessionId = () =>
-  window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
-
-export type SingleIntegrationEvent = {
-  eventKey:
-    | 'integrations.install_modal_opened' //TODO: remove
-    | 'integrations.installation_start'
-    | 'integrations.installation_complete'
-    | 'integrations.integration_viewed' //for the integration overview
-    | 'integrations.details_viewed' //for an individual configuration
-    | 'integrations.uninstall_clicked'
-    | 'integrations.uninstall_completed'
-    | 'integrations.enabled'
-    | 'integrations.disabled'
-    | 'integrations.config_saved'
-    | 'integrations.integration_tab_clicked'
-    | 'integrations.plugin_add_to_project_clicked'
-    | 'integrations.upgrade_plan_modal_opened'
-    | 'integrations.resolve_now_clicked'
-    | 'integrations.reauth_start'
-    | 'integrations.reauth_complete'
-    | 'integrations.request_install';
-  eventName:
-    | 'Integrations: Install Modal Opened' //TODO: remove
-    | 'Integrations: Installation Start'
-    | 'Integrations: Installation Complete'
-    | 'Integrations: Integration Viewed'
-    | 'Integrations: Details Viewed'
-    | 'Integrations: Uninstall Clicked'
-    | 'Integrations: Uninstall Completed'
-    | 'Integrations: Enabled'
-    | 'Integrations: Disabled'
-    | 'Integrations: Integration Tab Clicked'
-    | 'Integrations: Config Saved'
-    | 'Integrations: Plugin Add to Project Clicked'
-    | 'Integrations: Upgrade Plan Modal Opened'
-    | 'Integrations: Resolve Now Clicked'
-    | 'Integrations: Reauth Start'
-    | 'Integrations: Reauth Complete'
-    | 'Integrations: Request Install';
-  integration: string; //the slug
-  integration_type: IntegrationType;
-  already_installed?: boolean;
-  integration_tab?: 'configurations' | 'overview';
-  plan?: string;
-  //include the status since people might do weird things testing unpublished integrations
-  integration_status?: SentryAppStatus;
-};
-
-type MultipleIntegrationsEvent = {
-  eventKey: 'integrations.index_viewed';
-  eventName: 'Integrations: Index Page Viewed';
-  integrations_installed: number;
-};
-
-type IntegrationSearchEvent = {
-  eventKey: 'integrations.directory_item_searched';
-  eventName: 'Integrations: Directory Item Searched';
-  search_term: string;
-  num_results: number;
-};
-
-type IntegrationCategorySelectEvent = {
-  eventKey: 'integrations.directory_category_selected';
-  eventName: 'Integrations: Directory Category Selected';
-  category: string;
-};
-
-type IntegrationStacktraceLinkEvent = {
-  eventKey:
-    | 'integrations.stacktrace_link_clicked'
-    | 'integrations.reconfigure_stacktrace_setup';
-  eventName:
-    | 'Integrations: Stacktrace Link Clicked'
-    | 'Integrations: Reconfigure Stacktrace Setup';
-  provider: string;
-  error_reason?: 'file_not_found' | 'stack_root_mismatch';
-};
-
-type IntegrationsEventParams = (
-  | MultipleIntegrationsEvent
-  | SingleIntegrationEvent
-  | IntegrationSearchEvent
-  | IntegrationCategorySelectEvent
-  | IntegrationStacktraceLinkEvent
-) & {
-  view?:
-    | 'external_install'
-    | 'legacy_integrations'
-    | 'plugin_details'
-    | 'integrations_directory'
-    | 'integrations_directory_integration_detail'
-    | 'stacktrace_issue_details';
-  project_id?: string;
-} & Parameters<Hooks['analytics:track-event']>[0];
-
-const hasAnalyticsDebug = () =>
-  window.localStorage.getItem('DEBUG_INTEGRATION_ANALYTICS') === '1';
-
-/**
- * Tracks an event for ecosystem analytics
- * Must be tied to an organization
- * Uses the current session ID or generates a new one if startSession == true
- */
-export const trackIntegrationEvent = (
-  analyticsParams: IntegrationsEventParams,
-  org?: Organization, //we should pass in org whenever we can but not every place guarantees this
-  options?: {startSession: boolean}
-) => {
-  const {startSession} = options || {};
-  let sessionId = startSession ? startAnalyticsSession() : getAnalyticsSessionId();
-
-  //we should always have a session id but if we don't, we should generate one
-  if (hasAnalyticsDebug() && !sessionId) {
-    // eslint-disable-next-line no-console
-    console.warn(`analytics_session_id absent from event ${analyticsParams.eventName}`);
-    sessionId = startAnalyticsSession();
-  }
-
-  let features = {};
-  if (org) {
-    features = Object.fromEntries(
-      FEATURES_TO_INCLUDE_IN_ANALYTICS.map(f => [
-        `feature-${f}`,
-        org.features.includes(f),
-      ])
-    );
-  }
-
-  let custom_referrer: string | undefined;
-
-  try {
-    //pull the referrer from the query parameter of the page
-    const {referrer} = qs.parse(window.location.search) || {};
-    if (typeof referrer === 'string') {
-      // Amplitude has its own referrer which inteferes with our custom referrer
-      custom_referrer = referrer;
-    }
-  } catch {
-    // ignore if this fails to parse
-    // this can happen if we have an invalid query string
-    // e.g. unencoded "%"
-  }
-
-  const params = {
-    analytics_session_id: sessionId,
-    organization_id: org?.id,
-    role: org?.role,
-    custom_referrer,
-    ...features,
-    ...analyticsParams,
-  };
-
-  //add the integration_status to the type of params so TS doesn't complain about what we do below
-  const fullParams: typeof params & {
-    integration_status?: SentryAppStatus;
-  } = params;
-
+const mapIntegrationParams = analyticsParams => {
   //Reload expects integration_status even though it's not relevant for non-sentry apps
   //Passing in a dummy value of published in those cases
+  const fullParams = {...analyticsParams};
   if (analyticsParams.integration && analyticsParams.integration_type !== 'sentry_app') {
     fullParams.integration_status = 'published';
   }
-
-  //TODO(steve): remove once we pass in org always
-  if (hasAnalyticsDebug() && !org) {
-    // eslint-disable-next-line no-console
-    console.warn(`Organization absent from event ${analyticsParams.eventName}`);
-  }
-
-  //could put this into a debug method or for the main trackAnalyticsEvent event
-  if (hasAnalyticsDebug()) {
-    // eslint-disable-next-line no-console
-    console.log('trackIntegrationEvent', fullParams);
-  }
-
-  return trackAnalyticsEvent(fullParams);
+  return fullParams;
 };
+
+//wrapper around trackAdvancedAnalyticsEvent which has some extra
+//data massaging above
+export function trackIntegrationEvent<T extends IntegrationAnalyticsKey>(
+  eventKey: T,
+  analyticsParams: EventParameters[T],
+  org?: Organization,
+  options?: Parameters<typeof trackAdvancedAnalyticsEvent>[3]
+) {
+  return trackAdvancedAnalyticsEvent(
+    eventKey,
+    analyticsParams,
+    org,
+    options,
+    mapIntegrationParams
+  );
+}
 
 /**
  * In sentry.io the features list supports rendering plan details. If the hook
@@ -323,15 +153,6 @@ export function isDocumentIntegration(
   return integration.hasOwnProperty('docUrl');
 }
 
-export function isSlackWorkspaceApp(integration: Integration) {
-  return integration.configData.installationType === 'workspace_app';
-}
-
-//returns the text in the alert asking the user to re-authenticate a first-party integration
-export function getReauthAlertText(provider: IntegrationProvider) {
-  return provider.metadata.aspects?.reauthentication_alert?.alertText;
-}
-
 export const convertIntegrationTypeToSnakeCase = (
   type: 'plugin' | 'firstParty' | 'sentryApp' | 'documentIntegration'
 ) => {
@@ -356,21 +177,29 @@ export const safeGetQsParam = (param: string) => {
   }
 };
 
-export const getIntegrationIcon = (integrationType?: string) => {
+export const getIntegrationIcon = (integrationType?: string, size?: string) => {
+  const iconSize = size || 'md';
   switch (integrationType) {
     case 'bitbucket':
-      return <IconBitbucket size="md" />;
+      return <IconBitbucket size={iconSize} />;
     case 'gitlab':
-      return <IconGitlab size="md" />;
+      return <IconGitlab size={iconSize} />;
     case 'github':
     case 'github_enterprise':
-      return <IconGithub size="md" />;
+      return <IconGithub size={iconSize} />;
     case 'jira':
     case 'jira_server':
-      return <IconJira size="md" />;
+      return <IconJira size={iconSize} />;
     case 'vsts':
-      return <IconVsts size="md" />;
+      return <IconVsts size={iconSize} />;
     default:
-      return <IconGeneric size="md" />;
+      return <IconGeneric size={iconSize} />;
   }
+};
+
+//used for project creation and onboarding
+//determines what integration maps to what project platform
+export const platfromToIntegrationMap = {
+  'node-awslambda': 'aws_lambda',
+  'python-awslambda': 'aws_lambda',
 };

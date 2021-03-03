@@ -28,7 +28,11 @@ export const displayCrashFreePercent = (
     return `<1\u0025`;
   }
 
-  const rounded = getCrashFreePercent(percent, decimalThreshold, decimalPlaces);
+  const rounded = getCrashFreePercent(
+    percent,
+    decimalThreshold,
+    decimalPlaces
+  ).toLocaleString();
 
   return `${rounded}\u0025`;
 };
@@ -42,7 +46,27 @@ export const getReleaseNewIssuesUrl = (
     pathname: `/organizations/${orgSlug}/issues/`,
     query: {
       project: projectId,
+      // we are resetting time selector because releases' new issues count doesn't take time selector into account
+      statsPeriod: undefined,
+      start: undefined,
+      end: undefined,
       query: stringifyQueryObject(new QueryResults([`firstRelease:${version}`])),
+    },
+  };
+};
+
+export const getReleaseUnhandledIssuesUrl = (
+  orgSlug: string,
+  projectId: string | number | null,
+  version: string
+) => {
+  return {
+    pathname: `/organizations/${orgSlug}/issues/`,
+    query: {
+      project: projectId,
+      query: stringifyQueryObject(
+        new QueryResults([`release:${version}`, 'error.unhandled:true'])
+      ),
     },
   };
 };

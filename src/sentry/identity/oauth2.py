@@ -1,9 +1,7 @@
-from __future__ import absolute_import, print_function
-
 __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 
 import logging
-from six.moves.urllib.parse import parse_qsl, urlencode
+from urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
 from time import time
 from requests.exceptions import SSLError
@@ -52,7 +50,7 @@ class OAuth2Provider(Provider):
         If the parameter cannot be found a KeyError will be raised.
         """
         try:
-            prop = getattr(self, u"oauth_{}".format(parameter_name))
+            prop = getattr(self, f"oauth_{parameter_name}")
             if prop != "":
                 return prop
         except AttributeError:
@@ -65,7 +63,7 @@ class OAuth2Provider(Provider):
         if model and model.config.get(parameter_name) is not None:
             return model.config.get(parameter_name)
 
-        raise KeyError(u'Unable to resolve OAuth parameter "{}"'.format(parameter_name))
+        raise KeyError(f'Unable to resolve OAuth parameter "{parameter_name}"')
 
     def get_oauth_access_token_url(self):
         return self._get_oauth_parameter("access_token_url")
@@ -134,7 +132,7 @@ class OAuth2Provider(Provider):
                 error_description = payload.get(desc_key)
                 break
 
-        formatted_error = u"HTTP {} ({}): {}".format(req.status_code, error_name, error_description)
+        formatted_error = f"HTTP {req.status_code} ({error_name}): {error_description}"
 
         if req.status_code == 401:
             self.logger.info(
@@ -207,7 +205,7 @@ class OAuth2LoginView(PipelineView):
     scope = ""
 
     def __init__(self, authorize_url=None, client_id=None, scope=None, *args, **kwargs):
-        super(OAuth2LoginView, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if authorize_url is not None:
             self.authorize_url = authorize_url
         if client_id is not None:
@@ -241,7 +239,7 @@ class OAuth2LoginView(PipelineView):
         params = self.get_authorize_params(
             state=state, redirect_uri=absolute_uri(pipeline.redirect_url())
         )
-        redirect_uri = u"{}?{}".format(self.get_authorize_url(), urlencode(params))
+        redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
 
         pipeline.bind_state("state", state)
 
@@ -254,7 +252,7 @@ class OAuth2CallbackView(PipelineView):
     client_secret = None
 
     def __init__(self, access_token_url=None, client_id=None, client_secret=None, *args, **kwargs):
-        super(OAuth2CallbackView, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if access_token_url is not None:
             self.access_token_url = access_token_url
         if client_id is not None:
@@ -289,13 +287,13 @@ class OAuth2CallbackView(PipelineView):
             url = self.access_token_url
             return {
                 "error": "Could not verify SSL certificate",
-                "error_description": u"Ensure that {} has a valid SSL certificate".format(url),
+                "error_description": f"Ensure that {url} has a valid SSL certificate",
             }
         except json.JSONDecodeError:
             logger.info("identity.oauth2.json-error", extra={"url": self.access_token_url})
             return {
                 "error": "Could not decode a JSON Response",
-                "error_description": u"We were not able to parse a JSON response, please try again.",
+                "error_description": "We were not able to parse a JSON response, please try again.",
             }
 
     def dispatch(self, request, pipeline):

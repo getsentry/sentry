@@ -12,10 +12,6 @@ const Crumb = styled('div')`
   cursor: pointer;
   white-space: nowrap;
 
-  > span {
-    transition: 0.1s all ease;
-  }
-
   &:hover {
     color: ${p => p.theme.textColor};
   }

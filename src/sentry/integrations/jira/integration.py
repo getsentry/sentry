@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import logging
-import six
 from operator import attrgetter
 import re
 
@@ -62,6 +59,12 @@ FEATURE_DESCRIPTIONS = [
         """,
         IntegrationFeatures.ISSUE_SYNC,
     ),
+    FeatureDescription(
+        """
+        Automatically create Jira tickets based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
+    ),
 ]
 
 INSTALL_NOTICE_TEXT = """
@@ -81,14 +84,14 @@ metadata = IntegrationMetadata(
     features=FEATURE_DESCRIPTIONS,
     author="The Sentry Team",
     noun=_("Instance"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=Jira%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Jira%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/jira",
     aspects={"externalInstall": external_install},
 )
 
-# hide sprint, epic link, parent and linked issues fields because they don't work
-# since sprint and epic link are "custom" we need to search for them by name
-HIDDEN_ISSUE_FIELDS = {"keys": ["parent", "issuelinks"], "names": ["Sprint", "Epic Link"]}
+# Hide linked issues fields because we don't have the necessary UI for fully specifying
+# a valid link (e.g. "is blocked by ISSUE-1").
+HIDDEN_ISSUE_FIELDS = ["issuelinks"]
 
 # A list of common builtin custom field types for Jira for easy reference.
 JIRA_CUSTOM_FIELD_TYPES = {
@@ -96,6 +99,8 @@ JIRA_CUSTOM_FIELD_TYPES = {
     "textarea": "com.atlassian.jira.plugin.system.customfieldtypes:textarea",
     "multiuserpicker": "com.atlassian.jira.plugin.system.customfieldtypes:multiuserpicker",
     "tempo_account": "com.tempoplugin.tempo-accounts:accounts.customfield",
+    "sprint": "com.pyxis.greenhopper.jira:gh-sprint",
+    "epic": "com.pyxis.greenhopper.jira:gh-epic-link",
 }
 
 
@@ -285,7 +290,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         self.model.save()
 
     def get_link_issue_config(self, group, **kwargs):
-        fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
+        fields = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-jira-search", args=[org.slug, self.model.id])
         for field in fields:
@@ -295,7 +300,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return fields
 
     def get_issue_url(self, key, **kwargs):
-        return "%s/browse/%s" % (self.model.metadata["base_url"], key)
+        return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
     def get_persisted_default_config_fields(self):
         return ["project", "issuetype", "priority", "labels"]
@@ -308,7 +313,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_group_description(self, group, event, **kwargs):
         output = [
-            u"Sentry Issue: [{}|{}]".format(
+            "Sentry Issue: [{}|{}]".format(
                 group.qualified_short_id,
                 absolute_uri(group.get_absolute_url(params={"referrer": "jira_integration"})),
             )
@@ -331,12 +336,16 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         )
 
     def get_issue(self, issue_id, **kwargs):
+        """
+        Jira installation's implementation of IssueSyncMixin's `get_issue`.
+        """
         client = self.get_client()
         issue = client.get_issue(issue_id)
+        fields = issue.get("fields", {})
         return {
             "key": issue_id,
-            "title": issue["fields"]["summary"],
-            "description": issue["fields"].get("description"),
+            "title": fields.get("summary"),
+            "description": fields.get("description"),
         }
 
     def create_comment(self, issue_id, user_id, group_note):
@@ -348,7 +357,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def create_comment_attribution(self, user_id, comment_text):
         user = User.objects.get(id=user_id)
         attribution = "%s wrote:\n\n" % user.name
-        return "%s{quote}%s{quote}" % (attribution, comment_text)
+        return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
     def update_comment(self, issue_id, user_id, group_note):
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
@@ -390,7 +399,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if data.get("errors"):
             if message:
                 message += " "
-            message += " ".join(["%s: %s" % (k, v) for k, v in data.get("errors").items()])
+            message += " ".join([f"{k}: {v}" for k, v in data.get("errors").items()])
         return message
 
     def error_fields_from_json(self, data):
@@ -422,8 +431,15 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         ):
             fieldtype = "select"
             fkwargs["choices"] = self.make_choices(field_meta.get("allowedValues"))
-        elif field_meta.get("autoCompleteUrl") and (
-            schema.get("items") == "user" or schema["type"] == "user"
+        elif (
+            # Assignee and reporter fields
+            field_meta.get("autoCompleteUrl")
+            and (schema.get("items") == "user" or schema["type"] == "user")
+            # Sprint and "Epic Link" fields
+            or schema.get("custom")
+            in (JIRA_CUSTOM_FIELD_TYPES["sprint"], JIRA_CUSTOM_FIELD_TYPES["epic"])
+            # Parent field
+            or schema["type"] == "issuelink"
         ):
             fieldtype = "select"
             organization = (
@@ -532,7 +548,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
                     "jira_project": project_id,
-                    "error": six.text_type(e),
+                    "error": str(e),
                 },
             )
             raise IntegrationError(
@@ -541,16 +557,29 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
         return meta
 
-    def get_create_issue_config_no_params(self):
-        return self.get_create_issue_config(None, None, params={})
-
     def get_create_issue_config(self, group, user, **kwargs):
+        """
+        We use the `group` to get three things: organization_slug, project
+        defaults, and default title and description. In the case where we're
+        getting `createIssueConfig` from Jira for Ticket Rules, we don't know
+        the issue group beforehand.
+
+        :param group: (Optional) Group model.
+        :param user: User model. TODO Make this the first parameter.
+        :param kwargs: (Optional) Object
+            * params: (Optional) Object
+            * params.project: (Optional) Sentry Project object
+            * params.issuetype: (Optional) String. The Jira issue type. For
+                example: "Bug", "Epic", "Story".
+        :return:
+        """
+        kwargs = kwargs or {}
         kwargs["link_referrer"] = "jira_integration"
         params = kwargs.get("params", {})
         fields = []
         defaults = {}
         if group:
-            fields = super(JiraIntegration, self).get_create_issue_config(group, user, **kwargs)
+            fields = super().get_create_issue_config(group, user, **kwargs)
             defaults = self.get_defaults(group.project, user)
 
         project_id = params.get("project", defaults.get("project"))
@@ -563,7 +592,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 extra={
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
-                    "error": six.text_type(e),
+                    "error": str(e),
                 },
             )
             raise IntegrationError(
@@ -586,7 +615,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # make sure default issue type is actually
         # one that is allowed for project
         if issue_type:
-            if not any((c for c in issue_type_choices if c[0] == issue_type)):
+            if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
         fields = (
@@ -616,12 +645,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         # title is renamed to summary before sending to Jira
         standard_fields = [f["name"] for f in fields] + ["summary"]
-        ignored_fields = set(
-            k
-            for k, v in six.iteritems(issue_type_meta["fields"])
-            if v["name"] in HIDDEN_ISSUE_FIELDS["names"]
-        )
-        ignored_fields.update(HIDDEN_ISSUE_FIELDS["keys"])
+        ignored_fields = set()
+        ignored_fields.update(HIDDEN_ISSUE_FIELDS)
         ignored_fields.update(self.get_persisted_ignored_fields())
 
         # apply ordering to fields based on some known built-in Jira fields.
@@ -671,7 +696,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                             "integration_id": self.model.id,
                             "organization_id": self.organization_id,
                             "persisted_reporter_id": reporter_id,
-                            "error": six.text_type(e),
+                            "error": str(e),
                         },
                     )
                     continue
@@ -685,6 +710,16 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return fields
 
     def create_issue(self, data, **kwargs):
+        """
+        Get the (cached) "createmeta" from Jira to use as a "schema". Clean up
+        the Jira issue by removing all fields that aren't enumerated by this
+        schema. Send this cleaned data to Jira. Finally, make another API call
+        to Jira to make sure the issue was created and return basic issue details.
+
+        :param data: JiraCreateTicketAction object
+        :param kwargs: not used
+        :return: simple object with basic Jira issue details
+        """
         client = self.get_client()
         cleaned_data = {}
         # protect against mis-configured integration submitting a form without an
@@ -731,6 +766,15 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
                         # custom multi-picker
                         v = [{user_id_field: v}]
+                    elif schema["type"] == "issuelink":  # used by Parent field
+                        v = {"key": v}
+                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["epic"]:
+                        v = v
+                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["sprint"]:
+                        try:
+                            v = int(v)
+                        except ValueError:
+                            raise IntegrationError(f"Invalid sprint ({v}) specified")
                     elif schema["type"] == "array" and schema.get("items") == "option":
                         v = [{"value": vx} for vx in v]
                     elif schema["type"] == "array" and schema.get("items") == "string":
@@ -771,19 +815,14 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             response = client.create_issue(cleaned_data)
         except Exception as e:
-            self.raise_error(e)
+            return self.raise_error(e)
 
         issue_key = response.get("key")
         if not issue_key:
             raise IntegrationError("There was an error creating the issue.")
 
-        issue = client.get_issue(issue_key)
-
-        return {
-            "title": issue["fields"]["summary"],
-            "description": issue["fields"]["description"],
-            "key": issue_key,
-        }
+        # Immediately fetch and return the created issue.
+        return self.get_issue(issue_key)
 
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         """
@@ -905,7 +944,13 @@ class JiraIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = JiraIntegration
 
-    features = frozenset([IntegrationFeatures.ISSUE_BASIC, IntegrationFeatures.ISSUE_SYNC])
+    features = frozenset(
+        [
+            IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.ISSUE_SYNC,
+            IntegrationFeatures.TICKET_RULES,
+        ]
+    )
 
     can_add = False
 

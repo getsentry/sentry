@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import responses
-import six
 
 from django.core.urlresolvers import reverse
 
@@ -31,7 +28,7 @@ class ProjectRuleDetailsTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
         assert response.data["environment"] is None
 
     def test_non_existing_rule(self):
@@ -74,7 +71,7 @@ class ProjectRuleDetailsTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
         assert response.data["environment"] == "production"
 
     def test_with_null_environment(self):
@@ -98,7 +95,7 @@ class ProjectRuleDetailsTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
         assert response.data["environment"] is None
 
     def test_with_filters(self):
@@ -132,7 +129,7 @@ class ProjectRuleDetailsTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
 
         # ensure that conditions and filters are split up correctly
         assert len(response.data["conditions"]) == 1
@@ -179,7 +176,7 @@ class UpdateProjectRuleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
 
         rule = Rule.objects.get(id=rule.id)
         assert rule.label == "hello world"
@@ -277,7 +274,7 @@ class UpdateProjectRuleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
         assert response.data["environment"] == "production"
 
         rule = Rule.objects.get(id=rule.id)
@@ -319,7 +316,7 @@ class UpdateProjectRuleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
         assert response.data["environment"] is None
 
         rule = Rule.objects.get(id=rule.id)
@@ -328,6 +325,83 @@ class UpdateProjectRuleTest(APITestCase):
 
     @responses.activate
     def test_update_channel_slack(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        integration = Integration.objects.create(
+            provider="slack",
+            name="Awesome Team",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration.add_organization(project.organization, self.user)
+
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+
+        actions = [
+            {
+                "channel_id": "old_channel_id",
+                "workspace": integration.id,
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "channel": "#old_channel_name",
+            }
+        ]
+
+        rule = Rule.objects.create(
+            project=project,
+            data={"conditions": [conditions], "actions": [actions]},
+        )
+
+        actions[0]["channel"] = "#new_channel_name"
+
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "rule_id": rule.id,
+            },
+        )
+
+        channels = {
+            "ok": "true",
+            "channels": [
+                {"name": "old_channel_name", "id": "old_channel_id"},
+                {"name": "new_channel_name", "id": "new_channel_id"},
+            ],
+        }
+
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(channels),
+        )
+
+        response = self.client.put(
+            url,
+            data={
+                "name": "#new_channel_name",
+                "actionMatch": "any",
+                "filterMatch": "any",
+                "actions": actions,
+                "conditions": conditions,
+                "frequency": 30,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.label == "#new_channel_name"
+        assert rule.data["actions"][0]["channel_id"] == "new_channel_id"
+
+    @responses.activate
+    def test_update_channel_slack_workspace_fail(self):
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -351,7 +425,8 @@ class UpdateProjectRuleTest(APITestCase):
         ]
 
         rule = Rule.objects.create(
-            project=project, data={"conditions": [conditions], "actions": [actions]},
+            project=project,
+            data={"conditions": [conditions], "actions": [actions]},
         )
 
         actions[0]["channel"] = "#new_channel_name"
@@ -394,10 +469,7 @@ class UpdateProjectRuleTest(APITestCase):
             format="json",
         )
 
-        assert response.status_code == 200, response.content
-        rule = Rule.objects.get(id=response.data["id"])
-        assert rule.label == "#new_channel_name"
-        assert rule.data["actions"][0]["channel_id"] == "new_channel_id"
+        assert response.status_code == 400, response.content
 
     def test_slack_channel_id_saved(self):
         self.login_as(user=self.user)
@@ -448,7 +520,7 @@ class UpdateProjectRuleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
         assert response.data["actions"][0]["channel_id"] == "CSVK0921"
 
     def test_invalid_rule_node_type(self):
@@ -632,7 +704,7 @@ class UpdateProjectRuleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
 
         rule = Rule.objects.get(id=rule.id)
         assert rule.label == "hello world"

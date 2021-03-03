@@ -90,6 +90,14 @@ describe('Performance > Landing', function () {
       method: 'POST',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {},
+    });
     MockApiClient.addMockResponse(
       {
         url: '/organizations/org-slug/eventsv2/',
@@ -210,6 +218,18 @@ describe('Performance > Landing', function () {
         events: {meta: {}, data: []},
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-vitals/',
+      body: {
+        'measurements.lcp': {
+          poor: 1,
+          meh: 2,
+          good: 3,
+          total: 6,
+          p75: 4500,
+        },
+      },
+    });
   });
 
   afterEach(function () {
@@ -233,7 +253,7 @@ describe('Performance > Landing', function () {
     wrapper.update();
 
     // Check number of rendered tab buttons
-    expect(wrapper.find('ButtonBar Button')).toHaveLength(2);
+    expect(wrapper.find('PageHeader ButtonBar Button')).toHaveLength(2);
 
     // No onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(0);
@@ -450,8 +470,36 @@ describe('Performance > Landing', function () {
     );
   });
 
-  it('Vitals cards are shown with overview feature', async function () {
+  it('Vitals cards are not shown with overview feature without frontend platform', async function () {
     const projects = [TestStubs.Project({id: '1', firstTransactionEvent: true})];
+    const data = initializeData(
+      projects,
+      {project: ['1'], query: 'sentry:yes', view: FilterViews.ALL_TRANSACTIONS},
+      [...FEATURES, 'performance-vitals-overview']
+    );
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const vitalsContainer = wrapper.find('VitalsContainer');
+    expect(vitalsContainer).toHaveLength(0);
+  });
+
+  it('Vitals cards are shown with overview feature with frontend platform project', async function () {
+    const projects = [
+      TestStubs.Project({
+        id: '1',
+        firstTransactionEvent: true,
+        platform: 'javascript-react',
+      }),
+    ];
     const data = initializeData(
       projects,
       {project: ['1'], query: 'sentry:yes', view: FilterViews.ALL_TRANSACTIONS},

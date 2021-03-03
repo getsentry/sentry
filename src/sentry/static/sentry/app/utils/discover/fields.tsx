@@ -61,6 +61,8 @@ export type QueryFieldValue =
 // Column is just an alias of a Query value
 export type Column = QueryFieldValue;
 
+export type Alignments = 'left' | 'right';
+
 // Refer to src/sentry/api/event_search.py
 export const AGGREGATIONS = {
   count: {
@@ -146,11 +148,21 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'area',
   },
+  any: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['string', 'integer', 'number', 'duration', 'date', 'boolean'],
+        required: true,
+      },
+    ],
+    outputType: null,
+    isSortable: true,
+  },
   last_seen: {
     parameters: [],
     outputType: 'date',
     isSortable: true,
-    multiPlotType: 'area',
   },
 
   // Tracing functions.
@@ -299,14 +311,14 @@ export const ALIASES = {
 
 assert(AGGREGATIONS as Readonly<{[key in keyof typeof AGGREGATIONS]: Aggregation}>);
 
-export type AggregationKey = keyof typeof AGGREGATIONS | '';
+export type AggregationKey = keyof typeof AGGREGATIONS | keyof typeof ALIASES | '';
 
 export type AggregationOutputType = Extract<
   ColumnType,
-  'number' | 'integer' | 'date' | 'duration' | 'percentage'
+  'number' | 'integer' | 'date' | 'duration' | 'percentage' | 'string'
 >;
 
-export type PlotType = 'line' | 'area';
+export type PlotType = 'bar' | 'line' | 'area';
 
 type DefaultValueInputs = {
   parameter: AggregateParameter;
@@ -333,8 +345,9 @@ export type Aggregation = {
   isSortable: boolean;
   /**
    * How this function should be plotted when shown in a multiseries result (top5)
+   * Optional because some functions cannot be plotted (strings/dates)
    */
-  multiPlotType: PlotType;
+  multiPlotType?: PlotType;
 };
 
 enum FieldKey {
@@ -383,7 +396,6 @@ enum FieldKey {
   STACK_MODULE = 'stack.module',
   STACK_PACKAGE = 'stack.package',
   STACK_STACK_LEVEL = 'stack.stack_level',
-  TIME = 'time',
   TIMESTAMP = 'timestamp',
   TITLE = 'title',
   TRACE = 'trace',
@@ -408,7 +420,10 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   // issue.id and project.id are omitted on purpose.
   // Customers should use `issue` and `project` instead.
   [FieldKey.TIMESTAMP]: 'date',
-  [FieldKey.TIME]: 'date',
+  // time is omitted on purpose. time is timestamp rounded down
+  // to the rollup period (usually 3600 seconds) and presented as
+  // seconds since epoch.
+  // Customers should almost always use `timestamp`.
 
   [FieldKey.CULPRIT]: 'string',
   [FieldKey.LOCATION]: 'string',
@@ -489,26 +504,6 @@ export const FIELD_TAGS = Object.freeze(
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
-// This list contains fields/functions that are available with performance-view feature.
-export const TRACING_FIELDS = [
-  'avg',
-  'sum',
-  'transaction.duration',
-  'transaction.op',
-  'transaction.status',
-  'p50',
-  'p75',
-  'p95',
-  'p99',
-  'p100',
-  'percentile',
-  'failure_rate',
-  'apdex',
-  'user_misery',
-  'eps',
-  'epm',
-];
-
 export enum WebVital {
   FP = 'measurements.fp',
   FCP = 'measurements.fcp',
@@ -528,6 +523,27 @@ const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
   [WebVital.TTFB]: 'duration',
   [WebVital.RequestTime]: 'duration',
 };
+
+// This list contains fields/functions that are available with performance-view feature.
+export const TRACING_FIELDS = [
+  'avg',
+  'sum',
+  'transaction.duration',
+  'transaction.op',
+  'transaction.status',
+  'p50',
+  'p75',
+  'p95',
+  'p99',
+  'p100',
+  'percentile',
+  'failure_rate',
+  'apdex',
+  'user_misery',
+  'eps',
+  'epm',
+  ...Object.keys(MEASUREMENTS),
+];
 
 export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
 
@@ -736,4 +752,26 @@ function validateForNumericAggregate(
 
     return validColumnTypes.includes(dataType);
   };
+}
+
+const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer', 'percentage'];
+
+export function fieldAlignment(
+  columnName: string,
+  columnType?: undefined | ColumnValueType,
+  metadata?: Record<string, ColumnValueType>
+): Alignments {
+  let align: Alignments = 'left';
+  if (columnType) {
+    align = alignedTypes.includes(columnType) ? 'right' : 'left';
+  }
+  if (columnType === undefined || columnType === 'never') {
+    // fallback to align the column based on the table metadata
+    const maybeType = metadata ? metadata[getAggregateAlias(columnName)] : undefined;
+
+    if (maybeType !== undefined && alignedTypes.includes(maybeType)) {
+      align = 'right';
+    }
+  }
+  return align;
 }

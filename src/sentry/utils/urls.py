@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-from six.moves.urllib.parse import urljoin
+from urllib.parse import urljoin
 import re
 
 

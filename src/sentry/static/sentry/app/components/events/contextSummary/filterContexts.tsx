@@ -1,4 +1,4 @@
-import {Event} from 'app/types';
+import {Event} from 'app/types/event';
 
 import {Context} from './contextSummary';
 

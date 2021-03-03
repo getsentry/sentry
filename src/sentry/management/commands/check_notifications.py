@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.core.management.base import BaseCommand, CommandError
 
 from sentry.mail import mail_adapter
@@ -13,7 +11,7 @@ def handle_project(project, stream):
     user_ids = mail_adapter.get_sendable_users(project)
     users = User.objects.in_bulk(user_ids)
     for user_id, email in get_email_addresses(user_ids, project).items():
-        stream.write(u"{}: {}\n".format(users[user_id].username, email))
+        stream.write(f"{users[user_id].username}: {email}\n")
 
 
 class Command(BaseCommand):

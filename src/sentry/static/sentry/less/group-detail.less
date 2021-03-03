@@ -49,10 +49,6 @@
   .assigned-to {
     text-align: right;
     position: relative;
-
-    .btn-group {
-      float: right;
-    }
   }
 
   .meta {
@@ -60,36 +56,12 @@
     color: #949ea4;
   }
 
-  .group-actions {
-    margin-top: 15px;
-
-    .btn-group {
-      margin-right: 5px;
-    }
-
-    .group-resolve.active {
-      background: @green;
-      color: #fff;
-      border-color: @green-dark;
-      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
-    }
-
-    .group-remove:hover {
-      color: #fff;
-      background: @red;
-      border-color: @red-dark;
-      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
-    }
-
-    .clearfix;
-
-    .id-label {
-      background: #fff;
-      max-width: 200px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+  .id-label {
+    background: #fff;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .severity {
@@ -253,6 +225,10 @@
 
     &.net-core .context-item-icon {
       background-image: url(../images/logos/context/netcore.svg);
+    }
+
+    &.net .context-item-icon {
+      background-image: url(../images/logos/context/dotnet.svg);
     }
 
     &.mono .context-item-icon {
@@ -428,10 +404,6 @@
     border-radius: 50% 0 50% 50%;
   }
 
-  .btn-group {
-    margin-top: -15px;
-  }
-
   .table {
     margin-bottom: 0;
   }
@@ -442,14 +414,6 @@
 
   h3 {
     position: absolute;
-  }
-
-  .btn-group {
-    position: relative;
-
-    .btn {
-      margin: 0;
-    }
   }
 }
 
@@ -800,7 +764,6 @@ div.traceback > ul {
       width: 16px;
       height: 16px;
       padding: 0;
-      margin-left: 10px;
       line-height: 16px;
       font-size: 9px;
       text-align: center;
@@ -881,7 +844,7 @@ div.traceback > ul {
       left: 8px;
       top: 6px;
       opacity: 0.25;
-      .transition(0.1s opacity linear);
+      transition: 0.1s opacity linear;
     }
 
     &.key-value {
@@ -1000,7 +963,7 @@ div.traceback > ul {
 
 &.expanded div.commands,
 div.commands:hover {
-  .opacity(100);
+  opacity: 1;
 
   a {
     color: @state-info-text;
@@ -1012,7 +975,7 @@ div.commands {
   right: 10px;
   top: 6px;
   font-size: 0.9em;
-  .opacity(30);
+  opacity: 0.3;
 
   a {
     color: #666;
@@ -1065,7 +1028,6 @@ span.val {
 }
 
 .val-string {
-  color: darken(@purple, 10);
   border-radius: 3px;
   padding: 2px 4px;
 }
@@ -1292,7 +1254,12 @@ ul.crumbs {
           display: block;
           width: 100%;
           height: 15px;
-          #gradient > .vertical(rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));;
+          background-image: linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 1) 100%
+          );
+          background-repeat: repeat-x;
           z-index: 1;
         }
 

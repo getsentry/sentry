@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-let hub;
+let hub: Sentry.Hub | undefined;
 
 function init(dsn: string) {
   // This client is used to track all API requests that use `app/api`
@@ -12,7 +12,7 @@ function init(dsn: string) {
   hub = new Sentry.Hub(client);
 }
 
-const run = cb => {
+const run: Sentry.Hub['run'] = cb => {
   if (!hub) {
     return;
   }

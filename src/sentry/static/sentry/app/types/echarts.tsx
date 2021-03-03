@@ -19,6 +19,8 @@ export type Series = {
     opacity: number;
   };
   lineStyle?: EChartOption.LineStyle;
+  stack?: string; // https://echarts.apache.org/en/option.html#series-line.stack
+  z?: number; // https://echarts.apache.org/en/option.html#series-line.z
 };
 
 export type ReactEchartsRef = ReactEchartsCore & {
@@ -28,6 +30,12 @@ export type ReactEchartsRef = ReactEchartsCore & {
 export type EChartEventHandler<P> = (params: P, instance: ECharts) => void;
 
 export type EChartChartReadyHandler = (instance: ECharts) => void;
+
+export type EChartHighlightHandler = EChartEventHandler<any>;
+
+export type EChartMouseOverHandler = EChartEventHandler<any>;
+
+export type EChartClickHandler = EChartEventHandler<any>;
 
 export type EChartDataZoomHandler = EChartEventHandler<{
   type: 'datazoom';
@@ -50,3 +58,9 @@ export type EChartDataZoomHandler = EChartEventHandler<{
    */
   endValue?: number;
 }>;
+
+export type EChartRestoreHandler = EChartEventHandler<{type: 'restore'}>;
+
+export type EChartFinishedHandler = EChartEventHandler<{}>;
+
+export type EChartRenderedHandler = EChartEventHandler<{}>;

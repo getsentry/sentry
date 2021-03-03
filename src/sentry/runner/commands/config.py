@@ -1,7 +1,4 @@
-from __future__ import absolute_import, print_function
-
 import click
-import six
 
 from sentry.runner.decorators import configuration
 
@@ -21,7 +18,7 @@ def list(pattern):
 
     for key in manager.all():
         if fnmatch(key.name, pattern):
-            click.echo("%s %s" % (key.name, key.type.name.upper()))
+            click.echo(f"{key.name} {key.type.name.upper()}")
 
 
 @config.command()
@@ -73,7 +70,7 @@ def set(key, value, secret):
     except UnknownOption:
         raise click.ClickException("unknown option: %s" % key)
     except TypeError as e:
-        raise click.ClickException(six.text_type(e))
+        raise click.ClickException(str(e))
 
 
 @config.command()

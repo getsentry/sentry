@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import logging
-import six
 from collections import defaultdict
 
 from sentry import features
@@ -15,7 +12,7 @@ from sentry.utils.compat import filter
 logger = logging.getLogger("sentry.integrations.issues")
 
 
-class IssueBasicMixin(object):
+class IssueBasicMixin:
     def should_sync(self, attribute):
         return False
 
@@ -30,7 +27,7 @@ class IssueBasicMixin(object):
 
     def get_group_body(self, group, event, **kwargs):
         result = []
-        for interface in six.itervalues(event.interfaces):
+        for interface in event.interfaces.values():
             output = safe_execute(interface.to_string, event, _with_transaction=False)
             if output:
                 result.append(output)
@@ -41,7 +38,7 @@ class IssueBasicMixin(object):
         if kwargs.get("link_referrer"):
             params["referrer"] = kwargs.get("link_referrer")
         output = [
-            u"Sentry Issue: [{}]({})".format(
+            "Sentry Issue: [{}]({})".format(
                 group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params))
             )
         ]
@@ -119,15 +116,15 @@ class IssueBasicMixin(object):
         """
         persisted_fields = self.get_persisted_default_config_fields()
         if persisted_fields:
-            project_defaults = {k: v for k, v in six.iteritems(data) if k in persisted_fields}
+            project_defaults = {k: v for k, v in data.items() if k in persisted_fields}
             self.org_integration.config.setdefault("project_issue_defaults", {}).setdefault(
-                six.text_type(project.id), {}
+                str(project.id), {}
             ).update(project_defaults)
             self.org_integration.save()
 
         user_persisted_fields = self.get_persisted_user_default_config_fields()
         if user_persisted_fields:
-            user_defaults = {k: v for k, v in six.iteritems(data) if k in user_persisted_fields}
+            user_defaults = {k: v for k, v in data.items() if k in user_persisted_fields}
             user_option_key = dict(user=user, key="issue:defaults", project=project)
             new_user_defaults = UserOption.objects.get_value(default={}, **user_option_key)
             new_user_defaults.setdefault(self.org_integration.integration.provider, {}).update(
@@ -152,7 +149,7 @@ class IssueBasicMixin(object):
     # TODO(saif): Make private and move all usages over to `get_defaults`
     def get_project_defaults(self, project_id):
         return self.org_integration.config.get("project_issue_defaults", {}).get(
-            six.text_type(project_id), {}
+            str(project_id), {}
         )
 
     def create_issue(self, data, **kwargs):
@@ -198,7 +195,6 @@ class IssueBasicMixin(object):
         Does anything needed after an issue has been linked, i.e. creating
         a comment for a linked issue.
         """
-        pass
 
     def make_external_key(self, data):
         """
@@ -257,7 +253,7 @@ class IssueBasicMixin(object):
     def get_annotations_for_group_list(self, group_list):
         group_links = GroupLink.objects.filter(
             group_id__in=[group.id for group in group_list],
-            project_id__in=list(set(group.project.id for group in group_list)),
+            project_id__in=list({group.project.id for group in group_list}),
             linked_type=GroupLink.LinkedType.issue,
             relationship=GroupLink.Relationship.references,
         )
@@ -281,7 +277,7 @@ class IssueBasicMixin(object):
         for ei in external_issues:
             link = self.get_issue_url(ei.key)
             label = self.get_issue_display_name(ei) or ei.key
-            annotations.append('<a href="%s">%s</a>' % (link, label))
+            annotations.append(f'<a href="{link}">{label}</a>')
 
         return annotations
 

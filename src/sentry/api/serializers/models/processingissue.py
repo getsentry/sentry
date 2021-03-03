@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry.api.serializers import register, Serializer
 from sentry.models import ProcessingIssue
 
@@ -9,10 +5,10 @@ from sentry.models import ProcessingIssue
 @register(ProcessingIssue)
 class ProcessingIssueSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        counts = dict((i.id, getattr(i, "num_events", None)) for i in item_list)
+        counts = {i.id: getattr(i, "num_events", None) for i in item_list}
 
         missing_counts = []
-        for pk, events in six.iteritems(counts):
+        for pk, events in counts.items():
             if events is None:
                 missing_counts.append(pk)
 
@@ -33,7 +29,7 @@ class ProcessingIssueSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "type": obj.type,
             "checksum": obj.checksum,
             "numEvents": attrs["num_events"],

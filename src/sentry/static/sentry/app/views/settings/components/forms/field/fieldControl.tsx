@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import QuestionTooltip from 'app/components/questionTooltip';
 import space from 'app/styles/space';
@@ -11,64 +10,77 @@ const defaultProps = {
 };
 
 type Props = Partial<typeof defaultProps> & {
+  children: React.ReactNode;
+  /**
+   * Display the field control container in "inline" fashion. The label and
+   * description will be aligned to the left, while the control itself will be
+   * aligned to the right.
+   */
   inline?: boolean;
+  /**
+   * Align the control towards the right
+   */
   alignRight?: boolean;
-  disabled?: boolean;
-  hideControlState?: boolean;
-  disabledReason?: React.ReactNode;
+  /**
+   * Loading / Saving / Error states of the form. See the ControlState
+   */
   controlState?: React.ReactNode;
+  /**
+   * Hide the fields control state
+   */
+  hideControlState?: boolean;
+  /**
+   * Disable the field
+   */
+  disabled?: boolean;
+  /**
+   * Produces a question tooltip on the field, explaining why it is disabled
+   */
+  disabledReason?: React.ReactNode;
+  /**
+   * The error state. Will not be rendered if hideControlState is true
+   */
   errorState?: React.ReactNode;
+  /**
+   * Allow the control state to flex based on its content. When enabled the
+   * control state element will NOT take up space unless it has some state to
+   * show (such as an error).
+   */
+  flexibleControlStateSize?: boolean;
 };
 
-class FieldControl extends React.Component<Props> {
-  static propTypes = {
-    inline: PropTypes.bool,
-    alignRight: PropTypes.bool,
-    disabled: PropTypes.bool,
-    disabledReason: PropTypes.node,
-    flexibleControlStateSize: PropTypes.bool,
-    controlState: PropTypes.node,
-    errorState: PropTypes.node,
-  };
+const FieldControl = ({
+  inline,
+  alignRight,
+  disabled,
+  disabledReason,
+  errorState,
+  controlState,
+  children,
+  hideControlState,
+  flexibleControlStateSize = false,
+}: Props) => (
+  <FieldControlErrorWrapper inline={inline}>
+    <FieldControlWrapper>
+      <FieldControlStyled alignRight={alignRight}>{children}</FieldControlStyled>
 
-  static defaultProps = defaultProps;
+      {disabled && disabledReason && (
+        <DisabledIndicator className="disabled-indicator">
+          <StyledQuestionTooltip title={disabledReason} size="sm" position="top" />
+        </DisabledIndicator>
+      )}
 
-  render() {
-    const {
-      inline,
-      alignRight,
-      disabled,
-      disabledReason,
-      flexibleControlStateSize,
-      errorState,
-      controlState,
-      children,
-      hideControlState,
-    } = this.props;
+      {!hideControlState && (
+        <FieldControlState flexibleControlStateSize={!!flexibleControlStateSize}>
+          {controlState}
+        </FieldControlState>
+      )}
+    </FieldControlWrapper>
 
-    return (
-      <FieldControlErrorWrapper inline={inline}>
-        <FieldControlWrapper>
-          <FieldControlStyled alignRight={alignRight}>{children}</FieldControlStyled>
+    {!hideControlState && errorState}
+  </FieldControlErrorWrapper>
+);
 
-          {disabled && disabledReason && (
-            <DisabledIndicator className="disabled-indicator">
-              <StyledQuestionTooltip title={disabledReason} size="sm" position="top" />
-            </DisabledIndicator>
-          )}
-
-          {!hideControlState && (
-            <FieldControlState flexibleControlStateSize={!!flexibleControlStateSize}>
-              {controlState}
-            </FieldControlState>
-          )}
-        </FieldControlWrapper>
-
-        {!hideControlState && errorState}
-      </FieldControlErrorWrapper>
-    );
-  }
-}
 export default FieldControl;
 
 // This wraps Control + ControlError message
@@ -79,7 +91,6 @@ const FieldControlErrorWrapper = styled('div')<{inline?: boolean}>`
 `;
 
 const FieldControlStyled = styled('div')<{alignRight?: boolean}>`
-  color: ${p => p.theme.subText};
   display: flex;
   flex: 1;
   flex-direction: column;

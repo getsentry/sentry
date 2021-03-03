@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import base64
 import codecs
 import re
-import six
 import string
 import zlib
 
@@ -19,7 +16,7 @@ _sprintf_placeholder_re = re.compile(
 )
 
 _lone_surrogate = re.compile(
-    u"""(?x)
+    """(?x)
     (
         [\ud800-\udbff](?![\udc00-\udfff])
     ) | (
@@ -34,7 +31,7 @@ def unicode_escape_recovery_handler(err):
     try:
         value = err.object[err.start : err.end].decode("utf-8")
     except UnicodeError:
-        value = u""
+        value = ""
     return value, err.end
 
 
@@ -50,9 +47,7 @@ def unescape_string(value):
 
 def strip_lone_surrogates(string):
     """Removes lone surrogates."""
-    if six.PY3:
-        return string.encode("utf-8", "surrogatepass").decode("utf-8", "ignore")
-    return _lone_surrogate.sub("", string)
+    return string.encode("utf-8", "surrogatepass").decode("utf-8", "ignore")
 
 
 def truncatechars(value, arg, ellipsis="..."):
@@ -97,7 +92,7 @@ def strip(value):
     return smart_text(value).strip()
 
 
-def soft_hyphenate(value, length, hyphen=u"\u00ad"):
+def soft_hyphenate(value, length, hyphen="\u00ad"):
     return hyphen.join([value[i : (i + length)] for i in range(0, len(value), length)])
 
 
@@ -107,9 +102,7 @@ def soft_break(value, length, process=lambda chunk: chunk):
     zero-width spaces after common delimeters, as well as soft-hyphenating long
     identifiers.
     """
-    delimiters = re.compile(
-        six.text_type(r"([{}]+)").format("".join(map(re.escape, ",.$:/+@!?()<>[]{}")))
-    )
+    delimiters = re.compile(r"([{}]+)".format("".join(map(re.escape, ",.$:/+@!?()<>[]{}"))))
 
     def soft_break_delimiter(match):
         results = []
@@ -118,23 +111,23 @@ def soft_break(value, length, process=lambda chunk: chunk):
         chunks = delimiters.split(value)
         for i, chunk in enumerate(chunks):
             if i % 2 == 1:  # check if this is this a delimiter
-                results.extend([chunk, u"\u200b"])
+                results.extend([chunk, "\u200b"])
             else:
                 results.append(process(chunk))
 
-        return u"".join(results).rstrip(u"\u200b")
+        return "".join(results).rstrip("\u200b")
 
-    return re.sub(six.text_type(r"\S{{{},}}").format(length), soft_break_delimiter, value)
+    return re.sub(fr"\S{{{length},}}", soft_break_delimiter, value)
 
 
 def to_unicode(value):
     try:
-        value = six.text_type(force_text(value))
+        value = str(force_text(value))
     except (UnicodeEncodeError, UnicodeDecodeError):
         value = "(Error decoding value)"
     except Exception:  # in some cases we get a different exception
         try:
-            value = six.text_type(repr(type(value)))
+            value = str(repr(type(value)))
         except Exception:
             value = "(Error decoding value)"
     return value
@@ -147,15 +140,13 @@ def split_camelcase(word):
     if sum(len(x) for x in pieces) != len(word):
         yield word
     else:
-        for piece in pieces:
-            yield piece
+        yield from pieces
 
 
 def split_any_wordlike(value, handle_camelcase=False):
     for word in _word_sep_re.split(value):
         if handle_camelcase:
-            for chunk in split_camelcase(word):
-                yield chunk
+            yield from split_camelcase(word)
         else:
             yield word
 
@@ -175,7 +166,7 @@ valid_dot_atom_characters = frozenset(string.ascii_letters + string.digits + ".!
 def is_valid_dot_atom(value):
     """Validate an input string as an RFC 2822 dot-atom-text value."""
     return (
-        isinstance(value, six.string_types)  # must be a string type
+        isinstance(value, str)  # must be a string type
         and not value[0] == "."
         and not value[-1] == "."  # cannot start or end with a dot
         and set(value).issubset(valid_dot_atom_characters)
@@ -240,10 +231,10 @@ def oxfordize_list(strings):
     elif len(strings) == 1:
         return strings[0]
     elif len(strings) == 2:
-        return "%s and %s" % (strings[0], strings[1])
-    else:
-        return "%s, and %s" % (", ".join(strings[:-1]), strings[-1])
+        return f"{strings[0]} and {strings[1]}"
+
+    return f"{', '.join(strings[:-1])}, and {strings[-1]}"
 
 
 def to_single_line_str(original_str):
-    return u" ".join(original_str.strip().split())
+    return " ".join(original_str.strip().split())

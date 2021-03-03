@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -37,8 +35,13 @@ class ProjectReleaseRepositories(ProjectEndpoint):
 
         release_commits = ReleaseCommit.objects.filter(release=release).select_related("commit")
 
-        repository_ids = set(c.commit.repository_id for c in release_commits)
+        repository_ids = {c.commit.repository_id for c in release_commits}
 
         repositories = Repository.objects.filter(id__in=repository_ids)
 
-        return Response(serialize(list(repositories), request.user,))
+        return Response(
+            serialize(
+                list(repositories),
+                request.user,
+            )
+        )

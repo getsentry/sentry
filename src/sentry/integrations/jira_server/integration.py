@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import logging
-import six
 
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.hazmat.backends import default_backend
@@ -10,7 +7,7 @@ from django.core.urlresolvers import reverse
 from django.core.validators import URLValidator
 from django.utils.translation import ugettext as _
 from django.views.decorators.csrf import csrf_exempt
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from sentry.integrations import (
     IntegrationFeatures,
@@ -21,8 +18,9 @@ from sentry.integrations import (
 from sentry.shared_integrations.exceptions import IntegrationError, ApiError
 from sentry.integrations.jira import JiraIntegration
 from sentry.pipeline import PipelineView
-from sentry.utils.hashlib import sha1_text
 from sentry.utils.decorators import classproperty
+from sentry.utils.hashlib import sha1_text
+from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 from .client import JiraServer, JiraServerSetupClient, JiraServerClient
 
@@ -74,7 +72,7 @@ metadata = IntegrationMetadata(
     features=FEATURE_DESCRIPTIONS,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=Jira%20Server%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Jira%20Server%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/jira_server",
     aspects={"alerts": [setup_alert]},
 )
@@ -237,7 +235,8 @@ class JiraServerIntegration(JiraIntegration):
         )
 
     def get_link_issue_config(self, group, **kwargs):
-        fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
+        fields = super().get_link_issue_config(group, **kwargs)
+
         org = group.organization
         autocomplete_url = reverse(
             "sentry-extensions-jiraserver-search", args=[org.slug, self.model.id]
@@ -246,10 +245,34 @@ class JiraServerIntegration(JiraIntegration):
             if field["name"] == "externalIssue":
                 field["url"] = autocomplete_url
                 field["type"] = "select"
+
+        default_comment = "Linked Sentry Issue: [{}|{}]".format(
+            group.qualified_short_id,
+            absolute_uri(group.get_absolute_url(params={"referrer": "jira_server"})),
+        )
+        fields.append(
+            {
+                "name": "comment",
+                "label": "Comment",
+                "default": default_comment,
+                "type": "textarea",
+                "autosize": True,
+                "maxRows": 10,
+            }
+        )
+
         return fields
 
     def search_url(self, org_slug):
         return reverse("sentry-extensions-jiraserver-search", args=[org_slug, self.model.id])
+
+    def after_link_issue(self, external_issue, data=None, **kwargs):
+        super().after_link_issue(external_issue, **kwargs)
+
+        if data:
+            comment = data.get("comment")
+            if comment:
+                self.get_client().create_comment(external_issue.key, comment)
 
 
 class JiraServerIntegrationProvider(IntegrationProvider):
@@ -276,7 +299,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
         webhook_secret = sha1_text(install["private_key"]).hexdigest()
 
         hostname = urlparse(install["url"]).netloc
-        external_id = u"{}:{}".format(hostname, install["consumer_key"])[:64]
+        external_id = "{}:{}".format(hostname, install["consumer_key"])[:64]
 
         credentials = {
             "consumer_key": install["consumer_key"],
@@ -315,11 +338,11 @@ class JiraServerIntegrationProvider(IntegrationProvider):
         except ApiError as err:
             logger.info(
                 "jira-server.webhook.failed",
-                extra={"error": six.text_type(err), "external_id": external_id},
+                extra={"error": str(err), "external_id": external_id},
             )
             try:
                 details = next(x for x in err.json["messages"][0].values())
             except (KeyError, TypeError, StopIteration):
                 details = ""
-            message = u"Could not create issue webhook in Jira. {}".format(details)
+            message = f"Could not create issue webhook in Jira. {details}"
             raise IntegrationError(message)

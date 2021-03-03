@@ -1,6 +1,4 @@
-from __future__ import absolute_import
 import logging
-import six
 
 from collections import defaultdict
 
@@ -168,7 +166,7 @@ class GroupAssigneeManager(BaseManager):
                 type=Activity.ASSIGNED,
                 user=acting_user,
                 data={
-                    "assignee": six.text_type(assigned_to.id),
+                    "assignee": str(assigned_to.id),
                     "assigneeEmail": getattr(assigned_to, "email", None),
                     "assigneeType": assignee_type,
                 },
@@ -229,14 +227,14 @@ class GroupAssignee(Model):
         assert not (self.user_id is not None and self.team_id is not None) and not (
             self.user_id is None and self.team_id is None
         ), "Must have Team or User, not both"
-        super(GroupAssignee, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def assigned_actor_id(self):
         if self.user:
-            return u"user:{}".format(self.user_id)
+            return f"user:{self.user_id}"
 
         if self.team:
-            return u"team:{}".format(self.team_id)
+            return f"team:{self.team_id}"
 
         raise NotImplementedError("Unknown Assignee")
 

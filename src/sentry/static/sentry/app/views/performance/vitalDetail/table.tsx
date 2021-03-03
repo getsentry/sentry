@@ -16,10 +16,14 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {getAggregateAlias, Sort, WebVital} from 'app/utils/discover/fields';
+import {
+  fieldAlignment,
+  getAggregateAlias,
+  Sort,
+  WebVital,
+} from 'app/utils/discover/fields';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
-import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {DisplayModes} from '../transactionSummary/charts';
@@ -29,9 +33,12 @@ import {
 } from '../transactionSummary/utils';
 
 import {
-  getVitalDetailTableStatusFunction,
+  getVitalDetailTableMehStatusFunction,
+  getVitalDetailTablePoorStatusFunction,
   vitalAbbreviations,
   vitalNameFromLocation,
+  VitalState,
+  vitalStateColors,
 } from './utils';
 
 const COLUMN_TITLES = ['Transaction', 'Project', 'Unique Users', 'Count'];
@@ -40,10 +47,10 @@ const getTableColumnTitle = (index: number, vitalName: WebVital) => {
   const abbrev = vitalAbbreviations[vitalName];
   const titles = [
     ...COLUMN_TITLES,
-    `${abbrev}(p50)`,
-    `${abbrev}(p75)`,
-    `${abbrev}(p95)`,
-    `${abbrev}(Status)`,
+    `p50(${abbrev})`,
+    `p75(${abbrev})`,
+    `p95(${abbrev})`,
+    `Status`,
   ];
   return titles[index];
 };
@@ -130,17 +137,25 @@ class Table extends React.Component<Props, State> {
 
     const field = String(column.key);
 
-    if (field === getVitalDetailTableStatusFunction(vitalName)) {
+    if (field === getVitalDetailTablePoorStatusFunction(vitalName)) {
       if (dataRow[getAggregateAlias(field)]) {
         return (
           <UniqueTagCell>
-            <StyledTag>{t('Fail')}</StyledTag>
+            <PoorTag>{t('Poor')}</PoorTag>
+          </UniqueTagCell>
+        );
+      } else if (
+        dataRow[getAggregateAlias(getVitalDetailTableMehStatusFunction(vitalName))]
+      ) {
+        return (
+          <UniqueTagCell>
+            <MehTag>{t('Meh')}</MehTag>
           </UniqueTagCell>
         );
       } else {
         return (
           <UniqueTagCell>
-            <Tag>{t('Pass')}</Tag>
+            <GoodTag>{t('Good')}</GoodTag>
           </UniqueTagCell>
         );
       }
@@ -224,39 +239,33 @@ class Table extends React.Component<Props, State> {
     title: React.ReactNode
   ): React.ReactNode {
     const {eventView, location} = this.props;
+    const align = fieldAlignment(column.name, column.type, tableMeta);
+    const field = {field: column.name, width: column.width};
+
+    function generateSortLink(): LocationDescriptorObject | undefined {
+      if (!tableMeta) {
+        return undefined;
+      }
+
+      const nextEventView = eventView.sortOnField(field, tableMeta);
+      const queryStringObject = nextEventView.generateQueryStringObject();
+
+      return {
+        ...location,
+        query: {...location.query, sort: queryStringObject.sort},
+      };
+    }
+    const currentSort = eventView.sortForField(field, tableMeta);
+    const canSort = isFieldSortable(field, tableMeta);
 
     return (
-      <HeaderCell column={column} tableMeta={tableMeta}>
-        {({align}) => {
-          const field = {field: column.name, width: column.width};
-
-          function generateSortLink(): LocationDescriptorObject | undefined {
-            if (!tableMeta) {
-              return undefined;
-            }
-
-            const nextEventView = eventView.sortOnField(field, tableMeta);
-            const queryStringObject = nextEventView.generateQueryStringObject();
-
-            return {
-              ...location,
-              query: {...location.query, sort: queryStringObject.sort},
-            };
-          }
-          const currentSort = eventView.sortForField(field, tableMeta);
-          const canSort = isFieldSortable(field, tableMeta);
-
-          return (
-            <SortLink
-              align={align}
-              title={title || field.field}
-              direction={currentSort ? currentSort.kind : undefined}
-              canSort={canSort}
-              generateSortLink={generateSortLink}
-            />
-          );
-        }}
-      </HeaderCell>
+      <SortLink
+        align={align}
+        title={title || field.field}
+        direction={currentSort ? currentSort.kind : undefined}
+        canSort={canSort}
+        generateSortLink={generateSortLink}
+      />
     );
   }
 
@@ -311,18 +320,30 @@ class Table extends React.Component<Props, State> {
   getSortedEventView(vitalName: WebVital) {
     const {eventView} = this.props;
 
-    const aggregateField = getAggregateAlias(
-      getVitalDetailTableStatusFunction(vitalName)
+    const aggregateFieldPoor = getAggregateAlias(
+      getVitalDetailTablePoorStatusFunction(vitalName)
     );
-    const isSortingByStatus = eventView.sorts.some(sort =>
-      sort.field.includes(aggregateField)
+    const aggregateFieldMeh = getAggregateAlias(
+      getVitalDetailTableMehStatusFunction(vitalName)
+    );
+    const isSortingByStatus = eventView.sorts.some(
+      sort =>
+        sort.field.includes(aggregateFieldPoor) || sort.field.includes(aggregateFieldMeh)
     );
 
     const additionalSorts: Sort[] = isSortingByStatus
       ? []
       : [
           {
-            field: aggregateField,
+            field: 'key_transaction',
+            kind: 'desc',
+          },
+          {
+            field: aggregateFieldPoor,
+            kind: 'desc',
+          },
+          {
+            field: aggregateFieldMeh,
             kind: 'desc',
           },
         ];
@@ -341,6 +362,7 @@ class Table extends React.Component<Props, State> {
       // remove key_transactions from the column order as we'll be rendering it
       // via a prepended column
       .filter((col: TableColumn<React.ReactText>) => col.name !== 'key_transaction')
+      .slice(0, -1)
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};
@@ -381,6 +403,7 @@ class Table extends React.Component<Props, State> {
                     tableData,
                     vitalName
                   ) as any,
+                  prependColumnWidths: ['max-content'],
                 }}
                 location={location}
               />
@@ -402,9 +425,27 @@ const UniqueTagCell = styled('div')`
   text-align: right;
 `;
 
-const StyledTag = styled(Tag)`
+const GoodTag = styled(Tag)`
   div {
-    background-color: ${p => p.theme.red300};
+    background-color: ${p => p.theme[vitalStateColors[VitalState.GOOD]]};
+  }
+  span {
+    color: ${p => p.theme.white};
+  }
+`;
+
+const MehTag = styled(Tag)`
+  div {
+    background-color: ${p => p.theme[vitalStateColors[VitalState.MEH]]};
+  }
+  span {
+    color: ${p => p.theme.white};
+  }
+`;
+
+const PoorTag = styled(Tag)`
+  div {
+    background-color: ${p => p.theme[vitalStateColors[VitalState.POOR]]};
   }
   span {
     color: ${p => p.theme.white};

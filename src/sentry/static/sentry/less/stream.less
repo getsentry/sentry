@@ -3,7 +3,6 @@
 * ============================================================================
 */
 
-.similar-list,
 .event-list {
   background: #fff;
   border: 1px solid @trim;
@@ -12,9 +11,7 @@
   border-radius: 0 0 3px 3px;
 }
 
-// .similar-list is used in a tab in an Issue
 .events,
-.similar-list,
 .event-list {
   list-style: none;
 
@@ -25,11 +22,11 @@
     border-bottom: 1px solid @trim;
     padding-right: 10px;
     background: #fff;
-    .transition(all 0.4s ease-in-out);
+    transition: all 0.4s ease-in-out;
 
     &.hoverable {
       cursor: pointer;
-      .transition(all 0s ease-in-out);
+      transition: all 0s ease-in-out;
 
       &:hover {
         background-color: @white-dark;
@@ -77,7 +74,7 @@
         left: -1px;
         width: 3px;
         z-index: 100;
-        .transition(all 0.2s ease-in-out);
+        transition: all 0.2s ease-in-out;
         background: @yellow;
       }
     }
@@ -204,18 +201,13 @@
   .event-count {
     span {
       .stream-count;
-      .transition(all linear 0.3s);
+      transition: all linear 0.3s;
     }
   }
 
   .severity {
     padding-top: 35px;
   }
-}
-
-// stop from accidentally clicking event title
-.similar-list .event-details h3 a {
-  display: inline-block;
 }
 
 /**

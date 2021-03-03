@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
 import Tooltip from 'app/components/tooltip';
 import {IconFilter} from 'app/icons';
 import {t} from 'app/locale';
@@ -15,9 +16,18 @@ type Props = {
   frame: Frame;
   showCompleteFunctionName: boolean;
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  /**
+   * Is the stack trace being previewed in a hovercard?
+   */
+  isHoverPreviewed?: boolean;
 };
 
-const Symbol = ({frame, onFunctionNameToggle, showCompleteFunctionName}: Props) => {
+const Symbol = ({
+  frame,
+  onFunctionNameToggle,
+  showCompleteFunctionName,
+  isHoverPreviewed,
+}: Props) => {
   const hasFunctionNameHiddenDetails =
     defined(frame.rawFunction) &&
     defined(frame.function) &&
@@ -38,12 +48,14 @@ const Symbol = ({frame, onFunctionNameToggle, showCompleteFunctionName}: Props) 
   const [hint, hintIcon] = getFrameHint(frame);
   const enablePathTooltip = defined(frame.absPath) && frame.absPath !== frame.filename;
   const functionNameTooltipTitle = getFunctionNameTooltipTitle();
+  const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
 
   return (
     <Wrapper>
       <FunctionNameToggleTooltip
         title={functionNameTooltipTitle}
         containerDisplayMode="inline-flex"
+        delay={tooltipDelay}
       >
         <FunctionNameToggleIcon
           hasFunctionNameHiddenDetails={hasFunctionNameHiddenDetails}
@@ -60,11 +72,17 @@ const Symbol = ({frame, onFunctionNameToggle, showCompleteFunctionName}: Props) 
         />
         {hint && (
           <HintStatus>
-            <Tooltip title={hint}>{hintIcon}</Tooltip>
+            <Tooltip title={hint} delay={tooltipDelay}>
+              {hintIcon}
+            </Tooltip>
           </HintStatus>
         )}
         {frame.filename && (
-          <FileNameTooltip title={frame.absPath} disabled={!enablePathTooltip}>
+          <FileNameTooltip
+            title={frame.absPath}
+            disabled={!enablePathTooltip}
+            delay={tooltipDelay}
+          >
             <Filename>
               {'('}
               {frame.filename}

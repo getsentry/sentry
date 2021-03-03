@@ -12,6 +12,7 @@ import {GlobalSelection, NewQuery, Organization, ReleaseProject} from 'app/types
 import {getUtcDateString} from 'app/utils/dates';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
+import {WebVital} from 'app/utils/discover/fields';
 import {formatVersion} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -35,7 +36,6 @@ import OtherProjects from './otherProjects';
 import ProjectReleaseDetails from './projectReleaseDetails';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
 import ReleaseStats from './releaseStats';
-import ReleaseStatsRequest from './releaseStatsRequest';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
 
 export enum TransactionsListOption {
@@ -70,7 +70,7 @@ class ReleaseOverview extends AsyncView<Props> {
 
   handleYAxisChange = (yAxis: YAxis) => {
     const {location, router} = this.props;
-    const {eventType: _eventType, ...query} = location.query;
+    const {eventType: _eventType, vitalType: _vitalType, ...query} = location.query;
 
     router.push({
       ...location,
@@ -84,6 +84,15 @@ class ReleaseOverview extends AsyncView<Props> {
     router.push({
       ...location,
       query: {...location.query, eventType},
+    });
+  };
+
+  handleVitalTypeChange = (vitalType: WebVital) => {
+    const {location, router} = this.props;
+
+    router.push({
+      ...location,
+      query: {...location.query, vitalType},
     });
   };
 
@@ -134,6 +143,20 @@ class ReleaseOverview extends AsyncView<Props> {
     }
 
     return EventType.ALL;
+  }
+
+  getVitalType(yAxis: YAxis): WebVital {
+    if (yAxis === YAxis.COUNT_VITAL) {
+      const {vitalType} = this.props.location.query;
+
+      if (typeof vitalType === 'string') {
+        if (Object.values(WebVital).includes(vitalType as WebVital)) {
+          return vitalType as WebVital;
+        }
+      }
+    }
+
+    return WebVital.LCP;
   }
 
   getReleaseEventView(
@@ -221,15 +244,14 @@ class ReleaseOverview extends AsyncView<Props> {
 
     return (
       <ReleaseContext.Consumer>
-        {({release, project, deploys, releaseMeta, refetchData}) => {
+        {({release, project, deploys, releaseMeta, refetchData, defaultStatsPeriod}) => {
           const {commitCount, version} = release;
           const {hasHealthData} = project.healthData || {};
           const hasDiscover = organization.features.includes('discover-basic');
-          const hasPerformance =
-            organization.features.includes('performance-view') &&
-            organization.features.includes('release-performance-views');
+          const hasPerformance = organization.features.includes('performance-view');
           const yAxis = this.getYAxis(hasHealthData, hasPerformance);
           const eventType = this.getEventType(yAxis);
+          const vitalType = this.getVitalType(yAxis);
 
           const {selectedSort, sortOptions} = getTransactionsListSort(location);
           const releaseEventView = this.getReleaseEventView(
@@ -257,114 +279,105 @@ class ReleaseOverview extends AsyncView<Props> {
           };
 
           return (
-            <ReleaseStatsRequest
-              api={api}
-              organization={organization}
-              projectSlug={project.slug}
-              version={version}
-              selection={selection}
-              location={location}
-              yAxis={yAxis}
-              eventType={eventType}
-              hasHealthData={hasHealthData}
-              hasDiscover={hasDiscover}
-              hasPerformance={hasPerformance}
-            >
-              {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
-                <Body>
-                  <Main>
-                    {isReleaseArchived(release) && (
-                      <ReleaseArchivedNotice
-                        onRestore={() => this.handleRestore(project, refetchData)}
-                      />
-                    )}
+            <Body>
+              <Main>
+                {isReleaseArchived(release) && (
+                  <ReleaseArchivedNotice
+                    onRestore={() => this.handleRestore(project, refetchData)}
+                  />
+                )}
 
-                    {(hasDiscover || hasPerformance || hasHealthData) && (
-                      <ReleaseChart
-                        {...releaseStatsProps}
-                        releaseMeta={releaseMeta}
-                        selection={selection}
-                        yAxis={yAxis}
-                        onYAxisChange={this.handleYAxisChange}
-                        eventType={eventType}
-                        onEventTypeChange={this.handleEventTypeChange}
-                        router={router}
-                        organization={organization}
-                        hasHealthData={hasHealthData}
-                        location={location}
-                        api={api}
-                        version={version}
-                        hasDiscover={hasDiscover}
-                        hasPerformance={hasPerformance}
-                        platform={project.platform}
-                      />
-                    )}
-                    <Issues
-                      orgId={organization.slug}
-                      selection={selection}
-                      version={version}
-                      location={location}
-                    />
-                    <Feature features={['performance-view', 'release-performance-views']}>
-                      <TransactionsList
-                        location={location}
-                        organization={organization}
-                        eventView={releaseEventView}
-                        trendView={releaseTrendView}
-                        selected={selectedSort}
-                        options={sortOptions}
-                        handleDropdownChange={this.handleTransactionsListSortChange}
-                        titles={titles}
-                        generateLink={generateLink}
-                      />
-                    </Feature>
-                  </Main>
-                  <Side>
-                    <ReleaseStats
-                      organization={organization}
-                      release={release}
-                      project={project}
-                      location={location}
-                      selection={selection}
-                    />
-                    <ProjectReleaseDetails
-                      release={release}
-                      releaseMeta={releaseMeta}
-                      orgSlug={organization.slug}
-                      projectSlug={project.slug}
-                    />
-                    {commitCount > 0 && (
-                      <CommitAuthorBreakdown
-                        version={version}
-                        orgId={organization.slug}
-                        projectSlug={project.slug}
-                      />
-                    )}
-                    {releaseMeta.projects.length > 1 && (
-                      <OtherProjects
-                        projects={releaseMeta.projects.filter(
-                          p => p.slug !== project.slug
-                        )}
-                        location={location}
-                      />
-                    )}
-                    {hasHealthData && (
-                      <TotalCrashFreeUsers
-                        crashFreeTimeBreakdown={crashFreeTimeBreakdown}
-                      />
-                    )}
-                    {deploys.length > 0 && (
-                      <Deploys
-                        version={version}
-                        orgSlug={organization.slug}
-                        deploys={deploys}
-                        projectId={project.id}
-                      />
-                    )}
-                  </Side>
-                </Body>
-              )}
-            </ReleaseStatsRequest>
+                {(hasDiscover || hasPerformance || hasHealthData) && (
+                  <ReleaseChart
+                    releaseMeta={releaseMeta}
+                    selection={selection}
+                    yAxis={yAxis}
+                    onYAxisChange={this.handleYAxisChange}
+                    eventType={eventType}
+                    onEventTypeChange={this.handleEventTypeChange}
+                    vitalType={vitalType}
+                    onVitalTypeChange={this.handleVitalTypeChange}
+                    router={router}
+                    organization={organization}
+                    hasHealthData={hasHealthData}
+                    location={location}
+                    api={api}
+                    version={version}
+                    hasDiscover={hasDiscover}
+                    hasPerformance={hasPerformance}
+                    platform={project.platform}
+                    defaultStatsPeriod={defaultStatsPeriod}
+                    projectSlug={project.slug}
+                  />
+                )}
+                <Issues
+                  orgId={organization.slug}
+                  selection={selection}
+                  version={version}
+                  location={location}
+                  defaultStatsPeriod={defaultStatsPeriod}
+                />
+                <Feature features={['performance-view']}>
+                  <TransactionsList
+                    location={location}
+                    organization={organization}
+                    eventView={releaseEventView}
+                    trendView={releaseTrendView}
+                    selected={selectedSort}
+                    options={sortOptions}
+                    handleDropdownChange={this.handleTransactionsListSortChange}
+                    titles={titles}
+                    generateLink={generateLink}
+                  />
+                </Feature>
+              </Main>
+              <Side>
+                <ReleaseStats
+                  organization={organization}
+                  release={release}
+                  project={project}
+                  location={location}
+                  selection={selection}
+                />
+                <ProjectReleaseDetails
+                  release={release}
+                  releaseMeta={releaseMeta}
+                  orgSlug={organization.slug}
+                  projectSlug={project.slug}
+                />
+                {commitCount > 0 && (
+                  <CommitAuthorBreakdown
+                    version={version}
+                    orgId={organization.slug}
+                    projectSlug={project.slug}
+                  />
+                )}
+                {releaseMeta.projects.length > 1 && (
+                  <OtherProjects
+                    projects={releaseMeta.projects.filter(p => p.slug !== project.slug)}
+                    location={location}
+                  />
+                )}
+                {hasHealthData && (
+                  <TotalCrashFreeUsers
+                    organization={organization}
+                    version={version}
+                    projectSlug={project.slug}
+                    location={location}
+                    defaultStatsPeriod={defaultStatsPeriod}
+                    selection={selection}
+                  />
+                )}
+                {deploys.length > 0 && (
+                  <Deploys
+                    version={version}
+                    orgSlug={organization.slug}
+                    deploys={deploys}
+                    projectId={project.id}
+                  />
+                )}
+              </Side>
+            </Body>
           );
         }}
       </ReleaseContext.Consumer>
@@ -447,8 +460,10 @@ function getTransactionsListSort(
   location: Location
 ): {selectedSort: DropdownOption; sortOptions: DropdownOption[]} {
   const sortOptions = getDropdownOptions();
-  const urlParam =
-    decodeScalar(location.query.showTransactions) || TransactionsListOption.FAILURE_COUNT;
+  const urlParam = decodeScalar(
+    location.query.showTransactions,
+    TransactionsListOption.FAILURE_COUNT
+  );
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
   return {selectedSort, sortOptions};
 }

@@ -1,8 +1,6 @@
-from __future__ import absolute_import
-
 import errno
+from io import BytesIO
 import os
-import six
 
 from sentry import options
 from sentry.models import ReleaseFile
@@ -41,13 +39,13 @@ class ReleaseFileCacheTest(TestCase):
         file_content = b"this is a test"
 
         file = self.create_file(name="dummy.txt")
-        file.putfile(six.BytesIO(file_content))
+        file.putfile(BytesIO(file_content))
         release_file = self.create_release_file(file=file)
 
         expected_path = os.path.join(
             options.get("releasefile.cache-path"),
-            six.text_type(self.organization.id),
-            six.text_type(file.id),
+            str(self.organization.id),
+            str(file.id),
         )
 
         # Set the threshold to zero to force caching on the file system
@@ -63,13 +61,13 @@ class ReleaseFileCacheTest(TestCase):
         file_content = b"this is a test"
 
         file = self.create_file(name="dummy.txt")
-        file.putfile(six.BytesIO(file_content))
+        file.putfile(BytesIO(file_content))
         release_file = self.create_release_file(file=file)
 
         expected_path = os.path.join(
             options.get("releasefile.cache-path"),
-            six.text_type(self.organization.id),
-            six.text_type(file.id),
+            str(self.organization.id),
+            str(file.id),
         )
 
         # Set the threshold larger than the file size to force streaming

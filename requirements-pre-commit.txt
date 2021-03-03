@@ -1,0 +1,4 @@
+pre-commit==2.9.3
+black==20.8b1
+sentry-flake8==1.0.0
+pyupgrade==2.10.0

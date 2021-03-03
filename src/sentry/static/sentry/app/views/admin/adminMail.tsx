@@ -11,6 +11,7 @@ type Data = {
   mailUsername: string;
   mailPort: string;
   mailUseTls: string;
+  mailUseSsl: string;
   mailFrom: string;
   mailListNamespace: string;
   testMailEmail: string;
@@ -46,6 +47,7 @@ export default class AdminMail extends AsyncView<{}, State> {
       mailUsername,
       mailPort,
       mailUseTls,
+      mailUseSsl,
       mailFrom,
       mailListNamespace,
       testMailEmail,
@@ -80,9 +82,14 @@ export default class AdminMail extends AsyncView<{}, State> {
             </pre>
           </dd>
 
-          <dt>{t('TLS?')}</dt>
+          <dt>{t('STARTTLS?')}</dt>
           <dd>
             <pre className="val">{mailUseTls ? t('Yes') : t('No')}</pre>
+          </dd>
+
+          <dt>{t('SSL?')}</dt>
+          <dd>
+            <pre className="val">{mailUseSsl ? t('Yes') : t('No')}</pre>
           </dd>
 
           <dt>{t('Mailing List Namespace')}</dt>

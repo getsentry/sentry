@@ -2,10 +2,13 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {openModal} from 'app/actionCreators/modal';
 import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
 
+jest.mock('app/actionCreators/modal');
+
 describe('CreateSavedSearchButton', function () {
-  let wrapper, organization, createMock;
+  let wrapper, organization;
 
   beforeEach(function () {
     organization = TestStubs.Organization({
@@ -18,12 +21,6 @@ describe('CreateSavedSearchButton', function () {
       />,
       TestStubs.routerContext()
     );
-
-    createMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      method: 'POST',
-      body: {id: '1', name: 'test', query: 'is:unresolved assigned:lyn@sentry.io'},
-    });
   });
 
   afterEach(function () {
@@ -32,46 +29,9 @@ describe('CreateSavedSearchButton', function () {
 
   describe('saves a search', function () {
     it('clicking save search opens modal', function () {
-      expect(wrapper.find('ModalDialog')).toHaveLength(0);
       wrapper.find('button[data-test-id="save-current-search"]').simulate('click');
-      expect(wrapper.find('ModalDialog')).toHaveLength(1);
-    });
 
-    it('saves a search when query is not changed', async function () {
-      wrapper.find('button[data-test-id="save-current-search"]').simulate('click');
-      wrapper.find('#id-name').simulate('change', {target: {value: 'new search name'}});
-      wrapper.find('ModalDialog').find('Button[priority="primary"]').simulate('submit');
-
-      await tick();
-      expect(createMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {
-            name: 'new search name',
-            query: 'is:unresolved assigned:lyn@sentry.io',
-            type: 0,
-          },
-        })
-      );
-    });
-
-    it('saves a search when query is changed', async function () {
-      wrapper.find('button[data-test-id="save-current-search"]').simulate('click');
-      wrapper.find('#id-name').simulate('change', {target: {value: 'new search name'}});
-      wrapper.find('#id-query').simulate('change', {target: {value: 'is:resolved'}});
-      wrapper.find('ModalDialog').find('Button[priority="primary"]').simulate('submit');
-
-      await tick();
-      expect(createMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {
-            name: 'new search name',
-            query: 'is:resolved',
-            type: 0,
-          },
-        })
-      );
+      expect(openModal).toHaveBeenCalled();
     });
 
     it('shows button by default', function () {

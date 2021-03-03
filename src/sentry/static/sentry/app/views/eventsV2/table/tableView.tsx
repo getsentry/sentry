@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'app/actionCreators/modal';
@@ -21,7 +22,7 @@ import EventView, {
   pickRelevantLocationQueryStrings,
 } from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {Column} from 'app/utils/discover/fields';
+import {Column, fieldAlignment} from 'app/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
@@ -32,7 +33,6 @@ import {getExpandedResults, pushEventViewToLocation} from '../utils';
 
 import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
-import HeaderCell from './headerCell';
 import TableActions from './tableActions';
 import {TableColumn} from './types';
 
@@ -44,6 +44,7 @@ export type TableViewProps = {
   isLoading: boolean;
   error: string | null;
 
+  isFirstPage: boolean;
   eventView: EventView;
   tableData: TableData | null | undefined;
   tagKeys: null | string[];
@@ -127,8 +128,16 @@ class TableView extends React.Component<TableViewProps> {
       };
 
       return [
-        <Tooltip key={`eventlink${rowIndex}`} title={t('Open Stack')}>
-          <Link to={target} data-test-id="open-stack">
+        <Tooltip key={`eventlink${rowIndex}`} title={t('Open Group')}>
+          <Link
+            to={target}
+            data-test-id="open-group"
+            onClick={() => {
+              if (nextView.isEqualTo(eventView)) {
+                Sentry.captureException(new Error('Failed to drilldown'));
+              }
+            }}
+          >
             <StyledIcon size="sm" />
           </Link>
         </Tooltip>,
@@ -165,37 +174,32 @@ class TableView extends React.Component<TableViewProps> {
     const {eventView, location, tableData} = this.props;
     const tableMeta = tableData?.meta;
 
+    const align = fieldAlignment(column.name, column.type, tableMeta);
+    const field = {field: column.name, width: column.width};
+    function generateSortLink(): LocationDescriptorObject | undefined {
+      if (!tableMeta) {
+        return undefined;
+      }
+
+      const nextEventView = eventView.sortOnField(field, tableMeta);
+      const queryStringObject = nextEventView.generateQueryStringObject();
+
+      return {
+        ...location,
+        query: queryStringObject,
+      };
+    }
+    const currentSort = eventView.sortForField(field, tableMeta);
+    const canSort = isFieldSortable(field, tableMeta);
+
     return (
-      <HeaderCell column={column} tableMeta={tableMeta}>
-        {({align}) => {
-          const field = {field: column.name, width: column.width};
-          function generateSortLink(): LocationDescriptorObject | undefined {
-            if (!tableMeta) {
-              return undefined;
-            }
-
-            const nextEventView = eventView.sortOnField(field, tableMeta);
-            const queryStringObject = nextEventView.generateQueryStringObject();
-
-            return {
-              ...location,
-              query: queryStringObject,
-            };
-          }
-          const currentSort = eventView.sortForField(field, tableMeta);
-          const canSort = isFieldSortable(field, tableMeta);
-
-          return (
-            <SortLink
-              align={align}
-              title={column.name}
-              direction={currentSort ? currentSort.kind : undefined}
-              canSort={canSort}
-              generateSortLink={generateSortLink}
-            />
-          );
-        }}
-      </HeaderCell>
+      <SortLink
+        align={align}
+        title={column.name}
+        direction={currentSort ? currentSort.kind : undefined}
+        canSort={canSort}
+        generateSortLink={generateSortLink}
+      />
     );
   };
 
@@ -205,7 +209,7 @@ class TableView extends React.Component<TableViewProps> {
     rowIndex: number,
     columnIndex: number
   ): React.ReactNode => {
-    const {eventView, location, organization, tableData} = this.props;
+    const {isFirstPage, eventView, location, organization, tableData} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -242,7 +246,7 @@ class TableView extends React.Component<TableViewProps> {
 
     return (
       <React.Fragment>
-        {isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
+        {isFirstPage && isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
           <TopResultsIndicator count={count} index={rowIndex} />
         ) : null}
         <CellAction
@@ -270,7 +274,7 @@ class TableView extends React.Component<TableViewProps> {
           onApply={this.handleUpdateColumns}
         />
       ),
-      {modalCss}
+      {modalCss, backdrop: 'static'}
     );
   };
 

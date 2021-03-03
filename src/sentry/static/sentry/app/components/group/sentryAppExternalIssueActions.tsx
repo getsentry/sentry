@@ -1,28 +1,26 @@
-import React, {ReactElement} from 'react';
-import Modal from 'react-bootstrap/lib/Modal';
+import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {openModal} from 'app/actionCreators/modal';
 import {deleteExternalIssue} from 'app/actionCreators/platformExternalIssues';
 import {Client} from 'app/api';
-import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIssueForm';
 import {IntegrationLink} from 'app/components/issueSyncListElement';
-import NavTabs from 'app/components/navTabs';
 import {SentryAppIcon} from 'app/components/sentryAppIcon';
 import {IconAdd, IconClose} from 'app/icons';
 import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {
-  Event,
   Group,
   PlatformExternalIssue,
   SentryAppComponent,
   SentryAppInstallation,
 } from 'app/types';
+import {Event} from 'app/types/event';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import withApi from 'app/utils/withApi';
+
+import SentryAppExternalIssueModal from './sentryAppExternalIssueModal';
 
 type Props = {
   api: Client;
@@ -36,28 +34,13 @@ type Props = {
 type State = {
   action: 'create' | 'link';
   externalIssue?: PlatformExternalIssue;
-  showModal: boolean;
 };
 
 class SentryAppExternalIssueActions extends React.Component<Props, State> {
-  static propTypes: any = {
-    api: PropTypes.object.isRequired,
-    group: SentryTypes.Group.isRequired,
-    sentryAppComponent: PropTypes.object.isRequired,
-    sentryAppInstallation: PropTypes.object.isRequired,
-    externalIssue: PropTypes.object,
-    event: SentryTypes.Event,
+  state: State = {
+    action: 'create',
+    externalIssue: this.props.externalIssue,
   };
-
-  constructor(props: Props) {
-    super(props);
-
-    this.state = {
-      action: 'create',
-      externalIssue: props.externalIssue,
-      showModal: false,
-    };
-  }
 
   componentDidUpdate(prevProps: Props) {
     if (this.props.externalIssue !== prevProps.externalIssue) {
@@ -69,32 +52,30 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
     this.setState({externalIssue});
   }
 
-  showModal = () => {
+  doOpenModal = (e?: React.MouseEvent) => {
     // Only show the modal when we don't have a linked issue
-    if (!this.state.externalIssue) {
-      const {sentryAppComponent} = this.props;
-
-      recordInteraction(
-        sentryAppComponent.sentryApp.slug,
-        'sentry_app_component_interacted',
-        {
-          componentType: 'issue-link',
-        }
-      );
-      this.setState({showModal: true});
+    if (this.state.externalIssue) {
+      return;
     }
-  };
 
-  hideModal = () => {
-    this.setState({showModal: false});
-  };
+    const {group, event, sentryAppComponent, sentryAppInstallation} = this.props;
 
-  showLink = () => {
-    this.setState({action: 'link'});
-  };
+    recordInteraction(
+      sentryAppComponent.sentryApp.slug,
+      'sentry_app_component_interacted',
+      {
+        componentType: 'issue-link',
+      }
+    );
 
-  showCreate = () => {
-    this.setState({action: 'create'});
+    e?.preventDefault();
+    openModal(deps => (
+      <SentryAppExternalIssueModal
+        {...deps}
+        {...{group, event, sentryAppComponent, sentryAppInstallation}}
+        onSubmitSuccess={this.onSubmitSuccess}
+      />
+    ));
   };
 
   deleteIssue = () => {
@@ -116,7 +97,7 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
     const {externalIssue} = this.state;
 
     if (!externalIssue) {
-      this.showModal();
+      this.doOpenModal();
     } else {
       this.deleteIssue();
     }
@@ -124,16 +105,15 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
 
   onSubmitSuccess = (externalIssue: PlatformExternalIssue) => {
     this.setState({externalIssue});
-    this.hideModal();
   };
 
-  get link() {
+  render() {
     const {sentryAppComponent} = this.props;
     const {externalIssue} = this.state;
     const name = sentryAppComponent.sentryApp.name;
 
     let url = '#';
-    let displayName: ReactElement | string = tct('Link [name] Issue', {name});
+    let displayName: React.ReactElement | string = tct('Link [name] Issue', {name});
 
     if (externalIssue) {
       url = externalIssue.webUrl;
@@ -144,7 +124,7 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
       <IssueLinkContainer>
         <IssueLink>
           <StyledSentryAppIcon slug={sentryAppComponent.sentryApp.slug} />
-          <IntegrationLink onClick={this.showModal} href={url}>
+          <IntegrationLink onClick={this.doOpenModal} href={url}>
             {displayName}
           </IntegrationLink>
         </IssueLink>
@@ -152,49 +132,6 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
           {!!externalIssue ? <IconClose /> : <IconAdd />}
         </StyledIcon>
       </IssueLinkContainer>
-    );
-  }
-
-  get modal() {
-    const {sentryAppComponent, sentryAppInstallation, group} = this.props;
-    const {action, showModal} = this.state;
-    const name = sentryAppComponent.sentryApp.name;
-    const config = sentryAppComponent.schema[action];
-
-    return (
-      <Modal show={showModal} backdrop="static" onHide={this.hideModal} animation={false}>
-        <Modal.Header closeButton>
-          <Modal.Title>{tct('[name] Issue', {name})}</Modal.Title>
-        </Modal.Header>
-        <NavTabs underlined>
-          <li className={action === 'create' ? 'active create' : 'create'}>
-            <a onClick={this.showCreate}>{t('Create')}</a>
-          </li>
-          <li className={action === 'link' ? 'active link' : 'link'}>
-            <a onClick={this.showLink}>{t('Link')}</a>
-          </li>
-        </NavTabs>
-        <Modal.Body>
-          <SentryAppExternalIssueForm
-            group={group}
-            sentryAppInstallation={sentryAppInstallation}
-            appName={name}
-            config={config}
-            action={action}
-            onSubmitSuccess={this.onSubmitSuccess}
-            event={this.props.event}
-          />
-        </Modal.Body>
-      </Modal>
-    );
-  }
-
-  render() {
-    return (
-      <React.Fragment>
-        {this.link}
-        {this.modal}
-      </React.Fragment>
     );
   }
 }

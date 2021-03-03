@@ -22,10 +22,10 @@ import Main from 'app/main';
 import plugins from 'app/plugins';
 import routes from 'app/routes';
 import ConfigStore from 'app/stores/configStore';
-import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import {metric} from 'app/utils/analytics';
 import {init as initApiSentryClient} from 'app/utils/apiSentryClient';
 import {setupColorScheme} from 'app/utils/matchMedia';
+import PipelineView from 'app/views/integrationPipeline/pipelineView';
 
 if (NODE_ENV === 'development') {
   import(
@@ -93,7 +93,6 @@ Sentry.init({
     : window.__SENTRY__OPTIONS.whitelistUrls,
   integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
-  autoSessionTracking: true,
 });
 
 if (window.__SENTRY__USER) {
@@ -108,14 +107,10 @@ Sentry.setTag('rrweb.active', hasReplays ? 'yes' : 'no');
 // bundle was loaded by browser.
 metric.mark({name: 'sentry-app-init'});
 
-// setup jquery for CSRF tokens
-jQuery.ajaxSetup({
-  //jQuery won't allow using the ajaxCsrfSetup function directly
-  beforeSend: ajaxCsrfSetup,
-});
+const ROOT_ELEMENT = 'blk_router';
 
 const render = (Component: React.ComponentType) => {
-  const rootEl = document.getElementById('blk_router');
+  const rootEl = document.getElementById(ROOT_ELEMENT);
 
   try {
     ReactDOM.render(<Component />, rootEl);
@@ -130,6 +125,11 @@ const render = (Component: React.ComponentType) => {
       window.location.assign(window.location.pathname);
     }
   }
+};
+
+const RenderPipelineView = (pipelineName: string, props: Object) => {
+  const rootEl = document.getElementById(ROOT_ELEMENT);
+  ReactDOM.render(<PipelineView pipelineName={pipelineName} {...props} />, rootEl);
 };
 
 // setup darkmode + favicon
@@ -152,6 +152,9 @@ async function loadPasswordStrength(callback: Function) {
 const globals = {
   // This is the primary entrypoint for rendering the sentry app.
   SentryRenderApp: () => render(Main),
+
+  // This is used to render pipeline views (such as the integration popup)
+  RenderPipelineView,
 
   // The following globals are used in sentry-plugins webpack externals
   // configuration.
@@ -197,6 +200,7 @@ globals.SentryApp = {
   SystemAlerts: require('app/views/app/systemAlerts').default,
   Indicators: require('app/components/indicators').default,
   SetupWizard: require('app/components/setupWizard').default,
+  HookStore: require('app/stores/hookStore').default,
 };
 
 // Make globals available on the window object

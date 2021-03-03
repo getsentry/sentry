@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 from copy import deepcopy
 import functools
 import logging
 import posixpath
-import six
 
 from threading import Lock
 
@@ -32,9 +29,9 @@ _pool_lock = Lock()
 
 def _shared_pool(**opts):
     if "host" in opts:
-        key = "%s:%s/%s" % (opts["host"], opts["port"], opts["db"])
+        key = "{}:{}/{}".format(opts["host"], opts["port"], opts["db"])
     else:
-        key = "%s/%s" % (opts["path"], opts["db"])
+        key = "{}/{}".format(opts["path"], opts["db"])
     pool = _pool_cache.get(key)
     if pool is not None:
         return pool
@@ -63,7 +60,7 @@ def make_rb_cluster(*args, **kwargs):
     return _make_rb_cluster(*args, **kwargs)
 
 
-class _RBCluster(object):
+class _RBCluster:
     def supports(self, config):
         return not config.get("is_redis_cluster", False)
 
@@ -102,7 +99,7 @@ class RetryingRedisCluster(RedisCluster):
             return super(self.__class__, self).execute_command(*args, **kwargs)
 
 
-class _RedisCluster(object):
+class _RedisCluster:
     def supports(self, config):
         # _RedisCluster supports two configurations:
         #  * Explicitly configured with is_redis_cluster. This mode is for real redis-cluster.
@@ -114,7 +111,6 @@ class _RedisCluster(object):
         # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
         # configuration into the correct format if necessary.
         hosts = config.get("hosts")
-        # TODO(joshuarli): modernize dict_six fixer
         hosts = list(hosts.values()) if isinstance(hosts, dict) else hosts
 
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
@@ -146,7 +142,7 @@ class _RedisCluster(object):
         return "Redis Cluster"
 
 
-class ClusterManager(object):
+class ClusterManager:
     def __init__(self, options_manager, cluster_type=_RBCluster):
         self.__clusters = {}
         self.__options_manager = options_manager
@@ -163,10 +159,10 @@ class ClusterManager(object):
             # that it's necessary.
             configuration = self.__options_manager.get("redis.clusters").get(key)
             if configuration is None:
-                raise KeyError(u"Invalid cluster name: {}".format(key))
+                raise KeyError(f"Invalid cluster name: {key}")
 
             if not self.__cluster_type.supports(configuration):
-                raise KeyError(u"Invalid cluster type, expected: {}".format(self.__cluster_type))
+                raise KeyError(f"Invalid cluster type, expected: {self.__cluster_type}")
 
             cluster = self.__clusters[key] = self.__cluster_type.factory(**configuration)
 
@@ -193,17 +189,17 @@ def get_cluster_from_options(setting, options, cluster_manager=clusters):
     if cluster_options:
         if cluster_option_name in options:
             raise InvalidConfiguration(
-                u"Cannot provide both named cluster ({!r}) and cluster configuration ({}) options.".format(
+                "Cannot provide both named cluster ({!r}) and cluster configuration ({}) options.".format(
                     cluster_option_name, ", ".join(map(repr, cluster_constructor_option_names))
                 )
             )
         else:
             warnings.warn(
                 DeprecatedSettingWarning(
-                    u"{} parameter of {}".format(
+                    "{} parameter of {}".format(
                         ", ".join(map(repr, cluster_constructor_option_names)), setting
                     ),
-                    u'{}["{}"]'.format(setting, cluster_option_name),
+                    f'{setting}["{cluster_option_name}"]',
                     removed_in_version="8.5",
                 ),
                 stacklevel=2,
@@ -234,7 +230,7 @@ def validate_dynamic_cluster(is_redis_cluster, cluster):
             with cluster.all() as client:
                 client.ping()
     except Exception as e:
-        raise InvalidConfiguration(six.text_type(e))
+        raise InvalidConfiguration(str(e))
 
 
 def check_cluster_versions(cluster, required, recommended=None, label=None):
@@ -243,18 +239,18 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
             results = client.info()
     except Exception as e:
         # Any connection issues should be caught here.
-        raise InvalidConfiguration(six.text_type(e))
+        raise InvalidConfiguration(str(e))
 
     versions = {}
     for id, info in results.value.items():
         host = cluster.hosts[id]
         # NOTE: This assumes there is no routing magic going on here, and
         # all requests to this host are being served by the same database.
-        key = u"{host}:{port}".format(host=host.host, port=host.port)
+        key = f"{host.host}:{host.port}"
         versions[key] = Version(map(int, info["redis_version"].split(".", 3)))
 
     check_versions(
-        "Redis" if label is None else "Redis (%s)" % (label,), versions, required, recommended
+        "Redis" if label is None else f"Redis ({label})", versions, required, recommended
     )
 
 
@@ -302,17 +298,17 @@ class SentryScript(Script):
     kill this hack.
     """
 
-    class FakeConnectionPool(object):
+    class FakeConnectionPool:
         def get_encoder(self):
             return Encoder(encoding="utf-8", encoding_errors="strict", decode_responses=False)
 
-    class FakeEncoderClient(object):
+    class FakeEncoderClient:
         def __init__(self):
             self.connection_pool = SentryScript.FakeConnectionPool()
 
     def __init__(self, registered_client, script):
         if registered_client is None:
             registered_client = self.FakeEncoderClient()
-        super(SentryScript, self).__init__(registered_client, script)
+        super().__init__(registered_client, script)
         if isinstance(self.registered_client, self.FakeEncoderClient):
             self.registered_client = None

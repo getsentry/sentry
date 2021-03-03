@@ -1,29 +1,26 @@
 import React from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {updateDateTime} from 'app/actionCreators/globalSelection';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import FeatureBadge from 'app/components/featureBadge';
+import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
+import {PageContent, PageHeader} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
-import {generateAggregateFields} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {
   QueryResults,
@@ -34,9 +31,8 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
-import SearchBar from 'app/views/events/searchBar';
 
-import Charts from './charts/index';
+import LandingContent from './landing/content';
 import TrendsContent from './trends/content';
 import {
   DEFAULT_MAX_DURATION,
@@ -45,9 +41,7 @@ import {
 } from './trends/utils';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import Onboarding from './onboarding';
-import Table from './table';
-import {addRoutePerformanceContext, getTransactionSearchQuery} from './utils';
-import VitalsCards from './vitalsCards';
+import {addRoutePerformanceContext} from './utils';
 
 export enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
@@ -78,15 +72,23 @@ function isStatsPeriodDefault(
 }
 
 class PerformanceLanding extends React.Component<Props, State> {
-  static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceEventView(nextProps.organization, nextProps.location),
+      eventView: generatePerformanceEventView(
+        nextProps.organization,
+        nextProps.location,
+        nextProps.projects
+      ),
     };
   }
 
   state: State = {
-    eventView: generatePerformanceEventView(this.props.organization, this.props.location),
+    eventView: generatePerformanceEventView(
+      this.props.organization,
+      this.props.location,
+      this.props.projects
+    ),
     error: undefined,
   };
 
@@ -160,20 +162,6 @@ class PerformanceLanding extends React.Component<Props, State> {
     }
   }
 
-  /**
-   * Generate conditions to forward to the summary views.
-   *
-   * We drop the bare text string as in this view we apply it to
-   * the transaction name, and that condition is redundant in the
-   * summary view.
-   */
-  getSummaryConditions(query: string) {
-    const parsed = tokenizeSearch(query);
-    parsed.query = [];
-
-    return stringifyQueryObject(parsed);
-  }
-
   getCurrentView(): string {
     const {location} = this.props;
     const currentView = location.query.view as FilterViews;
@@ -190,7 +178,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       ...location.query,
     };
 
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query, '');
     const statsPeriod = decodeScalar(location.query.statsPeriod);
     const conditions = tokenizeSearch(query);
 
@@ -272,7 +260,6 @@ class PerformanceLanding extends React.Component<Props, State> {
             onClick={() => this.handleViewChange(viewKey)}
           >
             {this.getViewLabel(viewKey)}
-            {viewKey === FilterViews.TRENDS && <StyledFeatureBadge type="new" />}
           </Button>
         ))}
       </ButtonBar>
@@ -310,15 +297,13 @@ class PerformanceLanding extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, location, router, projects} = this.props;
+    const {organization, location, projects} = this.props;
     const currentView = this.getCurrentView();
     const isTrendsView = currentView === FilterViews.TRENDS;
     const eventView = isTrendsView
       ? modifyTrendsViewDefaultPeriod(this.state.eventView, location)
       : this.state.eventView;
     const showOnboarding = this.shouldShowOnboarding();
-    const filterString = getTransactionSearchQuery(location);
-    const summaryConditions = this.getSummaryConditions(filterString);
 
     return (
       <SentryDocumentTitle title={t('Performance')} objSlug={organization.slug}>
@@ -334,10 +319,11 @@ class PerformanceLanding extends React.Component<Props, State> {
         >
           <PageContent>
             <LightWeightNoProjectMessage organization={organization}>
-              <StyledPageHeader>
-                <div>{t('Performance')}</div>
+              <PageHeader>
+                <PageHeading>{t('Performance')}</PageHeading>
                 {!showOnboarding && <div>{this.renderHeaderButtons()}</div>}
-              </StyledPageHeader>
+              </PageHeader>
+              <GlobalSdkUpdateAlert />
               {this.renderError()}
               {showOnboarding ? (
                 <Onboarding organization={organization} />
@@ -349,40 +335,13 @@ class PerformanceLanding extends React.Component<Props, State> {
                   setError={this.setError}
                 />
               ) : (
-                <div>
-                  <StyledSearchBar
-                    organization={organization}
-                    projectIds={eventView.project}
-                    query={filterString}
-                    fields={generateAggregateFields(
-                      organization,
-                      [...eventView.fields, {field: 'tps()'}],
-                      ['epm()', 'eps()']
-                    )}
-                    onSearch={this.handleSearch}
-                  />
-                  <Feature features={['performance-vitals-overview']}>
-                    <VitalsCards
-                      eventView={eventView}
-                      organization={organization}
-                      location={location}
-                    />
-                  </Feature>
-                  <Charts
-                    eventView={eventView}
-                    organization={organization}
-                    location={location}
-                    router={router}
-                  />
-                  <Table
-                    eventView={eventView}
-                    projects={projects}
-                    organization={organization}
-                    location={location}
-                    setError={this.setError}
-                    summaryConditions={summaryConditions}
-                  />
-                </div>
+                <LandingContent
+                  eventView={eventView}
+                  projects={projects}
+                  organization={organization}
+                  setError={this.setError}
+                  handleSearch={this.handleSearch}
+                />
               )}
             </LightWeightNoProjectMessage>
           </PageContent>
@@ -391,26 +350,6 @@ class PerformanceLanding extends React.Component<Props, State> {
     );
   }
 }
-
-export const StyledPageHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.textColor};
-  height: 40px;
-  margin-bottom: ${space(1)};
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-
-  margin-bottom: ${space(2)};
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  height: 12px;
-`;
 
 export default withApi(
   withOrganization(withProjects(withGlobalSelection(PerformanceLanding)))

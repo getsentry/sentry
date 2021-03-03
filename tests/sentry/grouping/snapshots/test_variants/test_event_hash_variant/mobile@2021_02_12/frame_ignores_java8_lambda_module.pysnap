@@ -1,0 +1,26 @@
+---
+created: '2021-02-15T18:20:10.697694Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-max:
+  hash: null
+  component:
+    app-depth-max (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          module (ignored java lambda)
+            "foo.bar.Baz$$Lambda$40/1673859467"
+          function*
+            "call"
+--------------------------------------------------------------------------
+system:
+  hash: "53b9e9679a8ea25880376080b76f98ad"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module (ignored java lambda)
+            "foo.bar.Baz$$Lambda$40/1673859467"
+          function*
+            "call"

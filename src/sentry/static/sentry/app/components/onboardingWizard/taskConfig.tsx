@@ -41,9 +41,8 @@ export function getOnboardingTasks(
     {
       task: OnboardingTaskKey.FIRST_PROJECT,
       title: t('Create a project'),
-      description: t('Create your first Sentry project'),
-      detailedDescription: t(
-        'Follow our quick and easy steps to set up a project and start sending errors.'
+      description: t(
+        "Monitor in seconds by adding a simple lines of code to your project. It's as easy as microwaving leftover pizza."
       ),
       skippable: false,
       requisites: [],
@@ -53,9 +52,10 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.FIRST_EVENT,
-      title: t('Send your first event'),
-      description: t('Install the appropriate Sentry SDK for your application'),
-      detailedDescription: t('Choose your platform and send an event.'),
+      title: t('Capture your first error'),
+      description: t(
+        "Time to test it out. Now that you've created a project, capture your first error. We've got an example you can fiddle with."
+      ),
       skippable: false,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
@@ -81,11 +81,9 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.INVITE_MEMBER,
-      title: t('Invite team members'),
-      description: t('Bring your team aboard'),
-      detailedDescription: t(
-        `Let Sentry help your team triage and assign issues. Improve your workflow
-        by unlocking mentions, assignment, and suggested issue owners.`
+      title: t('Invite your team'),
+      description: t(
+        'Assign issues and comment on shared errors with coworkers so you always know who to blame when sh*t hits the fan.'
       ),
       skippable: true,
       requisites: [],
@@ -95,9 +93,10 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.SECOND_PLATFORM,
-      title: t('Add a second platform'),
-      description: t('Add Sentry to a second platform'),
-      detailedDescription: t('Capture errors from both your front and back ends.'),
+      title: t('Create another project'),
+      description: t(
+        'Easy, right? Don’t stop at one. Set up another project to keep things running smoothly in both the frontend and backend.'
+      ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
@@ -106,11 +105,9 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.FIRST_TRANSACTION,
-      title: t('Monitor Performance'),
-      description: t('See slow faster'),
-      detailedDescription: t(
-        `Set up Performance Monitoring to see everything from macro-level metrics to micro-level spans.
-        Cross-reference transactions with related issues, customize queries, and monitor mission-critical endpoints using metric alerts.`
+      title: t('Boost performance'),
+      description: t(
+        "Don't keep users waiting. Trace transactions, investigate spans and cross-reference related issues for those mission-critical endpoints."
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
@@ -137,25 +134,22 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.USER_CONTEXT,
-      title: t('Add user context'),
-      description: t('Know who is being affected by crashes'),
-      detailedDescription: t(
-        `Unlock features that let you drill down into the number of users affected by an issue
-        and get a broader sense about the quality of your application.`
+      title: t('Get more user context'),
+      description: t(
+        'Enable us to pinpoint which users are suffering from that bad code, so you can debug the problem more swiftly and maybe even apologize for it.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'external',
-      location: 'https://docs.sentry.io/enriching-error-data/context/#capturing-the-user',
+      location:
+        'https://docs.sentry.io/platform-redirect/?next=/enriching-events/identify-user/',
       display: true,
     },
     {
       task: OnboardingTaskKey.RELEASE_TRACKING,
-      title: t('Set up release tracking'),
-      description: t('See which releases cause errors'),
-      detailedDescription: t(
-        `Set up releases and associate commits to gain additional context when determining the
-        cause of an issue and unlock the ability to resolve issues via commit message.`
+      title: t('Track releases'),
+      description: t(
+        'Take an in-depth look at the health of each and every release with crash analytics, errors, related issues and suspect commits.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -166,10 +160,8 @@ export function getOnboardingTasks(
     {
       task: OnboardingTaskKey.SOURCEMAPS,
       title: t('Upload source maps'),
-      description: t('Deminify JavaScript stack traces'),
-      detailedDescription: t(
-        `View source code context obtained from stack traces in its
-        original untransformed form, which is particularly useful for debugging minified code.`
+      description: t(
+        "Deminify Javascript source code to debug with context. Seeing code in it's original form will help you debunk the ghosts of errors past."
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -203,13 +195,14 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.ALERT_RULE,
-      title: t('Configure alerting rules'),
-      description: t('Configure alerting rules to control error emails'),
-      detailedDescription: t('Receive Sentry alerts in Slack, PagerDuty, and more.'),
+      title: t('Get smarter alerts'),
+      description: t(
+        "Customize alerting rules by issue or metric. You'll get the exact information you need precisely when you need it."
+      ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
-      location: `/settings/${organization.slug}/projects/:projectId/alerts/`,
+      location: `/organizations/${organization.slug}/alerts/rules/`,
       display: true,
     },
   ];
@@ -240,19 +233,18 @@ export function getMergedTasks(organization: Organization) {
 
 const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
+  margin-right: ${space(1)};
 `;
 
 const EventWaitingIndicator = styled(p => (
   <div {...p}>
-    {t('Waiting for first event')}
     <PulsingIndicator />
+    {t('Waiting for event')}
   </div>
 ))`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.textColor};
-  display: grid;
-  grid-template-columns: max-content max-content;
-  grid-gap: ${space(1)};
+  display: flex;
   align-items: center;
-  line-height: 1rem;
+  flex-grow: 1;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.orange400};
 `;

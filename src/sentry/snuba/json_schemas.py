@@ -1,5 +1,4 @@
-from __future__ import absolute_import
-
+from typing import Any, Mapping
 
 SUBSCRIPTION_WRAPPER_SCHEMA = {
     "type": "object",
@@ -9,7 +8,7 @@ SUBSCRIPTION_WRAPPER_SCHEMA = {
 }
 
 
-SUBSCRIPTION_PAYLOAD_VERSIONS = {
+SUBSCRIPTION_PAYLOAD_VERSIONS: Mapping[int, Mapping[str, Any]] = {
     1: {
         "type": "object",
         "properties": {

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db import transaction
 from rest_framework import status
 
@@ -116,4 +114,4 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
                 data=hook.get_audit_log_data(),
             )
 
-        return self.respond(serialize(hook, request.user), status=204)
+        return self.respond(status=204)

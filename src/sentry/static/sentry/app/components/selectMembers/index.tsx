@@ -86,7 +86,8 @@ class SelectMembers extends React.Component<Props, State> {
     this.unlisteners.forEach(callIfFunction);
   }
 
-  selectRef = React.createRef<typeof SelectControl>();
+  // TODO(ts) This type could be improved when react-select types are better.
+  selectRef = React.createRef<any>();
 
   unlisteners = [
     MemberListStore.listen(() => {
@@ -213,6 +214,8 @@ class SelectMembers extends React.Component<Props, State> {
       return;
     }
 
+    // @ts-ignore The types for react-select don't cover this property
+    // or the type of selectRef is incorrect.
     const select = this.selectRef.current.select.select;
     const input: HTMLInputElement = select.inputRef;
     if (input) {

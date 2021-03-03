@@ -1,16 +1,13 @@
-from __future__ import absolute_import
-
 __all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
 
 import re
-import six
 
 from sentry.interfaces.base import Interface
 from sentry.utils.json import prune_empty_keys
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.safe import get_path
 
-_type_value_re = re.compile("^(\w+):(.*)$")
+_type_value_re = re.compile(r"^(\w+):(.*)$")
 
 
 def upgrade_legacy_mechanism(data):
@@ -170,7 +167,7 @@ def uncontribute_non_stacktrace_variants(variants):
 
     # In case any of the variants has a contributing stacktrace, we want
     # to make all other variants non contributing.  Thr e
-    for (key, component) in six.iteritems(variants):
+    for (key, component) in variants.items():
         if any(
             s.contributes for s in component.iter_subcomponents(id="stacktrace", recursive=True)
         ):
@@ -303,7 +300,7 @@ class SingleException(Interface):
 
         return {
             "type": self.type,
-            "value": six.text_type(self.value) if self.value else None,
+            "value": str(self.value) if self.value else None,
             "mechanism": mechanism,
             "threadId": self.thread_id,
             "module": self.module,
@@ -420,7 +417,7 @@ class Exception(Interface):
 
         result = {}
         values = meta.get("values", meta)
-        for index, value in six.iteritems(values):
+        for index, value in values.items():
             exc = self.values[int(index)]
             if exc is not None:
                 result[index] = exc.get_api_meta(value, is_public=is_public, platform=platform)
@@ -436,7 +433,7 @@ class Exception(Interface):
             if not exc:
                 continue
 
-            output.append(u"{0}: {1}\n".format(exc.type, exc.value))
+            output.append(f"{exc.type}: {exc.value}\n")
             if exc.stacktrace:
                 output.append(
                     exc.stacktrace.get_stacktrace(
@@ -458,5 +455,4 @@ class Exception(Interface):
 
         mechanism = self.values[0].mechanism
         if mechanism:
-            for tag in mechanism.iter_tags():
-                yield tag
+            yield from mechanism.iter_tags()

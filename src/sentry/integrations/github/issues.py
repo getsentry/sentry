@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.issues import IssueBasicMixin
@@ -8,12 +6,12 @@ from sentry.utils.http import absolute_uri
 
 class GitHubIssueBasic(IssueBasicMixin):
     def make_external_key(self, data):
-        return u"{}#{}".format(data["repo"], data["key"])
+        return "{}#{}".format(data["repo"], data["key"])
 
     def get_issue_url(self, key):
         domain_name, user = self.model.metadata["domain_name"].split("/")
         repo, issue_id = key.split("#")
-        return u"https://{}/{}/issues/{}".format(domain_name, repo, issue_id)
+        return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
     def after_link_issue(self, external_issue, **kwargs):
         data = kwargs["data"]
@@ -41,7 +39,7 @@ class GitHubIssueBasic(IssueBasicMixin):
 
     def get_create_issue_config(self, group, user, **kwargs):
         kwargs["link_referrer"] = "github_integration"
-        fields = super(GitHubIssueBasic, self).get_create_issue_config(group, user, **kwargs)
+        fields = super().get_create_issue_config(group, user, **kwargs)
         default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []
@@ -136,7 +134,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": u"Sentry issue: [{issue_id}]({url})".format(
+                "default": "Sentry issue: [{issue_id}]({url})".format(
                     url=absolute_uri(
                         group.get_absolute_url(params={"referrer": "github_integration"})
                     ),
@@ -191,6 +189,6 @@ class GitHubIssueBasic(IssueBasicMixin):
         except Exception as e:
             self.raise_error(e)
 
-        issues = tuple((i["number"], u"#{} {}".format(i["number"], i["title"])) for i in response)
+        issues = tuple((i["number"], "#{} {}".format(i["number"], i["title"])) for i in response)
 
         return issues

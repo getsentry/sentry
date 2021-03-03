@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
-import six
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 
@@ -64,7 +61,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=GitLab%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/gitlab",
     aspects={},
 )
@@ -74,7 +71,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
     repo_search = True
 
     def __init__(self, *args, **kwargs):
-        super(GitlabIntegration, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.default_identity = None
 
     def get_group_id(self):
@@ -98,7 +95,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
 
         # Must format the url ourselves since `check_file` is a head request
         # "https://gitlab.com/gitlab-org/gitlab/blob/master/README.md"
-        return u"{}/{}/blob/{}/{}".format(base_url, repo_name, branch, filepath)
+        return f"{base_url}/{repo_name}/blob/{branch}/{filepath}"
 
     def search_projects(self, query):
         client = self.get_client()
@@ -197,8 +194,8 @@ class InstallationConfigView(PipelineView):
                 pipeline.bind_state(
                     "oauth_config_information",
                     {
-                        "access_token_url": u"{}/oauth/token".format(form_data.get("url")),
-                        "authorize_url": u"{}/oauth/authorize".format(form_data.get("url")),
+                        "access_token_url": "{}/oauth/token".format(form_data.get("url")),
+                        "authorize_url": "{}/oauth/authorize".format(form_data.get("url")),
                         "client_id": form_data.get("client_id"),
                         "client_secret": form_data.get("client_secret"),
                         "verify_ssl": form_data.get("verify_ssl"),
@@ -249,6 +246,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
     integration_cls = GitlabIntegration
 
     needs_default_identity = True
+    has_stacktrace_linking = True
 
     features = frozenset([IntegrationFeatures.ISSUE_BASIC, IntegrationFeatures.COMMITS])
 
@@ -264,7 +262,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         identity_pipeline_config = dict(
             oauth_scopes=sorted(GitlabIdentityProvider.oauth_scopes),
             redirect_url=absolute_uri("/extensions/gitlab/setup/"),
-            **self.pipeline.fetch_state("oauth_config_information")
+            **self.pipeline.fetch_state("oauth_config_information"),
         )
 
         return NestedPipelineView(
@@ -289,7 +287,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                     "verify_ssl": installation_data["verify_ssl"],
                     "group": installation_data["group"],
                     "include_subgroups": installation_data["include_subgroups"],
-                    "error_message": six.text_type(e),
+                    "error_message": str(e),
                     "error_status": e.code,
                 },
             )
@@ -326,11 +324,11 @@ class GitlabIntegrationProvider(IntegrationProvider):
             # This value is embedded then in the webook token that we
             # give to gitlab to allow us to find the integration a hook came
             # from.
-            "external_id": u"{}:{}".format(hostname, group["id"]),
+            "external_id": "{}:{}".format(hostname, group["id"]),
             "metadata": {
                 "icon": group["avatar_url"],
                 "instance": hostname,
-                "domain_name": u"{}/{}".format(hostname, group["full_path"]),
+                "domain_name": "{}/{}".format(hostname, group["full_path"]),
                 "scopes": scopes,
                 "verify_ssl": verify_ssl,
                 "base_url": base_url,
@@ -340,7 +338,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             },
             "user_identity": {
                 "type": "gitlab",
-                "external_id": u"{}:{}".format(hostname, user["id"]),
+                "external_id": "{}:{}".format(hostname, user["id"]),
                 "scopes": scopes,
                 "data": oauth_data,
             },

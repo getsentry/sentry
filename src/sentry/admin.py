@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django import forms
 from django.conf import settings
 from django.conf.urls import url
@@ -40,7 +38,7 @@ class OptionAdmin(admin.ModelAdmin):
     search_fields = ("key",)
 
     def value_repr(self, instance):
-        return u'<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(
+        return '<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(
             escape(saferepr(instance.value))
         )
 
@@ -145,7 +143,7 @@ class TeamAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         prev_org = obj.organization_id
-        super(TeamAdmin, self).save_model(request, obj, form, change)
+        super().save_model(request, obj, form, change)
         if not change:
             return
         new_org = obj.organization_id
@@ -210,7 +208,7 @@ class UserAdmin(admin.ModelAdmin):
     def get_fieldsets(self, request, obj=None):
         if not obj:
             return self.add_fieldsets
-        return super(UserAdmin, self).get_fieldsets(request, obj)
+        return super().get_fieldsets(request, obj)
 
     def get_form(self, request, obj=None, **kwargs):
         """
@@ -222,18 +220,18 @@ class UserAdmin(admin.ModelAdmin):
                 {"form": self.add_form, "fields": admin.util.flatten_fieldsets(self.add_fieldsets)}
             )
         defaults.update(kwargs)
-        return super(UserAdmin, self).get_form(request, obj, **defaults)
+        return super().get_form(request, obj, **defaults)
 
     def get_urls(self):
         return [
             url(r"^(\d+)/password/$", self.admin_site.admin_view(self.user_change_password))
-        ] + super(UserAdmin, self).get_urls()
+        ] + super().get_urls()
 
     def lookup_allowed(self, lookup, value):
         # See #20078: we don't want to allow any lookups involving passwords.
         if lookup.startswith("password"):
             return False
-        return super(UserAdmin, self).lookup_allowed(lookup, value)
+        return super().lookup_allowed(lookup, value)
 
     @sensitive_post_parameters_m
     @csrf_protect_m
@@ -261,7 +259,7 @@ class UserAdmin(admin.ModelAdmin):
         username_field = self.model._meta.get_field(self.model.USERNAME_FIELD)
         defaults = {"auto_populated_fields": (), "username_help_text": username_field.help_text}
         extra_context.update(defaults)
-        return super(UserAdmin, self).add_view(request, form_url, extra_context)
+        return super().add_view(request, form_url, extra_context)
 
     @sensitive_post_parameters_m
     def user_change_password(self, request, id, form_url=""):
@@ -317,7 +315,7 @@ class UserAdmin(admin.ModelAdmin):
         # * We are adding a user in a popup
         if "_addanother" not in request.POST and "_popup" not in request.POST:
             request.POST["_continue"] = 1
-        return super(UserAdmin, self).response_add(request, obj, post_url_continue)
+        return super().response_add(request, obj, post_url_continue)
 
 
 admin.site.register(User, UserAdmin)

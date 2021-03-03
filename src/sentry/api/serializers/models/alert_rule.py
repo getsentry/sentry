@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 from collections import defaultdict
 
-import six
 
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.incidents.models import (
@@ -64,9 +61,9 @@ class AlertRuleSerializer(Serializer):
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "name": obj.name,
-            "organizationId": six.text_type(obj.organization_id),
+            "organizationId": str(obj.organization_id),
             "status": obj.status,
             "dataset": obj.snuba_query.dataset,
             "query": obj.snuba_query.query,
@@ -90,7 +87,7 @@ class AlertRuleSerializer(Serializer):
 
 class DetailedAlertRuleSerializer(AlertRuleSerializer):
     def get_attrs(self, item_list, user, **kwargs):
-        result = super(DetailedAlertRuleSerializer, self).get_attrs(item_list, user, **kwargs)
+        result = super().get_attrs(item_list, user, **kwargs)
         alert_rules = {item.id: item for item in item_list}
         for alert_rule_id, project_slug in AlertRuleExcludedProjects.objects.filter(
             alert_rule__in=item_list
@@ -111,7 +108,7 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         return result
 
     def serialize(self, obj, attrs, user):
-        data = super(DetailedAlertRuleSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         data["excludedProjects"] = sorted(attrs.get("excluded_projects", []))
         data["eventTypes"] = sorted(attrs.get("event_types", []))
         return data
@@ -119,7 +116,7 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
 
 class CombinedRuleSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        results = super(CombinedRuleSerializer, self).get_attrs(item_list, user)
+        results = super().get_attrs(item_list, user)
 
         alert_rules = serialize([x for x in item_list if isinstance(x, AlertRule)], user=user)
         rules = serialize([x for x in item_list if isinstance(x, Rule)], user=user)

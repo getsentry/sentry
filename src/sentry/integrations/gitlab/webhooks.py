@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import dateutil.parser
 import logging
-import six
 
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse, Http404
@@ -21,7 +18,7 @@ logger = logging.getLogger("sentry.webhooks")
 PROVIDER_NAME = "integrations:gitlab"
 
 
-class Webhook(object):
+class Webhook:
     def __call__(self, integration, organization, event):
         raise NotImplementedError
 
@@ -39,7 +36,7 @@ class Webhook(object):
             )
             raise Http404()
 
-        external_id = u"{}:{}".format(integration.metadata["instance"], project_id)
+        external_id = "{}:{}".format(integration.metadata["instance"], project_id)
         try:
             repo = Repository.objects.get(
                 organization_id=organization.id, provider=PROVIDER_NAME, external_id=external_id
@@ -64,7 +61,7 @@ class Webhook(object):
 
         project = event["project"]
 
-        name_from_event = u"{} / {}".format(project["namespace"], project["name"])
+        name_from_event = "{} / {}".format(project["namespace"], project["name"])
         url_from_event = project["web_url"]
         path_from_event = project["path_with_namespace"]
 
@@ -112,7 +109,7 @@ class MergeEventWebhook(Webhook):
         except KeyError as e:
             logger.info(
                 "gitlab.webhook.invalid-merge-data",
-                extra={"integration_id": integration.id, "error": six.string_type(e)},
+                extra={"integration_id": integration.id, "error": str(e)},
             )
 
         if not author_email:
@@ -204,7 +201,7 @@ class GitlabWebhookEndpoint(View):
         if request.method != "POST":
             return HttpResponse(status=405)
 
-        return super(GitlabWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request):
         token = "<unknown>"
@@ -214,7 +211,7 @@ class GitlabWebhookEndpoint(View):
             # to find data on our side so we embed one in the token.
             token = request.META["HTTP_X_GITLAB_TOKEN"]
             instance, group_path, secret = token.split(":")
-            external_id = u"{}:{}".format(instance, group_path)
+            external_id = f"{instance}:{group_path}"
         except Exception:
             logger.info("gitlab.webhook.invalid-token", extra={"token": token})
             return HttpResponse(status=400)

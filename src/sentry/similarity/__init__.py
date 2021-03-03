@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 import logging
 
 from django.conf import settings
@@ -29,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 def text_shingle(n, value):
-    return map(u"".join, shingle(n, value))
+    return map("".join, shingle(n, value))
 
 
 class FrameEncodingError(ValueError):
@@ -39,7 +36,7 @@ class FrameEncodingError(ValueError):
 def get_frame_attributes(frame):
     attributes = {}
 
-    if frame.function in set(["<lambda>", None]):
+    if frame.function in {"<lambda>", None}:
         if frame.context_line is None:
             raise FrameEncodingError(
                 "Cannot create a signature for frame without a `context_line` value."
@@ -63,14 +60,14 @@ def get_frame_attributes(frame):
 
 
 def _make_index_backend(cluster, namespace="sim:1"):
-    if isinstance(cluster, six.string_types):
+    if isinstance(cluster, str):
         cluster_id = cluster
 
         try:
             cluster = redis.redis_clusters.get(cluster_id)
         except KeyError:
             index = DummyIndexBackend()
-            logger.info(u"No redis cluster provided for similarity, using {!r}.".format(index))
+            logger.info(f"No redis cluster provided for similarity, using {index!r}.")
             return index
 
     return MetricsWrapper(

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import time
 import pytz
 from datetime import datetime
@@ -27,7 +25,7 @@ def make_24h_stats(ts):
 
 class SnubaSessionsTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(SnubaSessionsTest, self).setUp()
+        super().setUp()
         self.received = time.time()
         self.session_started = time.time() // 60 * 60
         self.session_release = "foo@1.0.0"
@@ -116,7 +114,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         data = check_has_health_data(
             [(self.project.id, self.session_release), (self.project.id, "dummy-release")]
         )
-        assert data == set([(self.project.id, self.session_release)])
+        assert data == {(self.project.id, self.session_release)}
 
     def test_get_project_releases_by_stability(self):
         # Add an extra session with a different `distinct_id` so that sorting by users
@@ -163,11 +161,13 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "sessions_24h": 2,
                 "users_24h": 1,
                 "adoption": 100.0,
+                "sessions_adoption": 66.66666666666666,
             },
             (self.project.id, self.session_crashed_release): {
                 "sessions_24h": 1,
                 "users_24h": 1,
                 "adoption": 100.0,
+                "sessions_adoption": 33.33333333333333,
             },
         }
 
@@ -203,11 +203,13 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "sessions_24h": 2,
                 "users_24h": 1,
                 "adoption": 50.0,
+                "sessions_adoption": 50.0,
             },
             (self.project.id, self.session_crashed_release): {
                 "sessions_24h": 2,
                 "users_24h": 2,
                 "adoption": 100.0,
+                "sessions_adoption": 50.0,
             },
         }
 
@@ -238,6 +240,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "stats": {"24h": stats_crash},
                 "crash_free_users": 0.0,
                 "adoption": 100.0,
+                "sessions_adoption": 33.33333333333333,
                 "has_health_data": True,
                 "crash_free_sessions": 0.0,
                 "duration_p50": None,
@@ -253,6 +256,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "stats": {"24h": stats_ok},
                 "crash_free_users": 100.0,
                 "adoption": 100.0,
+                "sessions_adoption": 66.66666666666666,
                 "has_health_data": True,
                 "crash_free_sessions": 100.0,
                 "duration_p50": 45.0,
@@ -287,6 +291,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "stats": {"24h": stats_crash},
                 "crash_free_users": 0.0,
                 "adoption": 100.0,
+                "sessions_adoption": 33.33333333333333,
                 "has_health_data": True,
                 "crash_free_sessions": 0.0,
                 "duration_p50": None,
@@ -301,6 +306,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "total_users_24h": 1,
                 "stats": {"24h": stats_ok},
                 "crash_free_users": 100.0,
+                "sessions_adoption": 66.66666666666666,
                 "adoption": 100.0,
                 "has_health_data": True,
                 "crash_free_sessions": 100.0,

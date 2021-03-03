@@ -1,9 +1,10 @@
 import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
-import {Event, Organization} from 'app/types';
+import {Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import {defined} from 'app/utils';
 
-import getUserKnownDataDetails from './getTraceKnownDataDetails';
+import getTraceKnownDataDetails from './getTraceKnownDataDetails';
 import {TraceKnownData, TraceKnownDataType} from './types';
 
 type TraceKnownDataKeys = Extract<keyof TraceKnownData, string>;
@@ -27,7 +28,7 @@ function getTraceKnownData(
   });
 
   for (const key of dataKeys) {
-    const knownDataDetails = getUserKnownDataDetails(data, key, event, organization);
+    const knownDataDetails = getTraceKnownDataDetails(data, key, event, organization);
 
     if ((knownDataDetails && !defined(knownDataDetails.value)) || !knownDataDetails) {
       continue;

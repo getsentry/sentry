@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from datetime import timedelta
 from django.conf import settings
 from django.db import models
@@ -26,7 +24,7 @@ class AuthIdentity(Model):
 
     __repr__ = sane_repr("user_id", "auth_provider_id")
 
-    def __unicode__(self):
+    def __str__(self):
         return self.ident
 
     def get_audit_log_data(self):

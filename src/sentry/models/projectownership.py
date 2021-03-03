@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import operator
 
 
@@ -11,6 +9,7 @@ from django.utils import timezone
 from sentry.db.models import Model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.ownership.grammar import load_schema
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from functools import reduce
 
@@ -40,7 +39,7 @@ class ProjectOwnership(Model):
 
     @classmethod
     def get_cache_key(self, project_id):
-        return u"projectownership_project_id:1:{}".format(project_id)
+        return f"projectownership_project_id:1:{project_id}"
 
     @classmethod
     def get_ownership_cached(cls, project_id):
@@ -95,36 +94,39 @@ class ProjectOwnership(Model):
         return ordered_actors, rules
 
     @classmethod
-    def get_autoassign_owner(cls, project_id, data):
+    def get_autoassign_owners(cls, project_id, data, limit=2):
         """
         Get the auto-assign owner for a project if there are any.
 
-        Will return None if there are no owners, or a list of owners.
+        Returns a tuple of (auto_assignment_enabled, list_of_owners).
         """
-        ownership = cls.get_ownership_cached(project_id)
-        if not ownership or not ownership.auto_assignment:
-            return None
+        with metrics.timer("projectownership.get_autoassign_owners"):
+            ownership = cls.get_ownership_cached(project_id)
+            if not ownership:
+                return False, []
 
-        rules = cls._matching_ownership_rules(ownership, project_id, data)
-        if not rules:
-            return None
+            rules = cls._matching_ownership_rules(ownership, project_id, data)
+            if not rules:
+                return ownership.auto_assignment, []
 
-        score = 0
-        owners = None
-        # Automatic assignment prefers the owner with the longest
-        # matching pattern as the match is more specific.
-        for rule in rules:
-            candidate = len(rule.matcher.pattern)
-            if candidate > score:
-                score = candidate
-                owners = rule.owners
-        actors = [_f for _f in resolve_actors(owners, project_id).values() if _f]
+            # We want the last matching rule to take the most precedence.
+            owners = [owner for rule in rules for owner in rule.owners]
+            owners.reverse()
+            actors = {
+                key: val
+                for key, val in resolve_actors({owner for owner in owners}, project_id).items()
+                if val
+            }
+            actors = [actors[owner] for owner in owners if owner in actors][:limit]
 
-        # Can happen if the ownership rule references a user/team that no longer
-        # is assigned to the project or has been removed from the org.
-        if not actors:
-            return None
-        return actors[0].resolve()
+            # Can happen if the ownership rule references a user/team that no longer
+            # is assigned to the project or has been removed from the org.
+            if not actors:
+                return ownership.auto_assignment, []
+
+            from sentry.api.fields.actor import Actor
+
+            return ownership.auto_assignment, Actor.resolve_many(actors)
 
     @classmethod
     def _matching_ownership_rules(cls, ownership, project_id, data):
@@ -138,9 +140,9 @@ class ProjectOwnership(Model):
 
 
 def resolve_actors(owners, project_id):
-    """ Convert a list of Owner objects into a dictionary
+    """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
-    as None. """
+    as None."""
     from sentry.api.fields.actor import Actor
     from sentry.models import User, Team
 

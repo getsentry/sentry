@@ -1,7 +1,7 @@
 import React from 'react';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
-import mean from 'lodash/mean';
 import meanBy from 'lodash/meanBy';
 import omitBy from 'lodash/omitBy';
 import pick from 'lodash/pick';
@@ -10,31 +10,40 @@ import {fetchTotalCount} from 'app/actionCreators/events';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import CHART_PALETTE from 'app/constants/chartPalette';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t, tct} from 'app/locale';
-import {CrashFreeTimeBreakdown, GlobalSelection, Organization} from 'app/types';
+import {GlobalSelection, Organization, SessionApiResponse} from 'app/types';
 import {Series} from 'app/types/echarts';
-import {defined, percent} from 'app/utils';
+import {defined} from 'app/utils';
+import {WebVital} from 'app/utils/discover/fields';
 import {getExactDuration} from 'app/utils/formatters';
+import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
-import {displayCrashFreePercent, getCrashFreePercent, roundDuration} from '../../utils';
-import {sessionTerm} from '../../utils/sessionTerm';
+import {displayCrashFreePercent, roundDuration} from '../../utils';
 
 import {EventType, YAxis} from './chart/releaseChartControls';
-import {getInterval, getReleaseEventView} from './chart/utils';
+import {
+  fillChartDataFromSessionsResponse,
+  fillCrashFreeChartDataFromSessionsReponse,
+  getInterval,
+  getReleaseEventView,
+  getTotalsFromSessionsResponse,
+  initCrashFreeChartData,
+  initOtherCrashFreeChartData,
+  initOtherSessionDurationChartData,
+  initOtherSessionsBreakdownChartData,
+  initSessionDurationChartData,
+  initSessionsBreakdownChartData,
+} from './chart/utils';
 
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_, key) =>
     ['api', 'version', 'orgId', 'projectSlug', 'location', 'children'].includes(key)
   );
 
-type ChartData = Record<string, Series>;
-
 type Data = {
   chartData: Series[];
   chartSummary: React.ReactNode;
-  crashFreeTimeBreakdown: CrashFreeTimeBreakdown;
 };
 
 export type ReleaseStatsRequestRenderProps = Data & {
@@ -52,10 +61,12 @@ type Props = {
   location: Location;
   yAxis: YAxis;
   eventType: EventType;
+  vitalType: WebVital;
   children: (renderProps: ReleaseStatsRequestRenderProps) => React.ReactNode;
   hasHealthData: boolean;
   hasDiscover: boolean;
   hasPerformance: boolean;
+  defaultStatsPeriod: string;
 };
 type State = {
   reloading: boolean;
@@ -87,6 +98,24 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
 
   private unmounting: boolean = false;
 
+  get path() {
+    const {organization} = this.props;
+
+    return `/organizations/${organization.slug}/sessions/`;
+  }
+
+  get baseQueryParams() {
+    const {version, location, selection, defaultStatsPeriod} = this.props;
+
+    return {
+      query: stringifyQueryObject(new QueryResults([`release:"${version}"`])),
+      interval: getInterval(selection.datetime),
+      ...getParams(pick(location.query, Object.values(URL_PARAM)), {
+        defaultStatsPeriod,
+      }),
+    };
+  }
+
   fetchData = async () => {
     let data: Data | null = null;
     const {yAxis, hasHealthData, hasDiscover, hasPerformance} = this.props;
@@ -101,26 +130,44 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     }));
 
     try {
+      if (yAxis === YAxis.SESSIONS) {
+        data = await this.fetchSessions();
+      }
+
+      if (yAxis === YAxis.USERS) {
+        data = await this.fetchUsers();
+      }
+
       if (yAxis === YAxis.CRASH_FREE) {
-        data = await this.fetchRateData();
-      } else if (
+        data = await this.fetchCrashFree();
+      }
+
+      if (yAxis === YAxis.SESSION_DURATION) {
+        data = await this.fetchSessionDuration();
+      }
+
+      if (
         yAxis === YAxis.EVENTS ||
         yAxis === YAxis.FAILED_TRANSACTIONS ||
         yAxis === YAxis.COUNT_DURATION ||
-        yAxis === YAxis.COUNT_LCP
+        yAxis === YAxis.COUNT_VITAL
       ) {
+        // this is used to get total counts for chart footer summary
         data = await this.fetchEventData();
-      } else {
-        // session duration uses same endpoint as sessions
-        data = await this.fetchCountData(
-          yAxis === YAxis.SESSION_DURATION ? YAxis.SESSIONS : yAxis
-        );
       }
     } catch {
       addErrorMessage(t('Error loading chart data'));
       this.setState({
         errored: true,
         data: null,
+      });
+    }
+
+    if (!defined(data)) {
+      // this should not happen
+      Sentry.withScope(scope => {
+        scope.setLevel(Sentry.Severity.Warning);
+        Sentry.captureException(new Error('Release chart data is undefined'));
       });
     }
 
@@ -134,279 +181,252 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     });
   };
 
-  fetchCountData = async (type: YAxis) => {
-    const {api, yAxis} = this.props;
+  async fetchSessions() {
+    const {api, version} = this.props;
 
-    const response = await api.requestPromise(this.statsPath, {
-      query: {
-        ...this.baseQueryParams,
-        type,
-      },
-    });
-
-    const transformedData =
-      yAxis === YAxis.SESSION_DURATION
-        ? this.transformSessionDurationData(response.stats)
-        : this.transformCountData(response.stats, yAxis, response.statTotals);
-
-    return {...transformedData, crashFreeTimeBreakdown: response.usersBreakdown};
-  };
-
-  fetchRateData = async () => {
-    const {api} = this.props;
-
-    const [userResponse, sessionResponse] = await Promise.all([
-      api.requestPromise(this.statsPath, {
+    const [
+      releaseResponse,
+      otherReleasesResponse,
+    ]: SessionApiResponse[] = await Promise.all([
+      api.requestPromise(this.path, {
         query: {
           ...this.baseQueryParams,
-          type: YAxis.USERS,
+          field: 'sum(session)',
+          groupBy: 'session.status',
         },
       }),
-      api.requestPromise(this.statsPath, {
+      api.requestPromise(this.path, {
         query: {
           ...this.baseQueryParams,
-          type: YAxis.SESSIONS,
+          field: 'sum(session)',
+          groupBy: 'session.status',
+          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
         },
       }),
     ]);
 
-    const transformedData = this.transformRateData(
-      userResponse.stats,
-      sessionResponse.stats
-    );
+    const totalSessions = getTotalsFromSessionsResponse({
+      response: releaseResponse,
+      field: 'sum(session)',
+    });
 
-    return {...transformedData, crashFreeTimeBreakdown: userResponse.usersBreakdown};
-  };
+    const chartData = fillChartDataFromSessionsResponse({
+      response: releaseResponse,
+      field: 'sum(session)',
+      groupBy: 'session.status',
+      chartData: initSessionsBreakdownChartData(),
+    });
 
-  fetchEventData = async () => {
+    const otherChartData = fillChartDataFromSessionsResponse({
+      response: otherReleasesResponse,
+      field: 'sum(session)',
+      groupBy: 'session.status',
+      chartData: initOtherSessionsBreakdownChartData(),
+    });
+
+    return {
+      chartData: [...Object.values(chartData), ...Object.values(otherChartData)],
+      chartSummary: totalSessions.toLocaleString(),
+    };
+  }
+
+  async fetchUsers() {
+    const {api, version} = this.props;
+
+    const [
+      releaseResponse,
+      otherReleasesResponse,
+    ]: SessionApiResponse[] = await Promise.all([
+      api.requestPromise(this.path, {
+        query: {
+          ...this.baseQueryParams,
+          field: 'count_unique(user)',
+          groupBy: 'session.status',
+        },
+      }),
+      api.requestPromise(this.path, {
+        query: {
+          ...this.baseQueryParams,
+          field: 'count_unique(user)',
+          groupBy: 'session.status',
+          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
+        },
+      }),
+    ]);
+
+    const totalUsers = getTotalsFromSessionsResponse({
+      response: releaseResponse,
+      field: 'count_unique(user)',
+    });
+
+    const chartData = fillChartDataFromSessionsResponse({
+      response: releaseResponse,
+      field: 'count_unique(user)',
+      groupBy: 'session.status',
+      chartData: initSessionsBreakdownChartData(),
+    });
+
+    const otherChartData = fillChartDataFromSessionsResponse({
+      response: otherReleasesResponse,
+      field: 'count_unique(user)',
+      groupBy: 'session.status',
+      chartData: initOtherSessionsBreakdownChartData(),
+    });
+
+    return {
+      chartData: [...Object.values(chartData), ...Object.values(otherChartData)],
+      chartSummary: totalUsers.toLocaleString(),
+    };
+  }
+
+  async fetchCrashFree() {
+    const {api, version} = this.props;
+
+    const [
+      releaseResponse,
+      otherReleasesResponse,
+    ]: SessionApiResponse[] = await Promise.all([
+      api.requestPromise(this.path, {
+        query: {
+          ...this.baseQueryParams,
+          field: ['sum(session)', 'count_unique(user)'],
+          groupBy: 'session.status',
+        },
+      }),
+      api.requestPromise(this.path, {
+        query: {
+          ...this.baseQueryParams,
+          field: ['sum(session)', 'count_unique(user)'],
+          groupBy: 'session.status',
+          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
+        },
+      }),
+    ]);
+
+    let chartData = fillCrashFreeChartDataFromSessionsReponse({
+      response: releaseResponse,
+      field: 'sum(session)',
+      entity: 'sessions',
+      chartData: initCrashFreeChartData(),
+    });
+    chartData = fillCrashFreeChartDataFromSessionsReponse({
+      response: releaseResponse,
+      field: 'count_unique(user)',
+      entity: 'users',
+      chartData,
+    });
+
+    let otherChartData = fillCrashFreeChartDataFromSessionsReponse({
+      response: otherReleasesResponse,
+      field: 'sum(session)',
+      entity: 'sessions',
+      chartData: initOtherCrashFreeChartData(),
+    });
+    otherChartData = fillCrashFreeChartDataFromSessionsReponse({
+      response: otherReleasesResponse,
+      field: 'count_unique(user)',
+      entity: 'users',
+      chartData: otherChartData,
+    });
+
+    // summary is averaging previously rounded values - this might lead to a slightly skewed percentage
+    const summary = tct('[usersPercent] users, [sessionsPercent] sessions', {
+      usersPercent: displayCrashFreePercent(
+        meanBy(
+          chartData.users.data.filter(item => defined(item.value)),
+          'value'
+        )
+      ),
+      sessionsPercent: displayCrashFreePercent(
+        meanBy(
+          chartData.sessions.data.filter(item => defined(item.value)),
+          'value'
+        )
+      ),
+    });
+
+    return {
+      chartData: [...Object.values(chartData), ...Object.values(otherChartData)],
+      chartSummary: summary,
+    };
+  }
+
+  async fetchSessionDuration() {
+    const {api, version} = this.props;
+
+    const [
+      releaseResponse,
+      otherReleasesResponse,
+    ]: SessionApiResponse[] = await Promise.all([
+      api.requestPromise(this.path, {
+        query: {
+          ...this.baseQueryParams,
+          field: 'p50(session.duration)',
+        },
+      }),
+      api.requestPromise(this.path, {
+        query: {
+          ...this.baseQueryParams,
+          field: 'p50(session.duration)',
+          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
+        },
+      }),
+    ]);
+
+    const totalMedianDuration = getTotalsFromSessionsResponse({
+      response: releaseResponse,
+      field: 'p50(session.duration)',
+    });
+
+    const chartData = fillChartDataFromSessionsResponse({
+      response: releaseResponse,
+      field: 'p50(session.duration)',
+      groupBy: null,
+      chartData: initSessionDurationChartData(),
+      valueFormatter: duration => roundDuration(duration ? duration / 1000 : 0),
+    });
+
+    const otherChartData = fillChartDataFromSessionsResponse({
+      response: otherReleasesResponse,
+      field: 'p50(session.duration)',
+      groupBy: null,
+      chartData: initOtherSessionDurationChartData(),
+      valueFormatter: duration => roundDuration(duration ? duration / 1000 : 0),
+    });
+
+    return {
+      chartData: [...Object.values(chartData), ...Object.values(otherChartData)],
+      chartSummary: getExactDuration(
+        roundDuration(totalMedianDuration ? totalMedianDuration / 1000 : 0)
+      ),
+    };
+  }
+
+  async fetchEventData() {
     const {
       api,
       organization,
       location,
       yAxis,
       eventType,
+      vitalType,
       selection,
       version,
-      hasHealthData,
     } = this.props;
-    const {crashFreeTimeBreakdown} = this.state.data || {};
     const eventView = getReleaseEventView(
       selection,
       version,
       yAxis,
       eventType,
+      vitalType,
       organization,
       true
     );
     const payload = eventView.getEventsAPIPayload(location);
-    let userResponse, eventsCountResponse;
-
-    // we don't need to fetch crashFreeTimeBreakdown every time, because it does not change
-    if (crashFreeTimeBreakdown || !hasHealthData) {
-      eventsCountResponse = await fetchTotalCount(api, organization.slug, payload);
-    } else {
-      [userResponse, eventsCountResponse] = await Promise.all([
-        api.requestPromise(this.statsPath, {
-          query: {
-            ...this.baseQueryParams,
-            type: YAxis.USERS,
-          },
-        }),
-        fetchTotalCount(api, organization.slug, payload),
-      ]);
-    }
-
-    const breakdown = userResponse?.usersBreakdown ?? crashFreeTimeBreakdown;
+    const eventsCountResponse = await fetchTotalCount(api, organization.slug, payload);
     const chartSummary = eventsCountResponse.toLocaleString();
 
-    return {chartData: [], crashFreeTimeBreakdown: breakdown, chartSummary};
-  };
-
-  get statsPath() {
-    const {organization, projectSlug, version} = this.props;
-
-    return `/projects/${organization.slug}/${projectSlug}/releases/${version}/stats/`;
-  }
-
-  get baseQueryParams() {
-    const {location, selection} = this.props;
-
-    return {
-      ...getParams(pick(location.query, [...Object.values(URL_PARAM)])),
-      interval: getInterval(selection.datetime),
-    };
-  }
-
-  transformCountData(
-    responseData,
-    yAxis: string,
-    responseTotals
-  ): Omit<Data, 'crashFreeTimeBreakdown'> {
-    // here we can configure colors of the chart
-    const chartData: ChartData = {
-      crashed: {
-        seriesName: sessionTerm.crashed,
-        data: [],
-        color: CHART_PALETTE[3][0],
-        areaStyle: {
-          color: CHART_PALETTE[3][0],
-          opacity: 1,
-        },
-        lineStyle: {
-          opacity: 0,
-          width: 0.4,
-        },
-      },
-      abnormal: {
-        seriesName: sessionTerm.abnormal,
-        data: [],
-        color: CHART_PALETTE[3][1],
-        areaStyle: {
-          color: CHART_PALETTE[3][1],
-          opacity: 1,
-        },
-        lineStyle: {
-          opacity: 0,
-          width: 0.4,
-        },
-      },
-      errored: {
-        seriesName: sessionTerm.errored,
-        data: [],
-        color: CHART_PALETTE[3][2],
-        areaStyle: {
-          color: CHART_PALETTE[3][2],
-          opacity: 1,
-        },
-        lineStyle: {
-          opacity: 0,
-          width: 0.4,
-        },
-      },
-      healthy: {
-        seriesName: sessionTerm.healthy,
-        data: [],
-        color: CHART_PALETTE[3][3],
-        areaStyle: {
-          color: CHART_PALETTE[3][3],
-          opacity: 1,
-        },
-        lineStyle: {
-          opacity: 0,
-          width: 0.4,
-        },
-      },
-    };
-
-    responseData.forEach(entry => {
-      const [timeframe, values] = entry;
-      const date = timeframe * 1000;
-      const crashed = values[`${yAxis}_crashed`];
-      const abnormal = values[`${yAxis}_abnormal`];
-      const errored = values[`${yAxis}_errored`];
-      const healthy = values[yAxis] - crashed - abnormal - errored;
-
-      chartData.crashed.data.push({name: date, value: crashed});
-      chartData.abnormal.data.push({name: date, value: abnormal});
-      chartData.errored.data.push({name: date, value: errored});
-      chartData.healthy.data.push({
-        name: date,
-        value: healthy >= 0 ? healthy : 0,
-      });
-    });
-
-    return {
-      chartData: Object.values(chartData),
-      chartSummary: responseTotals[yAxis].toLocaleString(),
-    };
-  }
-
-  transformRateData(
-    responseUsersData,
-    responseSessionsData
-  ): Omit<Data, 'crashFreeTimeBreakdown'> {
-    const chartData: ChartData = {
-      users: {
-        seriesName: sessionTerm['crash-free-users'],
-        data: [],
-        color: CHART_PALETTE[1][0],
-      },
-      sessions: {
-        seriesName: sessionTerm['crash-free-sessions'],
-        data: [],
-        color: CHART_PALETTE[1][1],
-      },
-    };
-
-    const calculateDatePercentage = (responseData, subject: YAxis) => {
-      const percentageData = responseData.map(entry => {
-        const [timeframe, values] = entry;
-        const date = timeframe * 1000;
-
-        const crashFreePercent =
-          values[subject] !== 0
-            ? getCrashFreePercent(
-                100 - percent(values[`${subject}_crashed`], values[subject])
-              )
-            : null;
-
-        return {name: date, value: crashFreePercent};
-      });
-
-      const averagePercent = displayCrashFreePercent(
-        meanBy(
-          percentageData.filter(item => defined(item.value)),
-          'value'
-        )
-      );
-
-      return {averagePercent, percentageData};
-    };
-
-    const usersPercentages = calculateDatePercentage(responseUsersData, YAxis.USERS);
-    chartData.users.data = usersPercentages.percentageData;
-
-    const sessionsPercentages = calculateDatePercentage(
-      responseSessionsData,
-      YAxis.SESSIONS
-    );
-    chartData.sessions.data = sessionsPercentages.percentageData;
-
-    const summary = tct('[usersPercent] users, [sessionsPercent] sessions', {
-      usersPercent: usersPercentages.averagePercent,
-      sessionsPercent: sessionsPercentages.averagePercent,
-    });
-
-    return {chartData: Object.values(chartData), chartSummary: summary};
-  }
-
-  transformSessionDurationData(responseData): Omit<Data, 'crashFreeTimeBreakdown'> {
-    // here we can configure colors of the chart
-    const chartData: Series = {
-      seriesName: t('Session Duration'),
-      data: [],
-      lineStyle: {
-        opacity: 0,
-      },
-    };
-
-    const sessionDurationAverage =
-      mean(
-        responseData
-          .map(([timeframe, values]) => {
-            chartData.data.push({
-              name: timeframe * 1000,
-              value: roundDuration(values.duration_p50),
-            });
-
-            return values.duration_p50;
-          })
-          .filter(duration => defined(duration))
-      ) || 0;
-
-    const summary = getExactDuration(roundDuration(sessionDurationAverage));
-
-    return {chartData: [chartData], chartSummary: summary};
+    return {chartData: [], chartSummary};
   }
 
   render() {
@@ -420,7 +440,6 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       errored,
       chartData: data?.chartData ?? [],
       chartSummary: data?.chartSummary ?? '',
-      crashFreeTimeBreakdown: data?.crashFreeTimeBreakdown ?? [],
     });
   }
 }

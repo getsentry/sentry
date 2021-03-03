@@ -1,11 +1,9 @@
-from __future__ import absolute_import, print_function
-
 __all__ = ("Notifier",)
 
 from sentry import ratelimits
 
 
-class Notifier(object):
+class Notifier:
     def notify(self, notification, **kwargs):
         """
         Send a notification.

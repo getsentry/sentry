@@ -6,7 +6,6 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {Project} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
-import withProject from 'app/utils/withProject';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
@@ -20,7 +19,7 @@ type Props = {
 
 class ProjectFilters extends React.Component<Props> {
   render() {
-    const {project, params} = this.props;
+    const {project, params, location} = this.props;
     const {orgId, projectId, filterType} = params;
     if (!project) {
       return null;
@@ -61,7 +60,7 @@ class ProjectFilters extends React.Component<Props> {
           )}
 
           {filterType === 'discarded-groups' ? (
-            <GroupTombstones orgId={orgId} projectId={project.slug} />
+            <GroupTombstones orgId={orgId} projectId={project.slug} location={location} />
           ) : (
             <ProjectFiltersSettings
               project={project}
@@ -75,4 +74,4 @@ class ProjectFilters extends React.Component<Props> {
   }
 }
 
-export default withProject(ProjectFilters);
+export default ProjectFilters;

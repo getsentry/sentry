@@ -1,7 +1,6 @@
 import u2f from 'u2f-api';
 
-import {Props as AlertProps} from 'app/components/alert';
-import {SpanEntry, TraceContextType} from 'app/components/events/interfaces/spans/types';
+import Alert from 'app/components/alert';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
@@ -15,6 +14,8 @@ import {
 } from 'app/views/organizationIntegrations/constants';
 import {Field} from 'app/views/settings/components/forms/type';
 
+import {DynamicSamplingRules} from './dynamicSampling';
+import {Event} from './event';
 import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
 
 declare global {
@@ -152,6 +153,7 @@ export type LightWeightOrganization = OrganizationSummary & {
   attachmentsRole: string;
   debugFilesRole: string;
   eventsMemberAdmin: boolean;
+  alertsMemberWrite: boolean;
   sensitiveFields: string[];
   openMembership: boolean;
   quota: {
@@ -188,6 +190,15 @@ export type Organization = LightWeightOrganization & {
   teams: Team[];
 };
 
+/**
+ * Minimal organization shape used on shared issue views.
+ */
+export type SharedViewOrganization = {
+  slug: string;
+  id?: string;
+  features?: Array<string>;
+};
+
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
   slug: string;
@@ -208,6 +219,7 @@ export type Project = {
   organization: Organization;
 
   isBookmarked: boolean;
+  isInternal: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
   firstEvent: 'string' | null;
@@ -218,20 +230,23 @@ export type Project = {
   environments: string[];
 
   // XXX: These are part of the DetailedProject serializer
+  dynamicSampling: {
+    rules: DynamicSamplingRules;
+  } | null;
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
+  groupingEnhancementsBase: string;
+  groupingConfig: string;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
   latestRelease?: Release;
-  groupingEnhancementsBase: string;
-  groupingConfig: string;
   options?: Record<string, boolean | string>;
 } & AvatarProject;
 
-export type MinimalProject = Pick<Project, 'id' | 'slug'>;
+export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
 
 // Response from project_keys endpoints.
 export type ProjectKey = {
@@ -273,6 +288,7 @@ export type Health = {
   sessionsCrashed: number;
   sessionsErrored: number;
   adoption: number | null;
+  sessions_adoption: number | null;
   hasHealthData: boolean;
   durationP50: number | null;
   durationP90: number | null;
@@ -321,51 +337,6 @@ export type EventAttachment = {
 
 export type EntryData = Record<string, any | Array<any>>;
 
-export type Entry = {
-  data: EntryData;
-  type: string;
-};
-
-export type EventTag = {key: string; value: string};
-
-export type EventUser = {
-  username?: string;
-  name?: string;
-  ip_address?: string;
-  email?: string;
-  id?: string;
-};
-
-type RuntimeContext = {
-  type: 'runtime';
-  version: number;
-  build?: string;
-  name?: string;
-};
-
-type DeviceContext = {
-  arch: string;
-  family: string;
-  model: string;
-  type: string;
-};
-
-type OSContext = {
-  kernel_version: string;
-  version: string;
-  type: string;
-  build: string;
-  name: string;
-};
-
-type EventContexts = {
-  runtime?: RuntimeContext;
-  trace?: TraceContextType;
-  device?: DeviceContext;
-  os?: OSContext;
-  client_os?: OSContext;
-};
-
 type EnableIntegrationSuggestion = {
   type: 'enableIntegration';
   integrationName: string;
@@ -388,100 +359,17 @@ type ChangeSdkSuggestion = {
   sdkUrl?: string | null;
 };
 
-type SDKUpdatesSuggestion =
+export type SDKUpdatesSuggestion =
   | EnableIntegrationSuggestion
   | UpdateSdkSuggestion
   | ChangeSdkSuggestion;
 
-type Measurement = {value: number};
-
-type SentryEventBase = {
-  id: string;
-  eventID: string;
-  groupID?: string;
-  title: string;
-  culprit: string;
-  dateCreated: string;
-  dist: string | null;
-  metadata: EventMetadata;
-  contexts: EventContexts;
-  context?: {[key: string]: any};
-  device?: {[key: string]: any};
-  packages?: {[key: string]: string};
-  user: EventUser;
-  message: string;
-  platform?: PlatformKey;
-  dateReceived?: string;
-  endTimestamp?: number;
-  entries: Entry[];
-  errors: any[];
-
-  previousEventID?: string;
-  nextEventID?: string;
-  projectSlug: string;
-  projectID: string;
-
-  tags: EventTag[];
-
-  size: number;
-
-  location: string;
-
-  oldestEventID: string | null;
-  latestEventID: string | null;
-
-  groupingConfig: {
-    id: string;
-    enhancements: string;
-  };
-
-  userReport?: any;
-
-  crashFile: EventAttachment | null;
-
-  sdk?: {
-    name: string;
-    version: string;
-  };
-
-  sdkUpdates?: Array<SDKUpdatesSuggestion>;
-
-  measurements?: Record<string, Measurement>;
-
-  release?: Release;
+export type ProjectSdkUpdates = {
+  projectId: string;
+  sdkName: string;
+  sdkVersion: string;
+  suggestions: SDKUpdatesSuggestion[];
 };
-
-export type SentryTransactionEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
-  entries: SpanEntry[];
-  startTimestamp: number;
-  endTimestamp: number;
-  type: 'transaction';
-  title?: string;
-  contexts?: {
-    trace?: TraceContextType;
-  };
-};
-
-export type ExceptionEntry = {
-  type: 'exception';
-  data: ExceptionType;
-};
-
-export type StacktraceEntry = {
-  type: 'stacktrace';
-  data: StacktraceType;
-};
-
-export type SentryErrorEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
-  entries: ExceptionEntry[] | StacktraceEntry[];
-  type: 'error';
-};
-
-// This type is incomplete
-export type Event =
-  | SentryErrorEvent
-  | SentryTransactionEvent
-  | ({type: string} & SentryEventBase);
 
 export type EventsStatsData = [number, {count: number}[]][];
 
@@ -543,6 +431,7 @@ export type User = Omit<AvatarUser, 'options'> & {
   authenticators: UserEnrolledAuthenticator[];
   dateJoined: string;
   options: {
+    theme: 'system' | 'light' | 'dark';
     timezone: string;
     stacktraceOrder: number;
     language: string;
@@ -553,6 +442,14 @@ export type User = Omit<AvatarUser, 'options'> & {
   hasPasswordAuth: boolean;
   permissions: Set<string>;
   experiments: Partial<UserExperiments>;
+};
+
+// XXX(epurkhiser): we should understand how this is diff from User['emails]
+// above
+export type UserEmail = {
+  email: string;
+  isPrimary: boolean;
+  isVerified: boolean;
 };
 
 export type CommitAuthor = {
@@ -584,6 +481,7 @@ export type SavedSearch = {
   type: SavedSearchType;
   name: string;
   query: string;
+  sort: string;
   isGlobal: boolean;
   isPinned: boolean;
   isOrgCustom: boolean;
@@ -666,10 +564,11 @@ export type GlobalSelection = {
   };
 };
 
-type AuthenticatorDevice = {
+export type AuthenticatorDevice = {
   key_handle: string;
   authId: string;
   name: string;
+  timestamp?: string;
 };
 
 export type Authenticator = {
@@ -677,61 +576,59 @@ export type Authenticator = {
    * String used to display on button for user as CTA to enroll
    */
   enrollButton: string;
-
   /**
    * Display name for the authenticator
    */
   name: string;
-
   /**
    * Allows multiple enrollments to authenticator
    */
   allowMultiEnrollment: boolean;
-
   /**
    * String to display on button for user to remove authenticator
    */
   removeButton: string | null;
-
   canValidateOtp: boolean;
-
   /**
    * Is user enrolled to this authenticator
    */
   isEnrolled: boolean;
-
   /**
    * String to display on button for additional information about authenticator
    */
   configureButton: string;
-
-  /**
-   * Type of authenticator
-   */
-  id: string;
-
   /**
    * Is this used as a backup interface?
    */
   isBackupInterface: boolean;
-
   /**
    * Description of the authenticator
    */
   description: string;
-
   createdAt: string | null;
-
   lastUsedAt: string | null;
-
   codes: string[];
-
   devices: AuthenticatorDevice[];
-
   phone?: string;
-
-  challenge?: ChallengeData;
-} & Partial<EnrolledAuthenticator>;
+  secret?: string;
+  /**
+   * The form configuration for the authenticator is present during enrollment
+   */
+  form?: Field[];
+} & Partial<EnrolledAuthenticator> &
+  (
+    | {
+        id: 'sms';
+      }
+    | {
+        id: 'totp';
+        qrcode: string;
+      }
+    | {
+        id: 'u2f';
+        challenge: ChallengeData;
+      }
+  );
 
 export type ChallengeData = {
   authenticateRequests: u2f.SignRequest;
@@ -787,6 +684,7 @@ export interface Config {
   distPrefix: string;
   apmSampling: number;
   dsn_requests: string;
+  demoMode: boolean;
 }
 
 export type EventOrGroupType =
@@ -798,16 +696,18 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
+export type InboxReasonDetails = {
+  until?: string | null;
+  count?: number | null;
+  window?: number | null;
+  user_count?: number | null;
+  user_window?: number | null;
+};
+
 export type InboxDetails = {
+  reason_details: InboxReasonDetails;
   date_added?: string;
   reason?: number;
-  reason_details?: {
-    until?: string;
-    count?: number;
-    window?: number;
-    user_count?: number;
-    user_window?: number;
-  };
 };
 
 export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule';
@@ -819,6 +719,206 @@ export type SuggestedOwner = {
   date_added: string;
 };
 
+export enum GroupActivityType {
+  NOTE = 'note',
+  SET_RESOLVED = 'set_resolved',
+  SET_RESOLVED_BY_AGE = 'set_resolved_by_age',
+  SET_RESOLVED_IN_RELEASE = 'set_resolved_in_release',
+  SET_RESOLVED_IN_COMMIT = 'set_resolved_in_commit',
+  SET_RESOLVED_IN_PULL_REQUEST = 'set_resolved_in_pull_request',
+  SET_UNRESOLVED = 'set_unresolved',
+  SET_IGNORED = 'set_ignored',
+  SET_PUBLIC = 'set_public',
+  SET_PRIVATE = 'set_private',
+  SET_REGRESSION = 'set_regression',
+  CREATE_ISSUE = 'create_issue',
+  UNMERGE_SOURCE = 'unmerge_source',
+  UNMERGE_DESTINATION = 'unmerge_destination',
+  FIRST_SEEN = 'first_seen',
+  ASSIGNED = 'assigned',
+  UNASSIGNED = 'unassigned',
+  MERGE = 'merge',
+  REPROCESS = 'reprocess',
+  MARK_REVIEWED = 'mark_reviewed',
+}
+
+type GroupActivityBase = {
+  dateCreated: string;
+  id: string;
+  project: Project;
+  user?: null | User;
+  assignee?: string;
+  issue?: Group;
+};
+
+type GroupActivityNote = GroupActivityBase & {
+  type: GroupActivityType.NOTE;
+  data: {
+    text: string;
+  };
+};
+
+type GroupActivitySetResolved = GroupActivityBase & {
+  type: GroupActivityType.SET_RESOLVED;
+  data: Record<string, any>;
+};
+
+type GroupActivitySetUnresolved = GroupActivityBase & {
+  type: GroupActivityType.SET_UNRESOLVED;
+  data: Record<string, any>;
+};
+
+type GroupActivitySetPublic = GroupActivityBase & {
+  type: GroupActivityType.SET_PUBLIC;
+  data: Record<string, any>;
+};
+
+type GroupActivitySetPrivate = GroupActivityBase & {
+  type: GroupActivityType.SET_PRIVATE;
+  data: Record<string, any>;
+};
+
+type GroupActivitySetByAge = GroupActivityBase & {
+  type: GroupActivityType.SET_RESOLVED_BY_AGE;
+  data: Record<string, any>;
+};
+
+type GroupActivityUnassigned = GroupActivityBase & {
+  type: GroupActivityType.UNASSIGNED;
+  data: Record<string, any>;
+};
+
+type GroupActivityFirstSeen = GroupActivityBase & {
+  type: GroupActivityType.FIRST_SEEN;
+  data: Record<string, any>;
+};
+
+type GroupActivityMarkReviewed = GroupActivityBase & {
+  type: GroupActivityType.MARK_REVIEWED;
+  data: Record<string, any>;
+};
+
+type GroupActivityRegression = GroupActivityBase & {
+  type: GroupActivityType.SET_REGRESSION;
+  data: {
+    version?: string;
+  };
+};
+
+type GroupActivitySetByResolvedInRelease = GroupActivityBase & {
+  type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
+  data: {
+    version?: string;
+  };
+};
+
+type GroupActivitySetByResolvedInCommit = GroupActivityBase & {
+  type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
+  data: {
+    commit: Commit;
+  };
+};
+
+type GroupActivitySetByResolvedInPullRequest = GroupActivityBase & {
+  type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST;
+  data: {
+    pullRequest: PullRequest;
+  };
+};
+
+export type GroupActivitySetIgnored = GroupActivityBase & {
+  type: GroupActivityType.SET_IGNORED;
+  data: {
+    ignoreDuration?: number;
+    ignoreUntil?: string;
+    ignoreUserCount?: number;
+    ignoreUserWindow?: number;
+    ignoreWindow?: number;
+    ignoreCount?: number;
+  };
+};
+
+export type GroupActivityReprocess = GroupActivityBase & {
+  type: GroupActivityType.REPROCESS;
+  data: {
+    eventCount: number;
+    newGroupId: number;
+    oldGroupId: number;
+  };
+};
+
+type GroupActivityUnmergeDestination = GroupActivityBase & {
+  type: GroupActivityType.UNMERGE_DESTINATION;
+  data: {
+    fingerprints: Array<string>;
+    source?: {
+      id: string;
+      shortId: string;
+    };
+  };
+};
+
+type GroupActivityUnmergeSource = GroupActivityBase & {
+  type: GroupActivityType.UNMERGE_SOURCE;
+  data: {
+    fingerprints: Array<string>;
+    destination?: {
+      id: string;
+      shortId: string;
+    };
+  };
+};
+
+type GroupActivityMerge = GroupActivityBase & {
+  type: GroupActivityType.MERGE;
+  data: {
+    issues: Array<any>;
+  };
+};
+
+export type GroupActivityAssigned = GroupActivityBase & {
+  type: GroupActivityType.ASSIGNED;
+  data: {
+    assignee: string;
+    assigneeType: string;
+    user: Team | User;
+  };
+};
+
+export type GroupActivityCreateIssue = GroupActivityBase & {
+  type: GroupActivityType.CREATE_ISSUE;
+  data: {
+    provider: string;
+    location: string;
+    title: string;
+  };
+};
+
+export type GroupActivity =
+  | GroupActivityNote
+  | GroupActivitySetResolved
+  | GroupActivitySetUnresolved
+  | GroupActivitySetIgnored
+  | GroupActivitySetByAge
+  | GroupActivitySetByResolvedInRelease
+  | GroupActivitySetByResolvedInRelease
+  | GroupActivitySetByResolvedInCommit
+  | GroupActivitySetByResolvedInPullRequest
+  | GroupActivityFirstSeen
+  | GroupActivityMerge
+  | GroupActivityReprocess
+  | GroupActivityUnassigned
+  | GroupActivityMarkReviewed
+  | GroupActivityUnmergeDestination
+  | GroupActivitySetPublic
+  | GroupActivitySetPrivate
+  | GroupActivityRegression
+  | GroupActivityUnmergeSource
+  | GroupActivityAssigned
+  | GroupActivityCreateIssue;
+
+export type Activity = GroupActivity;
+
 type GroupFiltered = {
   count: string;
   stats: Record<string, TimeseriesValue[]>;
@@ -827,37 +927,45 @@ type GroupFiltered = {
   userCount: number;
 };
 
-type GroupActivityData = {
-  eventCount?: number;
-  newGroupId?: number;
-  oldGroupId?: number;
-  text?: string;
+export type GroupStats = GroupFiltered & {
+  lifetime?: GroupFiltered;
+  filtered: GroupFiltered | null;
+  id: string;
 };
 
-type GroupActivity = {
-  data: GroupActivityData;
-  dateCreated: string;
-  id: string;
-  type: string;
-  user?: null | User;
+type BaseGroupStatusReprocessing = {
+  status: 'reprocessing';
+  statusDetails: {
+    pendingEvents: number;
+    info: {
+      dateCreated: string;
+      totalEvents: number;
+    };
+  };
+};
+
+type BaseGroupStatusResolution = {
+  status: ResolutionStatus;
+  statusDetails: ResolutionStatusDetails;
 };
 
 // TODO(ts): incomplete
-export type Group = GroupFiltered & {
+export type BaseGroup = {
   id: string;
   latestEvent: Event;
   activity: GroupActivity[];
   annotations: string[];
-  assignedTo: User;
+  assignedTo: Actor;
   culprit: string;
-  currentRelease: any; // TODO(ts)
-  firstRelease: any; // TODO(ts)
+  firstRelease: Release;
+  firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
   isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
-  lastRelease: any; // TODO(ts)
+  lastRelease: Release;
+  lastSeen: string;
   level: Level;
   logger: string;
   metadata: EventMetadata;
@@ -872,18 +980,18 @@ export type Group = GroupFiltered & {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  status: string;
-  statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  filtered: GroupFiltered | null;
-  lifetime?: any; // TODO(ts)
-  inbox?: InboxDetails | null;
+  inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
 };
+
+export type GroupReprocessing = BaseGroup & GroupStats & BaseGroupStatusReprocessing;
+export type GroupResolution = BaseGroup & GroupStats & BaseGroupStatusResolution;
+export type Group = GroupResolution | GroupReprocessing;
 
 export type GroupTombstone = {
   id: string;
@@ -952,6 +1060,11 @@ export type AccessRequest = {
   id: string;
   team: Team;
   member: Member;
+  requester?: Partial<{
+    name: string;
+    username: string;
+    email: string;
+  }>;
 };
 
 export type Repository = {
@@ -973,23 +1086,32 @@ export enum RepositoryStatus {
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
 
-export type RepositoryProjectPathConfig = {
+type BaseRepositoryProjectPathConfig = {
   id: string;
   projectId: string;
   projectSlug: string;
   repoId: string;
   repoName: string;
-  integrationId: string;
-  provider: BaseIntegrationProvider;
   stackRoot: string;
   sourceRoot: string;
   defaultBranch?: string;
+};
+
+export type RepositoryProjectPathConfig = BaseRepositoryProjectPathConfig & {
+  integrationId: string | null;
+  provider: BaseIntegrationProvider | null;
+};
+
+export type RepositoryProjectPathConfigWithIntegration = BaseRepositoryProjectPathConfig & {
+  integrationId: string;
+  provider: BaseIntegrationProvider;
 };
 
 export type PullRequest = {
   id: string;
   title: string;
   externalUrl: string;
+  repository: Repository;
 };
 
 type IntegrationDialog = {
@@ -998,8 +1120,7 @@ type IntegrationDialog = {
 };
 
 type IntegrationAspects = {
-  alerts?: Array<AlertProps & {text: string}>;
-  reauthentication_alert?: {alertText: string};
+  alerts?: Array<React.ComponentProps<typeof Alert> & {text: string}>;
   disable_dialog?: IntegrationDialog;
   removal_dialog?: IntegrationDialog;
   externalInstall?: {
@@ -1105,16 +1226,6 @@ export type Integration = {
   accountType: string;
   status: ObjectStatus;
   provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
-  //TODO(Steve): move configData to IntegrationWithConfig when we no longer check
-  //for workspace apps
-  configData: object & {
-    //installationType is only for Slack migration and can be removed after migrations are done
-    installationType?:
-      | 'workspace_app'
-      | 'classic_bot'
-      | 'born_as_bot'
-      | 'migrated_to_bot';
-  };
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
@@ -1128,6 +1239,7 @@ export type Integration = {
 // we include the configOrganization when we need it
 export type IntegrationWithConfig = Integration & {
   configOrganization: Field[];
+  configData: object | null;
 };
 
 export type IntegrationExternalIssue = {
@@ -1272,6 +1384,17 @@ type BaseRelease = {
   status: ReleaseStatus;
 };
 
+export type CurrentRelease = {
+  environment: string;
+  firstSeen: string;
+  lastSeen: string;
+  release: Release;
+  stats: {
+    // 24h/30d is hardcoded in GroupReleaseWithStatsSerializer
+    '24h': TimeseriesValue[];
+    '30d': TimeseriesValue[];
+  };
+};
 export enum ReleaseStatus {
   Active = 'open',
   Archived = 'archived',
@@ -1320,9 +1443,9 @@ export type Commit = {
   id: string;
   message: string | null;
   dateCreated: string;
+  releases: BaseRelease[];
   repository?: Repository;
   author?: User;
-  releases: BaseRelease[];
 };
 
 export type Committer = {
@@ -1353,7 +1476,7 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear';
+    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear' | 'zepel';
     name: string;
   };
 };
@@ -1371,6 +1494,7 @@ export type NewQuery = {
   fields: Readonly<string[]>;
   widths?: Readonly<string[]>;
   orderby?: string;
+  expired?: boolean;
 
   // GlobalSelectionHeader
   projects: Readonly<number[]>;
@@ -1396,12 +1520,23 @@ export type SavedQueryState = {
   isLoading: boolean;
 };
 
+/**
+ * The option format used by react-select based components
+ */
 export type SelectValue<T> = {
-  label: string;
+  label: string | number | React.ReactElement;
   value: T;
   disabled?: boolean;
   tooltip?: string;
 };
+
+/**
+ * The 'other' option format used by checkboxes, radios and more.
+ */
+export type Choices = [
+  value: string | number,
+  label: string | number | React.ReactElement
+][];
 
 /**
  * The issue config form fields we get are basically the form fields we use in
@@ -1410,8 +1545,8 @@ export type SelectValue<T> = {
  */
 export type IssueConfigField = Field & {
   name: string;
-  default?: string;
-  choices?: [number | string, number | string][];
+  default?: string | number;
+  choices?: Choices;
   url?: string;
   multiple?: boolean;
 };
@@ -1449,7 +1584,6 @@ export type OnboardingTaskDescriptor = {
   task: OnboardingTaskKey;
   title: string;
   description: string;
-  detailedDescription?: string;
   /**
    * Can this task be skipped?
    */
@@ -1503,6 +1637,11 @@ export type Tag = {
   totalValues?: number;
   predefined?: boolean;
   isInput?: boolean;
+  /**
+   * How many values should be suggested in autocomplete.
+   * Overrides SmartSearchBar's `maxSearchItems` prop.
+   */
+  maxSuggestedValues?: number;
 };
 
 export type TagCollection = {[key: string]: Tag};
@@ -1528,6 +1667,8 @@ type Topvalue = {
   lastSeen: string;
   name: string;
   value: string;
+  // Might not actually exist.
+  query?: string;
 };
 
 export type TagWithTopValues = {
@@ -1577,6 +1718,7 @@ export type ResolutionStatusDetails = {
   inRelease?: string;
   inNextRelease?: boolean;
 };
+
 export type UpdateResolutionStatus = {
   status: ResolutionStatus;
   statusDetails?: ResolutionStatusDetails;
@@ -1617,16 +1759,6 @@ export type CrashFreeTimeBreakdown = {
   crashFreeUsers: number | null;
   totalUsers: number;
 }[];
-
-export type Activity = {
-  data: any;
-  dateCreated: string;
-  type: string;
-  id: string;
-  issue?: Group;
-  project: Project;
-  user?: User;
-};
 
 export type PlatformIntegration = {
   id: string;
@@ -1675,7 +1807,9 @@ export type EventGroupVariant = {
   hashMismatch: boolean;
   key: EventGroupVariantKey;
   type: EventGroupVariantType;
-  values?: string;
+  values?: Array<string>;
+  client_values?: Array<string>;
+  matched_rule?: string;
   component?: EventGroupComponent;
   config?: EventGroupingConfig;
 };
@@ -1771,7 +1905,7 @@ export type ExceptionValue = {
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
-  frames: Frame[];
+  frames?: Frame[];
 };
 
 export type ExceptionType = {
@@ -1801,10 +1935,50 @@ export type InternetProtocol = {
   regionCode: string | null;
 };
 
+/**
+ * XXX(ts): This actually all comes from getsentry. We should definitely
+ * refactor this into a more proper 'hook' mechanism in the future
+ */
 export type AuthConfig = {
   canRegister: boolean;
   serverHostname: string;
   hasNewsletter: boolean;
   githubLoginLink: string;
   vstsLoginLink: string;
+  googleLoginLink: string;
+};
+
+export type AuthProvider = {
+  key: string;
+  name: string;
+  requiredFeature: string;
+  disables2FA: boolean;
+};
+
+export type PromptActivity = {
+  snoozedTime?: number;
+  dismissedTime?: number;
+};
+
+export type ServerlessFunction = {
+  name: string;
+  runtime: string;
+  version: number;
+  outOfDate: boolean;
+  enabled: boolean;
+};
+
+/**
+ * File storage service options for debug files
+ */
+export type DebugFileSource = 'http' | 's3' | 'gcs';
+
+export type SessionApiResponse = {
+  query: string;
+  intervals: string[];
+  groups: {
+    by: Record<string, string>;
+    totals: Record<string, number>;
+    series: Record<string, number[]>;
+  }[];
 };

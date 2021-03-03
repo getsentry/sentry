@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     name: plugins test
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
@@ -21,20 +21,25 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
+      - name: Set python version output
+        id: python-version
+        run: |
+          echo "::set-output name=python-version::$(cat .python-version)"
+
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.plugins == 'true'
         with:
-          python-version: 2.7.17
+          python-version: ${{ steps.python-version.outputs.python-version }}
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
         id: pip
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.plugins == 'true'
 
       - name: pip cache
         uses: actions/cache@v2
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.plugins == 'true'
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
@@ -44,12 +49,11 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.plugins == 'true'
         with:
           snuba: true
-          python: 2
 
       - name: Run test
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.plugins == 'true'
         run: |
           make test-plugins

@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import unittest
 import pickle
 
-import six
 
 from django import forms
 from django.db import connection, models
@@ -19,7 +16,7 @@ class BitFieldTestModel(models.Model):
         app_label = "sentry"
 
     flags = BitField(
-        flags=(u"FLAG_0", u"FLAG_1", u"FLAG_2", u"FLAG_3"), default=3, db_column=u"another_name"
+        flags=("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"), default=3, db_column="another_name"
     )
 
 
@@ -176,7 +173,7 @@ class BitFieldTest(TestCase):
         flags_field = BitFieldTestModel._meta.get_field("flags")
         flags_db_column = flags_field.db_column or flags_field.name
         cursor.execute(
-            "INSERT INTO %s (%s) VALUES (-1)" % (BitFieldTestModel._meta.db_table, flags_db_column)
+            f"INSERT INTO {BitFieldTestModel._meta.db_table} ({flags_db_column}) VALUES (-1)"
         )
         # There should only be the one row we inserted through the cursor.
         instance = BitFieldTestModel.objects.get(flags=-1)
@@ -227,7 +224,7 @@ class BitFieldTest(TestCase):
 
         BitFieldTestModel.objects.filter(pk=instance.pk).update(
             flags=bitor(
-                F("flags"), ((~BitFieldTestModel.flags.FLAG_0 | BitFieldTestModel.flags.FLAG_3))
+                F("flags"), (~BitFieldTestModel.flags.FLAG_0 | BitFieldTestModel.flags.FLAG_3)
             )
         )
         instance = BitFieldTestModel.objects.get(pk=instance.pk)
@@ -302,7 +299,7 @@ class BitFieldTest(TestCase):
         MAX_COUNT = int(math.floor(math.log(BigIntegerField.MAX_BIGINT, 2)))
 
         # Big flags list
-        flags = [u"f" + six.text_type(i) for i in range(100)]
+        flags = ["f" + str(i) for i in range(100)]
 
         try:
             BitField(flags=flags[:MAX_COUNT])
@@ -337,7 +334,7 @@ class BitFieldTest(TestCase):
     def test_defaults_as_key_names(self):
         class TestModel(models.Model):
             flags = BitField(
-                flags=(u"FLAG_0", u"FLAG_1", u"FLAG_2", u"FLAG_3"), default=(u"FLAG_1", u"FLAG_2")
+                flags=("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"), default=("FLAG_1", "FLAG_2")
             )
 
         field = TestModel._meta.get_field("flags")

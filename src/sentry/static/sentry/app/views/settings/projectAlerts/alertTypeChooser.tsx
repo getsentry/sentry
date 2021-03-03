@@ -71,7 +71,7 @@ const TypeChooser = ({onChange, organization, selected}: Props) => {
             hasFeature ? (
               <React.Fragment>
                 <p>
-                  {tct(`Notifies you when a [tooltip:metric] exceeds a threshold.`, {
+                  {tct(`Notifies you when a [tooltip:metric] crosses a threshold.`, {
                     tooltip: <MetricsTooltip />,
                   })}
                 </p>
@@ -94,7 +94,7 @@ const TypeChooser = ({onChange, organization, selected}: Props) => {
                 <p>
                   {tct(
                     `Notifies you when a [tooltip:metric] like frequency of events or users affected in
-                   the project exceeds a threshold.`,
+                   the project crosses a threshold.`,
                     {tooltip: <MetricsTooltip />}
                   )}
                 </p>

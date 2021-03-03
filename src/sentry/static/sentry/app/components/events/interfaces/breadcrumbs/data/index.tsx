@@ -1,8 +1,7 @@
 import React from 'react';
 
-import {Event} from 'app/types';
-
-import {Breadcrumb, BreadcrumbType} from '../types';
+import {Breadcrumb, BreadcrumbType} from 'app/types/breadcrumbs';
+import {Event} from 'app/types/event';
 
 import Default from './default';
 import Exception from './exception';

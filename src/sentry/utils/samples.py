@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import os.path
 import random
 import pytz
-import six
 from uuid import uuid4
 
 from datetime import datetime, timedelta
@@ -33,10 +30,10 @@ def random_ip():
 
     return ".".join(
         (
-            six.text_type(first),
-            six.text_type(random.randrange(1, 256)),
-            six.text_type(random.randrange(1, 256)),
-            six.text_type(random.randrange(1, 256)),
+            str(first),
+            str(random.randrange(1, 256)),
+            str(random.randrange(1, 256)),
+            str(random.randrange(1, 256)),
         )
     )
 
@@ -89,7 +86,7 @@ def name_for_username(username):
 def generate_user(username=None, email=None, ip_address=None, id=None):
     if username is None and email is None:
         username = random_username()
-        email = u"{}@example.com".format(username)
+        email = f"{username}@example.com"
     return UserInterface.to_python(
         {
             "id": id,
@@ -109,7 +106,8 @@ def load_data(
     timestamp=None,
     start_timestamp=None,
     trace=None,
-    span=None,
+    span_id=None,
+    spans=None,
 ):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
@@ -127,7 +125,7 @@ def load_data(
         language = platform_data["language"]
 
     samples_root = os.path.join(DATA_ROOT, "samples")
-    all_samples = set(f for f in os.listdir(samples_root) if f.endswith(".json"))
+    all_samples = {f for f in os.listdir(samples_root) if f.endswith(".json")}
 
     for platform in (platform, language, default):
         if not platform:
@@ -135,7 +133,7 @@ def load_data(
 
         # Verify by checking if the file is within our folder explicitly
         # avoids being able to have a name that invokes traversing directories.
-        json_path = u"{}.json".format(platform)
+        json_path = f"{platform}.json"
 
         if json_path not in all_samples:
             continue
@@ -176,24 +174,30 @@ def load_data(
 
         if trace is None:
             trace = uuid4().hex
-        if span is None:
-            span = uuid4().hex[:16]
+        if span_id is None:
+            span_id = uuid4().hex[:16]
 
         for tag in data["tags"]:
             if tag[0] == "trace":
                 tag[1] = trace
-            elif tag[0] == "trace.ctx":
-                tag[1] = trace + "-" + span
             elif tag[0] == "trace.span":
-                tag[1] = span
+                tag[1] = span_id
         data["contexts"]["trace"]["trace_id"] = trace
-        data["contexts"]["trace"]["span_id"] = span
+        data["contexts"]["trace"]["span_id"] = span_id
+        if spans:
+            data["spans"] = spans
 
         for span in data.get("spans", []):
             # Use data to generate span timestamps consistently and based
             # on event timestamp
             duration = span.get("data", {}).get("duration", 10.0)
             offset = span.get("data", {}).get("offset", 0)
+
+            # Span doesn't have a parent, make it the transaction
+            if span.get("parent_span_id") is None:
+                span["parent_span_id"] = span_id
+            if span.get("span_id") is None:
+                span["span_id"] = uuid4().hex[:16]
 
             span_start = data["start_timestamp"] + offset
             span["trace_id"] = trace
@@ -206,7 +210,7 @@ def load_data(
             measurement_markers = {}
             for key, entry in measurements.items():
                 if key in ["fp", "fcp", "lcp", "fid"]:
-                    measurement_markers["mark.{}".format(key)] = {
+                    measurement_markers[f"mark.{key}"] = {
                         "value": round(data["start_timestamp"] + entry["value"] / 1000, 3)
                     }
             measurements.update(measurement_markers)
@@ -214,7 +218,7 @@ def load_data(
     data["platform"] = platform
     # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
     if "message" not in data:
-        data["message"] = "This is an example %s exception" % (sample_name or platform,)
+        data["message"] = f"This is an example {sample_name or platform} exception"
     data.setdefault(
         "user",
         generate_user(ip_address="127.0.0.1", username="sentry", id=1, email="sentry@example.com"),
@@ -261,15 +265,28 @@ def create_sample_event(
     timestamp=None,
     start_timestamp=None,
     trace=None,
-    **kwargs
+    span_id=None,
+    spans=None,
+    **kwargs,
 ):
     if not platform and not default:
         return
 
-    data = load_data(platform, default, sample_name, timestamp, start_timestamp, trace)
+    data = load_data(
+        platform,
+        default,
+        sample_name,
+        timestamp,
+        start_timestamp,
+        trace,
+        span_id,
+        spans,
+    )
 
     if not data:
         return
+    if "parent_span_id" in kwargs:
+        data["contexts"]["trace"]["parent_span_id"] = kwargs.pop("parent_span_id")
 
     data.update(kwargs)
 

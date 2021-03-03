@@ -14,20 +14,24 @@ import TogglableAddress, {
   AddressToggleIcon,
 } from 'app/components/events/interfaces/togglableAddress';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
 import StrictClick from 'app/components/strictClick';
 import {IconChevron, IconRefresh} from 'app/icons';
 import {t} from 'app/locale';
 import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Event, Frame, PlatformType, SentryAppComponent} from 'app/types';
+import {Frame, Organization, PlatformType, SentryAppComponent} from 'app/types';
+import {Event} from 'app/types/event';
 import {defined, objectIsEmpty} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import withOrganization from 'app/utils/withOrganization';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 
 import Context from './context';
 import DefaultTitle from './defaultTitle';
 import Symbol, {FunctionNameToggleIcon} from './symbol';
-import {getPlatform} from './utils';
+import {getPlatform, isDotnet} from './utils';
 
 type Props = {
   data: Frame;
@@ -49,7 +53,12 @@ type Props = {
   isFrameAfterLastNonApp?: boolean;
   includeSystemFrames?: boolean;
   isExpanded?: boolean;
-  hideStacktraceLink?: boolean;
+  isFirst?: boolean;
+  organization?: Organization;
+  /**
+   * Is the stack trace being previewed in a hovercard?
+   */
+  isHoverPreviewed?: boolean;
 };
 
 type State = {
@@ -72,7 +81,7 @@ export class Line extends React.Component<Props, State> {
   static defaultProps = {
     isExpanded: false,
     emptySourceNotation: false,
-    hideStacktraceLink: false,
+    isHoverPreviewed: false,
   };
 
   // isExpanded can be initialized to true via parent component;
@@ -84,6 +93,16 @@ export class Line extends React.Component<Props, State> {
 
   toggleContext = evt => {
     evt && evt.preventDefault();
+    const {isFirst, isHoverPreviewed, organization} = this.props;
+
+    if (isFirst && isHoverPreviewed) {
+      trackAnalyticsEvent({
+        eventKey: 'stacktrace.preview.first_frame_expand',
+        eventName: 'Stack Trace Preview: Expand First Frame',
+        organization_id: organization?.id ? parseInt(organization.id, 10) : undefined,
+        issue_id: this.props.event.groupID,
+      });
+    }
 
     this.setState({
       isExpanded: !this.state.isExpanded,
@@ -103,7 +122,7 @@ export class Line extends React.Component<Props, State> {
   }
 
   hasAssembly() {
-    return this.getPlatform() === 'csharp' && defined(this.props.data.package);
+    return isDotnet(this.getPlatform()) && defined(this.props.data.package);
   }
 
   isExpandable() {
@@ -131,10 +150,13 @@ export class Line extends React.Component<Props, State> {
   }
 
   shouldShowLinkToImage() {
-    const {symbolicatorStatus} = this.props.data;
+    const {isHoverPreviewed, data} = this.props;
+    const {symbolicatorStatus} = data;
 
     return (
-      !!symbolicatorStatus && symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE
+      !!symbolicatorStatus &&
+      symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
+      !isHoverPreviewed
     );
   }
 
@@ -159,13 +181,14 @@ export class Line extends React.Component<Props, State> {
 
   scrollToImage = event => {
     event.stopPropagation(); // to prevent collapsing if collapsable
+
     const {instructionAddr, addrMode} = this.props.data;
     if (instructionAddr) {
       DebugMetaActions.updateFilter(
         makeFilter(instructionAddr, addrMode, this.props.image)
       );
     }
-    scrollToElement('#packages');
+    scrollToElement('#images-loaded');
   };
 
   preventCollapse = evt => {
@@ -177,21 +200,21 @@ export class Line extends React.Component<Props, State> {
       return null;
     }
 
+    const {isHoverPreviewed} = this.props;
     const {isExpanded} = this.state;
 
     return (
       <ToggleContextButtonWrapper>
         <ToggleContextButton
           className="btn-toggle"
-          css={this.getPlatform() === 'csharp' && {display: 'block !important'}} // remove important once we get rid of css files
+          css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
           title={t('Toggle Context')}
+          tooltipProps={
+            isHoverPreviewed ? {delay: STACKTRACE_PREVIEW_TOOLTIP_DELAY} : undefined
+          }
           onClick={this.toggleContext}
         >
-          <StyledIconChevron
-            isExpanded={!!isExpanded}
-            direction={isExpanded ? 'up' : 'down'}
-            size="8px"
-          />
+          <IconChevron direction={isExpanded ? 'up' : 'down'} size="8px" />
         </ToggleContextButton>
       </ToggleContextButtonWrapper>
     );
@@ -251,6 +274,8 @@ export class Line extends React.Component<Props, State> {
   }
 
   renderDefaultLine() {
+    const {isHoverPreviewed} = this.props;
+
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine className="title">
@@ -260,6 +285,7 @@ export class Line extends React.Component<Props, State> {
               <DefaultTitle
                 frame={this.props.data}
                 platform={this.props.platform ?? 'other'}
+                isHoverPreviewed={isHoverPreviewed}
               />
             </div>
             {this.renderRepeats()}
@@ -281,6 +307,7 @@ export class Line extends React.Component<Props, State> {
       isFrameAfterLastNonApp,
       includeSystemFrames,
       showCompleteFunctionName,
+      isHoverPreviewed,
     } = this.props;
 
     const leadHint = this.renderLeadHint();
@@ -298,8 +325,14 @@ export class Line extends React.Component<Props, State> {
                 packagePath={data.package}
                 onClick={this.scrollToImage}
                 isClickable={this.shouldShowLinkToImage()}
+                isHoverPreviewed={isHoverPreviewed}
               >
-                <PackageStatus status={packageStatus} tooltip={t('Image loaded')} />
+                {!isHoverPreviewed && (
+                  <PackageStatus
+                    status={packageStatus}
+                    tooltip={t('Go to Images Loaded')}
+                  />
+                )}
               </PackageLink>
             </PackageInfo>
             {data.instructionAddr && (
@@ -311,12 +344,14 @@ export class Line extends React.Component<Props, State> {
                 isInlineFrame={!!this.isInlineFrame()}
                 onToggle={onAddressToggle}
                 relativeAddressMaxlength={maxLengthOfRelativeAddress}
+                isHoverPreviewed={isHoverPreviewed}
               />
             )}
             <Symbol
               frame={data}
               showCompleteFunctionName={!!showCompleteFunctionName}
               onFunctionNameToggle={onFunctionNameToggle}
+              isHoverPreviewed={isHoverPreviewed}
             />
           </NativeLineContent>
           {this.renderExpander()}
@@ -367,14 +402,16 @@ export class Line extends React.Component<Props, State> {
           hasAssembly={this.hasAssembly()}
           expandable={this.isExpandable()}
           isExpanded={this.state.isExpanded}
-          hideStacktraceLink={this.props.hideStacktraceLink}
+          isHoverPreviewed={this.props.isHoverPreviewed}
         />
       </StyledLi>
     );
   }
 }
 
-export default withSentryAppComponents(Line, {componentType: 'stacktrace-link'});
+export default withOrganization(
+  withSentryAppComponents(Line, {componentType: 'stacktrace-link'})
+);
 
 const RepeatedFrames = styled('div')`
   display: inline-block;
@@ -413,7 +450,7 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   flex: 1;
   grid-gap: ${space(0.5)};
   grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '167px' : '117px')} 1fr;
-  align-items: flex-start;
+  align-items: center;
   justify-content: flex-start;
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
@@ -422,7 +459,7 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
 
   @media (min-width: ${props => props.theme.breakpoints[2]}) and (max-width: ${props =>
       props.theme.breakpoints[3]}) {
-    grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '180px' : '130px')} 117px 1fr auto;
+    grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} 117px 1fr auto;
   }
 `;
 
@@ -439,13 +476,6 @@ const StyledIconRefresh = styled(IconRefresh)`
 const LeadHint = styled('div')<{width?: string}>`
   ${overflowEllipsis}
   max-width: ${p => (p.width ? p.width : '67px')}
-`;
-
-const StyledIconChevron = styled(IconChevron, {
-  shouldForwardProp: prop => prop !== 'isExpanded',
-})<{isExpanded: boolean}>`
-  transform: rotate(${p => (p.isExpanded ? '180deg' : '0deg')});
-  transition: 0.1s all;
 `;
 
 const ToggleContextButtonWrapper = styled('span')`

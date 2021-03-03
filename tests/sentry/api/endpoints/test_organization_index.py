@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.core.urlresolvers import reverse
 from exam import fixture
 
@@ -21,23 +17,23 @@ class OrganizationsListTest(APITestCase):
     def test_membership(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        response = self.client.get(u"{}".format(self.path))
+        response = self.client.get(f"{self.path}")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(org.id)
+        assert response.data[0]["id"] == str(org.id)
 
     def test_show_all_with_superuser(self):
         org = self.organization
         self.login_as(user=self.create_user(is_superuser=True), superuser=True)
-        response = self.client.get(u"{}?show=all".format(self.path))
+        response = self.client.get(f"{self.path}?show=all")
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert response.data[0]["id"] == six.text_type(org.id)
+        assert response.data[0]["id"] == str(org.id)
 
     def test_show_all_without_superuser(self):
         self.create_organization(owner=self.user)
         self.login_as(user=self.create_user(is_superuser=False))
-        response = self.client.get(u"{}?show=all".format(self.path))
+        response = self.client.get(f"{self.path}?show=all")
         assert response.status_code == 200
         assert len(response.data) == 0
 
@@ -53,27 +49,27 @@ class OrganizationsListTest(APITestCase):
         self.create_member(user=self.user, organization=org3, role="owner")
 
         self.login_as(user=self.user)
-        response = self.client.get(u"{}?owner=1".format(self.path))
+        response = self.client.get(f"{self.path}?owner=1")
         assert response.status_code == 200
         assert len(response.data) == 3
-        assert response.data[0]["organization"]["id"] == six.text_type(org.id)
+        assert response.data[0]["organization"]["id"] == str(org.id)
         assert response.data[0]["singleOwner"] is True
-        assert response.data[1]["organization"]["id"] == six.text_type(org2.id)
+        assert response.data[1]["organization"]["id"] == str(org2.id)
         assert response.data[1]["singleOwner"] is False
-        assert response.data[2]["organization"]["id"] == six.text_type(org3.id)
+        assert response.data[2]["organization"]["id"] == str(org3.id)
         assert response.data[2]["singleOwner"] is False
 
     def test_status_query(self):
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
         self.login_as(user=self.user)
-        response = self.client.get(u"{}?query=status:pending_deletion".format(self.path))
+        response = self.client.get(f"{self.path}?query=status:pending_deletion")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(org.id)
-        response = self.client.get(u"{}?query=status:deletion_in_progress".format(self.path))
+        assert response.data[0]["id"] == str(org.id)
+        response = self.client.get(f"{self.path}?query=status:deletion_in_progress")
         assert response.status_code == 200
         assert len(response.data) == 0
-        response = self.client.get(u"{}?query=status:invalid_status".format(self.path))
+        response = self.client.get(f"{self.path}?query=status:invalid_status")
         assert response.status_code == 200
         assert len(response.data) == 0
 
@@ -82,17 +78,17 @@ class OrganizationsListTest(APITestCase):
         self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 
-        response = self.client.get(u"{}?member=1".format(self.path))
+        response = self.client.get(f"{self.path}?member=1")
         assert response.status_code == 200
         assert len(response.data) == 2
 
         om = OrganizationMember.objects.get(organization=org, user=self.user)
-        response = self.client.get(u"{}?query=member_id:{}".format(self.path, om.id))
+        response = self.client.get(f"{self.path}?query=member_id:{om.id}")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(org.id)
+        assert response.data[0]["id"] == str(org.id)
 
-        response = self.client.get(u"{}?query=member_id:{}".format(self.path, om.id + 10))
+        response = self.client.get(f"{self.path}?query=member_id:{om.id + 10}")
         assert response.status_code == 200
         assert len(response.data) == 0
 

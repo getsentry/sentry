@@ -62,7 +62,6 @@ const getInputButtonStyles = (p: {
   collapseIntoEllipsisMenu?: number;
 }) => `
   color: ${p.isActive ? theme.blue300 : theme.gray300};
-  margin-left: ${space(0.5)};
   width: 18px;
 
   &,
@@ -120,6 +119,7 @@ type Props = {
 
   defaultQuery?: string;
   query?: string | null;
+  sort?: string;
   /**
    * Prepare query value before filtering dropdown items
    */
@@ -226,6 +226,7 @@ type State = {
    * The current search query in the input
    */
   query: string;
+  sort?: string;
   /**
    * The query in the input since we last updated our autocomplete list.
    */
@@ -603,7 +604,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         return [];
       }
       if (tag.key === 'release' && !values.includes('latest')) {
-        values.push('latest');
+        values.unshift('latest');
       }
 
       const noValueQuery = values.length === 0 && query.length > 0 ? query : undefined;
@@ -630,10 +631,11 @@ class SmartSearchBar extends React.Component<Props, State> {
   getPredefinedTagValues = (tag: Tag, query: string): SearchItem[] =>
     (tag.values ?? [])
       .filter(value => value.indexOf(query) > -1)
-      .map(value => ({
+      .map((value, i) => ({
         value,
         desc: value,
         type: 'tag-value',
+        ignoreMaxSearchItems: tag.maxSuggestedValues ? i < tag.maxSuggestedValues : false,
       }));
 
   /**
@@ -1052,6 +1054,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       useFormWrapper,
       onSidebarToggle,
       inlineLabel,
+      sort,
     } = this.props;
 
     const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
@@ -1106,7 +1109,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         ) : (
           input
         )}
-        <StyledButtonBar>
+        <StyledButtonBar gap={0.5}>
           {this.state.query !== '' && (
             <InputButton
               type="button"
@@ -1123,27 +1126,35 @@ class SmartSearchBar extends React.Component<Props, State> {
             </InputButton>
           )}
           {hasPinnedSearch && (
-            <InputButton
-              type="button"
-              title={pinTooltip}
-              borderless
-              disabled={!hasQuery}
-              aria-label={pinTooltip}
-              size="zero"
-              tooltipProps={{
-                containerDisplayMode: 'inline-flex',
-              }}
-              onClick={this.onTogglePinnedSearch}
-              collapseIntoEllipsisMenu={1}
-              isActive={!!pinnedSearch}
-              icon={pinIcon}
-            />
+            <ClassNames>
+              {({css}) => (
+                <InputButton
+                  type="button"
+                  title={pinTooltip}
+                  borderless
+                  disabled={!hasQuery}
+                  aria-label={pinTooltip}
+                  size="zero"
+                  tooltipProps={{
+                    containerDisplayMode: 'inline-flex',
+                    className: css`
+                      ${getMediaQuery(theme.breakpoints[1], 'none')}
+                    `,
+                  }}
+                  onClick={this.onTogglePinnedSearch}
+                  collapseIntoEllipsisMenu={1}
+                  isActive={!!pinnedSearch}
+                  icon={pinIcon}
+                />
+              )}
+            </ClassNames>
           )}
           {canCreateSavedSearch && (
             <ClassNames>
               {({css}) => (
                 <CreateSavedSearchButton
                   query={this.state.query}
+                  sort={sort}
                   organization={organization}
                   withTooltip
                   iconOnly
@@ -1152,23 +1163,33 @@ class SmartSearchBar extends React.Component<Props, State> {
                       collapseIntoEllipsisMenu: 2,
                     })}
                   `}
+                  tooltipClassName={css`
+                    ${getMediaQuery(theme.breakpoints[2], 'none')}
+                  `}
                 />
               )}
             </ClassNames>
           )}
           {hasSearchBuilder && (
-            <SearchBuilderButton
-              title={t('Toggle search builder')}
-              borderless
-              size="zero"
-              tooltipProps={{
-                containerDisplayMode: 'inline-flex',
-              }}
-              collapseIntoEllipsisMenu={2}
-              aria-label={t('Toggle search builder')}
-              onClick={onSidebarToggle}
-              icon={<IconSliders size="xs" />}
-            />
+            <ClassNames>
+              {({css}) => (
+                <InputButton
+                  title={t('Toggle search builder')}
+                  borderless
+                  size="zero"
+                  tooltipProps={{
+                    containerDisplayMode: 'inline-flex',
+                    className: css`
+                      ${getMediaQuery(theme.breakpoints[2], 'none')}
+                    `,
+                  }}
+                  collapseIntoEllipsisMenu={2}
+                  aria-label={t('Toggle search builder')}
+                  onClick={onSidebarToggle}
+                  icon={<IconSliders size="xs" />}
+                />
+              )}
+            </ClassNames>
           )}
 
           {(hasPinnedSearch || canCreateSavedSearch || hasSearchBuilder) && (
@@ -1203,12 +1224,16 @@ class SmartSearchBar extends React.Component<Props, State> {
                   {({css}) => (
                     <CreateSavedSearchButton
                       query={this.state.query}
+                      sort={sort}
                       organization={organization}
                       buttonClassName={css`
                         ${getDropdownElementStyles({
                           showBelowMediaQuery: 2,
                           last: false,
                         })}
+                      `}
+                      tooltipClassName={css`
+                        ${getMediaQuery(theme.breakpoints[2], 'none')}
                       `}
                     />
                   )}
@@ -1285,7 +1310,6 @@ const StyledInput = styled('input')`
   background: transparent;
   border: 0;
   outline: none;
-
   font-size: ${p => p.theme.fontSizeMedium};
   width: 100%;
   height: 40px;
@@ -1307,11 +1331,6 @@ const StyledInput = styled('input')`
 
 const InputButton = styled(Button)`
   ${getInputButtonStyles}
-`;
-
-const SearchBuilderButton = styled(InputButton)`
-  margin-left: ${space(0.25)};
-  margin-right: ${space(0.5)};
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`

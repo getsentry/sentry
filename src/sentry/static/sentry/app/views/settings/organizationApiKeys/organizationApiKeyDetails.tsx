@@ -5,7 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {Choices, Organization} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
@@ -19,7 +19,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 
 import {DeprecatedApiKey} from './types';
 
-const API_CHOICES = API_ACCESS_SCOPES.map(s => [s, s]);
+const API_CHOICES: Choices = API_ACCESS_SCOPES.map(s => [s, s]);
 
 type RouteParams = {
   orgId: string;
@@ -68,7 +68,7 @@ class OrganizationApiKeyDetails extends AsyncView<Props, State> {
   renderBody() {
     return (
       <div>
-        <SettingsPageHeader title={t('Edit Api Key')} />
+        <SettingsPageHeader title={t('Edit API Key')} />
 
         <Panel>
           <PanelHeader>{t('API Key')}</PanelHeader>

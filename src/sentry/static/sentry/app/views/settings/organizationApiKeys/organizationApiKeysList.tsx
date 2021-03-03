@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import {PlainRoute} from 'react-router/lib/Route';
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
+import AlertLink from 'app/components/alertLink';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
@@ -80,14 +80,14 @@ function OrganizationApiKeysList({
         )}
       </TextBlock>
 
-      <Alert>
+      <AlertLink to="/settings/account/api/auth-tokens/" priority="info">
         {tct(
-          'psst. Until Sentry supports OAuth, you might want to switch to using [tokens:Auth Tokens] instead.',
+          'Until Sentry supports OAuth, you might want to switch to using [tokens:Auth Tokens] instead.',
           {
-            tokens: <Link to="/settings/account/api/auth-tokens/" />,
+            tokens: <u />,
           }
         )}
-      </Alert>
+      </AlertLink>
 
       <PanelTable
         isLoading={loading}

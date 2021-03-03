@@ -13,7 +13,6 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {MEMBER_ROLES} from 'app/constants';
 import {IconSliders} from 'app/icons';
 import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {Member, MemberRole, Organization} from 'app/types';
@@ -37,10 +36,6 @@ type State = AsyncView['state'] & {
 };
 
 class OrganizationMembersList extends AsyncView<Props, State> {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-  };
-
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -165,11 +160,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
         <DropdownMenu closeOnEscape>
           {({getActorProps, isOpen}) => (
             <FilterWrapper>
-              <Button
-                size="small"
-                icon={<IconSliders size="xs" />}
-                {...getActorProps({})}
-              >
+              <Button icon={<IconSliders size="xs" />} {...getActorProps({})}>
                 {t('Search Filters')}
               </Button>
               {isOpen && (
@@ -195,7 +186,6 @@ class OrganizationMembersList extends AsyncView<Props, State> {
               children: renderSearch,
               className: css`
                 font-size: ${theme.fontSizeMedium};
-                padding: ${space(0.75)};
               `,
             })
           }

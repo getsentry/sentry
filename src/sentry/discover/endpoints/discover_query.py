@@ -1,5 +1,4 @@
-from __future__ import absolute_import
-
+import logging
 from functools import partial
 from copy import deepcopy
 
@@ -15,6 +14,8 @@ from sentry import features
 
 from .serializers import DiscoverQuerySerializer
 from sentry.utils.compat import map
+
+logger = logging.getLogger(__name__)
 
 
 class DiscoverQueryPermission(OrganizationPermission):
@@ -106,6 +107,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
     def post(self, request, organization):
         if not self.has_feature(request, organization):
             return Response(status=404)
+        logger.info("discover1.request", extra={"organization_id": organization.id})
 
         try:
             requested_projects = set(map(int, request.data.get("projects", [])))

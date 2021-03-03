@@ -6,10 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import TransactionVitals from 'app/views/performance/transactionVitals';
-import {
-  WEB_VITAL_DETAILS,
-  ZOOM_KEYS,
-} from 'app/views/performance/transactionVitals/constants';
+import {VITAL_GROUPS, ZOOM_KEYS} from 'app/views/performance/transactionVitals/constants';
 
 function initialize({project, features, transaction, query} = {}) {
   features = features || ['performance-view'];
@@ -83,47 +80,32 @@ describe('Performance > Web Vitals', function () {
     });
     // Mock baseline measurements
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events-vitals/',
       body: {
-        meta: {
-          percentile_measurements_fp_0_75: 'duration',
-          percentile_measurements_fcp_0_75: 'duration',
-          percentile_measurements_lcp_0_75: 'duration',
-          percentile_measurements_fid_0_75: 'duration',
-          percentile_measurements_cls_0_75: 'number',
-        },
-        data: [
-          {
-            percentile_measurements_fp_0_75: 4567,
-            percentile_measurements_fcp_0_75: 1456,
-            percentile_measurements_lcp_0_75: 1342,
-            percentile_measurements_fid_0_75: 987,
-            percentile_measurements_cls_0_75: 0.02,
-          },
-        ],
+        'measurements.fp': {poor: 1, meh: 2, good: 3, total: 6, p75: 4567},
+        'measurements.fcp': {poor: 1, meh: 2, good: 3, total: 6, p75: 1456},
+        'measurements.lcp': {poor: 1, meh: 2, good: 3, total: 6, p75: 1342},
+        'measurements.fid': {poor: 1, meh: 2, good: 3, total: 6, p75: 987},
+        'measurements.cls': {poor: 1, meh: 2, good: 3, total: 6, p75: 0.02},
       },
     });
 
-    const histogramData = [];
-    const webVitals = Object.entries(WEB_VITAL_DETAILS)
-      .filter(([, value]) => value.display)
-      .map(([, detail]) => detail.slug);
+    const histogramData = {};
+    const webVitals = VITAL_GROUPS.reduce((vs, group) => vs.concat(group.vitals), []);
 
-    for (let i = 0; i < 100; i++) {
-      for (const measurement of webVitals) {
-        histogramData.push({
-          key: measurement,
-          bin: i,
+    for (const measurement of webVitals) {
+      const data = [];
+      for (let i = 0; i < 100; i++) {
+        data.push({
+          histogram: i,
           count: i,
         });
       }
+      histogramData[`measurements.${measurement}`] = data;
     }
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-measurements-histogram/',
-      body: {
-        meta: {key: 'string', bin: 'number', count: 'number'},
-        data: histogramData,
-      },
+      url: '/organizations/org-slug/events-histogram/',
+      body: histogramData,
     });
   });
 

@@ -63,11 +63,6 @@ export default class AsyncComponent<
   P extends AsyncComponentProps = AsyncComponentProps,
   S extends AsyncComponentState = AsyncComponentState
 > extends React.Component<P, S> {
-  static propTypes: any = {
-    location: PropTypes.object,
-    router: PropTypes.object,
-  };
-
   static contextTypes = {
     router: PropTypes.object,
   };
@@ -450,8 +445,13 @@ export default class AsyncComponent<
     );
   }
 
+  shouldRenderLoading() {
+    const {loading, reloading} = this.state;
+    return loading && (!this.shouldReload || !reloading);
+  }
+
   renderComponent() {
-    return this.state.loading && (!this.shouldReload || !this.state.reloading)
+    return this.shouldRenderLoading()
       ? this.renderLoading()
       : this.state.error
       ? this.renderError(new Error('Unable to load all required endpoints'))

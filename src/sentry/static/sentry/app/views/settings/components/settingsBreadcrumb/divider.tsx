@@ -10,8 +10,8 @@ type Props = {
 
 const Divider = ({isHover, isLast}: Props) =>
   isLast ? null : (
-    <StyledDivider isHover={isHover}>
-      <StyledIconChevron direction="right" size="14px" />
+    <StyledDivider>
+      <StyledIconChevron direction={isHover ? 'down' : 'right'} size="14px" />
     </StyledDivider>
   );
 
@@ -19,19 +19,11 @@ const StyledIconChevron = styled(IconChevron)`
   display: block;
 `;
 
-const StyledDivider = styled('span')<{isHover?: boolean}>`
+const StyledDivider = styled('span')`
   display: inline-block;
   margin-left: 6px;
   color: ${p => p.theme.gray200};
   position: relative;
-  top: -1px;
-
-  ${p =>
-    p.isHover &&
-    `
-    transform: rotate(90deg);
-    top: 0;
-    `};
 `;
 
 export default Divider;

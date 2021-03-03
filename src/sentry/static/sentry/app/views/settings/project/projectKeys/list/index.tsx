@@ -15,7 +15,6 @@ import {t, tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
 import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -202,4 +201,4 @@ class ProjectKeys extends AsyncView<Props, State> {
   }
 }
 
-export default withOrganization(withProject(ProjectKeys));
+export default withOrganization(ProjectKeys);

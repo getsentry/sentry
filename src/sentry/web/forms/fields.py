@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.forms.widgets import TextInput, Widget
 from django.forms.utils import flatatt
 from django.forms import Field, CharField, EmailField, TypedChoiceField, ValidationError
@@ -21,7 +17,7 @@ class CustomTypedChoiceField(TypedChoiceField):
         """
         Validates that the input is in self.choices.
         """
-        super(CustomTypedChoiceField, self).validate(value)
+        super().validate(value)
         # this will validate itself twice due to the internal ChoiceField
         # validation
         if value is not None and not self.valid_value(value):
@@ -39,12 +35,12 @@ class UserField(CharField):
                 attrs = {}
             if "placeholder" not in attrs:
                 attrs["placeholder"] = "username"
-            if isinstance(value, six.integer_types):
+            if isinstance(value, int):
                 value = User.objects.get(id=value).username
             return super(UserField.widget, self).render(name, value, attrs)
 
     def clean(self, value):
-        value = super(UserField, self).clean(value)
+        value = super().clean(value)
         if not value:
             return None
         try:
@@ -66,7 +62,7 @@ class ReadOnlyTextField(Field):
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("required", False)
-        super(ReadOnlyTextField, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def bound_data(self, data, initial):
         # Always return initial because the widget doesn't

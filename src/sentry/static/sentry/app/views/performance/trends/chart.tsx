@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory, withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
+import {withTheme} from 'emotion-theming';
 
 import {Client} from 'app/api';
 import ChartZoom from 'app/components/charts/chartZoom';
@@ -15,14 +16,15 @@ import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
 
 import {NormalizedTrendsTransaction, TrendChangeType, TrendsStats} from './types';
 import {
+  generateTrendFunctionAsString,
   getCurrentTrendFunction,
-  getIntervalRatio,
+  getCurrentTrendParameter,
   getUnselectedSeries,
   transformEventStatsSmoothed,
   trendToColor,
@@ -41,6 +43,7 @@ type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
 type Props = WithRouterProps &
   ViewProps & {
+    theme: Theme;
     api: Client;
     location: Location;
     organization: OrganizationSummary;
@@ -64,16 +67,11 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
 }
 
 function getLegend(trendFunction: string) {
-  const legend = {
+  return {
     right: 10,
     top: 0,
     itemGap: 12,
-    align: 'left',
-    textStyle: {
-      verticalAlign: 'top',
-      fontSize: 11,
-      fontFamily: 'Rubik',
-    },
+    align: 'left' as const,
     data: [
       {
         name: 'Baseline',
@@ -90,10 +88,10 @@ function getLegend(trendFunction: string) {
       },
     ],
   };
-  return legend;
 }
 
 function getIntervalLine(
+  theme: Theme,
   series: Series[],
   intervalRatio: number,
   transaction?: NormalizedTrendsTransaction
@@ -152,7 +150,7 @@ function getIntervalLine(
   };
 
   const seriesDiff = seriesEnd - seriesStart;
-  const seriesLine = seriesDiff * (intervalRatio || 0.5) + seriesStart;
+  const seriesLine = seriesDiff * intervalRatio + seriesStart;
 
   previousPeriod.markLine.data = [
     [
@@ -226,6 +224,7 @@ class Chart extends React.Component<Props> {
     const props = this.props;
 
     const {
+      theme,
       trendChangeType,
       router,
       statsPeriod,
@@ -236,7 +235,6 @@ class Chart extends React.Component<Props> {
       isLoading,
       location,
       projects,
-      organization,
     } = props;
     const lineColor = trendToColor[trendChangeType || ''];
 
@@ -247,26 +245,29 @@ class Chart extends React.Component<Props> {
     const data = events?.data ?? [];
 
     const trendFunction = getCurrentTrendFunction(location);
-    const results = transformEventStats(data, trendFunction.chartLabel);
+    const trendParameter = getCurrentTrendParameter(location);
+    const chartLabel = generateTrendFunctionAsString(
+      trendFunction.field,
+      trendParameter.column
+    );
+    const results = transformEventStats(data, chartLabel);
     const {smoothedResults, minValue, maxValue} = transformEventStatsSmoothed(
       results,
-      trendFunction.chartLabel
+      chartLabel
     );
 
-    const start = props.start ? getUtcToLocalDateObject(props.start) : undefined;
+    const start = props.start ? getUtcToLocalDateObject(props.start) : null;
+    const end = props.end ? getUtcToLocalDateObject(props.end) : null;
+    const utc = decodeScalar(router.location.query.utc) !== 'false';
 
-    const end = props.end ? getUtcToLocalDateObject(props.end) : undefined;
-    const utc = decodeScalar(router.location.query.utc);
-
-    const intervalRatio = getIntervalRatio(router.location);
-    const seriesSelection = (
-      decodeList(location.query[getUnselectedSeries(trendChangeType)]) ?? []
+    const seriesSelection = decodeList(
+      location.query[getUnselectedSeries(trendChangeType)]
     ).reduce((selection, metric) => {
       selection[metric] = false;
       return selection;
     }, {});
     const legend = {
-      ...getLegend(trendFunction.chartLabel),
+      ...getLegend(chartLabel),
       selected: seriesSelection,
     };
 
@@ -291,13 +292,10 @@ class Chart extends React.Component<Props> {
     const yDiff = yMax - yMin;
     const yMargin = yDiff * 0.1;
 
-    let queryExtra = {};
-    if (organization.features.includes('release-performance-views')) {
-      queryExtra = {
-        showTransactions: trendChangeType,
-        yAxis: YAxis.COUNT_DURATION,
-      };
-    }
+    const queryExtra = {
+      showTransactions: trendChangeType,
+      yAxis: YAxis.COUNT_DURATION,
+    };
 
     const chartOptions = {
       tooltip: {
@@ -317,12 +315,7 @@ class Chart extends React.Component<Props> {
     };
 
     return (
-      <ChartZoom
-        router={router}
-        period={statsPeriod}
-        projects={project}
-        environments={environment}
-      >
+      <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
           const smoothedSeries = smoothedResults
             ? smoothedResults.map(values => {
@@ -337,8 +330,9 @@ class Chart extends React.Component<Props> {
             : [];
 
           const intervalSeries = getIntervalLine(
+            theme,
             smoothedResults || [],
-            intervalRatio,
+            0.5,
             transaction
           );
 
@@ -390,4 +384,4 @@ class Chart extends React.Component<Props> {
   }
 }
 
-export default withApi(withRouter(Chart));
+export default withTheme(withApi(withRouter(Chart)));

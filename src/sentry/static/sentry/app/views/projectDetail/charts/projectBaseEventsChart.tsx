@@ -1,16 +1,19 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
-import isEqual from 'lodash/isEqual';
+import {withTheme} from 'emotion-theming';
 
 import {fetchTotalCount} from 'app/actionCreators/events';
 import EventsChart from 'app/components/charts/eventsChart';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
 import {GlobalSelection} from 'app/types';
+import {axisLabelFormatter} from 'app/utils/discover/charts';
 import getDynamicText from 'app/utils/getDynamicText';
+import {Theme} from 'app/utils/theme';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {HeaderTitleLegend} from 'app/views/performance/styles';
 
 type Props = Omit<
   EventsChart['props'],
@@ -19,6 +22,7 @@ type Props = Omit<
   title: string;
   selection: GlobalSelection;
   onTotalValuesChange: (value: number | null) => void;
+  theme: Theme;
   help?: string;
 };
 
@@ -28,7 +32,7 @@ class ProjectBaseEventsChart extends React.Component<Props> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (!isEqual(this.props.selection, prevProps.selection)) {
+    if (!isSelectionEqual(this.props.selection, prevProps.selection)) {
       this.fetchTotalCount();
     }
   }
@@ -62,6 +66,7 @@ class ProjectBaseEventsChart extends React.Component<Props> {
       query,
       field,
       title,
+      theme,
       help,
       ...eventsChartProps
     } = this.props;
@@ -95,7 +100,16 @@ class ProjectBaseEventsChart extends React.Component<Props> {
             </HeaderTitleLegend>
           }
           legendOptions={{right: 10, top: 0}}
-          chartOptions={{grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'}}}
+          chartOptions={{
+            grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'},
+            yAxis: {
+              axisLabel: {
+                color: theme.gray200,
+                formatter: (value: number) => axisLabelFormatter(value, yAxis),
+              },
+              scale: true,
+            },
+          }}
         />
       ),
       fixed: `${title} Chart`,
@@ -103,4 +117,4 @@ class ProjectBaseEventsChart extends React.Component<Props> {
   }
 }
 
-export default withGlobalSelection(ProjectBaseEventsChart);
+export default withGlobalSelection(withTheme(ProjectBaseEventsChart));

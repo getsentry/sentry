@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.conf import settings
 from django.conf.urls import include, url
 from django.http import HttpResponse
@@ -67,6 +65,13 @@ if settings.DEBUG:
             generic.dev_favicon,
             name="sentry-dev-favicon",
         )
+    ]
+
+if settings.DEMO_MODE:
+    from sentry.web.frontend.demo_start import DemoStartView
+
+    urlpatterns += [
+        url(r"^demo/start/$", DemoStartView.as_view(), name="sentry-demo-start"),
     ]
 
 urlpatterns += [

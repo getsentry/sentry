@@ -1,5 +1,4 @@
 import React from 'react';
-import {Modal} from 'react-bootstrap';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
@@ -28,8 +27,8 @@ describe('RedirectToProjectModal', function () {
         routes={routes}
         params={{orgId: 'org-slug', projectId: 'project-slug'}}
         slug="new-slug"
-        Header={Modal.Header}
-        Body={Modal.Body}
+        Header={p => p.children}
+        Body={p => p.children}
       />,
       TestStubs.routerContext()
     );

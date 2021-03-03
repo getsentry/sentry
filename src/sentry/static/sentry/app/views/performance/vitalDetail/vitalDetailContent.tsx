@@ -6,11 +6,15 @@ import omit from 'lodash/omit';
 
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
+import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import SearchBar from 'app/components/events/searchBar';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {IconChevron} from 'app/icons';
 import {IconFlag} from 'app/icons/iconFlag';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
@@ -19,15 +23,16 @@ import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
-import SearchBar from 'app/views/events/searchBar';
 
 import Breadcrumb from '../breadcrumb';
 import {getTransactionSearchQuery} from '../utils';
 
 import Table from './table';
-import {vitalMap} from './utils';
+import {vitalDescription, vitalMap} from './utils';
 import VitalChart from './vitalChart';
 import VitalInfo from './vitalInfo';
+
+const FRONTEND_VITALS = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
 
 type Props = {
   location: Location;
@@ -108,6 +113,48 @@ class VitalDetailContent extends React.Component<Props, State> {
     );
   }
 
+  renderVitalSwitcher() {
+    const {vitalName, location} = this.props;
+
+    const position = FRONTEND_VITALS.indexOf(vitalName);
+
+    if (position < 0) {
+      return null;
+    }
+
+    const previousDisabled = position === 0;
+    const nextDisabled = position === FRONTEND_VITALS.length - 1;
+
+    const switchVital = newVitalName => {
+      return () => {
+        browserHistory.push({
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            vitalName: newVitalName,
+          },
+        });
+      };
+    };
+
+    return (
+      <ButtonBar merged>
+        <Button
+          icon={<IconChevron direction="left" size="sm" />}
+          aria-label={t('Previous')}
+          disabled={previousDisabled}
+          onClick={switchVital(FRONTEND_VITALS[position - 1])}
+        />
+        <Button
+          icon={<IconChevron direction="right" size="sm" />}
+          aria-label={t('Next')}
+          disabled={nextDisabled}
+          onClick={switchVital(FRONTEND_VITALS[position + 1])}
+        />
+      </ButtonBar>
+    );
+  }
+
   setError = (error: string | undefined) => {
     this.setState({error});
   };
@@ -129,12 +176,13 @@ class VitalDetailContent extends React.Component<Props, State> {
   render() {
     const {location, eventView, organization, vitalName, projects} = this.props;
     const {incompatibleAlertNotice} = this.state;
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query, '');
 
     const vital = vitalName || WebVital.LCP;
 
     const filterString = getTransactionSearchQuery(location);
     const summaryConditions = getSummaryConditions(filterString);
+    const description = vitalDescription[vitalName];
 
     return (
       <React.Fragment>
@@ -152,6 +200,7 @@ class VitalDetailContent extends React.Component<Props, State> {
               <Feature organization={organization} features={['incidents']}>
                 {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
               </Feature>
+              {this.renderVitalSwitcher()}
             </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>
@@ -161,21 +210,14 @@ class VitalDetailContent extends React.Component<Props, State> {
             <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
           )}
           <Layout.Main fullWidth>
-            <VitalInfo
-              eventView={eventView}
+            <StyledDescription>{description}</StyledDescription>
+            <StyledSearchBar
               organization={organization}
-              location={location}
-              vitalName={vital}
+              projectIds={eventView.project}
+              query={query}
+              fields={eventView.fields}
+              onSearch={this.handleSearch}
             />
-            <StyledSearchContainer>
-              <StyledSearchBar
-                organization={organization}
-                projectIds={eventView.project}
-                query={query}
-                fields={eventView.fields}
-                onSearch={this.handleSearch}
-              />
-            </StyledSearchContainer>
             <VitalChart
               organization={organization}
               query={eventView.query}
@@ -185,6 +227,14 @@ class VitalDetailContent extends React.Component<Props, State> {
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
             />
+            <StyledVitalInfo>
+              <VitalInfo
+                eventView={eventView}
+                organization={organization}
+                location={location}
+                vital={vital}
+              />
+            </StyledVitalInfo>
             <Table
               eventView={eventView}
               projects={projects}
@@ -200,13 +250,17 @@ class VitalDetailContent extends React.Component<Props, State> {
   }
 }
 
+const StyledDescription = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-bottom: ${space(3)};
+`;
+
 const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
   margin-bottom: ${space(2)};
 `;
 
-const StyledSearchContainer = styled('div')`
-  display: flex;
+const StyledVitalInfo = styled('div')`
+  margin-bottom: ${space(3)};
 `;
 
 export default withProjects(VitalDetailContent);

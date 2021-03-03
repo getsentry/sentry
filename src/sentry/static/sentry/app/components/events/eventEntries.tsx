@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import PropTypes from 'prop-types';
 
+import ErrorBoundary from 'app/components/errorBoundary';
 import EventContexts from 'app/components/events/contexts';
 import EventContextSummary from 'app/components/events/contextSummary/contextSummary';
 import EventDevice from 'app/components/events/device';
@@ -15,46 +15,21 @@ import EventExtraData from 'app/components/events/eventExtraData/eventExtraData'
 import EventSdk from 'app/components/events/eventSdk';
 import EventTags from 'app/components/events/eventTags/eventTags';
 import EventGroupingInfo from 'app/components/events/groupingInfo';
-import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
-import CspInterface from 'app/components/events/interfaces/csp';
-import DebugMetaInterface from 'app/components/events/interfaces/debugMeta';
-import ExceptionInterface from 'app/components/events/interfaces/exception';
-import GenericInterface from 'app/components/events/interfaces/generic';
-import MessageInterface from 'app/components/events/interfaces/message';
-import RequestInterface from 'app/components/events/interfaces/request';
-import SpansInterface from 'app/components/events/interfaces/spans';
-import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
-import TemplateInterface from 'app/components/events/interfaces/template';
-import ThreadsInterface from 'app/components/events/interfaces/threads';
 import EventPackageData from 'app/components/events/packageData';
 import RRWebIntegration from 'app/components/events/rrwebIntegration';
 import EventSdkUpdates from 'app/components/events/sdkUpdates';
 import {DataSection} from 'app/components/events/styles';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {AvatarProject, Entry, Event, Group, Organization} from 'app/types';
+import {Group, Organization, Project, SharedViewOrganization} from 'app/types';
+import {Entry, Event} from 'app/types/event';
+import {isNotSharedOrganization} from 'app/types/utils';
 import {objectIsEmpty} from 'app/utils';
 import {analytics} from 'app/utils/analytics';
-import {logException} from 'app/utils/logging';
 import withOrganization from 'app/utils/withOrganization';
 
-export const INTERFACES = {
-  exception: ExceptionInterface,
-  message: MessageInterface,
-  request: RequestInterface,
-  stacktrace: StacktraceInterface,
-  template: TemplateInterface,
-  csp: CspInterface,
-  expectct: GenericInterface,
-  expectstaple: GenericInterface,
-  hpkp: GenericInterface,
-  breadcrumbs: BreadcrumbsInterface,
-  threads: ThreadsInterface,
-  debugmeta: DebugMetaInterface,
-  spans: SpansInterface,
-};
+import EventEntry from './eventEntry';
 
 const defaultProps = {
   isShare: false,
@@ -62,19 +37,13 @@ const defaultProps = {
   showTagSummary: true,
 };
 
-// Custom shape because shared view doesn't get id.
-type SharedViewOrganization = {
-  slug: string;
-  id?: string;
-  features?: Array<string>;
-};
-
 type Props = {
-  // This is definitely required because this component would crash if
-  // organization were undefined.
-  organization: SharedViewOrganization;
+  /**
+   * The organization can be the shared view on a public issue view.
+   */
+  organization: Organization | SharedViewOrganization;
   event: Event;
-  project: AvatarProject;
+  project: Project;
   location: Location;
 
   group?: Group;
@@ -82,24 +51,6 @@ type Props = {
 } & typeof defaultProps;
 
 class EventEntries extends React.Component<Props> {
-  static propTypes = {
-    // Custom shape because shared view doesn't get id.
-    organization: PropTypes.shape({
-      id: PropTypes.string,
-      slug: PropTypes.string.isRequired,
-      features: PropTypes.arrayOf(PropTypes.string),
-    }).isRequired,
-    event: SentryTypes.Event.isRequired,
-
-    group: SentryTypes.Group,
-    project: PropTypes.object.isRequired,
-    // TODO(dcramer): ideally isShare would be replaced with simple permission
-    // checks
-    isShare: PropTypes.bool,
-    showExampleCommit: PropTypes.bool,
-    showTagSummary: PropTypes.bool,
-  };
-
   static defaultProps = defaultProps;
 
   componentDidMount() {
@@ -142,43 +93,30 @@ class EventEntries extends React.Component<Props> {
   renderEntries() {
     const {event, project, organization, isShare} = this.props;
 
-    const entries = event && event.entries;
+    const entries = event?.entries;
 
     if (!Array.isArray(entries)) {
       return null;
     }
 
-    return (entries as Array<Entry>).map((entry, entryIdx) => {
-      try {
-        const Component = INTERFACES[entry.type];
-        if (!Component) {
-          /*eslint no-console:0*/
-          window.console &&
-            console.error &&
-            console.error('Unregistered interface: ' + entry.type);
-          return null;
-        }
-
-        return (
-          <Component
-            key={'entry-' + entryIdx}
-            projectId={project ? project.slug : null}
-            orgId={organization ? organization.slug : null}
-            event={event}
-            type={entry.type}
-            data={entry.data}
-            isShare={isShare}
-          />
-        );
-      } catch (ex) {
-        logException(ex);
-        return (
+    return (entries as Array<Entry>).map((entry, entryIdx) => (
+      <ErrorBoundary
+        key={`entry-${entryIdx}`}
+        customComponent={
           <EventDataSection type={entry.type} title={entry.type}>
             <p>{t('There was an error rendering this data.')}</p>
           </EventDataSection>
-        );
-      }
-    });
+        }
+      >
+        <EventEntry
+          projectSlug={project.slug}
+          organization={organization}
+          event={event}
+          entry={entry}
+          isShare={isShare}
+        />
+      </ErrorBoundary>
+    ));
   }
 
   render() {
@@ -220,11 +158,12 @@ class EventEntries extends React.Component<Props> {
           </ErrorContainer>
         )}
         {!isShare &&
+          isNotSharedOrganization(organization) &&
           (showExampleCommit ? (
             <EventCauseEmpty organization={organization} project={project} />
           ) : (
             <EventCause
-              organization={organization as Organization}
+              organization={organization}
               project={project}
               event={event}
               group={group}
@@ -242,7 +181,7 @@ class EventEntries extends React.Component<Props> {
         {showTagSummary && (
           <EventTags
             event={event}
-            orgId={organization.slug}
+            organization={organization as Organization}
             projectId={project.slug}
             location={location}
             hasQueryFeature={hasQueryFeature}

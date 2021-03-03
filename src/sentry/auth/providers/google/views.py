@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 
 from sentry.auth.view import AuthView, ConfigureView
@@ -16,7 +14,7 @@ class FetchUser(AuthView):
     def __init__(self, domains, version, *args, **kwargs):
         self.domains = domains
         self.version = version
-        super(FetchUser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def dispatch(self, request, helper):
         data = helper.fetch_state("data")
@@ -30,13 +28,13 @@ class FetchUser(AuthView):
         try:
             _, payload, _ = map(urlsafe_b64decode, id_token.split(".", 2))
         except Exception as exc:
-            logger.error(u"Unable to decode id_token: %s" % exc, exc_info=True)
+            logger.error("Unable to decode id_token: %s" % exc, exc_info=True)
             return helper.error(ERR_INVALID_RESPONSE)
 
         try:
             payload = json.loads(payload)
         except Exception as exc:
-            logger.error(u"Unable to decode id_token payload: %s" % exc, exc_info=True)
+            logger.error("Unable to decode id_token payload: %s" % exc, exc_info=True)
             return helper.error(ERR_INVALID_RESPONSE)
 
         if not payload.get("email"):

@@ -6,7 +6,7 @@ import {ApiSource} from 'app/components/search/sources/apiSource';
 
 describe('ApiSource', function () {
   let wrapper;
-  const org = TestStubs.Organization();
+  const org = TestStubs.Organization({features: ['project-detail']});
   let orgsMock;
   let projectsMock;
   let teamsMock;
@@ -132,6 +132,7 @@ describe('ApiSource', function () {
               resultType: 'issue',
               to: '/org-slug/project-slug/issues/1/',
             }),
+            score: 1,
           },
         ],
       })
@@ -178,6 +179,7 @@ describe('ApiSource', function () {
               to:
                 '/org-slug/project-slug/issues/1/events/12345678901234567890123456789012/',
             }),
+            score: 1,
           },
         ],
       })
@@ -202,7 +204,7 @@ describe('ApiSource', function () {
   it('render function is called with correct results', async function () {
     const mock = jest.fn().mockReturnValue(null);
     wrapper = mount(
-      <ApiSource params={{orgId: org.slug}} query="foo">
+      <ApiSource params={{orgId: org.slug}} organization={org} query="foo">
         {mock}
       </ApiSource>,
       TestStubs.routerContext()
@@ -212,7 +214,6 @@ describe('ApiSource', function () {
     wrapper.update();
     expect(mock).toHaveBeenLastCalledWith({
       isLoading: false,
-      allResults: expect.anything(),
       results: expect.arrayContaining([
         expect.objectContaining({
           item: expect.objectContaining({
@@ -234,6 +235,18 @@ describe('ApiSource', function () {
             sourceType: 'organization',
             resultType: 'route',
             to: '/foo-org/',
+          }),
+          matches: expect.anything(),
+          score: expect.anything(),
+        }),
+        expect.objectContaining({
+          item: expect.objectContaining({
+            model: expect.objectContaining({
+              slug: 'foo-project',
+            }),
+            sourceType: 'project',
+            resultType: 'route',
+            to: '/organizations/org-slug/projects/foo-project/?project=2',
           }),
           matches: expect.anything(),
           score: expect.anything(),
@@ -266,7 +279,7 @@ describe('ApiSource', function () {
     });
 
     // There are no members that match
-    expect(mock.mock.calls[1][0].results).toHaveLength(4);
+    expect(mock.mock.calls[1][0].results).toHaveLength(5);
   });
 
   it('render function is called with correct results when API requests partially succeed', async function () {
@@ -288,7 +301,6 @@ describe('ApiSource', function () {
     wrapper.update();
     expect(mock).toHaveBeenLastCalledWith({
       isLoading: false,
-      allResults: expect.anything(),
       results: expect.arrayContaining([
         expect.objectContaining({
           item: expect.objectContaining({

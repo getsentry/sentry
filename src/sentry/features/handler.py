@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
 __all__ = ["FeatureHandler", "BatchFeatureHandler"]
 
 
-class FeatureHandler(object):
+class FeatureHandler:
     features = set()
 
     def __call__(self, feature, actor):

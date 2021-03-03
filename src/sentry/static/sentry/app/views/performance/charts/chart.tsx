@@ -5,6 +5,7 @@ import min from 'lodash/min';
 
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
+import {DateString} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {aggregateOutputType} from 'app/utils/discover/fields';
@@ -14,9 +15,12 @@ type Props = {
   data: Series[];
   router: ReactRouter.InjectedRouter;
   statsPeriod: string | undefined;
+  start: DateString;
+  end: DateString;
   utc: boolean;
-  projects: number[];
-  environments: string[];
+  height?: number;
+  grid?: AreaChart['props']['grid'];
+  disableMultiAxis?: boolean;
   loading: boolean;
 };
 
@@ -50,7 +54,18 @@ function computeAxisMax(data) {
 
 class Chart extends React.Component<Props> {
   render() {
-    const {data, router, statsPeriod, utc, projects, environments, loading} = this.props;
+    const {
+      data,
+      router,
+      statsPeriod,
+      start,
+      end,
+      utc,
+      loading,
+      height,
+      grid,
+      disableMultiAxis,
+    } = this.props;
 
     if (!data || data.length <= 0) {
       return null;
@@ -62,62 +77,76 @@ class Chart extends React.Component<Props> {
     );
     const dataMax = durationOnly ? computeAxisMax(data) : undefined;
 
+    const xAxes = disableMultiAxis
+      ? undefined
+      : [
+          {
+            gridIndex: 0,
+            type: 'time' as const,
+          },
+          {
+            gridIndex: 1,
+            type: 'time' as const,
+          },
+        ];
+
+    const yAxes = disableMultiAxis
+      ? undefined
+      : [
+          {
+            gridIndex: 0,
+            scale: true,
+            max: dataMax,
+            axisLabel: {
+              color: theme.chartLabel,
+              formatter(value: number) {
+                return axisLabelFormatter(value, data[0].seriesName);
+              },
+            },
+          },
+          {
+            gridIndex: 1,
+            scale: true,
+            max: dataMax,
+            axisLabel: {
+              color: theme.chartLabel,
+              formatter(value: number) {
+                return axisLabelFormatter(value, data[1].seriesName);
+              },
+            },
+          },
+        ];
+
+    const axisPointer = disableMultiAxis
+      ? undefined
+      : {
+          // Link the two series x-axis together.
+          link: [{xAxisIndex: [0, 1]}],
+        };
+
     const areaChartProps = {
       seriesOptions: {
         showSymbol: false,
       },
-      grid: [
-        {
-          top: '8px',
-          left: '24px',
-          right: '52%',
-          bottom: '16px',
-        },
-        {
-          top: '8px',
-          left: '52%',
-          right: '24px',
-          bottom: '16px',
-        },
-      ],
-      axisPointer: {
-        // Link the two series x-axis together.
-        link: [{xAxisIndex: [0, 1]}],
-      },
-      xAxes: [
-        {
-          gridIndex: 0,
-          type: 'time' as const,
-        },
-        {
-          gridIndex: 1,
-          type: 'time' as const,
-        },
-      ],
-      yAxes: [
-        {
-          gridIndex: 0,
-          scale: true,
-          max: dataMax,
-          axisLabel: {
-            color: theme.chartLabel,
-            formatter(value: number) {
-              return axisLabelFormatter(value, data[0].seriesName);
+      grid: disableMultiAxis
+        ? grid
+        : [
+            {
+              top: '8px',
+              left: '24px',
+              right: '52%',
+              bottom: '16px',
             },
-          },
-        },
-        {
-          gridIndex: 1,
-          scale: true,
-          max: dataMax,
-          axisLabel: {
-            color: theme.chartLabel,
-            formatter(value: number) {
-              return axisLabelFormatter(value, data[1].seriesName);
+            {
+              top: '8px',
+              left: '52%',
+              right: '24px',
+              bottom: '16px',
             },
-          },
-        },
-      ],
+          ],
+      axisPointer,
+      xAxes,
+      yAxes,
       utc,
       isGroupedByDate: true,
       showTimeInTooltip: true,
@@ -133,7 +162,7 @@ class Chart extends React.Component<Props> {
     };
 
     if (loading) {
-      return <AreaChart series={[]} {...areaChartProps} />;
+      return <AreaChart height={height} series={[]} {...areaChartProps} />;
     }
     const series = data.map((values, i: number) => ({
       ...values,
@@ -145,13 +174,18 @@ class Chart extends React.Component<Props> {
       <ChartZoom
         router={router}
         period={statsPeriod}
+        start={start}
+        end={end}
         utc={utc}
-        projects={projects}
-        environments={environments}
-        xAxisIndex={[0, 1]}
+        xAxisIndex={disableMultiAxis ? undefined : [0, 1]}
       >
         {zoomRenderProps => (
-          <AreaChart {...zoomRenderProps} series={series} {...areaChartProps} />
+          <AreaChart
+            height={height}
+            {...zoomRenderProps}
+            series={series}
+            {...areaChartProps}
+          />
         )}
       </ChartZoom>
     );

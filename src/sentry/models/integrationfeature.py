@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
 
 
-class Feature(object):
+class Feature:
     API = 0
     ISSUE_LINK = 1
     STACKTRACE_LINK = 2
@@ -14,17 +12,19 @@ class Feature(object):
     PROJECT_MANAGEMENT = 4
     INCIDENT_MANAGEMENT = 5
     FEATURE_FLAG = 6
+    ALERTS = 7
 
     @classmethod
     def as_choices(cls):
         return (
-            (cls.API, u"integrations-api"),
-            (cls.ISSUE_LINK, u"integrations-issue-link"),
-            (cls.STACKTRACE_LINK, u"integrations-stacktrace-link"),
-            (cls.EVENT_HOOKS, u"integrations-event-hooks"),
-            (cls.PROJECT_MANAGEMENT, u"integrations-project-management"),
-            (cls.INCIDENT_MANAGEMENT, u"integrations-incident-management"),
-            (cls.FEATURE_FLAG, u"integrations-feature-flag"),
+            (cls.API, "integrations-api"),
+            (cls.ISSUE_LINK, "integrations-issue-link"),
+            (cls.STACKTRACE_LINK, "integrations-stacktrace-link"),
+            (cls.EVENT_HOOKS, "integrations-event-hooks"),
+            (cls.PROJECT_MANAGEMENT, "integrations-project-management"),
+            (cls.INCIDENT_MANAGEMENT, "integrations-incident-management"),
+            (cls.FEATURE_FLAG, "integrations-feature-flag"),
+            (cls.ALERTS, "integrations-alert-rule"),
         )
 
     @classmethod
@@ -41,6 +41,8 @@ class Feature(object):
             return "integrations-incident-management"
         if feature == cls.FEATURE_FLAG:
             return "integrations-feature-flag"
+        if feature == cls.ALERTS:
+            return "integrations-alert-rule"
         return "integrations-api"
 
     @classmethod
@@ -57,6 +59,8 @@ class Feature(object):
             return "Organizations can **open a line to Sentry's stack trace** in another service."
         if feature == cls.EVENT_HOOKS:
             return "%s allows organizations to **forward events to another service**." % name
+        if feature == cls.ALERTS:
+            return "Configure Sentry alerts to trigger notifications in %s." % name
         # default
         return (
             "%s can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course)."

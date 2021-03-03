@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 
 from sentry.utils.compat import mock
@@ -124,7 +122,7 @@ class OAuthProvider(OAuth2Provider):
 
 class OAuth2ApiClient(ApiClient, OAuth2RefreshMixin):
     def __init__(self, identity, *args, **kwargs):
-        super(OAuth2ApiClient, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.identity = identity
 
 

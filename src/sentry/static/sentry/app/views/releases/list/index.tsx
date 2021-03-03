@@ -4,6 +4,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import Feature from 'app/components/acl/feature';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -13,6 +14,7 @@ import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -30,6 +32,7 @@ import ReleaseDisplayOptions from './releaseDisplayOptions';
 import ReleaseLanding from './releaseLanding';
 import ReleaseListSortOptions from './releaseListSortOptions';
 import ReleaseListStatusOptions from './releaseListStatusOptions';
+import ReleasesStabilityChart from './releasesStabilityChart';
 import {DisplayOption, SortOption, StatusOption} from './utils';
 
 type RouteParams = {
@@ -220,7 +223,7 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderEmptyMessage() {
-    const {location, organization} = this.props;
+    const {location, organization, selection} = this.props;
     const {statsPeriod} = location.query;
     const searchQuery = this.getQuery();
     const activeSort = this.getSort();
@@ -266,7 +269,12 @@ class ReleasesList extends AsyncView<Props, State> {
       return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
     }
 
-    return <ReleaseLanding organization={organization} />;
+    return (
+      <ReleaseLanding
+        organization={organization}
+        projectId={selection.projects.filter(p => p !== ALL_ACCESS_PROJECTS)[0]}
+      />
+    );
   }
 
   renderInnerBody(activeDisplay: DisplayOption) {
@@ -288,7 +296,7 @@ class ReleasesList extends AsyncView<Props, State> {
             key={`${release.version}-${release.projects[0].slug}`}
             activeDisplay={activeDisplay}
             release={release}
-            orgSlug={organization.slug}
+            organization={organization}
             location={location}
             selection={selection}
             reloading={reloading}
@@ -301,7 +309,7 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, location, router, selection} = this.props;
     const {releases, reloading} = this.state;
 
     const activeSort = this.getSort();
@@ -317,28 +325,41 @@ class ReleasesList extends AsyncView<Props, State> {
       >
         <PageContent>
           <LightWeightNoProjectMessage organization={organization}>
-            <StyledPageHeader>
+            <PageHeader>
               <PageHeading>{t('Releases')}</PageHeading>
-              <SortAndFilterWrapper>
-                <StyledSearchBar
-                  placeholder={t('Search')}
-                  onSearch={this.handleSearch}
-                  query={this.getQuery()}
-                />
-                <ReleaseListStatusOptions
-                  selected={activeStatus}
-                  onSelect={this.handleStatus}
-                />
-                <ReleaseListSortOptions
-                  selected={activeSort}
-                  onSelect={this.handleSortBy}
-                />
-                <ReleaseDisplayOptions
-                  selected={activeDisplay}
-                  onSelect={this.handleDisplay}
-                />
-              </SortAndFilterWrapper>
-            </StyledPageHeader>
+            </PageHeader>
+
+            <Feature features={['releases-top-charts']} organization={organization}>
+              {/* We are only displaying charts if single project is selected */}
+              {selection.projects.length === 1 &&
+                !selection.projects.includes(ALL_ACCESS_PROJECTS) && (
+                  <ReleasesStabilityChart
+                    location={location}
+                    organization={organization}
+                    router={router}
+                  />
+                )}
+            </Feature>
+
+            <SortAndFilterWrapper>
+              <SearchBar
+                placeholder={t('Search')}
+                onSearch={this.handleSearch}
+                query={this.getQuery()}
+              />
+              <ReleaseListStatusOptions
+                selected={activeStatus}
+                onSelect={this.handleStatus}
+              />
+              <ReleaseListSortOptions
+                selected={activeSort}
+                onSelect={this.handleSortBy}
+              />
+              <ReleaseDisplayOptions
+                selected={activeDisplay}
+                onSelect={this.handleDisplay}
+              />
+            </SortAndFilterWrapper>
 
             {!reloading &&
               activeStatus === StatusOption.ARCHIVED &&
@@ -352,25 +373,12 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 }
 
-const StyledSearchBar = styled(SearchBar)`
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    order: 4;
-  }
-`;
-
-const StyledPageHeader = styled(PageHeader)`
-  display: grid;
-  grid-gap: ${space(2)};
-  grid-template-columns: 1fr;
-  justify-content: flex-start;
-  margin-bottom: ${space(3)};
-`;
-
 const SortAndFilterWrapper = styled('div')`
-  display: grid;
+  display: inline-grid;
   grid-gap: ${space(2)};
+  margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: 1fr repeat(3, auto);
   }
 `;

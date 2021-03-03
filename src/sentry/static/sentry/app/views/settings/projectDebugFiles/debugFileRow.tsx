@@ -14,8 +14,8 @@ import {IconClock, IconDelete, IconDownload} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {DebugFile} from 'app/types/debugFiles';
 
-import {DebugFile} from './types';
 import {getFeatureTooltip, getFileType} from './utils';
 
 type Props = {

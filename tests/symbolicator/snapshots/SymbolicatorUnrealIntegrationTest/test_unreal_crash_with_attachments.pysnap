@@ -1,5 +1,5 @@
 ---
-created: '2020-10-31T11:13:16.442847Z'
+created: '2021-01-05T09:42:55.087777Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -2243,13 +2243,6 @@ threads:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d305b'
-        package: C:\Windows\System32\ntdll.dll
-        trust: scan
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10060000'
         package: C:\Windows\System32\ntdll.dll
         trust: scan
       - data:

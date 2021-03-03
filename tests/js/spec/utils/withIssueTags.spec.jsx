@@ -51,11 +51,14 @@ describe('withIssueTags HoC', function () {
 
     let tagsProp = wrapper.find('MyComponent').prop('tags');
     expect(tagsProp.assigned).toBeTruthy();
-    expect(tagsProp.assigned.values).toEqual(['me']);
+    expect(tagsProp.assigned.values).toEqual(['me', 'me_or_none']);
+
+    expect(tagsProp.assigned_or_suggested).toBeTruthy();
+    expect(tagsProp.assigned_or_suggested.values).toEqual(['me', 'me_or_none']);
 
     const users = [TestStubs.User(), TestStubs.User({username: 'joe@example.com'})];
     TeamStore.loadInitialData([
-      {slug: 'best-team-na', name: 'best-team-na', isMember: true},
+      {slug: 'best-team-na', name: 'Best Team NA', isMember: true},
     ]);
     MemberListStore.loadInitialData(users);
     await wrapper.update();
@@ -63,12 +66,14 @@ describe('withIssueTags HoC', function () {
     tagsProp = wrapper.find('MyComponent').prop('tags');
     expect(tagsProp.assigned.values).toEqual([
       'me',
+      'me_or_none',
       'foo@example.com',
       'joe@example.com',
       '#best-team-na',
     ]);
-    expect(tagsProp.owner.values).toEqual([
+    expect(tagsProp.assigned_or_suggested.values).toEqual([
       'me',
+      'me_or_none',
       'foo@example.com',
       'joe@example.com',
       '#best-team-na',

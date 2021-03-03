@@ -5,9 +5,7 @@ Notes:
       on third party providers that (if using POST) won't be sending csrf
       token back.
 """
-from __future__ import absolute_import
 
-import six
 
 from django.conf import settings
 from django.http import HttpResponseRedirect, HttpResponse
@@ -70,13 +68,13 @@ def complete(request, backend, *args, **kwargs):
     try:
         user = auth_complete(request, backend, request.user, *args, **kwargs)
     except AuthException as exc:
-        messages.add_message(request, messages.ERROR, six.text_type(exc))
+        messages.add_message(request, messages.ERROR, str(exc))
         user = None
     else:
         messages.add_message(
             request,
             messages.SUCCESS,
-            u"You have linked your account with {}.".format(
+            "You have linked your account with {}.".format(
                 settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name)
             ),
         )

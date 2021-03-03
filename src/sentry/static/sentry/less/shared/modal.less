@@ -30,11 +30,11 @@
 
   // When fading in the modal, animate it to slide down
   &.fade .modal-dialog {
-    .translate(0, -25%);
-    .transition-transform(~'0.3s ease-out');
+    transform: translate(0, -25%);
+    transition: transform 0.3s ease-out;
   }
   &.in .modal-dialog {
-    .translate(0, 0);
+    transform: translate(0, 0);
   }
 }
 .modal-open .modal {
@@ -57,7 +57,7 @@
   border: 1px solid @modal-content-fallback-border-color; //old browsers fallback (ie8 etc)
   border: 1px solid @modal-content-border-color;
   border-radius: @border-radius-large;
-  .box-shadow(0 3px 9px rgba(0, 0, 0, 0.5));
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.5);
   // Remove focus outline from opened modal
   outline: 0;
 }
@@ -73,10 +73,10 @@
   background-color: @modal-backdrop-bg;
   // Fade for backdrop
   &.fade {
-    .opacity(0);
+    opacity: 0;
   }
   &.in {
-    .opacity(@modal-backdrop-opacity);
+    opacity: @modal-backdrop-opacity;
   }
 }
 
@@ -118,14 +118,6 @@
     margin-bottom: 0; // account for input[type="submit"] which gets the bottom margin like all other inputs
     margin-left: 5px;
   }
-  // but override that for button groups
-  .btn-group .btn + .btn {
-    margin-left: -1px;
-  }
-  // and override it for block buttons as well
-  .btn-block + .btn-block {
-    margin-left: 0;
-  }
 }
 
 // Measure scrollbar width for padding body during modal show/hide
@@ -145,7 +137,7 @@
     margin: 30px auto;
   }
   .modal-content {
-    .box-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
   }
 
   // Modal sizes
@@ -196,7 +188,7 @@
     right: 24px;
     z-index: 100;
     color: lighten(@gray, 20);
-    .transition(color 0.1s linear);
+    transition: color 0.1s linear;
 
     &:hover {
       color: @gray;
@@ -250,9 +242,6 @@
 
     img {
       max-width: 100%;
-      border-radius: 3px;
-      border: 1px solid @trim;
-      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
     }
 
     .form-actions {
@@ -274,7 +263,7 @@
 
     li {
       a {
-        .transition(none);
+        transition: none;
         &:hover {
           color: #fff;
           background: @purple;

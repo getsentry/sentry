@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 import datetime
 import jwt
 import re
 import logging
-from six.moves.urllib.parse import parse_qs, urlparse, urlsplit
+from urllib.parse import parse_qs, urlparse, urlsplit
 
 
 from sentry.integrations.atlassian_connect import get_query_hash
@@ -14,11 +12,12 @@ from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.integrations.jira")
 
-JIRA_KEY = "%s.jira" % (urlparse(absolute_uri()).hostname,)
+JIRA_KEY = f"{urlparse(absolute_uri()).hostname}.jira"
 ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
+CUSTOMFIELD_PREFIX = "customfield_"
 
 
-class JiraCloud(object):
+class JiraCloud:
     """
     Contains the jira-cloud specifics that a JiraClient needs
     in order to communicate with jira
@@ -89,6 +88,7 @@ class JiraApiClient(ApiClient):
     ASSIGN_URL = "/rest/api/2/issue/%s/assignee"
     TRANSITION_URL = "/rest/api/2/issue/%s/transitions"
     EMAIL_URL = "/rest/api/3/user/email"
+    AUTOCOMPLETE_URL = "/rest/api/2/jql/autocompletedata/suggestions"
 
     integration_name = "jira"
 
@@ -103,7 +103,7 @@ class JiraApiClient(ApiClient):
         # We only support one API version for Jira, but server/cloud require different
         # authentication mechanisms and caching.
         self.jira_style = jira_style
-        super(JiraApiClient, self).__init__(verify_ssl, logging_context)
+        super().__init__(verify_ssl, logging_context)
 
     def get_cache_prefix(self):
         return self.jira_style.cache_prefix
@@ -174,7 +174,7 @@ class JiraApiClient(ApiClient):
 
         # XXX(dcramer): document how this is possible, if it even is
         if len(metas["projects"]) > 1:
-            raise ApiError(u"More than one project found matching {}.".format(project))
+            raise ApiError(f"More than one project found matching {project}.")
 
         try:
             return metas["projects"][0]
@@ -235,3 +235,14 @@ class JiraApiClient(ApiClient):
     def get_email(self, account_id):
         user = self.get_cached(self.EMAIL_URL, params={"accountId": account_id})
         return user.get("email")
+
+    def get_field_autocomplete(self, name, value):
+        if name.startswith(CUSTOMFIELD_PREFIX):
+            # Transform `customfield_0123` into `cf[0123]`
+            cf_id = name[len(CUSTOMFIELD_PREFIX) :]
+            jql_name = f"cf[{cf_id}]"
+        else:
+            jql_name = name
+        return self.get_cached(
+            self.AUTOCOMPLETE_URL, params={"fieldName": jql_name, "fieldValue": value}
+        )

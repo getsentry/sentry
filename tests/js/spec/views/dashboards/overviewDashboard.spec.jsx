@@ -91,7 +91,7 @@ describe('OverviewDashboard', function () {
 
           orderby: '-time',
           groupby: ['time', 'release'],
-          rollup: 86400,
+          rollup: 3600,
         },
       ],
     });
@@ -122,7 +122,7 @@ describe('OverviewDashboard', function () {
           limit: 1000,
           orderby: '-time',
           groupby: ['time'],
-          rollup: 86400,
+          rollup: 3600,
         }),
       })
     );
@@ -142,7 +142,7 @@ describe('OverviewDashboard', function () {
           limit: 1000,
           orderby: '-time',
           groupby: ['time'],
-          rollup: 86400,
+          rollup: 3600,
         }),
       })
     );
@@ -174,7 +174,7 @@ describe('OverviewDashboard', function () {
           orderby: '-time',
           groupby: ['time', 'release'],
           name: 'Events by Release',
-          rollup: 86400,
+          rollup: 3600,
         }),
       })
     );
@@ -229,7 +229,7 @@ describe('OverviewDashboard', function () {
           orderby: '-time',
           groupby: ['time', 'release'],
           name: 'Events by Release',
-          rollup: 86400,
+          rollup: 3600,
         }),
       })
     );

@@ -5,8 +5,6 @@ import DropdownButton from 'app/components/dropdownButton';
 import {GetActorPropsFn} from 'app/components/dropdownMenu';
 import {t, tn} from 'app/locale';
 
-type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
-
 type Props = {
   isOpen: boolean;
   getActorProps: GetActorPropsFn;
@@ -14,56 +12,39 @@ type Props = {
 };
 
 const DropDownButton = ({isOpen, getActorProps, checkedQuantity}: Props) => {
-  const buttonProps = {
-    label: t('Filter By'),
-    priority: 'default',
-    hasDarkBorderBottomColor: false,
-  };
-
   if (checkedQuantity > 0) {
-    buttonProps.label = tn('%s Active Filter', '%s Active Filters', checkedQuantity);
-    buttonProps.priority = 'primary';
-    buttonProps.hasDarkBorderBottomColor = true;
+    return (
+      <StyledDropdownButton
+        {...getActorProps()}
+        isOpen={isOpen}
+        size="small"
+        hideBottomBorder={false}
+        priority="primary"
+      >
+        {tn('%s Active Filter', '%s Active Filters', checkedQuantity)}
+      </StyledDropdownButton>
+    );
   }
 
   return (
     <StyledDropdownButton
       {...getActorProps()}
       isOpen={isOpen}
-      hasDarkBorderBottomColor={buttonProps.hasDarkBorderBottomColor}
       size="small"
-      priority={buttonProps.priority as DropdownButtonProps['priority']}
+      hideBottomBorder={false}
     >
-      {buttonProps.label}
+      {t('Filter By')}
     </StyledDropdownButton>
   );
 };
 
 export default DropDownButton;
 
-const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: boolean}>`
+const StyledDropdownButton = styled(DropdownButton)`
   border-right: 0;
-  &:hover,
-  &:active {
-    border-right: 0;
-    ${p =>
-      !p.isOpen &&
-      p.hasDarkBorderBottomColor &&
-      `
-        border-bottom-color: ${p.theme.button.primary.border};
-      `}
-  }
   z-index: ${p => p.theme.zIndex.dropdown};
-  border-radius: ${p =>
-    p.isOpen
-      ? `${p.theme.borderRadius} 0 0 0`
-      : `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`};
-  white-space: nowrap;
   max-width: 200px;
-  ${p =>
-    !p.isOpen &&
-    p.hasDarkBorderBottomColor &&
-    `
-      border-bottom-color: ${p.theme.button.primary.border};
-    `}
+  white-space: nowrap;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 `;

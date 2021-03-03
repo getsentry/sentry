@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
 from sentry.plugins.base import plugins
@@ -12,7 +10,7 @@ from sentry.models import ProjectOption
 
 class OrganizationPluginsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
-        all_plugins = dict([(p.slug, p) for p in plugins.all()])
+        all_plugins = {p.slug: p for p in plugins.all()}
 
         if "plugins" in request.GET:
             if request.GET.get("plugins") == "_all":

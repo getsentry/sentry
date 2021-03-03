@@ -1,14 +1,16 @@
 import React from 'react';
-// import {action} from '@storybook/addon-actions';
-import {withInfo} from '@storybook/addon-info';
 
 import Badge from 'app/components/badge';
 
 export default {
-  title: 'Core/Badges+Tags/Badge',
+  title: 'Core/Tags/Badge',
+  component: Badge,
+  parameters: {
+    controls: {hideNoControlsWarning: true},
+  },
 };
 
-export const Default = withInfo('Used to display numbers in a "badge"')(() => (
+export const _Badge = () => (
   <div>
     <div>
       Normal <Badge text="0" />
@@ -17,8 +19,12 @@ export const Default = withInfo('Used to display numbers in a "badge"')(() => (
       New <Badge text="50" priority="new" />
     </div>
   </div>
-));
+);
 
-Default.story = {
-  name: 'default',
+_Badge.parameters = {
+  docs: {
+    description: {
+      story: 'Used to display numbers in a "badge"',
+    },
+  },
 };

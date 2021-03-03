@@ -1,6 +1,5 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
-import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
 import Checkbox from 'app/components/checkbox';
@@ -9,6 +8,7 @@ import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
 type Props = {
   id: string;
+  disabled: boolean;
 };
 
 type State = {
@@ -17,10 +17,6 @@ type State = {
 
 const GroupCheckBox = createReactClass<Props, State>({
   displayName: 'GroupCheckBox',
-
-  propTypes: {
-    id: PropTypes.string.isRequired,
-  },
 
   mixins: [Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange') as any],
 
@@ -57,12 +53,16 @@ const GroupCheckBox = createReactClass<Props, State>({
   },
 
   render() {
+    const {disabled, id} = this.props;
+    const {isSelected} = this.state;
+
     return (
       <Checkbox
         aria-label={t('Select Issue')}
-        value={this.props.id}
-        checked={this.state.isSelected}
+        value={id}
+        checked={isSelected}
         onChange={this.onSelect}
+        disabled={disabled}
       />
     );
   },

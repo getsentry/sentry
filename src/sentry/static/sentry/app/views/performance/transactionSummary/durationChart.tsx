@@ -1,7 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import * as ReactRouter from 'react-router';
-import {Location} from 'history';
+import {Location, Query} from 'history';
 
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
@@ -9,9 +9,11 @@ import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -23,8 +25,6 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
-
-import {HeaderTitleLegend} from '../styles';
 
 const QUERY_KEYS = [
   'environment',
@@ -42,7 +42,7 @@ type Props = ReactRouter.WithRouterProps &
     api: Client;
     location: Location;
     organization: OrganizationSummary;
-    queryExtra: object;
+    queryExtra: Query;
   };
 
 const YAXIS_VALUES = ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
@@ -80,32 +80,19 @@ class DurationChart extends React.Component<Props> {
       queryExtra,
     } = this.props;
 
-    const start = this.props.start
-      ? getUtcToLocalDateObject(this.props.start)
-      : undefined;
-
-    const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : undefined;
-    const utc = decodeScalar(router.location.query.utc);
+    const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
+    const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : null;
+    const utc = decodeScalar(router.location.query.utc) !== 'false';
 
     const legend = {
       right: 10,
-      top: 0,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left',
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
+      top: 5,
       selected: getSeriesSelection(location),
     };
 
     const datetimeSelection = {
-      start: start || null,
-      end: end || null,
+      start,
+      end,
       period: statsPeriod,
     };
 
@@ -120,7 +107,7 @@ class DurationChart extends React.Component<Props> {
         showSymbol: false,
       },
       tooltip: {
-        trigger: 'axis',
+        trigger: 'axis' as const,
         valueFormatter: tooltipFormatter,
       },
       yAxis: {
@@ -144,19 +131,14 @@ class DurationChart extends React.Component<Props> {
             )}
           />
         </HeaderTitleLegend>
-        <ChartZoom
-          router={router}
-          period={statsPeriod}
-          projects={project}
-          environments={environment}
-        >
+        <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
           {zoomRenderProps => (
             <EventsRequest
               api={api}
               organization={organization}
               period={statsPeriod}
-              project={[...project]}
-              environment={[...environment]}
+              project={project}
+              environment={environment}
               start={start}
               end={end}
               interval={getInterval(datetimeSelection, true)}
@@ -192,10 +174,6 @@ class DurationChart extends React.Component<Props> {
                       .reverse()
                   : [];
 
-                // Stack the toolbox under the legend.
-                // so all series names are clickable.
-                zoomRenderProps.toolBox.z = -1;
-
                 return (
                   <ReleaseSeries
                     start={start}
@@ -219,7 +197,7 @@ class DurationChart extends React.Component<Props> {
                               series={[...series, ...releaseSeries]}
                             />
                           ),
-                          fixed: 'Duration Chart',
+                          fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                         })}
                       </TransitionChart>
                     )}

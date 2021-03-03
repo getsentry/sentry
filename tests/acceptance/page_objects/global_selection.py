@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from .base import BasePage
 
 
@@ -20,9 +18,7 @@ class GlobalSelectionPage(BasePage):
         self.browser.click('[data-test-id="global-header-project-selector"]')
 
     def select_project_by_slug(self, slug):
-        project_item_selector = u'//*[@data-test-id="badge-display-name" and text()="{}"]'.format(
-            slug
-        )
+        project_item_selector = f'//*[@data-test-id="badge-display-name" and text()="{slug}"]'
 
         self.open_project_selector()
         self.browser.wait_until(xpath=project_item_selector)
@@ -32,7 +28,7 @@ class GlobalSelectionPage(BasePage):
         self.browser.click('[data-test-id="global-header-environment-selector"]')
 
     def select_environment(self, environment):
-        environment_path = u'//*[text()="{}"]'.format(environment)
+        environment_path = f'//*[text()="{environment}"]'
 
         self.open_project_selector()
         self.browser.wait_until(xpath=environment_path)
@@ -42,7 +38,7 @@ class GlobalSelectionPage(BasePage):
         self.browser.click('[data-test-id="global-header-timerange-selector"]')
 
     def select_date(self, date):
-        date_path = u'//*[text()="{}"]'.format(date)
+        date_path = f'//*[text()="{date}"]'
 
         self.open_date_selector()
         self.browser.wait_until(xpath=date_path)

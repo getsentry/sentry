@@ -1,7 +1,6 @@
 """
 Generic way to sign and unsign data for use in urls.
 """
-from __future__ import absolute_import
 
 import base64
 

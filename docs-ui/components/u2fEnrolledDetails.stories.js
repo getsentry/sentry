@@ -1,7 +1,5 @@
 import React from 'react';
 import {action} from '@storybook/addon-actions';
-import {boolean} from '@storybook/addon-knobs';
-import {withInfo} from '@storybook/addon-info';
 
 import U2fEnrolledDetails from 'app/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
 
@@ -9,11 +7,9 @@ export default {
   title: 'UI/U2fEnrolledDetails',
 };
 
-export const U2FEnrolledDetails = withInfo('U2f details after enrollment', {
-  propTablesExclude: ['Button'],
-})(() => (
+export const U2FEnrolledDetails = ({isEnrolled}) => (
   <U2fEnrolledDetails
-    isEnrolled={boolean('Is Enrolled', true)}
+    isEnrolled={isEnrolled}
     id="u2f"
     devices={[
       {
@@ -27,8 +23,16 @@ export const U2FEnrolledDetails = withInfo('U2f details after enrollment', {
     ]}
     onRemoveU2fDevice={action('On Remove Device')}
   />
-));
+);
 
-U2FEnrolledDetails.story = {
-  name: 'U2fEnrolledDetails',
+U2FEnrolledDetails.storyName = 'U2fEnrolledDetails';
+U2FEnrolledDetails.args = {
+  isEnrolled: true,
+};
+U2FEnrolledDetails.parameters = {
+  docs: {
+    description: {
+      story: 'U2f details after enrollment',
+    },
+  },
 };

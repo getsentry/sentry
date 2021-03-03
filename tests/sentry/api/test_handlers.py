@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import math
 
 from django.conf.urls import url
@@ -33,6 +31,7 @@ class TestRateLimited(APITestCase):
         # DRF ceils our configured wait time, this produces a different number
         # type between 2 and 3. In 2 this produces a float, in 3 this produces
         # an integer.
-        assert resp.data[
-            "detail"
-        ] == u"Request was throttled. Expected available in {} second.".format(math.ceil(1))
+        assert (
+            resp.data["detail"]
+            == f"Request was throttled. Expected available in {math.ceil(1)} second."
+        )

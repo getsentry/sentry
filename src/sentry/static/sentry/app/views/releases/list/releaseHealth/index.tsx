@@ -7,7 +7,7 @@ import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
 import {tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {GlobalSelection, Release} from 'app/types';
+import {GlobalSelection, Organization, Release} from 'app/types';
 
 import {DisplayOption} from '../utils';
 
@@ -15,7 +15,7 @@ import Content from './content';
 
 type Props = {
   release: Release;
-  orgSlug: string;
+  organization: Organization;
   activeDisplay: DisplayOption;
   location: Location;
   showPlaceholders: boolean;
@@ -36,7 +36,7 @@ class ReleaseHealth extends React.Component<Props> {
   render() {
     const {
       release,
-      orgSlug,
+      organization,
       activeDisplay,
       location,
       showPlaceholders,
@@ -47,7 +47,11 @@ class ReleaseHealth extends React.Component<Props> {
     // show only the ones that are selected in global header
     const [projectsToShow, projectsToHide] = partition(
       release.projects.sort((a, b) => a.slug.localeCompare(b.slug)),
-      p => (selection.projects.length > 0 ? selection.projects.includes(p.id) : true)
+      p =>
+        // do not filter for My Projects & All Projects
+        selection.projects.length > 0 && !selection.projects.includes(-1)
+          ? selection.projects.includes(p.id)
+          : true
     );
 
     function getHiddenProjectsTooltip() {
@@ -64,8 +68,8 @@ class ReleaseHealth extends React.Component<Props> {
     return (
       <React.Fragment>
         <Content
+          organization={organization}
           activeDisplay={activeDisplay}
-          orgSlug={orgSlug}
           releaseVersion={release.version}
           projects={projectsToShow}
           location={location}

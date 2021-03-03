@@ -7,14 +7,15 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import Pills from 'app/components/pills';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event} from 'app/types';
+import {Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import {defined, generateQueryWithTag} from 'app/utils';
 
 import EventTagsPill from './eventTagsPill';
 
 type Props = {
   event: Event;
-  orgId: string;
+  organization: Organization;
   projectId: string;
   location: Location;
   hasQueryFeature: boolean;
@@ -22,7 +23,7 @@ type Props = {
 
 const EventTags = ({
   event: {tags},
-  orgId,
+  organization,
   projectId,
   location,
   hasQueryFeature,
@@ -31,8 +32,9 @@ const EventTags = ({
     return null;
   }
 
-  const streamPath = `/organizations/${orgId}/issues/`;
-  const releasesPath = `/organizations/${orgId}/releases/`;
+  const orgSlug = organization.slug;
+  const streamPath = `/organizations/${orgSlug}/issues/`;
+  const releasesPath = `/organizations/${orgSlug}/releases/`;
 
   return (
     <StyledEventDataSection title={t('Tags')} type="tags">
@@ -42,7 +44,7 @@ const EventTags = ({
             key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
             tag={tag}
             projectId={projectId}
-            orgId={orgId}
+            organization={organization}
             location={location}
             query={generateQueryWithTag(location.query, tag)}
             streamPath={streamPath}

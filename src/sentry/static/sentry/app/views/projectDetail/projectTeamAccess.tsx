@@ -3,50 +3,39 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import {SectionHeading} from 'app/components/charts/styles';
+import Collapsible from 'app/components/collapsible';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
+import {IconOpen} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 
+import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
+
 type Props = {
   organization: Organization;
-  project?: Project | null;
+  project?: Project;
 };
 
-type State = {
-  collapsed: boolean;
-};
+function ProjectTeamAccess({organization, project}: Props) {
+  const hasEditPermissions = organization.access.includes('project:write');
+  const settingsLink = `/settings/${organization.slug}/projects/${project?.slug}/teams/`;
 
-class ProjectTeamAccess extends React.Component<Props, State> {
-  state: State = {
-    collapsed: true,
-  };
-
-  static MAX_WHEN_COLLAPSED = 5;
-
-  onCollapseToggle = () => {
-    this.setState(prevState => ({
-      collapsed: !prevState.collapsed,
-    }));
-  };
-
-  renderInnerBody() {
-    const {project, organization} = this.props;
-
+  function renderInnerBody() {
     if (!project) {
-      // TODO(project-detail): check the most common number of teams and set height accordingly
-      return <Placeholder />;
+      return <Placeholder height="23px" />;
     }
 
     if (project.teams.length === 0) {
-      const hasPermission = organization.access.includes('project:write');
       return (
         <Button
-          to={`/settings/${organization.slug}/projects/${project.slug}/teams/`}
-          disabled={!hasPermission}
-          title={hasPermission ? undefined : t('You do not have permission to do this')}
+          to={settingsLink}
+          disabled={!hasEditPermissions}
+          title={
+            hasEditPermissions ? undefined : t('You do not have permission to do this')
+          }
           priority="primary"
           size="small"
         >
@@ -55,65 +44,53 @@ class ProjectTeamAccess extends React.Component<Props, State> {
       );
     }
 
-    const {teams} = project;
-    const {collapsed} = this.state;
-    const canExpand = teams.length > ProjectTeamAccess.MAX_WHEN_COLLAPSED;
-    const teamsToRender =
-      collapsed && canExpand
-        ? teams.slice(0, ProjectTeamAccess.MAX_WHEN_COLLAPSED)
-        : teams;
-    const numberOfCollapsedTeams = teams.length - teamsToRender.length;
-
     return (
-      <React.Fragment>
-        {teamsToRender.map(team => (
-          <StyledLink
-            to={`/settings/${organization.slug}/teams/${team.slug}/`}
-            key={team.slug}
-          >
-            <IdBadge team={team} hideAvatar />
-          </StyledLink>
-        ))}
-        {numberOfCollapsedTeams > 0 && (
-          <CollapseToggle priority="link" onClick={this.onCollapseToggle}>
+      <Collapsible
+        expandButton={({onExpand, numberOfCollapsedItems}) => (
+          <Button priority="link" onClick={onExpand}>
             {tn(
               'Show %s collapsed team',
               'Show %s collapsed teams',
-              numberOfCollapsedTeams
+              numberOfCollapsedItems
             )}
-          </CollapseToggle>
+          </Button>
         )}
-        {numberOfCollapsedTeams === 0 && canExpand && (
-          <CollapseToggle priority="link" onClick={this.onCollapseToggle}>
-            {t('Collapse')}
-          </CollapseToggle>
-        )}
-      </React.Fragment>
+      >
+        {project.teams
+          .sort((a, b) => a.slug.localeCompare(b.slug))
+          .map(team => (
+            <StyledLink
+              to={`/settings/${organization.slug}/teams/${team.slug}/`}
+              key={team.slug}
+            >
+              <IdBadge team={team} hideAvatar />
+            </StyledLink>
+          ))}
+      </Collapsible>
     );
   }
 
-  render() {
-    return (
-      <Section>
+  return (
+    <StyledSidebarSection>
+      <SectionHeadingWrapper>
         <SectionHeading>{t('Team Access')}</SectionHeading>
+        <SectionHeadingLink to={settingsLink}>
+          <IconOpen />
+        </SectionHeadingLink>
+      </SectionHeadingWrapper>
 
-        <div>{this.renderInnerBody()}</div>
-      </Section>
-    );
-  }
+      <div>{renderInnerBody()}</div>
+    </StyledSidebarSection>
+  );
 }
 
-const Section = styled('section')`
-  margin-bottom: ${space(2)};
+const StyledSidebarSection = styled(SidebarSection)`
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const StyledLink = styled(Link)`
   display: block;
   margin-bottom: ${space(0.5)};
-`;
-
-const CollapseToggle = styled(Button)`
-  width: 100%;
 `;
 
 export default ProjectTeamAccess;

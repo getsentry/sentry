@@ -177,7 +177,7 @@ const SearchListItem = styled(ListItem)`
 
   &:hover,
   &.active {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.focus};
   }
 `;
 

@@ -2,6 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
+import GlobalModal from 'app/components/globalModal';
 import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
 
 describe('SentryAppExternalIssueActions', () => {
@@ -9,6 +10,7 @@ describe('SentryAppExternalIssueActions', () => {
   let component;
   let sentryApp;
   let install;
+  let submitUrl;
   let externalIssue;
   let wrapper;
 
@@ -25,6 +27,7 @@ describe('SentryAppExternalIssueActions', () => {
     //unable to use the selectByValue here so remove the select option
     component.schema.create.required_fields.pop();
     install = TestStubs.SentryAppInstallation({sentryApp});
+    submitUrl = `/sentry-app-installations/${install.uuid}/external-issue-actions/`;
     externalIssue = TestStubs.PlatformExternalIssue({
       groupId: group.id,
       serviceType: component.sentryApp.slug,
@@ -39,11 +42,14 @@ describe('SentryAppExternalIssueActions', () => {
   describe('without an external issue linked', () => {
     beforeEach(() => {
       wrapper = mountWithTheme(
-        <SentryAppExternalIssueActions
-          group={group}
-          sentryAppInstallation={install}
-          sentryAppComponent={component}
-        />,
+        <React.Fragment>
+          <GlobalModal />
+          <SentryAppExternalIssueActions
+            group={group}
+            sentryAppInstallation={install}
+            sentryAppComponent={component}
+          />
+        </React.Fragment>,
         TestStubs.routerContext()
       );
     });
@@ -58,13 +64,20 @@ describe('SentryAppExternalIssueActions', () => {
       expect(wrapper.find('StyledIcon IconAdd')).toHaveLength(1);
     });
 
-    it('opens the modal', () => {
+    it('opens the modal', async () => {
       wrapper.find('IntegrationLink a').simulate('click');
+
+      await tick();
+      wrapper.update();
+
       expect(wrapper.find('Modal').first().prop('show')).toEqual(true);
     });
 
-    it('renders the Create Issue form fields, based on schema', () => {
+    it('renders the Create Issue form fields, based on schema', async () => {
       wrapper.find('IntegrationLink a').simulate('click');
+      await tick();
+      wrapper.update();
+
       wrapper.find('Modal NavTabs li.create a').first().simulate('click'); // Create
 
       component.schema.create.required_fields.forEach(field => {
@@ -76,8 +89,11 @@ describe('SentryAppExternalIssueActions', () => {
       });
     });
 
-    it('renders the Link Issue form fields, based on schema', () => {
+    it('renders the Link Issue form fields, based on schema', async () => {
       wrapper.find('IntegrationLink a').simulate('click');
+      await tick();
+      wrapper.update();
+
       wrapper.find('Modal NavTabs li.link a').first().simulate('click'); // Link
 
       component.schema.link.required_fields.forEach(field => {
@@ -89,14 +105,17 @@ describe('SentryAppExternalIssueActions', () => {
       });
     });
 
-    it('links to an existing Issue', () => {
+    it('links to an existing Issue', async () => {
       const request = MockApiClient.addMockResponse({
-        url: `/sentry-app-installations/${install.uuid}/external-issues/`,
+        url: submitUrl,
         method: 'POST',
         body: externalIssue,
       });
 
       wrapper.find('IntegrationLink a').simulate('click');
+
+      await tick();
+      wrapper.update();
 
       wrapper.find('NavTabs li.link a').simulate('click');
 
@@ -105,7 +124,7 @@ describe('SentryAppExternalIssueActions', () => {
       wrapper.find('Form form').simulate('submit');
 
       expect(request).toHaveBeenCalledWith(
-        `/sentry-app-installations/${install.uuid}/external-issues/`,
+        submitUrl,
         expect.objectContaining({
           data: expect.objectContaining({
             action: 'link',
@@ -116,14 +135,17 @@ describe('SentryAppExternalIssueActions', () => {
       );
     });
 
-    it('creates a new Issue', () => {
+    it('creates a new Issue', async () => {
       const request = MockApiClient.addMockResponse({
-        url: `/sentry-app-installations/${install.uuid}/external-issues/`,
+        url: submitUrl,
         method: 'POST',
         body: externalIssue,
       });
 
       wrapper.find('IntegrationLink a').simulate('click');
+      await tick();
+      wrapper.update();
+
       wrapper.find('NavTabs li.create a').simulate('click');
 
       wrapper.find('Input#title').simulate('change', {target: {value: 'foo'}});
@@ -132,7 +154,7 @@ describe('SentryAppExternalIssueActions', () => {
       wrapper.find('Form form').simulate('submit');
 
       expect(request).toHaveBeenCalledWith(
-        `/sentry-app-installations/${install.uuid}/external-issues/`,
+        submitUrl,
         expect.objectContaining({
           data: expect.objectContaining({
             action: 'create',

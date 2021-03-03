@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import datetime
 from django.utils import timezone
 
@@ -9,7 +7,7 @@ from sentry.testutils import AcceptanceTestCase
 
 class ProjectKeysTest(AcceptanceTestCase):
     def setUp(self):
-        super(ProjectKeysTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
@@ -25,7 +23,7 @@ class ProjectKeysTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.path = u"/{}/{}/settings/keys/".format(self.org.slug, self.project.slug)
+        self.path = f"/{self.org.slug}/{self.project.slug}/settings/keys/"
 
     def test_simple(self):
         self.browser.get(self.path)
@@ -36,7 +34,7 @@ class ProjectKeysTest(AcceptanceTestCase):
 
 class ProjectKeyDetailsTest(AcceptanceTestCase):
     def setUp(self):
-        super(ProjectKeyDetailsTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
@@ -52,9 +50,7 @@ class ProjectKeyDetailsTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.path = u"/{}/{}/settings/keys/{}/".format(
-            self.org.slug, self.project.slug, self.pk.public_key
-        )
+        self.path = f"/{self.org.slug}/{self.project.slug}/settings/keys/{self.pk.public_key}/"
 
     def test_simple(self):
         self.browser.get(self.path)

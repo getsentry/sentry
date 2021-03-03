@@ -1,7 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
-import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -11,27 +11,32 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
-import {PREBUILT_DASHBOARDS} from './data';
-import {DashboardListItem, OrgDashboard, OrgDashboardResponse} from './types';
+import {DashboardDetails, DashboardListItem} from './types';
 
 type OrgDashboardsChildrenProps = {
-  dashboard: DashboardListItem;
+  dashboard: DashboardDetails | null;
   dashboards: DashboardListItem[];
+  error: boolean;
   reloadData: () => void;
 };
 
 type Props = {
   api: Client;
-  location: Location;
-  params: Params;
   organization: Organization;
+  params: {orgId: string; dashboardId?: string};
+  location: Location;
   children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
 };
 
 type State = {
   // endpoint response
-  dashboards: OrgDashboardResponse[] | null;
+  dashboards: DashboardListItem[] | null;
+  /**
+   * The currently selected dashboard.
+   */
+  selectedDashboard: DashboardDetails | null;
 } & AsyncComponent['state'];
 
 class OrgDashboards extends AsyncComponent<Props, State> {
@@ -42,72 +47,74 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     error: false,
     errors: [],
 
-    // endpoint response
     dashboards: [],
+    selectedDashboard: null,
   };
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
-
-    const url = `/organizations/${organization.slug}/dashboards/`;
-
-    return [['dashboards', url]];
-  }
-
-  getOrgDashboards(): OrgDashboard[] {
-    const {dashboards} = this.state;
-
-    if (!Array.isArray(dashboards)) {
-      return [];
+  componentDidUpdate(prevProps: Props) {
+    if (!isEqual(prevProps.params, this.props.params)) {
+      this.remountComponent();
     }
-
-    return dashboards.map(dashboard => {
-      return {
-        type: 'org',
-        ...dashboard,
-      };
-    });
   }
 
-  getCurrentDashboard(): DashboardListItem | undefined {
-    const {params} = this.props;
-    const dashboardId = params.dashboardId as string | undefined;
-    const orgDashboards = this.getOrgDashboards();
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {organization, params} = this.props;
+    const url = `/organizations/${organization.slug}/dashboards/`;
+    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [['dashboards', url]];
 
-    if (typeof dashboardId === 'string') {
-      return orgDashboards.find(dashboard => {
-        return dashboard.id === dashboardId;
+    if (params.dashboardId) {
+      endpoints.push(['selectedDashboard', `${url}${params.dashboardId}/`]);
+      trackAnalyticsEvent({
+        eventKey: 'dashboards2.view',
+        eventName: 'Dashboards2: View dashboard',
+        organization_id: parseInt(this.props.organization.id, 10),
+        dashboard_id: params.dashboardId,
       });
     }
 
-    return PREBUILT_DASHBOARDS[0];
+    return endpoints;
   }
 
-  getDashboardsList(): DashboardListItem[] {
+  getDashboards(): DashboardListItem[] {
     const {dashboards} = this.state;
 
-    if (!Array.isArray(dashboards)) {
-      return PREBUILT_DASHBOARDS;
+    return Array.isArray(dashboards) ? dashboards : [];
+  }
+
+  onRequestSuccess({stateKey, data}) {
+    const {params, organization, location} = this.props;
+    if (params.dashboardId || stateKey === 'selectedDashboard') {
+      return;
     }
 
-    const normalizedOrgDashboards: OrgDashboard[] = dashboards.map(dashboard => {
-      return {
-        type: 'org',
-        ...dashboard,
-      };
+    // If we don't have a selected dashboard, and one isn't going to arrive
+    // we can redirect to the first dashboard in the list.
+    const dashboardId = data.length ? data[0].id : 'default-overview';
+    const url = `/organizations/${organization.slug}/dashboards/${dashboardId}/`;
+    browserHistory.replace({
+      pathname: url,
+      query: {
+        ...location.query,
+      },
     });
-
-    return [...PREBUILT_DASHBOARDS, ...normalizedOrgDashboards];
   }
 
   renderBody() {
-    const dashboard = this.getCurrentDashboard();
+    const {organization, children} = this.props;
+    const {selectedDashboard, error} = this.state;
 
-    if (!dashboard) {
-      return <NotFound />;
-    }
-
-    return this.renderContent(dashboard);
+    return (
+      <PageContent>
+        <LightWeightNoProjectMessage organization={organization}>
+          {children({
+            error,
+            dashboard: selectedDashboard,
+            dashboards: this.getDashboards(),
+            reloadData: this.reloadData.bind(this),
+          })}
+        </LightWeightNoProjectMessage>
+      </PageContent>
+    );
   }
 
   renderError(error: Error) {
@@ -122,26 +129,10 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     return super.renderError(error, true, true);
   }
 
-  renderContent(dashboard: DashboardListItem) {
-    const {organization, children} = this.props;
-
-    return (
-      <PageContent>
-        <LightWeightNoProjectMessage organization={organization}>
-          {children({
-            dashboard,
-            dashboards: this.getDashboardsList(),
-            reloadData: this.reloadData.bind(this),
-          })}
-        </LightWeightNoProjectMessage>
-      </PageContent>
-    );
-  }
-
   renderComponent() {
     const {organization, location} = this.props;
 
-    if (!organization.features.includes('dashboards-v2')) {
+    if (!organization.features.includes('dashboards-basic')) {
       // Redirect to Dashboards v1
       browserHistory.replace({
         pathname: `/organizations/${organization.slug}/dashboards/`,

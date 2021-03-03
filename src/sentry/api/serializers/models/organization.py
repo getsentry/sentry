@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 from rest_framework import serializers
 
 from sentry_relay.auth import PublicKey
@@ -25,6 +22,7 @@ from sentry.constants import (
     JOIN_REQUESTS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     APDEX_THRESHOLD_DEFAULT,
+    ALERTS_MEMBER_WRITE_DEFAULT,
 )
 
 from sentry.lang.native.utils import convert_crashreport_count
@@ -47,11 +45,11 @@ _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 class TrustedRelaySerializer(serializers.Serializer):
     internal_external = (
-        (u"name", u"name"),
-        (u"description", u"description"),
-        (u"public_key", u"publicKey"),
-        (u"created", u"created"),
-        (u"last_modified", u"lastModified"),
+        ("name", "name"),
+        ("description", "description"),
+        ("public_key", "publicKey"),
+        ("created", "created"),
+        ("last_modified", "lastModified"),
     )
 
     def to_representation(self, instance):
@@ -64,9 +62,9 @@ class TrustedRelaySerializer(serializers.Serializer):
 
     def to_internal_value(self, data):
         try:
-            key_name = data.get(u"name")
-            public_key = data.get(u"publicKey") or ""
-            description = data.get(u"description")
+            key_name = data.get("name")
+            public_key = data.get("publicKey") or ""
+            description = data.get("description")
         except AttributeError:
             raise serializers.ValidationError("Bad structure received for Trusted Relays")
 
@@ -80,21 +78,17 @@ class TrustedRelaySerializer(serializers.Serializer):
 
         if len(public_key) == 0:
             raise serializers.ValidationError(
-                "Missing public key for relay key info with name:'{}' in Trusted Relays".format(
-                    key_name
-                )
+                f"Missing public key for relay key info with name:'{key_name}' in Trusted Relays"
             )
 
         try:
             PublicKey.parse(public_key)
         except RelayError:
             raise serializers.ValidationError(
-                "Invalid public key for relay key info with name:'{}' in Trusted Relays".format(
-                    key_name
-                )
+                f"Invalid public key for relay key info with name:'{key_name}' in Trusted Relays"
             )
 
-        return {u"public_key": public_key, u"name": key_name, u"description": description}
+        return {"public_key": public_key, "name": key_name, "description": description}
 
 
 @register(Organization)
@@ -135,9 +129,7 @@ class OrganizationSerializer(Serializer):
 
         # batch_has has found some features
         if batch_features:
-            for feature_name, active in batch_features.get(
-                "organization:{}".format(obj.id), {}
-            ).items():
+            for feature_name, active in batch_features.get(f"organization:{obj.id}", {}).items():
                 if active:
                     # Remove organization prefix
                     feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
@@ -172,7 +164,7 @@ class OrganizationSerializer(Serializer):
             feature_list.add("shared-issues")
 
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "slug": obj.slug,
             "status": {"id": status.name.lower(), "name": status.label},
             "name": obj.name or obj.slug,
@@ -193,7 +185,7 @@ class OnboardingTasksSerializer(Serializer):
 
         data = {}
         for item in item_list:
-            data[item] = {"user": user_map.get(six.text_type(item.user_id))}
+            data[item] = {"user": user_map.get(str(item.user_id))}
         return data
 
     def serialize(self, obj, attrs, user):
@@ -209,7 +201,7 @@ class OnboardingTasksSerializer(Serializer):
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
     def get_attrs(self, item_list, user, **kwargs):
-        return super(DetailedOrganizationSerializer, self).get_attrs(item_list, user)
+        return super().get_attrs(item_list, user)
 
     def serialize(self, obj, attrs, user, access):
         from sentry import experiments
@@ -220,7 +212,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         experiment_assignments = experiments.all(org=obj, actor=user)
 
-        context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
+        context = super().serialize(obj, attrs, user)
         max_rate = quotas.get_maximum_quota(obj)
         context["experiments"] = experiment_assignments
         context["quota"] = {
@@ -265,14 +257,17 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "storeCrashReports": convert_crashreport_count(
                     obj.get_option("sentry:store_crash_reports")
                 ),
-                "attachmentsRole": six.text_type(
+                "attachmentsRole": str(
                     obj.get_option("sentry:attachments_role", ATTACHMENTS_ROLE_DEFAULT)
                 ),
-                "debugFilesRole": six.text_type(
+                "debugFilesRole": str(
                     obj.get_option("sentry:debug_files_role", DEBUG_FILES_ROLE_DEFAULT)
                 ),
                 "eventsMemberAdmin": bool(
                     obj.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT)
+                ),
+                "alertsMemberWrite": bool(
+                    obj.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT)
                 ),
                 "scrubIPAddresses": bool(
                     obj.get_option(
@@ -285,8 +280,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "allowJoinRequests": bool(
                     obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
                 ),
-                "relayPiiConfig": six.text_type(obj.get_option("sentry:relay_pii_config") or u"")
-                or None,
+                "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
                 "apdexThreshold": int(
                     obj.get_option("sentry:apdex_threshold", APDEX_THRESHOLD_DEFAULT)
                 ),
@@ -309,9 +303,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
 class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSerializer):
     def get_attrs(self, item_list, user, **kwargs):
-        return super(DetailedOrganizationSerializerWithProjectsAndTeams, self).get_attrs(
-            item_list, user
-        )
+        return super().get_attrs(item_list, user)
 
     def _project_list(self, organization, access):
         member_projects = list(access.projects)
@@ -345,9 +337,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         from sentry.api.serializers.models.project import ProjectSummarySerializer
         from sentry.api.serializers.models.team import TeamSerializer
 
-        context = super(DetailedOrganizationSerializerWithProjectsAndTeams, self).serialize(
-            obj, attrs, user, access
-        )
+        context = super().serialize(obj, attrs, user, access)
 
         team_list = self._team_list(obj, access)
         project_list = self._project_list(obj, access)

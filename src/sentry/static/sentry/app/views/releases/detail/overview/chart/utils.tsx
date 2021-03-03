@@ -1,15 +1,25 @@
+import color from 'color';
+
 import {DateTimeObject, getDiffInMinutes, TWO_WEEKS} from 'app/components/charts/utils';
+import CHART_PALETTE from 'app/constants/chartPalette';
 import {t} from 'app/locale';
-import {GlobalSelection, NewQuery, Organization} from 'app/types';
-import {escapeDoubleQuotes} from 'app/utils';
+import {GlobalSelection, NewQuery, Organization, SessionApiResponse} from 'app/types';
+import {Series} from 'app/types/echarts';
+import {escapeDoubleQuotes, percent} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {formatVersion} from 'app/utils/formatters';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
-import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
+import {getCrashFreePercent} from 'app/views/releases/utils';
+import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
 import {EventType, YAxis} from './releaseChartControls';
+
+type ChartData = Record<string, Series>;
+
+const SESSIONS_CHART_PALETTE = CHART_PALETTE[3];
 
 export function getInterval(datetimeObj: DateTimeObject) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -25,7 +35,8 @@ export function getReleaseEventView(
   selection: GlobalSelection,
   version: string,
   yAxis?: YAxis,
-  eventType?: EventType,
+  eventType: EventType = EventType.ALL,
+  vitalType: WebVital = WebVital.LCP,
   organization?: Organization,
   /**
    * Indicates that we're only interested in the current release.
@@ -67,14 +78,13 @@ export function getReleaseEventView(
           )
         ),
       });
-    case YAxis.COUNT_LCP:
+    case YAxis.COUNT_VITAL:
     case YAxis.COUNT_DURATION:
-      const column =
-        yAxis === YAxis.COUNT_DURATION ? 'transaction.duration' : 'measurements.lcp';
+      const column = yAxis === YAxis.COUNT_DURATION ? 'transaction.duration' : vitalType;
       const threshold =
         yAxis === YAxis.COUNT_DURATION
           ? organization?.apdexThreshold
-          : WEB_VITAL_DETAILS[WebVital.LCP].failureThreshold;
+          : WEB_VITAL_DETAILS[vitalType].poorThreshold;
       return EventView.fromSavedQuery({
         ...baseQuery,
         query: stringifyQueryObject(
@@ -88,25 +98,14 @@ export function getReleaseEventView(
         ),
       });
     case YAxis.EVENTS:
-      if (organization?.features?.includes('release-performance-views')) {
-        const eventTypeFilter = eventType === 'all' ? '' : `event.type:${eventType}`;
-        return EventView.fromSavedQuery({
-          ...baseQuery,
-          query: stringifyQueryObject(
-            new QueryResults([releaseFilter, eventTypeFilter].filter(Boolean))
-          ),
-        });
-      } else {
-        // TODO(tonyx): Delete this else once the feature flags are removed
-        return EventView.fromSavedQuery({
-          ...baseQuery,
-          fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
-          query: stringifyQueryObject(
-            new QueryResults([`release:${version}`, '!event.type:transaction'])
-          ),
-          orderby: '-last_seen',
-        });
-      }
+      const eventTypeFilter =
+        eventType === EventType.ALL ? '' : `event.type:${eventType}`;
+      return EventView.fromSavedQuery({
+        ...baseQuery,
+        query: stringifyQueryObject(
+          new QueryResults([releaseFilter, eventTypeFilter].filter(Boolean))
+        ),
+      });
     default:
       return EventView.fromSavedQuery({
         ...baseQuery,
@@ -117,4 +116,339 @@ export function getReleaseEventView(
         orderby: '-last_seen',
       });
   }
+}
+
+export function initSessionsBreakdownChartData(): ChartData {
+  return {
+    healthy: {
+      seriesName: sessionTerm.healthy,
+      data: [],
+      color: SESSIONS_CHART_PALETTE[3],
+      areaStyle: {
+        color: SESSIONS_CHART_PALETTE[3],
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    errored: {
+      seriesName: sessionTerm.errored,
+      data: [],
+      color: SESSIONS_CHART_PALETTE[0],
+      areaStyle: {
+        color: SESSIONS_CHART_PALETTE[0],
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    abnormal: {
+      seriesName: sessionTerm.abnormal,
+      data: [],
+      color: SESSIONS_CHART_PALETTE[1],
+      areaStyle: {
+        color: SESSIONS_CHART_PALETTE[1],
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    crashed: {
+      seriesName: sessionTerm.crashed,
+      data: [],
+      color: SESSIONS_CHART_PALETTE[2],
+      areaStyle: {
+        color: SESSIONS_CHART_PALETTE[2],
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+  };
+}
+
+export function initOtherSessionsBreakdownChartData(): ChartData {
+  return {
+    healthy: {
+      seriesName: sessionTerm.otherHealthy,
+      data: [],
+      stack: 'otherArea',
+      z: 0,
+      color: SESSIONS_CHART_PALETTE[3],
+      areaStyle: {
+        color: SESSIONS_CHART_PALETTE[3],
+        opacity: 0.3,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    errored: {
+      seriesName: sessionTerm.otherErrored,
+      data: [],
+      stack: 'otherArea',
+      z: 0,
+      color: SESSIONS_CHART_PALETTE[0],
+      areaStyle: {
+        color: SESSIONS_CHART_PALETTE[0],
+        opacity: 0.3,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    abnormal: {
+      seriesName: sessionTerm.otherAbnormal,
+      data: [],
+      stack: 'otherArea',
+      z: 0,
+      color: SESSIONS_CHART_PALETTE[1],
+      areaStyle: {
+        color: SESSIONS_CHART_PALETTE[1],
+        opacity: 0.3,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    crashed: {
+      seriesName: sessionTerm.otherCrashed,
+      data: [],
+      stack: 'otherArea',
+      z: 0,
+      color: SESSIONS_CHART_PALETTE[2],
+      areaStyle: {
+        color: SESSIONS_CHART_PALETTE[2],
+        opacity: 0.3,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    ...initOtherReleasesChartData(),
+  };
+}
+
+export function initCrashFreeChartData(): ChartData {
+  return {
+    users: {
+      seriesName: sessionTerm['crash-free-users'],
+      data: [],
+      color: CHART_PALETTE[1][0],
+      lineStyle: {
+        color: CHART_PALETTE[1][0],
+      },
+    },
+    sessions: {
+      seriesName: sessionTerm['crash-free-sessions'],
+      data: [],
+      color: CHART_PALETTE[1][1],
+      lineStyle: {
+        color: CHART_PALETTE[1][1],
+      },
+    },
+  };
+}
+
+export function initOtherCrashFreeChartData(): ChartData {
+  return {
+    ...initOtherReleasesChartData(),
+    users: {
+      seriesName: sessionTerm.otherCrashFreeUsers,
+      data: [],
+      z: 0,
+      color: CHART_PALETTE[1][0],
+      lineStyle: {
+        color: CHART_PALETTE[1][0],
+        opacity: 0.1,
+      },
+    },
+    sessions: {
+      seriesName: sessionTerm.otherCrashFreeSessions,
+      data: [],
+      z: 0,
+      color: CHART_PALETTE[1][1],
+      lineStyle: {
+        color: CHART_PALETTE[1][1],
+        opacity: 0.3,
+      },
+    },
+  };
+}
+
+export function initSessionDurationChartData(): ChartData {
+  return {
+    0: {
+      seriesName: sessionTerm.duration,
+      data: [],
+      color: CHART_PALETTE[0][0],
+      areaStyle: {
+        color: CHART_PALETTE[0][0],
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+  };
+}
+
+export function initOtherSessionDurationChartData(): ChartData {
+  return {
+    0: {
+      seriesName: sessionTerm.otherReleases,
+      data: [],
+      z: 0,
+      color: color(CHART_PALETTE[0][0]).alpha(0.4).string(),
+      areaStyle: {
+        color: CHART_PALETTE[0][0],
+        opacity: 0.3,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+  };
+}
+
+// this series will never be filled with data - we use it to act as an alias in legend (we don't display other healthy, other crashes, etc. there)
+// if you click on it, we toggle all "other" series (other healthy, other crashed, ...)
+function initOtherReleasesChartData(): ChartData {
+  return {
+    otherReleases: {
+      seriesName: sessionTerm.otherReleases,
+      data: [],
+      color: color(CHART_PALETTE[0][0]).alpha(0.4).string(),
+    },
+  };
+}
+
+export function isOtherSeries(series: Series) {
+  return [
+    sessionTerm.otherCrashed,
+    sessionTerm.otherAbnormal,
+    sessionTerm.otherErrored,
+    sessionTerm.otherHealthy,
+    sessionTerm.otherCrashFreeUsers,
+    sessionTerm.otherCrashFreeSessions,
+  ].includes(series.seriesName);
+}
+
+const seriesOrder = [
+  sessionTerm.healthy,
+  sessionTerm.errored,
+  sessionTerm.crashed,
+  sessionTerm.abnormal,
+  sessionTerm.otherHealthy,
+  sessionTerm.otherErrored,
+  sessionTerm.otherCrashed,
+  sessionTerm.otherAbnormal,
+  sessionTerm.duration,
+  sessionTerm['crash-free-sessions'],
+  sessionTerm['crash-free-users'],
+  sessionTerm.otherCrashFreeSessions,
+  sessionTerm.otherCrashFreeUsers,
+  sessionTerm.otherReleases,
+];
+
+export function sortSessionSeries(a: Series, b: Series) {
+  return seriesOrder.indexOf(a.seriesName) - seriesOrder.indexOf(b.seriesName);
+}
+
+type GetTotalsFromSessionsResponseProps = {
+  response: SessionApiResponse;
+  field: string;
+};
+
+export function getTotalsFromSessionsResponse({
+  response,
+  field,
+}: GetTotalsFromSessionsResponseProps) {
+  return response.groups.reduce((acc, group) => {
+    return acc + group.totals[field];
+  }, 0);
+}
+
+type FillChartDataFromSessionsResponseProps = {
+  response: SessionApiResponse;
+  field: string;
+  groupBy: string | null;
+  chartData: ChartData;
+  valueFormatter?: (value: number) => number;
+};
+
+export function fillChartDataFromSessionsResponse({
+  response,
+  field,
+  groupBy,
+  chartData,
+  valueFormatter,
+}: FillChartDataFromSessionsResponseProps) {
+  response.intervals.forEach((interval, index) => {
+    response.groups.forEach(group => {
+      const value = group.series[field][index];
+
+      chartData[groupBy === null ? 0 : group.by[groupBy]].data.push({
+        name: interval,
+        value: typeof valueFormatter === 'function' ? valueFormatter(value) : value,
+      });
+    });
+  });
+
+  return chartData;
+}
+
+type FillCrashFreeChartDataFromSessionsReponseProps = {
+  response: SessionApiResponse;
+  field: string;
+  entity: 'sessions' | 'users';
+  chartData: ChartData;
+};
+
+export function fillCrashFreeChartDataFromSessionsReponse({
+  response,
+  field,
+  entity,
+  chartData,
+}: FillCrashFreeChartDataFromSessionsReponseProps) {
+  response.intervals.forEach((interval, index) => {
+    const intervalTotalSessions = response.groups.reduce(
+      (acc, group) => acc + group.series[field][index],
+      0
+    );
+
+    const intervalCrashedSessions =
+      response.groups.find(group => group.by['session.status'] === 'crashed')?.series[
+        field
+      ][index] ?? 0;
+
+    const crashedSessionsPercent = percent(
+      intervalCrashedSessions,
+      intervalTotalSessions
+    );
+
+    chartData[entity].data.push({
+      name: interval,
+      value:
+        intervalTotalSessions === 0
+          ? (null as any)
+          : getCrashFreePercent(100 - crashedSessionsPercent),
+    });
+  });
+
+  return chartData;
 }

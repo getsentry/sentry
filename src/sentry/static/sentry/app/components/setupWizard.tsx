@@ -1,8 +1,6 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
-import Button from 'app/components/button';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
@@ -17,10 +15,6 @@ type State = {
 };
 
 class SetupWizard extends React.Component<Props, State> {
-  static propTypes = {
-    hash: PropTypes.string.isRequired,
-  };
-
   static defaultProps = {
     hash: false,
   };
@@ -54,7 +48,9 @@ class SetupWizard extends React.Component<Props, State> {
       <div className="row">
         <h5>{t('Return to your terminal to complete your setup')}</h5>
         <h5>{t('(This window will close in 10 seconds)')}</h5>
-        <Button onClick={() => window.close()}>{t('Close browser tab')}</Button>
+        <button className="btn btn-default" onClick={() => window.close()}>
+          Close browser tab
+        </button>
       </div>
     );
   }

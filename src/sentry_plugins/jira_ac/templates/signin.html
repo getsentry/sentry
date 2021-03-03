@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% load sentry_assets %}
+
 {% block content %}
   <div id="login">
     <div class="aui-page-panel">
@@ -21,7 +23,8 @@
   </div>
 {% endblock %}
 {% block javascript %}
-  <script type="text/javascript">
+  {% script type="text/javascript" %}
+  <script>
     (function() {
       var hidden, visibilityChange;
       if (typeof document.hidden !== 'undefined') { // Opera 12.10 and Firefox 18 and later support
@@ -45,4 +48,5 @@
       });
     })();
   </script>
+  {% endscript %}
 {% endblock %}

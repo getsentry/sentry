@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-from six.moves.urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 from requests.exceptions import HTTPError, SSLError
 
 from sentry_plugins.base import CorePluginMixin

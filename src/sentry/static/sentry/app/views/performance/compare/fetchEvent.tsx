@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {Client} from 'app/api';
-import {Event} from 'app/types';
+import {Event} from 'app/types/event';
 import withApi from 'app/utils/withApi';
 
 export type ChildrenProps = {

@@ -7,15 +7,22 @@ import {EventsStats, GlobalSelection, MultiSeriesEventsStats} from 'app/types';
 import {escape} from 'app/utils';
 import {parsePeriodToHours} from 'app/utils/dates';
 import {decodeList} from 'app/utils/queryString';
+import {Theme} from 'app/utils/theme';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
 // In minutes
+export const SIXTY_DAYS = 86400;
 export const THIRTY_DAYS = 43200;
 export const TWO_WEEKS = 20160;
 export const ONE_WEEK = 10080;
 export const TWENTY_FOUR_HOURS = 1440;
 export const ONE_HOUR = 60;
+
+/**
+ * If there are more releases than this number we hide "Releases" series by default
+ */
+export const RELEASE_LINES_THRESHOLD = 50;
 
 export type DateTimeObject = Partial<GlobalSelection['datetime']>;
 
@@ -45,12 +52,21 @@ export function useShortInterval(datetimeObj: DateTimeObject): boolean {
 export function getInterval(datetimeObj: DateTimeObject, highFidelity = false) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
+  if (diffInMinutes >= SIXTY_DAYS) {
+    // Greater than or equal to 60 days
+    if (highFidelity) {
+      return '4h';
+    } else {
+      return '1d';
+    }
+  }
+
   if (diffInMinutes >= THIRTY_DAYS) {
     // Greater than or equal to 30 days
     if (highFidelity) {
       return '1h';
     } else {
-      return '24h';
+      return '4h';
     }
   }
 
@@ -59,7 +75,7 @@ export function getInterval(datetimeObj: DateTimeObject, highFidelity = false) {
     if (highFidelity) {
       return '30m';
     } else {
-      return '24h';
+      return '1h';
     }
   }
 
@@ -118,7 +134,7 @@ export function getSeriesSelection(
   location: Location,
   parameter = 'unselectedSeries'
 ): EChartOption.Legend['selected'] {
-  const unselectedSeries = decodeList(location.query[parameter]) ?? [];
+  const unselectedSeries = decodeList(location?.query[parameter]);
   return unselectedSeries.reduce((selection, series) => {
     selection[series] = false;
     return selection;
@@ -129,4 +145,16 @@ export function isMultiSeriesStats(
   data: MultiSeriesEventsStats | EventsStats | null
 ): data is MultiSeriesEventsStats {
   return data !== null && data.data === undefined && data.totals === undefined;
+}
+
+/**
+ * Constructs the color palette for a chart given the Theme and optionally a
+ * series length
+ */
+export function getColorPalette(theme: Theme, seriesLength: number | undefined | null) {
+  const palette = seriesLength
+    ? theme.charts.getColorPalette(seriesLength)
+    : theme.charts.colors;
+
+  return (palette as unknown) as string[];
 }

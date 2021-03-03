@@ -9,7 +9,8 @@ import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Tooltip from 'app/components/tooltip';
 import {IconMute, IconStar} from 'app/icons';
 import {tct} from 'app/locale';
-import {Event, Group, GroupTombstone, Level, Organization} from 'app/types';
+import {Group, GroupTombstone, Level, Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import {getLocation, getMessage} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
 import UnhandledTag, {
@@ -28,7 +29,9 @@ type Props = WithRouterProps<{orgId: string}> & {
   hideLevel?: boolean;
   query?: string;
   className?: string;
-} & DefaultProps;
+  /** Group link clicked */
+  onClick?: () => void;
+} & Partial<DefaultProps>;
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
@@ -62,13 +65,17 @@ class EventOrGroupHeader extends React.Component<Props> {
             <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
-        <EventOrGroupTitle {...this.props} style={{fontWeight: hasSeen ? 400 : 600}} />
+        <EventOrGroupTitle
+          {...this.props}
+          style={{fontWeight: hasSeen ? 400 : 600}}
+          withStackTracePreview
+        />
       </React.Fragment>
     );
   }
 
   getTitle() {
-    const {includeLink, data, params, location} = this.props;
+    const {includeLink, data, params, location, onClick} = this.props;
 
     const orgId = params?.orgId;
 
@@ -94,6 +101,7 @@ class EventOrGroupHeader extends React.Component<Props> {
               ...(location.query.project !== undefined ? {} : {_allp: 1}), //This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
             },
           }}
+          onClick={onClick}
         >
           {this.getTitleChildren()}
         </GlobalSelectionLink>
@@ -142,6 +150,7 @@ const getMargin = ({size}) => {
 
 const Title = styled('div')`
   ${truncateStyles};
+  line-height: 1;
   ${getMargin};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};

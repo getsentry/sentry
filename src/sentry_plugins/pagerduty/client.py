@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.http import absolute_uri
 from sentry_plugins.client import ApiClient
 
@@ -14,7 +12,7 @@ class PagerDutyClient(ApiClient):
 
     def __init__(self, service_key=None):
         self.service_key = service_key
-        super(PagerDutyClient, self).__init__()
+        super().__init__()
 
     def build_url(self, path):
         return INTEGRATION_API_URL

@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
@@ -10,14 +11,14 @@ import VersionHoverCard from 'app/components/versionHoverCard';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Release} from 'app/types';
+import {Organization, Release} from 'app/types';
 import {defined, toTitleCase} from 'app/utils';
 import theme from 'app/utils/theme';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 
 type Props = {
-  orgSlug: string;
+  organization: Organization;
   projectSlug: string;
   projectId: string;
   hasRelease: boolean;
@@ -29,18 +30,6 @@ type Props = {
 };
 
 class SeenInfo extends React.Component<Props> {
-  static propTypes = {
-    orgSlug: PropTypes.string.isRequired,
-    projectSlug: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    date: PropTypes.any,
-    dateGlobal: PropTypes.any,
-    release: PropTypes.shape({
-      version: PropTypes.string.isRequired,
-    }),
-    environment: PropTypes.string,
-  };
-
   static contextTypes = {
     organization: PropTypes.object,
   };
@@ -52,7 +41,8 @@ class SeenInfo extends React.Component<Props> {
   }
 
   getReleaseTrackingUrl() {
-    const {orgSlug, projectSlug} = this.props;
+    const {organization, projectSlug} = this.props;
+    const orgSlug = organization.slug;
 
     return `/settings/${orgSlug}/projects/${projectSlug}/release-tracking/`;
   }
@@ -63,10 +53,11 @@ class SeenInfo extends React.Component<Props> {
       dateGlobal,
       environment,
       release,
-      orgSlug,
+      organization,
       projectSlug,
       projectId,
     } = this.props;
+
     return (
       <HovercardWrapper>
         <StyledHovercard
@@ -79,12 +70,22 @@ class SeenInfo extends React.Component<Props> {
               {environment && (
                 <TimeSinceWrapper>
                   {toTitleCase(environment)}
-                  <TimeSince date={date} disabledAbsoluteTooltip />
+                  {date ? (
+                    <TimeSince date={date} disabledAbsoluteTooltip />
+                  ) : (
+                    <span>{t('N/A')}</span>
+                  )}
                 </TimeSinceWrapper>
               )}
             </div>
           }
-          body={<StyledDateTime date={date} />}
+          body={
+            date ? (
+              <StyledDateTime date={date} />
+            ) : (
+              <NoEnvironment>{t(`N/A for ${environment}`)}</NoEnvironment>
+            )
+          }
           position="top"
           tipColor={theme.gray500}
         >
@@ -99,7 +100,7 @@ class SeenInfo extends React.Component<Props> {
                 <StyledTimeSince date={dateGlobal} disabledAbsoluteTooltip />
               </React.Fragment>
             ) : (
-              <React.Fragment>{t('n/a')} </React.Fragment>
+              <NoDateTime>{t('N/A')}</NoDateTime>
             )}
           </DateWrapper>
         </StyledHovercard>
@@ -108,7 +109,7 @@ class SeenInfo extends React.Component<Props> {
             <React.Fragment>
               {t('in release ')}
               <VersionHoverCard
-                orgSlug={orgSlug}
+                organization={organization}
                 projectSlug={projectSlug}
                 releaseVersion={release.version}
               >
@@ -124,6 +125,13 @@ class SeenInfo extends React.Component<Props> {
   }
 }
 
+const dateTimeCss = p => css`
+  color: ${p.theme.gray300};
+  font-size: ${p.theme.fontSizeMedium};
+  display: flex;
+  justify-content: center;
+`;
+
 const HovercardWrapper = styled('div')`
   display: flex;
 `;
@@ -134,10 +142,15 @@ const DateWrapper = styled('div')`
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
-  display: flex;
-  justify-content: center;
+  ${dateTimeCss};
+`;
+
+const NoEnvironment = styled('div')`
+  ${dateTimeCss};
+`;
+
+const NoDateTime = styled('span')`
+  margin-right: ${space(0.5)};
 `;
 
 const TooltipWrapper = styled('span')`

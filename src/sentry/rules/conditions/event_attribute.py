@@ -1,14 +1,10 @@
-from __future__ import absolute_import
-
-import six
-
 from collections import OrderedDict
 from django import forms
 
 from sentry.rules.conditions.base import EventCondition
 
 
-class MatchType(object):
+class MatchType:
     EQUAL = "eq"
     NOT_EQUAL = "ne"
     STARTS_WITH = "sw"
@@ -77,7 +73,7 @@ class EventAttributeCondition(EventCondition):
     # TODO(dcramer): add support for stacktrace.vars.[name]
 
     form_cls = EventAttributeForm
-    label = u"The event's {attribute} value {match} {value}"
+    label = "The event's {attribute} value {match} {value}"
 
     form_fields = {
         "attribute": {
@@ -191,7 +187,7 @@ class EventAttributeCondition(EventCondition):
         except KeyError:
             attribute_values = []
 
-        attribute_values = [six.text_type(v).lower() for v in attribute_values if v is not None]
+        attribute_values = [str(v).lower() for v in attribute_values if v is not None]
 
         if match == MatchType.EQUAL:
             for a_value in attribute_values:

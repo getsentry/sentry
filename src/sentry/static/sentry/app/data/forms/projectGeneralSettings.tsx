@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PlatformIcon from 'platformicons';
+import {PlatformIcon} from 'platformicons';
 
 import platforms from 'app/data/platforms';
 import {t, tct, tn} from 'app/locale';
@@ -56,7 +56,8 @@ export const fields: Record<string, Field> = {
 
   platform: {
     name: 'platform',
-    type: 'array',
+    type: 'select',
+    deprecatedSelectControl: false,
     label: t('Platform'),
     choices: () =>
       platforms.map(({id, name}) => [

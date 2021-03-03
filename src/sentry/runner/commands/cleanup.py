@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import os
 from datetime import timedelta
 from uuid import uuid4
@@ -8,7 +6,6 @@ import click
 from django.utils import timezone
 
 from sentry.runner.decorators import log_options
-from six.moves import xrange
 
 
 # allows services like tagstore to add their own (abstracted) models
@@ -140,7 +137,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     pool = []
     task_queue = Queue(1000)
-    for _ in xrange(concurrency):
+    for _ in range(concurrency):
         p = Process(target=multiprocess_worker, args=(task_queue,))
         p.daemon = True
         p.start()
@@ -210,11 +207,11 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     for model in [models.ApiGrant, models.ApiToken]:
         if not silent:
-            click.echo(u"Removing expired values for {}".format(model.__name__))
+            click.echo(f"Removing expired values for {model.__name__}")
 
         if is_filtered(model):
             if not silent:
-                click.echo(u">> Skipping {}".format(model.__name__))
+                click.echo(f">> Skipping {model.__name__}")
         else:
             queryset = model.objects.filter(
                 expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS))
@@ -266,7 +263,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
         if not silent:
             click.echo(
-                u"Removing {model} for days={days} project={project}".format(
+                "Removing {model} for days={days} project={project}".format(
                     model=model.__name__, days=days, project=project or "*"
                 )
             )
@@ -281,7 +278,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     for model, dtfield, order_by in DELETES:
         if not silent:
             click.echo(
-                u"Removing {model} for days={days} project={project}".format(
+                "Removing {model} for days={days} project={project}".format(
                     model=model.__name__, days=days, project=project or "*"
                 )
             )

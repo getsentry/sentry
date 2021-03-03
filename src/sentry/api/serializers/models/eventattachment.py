@@ -1,21 +1,22 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry.api.serializers import Serializer, register
-from sentry.models import EventAttachment
+from sentry.models import EventAttachment, File
 
 
 @register(EventAttachment)
 class EventAttachmentSerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        files = {f.id: f for f in File.objects.filter(id__in=[ea.file_id for ea in item_list])}
+        return {ea: {"file": files[ea.file_id]} for ea in item_list}
+
     def serialize(self, obj, attrs, user):
+        file = attrs["file"]
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "name": obj.name,
-            "headers": obj.file.headers,
+            "headers": file.headers,
             "mimetype": obj.mimetype,
-            "size": obj.file.size,
-            "sha1": obj.file.checksum,
-            "dateCreated": obj.file.timestamp,
+            "size": file.size,
+            "sha1": file.checksum,
+            "dateCreated": file.timestamp,
             "type": obj.type,
         }

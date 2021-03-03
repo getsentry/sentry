@@ -45,7 +45,8 @@ const formGroups: JsonFormObject[] = [
     fields: [
       {
         name: 'defaultRole',
-        type: 'array',
+        type: 'select',
+        deprecatedSelectControl: false,
         required: true,
         label: t('Default Role'),
         // seems weird to have choices in initial form data
@@ -64,14 +65,23 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'eventsMemberAdmin',
         type: 'boolean',
-        label: t('Grant Members Events Admin'),
+        label: t('Let Members Delete Events'),
         help: t(
           'Allow members to delete events (including the delete & discard action) by granting them the `event:admin` scope.'
         ),
       },
       {
+        name: 'alertsMemberWrite',
+        type: 'boolean',
+        label: t('Let Members Create and Edit Alerts'),
+        help: t(
+          'Allow members to create, edit, and delete alert rules by granting them the `alerts:write` scope.'
+        ),
+      },
+      {
         name: 'attachmentsRole',
-        type: 'array',
+        type: 'select',
+        deprecatedSelectControl: false,
         choices: ({initialData = {}}) =>
           initialData?.availableRoles?.map((r: MemberRole) => [r.id, r.name]) ?? [],
         label: t('Attachments Access'),
@@ -82,7 +92,8 @@ const formGroups: JsonFormObject[] = [
       },
       {
         name: 'debugFilesRole',
-        type: 'array',
+        type: 'select',
+        deprecatedSelectControl: false,
         choices: ({initialData = {}}) =>
           initialData?.availableRoles?.map((r: MemberRole) => [r.id, r.name]) ?? [],
         label: t('Debug Files Access'),

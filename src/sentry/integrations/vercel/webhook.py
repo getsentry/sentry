@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import hashlib
 import hmac
 import logging
-import six
 
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.crypto import constant_time_compare
@@ -33,9 +30,15 @@ def verify_signature(request):
     secret = options.get("vercel.client-secret")
 
     expected = hmac.new(
-        key=secret.encode("utf-8"), msg=six.binary_type(request.body), digestmod=hashlib.sha1
+        key=secret.encode("utf-8"), msg=bytes(request.body), digestmod=hashlib.sha1
     ).hexdigest()
     return constant_time_compare(expected, signature)
+
+
+def safe_json_parse(resp):
+    if resp.headers.get("content-type") == "application/json":
+        return resp.json()
+    return None
 
 
 class VercelWebhookEndpoint(Endpoint):
@@ -45,7 +48,7 @@ class VercelWebhookEndpoint(Endpoint):
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
-        return super(VercelWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     # given the webhook payload and sentry_project_id, return
     # the payload we use for generating the release with the token
@@ -80,12 +83,15 @@ class VercelWebhookEndpoint(Endpoint):
         # contruct the repo depeding what provider we use
         if meta.get("githubCommitSha"):
             # we use these instead of githubOrg and githubRepo since it's the repo the user has access to
-            repository = u"%s/%s" % (meta["githubCommitOrg"], meta["githubCommitRepo"])
+            repository = "{}/{}".format(meta["githubCommitOrg"], meta["githubCommitRepo"])
         elif meta.get("gitlabCommitSha"):
             # gitlab repos are formatted with a space for some reason
-            repository = u"%s / %s" % (meta["gitlabProjectNamespace"], meta["gitlabProjectName"],)
+            repository = "{} / {}".format(
+                meta["gitlabProjectNamespace"],
+                meta["gitlabProjectName"],
+            )
         elif meta.get("bitbucketCommitSha"):
-            repository = u"%s/%s" % (meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
+            repository = "{}/{}".format(meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
         else:
             # this can happen with manual builds
             raise NoCommitFoundError("No commit found")
@@ -172,8 +178,8 @@ class VercelWebhookEndpoint(Endpoint):
                 url = absolute_uri("/api/0/organizations/%s/releases/" % organization.slug)
                 headers = {
                     "Accept": "application/json",
-                    "Authorization": u"Bearer %s" % token,
-                    "User-Agent": u"sentry_vercel/{}".format(VERSION),
+                    "Authorization": "Bearer %s" % token,
+                    "User-Agent": f"sentry_vercel/{VERSION}",
                 }
                 json_error = None
 
@@ -182,12 +188,12 @@ class VercelWebhookEndpoint(Endpoint):
                 del no_ref_payload["refs"]
                 try:
                     resp = session.post(url, json=no_ref_payload, headers=headers)
-                    json_error = resp.json()
+                    json_error = safe_json_parse(resp)
                     resp.raise_for_status()
                 except RequestException as e:
                     # errors here should be uncommon but we should be aware of them
                     logger.error(
-                        "Error creating release: %s - %s" % (e, json_error),
+                        f"Error creating release: {e} - {json_error}",
                         extra=logging_params,
                         exc_info=True,
                     )
@@ -196,13 +202,17 @@ class VercelWebhookEndpoint(Endpoint):
 
                 # set the refs
                 try:
-                    resp = session.post(url, json=release_payload, headers=headers,)
-                    json_error = resp.json()
+                    resp = session.post(
+                        url,
+                        json=release_payload,
+                        headers=headers,
+                    )
+                    json_error = safe_json_parse(resp)
                     resp.raise_for_status()
                 except RequestException as e:
                     # errors will probably be common if the user doesn't have repos set up
                     logger.info(
-                        "Error setting refs: %s - %s" % (e, json_error),
+                        f"Error setting refs: {e} - {json_error}",
                         extra=logging_params,
                         exc_info=True,
                     )

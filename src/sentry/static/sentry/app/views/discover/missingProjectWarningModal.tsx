@@ -1,15 +1,14 @@
 import React from 'react';
-import Modal, {Body, Footer, Header} from 'react-bootstrap/lib/Modal';
 
+import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 
-type MissingProjectWarningModalProps = {
+type MissingProjectWarningModalProps = ModalRenderProps & {
   organization: Organization;
   validProjects: number[];
   invalidProjects: number[];
-  closeModal: () => void;
 };
 
 export default class MissingProjectWarningModal extends React.Component<
@@ -20,7 +19,7 @@ export default class MissingProjectWarningModal extends React.Component<
     return <li key={id}>{project ? project.slug : t(`Unknown project ${id}`)}</li>;
   }
   render() {
-    const {validProjects, invalidProjects} = this.props;
+    const {Header, Body, Footer, validProjects, invalidProjects} = this.props;
 
     const text = validProjects.length
       ? t(`You are not currently a member of all of the projects specified by
@@ -31,7 +30,7 @@ export default class MissingProjectWarningModal extends React.Component<
            have access to.`);
 
     return (
-      <Modal show onHide={() => {}}>
+      <React.Fragment>
         <Header>{t('Project access')}</Header>
         <Body>
           <p>{text}</p>
@@ -42,7 +41,7 @@ export default class MissingProjectWarningModal extends React.Component<
             {t('View results')}
           </Button>
         </Footer>
-      </Modal>
+      </React.Fragment>
     );
   }
 }

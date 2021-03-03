@@ -81,26 +81,28 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
     const completedOn = moment(task.dateCompleted);
 
     return (
-      <ItemComplete ref={forwardedRef} onClick={handleClick}>
-        <StatusIndicator>
-          {task.status === 'complete' && <CompleteIndicator />}
-          {task.status === 'skipped' && <SkippedIndicator />}
-        </StatusIndicator>
-        {task.title}
-        <CompletedDate title={completedOn.toString()}>
-          {completedOn.fromNow()}
-        </CompletedDate>
-        {task.user ? (
-          <TaskUserAvatar hasTooltip user={task.user} />
-        ) : (
-          <Tooltip
-            containerDisplayMode="inherit"
-            title={t('No user was associated with completing this task')}
-          >
-            <TaskBlankAvatar round />
-          </Tooltip>
-        )}
-      </ItemComplete>
+      <TaskCard ref={forwardedRef} onClick={handleClick}>
+        <CompleteTitle>
+          <StatusIndicator>
+            {task.status === 'complete' && <CompleteIndicator />}
+            {task.status === 'skipped' && <SkippedIndicator />}
+          </StatusIndicator>
+          {task.title}
+          <DateCompleted title={completedOn.toString()}>
+            {completedOn.fromNow()}
+          </DateCompleted>
+          {task.user ? (
+            <TaskUserAvatar hasTooltip user={task.user} />
+          ) : (
+            <Tooltip
+              containerDisplayMode="inherit"
+              title={t('No user was associated with completing this task')}
+            >
+              <TaskBlankAvatar round />
+            </Tooltip>
+          )}
+        </CompleteTitle>
+      </TaskCard>
     );
   }
 
@@ -111,7 +113,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock size="xs" color="red300" />
+      <IconLock color="orange400" />
     </Tooltip>
   );
 
@@ -122,66 +124,67 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
 
   const skipAction = task.skippable && (
     <SkipConfirm onSkip={handleSkip}>
-      {({skip}) => (
-        <SkipButton priority="link" onClick={skip}>
-          {t('Skip task')}
-        </SkipButton>
-      )}
+      {({skip}) => <StyledIconClose size="xs" onClick={skip} />}
     </SkipConfirm>
   );
 
   return (
-    <Item interactive ref={forwardedRef} onClick={handleClick} data-test-id={task.task}>
-      <Title>
+    <TaskCard
+      interactive
+      ref={forwardedRef}
+      onClick={handleClick}
+      data-test-id={task.task}
+    >
+      <IncompleteTitle>
         {IncompleteMarker}
         {task.title}
-      </Title>
-      <Description>{`${task.description}. ${task.detailedDescription}`}</Description>
+      </IncompleteTitle>
+      <Description>{`${task.description}`}</Description>
       {task.requisiteTasks.length === 0 && (
         <ActionBar>
+          {skipAction}
+          {supplement}
           {task.status === 'pending' ? (
             <InProgressIndicator user={task.user} />
           ) : (
-            <CTA>{t('Setup now')}</CTA>
+            <Button priority="primary" size="small">
+              {t('Start')}
+            </Button>
           )}
-          {skipAction}
-          {supplement}
         </ActionBar>
       )}
-    </Item>
+    </TaskCard>
   );
 }
 
-const Item = styled(Card)`
-  padding: ${space(3)};
+const TaskCard = styled(Card)`
   position: relative;
+  padding: ${space(2)} ${space(3)};
 `;
 
-const Title = styled('h5')`
-  font-weight: normal;
+const IncompleteTitle = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(0.75)};
+  grid-gap: ${space(1)};
   align-items: center;
-  margin: 0;
+  font-weight: 600;
+`;
+
+const CompleteTitle = styled(IncompleteTitle)`
+  grid-template-columns: min-content 1fr max-content min-content;
 `;
 
 const Description = styled('p')`
-  padding-top: ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1.75rem;
   color: ${p => p.theme.subText};
-  margin: 0;
+  margin: ${space(0.5)} 0 0 0;
 `;
 
 const ActionBar = styled('div')`
-  height: 40px;
-  border-top: 1px solid ${p => p.theme.border};
-  margin: ${space(3)} -${space(3)} -${space(3)};
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 ${space(2)};
+  justify-content: flex-end;
+  align-items: flex-end;
+  margin-top: ${space(1.5)};
 `;
 
 type InProgressIndicatorProps = React.HTMLAttributes<HTMLDivElement> & {
@@ -204,31 +207,18 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
 ))`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
-  color: ${p => p.theme.orange300};
+  color: ${p => p.theme.orange400};
   display: grid;
   grid-template-columns: max-content max-content;
   align-items: center;
   grid-gap: ${space(1)};
 `;
 
-const CTA = styled('div')`
-  color: ${p => p.theme.blue300};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: bold;
-`;
-
-const SkipButton = styled(Button)`
+const StyledIconClose = styled(IconClose)`
+  position: absolute;
+  right: ${space(1.5)};
+  top: ${space(1.5)};
   color: ${p => p.theme.gray300};
-`;
-
-const ItemComplete = styled(Card)`
-  cursor: pointer;
-  color: ${p => p.theme.subText};
-  padding: ${space(1)} ${space(1.5)};
-  display: grid;
-  grid-template-columns: max-content 1fr max-content 20px;
-  grid-gap: ${space(1)};
-  align-items: center;
 `;
 
 const transition = testableTransition();
@@ -253,7 +243,7 @@ CompleteIndicator.defaultProps = {
 const SkippedIndicator = styled(IconClose)``;
 SkippedIndicator.defaultProps = {
   isCircled: true,
-  color: 'orange300',
+  color: 'orange400',
 };
 
 const completedItemAnimation = {
@@ -261,11 +251,13 @@ const completedItemAnimation = {
   animate: {opacity: 1, x: 0},
 };
 
-const CompletedDate = styled(motion.div)`
-  color: ${p => p.theme.gray300};
+const DateCompleted = styled(motion.div)`
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 300;
 `;
-CompletedDate.defaultProps = {
+
+DateCompleted.defaultProps = {
   variants: completedItemAnimation,
   transition,
 };
@@ -279,6 +271,7 @@ TaskUserAvatar.defaultProps = {
 const TaskBlankAvatar = styled(motion.custom(LetterAvatar))`
   position: unset;
 `;
+
 TaskBlankAvatar.defaultProps = {
   variants: completedItemAnimation,
   transition,

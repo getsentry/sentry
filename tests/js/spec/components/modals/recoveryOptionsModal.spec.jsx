@@ -1,5 +1,4 @@
 import React from 'react';
-import {Modal} from 'react-bootstrap';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
@@ -19,8 +18,9 @@ describe('RecoveryOptionsModal', function () {
     });
     wrapper = mountWithTheme(
       <RecoveryOptionsModal
-        Body={Modal.Body}
-        Header={Modal.Header}
+        Body={p => p.children}
+        Header={p => p.children}
+        Footer={p => p.children}
         authenticatorName="Authenticator App"
         closeModal={closeModal}
         onClose={onClose}
@@ -69,8 +69,9 @@ describe('RecoveryOptionsModal', function () {
     });
     wrapper = mountWithTheme(
       <RecoveryOptionsModal
-        Body={Modal.Body}
-        Header={Modal.Header}
+        Body={p => p.children}
+        Header={p => p.children}
+        Footer={p => p.children}
         authenticatorName="Authenticator App"
         closeModal={closeModal}
         onClose={onClose}

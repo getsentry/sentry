@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.db import models
 from django.utils import timezone
 from collections import defaultdict
@@ -34,7 +32,7 @@ class PlatformExternalIssue(Model):
         # group annotations by group id
         annotations_by_group_id = defaultdict(list)
         for ei in external_issues:
-            annotation = '<a href="%s">%s</a>' % (ei.web_url, ei.display_name)
+            annotation = f'<a href="{ei.web_url}">{ei.display_name}</a>'
             annotations_by_group_id[ei.group_id].append(annotation)
 
         return annotations_by_group_id

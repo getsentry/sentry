@@ -13,8 +13,7 @@ import {
   IconWarning,
 } from 'app/icons';
 import {t} from 'app/locale';
-
-import {BreadcrumbType} from './types';
+import {BreadcrumbType} from 'app/types/breadcrumbs';
 
 function getCrumbDetails(type: BreadcrumbType) {
   switch (type) {

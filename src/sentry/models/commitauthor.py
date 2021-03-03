@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.db import models
 from sentry.db.models.manager import BaseManager
 
@@ -11,7 +9,7 @@ class CommitAuthorManager(BaseManager):
         # Force email address to lowercase because many providers do this. Note though that this isn't technically
         # to spec; only the domain part of the email address is actually case-insensitive.
         # See: https://stackoverflow.com/questions/9807909/are-email-addresses-case-sensitive
-        return super(CommitAuthorManager, self).get_or_create(
+        return super().get_or_create(
             organization_id=organization_id, email=email.lower(), defaults=defaults, **kwargs
         )
 

@@ -15,6 +15,8 @@ export function Organization(params = {}) {
       'team:read',
       'team:write',
       'team:admin',
+      'alerts:read',
+      'alerts:write',
     ],
     status: {
       id: 'active',

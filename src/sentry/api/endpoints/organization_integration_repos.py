@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry.constants import ObjectStatus
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
@@ -35,7 +31,7 @@ class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
             try:
                 repositories = install.get_repositories(request.GET.get("search"))
             except IntegrationError as e:
-                return self.respond({"detail": six.text_type(e)}, status=400)
+                return self.respond({"detail": str(e)}, status=400)
 
             context = {"repos": repositories, "searchable": install.repo_search}
             return self.respond(context)

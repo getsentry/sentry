@@ -5,7 +5,7 @@ import ClippedBox from 'app/components/clippedBox';
 import ErrorBoundary from 'app/components/errorBoundary';
 import {Assembly} from 'app/components/events/interfaces/assembly';
 import ContextLine from 'app/components/events/interfaces/contextLine';
-import FrameRegisters from 'app/components/events/interfaces/frameRegisters/frameRegisters';
+import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
 import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import {OpenInContextLine} from 'app/components/events/interfaces/openInContextLine';
 import StacktraceLink from 'app/components/events/interfaces/stacktraceLink';
@@ -13,7 +13,8 @@ import {parseAssembly} from 'app/components/events/interfaces/utils';
 import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event, Frame, Organization, SentryAppComponent} from 'app/types';
+import {Frame, Organization, SentryAppComponent} from 'app/types';
+import {Event} from 'app/types/event';
 import {defined} from 'app/utils';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -30,7 +31,7 @@ type Props = {
   emptySourceNotation?: boolean;
   hasAssembly?: boolean;
   expandable?: boolean;
-  hideStacktraceLink?: boolean;
+  isHoverPreviewed?: boolean;
 };
 
 const Context = ({
@@ -41,7 +42,7 @@ const Context = ({
   hasAssembly = false,
   expandable = false,
   emptySourceNotation = false,
-  hideStacktraceLink = false,
+  isHoverPreviewed = false,
   registers,
   components,
   frame,
@@ -82,7 +83,7 @@ const Context = ({
           const hasComponents = isActive && components.length > 0;
           return (
             <StyledContextLine key={index} line={line} isActive={isActive}>
-              {!hideStacktraceLink && hasComponents && (
+              {!isHoverPreviewed && hasComponents && (
                 <ErrorBoundary mini>
                   <OpenInContextLine
                     key={index}
@@ -93,11 +94,11 @@ const Context = ({
                 </ErrorBoundary>
               )}
               {organization?.features.includes('integrations-stacktrace-link') &&
-                !hideStacktraceLink &&
+                !isHoverPreviewed &&
                 isActive &&
                 isExpanded &&
                 frame.filename && (
-                  <ErrorBoundary mini>
+                  <ErrorBoundary customComponent={null}>
                     <StacktraceLink
                       key={index}
                       lineNo={line[0]}
@@ -112,8 +113,13 @@ const Context = ({
 
       {(hasContextRegisters || hasContextVars) && (
         <StyledClippedBox clipHeight={100}>
-          {hasContextRegisters && <FrameRegisters data={registers} key="registers" />}
-          {hasContextVars && <FrameVariables data={frame.vars || {}} key="vars" />}
+          {hasContextRegisters && (
+            <FrameRegisters
+              registers={registers}
+              deviceArch={event.contexts?.device?.arch}
+            />
+          )}
+          {hasContextVars && <FrameVariables data={frame.vars || {}} />}
         </StyledClippedBox>
       )}
 

@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 
-from sentry.incidents.logic import get_incident_aggregates
+from sentry.incidents.logic import get_incident_aggregates, CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus, IncidentTrigger, INCIDENT_STATUS
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -14,10 +12,28 @@ QUERY_AGGREGATION_DISPLAY = {
 }
 
 
-def incident_attachment_info(incident, metric_value=None):
+def incident_status_info(incident, metric_value, action, method):
+    if action and method:
+        # Get status from trigger
+        incident_status = (
+            IncidentStatus.CLOSED
+            if method == "resolve"
+            else (
+                IncidentStatus.CRITICAL
+                if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL
+                else IncidentStatus.WARNING
+            )
+        )
+    else:
+        incident_status = incident.status
+    return IncidentStatus(incident_status)
+
+
+def incident_attachment_info(incident, metric_value=None, action=None, method=None):
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     alert_rule = incident.alert_rule
-    status = INCIDENT_STATUS[IncidentStatus(incident.status)]
+
+    status = INCIDENT_STATUS[incident_status_info(incident, metric_value, action, method)]
 
     agg_text = QUERY_AGGREGATION_DISPLAY.get(
         alert_rule.snuba_query.aggregate, alert_rule.snuba_query.aggregate
@@ -43,13 +59,13 @@ def incident_attachment_info(incident, metric_value=None):
         ]
     time_window = alert_rule.snuba_query.time_window // 60
 
-    text = "{} {} in the last {} minutes".format(metric_value, agg_text, time_window)
+    text = f"{metric_value} {agg_text} in the last {time_window} minutes"
     if alert_rule.snuba_query.query != "":
-        text += "\nFilter: {}".format(alert_rule.snuba_query.query)
+        text += f"\nFilter: {alert_rule.snuba_query.query}"
 
     ts = incident.date_started
 
-    title = u"{}: {}".format(status, alert_rule.name)
+    title = f"{status}: {alert_rule.name}"
 
     title_link = absolute_uri(
         reverse(

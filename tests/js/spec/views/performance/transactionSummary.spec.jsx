@@ -72,6 +72,14 @@ describe('Performance > TransactionSummary', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/is-key-transactions/',
       body: [],
     });
@@ -365,6 +373,37 @@ describe('Performance > TransactionSummary', function () {
     });
 
     const initialData = initializeData({query: {query: 'tag:value'}});
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(issueGet).toHaveBeenCalled();
+  });
+
+  it('does not forward event type to related issues', async function () {
+    const issueGet = MockApiClient.addMockResponse(
+      {
+        url:
+          '/organizations/org-slug/issues/?limit=5&project=1&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+        body: [],
+      },
+      {
+        predicate: (url, options) =>
+          url.startsWith(`/organizations/org-slug/issues/`) &&
+          // event.type must NOT be in the query params
+          !options.query?.query?.includes('event.type'),
+      }
+    );
+
+    const initialData = initializeData({
+      query: {query: 'tag:value event.type:transaction'},
+    });
     const wrapper = mountWithTheme(
       <TransactionSummary
         organization={initialData.organization}

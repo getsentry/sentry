@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.compat.mock import patch
 
 from base64 import b64encode
@@ -405,9 +403,9 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         # check that commits are overwritten
         assert release_commits1 == [
-            u"62de626b7c7cfb8e77efb4273b1a3df4123e6216",
-            u"58de626b7c7cfb8e77efb4273b1a3df4123e6345",
-            u"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "62de626b7c7cfb8e77efb4273b1a3df4123e6216",
+            "58de626b7c7cfb8e77efb4273b1a3df4123e6345",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         ]
 
         # should be 201 because project was added
@@ -443,9 +441,9 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         # check that commits are overwritten
         assert release_commits2 == [
-            u"cccccccccccccccccccccccccccccccccccccccc",
-            u"dddddddddddddddddddddddddddddddddddddddd",
-            u"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "cccccccccccccccccccccccccccccccccccccccc",
+            "dddddddddddddddddddddddddddddddddddddddd",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         ]
 
         assert response2.status_code == 208, response.content
@@ -850,8 +848,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic "
-            + b64encode(u"{}:".format(bad_api_key.key).encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{bad_api_key.key}:".encode("utf-8")),
         )
         assert response.status_code == 403
 
@@ -860,8 +857,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic "
-            + b64encode(u"{}:".format(wrong_org_api_key.key).encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{wrong_org_api_key.key}:".encode("utf-8")),
         )
         assert response.status_code == 403
 
@@ -870,8 +866,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic "
-            + b64encode(u"{}:".format(good_api_key.key).encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{good_api_key.key}:".encode("utf-8")),
         )
         assert response.status_code == 201, response.content
 
@@ -911,7 +906,7 @@ class OrganizationReleaseCreateTest(APITestCase):
                 ],
                 "projects": [project1.slug],
             },
-            HTTP_AUTHORIZATION=u"Bearer {}".format(api_token.token),
+            HTTP_AUTHORIZATION=f"Bearer {api_token.token}",
         )
 
         mock_fetch_commits.apply_async.assert_called_with(
@@ -950,12 +945,12 @@ class OrganizationReleaseCreateTest(APITestCase):
             },
         )
         assert response.status_code == 400
-        assert response.data == {"refs": [u"Invalid repository names: not_a_repo"]}
+        assert response.data == {"refs": ["Invalid repository names: not_a_repo"]}
 
 
 class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
     def setUp(self):
-        super(OrganizationReleaseCommitRangesTest, self).setUp()
+        super().setUp()
         self.url = reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_slug": self.org.slug}
         )
@@ -1316,7 +1311,7 @@ class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
 
 class ReleaseSerializerWithProjectsTest(TestCase):
     def setUp(self):
-        super(ReleaseSerializerWithProjectsTest, self).setUp()
+        super().setUp()
         self.version = "1234567890"
         self.repo_name = "repo/name"
         self.repo2_name = "repo2/name"
@@ -1462,10 +1457,10 @@ class ReleaseSerializerWithProjectsTest(TestCase):
 
 class ReleaseHeadCommitSerializerTest(TestCase):
     def setUp(self):
-        super(ReleaseHeadCommitSerializerTest, self).setUp()
+        super().setUp()
         self.repo_name = "repo/name"
         self.commit = "b" * 40
-        self.commit_range = "%s..%s" % ("a" * 40, "b" * 40)
+        self.commit_range = "{}..{}".format("a" * 40, "b" * 40)
         self.prev_commit = "a" * 40
 
     def test_simple(self):
@@ -1538,32 +1533,38 @@ class ReleaseHeadCommitSerializerTest(TestCase):
 
     def test_commit_range_does_not_allow_empty_commits(self):
         serializer = ReleaseHeadCommitSerializer(
-            data={"commit": "%s..%s" % ("", "b" * MAX_COMMIT_LENGTH), "repository": self.repo_name}
+            data={
+                "commit": "{}..{}".format("", "b" * MAX_COMMIT_LENGTH),
+                "repository": self.repo_name,
+            }
         )
         assert not serializer.is_valid()
         serializer = ReleaseHeadCommitSerializer(
-            data={"commit": "%s..%s" % ("a" * MAX_COMMIT_LENGTH, ""), "repository": self.repo_name}
+            data={
+                "commit": "{}..{}".format("a" * MAX_COMMIT_LENGTH, ""),
+                "repository": self.repo_name,
+            }
         )
         assert not serializer.is_valid()
 
     def test_commit_range_limited_by_max_commit_length(self):
         serializer = ReleaseHeadCommitSerializer(
             data={
-                "commit": "%s..%s" % ("a" * MAX_COMMIT_LENGTH, "b" * MAX_COMMIT_LENGTH),
+                "commit": "{}..{}".format("a" * MAX_COMMIT_LENGTH, "b" * MAX_COMMIT_LENGTH),
                 "repository": self.repo_name,
             }
         )
         assert serializer.is_valid()
         serializer = ReleaseHeadCommitSerializer(
             data={
-                "commit": "%s..%s" % ("a" * (MAX_COMMIT_LENGTH + 1), "b" * MAX_COMMIT_LENGTH),
+                "commit": "{}..{}".format("a" * (MAX_COMMIT_LENGTH + 1), "b" * MAX_COMMIT_LENGTH),
                 "repository": self.repo_name,
             }
         )
         assert not serializer.is_valid()
         serializer = ReleaseHeadCommitSerializer(
             data={
-                "commit": "%s..%s" % ("a" * MAX_COMMIT_LENGTH, "b" * (MAX_COMMIT_LENGTH + 1)),
+                "commit": "{}..{}".format("a" * MAX_COMMIT_LENGTH, "b" * (MAX_COMMIT_LENGTH + 1)),
                 "repository": self.repo_name,
             }
         )

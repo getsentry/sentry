@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
 from sentry.utils.compat import mock
@@ -52,7 +50,7 @@ class SentryAppPublishRequestTest(APITestCase):
         self.login_as(user=self.user)
         response = self.client.post(self.url, format="json")
         assert response.status_code == 400
-        assert response.data["detail"] == "Cannot publish already published integration"
+        assert response.data["detail"] == "Cannot publish already published integration."
         send_mail.asssert_not_called()
 
     @mock.patch("sentry.utils.email.send_mail")
@@ -61,5 +59,5 @@ class SentryAppPublishRequestTest(APITestCase):
         self.login_as(user=self.user)
         response = self.client.post(self.url, format="json")
         assert response.status_code == 400
-        assert response.data["detail"] == "Cannot publish internal integration"
+        assert response.data["detail"] == "Cannot publish internal integration."
         send_mail.asssert_not_called()

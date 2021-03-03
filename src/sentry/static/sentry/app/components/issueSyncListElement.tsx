@@ -2,7 +2,6 @@ import React from 'react';
 import {ClassNames} from '@emotion/core';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
-import PropTypes from 'prop-types';
 
 import Hovercard from 'app/components/hovercard';
 import {IconAdd, IconClose} from 'app/icons';
@@ -24,20 +23,6 @@ type Props = {
 };
 
 class IssueSyncListElement extends React.Component<Props> {
-  static propTypes = {
-    externalIssueLink: PropTypes.string,
-    externalIssueId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    externalIssueKey: PropTypes.string,
-    externalIssueDisplayName: PropTypes.string,
-    onOpen: PropTypes.func,
-    onClose: PropTypes.func,
-    integrationType: PropTypes.string,
-    hoverCardHeader: PropTypes.node,
-    hoverCardBody: PropTypes.node,
-  };
-
-  hoverCardRef = React.createRef<Hovercard>();
-
   componentDidUpdate(nextProps) {
     if (
       this.props.showHoverCard !== nextProps.showHoverCard &&
@@ -46,6 +31,8 @@ class IssueSyncListElement extends React.Component<Props> {
       this.hoverCardRef.current && this.hoverCardRef.current.handleToggleOff();
     }
   }
+
+  hoverCardRef = React.createRef<Hovercard>();
 
   isLinked(): boolean {
     return !!(this.props.externalIssueLink && this.props.externalIssueId);

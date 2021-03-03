@@ -103,16 +103,15 @@ class OrganizationProjects extends AsyncView<Props, State> {
     return (
       <React.Fragment>
         <SettingsPageHeader title="Projects" action={action} />
+        <SearchWrapper>
+          {this.renderSearchInput({
+            updateRoute: true,
+            placeholder: t('Search Projects'),
+            className: 'search',
+          })}
+        </SearchWrapper>
         <Panel>
-          <PanelHeader hasButtons>
-            {t('Projects')}
-
-            {this.renderSearchInput({
-              updateRoute: true,
-              placeholder: t('Search Projects'),
-              className: 'search',
-            })}
-          </PanelHeader>
+          <PanelHeader>{t('Projects')}</PanelHeader>
           <PanelBody>
             {projectList ? (
               sortProjects(projectList).map(project => (
@@ -150,6 +149,10 @@ class OrganizationProjects extends AsyncView<Props, State> {
 }
 
 export default withOrganization(OrganizationProjects);
+
+const SearchWrapper = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 const GridPanelItem = styled(PanelItem)`
   display: flex;

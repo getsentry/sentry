@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
-import six
-
 from django.conf import settings
 
 from sentry import features
@@ -21,31 +15,33 @@ class OrganizationSerializerTest(TestCase):
 
         result = serialize(organization, user)
 
-        assert result["id"] == six.text_type(organization.id)
-        assert result["features"] == set(
-            [
-                "advanced-search",
-                "shared-issues",
-                "open-membership",
-                "event-attachments",
-                "integrations-issue-basic",
-                "integrations-issue-sync",
-                "integrations-alert-rule",
-                "integrations-chat-unfurl",
-                "integrations-incident-management",
-                "integrations-event-hooks",
-                "invite-members-rate-limits",
-                "data-forwarding",
-                "invite-members",
-                "sso-saml2",
-                "sso-basic",
-                "symbol-sources",
-                "custom-symbol-sources",
-                "discover-basic",
-                "discover-query",
-                "relay",
-            ]
-        )
+        assert result["id"] == str(organization.id)
+        assert result["features"] == {
+            "advanced-search",
+            "custom-event-title",
+            "custom-symbol-sources",
+            "data-forwarding",
+            "discover-basic",
+            "discover-query",
+            "event-attachments",
+            "event-attachments-viewer",
+            "integrations-alert-rule",
+            "integrations-chat-unfurl",
+            "integrations-event-hooks",
+            "integrations-incident-management",
+            "integrations-issue-basic",
+            "integrations-issue-sync",
+            "integrations-ticket-rules",
+            "invite-members",
+            "invite-members-rate-limits",
+            "open-membership",
+            "relay",
+            "shared-issues",
+            "sso-basic",
+            "sso-saml2",
+            "symbol-sources",
+            "unhandled-issue-flag",
+        }
 
     @mock.patch("sentry.features.batch_has")
     def test_organization_batch_has(self, mock_batch):
@@ -55,7 +51,7 @@ class OrganizationSerializerTest(TestCase):
         features.add("organizations:test-feature", OrganizationFeature)
         features.add("organizations:disabled-feature", OrganizationFeature)
         mock_batch.return_value = {
-            "organization:{}".format(organization.id): {
+            f"organization:{organization.id}": {
                 "organizations:test-feature": True,
                 "organizations:disabled-feature": False,
             }
@@ -75,7 +71,7 @@ class DetailedOrganizationSerializerTest(TestCase):
         serializer = DetailedOrganizationSerializer()
         result = serialize(organization, user, serializer, access=acc)
 
-        assert result["id"] == six.text_type(organization.id)
+        assert result["id"] == str(organization.id)
         assert result["role"] == "owner"
         assert result["access"] == settings.SENTRY_SCOPES
         assert result["relayPiiConfig"] is None

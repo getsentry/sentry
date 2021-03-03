@@ -4,12 +4,14 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import Confirm from 'app/components/confirm';
 import SelectControl from 'app/components/forms/selectControl';
 import {IconAdd, IconEdit} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization} from 'app/types';
 
-import {DashboardListItem, DashboardState} from './types';
+import {DashboardDetails, DashboardListItem, DashboardState} from './types';
 
 type OptionType = {
   label: string;
@@ -19,13 +21,14 @@ type OptionType = {
 type Props = {
   organization: Organization;
   dashboards: DashboardListItem[];
-  dashboard: DashboardListItem;
+  dashboard: null | DashboardDetails;
   onEdit: () => void;
   onCreate: () => void;
   onCancel: () => void;
   onCommit: () => void;
   onDelete: () => void;
   dashboardState: DashboardState;
+  canEdit?: boolean;
 };
 
 class Controls extends React.Component<Props> {
@@ -39,43 +42,43 @@ class Controls extends React.Component<Props> {
       onCancel,
       onCommit,
       onDelete,
+      canEdit,
     } = this.props;
 
     const cancelButton = (
       <Button
+        data-test-id="dashboard-cancel"
         onClick={e => {
           e.preventDefault();
           onCancel();
         }}
-        size="small"
       >
         {t('Cancel')}
       </Button>
     );
 
-    if (dashboardState === 'edit') {
+    if (['edit', 'pending_delete'].includes(dashboardState)) {
       return (
         <ButtonBar gap={1} key="edit-controls">
           {cancelButton}
-          <Button
-            onClick={e => {
-              e.preventDefault();
-              onDelete();
-            }}
+          <Confirm
             priority="danger"
-            size="small"
+            message={t('Are you sure you want to delete this dashboard?')}
+            onConfirm={onDelete}
           >
-            {t('Delete Dashboard')}
-          </Button>
+            <Button data-test-id="dashboard-delete" priority="danger">
+              {t('Delete')}
+            </Button>
+          </Confirm>
           <Button
+            data-test-id="dashboard-commit"
             onClick={e => {
               e.preventDefault();
               onCommit();
             }}
             priority="primary"
-            size="small"
           >
-            {t('Finish Editing')}
+            {t('Save and Finish')}
           </Button>
         </ButtonBar>
       );
@@ -86,14 +89,14 @@ class Controls extends React.Component<Props> {
         <ButtonBar gap={1} key="create-controls">
           {cancelButton}
           <Button
+            data-test-id="dashboard-commit"
             onClick={e => {
               e.preventDefault();
               onCommit();
             }}
             priority="primary"
-            size="small"
           >
-            {t('Create Dashboard')}
+            {t('Save and Finish')}
           </Button>
         </ButtonBar>
       );
@@ -106,23 +109,18 @@ class Controls extends React.Component<Props> {
       };
     });
 
-    const currentOption: OptionType = {
-      label: dashboard.title,
-      value: dashboard,
-    };
+    let currentOption: OptionType | undefined = undefined;
+    if (dashboard) {
+      currentOption = {
+        label: dashboard.title,
+        value: dashboard,
+      };
+    } else if (dropdownOptions.length) {
+      currentOption = dropdownOptions[0];
+    }
 
     return (
-      <ButtonBar gap={1} key="controls">
-        <Button
-          onClick={e => {
-            e.preventDefault();
-            onEdit();
-          }}
-          icon={<IconEdit size="xs" />}
-          size="small"
-        >
-          {t('Edit')}
-        </Button>
+      <StyledButtonBar gap={1} key="controls">
         <DashboardSelect>
           <SelectControl
             key="select"
@@ -132,34 +130,40 @@ class Controls extends React.Component<Props> {
             value={currentOption}
             onChange={({value}: {value: DashboardListItem}) => {
               const {organization} = this.props;
-
-              if (value.type === 'prebuilt') {
-                browserHistory.push({
-                  pathname: `/organizations/${organization.slug}/dashboards/`,
-                  query: {},
-                });
-                return;
-              }
-
               browserHistory.push({
                 pathname: `/organizations/${organization.slug}/dashboards/${value.id}/`,
+                // TODO(mark) should this retain global selection?
                 query: {},
               });
             }}
           />
         </DashboardSelect>
         <Button
+          data-test-id="dashboard-create"
           onClick={e => {
             e.preventDefault();
             onCreate();
           }}
-          priority="primary"
           icon={<IconAdd size="xs" isCircled />}
-          size="small"
+          disabled={!canEdit}
+          title={!canEdit ? t('Requires dashboard editing') : undefined}
         >
           {t('Create Dashboard')}
         </Button>
-      </ButtonBar>
+        <Button
+          data-test-id="dashboard-edit"
+          onClick={e => {
+            e.preventDefault();
+            onEdit();
+          }}
+          priority="primary"
+          icon={<IconEdit size="xs" />}
+          disabled={!canEdit}
+          title={!canEdit ? t('Requires dashboard editing') : undefined}
+        >
+          {t('Edit Dashboard')}
+        </Button>
+      </StyledButtonBar>
     );
   }
 }
@@ -167,6 +171,16 @@ class Controls extends React.Component<Props> {
 const DashboardSelect = styled('div')`
   min-width: 200px;
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  flex-shrink: 0;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-auto-flow: row;
+    grid-row-gap: ${space(1)};
+    width: 100%;
+  }
 `;
 
 export default Controls;

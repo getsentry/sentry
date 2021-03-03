@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sudo.middleware import SudoMiddleware as BaseSudoMiddleware
 
 
@@ -10,4 +8,4 @@ class SudoMiddleware(BaseSudoMiddleware):
         if user.is_authenticated() and not user.has_usable_password():
             return True
 
-        return super(SudoMiddleware, self).has_sudo_privileges(request)
+        return super().has_sudo_privileges(request)

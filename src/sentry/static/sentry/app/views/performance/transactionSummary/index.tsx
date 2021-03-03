@@ -63,7 +63,7 @@ class TransactionSummary extends React.Component<Props, State> {
     ),
   };
 
-  static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
       eventView: generateSummaryEventView(
@@ -235,7 +235,7 @@ function generateSummaryEventView(
   }
   // Use the user supplied query but overwrite any transaction or event type
   // conditions they applied.
-  const query = decodeScalar(location.query.query) || '';
+  const query = decodeScalar(location.query.query, '');
   const conditions = tokenizeSearch(query);
   conditions
     .setTagValues('event.type', ['transaction'])

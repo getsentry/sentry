@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-from six.moves.urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit, urlunsplit
 
 from .base import BaseEvent
 

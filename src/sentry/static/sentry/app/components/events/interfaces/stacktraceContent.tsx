@@ -1,11 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PlatformIcon from 'platformicons';
+import {PlatformIcon} from 'platformicons';
 
 import Line from 'app/components/events/interfaces/frame/line';
-import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
+import {
+  getImageRange,
+  parseAddress,
+  stackTracePlatformIcon,
+} from 'app/components/events/interfaces/utils';
 import {t} from 'app/locale';
-import {Event, Frame, PlatformType} from 'app/types';
+import {Frame, PlatformType} from 'app/types';
+import {Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
 
 const defaultProps = {
@@ -19,7 +24,7 @@ type Props = {
   event: Event;
   newestFirst?: boolean;
   className?: string;
-  hideStacktraceLink?: boolean;
+  isHoverPreviewed?: boolean;
 } & typeof defaultProps;
 
 type State = {
@@ -54,7 +59,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
   isFrameAfterLastNonApp(): boolean {
     const {data} = this.props;
 
-    const frames = data.frames;
+    const frames = data.frames ?? [];
 
     if (!frames.length || frames.length < 2) {
       return false;
@@ -86,7 +91,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
       ? images.find((img, idx) => {
           if (!addrMode || addrMode === 'abs') {
             const [startAddress, endAddress] = getImageRange(img);
-            return address >= startAddress && address < endAddress;
+            return address >= (startAddress as any) && address < (endAddress as any);
           }
 
           return addrMode === `rel:${idx}`;
@@ -127,7 +132,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
       expandFirstFrame,
       platform,
       includeSystemFrames,
-      hideStacktraceLink,
+      isHoverPreviewed,
     } = this.props;
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
 
@@ -141,20 +146,20 @@ export default class StacktraceContent extends React.Component<Props, State> {
 
     let lastFrameIdx: number | null = null;
 
-    data.frames.forEach((frame, frameIdx) => {
+    (data.frames ?? []).forEach((frame, frameIdx) => {
       if (frame.inApp) {
         lastFrameIdx = frameIdx;
       }
     });
 
     if (lastFrameIdx === null) {
-      lastFrameIdx = data.frames.length - 1;
+      lastFrameIdx = (data.frames ?? []).length - 1;
     }
 
     const frames: React.ReactElement[] = [];
     let nRepeats = 0;
 
-    const maxLengthOfAllRelativeAddresses = data.frames.reduce(
+    const maxLengthOfAllRelativeAddresses = (data.frames ?? []).reduce(
       (maxLengthUntilThisPoint, frame) => {
         const correspondingImage = this.findImageForAddress(
           frame.instructionAddr,
@@ -179,9 +184,9 @@ export default class StacktraceContent extends React.Component<Props, State> {
 
     const isFrameAfterLastNonApp = this.isFrameAfterLastNonApp();
 
-    data.frames.forEach((frame, frameIdx) => {
-      const prevFrame = data.frames[frameIdx - 1];
-      const nextFrame = data.frames[frameIdx + 1];
+    (data.frames ?? []).forEach((frame, frameIdx) => {
+      const prevFrame = (data.frames ?? [])[frameIdx - 1];
+      const nextFrame = (data.frames ?? [])[frameIdx + 1];
       const repeatedFrame =
         nextFrame &&
         frame.lineNo === nextFrame.lineNo &&
@@ -204,7 +209,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
             data={frame}
             isExpanded={expandFirstFrame && lastFrameIdx === frameIdx}
             emptySourceNotation={lastFrameIdx === frameIdx && frameIdx === 0}
-            isOnlyFrame={data.frames.length === 1}
+            isOnlyFrame={(data.frames ?? []).length === 1}
             nextFrame={nextFrame}
             prevFrame={prevFrame}
             platform={platform}
@@ -218,7 +223,8 @@ export default class StacktraceContent extends React.Component<Props, State> {
             includeSystemFrames={includeSystemFrames}
             onFunctionNameToggle={this.handleToggleFunctionName}
             showCompleteFunctionName={showCompleteFunctionName}
-            hideStacktraceLink={hideStacktraceLink}
+            isHoverPreviewed={isHoverPreviewed}
+            isFirst={newestFirst ? frameIdx === lastFrameIdx : frameIdx === 0}
           />
         );
       }
@@ -248,7 +254,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
     return (
       <Wrapper className={className}>
         <StyledPlatformIcon
-          platform={platform}
+          platform={stackTracePlatformIcon(platform, data.frames ?? [])}
           size="20px"
           style={{borderRadius: '3px 0 0 3px'}}
         />

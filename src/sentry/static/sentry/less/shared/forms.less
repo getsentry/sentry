@@ -22,18 +22,12 @@
   // Set the border and box shadow on specific inputs to match
   .form-control {
     border-color: @border-color;
-    .box-shadow(inset 0 1px 1px rgba(0, 0, 0, 0.075)); // Redeclare so transitions work
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075); // Redeclare so transitions work
     &:focus {
       border-color: darken(@border-color, 10%);
-      @shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px lighten(@border-color, 20%);
-      .box-shadow(@shadow);
+      box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075),
+        0 0 6px lighten(@border-color, 20%);
     }
-  }
-  // Set validation states also for addons
-  .input-group-addon {
-    color: @text-color;
-    background-color: @background-color;
-    border-color: @border-color;
   }
   // Optional feedback icon
   .form-control-feedback {
@@ -58,7 +52,7 @@
   &:focus {
     border-color: @color;
     outline: 0;
-    .box-shadow(~'inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 8px @{color-rgba}');
+    box-shadow: ~'inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 8px @{color-rgba}';
   }
 }
 
@@ -130,7 +124,7 @@ label {
 
 input[type='search'] {
   // Override content-box in Normalize (* isn't specific enough)
-  .box-sizing(border-box);
+  box-sizing: border-box;
 
   // Search inputs in iOS
   //
@@ -226,14 +220,22 @@ output {
   background-image: none; // Reset unusual Firefox-on-Android default style; see https://github.com/necolas/normalize.css/issues/214
   border: 1px solid @input-border;
   border-radius: @input-border-radius; // Note: This has no effect on <select>s in some browsers, due to the limited stylability of <select>s in CSS.
-  .box-shadow(inset 0 1px 1px rgba(0, 0, 0, 0.075));
-  .transition(~'border-color ease-in-out .15s, box-shadow ease-in-out .15s');
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+  transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
 
   // Customize the `:focus` state to imitate native WebKit styles.
   .form-control-focus();
 
-  // Placeholder
-  .placeholder();
+  &::-moz-placeholder {
+    color: @input-color-placeholder;
+    opacity: 1;
+  }
+  &:-ms-input-placeholder {
+    color: @input-color-placeholder;
+  }
+  &::-webkit-input-placeholder {
+    color: @input-color-placeholder;
+  }
 
   // Unstyle the caret on `<select>`s in IE10+.
   &::-ms-expand {
@@ -282,13 +284,11 @@ output {
       line-height: @input-height-base;
     }
 
-    &.input-sm,
-    .input-group-sm & {
+    &.input-sm {
       line-height: @input-height-small;
     }
 
-    &.input-lg,
-    .input-group-lg & {
+    &.input-lg {
       line-height: @input-height-large;
     }
   }
@@ -484,14 +484,12 @@ output {
   pointer-events: none;
 }
 .input-lg + .form-control-feedback,
-.input-group-lg + .form-control-feedback,
 .form-group-lg .form-control + .form-control-feedback {
   width: @input-height-large;
   height: @input-height-large;
   line-height: @input-height-large;
 }
 .input-sm + .form-control-feedback,
-.input-group-sm + .form-control-feedback,
 .form-group-sm .form-control + .form-control-feedback {
   width: @input-height-small;
   height: @input-height-small;
@@ -562,22 +560,6 @@ output {
     // Make static controls behave like regular ones
     .form-control-static {
       display: inline-block;
-    }
-
-    .input-group {
-      display: inline-table;
-      vertical-align: middle;
-
-      .input-group-addon,
-      .input-group-btn,
-      .form-control {
-        width: auto;
-      }
-    }
-
-    // Input groups need that 100% width though
-    .input-group > .form-control {
-      width: 100%;
     }
 
     .control-label {
@@ -700,7 +682,16 @@ output {
     color: @gray-dark;
   }
 
-  .placeholder(@gray-light);
+  &::-moz-placeholder {
+    color: @gray-light;
+    opacity: 1;
+  }
+  &:-ms-input-placeholder {
+    color: @gray-light;
+  }
+  &::-webkit-input-placeholder {
+    color: @gray-light;
+  }
 
   &:focus {
     border-color: darken(@gray-lighter, 4);

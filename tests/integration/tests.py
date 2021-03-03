@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import, print_function
-
 from sentry.utils.compat import mock
 from django.conf import settings
 
@@ -57,7 +53,7 @@ class DependencyTest(TestCase):
         def callable(package_name):
             if package_name != package:
                 return import_string(package_name)
-            raise ImportError("No module named %s" % (package,))
+            raise ImportError(f"No module named {package}")
 
         return callable
 

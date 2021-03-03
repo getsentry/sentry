@@ -3,7 +3,6 @@ import {Link} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import PropTypes from 'prop-types';
 
 import Tooltip from 'app/components/tooltip';
 import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'app/icons';
@@ -14,12 +13,12 @@ type DefaultProps = {
 };
 
 type Props = {
-  icon: React.ReactElement;
-  hasChanges: boolean;
-  hasSelected: boolean;
-  isOpen: boolean;
-  locked: boolean;
-  loading: boolean;
+  icon: React.ReactNode;
+  hasChanges?: boolean;
+  hasSelected?: boolean;
+  isOpen?: boolean;
+  locked?: boolean;
+  loading?: boolean;
   hint?: string;
   settingsLink?: string;
   lockedMessage?: React.ReactNode;
@@ -29,23 +28,11 @@ type Props = {
   React.HTMLAttributes<HTMLDivElement>;
 
 class HeaderItem extends React.Component<Props> {
-  static propTypes = {
-    icon: PropTypes.element,
-    onClear: PropTypes.func,
-    hasChanges: PropTypes.bool,
-    hasSelected: PropTypes.bool,
-    isOpen: PropTypes.bool,
-    locked: PropTypes.bool,
-    lockedMessage: PropTypes.element,
-    settingsLink: PropTypes.string,
-    hint: PropTypes.string,
-  };
-
   static defaultProps: DefaultProps = {
     allowClear: true,
   };
 
-  handleClear = e => {
+  handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
     this.props.onClear?.();
   };
@@ -75,7 +62,7 @@ class HeaderItem extends React.Component<Props> {
     return (
       <StyledHeaderItem
         ref={forwardRef}
-        loading={loading}
+        loading={!!loading}
         {...omit(props, 'onClear')}
         {...textColorProps}
       >
@@ -99,13 +86,13 @@ class HeaderItem extends React.Component<Props> {
           <StyledClose {...textColorProps} onClick={this.handleClear} />
         )}
         {!locked && !loading && (
-          <StyledChevron isOpen={isOpen}>
-            <IconChevron
-              direction="down"
-              color={isOpen ? 'gray500' : 'gray300'}
+          <ChevronWrapper>
+            <StyledChevron
+              isOpen={!!isOpen}
+              direction={isOpen ? 'up' : 'down'}
               size="sm"
             />
-          </StyledChevron>
+          </ChevronWrapper>
         )}
         {locked && (
           <Tooltip title={lockedMessage || 'This selection is locked'} position="bottom">
@@ -126,9 +113,9 @@ const getColor = p => {
 };
 
 type ColorProps = {
-  locked: boolean;
-  isOpen: boolean;
-  hasSelected: boolean;
+  locked?: boolean;
+  isOpen?: boolean;
+  hasSelected?: boolean;
 };
 
 const StyledHeaderItem = styled('div', {
@@ -183,15 +170,18 @@ const StyledClose = styled(IconClose, {shouldForwardProp: isPropValid})<ColorPro
   margin: -${space(1)} 0px -${space(1)} -${space(1)};
 `;
 
-type StyledChevronProps = Pick<ColorProps, 'isOpen'>;
-const StyledChevron = styled('div')<StyledChevronProps>`
-  transform: rotate(${p => (p.isOpen ? '180deg' : '0deg')});
-  transition: 0.1s all;
+const ChevronWrapper = styled('div')`
   width: ${space(2)};
   height: ${space(2)};
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const StyledChevron = styled(IconChevron, {shouldForwardProp: isPropValid})<{
+  isOpen: boolean;
+}>`
+  color: ${getColor};
 `;
 
 const SettingsIconLink = styled(Link)`

@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
-import io
 import os
 
-from six.moves.urllib.parse import parse_qsl
+from urllib.parse import parse_qsl
 from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.db.models import F
@@ -15,7 +12,6 @@ from sentry.models import (
     Organization,
     OrganizationMember,
 )
-from sentry.utils import json
 from sentry.utils.compat import mock
 from sentry.testutils import APITestCase
 
@@ -56,8 +52,10 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
         assert resp.status_code == 200
         assert resp.data["secret"] == "Z" * 32
-        with io.open(get_fixture_path("totp_qrcode.json")) as f:
-            assert resp.data["qrcode"] == json.loads(f.read())
+        assert (
+            resp.data["qrcode"]
+            == "otpauth://totp/a%40example.com?issuer=Sentry&secret=ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"
+        )
         assert resp.data["form"]
         assert resp.data["secret"]
 
@@ -153,6 +151,32 @@ class UserAuthenticatorEnrollTest(APITestCase):
             resp = self.client.post(url, data={"secret": "secret12", "phone": "1231234", "otp": ""})
             assert resp.status_code == 400
 
+    @mock.patch(
+        "sentry.api.endpoints.user_authenticator_enroll.ratelimiter.is_limited", return_value=True
+    )
+    @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
+    def test_rate_limited(self, try_enroll, is_limited):
+        new_options = settings.SENTRY_OPTIONS.copy()
+        new_options["system.url-prefix"] = "https://testserver"
+        with self.settings(SENTRY_OPTIONS=new_options):
+            url = reverse(
+                "sentry-api-0-user-authenticator-enroll",
+                kwargs={"user_id": "me", "interface_id": "u2f"},
+            )
+            resp = self.client.get(url)
+            assert resp.status_code == 200
+
+            resp = self.client.post(
+                url,
+                data={
+                    "deviceName": "device name",
+                    "challenge": "challenge",
+                    "response": "response",
+                },
+            )
+            assert resp.status_code == 429
+            assert try_enroll.call_count == 0
+
     @mock.patch("sentry.utils.email.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
     def test_u2f_can_enroll(self, try_enroll, email_log):
@@ -171,7 +195,6 @@ class UserAuthenticatorEnrollTest(APITestCase):
             assert "qrcode" not in resp.data
             assert resp.data["challenge"]
 
-            #
             resp = self.client.post(
                 url,
                 data={

@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
 import logging
 from datetime import datetime
 from uuid import uuid4
 
 import pytz
-import six
 import urllib3
 
 from sentry import quotas
@@ -94,13 +91,11 @@ class SnubaProtocolEventStream(EventStream):
 
         event_data = event.get_raw_data(for_stream=True)
 
-        unexpected_tags = set(
-            [
-                k
-                for (k, v) in (get_path(event_data, "tags", filter=True) or [])
-                if k in self.UNEXPECTED_TAG_KEYS
-            ]
-        )
+        unexpected_tags = {
+            k
+            for (k, v) in (get_path(event_data, "tags", filter=True) or [])
+            if k in self.UNEXPECTED_TAG_KEYS
+        }
         if unexpected_tags:
             logger.error("%r received unexpected tags: %r", self, unexpected_tags)
 
@@ -129,7 +124,7 @@ class SnubaProtocolEventStream(EventStream):
                     "skip_consume": skip_consume,
                 },
             ),
-            headers={"Received-Timestamp": six.text_type(received_timestamp)},
+            headers={"Received-Timestamp": str(received_timestamp)},
         )
 
     def start_delete_groups(self, project_id, group_ids):
@@ -217,7 +212,7 @@ class SnubaProtocolEventStream(EventStream):
         state["datetime"] = datetime.now(tz=pytz.utc)
         self._send(state["project_id"], "end_delete_tag", extra_data=(state,), asynchronous=False)
 
-    def tombstone_events(self, project_id, event_ids):
+    def tombstone_events_unsafe(self, project_id, event_ids):
         """
         Tell Snuba to eventually delete these events.
 
@@ -240,6 +235,16 @@ class SnubaProtocolEventStream(EventStream):
             "event_ids": event_ids,
         }
         self._send(project_id, "tombstone_events", extra_data=(state,), asynchronous=False)
+
+    def replace_group_unsafe(self, project_id, event_ids, new_group_id):
+        """
+        Tell Snuba to move events into a new group ID
+
+        Same caveats as tombstone_events
+        """
+
+        state = {"project_id": project_id, "event_ids": event_ids, "new_group_id": new_group_id}
+        self._send(project_id, "replace_group", extra_data=(state,), asynchronous=False)
 
     def exclude_groups(self, project_id, group_ids):
         """
@@ -288,9 +293,9 @@ class SnubaEventStream(SnubaProtocolEventStream):
             for dataset in datasets:
                 resp = snuba._snuba_pool.urlopen(
                     "POST",
-                    "/tests/{}/eventstream".format(dataset),
+                    f"/tests/{dataset}/eventstream",
                     body=json.dumps(data),
-                    headers={"X-Sentry-{}".format(k): v for k, v in headers.items()},
+                    headers={f"X-Sentry-{k}": v for k, v in headers.items()},
                 )
                 if resp.status != 200:
                     raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)
@@ -312,7 +317,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         received_timestamp,  # type: float
         skip_consume=False,
     ):
-        super(SnubaEventStream, self).insert(
+        super().insert(
             group,
             event,
             is_new,

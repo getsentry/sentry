@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from datetime import datetime
 from django.utils import timezone
 
@@ -11,8 +9,7 @@ from django.http import HttpResponse, HttpResponseServerError
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from six import iteritems, add_metaclass
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from sentry import options
 from sentry.auth.provider import Provider
@@ -42,8 +39,7 @@ except ImportError:
         def __getattr__(self, attr):
             raise NotImplementedError("Missing SAML libraries")
 
-    @add_metaclass(OneLogin_Saml2_ConstantsType)
-    class OneLogin_Saml2_Constants(object):
+    class OneLogin_Saml2_Constants(metaclass=OneLogin_Saml2_ConstantsType):
         pass
 
 
@@ -210,7 +206,7 @@ class SAML2MetadataView(BaseView):
         return HttpResponse(content=metadata, content_type="text/xml")
 
 
-class Attributes(object):
+class Attributes:
     IDENTIFIER = "identifier"
     USER_EMAIL = "user_email"
     FIRST_NAME = "first_name"
@@ -303,7 +299,7 @@ class SAML2Provider(Provider):
         attributes = {}
 
         # map configured provider attributes
-        for key, provider_key in iteritems(self.config["attribute_mapping"]):
+        for key, provider_key in self.config["attribute_mapping"].items():
             attributes[key] = raw_attributes.get(provider_key, [""])[0]
 
         # Email and identifier MUST be correctly mapped

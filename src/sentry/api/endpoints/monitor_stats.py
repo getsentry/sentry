@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from collections import OrderedDict
 from rest_framework.response import Response
 
@@ -35,6 +31,6 @@ class MonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
         return Response(
             [
                 {"ts": ts, "ok": data[CheckInStatus.OK], "error": data[CheckInStatus.ERROR]}
-                for ts, data in six.iteritems(stats)
+                for ts, data in stats.items()
             ]
         )

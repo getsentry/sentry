@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import PropTypes from 'prop-types';
 
 import Link from 'app/components/links/link';
 import space from 'app/styles/space';
@@ -56,21 +55,6 @@ type MenuItemProps = {
 type Props = MenuItemProps & Omit<React.HTMLProps<HTMLLIElement>, keyof MenuItemProps>;
 
 class MenuItem extends React.Component<Props> {
-  static propTypes = {
-    header: PropTypes.bool,
-    divider: PropTypes.bool,
-    title: PropTypes.string,
-    disabled: PropTypes.bool,
-    onSelect: PropTypes.func,
-    eventKey: PropTypes.any,
-    isActive: PropTypes.bool,
-    noAnchor: PropTypes.bool,
-    to: PropTypes.string,
-    href: PropTypes.string,
-    query: PropTypes.object,
-    className: PropTypes.string,
-  };
-
   handleClick = (e: React.MouseEvent): void => {
     const {onSelect, disabled, eventKey} = this.props;
     if (disabled) {
@@ -193,17 +177,19 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     return `
       ${common}
       color: ${props.theme.white};
-      background: ${props.theme.purple300};
+      background: ${props.theme.active};
+
+      &:hover {
+        color: ${props.theme.black};
+      }
     `;
   }
 
   return `
     ${common}
-    color: ${props.theme.gray500};
-    background-color: ${props.theme.white};
 
     &:hover {
-      background: ${props.theme.gray100};
+      background: ${props.theme.focus};
     }
   `;
 }
@@ -235,7 +221,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
 height: 1px;
 margin: ${space(0.5)} 0;
 overflow: hidden;
-background-color: ${p.theme.gray200};
+background-color: ${p.theme.innerBorder};
     `}
   ${p =>
     p.header &&
@@ -251,6 +237,7 @@ background-color: ${p.theme.gray200};
 
 const MenuTarget = styled('span')<MenuListItemProps>`
   ${getListItemStyles}
+  display: flex;
 `;
 
 const MenuLink = styled(Link, {

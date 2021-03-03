@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from copy import deepcopy
 
 import sentry_sdk
@@ -11,7 +9,7 @@ from sentry.utils.services import Service
 from .models import Event
 
 
-class Filter(object):
+class Filter:
     """
     A set of conditions, start/end times and project, group and event ID sets
     used to restrict the results of a Snuba query.

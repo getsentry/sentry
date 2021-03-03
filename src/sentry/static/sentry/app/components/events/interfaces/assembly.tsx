@@ -1,24 +1,22 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
-import {IconReturn} from 'app/icons/iconReturn';
+import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 
 interface Props {
-  name: string;
-  version: string;
-  culture: string;
-  publicKeyToken: string;
-  filePath: string | null;
+  name?: string;
+  version?: string;
+  culture?: string;
+  publicKeyToken?: string;
+  filePath?: string | null;
 }
 
 const Assembly = ({name, version, culture, publicKeyToken, filePath}: Props) => (
   <AssemblyWrapper>
-    <StyledIconReturn />
     <AssemblyInfo>
       <Caption>Assembly:</Caption>
       {name || '-'}
@@ -39,20 +37,15 @@ const Assembly = ({name, version, culture, publicKeyToken, filePath}: Props) => 
     {filePath && (
       <FilePathInfo>
         <Caption>{t('Path')}:</Caption>
-        <TextCopyInput rtl>{filePath}</TextCopyInput>
+        <Tooltip title={filePath}>
+          <TextCopyInput rtl>{filePath}</TextCopyInput>
+        </Tooltip>
       </FilePathInfo>
     )}
   </AssemblyWrapper>
 );
 
 // TODO(ts): we should be able to delete these after disabling react/prop-types rule in tsx functional components
-Assembly.propTypes = {
-  name: PropTypes.string.isRequired,
-  version: PropTypes.string.isRequired,
-  culture: PropTypes.string.isRequired,
-  publicKeyToken: PropTypes.string.isRequired,
-  filePath: PropTypes.string,
-};
 
 const AssemblyWrapper = styled('div')`
   font-size: 80%;
@@ -61,14 +54,7 @@ const AssemblyWrapper = styled('div')`
   color: ${p => p.theme.textColor};
   text-align: center;
   position: relative;
-  padding: 0 ${space(3)} 0 50px;
-`;
-
-const StyledIconReturn = styled(IconReturn)`
-  transform: scaleX(-1);
-  position: absolute;
-  top: 4px;
-  left: 25px;
+  padding: 0 ${space(3)} 0 ${space(3)};
 `;
 
 const AssemblyInfo = styled('div')`
@@ -86,7 +72,8 @@ const FilePathInfo = styled('div')`
   align-items: center;
   margin-bottom: 5px;
   input {
-    width: 250px;
+    width: 300px;
+    height: 20px;
     padding-top: 0;
     padding-bottom: 0;
     line-height: 1.5;
@@ -98,8 +85,8 @@ const FilePathInfo = styled('div')`
     padding: 2px 5px;
   }
   svg {
-    width: 0.9em;
-    height: 0.9em;
+    width: 11px;
+    height: 11px;
   }
 `;
 

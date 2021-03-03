@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import createReactClass from 'create-react-class';
-import PropTypes from 'prop-types';
+import {Query} from 'history';
 import Reflux from 'reflux';
 
 import {
@@ -26,6 +26,11 @@ type Props = {
   position?: string;
   disabled?: boolean;
   offset?: string;
+  to?: {
+    pathname: string;
+    query: Query;
+  };
+  onFinish?: () => void;
 };
 
 type State = {
@@ -42,13 +47,6 @@ type State = {
  * be shown on the page.
  */
 const GuideAnchor = createReactClass<Props, State>({
-  propTypes: {
-    target: PropTypes.string,
-    position: PropTypes.string,
-    disabled: PropTypes.bool,
-    offset: PropTypes.string,
-  },
-
   mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange') as any],
 
   getInitialState() {
@@ -103,6 +101,10 @@ const GuideAnchor = createReactClass<Props, State>({
    */
   handleFinish(e: React.MouseEvent) {
     e.stopPropagation();
+    const {onFinish} = this.props;
+    if (onFinish) {
+      onFinish();
+    }
     const {currentGuide, orgId} = this.state;
     recordFinish(currentGuide.guide, orgId);
     closeGuide();
@@ -120,6 +122,7 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 
   getHovercardBody() {
+    const {to} = this.props;
     const {currentGuide, step} = this.state;
 
     const totalStepCount = currentGuide.steps.length;
@@ -128,35 +131,44 @@ const GuideAnchor = createReactClass<Props, State>({
     const lastStep = currentStepCount === totalStepCount;
     const hasManySteps = totalStepCount > 1;
 
+    const dismissButton = (
+      <DismissButton
+        size="small"
+        href="#" // to clear `#assistant` from the url
+        onClick={this.handleDismiss}
+        priority="link"
+      >
+        {currentStep.dismissText || t('Dismiss')}
+      </DismissButton>
+    );
+
     return (
       <GuideContainer>
         <GuideContent>
-          <GuideTitle>{currentStep.title}</GuideTitle>
+          {currentStep.title && <GuideTitle>{currentStep.title}</GuideTitle>}
           <GuideDescription>{currentStep.description}</GuideDescription>
         </GuideContent>
         <GuideAction>
           <div>
             {lastStep ? (
-              <StyledButton
-                size="small"
-                href="#" // to clear `#assistant` from the url
-                onClick={this.handleFinish}
-              >
-                {hasManySteps ? t('Enough Already') : t('Got It')}
-              </StyledButton>
+              <React.Fragment>
+                <StyledButton
+                  size="small"
+                  href={currentGuide.carryAssistantForward ? '#assistant' : '#'} // to clear `#assistant` from the url
+                  to={to}
+                  onClick={this.handleFinish}
+                >
+                  {currentStep.nextText ||
+                    (hasManySteps ? t('Enough Already') : t('Got It'))}
+                </StyledButton>
+                {currentStep.hasNextGuide && dismissButton}
+              </React.Fragment>
             ) : (
               <React.Fragment>
-                <DismissButton
-                  priority="primary"
-                  size="small"
-                  href="#" // to clear `#assistant` from the url
-                  onClick={this.handleDismiss}
-                >
-                  {t('Dismiss')}
-                </DismissButton>
-                <StyledButton size="small" onClick={this.handleNextStep}>
-                  {t('Next')}
+                <StyledButton size="small" onClick={this.handleNextStep} to={to}>
+                  {currentStep.nextText || t('Next')}
                 </StyledButton>
+                {!currentStep.cantDismiss && dismissButton}
               </React.Fragment>
             )}
           </div>
@@ -234,18 +246,19 @@ const GuideAction = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  border-color: ${p => p.theme.border};
+  font-size: ${p => p.theme.fontSizeMedium};
   min-width: 40%;
 `;
 
 const DismissButton = styled(StyledButton)`
-  margin-right: ${space(1)};
+  margin-left: ${space(1)};
 
   &:hover,
   &:focus,
   &:active {
-    border-color: ${p => p.theme.border};
+    color: ${p => p.theme.white};
   }
+  color: ${p => p.theme.white};
 `;
 
 const StepCount = styled('div')`
@@ -259,6 +272,7 @@ const StyledHovercard = styled(Hovercard)`
     background-color: ${theme.purple300};
     margin: -1px;
     border-radius: ${theme.borderRadius};
+    width: 300px;
   }
 `;
 

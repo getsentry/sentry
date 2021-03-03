@@ -1,7 +1,7 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import {Location, Query} from 'history';
 
 import {Client} from 'app/api';
 import ChartZoom from 'app/components/charts/chartZoom';
@@ -9,9 +9,11 @@ import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -24,7 +26,6 @@ import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
-import {HeaderTitleLegend} from '../styles';
 import {transformEventStatsSmoothed} from '../trends/utils';
 
 const QUERY_KEYS = [
@@ -43,18 +44,9 @@ type Props = ReactRouter.WithRouterProps &
     api: Client;
     location: Location;
     organization: OrganizationSummary;
-    queryExtra: object;
+    queryExtra: Query;
     trendDisplay: string;
   };
-
-const YAXIS_VALUES = [
-  'p50()',
-  'p75()',
-  'p95()',
-  'p99()',
-  'p100()',
-  'avg(transaction.duration)',
-];
 
 class TrendChart extends React.Component<Props> {
   handleLegendSelectChanged = legendChange => {
@@ -86,32 +78,19 @@ class TrendChart extends React.Component<Props> {
       queryExtra,
     } = this.props;
 
-    const start = this.props.start
-      ? getUtcToLocalDateObject(this.props.start)
-      : undefined;
-
-    const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : undefined;
-    const utc = decodeScalar(router.location.query.utc);
+    const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
+    const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : null;
+    const utc = decodeScalar(router.location.query.utc) !== 'false';
 
     const legend = {
       right: 10,
       top: 0,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left',
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
       selected: getSeriesSelection(location, 'trendsUnselectedSeries'),
     };
 
     const datetimeSelection = {
-      start: start || null,
-      end: end || null,
+      start,
+      end,
       period: statsPeriod,
     };
 
@@ -126,7 +105,7 @@ class TrendChart extends React.Component<Props> {
         showSymbol: false,
       },
       tooltip: {
-        trigger: 'axis',
+        trigger: 'axis' as const,
         valueFormatter: value => tooltipFormatter(value, 'p50()'),
       },
       yAxis: {
@@ -149,28 +128,24 @@ class TrendChart extends React.Component<Props> {
             title={t(`Trends shows the smoothed value of an aggregate over time.`)}
           />
         </HeaderTitleLegend>
-        <ChartZoom
-          router={router}
-          period={statsPeriod}
-          projects={project}
-          environments={environment}
-        >
+        <ChartZoom router={router} period={statsPeriod}>
           {zoomRenderProps => (
             <EventsRequest
               api={api}
               organization={organization}
               period={statsPeriod}
-              project={[...project]}
-              environment={[...environment]}
+              project={project}
+              environment={environment}
               start={start}
               end={end}
               interval={getInterval(datetimeSelection, true)}
               showLoading={false}
               query={query}
               includePrevious={false}
-              yAxis={YAXIS_VALUES}
+              yAxis={trendDisplay}
+              currentSeriesName={trendDisplay}
             >
-              {({results: _results, errored, loading, reloading}) => {
+              {({errored, loading, reloading, timeseriesData}) => {
                 if (errored) {
                   return (
                     <ErrorPanel>
@@ -179,10 +154,8 @@ class TrendChart extends React.Component<Props> {
                   );
                 }
 
-                const results = _results?.filter(r => r.seriesName === trendDisplay);
-
-                const series = results
-                  ? results
+                const series = timeseriesData
+                  ? timeseriesData
                       .map(values => {
                         return {
                           ...values,
@@ -197,7 +170,7 @@ class TrendChart extends React.Component<Props> {
                   : [];
 
                 const {smoothedResults} = transformEventStatsSmoothed(
-                  results,
+                  timeseriesData,
                   t('Smoothed')
                 );
 
@@ -212,10 +185,6 @@ class TrendChart extends React.Component<Props> {
                       };
                     })
                   : [];
-
-                // Stack the toolbox under the legend.
-                // so all series names are clickable.
-                zoomRenderProps.toolBox.z = -1;
 
                 return (
                   <ReleaseSeries
@@ -240,7 +209,7 @@ class TrendChart extends React.Component<Props> {
                               series={[...series, ...smoothedSeries, ...releaseSeries]}
                             />
                           ),
-                          fixed: 'Trend Chart',
+                          fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                         })}
                       </TransitionChart>
                     )}

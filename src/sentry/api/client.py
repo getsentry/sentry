@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = ("ApiClient",)
 
 from django.core.urlresolvers import resolve
@@ -7,23 +5,21 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 from sentry.auth.superuser import Superuser
 from sentry.utils import json
-from sentry.utils.compat import implements_to_string
 
 
-@implements_to_string
 class ApiError(Exception):
     def __init__(self, status_code, body):
         self.status_code = status_code
         self.body = body
 
     def __str__(self):
-        return u"status={} body={}".format(self.status_code, self.body)
+        return f"status={self.status_code} body={self.body}"
 
     def __repr__(self):
-        return u"<ApiError: {}>".format(self)
+        return f"<ApiError: {self}>"
 
 
-class ApiClient(object):
+class ApiClient:
     prefix = "/api/0"
 
     ApiError = ApiError

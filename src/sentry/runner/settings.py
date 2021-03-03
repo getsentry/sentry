@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import os
 import click
 
@@ -11,14 +9,14 @@ DEFAULT_SETTINGS_OVERRIDE = "sentry.conf.py"
 def generate_secret_key():
     from django.utils.crypto import get_random_string
 
-    chars = u"abcdefghijklmnopqrstuvwxyz0123456789!@#%^&*(-_=+)"
+    chars = "abcdefghijklmnopqrstuvwxyz0123456789!@#%^&*(-_=+)"
     return get_random_string(50, chars)
 
 
 def load_config_template(path, version="default"):
     from pkg_resources import resource_string
 
-    return resource_string("sentry", "data/config/%s.%s" % (path, version)).decode("utf8")
+    return resource_string("sentry", f"data/config/{path}.{version}").decode("utf8")
 
 
 def generate_settings(dev=False):

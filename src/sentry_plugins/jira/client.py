@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import re
 from hashlib import md5 as _md5
@@ -14,7 +12,7 @@ log = logging.getLogger(__name__)
 
 
 def md5(*bits):
-    return _md5(b":".join((force_bytes(bit, errors="replace") for bit in bits)))
+    return _md5(b":".join(force_bytes(bit, errors="replace") for bit in bits))
 
 
 class JiraClient(ApiClient):
@@ -26,11 +24,11 @@ class JiraClient(ApiClient):
     META_URL = "/rest/api/2/issue/createmeta"
     CREATE_URL = "/rest/api/2/issue"
     PRIORITIES_URL = "/rest/api/2/priority"
-    VERSIONS_URL = u"/rest/api/2/project/{}/versions"
+    VERSIONS_URL = "/rest/api/2/project/{}/versions"
     USERS_URL = "/rest/api/2/user/assignable/search"
-    ISSUE_URL = u"/rest/api/2/issue/{}"
+    ISSUE_URL = "/rest/api/2/issue/{}"
     SEARCH_URL = "/rest/api/2/search/"
-    COMMENT_URL = u"/rest/api/2/issue/{}/comment"
+    COMMENT_URL = "/rest/api/2/issue/{}/comment"
     HTTP_TIMEOUT = 5
     plugin_name = "jira"
 
@@ -38,7 +36,7 @@ class JiraClient(ApiClient):
         self.base_url = instance_uri.rstrip("/")
         self.username = username
         self.password = password
-        super(JiraClient, self).__init__(verify_ssl=False)
+        super().__init__(verify_ssl=False)
 
     def request(self, method, path, data=None, params=None):
         if self.username and self.password:
@@ -95,10 +93,10 @@ class JiraClient(ApiClient):
     def search_issues(self, project, query):
         # check if it looks like an issue id
         if re.search(r"^[A-Za-z]+-\d+$", query) and project.lower() in query.lower():
-            jql = u'id="{}"'.format(query.replace('"', '\\"'))
+            jql = 'id="{}"'.format(query.replace('"', '\\"'))
         else:
-            jql = u'text ~ "{}"'.format(query.replace('"', '\\"'))
-        jql = u'project="{project}" AND {jql}'.format(project=project, jql=jql)
+            jql = 'text ~ "{}"'.format(query.replace('"', '\\"'))
+        jql = f'project="{project}" AND {jql}'
         return self.get(self.SEARCH_URL, params={"jql": jql})
 
     # Steve(XXX): Might consider moving this method to the base plugin API client

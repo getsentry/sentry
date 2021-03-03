@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 import pytz
 import responses
@@ -7,7 +5,6 @@ from datetime import datetime, timedelta
 from exam import fixture, patcher
 from freezegun import freeze_time
 
-import six
 import unittest
 from django.conf import settings
 from django.core import mail
@@ -137,9 +134,9 @@ class CreateIncidentTest(TestCase):
         event = self.record_event.call_args[0][0]
         assert isinstance(event, IncidentCreatedEvent)
         assert event.data == {
-            "organization_id": six.text_type(self.organization.id),
-            "incident_id": six.text_type(incident.id),
-            "incident_type": six.text_type(IncidentType.ALERT_TRIGGERED.value),
+            "organization_id": str(self.organization.id),
+            "incident_id": str(incident.id),
+            "incident_type": str(IncidentType.ALERT_TRIGGERED.value),
         }
 
 
@@ -178,19 +175,19 @@ class UpdateIncidentStatus(TestCase):
         assert activity.user == user
         if user:
             assert IncidentSubscription.objects.filter(incident=incident, user=user).exists()
-        assert activity.value == six.text_type(status.value)
-        assert activity.previous_value == six.text_type(prev_status)
+        assert activity.value == str(status.value)
+        assert activity.previous_value == str(prev_status)
         assert activity.comment == comment
 
         assert len(self.record_event.call_args_list) == 1
         event = self.record_event.call_args[0][0]
         assert isinstance(event, IncidentStatusUpdatedEvent)
         assert event.data == {
-            "organization_id": six.text_type(self.organization.id),
-            "incident_id": six.text_type(incident.id),
-            "incident_type": six.text_type(incident.type),
-            "prev_status": six.text_type(prev_status),
-            "status": six.text_type(incident.status),
+            "organization_id": str(self.organization.id),
+            "incident_id": str(incident.id),
+            "incident_type": str(incident.type),
+            "prev_status": str(prev_status),
+            "status": str(incident.status),
         }
 
     def test_closed(self):
@@ -420,14 +417,14 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
             incident,
             IncidentActivityType.STATUS_CHANGE,
             user=self.user,
-            value=six.text_type(IncidentStatus.CLOSED.value),
-            previous_value=six.text_type(IncidentStatus.WARNING.value),
+            value=str(IncidentStatus.CLOSED.value),
+            previous_value=str(IncidentStatus.WARNING.value),
         )
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
         assert activity.user == self.user
-        assert activity.value == six.text_type(IncidentStatus.CLOSED.value)
-        assert activity.previous_value == six.text_type(IncidentStatus.WARNING.value)
+        assert activity.value == str(IncidentStatus.CLOSED.value)
+        assert activity.previous_value == str(IncidentStatus.WARNING.value)
         self.assert_notifications_sent(activity)
         assert not self.record_event.called
 
@@ -454,11 +451,11 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         event = self.record_event.call_args[0][0]
         assert isinstance(event, IncidentCommentCreatedEvent)
         assert event.data == {
-            "organization_id": six.text_type(self.organization.id),
-            "incident_id": six.text_type(incident.id),
-            "incident_type": six.text_type(incident.type),
-            "user_id": six.text_type(self.user.id),
-            "activity_id": six.text_type(activity.id),
+            "organization_id": str(self.organization.id),
+            "incident_id": str(incident.id),
+            "incident_type": str(incident.type),
+            "user_id": str(self.user.id),
+            "activity_id": str(activity.id),
         }
 
     def test_mentioned_user_ids(self):
@@ -466,10 +463,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         mentioned_member = self.create_user()
         subscribed_mentioned_member = self.create_user()
         IncidentSubscription.objects.create(incident=incident, user=subscribed_mentioned_member)
-        comment = "hello **@%s** and **@%s**" % (
-            mentioned_member.username,
-            subscribed_mentioned_member.username,
-        )
+        comment = f"hello **@{mentioned_member.username}** and **@{subscribed_mentioned_member.username}**"
         with self.assertChanges(
             lambda: IncidentSubscription.objects.filter(
                 incident=incident, user=mentioned_member
@@ -496,11 +490,11 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         event = self.record_event.call_args[0][0]
         assert isinstance(event, IncidentCommentCreatedEvent)
         assert event.data == {
-            "organization_id": six.text_type(self.organization.id),
-            "incident_id": six.text_type(incident.id),
-            "incident_type": six.text_type(incident.type),
-            "user_id": six.text_type(self.user.id),
-            "activity_id": six.text_type(activity.id),
+            "organization_id": str(self.organization.id),
+            "incident_id": str(incident.id),
+            "incident_type": str(incident.type),
+            "user_id": str(self.user.id),
+            "activity_id": str(activity.id),
         }
 
 
@@ -564,7 +558,9 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
         assert start == datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(days=90)
         assert end == incident.date_closed.replace(tzinfo=pytz.utc) + timedelta(minutes=time_window)
 
-        incident.update(date_closed=datetime.utcnow() - timedelta(days=95),)
+        incident.update(
+            date_closed=datetime.utcnow() - timedelta(days=95),
+        )
 
         start, end = calculate_incident_time_range(incident)
         assert start == datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(days=90)
@@ -860,7 +856,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert self.alert_rule.id == updated_rule.id
         assert self.alert_rule.name == name
         updated_subscriptions = self.alert_rule.snuba_query.subscriptions.all()
-        assert set([sub.project for sub in updated_subscriptions]) == set(updated_projects)
+        assert {sub.project for sub in updated_subscriptions} == set(updated_projects)
         for subscription in updated_subscriptions:
             assert subscription.snuba_query.query == query
             assert subscription.snuba_query.aggregate == aggregate
@@ -913,7 +909,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         with self.tasks():
             update_alert_rule(alert_rule, projects=updated_projects, query=query_update)
         updated_subscriptions = alert_rule.snuba_query.subscriptions.all()
-        assert set([sub.project for sub in updated_subscriptions]) == set(updated_projects)
+        assert {sub.project for sub in updated_subscriptions} == set(updated_projects)
         for sub in updated_subscriptions:
             assert sub.snuba_query.query == query_update
 
@@ -923,9 +919,10 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         new_project = self.create_project(fire_project_created=True)
         assert not alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
         update_alert_rule(alert_rule, include_all_projects=True)
-        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == set(
-            [new_project, orig_project]
-        )
+        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == {
+            new_project,
+            orig_project,
+        }
 
     def test_update_to_include_all_with_exclude(self):
         orig_project = self.project
@@ -936,27 +933,28 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         update_alert_rule(
             alert_rule, include_all_projects=True, excluded_projects=[excluded_project]
         )
-        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == set(
-            [orig_project, new_project]
-        )
+        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == {
+            orig_project,
+            new_project,
+        }
 
     def test_update_include_all_exclude_list(self):
         new_project = self.create_project(fire_project_created=True)
-        projects = set([new_project, self.project])
+        projects = {new_project, self.project}
         alert_rule = self.create_alert_rule(include_all_projects=True)
-        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == projects
+        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == projects
         with self.tasks():
             update_alert_rule(alert_rule, excluded_projects=[self.project])
         assert [sub.project for sub in alert_rule.snuba_query.subscriptions.all()] == [new_project]
 
         update_alert_rule(alert_rule, excluded_projects=[])
-        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == projects
+        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == projects
 
     def test_update_from_include_all(self):
         new_project = self.create_project(fire_project_created=True)
-        projects = set([new_project, self.project])
+        projects = {new_project, self.project}
         alert_rule = self.create_alert_rule(include_all_projects=True)
-        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == projects
+        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == projects
         with self.tasks():
             update_alert_rule(alert_rule, projects=[new_project], include_all_projects=False)
         assert [sub.project for sub in alert_rule.snuba_query.subscriptions.all()] == [new_project]
@@ -975,7 +973,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
                 trigger,
                 AlertRuleTriggerAction.Type.EMAIL,
                 AlertRuleTriggerAction.TargetType.USER,
-                target_identifier=six.text_type(self.user.id),
+                target_identifier=str(self.user.id),
             )
             trigger_count = AlertRuleTrigger.objects.all().count()
             action_count = AlertRuleTriggerAction.objects.all().count()
@@ -1198,7 +1196,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
         excluded_projects = [
             exclusion.query_subscription.project for exclusion in trigger.exclusions.all()
         ]
-        assert set(excluded_projects) == set([other_project, excluded_project])
+        assert set(excluded_projects) == {other_project, excluded_project}
 
     def test_excluded_projects_not_associated_with_rule(self):
         other_project = self.create_project(fire_project_created=True)
@@ -1234,7 +1232,7 @@ class GetTriggersForAlertRuleTest(TestCase):
         assert get_triggers_for_alert_rule(alert_rule).get() == trigger
 
 
-class BaseAlertRuleTriggerActionTest(object):
+class BaseAlertRuleTriggerActionTest:
     @fixture
     def alert_rule(self):
         return self.create_alert_rule()
@@ -1248,7 +1246,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
     def test(self):
         type = AlertRuleTriggerAction.Type.EMAIL
         target_type = AlertRuleTriggerAction.TargetType.USER
-        target_identifier = six.text_type(self.user.id)
+        target_identifier = str(self.user.id)
         action = create_alert_rule_trigger_action(
             self.trigger, type, target_type, target_identifier=target_identifier
         )
@@ -1260,9 +1258,12 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
     @responses.activate
     def test_slack(self):
         integration = Integration.objects.create(
-            external_id="1",
+            external_id="2",
             provider="slack",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
         )
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.SLACK
@@ -1271,7 +1272,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         channel_id = "s_c"
         responses.add(
             method=responses.GET,
-            url="https://slack.com/api/channels.list",
+            url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
             body=json.dumps(
@@ -1388,7 +1389,9 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
 
     def test_pagerduty_not_existing(self):
         integration = Integration.objects.create(
-            provider="pagerduty", name="Example PagerDuty", external_id="example-pagerduty",
+            provider="pagerduty",
+            name="Example PagerDuty",
+            external_id="example-pagerduty",
         )
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.PAGERDUTY
@@ -1412,13 +1415,13 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             self.trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=six.text_type(self.user.id),
+            target_identifier=str(self.user.id),
         )
 
     def test(self):
         type = AlertRuleTriggerAction.Type.EMAIL
         target_type = AlertRuleTriggerAction.TargetType.TEAM
-        target_identifier = six.text_type(self.team.id)
+        target_identifier = str(self.team.id)
         update_alert_rule_trigger_action(
             self.action, type=type, target_type=target_type, target_identifier=target_identifier
         )
@@ -1431,7 +1434,10 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         integration = Integration.objects.create(
             external_id="1",
             provider="slack",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
         )
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.SLACK
@@ -1440,7 +1446,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         channel_id = "s_c"
         responses.add(
             method=responses.GET,
-            url="https://slack.com/api/channels.list",
+            url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
             body=json.dumps(
@@ -1558,7 +1564,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
     def test_pagerduty_not_existing(self):
         integration = Integration.objects.create(
-            provider="pagerduty", name="Example PagerDuty", external_id="example-pagerduty",
+            provider="pagerduty",
+            name="Example PagerDuty",
+            external_id="example-pagerduty",
         )
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.PAGERDUTY
@@ -1582,7 +1590,7 @@ class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             self.trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=six.text_type(self.user.id),
+            target_identifier=str(self.user.id),
         )
 
     def test(self):
@@ -1599,7 +1607,7 @@ class GetActionsForTriggerTest(BaseAlertRuleTriggerActionTest, TestCase):
             self.trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=six.text_type(self.user.id),
+            target_identifier=str(self.user.id),
         )
         assert list(get_actions_for_trigger(self.trigger)) == [action]
 
@@ -1683,14 +1691,14 @@ class TriggerActionTest(TestCase):
             trigger=trigger,
             type=AlertRuleTriggerAction.Type.EMAIL,
             target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=six.text_type(self.user.id),
+            target_identifier=str(self.user.id),
         )
         # Duplicate action that should be deduped
         create_alert_rule_trigger_action(
             trigger=trigger,
             type=AlertRuleTriggerAction.Type.EMAIL,
             target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=six.text_type(self.user.id),
+            target_identifier=str(self.user.id),
         )
         return rule
 
@@ -1701,7 +1709,9 @@ class TriggerActionTest(TestCase):
     def test_rule_updated(self):
         incident = self.create_incident(alert_rule=self.rule)
         IncidentTrigger.objects.create(
-            incident=incident, alert_rule_trigger=self.trigger, status=TriggerStatus.ACTIVE.value,
+            incident=incident,
+            alert_rule_trigger=self.trigger,
+            status=TriggerStatus.ACTIVE.value,
         )
 
         with self.tasks(), self.capture_on_commit_callbacks(execute=True):
@@ -1709,12 +1719,14 @@ class TriggerActionTest(TestCase):
 
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
+        assert out.subject == f"[Resolved] {incident.title} - {self.project.slug}"
 
     def test_manual_resolve(self):
         incident = self.create_incident(alert_rule=self.rule)
         IncidentTrigger.objects.create(
-            incident=incident, alert_rule_trigger=self.trigger, status=TriggerStatus.ACTIVE.value,
+            incident=incident,
+            alert_rule_trigger=self.trigger,
+            status=TriggerStatus.ACTIVE.value,
         )
 
         with self.tasks(), self.capture_on_commit_callbacks(execute=True):
@@ -1727,7 +1739,7 @@ class TriggerActionTest(TestCase):
         assert len(mail.outbox) == 1
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
+        assert out.subject == f"[Resolved] {incident.title} - {self.project.slug}"
 
 
 class TestDeduplicateTriggerActions(unittest.TestCase):

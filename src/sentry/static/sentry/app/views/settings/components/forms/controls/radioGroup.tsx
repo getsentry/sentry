@@ -1,7 +1,6 @@
 import React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Radio from 'app/components/radio';
 import space from 'app/styles/space';
@@ -14,7 +13,7 @@ type RadioGroupProps<C extends string> = {
    */
   choices: [C, React.ReactNode, React.ReactNode?][];
   value: string | number | null;
-  onChange: (id: C, e: React.FormEvent) => void;
+  onChange: (id: C, e: React.FormEvent<HTMLInputElement>) => void;
   /**
    * Switch the radio items to flow left to right, instead of vertically.
    */
@@ -51,7 +50,9 @@ const RadioGroup = <C extends string>({
           aria-label={id}
           disabled={disabled}
           checked={value === id}
-          onChange={(e: React.FormEvent) => !disabled && onChange(id, e)}
+          onChange={(e: React.FormEvent<HTMLInputElement>) =>
+            !disabled && onChange(id, e)
+          }
         />
         <RadioLineText disabled={disabled}>{name}</RadioLineText>
         {description && (
@@ -65,15 +66,6 @@ const RadioGroup = <C extends string>({
     ))}
   </Container>
 );
-
-RadioGroup.propTypes = {
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  // TODO(ts): This is causing issues with ts
-  choices: PropTypes.any.isRequired,
-  disabled: PropTypes.bool,
-  label: PropTypes.string.isRequired,
-  onChange: PropTypes.func.isRequired,
-};
 
 const shouldForwardProp = p => !['disabled', 'animate'].includes(p) && isPropValid(p);
 

@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
+import color from 'color';
 import * as PopperJS from 'popper.js';
 
 import {IconEllipsis} from 'app/icons';
@@ -27,8 +28,16 @@ export function updateQuery(
   results: QueryResults,
   action: Actions,
   key: string,
-  value: React.ReactText
+  value: React.ReactText | string[]
 ) {
+  // De-duplicate array values
+  if (Array.isArray(value)) {
+    value = [...new Set(value)];
+    if (value.length === 1) {
+      value = value[0];
+    }
+  }
+
   switch (action) {
     case Actions.ADD:
       // If the value is null/undefined create a has !has condition.
@@ -39,7 +48,17 @@ export function updateQuery(
         results.addTagValues('!has', [key]);
       } else {
         // Remove exclusion if it exists.
-        results.removeTag(`!${key}`).setTagValues(key, [`${value}`]);
+        results.removeTag(`!${key}`);
+
+        if (Array.isArray(value)) {
+          // For array values, add to existing filters
+          const currentFilters = results.getTagValues(key);
+          value = [...new Set([...currentFilters, ...value])];
+        } else {
+          value = [String(value)];
+        }
+
+        results.setTagValues(key, value);
       }
       break;
     case Actions.EXCLUDE:
@@ -53,7 +72,10 @@ export function updateQuery(
         results.removeTag(key);
         // Negations should stack up.
         const negation = `!${key}`;
-        results.addTagValues(negation, [`${value}`]);
+        value = Array.isArray(value) ? value : [String(value)];
+        const currentNegations = results.getTagValues(negation);
+        value = [...new Set([...currentNegations, ...value])];
+        results.setTagValues(negation, value);
       }
       break;
     case Actions.SHOW_GREATER_THAN: {
@@ -162,17 +184,12 @@ class CellAction extends React.Component<Props, State> {
     const {dataRow, column, handleCellAction, allowActions} = this.props;
     const fieldAlias = getAggregateAlias(column.name);
 
-    // Slice out the last element from array values as that is the value
-    // we show. See utils/discover/fieldRenderers.tsx and how
-    // strings and error.handled are rendered.
     let value = dataRow[fieldAlias];
-    if (Array.isArray(value)) {
-      value = value.slice(-1)[0];
-    }
 
     // error.handled is a strange field where null = true.
     if (
-      value === null &&
+      Array.isArray(value) &&
+      value[0] === null &&
       column.column.kind === 'field' &&
       column.column.field === 'error.handled'
     ) {
@@ -485,7 +502,7 @@ const MenuButton = styled('button')`
   justify-content: center;
   align-items: center;
 
-  background: rgba(255, 255, 255, 0.85);
+  background: ${p => color(p.theme.background).alpha(0.85).string()};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   cursor: pointer;

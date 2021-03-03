@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = [
     "IntegrationInstallation",
     "IntegrationFeatures",
@@ -9,7 +7,6 @@ __all__ = [
 ]
 
 import logging
-import six
 import sys
 
 from collections import namedtuple
@@ -66,10 +63,10 @@ class IntegrationMetadata(IntegrationMetadata):
         we prefix them with `integration`.
         """
         if f is not None:
-            return u"integrations-{}".format(f)
+            return f"integrations-{f}"
 
     def _asdict(self):
-        metadata = super(IntegrationMetadata, self)._asdict()
+        metadata = super()._asdict()
         metadata["features"] = [
             {
                 "description": f.description.strip(),
@@ -90,13 +87,16 @@ class IntegrationFeatures(Enum):
     *must* match the suffix of the organization feature flag name.
     """
 
+    ALERT_RULE = "alert-rule"
+    CHAT_UNFURL = "chat-unfurl"
+    COMMITS = "commits"
     INCIDENT_MANAGEMENT = "incident-management"
     ISSUE_BASIC = "issue-basic"
     ISSUE_SYNC = "issue-sync"
-    COMMITS = "commits"
-    CHAT_UNFURL = "chat-unfurl"
-    ALERT_RULE = "alert-rule"
     MOBILE = "mobile"
+    SERVERLESS = "serverless"
+    TICKET_RULES = "ticket-rules"
+
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
     SESSION_REPLAY = "session-replay"
@@ -178,7 +178,7 @@ class IntegrationProvider(PipelineProvider):
         return self._integration_key or self.key
 
     def get_logger(self):
-        return logging.getLogger("sentry.integration.%s" % (self.key,))
+        return logging.getLogger(f"sentry.integration.{self.key}")
 
     def post_install(self, integration, organization, extra=None):
         pass
@@ -253,7 +253,7 @@ class IntegrationProvider(PipelineProvider):
         return feature in self.features
 
 
-class IntegrationInstallation(object):
+class IntegrationInstallation:
     """
     An IntegrationInstallation represents an installed integration and manages the
     core functionality of the integration.
@@ -335,36 +335,28 @@ class IntegrationInstallation(object):
                 msg = self.error_message_from_json(exc.json) or "unknown error"
             else:
                 msg = "unknown error"
-            return "Error Communicating with %s (HTTP %s): %s" % (
-                self.model.get_provider().name,
-                exc.code,
-                msg,
-            )
+            return f"Error Communicating with {self.model.get_provider().name} (HTTP {exc.code}): {msg}"
         else:
             return ERR_INTERNAL
 
     def raise_error(self, exc, identity=None):
         if isinstance(exc, ApiUnauthorized):
-            six.reraise(
-                InvalidIdentity,
-                InvalidIdentity(self.message_from_error(exc), identity=identity),
-                sys.exc_info()[2],
+            raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
+                sys.exc_info()[2]
             )
         elif isinstance(exc, ApiError):
             if exc.json:
                 error_fields = self.error_fields_from_json(exc.json)
                 if error_fields is not None:
-                    six.reraise(
-                        IntegrationFormError, IntegrationFormError(error_fields), sys.exc_info()[2]
-                    )
+                    raise IntegrationFormError(error_fields).with_traceback(sys.exc_info()[2])
 
-            six.reraise(
-                IntegrationError, IntegrationError(self.message_from_error(exc)), sys.exc_info()[2]
-            )
+            raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
         elif isinstance(exc, IntegrationError):
             raise
         else:
-            self.logger.exception(six.text_type(exc))
-            six.reraise(
-                IntegrationError, IntegrationError(self.message_from_error(exc)), sys.exc_info()[2]
-            )
+            self.logger.exception(str(exc))
+            raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
+
+    @property
+    def metadata(self):
+        return self.model.metadata

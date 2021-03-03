@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -45,6 +43,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
                     "uuid": client.uuid,
                     "data": data,
                     "alert_rule_id": alert_rule.id,
+                    "user_id": request.user.id,
                 }
                 tasks.find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
                 return Response({"uuid": client.uuid}, status=202)

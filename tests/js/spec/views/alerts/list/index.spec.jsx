@@ -126,11 +126,11 @@ describe('IncidentsList', function () {
       body: [],
     });
     const promptsMock = MockApiClient.addMockResponse({
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
       body: {data: {dismissed_ts: null}},
     });
     const promptsUpdateMock = MockApiClient.addMockResponse({
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
       method: 'PUT',
     });
 
@@ -157,7 +157,7 @@ describe('IncidentsList', function () {
       body: [],
     });
     const promptsMock = MockApiClient.addMockResponse({
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
       body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
     });
 
@@ -170,7 +170,9 @@ describe('IncidentsList', function () {
     wrapper.update();
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain('No metric alert rules exist for these projects');
+    expect(wrapper.text()).toContain(
+      'No metric alert rules exist for the selected projects'
+    );
   });
 
   it('displays empty state (rules created)', async function () {
@@ -183,7 +185,7 @@ describe('IncidentsList', function () {
       body: [{id: 1}],
     });
     const promptsMock = MockApiClient.addMockResponse({
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
       body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
     });
 
@@ -196,7 +198,9 @@ describe('IncidentsList', function () {
     wrapper.update();
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain('No unresolved metric alerts in these projects');
+    expect(wrapper.text()).toContain(
+      'No unresolved metric alerts in the selected projects'
+    );
   });
 
   it('toggles open/closed', async function () {
@@ -239,7 +243,7 @@ describe('IncidentsList', function () {
     );
   });
 
-  it('disables the new alert button for members', async function () {
+  it('disables the new alert button for those without alert:write', async function () {
     const noAccessOrg = {
       ...organization,
       access: [],

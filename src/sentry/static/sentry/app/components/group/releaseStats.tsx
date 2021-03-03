@@ -8,7 +8,7 @@ import Tooltip from 'app/components/tooltip';
 import {IconQuestion} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Environment, Group, Organization, Project} from 'app/types';
+import {CurrentRelease, Environment, Group, Organization, Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
 
 import SidebarSection from './sidebarSection';
@@ -19,14 +19,16 @@ type Props = {
   environments: Environment[];
   allEnvironments: Group | undefined;
   group: Group | undefined;
+  currentRelease: CurrentRelease | undefined;
 };
 
 const GroupReleaseStats = ({
-  group,
   organization,
   project,
   environments,
   allEnvironments,
+  group,
+  currentRelease,
 }: Props) => {
   const environmentLabel =
     environments.length > 0
@@ -42,7 +44,6 @@ const GroupReleaseStats = ({
 
   const projectId = project.id;
   const projectSlug = project.slug;
-  const orgSlug = organization.slug;
   const hasRelease = new Set(project.features).has('releases');
   const releaseTrackingUrl = `/settings/${organization.slug}/projects/${project.slug}/release-tracking/`;
 
@@ -56,8 +57,8 @@ const GroupReleaseStats = ({
             group={allEnvironments}
             environment={environmentLabel}
             environmentStats={group.stats}
-            release={group.currentRelease ? group.currentRelease.release : null}
-            releaseStats={group.currentRelease ? group.currentRelease.stats : null}
+            release={currentRelease?.release}
+            releaseStats={currentRelease?.stats}
             statsPeriod="24h"
             title={t('Last 24 Hours')}
             firstSeen={group.firstSeen}
@@ -67,8 +68,8 @@ const GroupReleaseStats = ({
             group={allEnvironments}
             environment={environmentLabel}
             environmentStats={group.stats}
-            release={group.currentRelease ? group.currentRelease.release : null}
-            releaseStats={group.currentRelease ? group.currentRelease.stats : null}
+            release={currentRelease?.release}
+            releaseStats={currentRelease?.stats}
             statsPeriod="30d"
             title={t('Last 30 Days')}
             className="bar-chart-small"
@@ -93,7 +94,7 @@ const GroupReleaseStats = ({
             }
           >
             <SeenInfo
-              orgSlug={orgSlug}
+              organization={organization}
               projectId={projectId}
               projectSlug={projectSlug}
               date={getDynamicText({
@@ -125,7 +126,7 @@ const GroupReleaseStats = ({
             }
           >
             <SeenInfo
-              orgSlug={orgSlug}
+              organization={organization}
               projectId={projectId}
               projectSlug={projectSlug}
               date={getDynamicText({

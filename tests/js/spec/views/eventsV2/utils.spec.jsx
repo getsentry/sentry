@@ -245,6 +245,17 @@ describe('getExpandedResults()', function () {
     environment: ['staging'],
   };
 
+  it('id should be default column when drilldown results in no columns', () => {
+    const view = new EventView({
+      ...state,
+      fields: [{field: 'count()'}, {field: 'epm()'}, {field: 'eps()'}],
+    });
+
+    const result = getExpandedResults(view, {}, {});
+
+    expect(result.fields).toEqual([{field: 'id', width: -1}]);
+  });
+
   it('preserves aggregated fields', () => {
     let view = new EventView(state);
 
@@ -282,7 +293,6 @@ describe('getExpandedResults()', function () {
       ...state,
       fields: [
         {field: 'last_seen()'}, // expect this to be transformed to timestamp
-        {field: 'latest_event()'},
         {field: 'title'},
         {field: 'avg(transaction.duration)'}, // expect this to be dropped
         {field: 'p50()'},
@@ -298,6 +308,7 @@ describe('getExpandedResults()', function () {
         {field: 'unique_count(id)'},
         {field: 'apdex(300)'}, // should be dropped
         {field: 'user_misery(300)'}, // should be dropped
+        {field: 'failure_count()'}, // expect this to be transformed to transaction.status
       ],
     });
 
@@ -307,6 +318,7 @@ describe('getExpandedResults()', function () {
       {field: 'title'},
       {field: 'transaction.duration', width: -1},
       {field: 'custom_tag'},
+      {field: 'transaction.status', width: -1},
     ]);
 
     // transforms pXX functions with optional arguments properly
@@ -397,6 +409,32 @@ describe('getExpandedResults()', function () {
     };
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('event.type:error custom_tag:tag_value');
+  });
+
+  it('generate eventview from an empty eventview', () => {
+    const view = EventView.fromLocation({query: {}});
+    const result = getExpandedResults(view, {some_tag: 'value'}, {});
+    expect(result.fields).toEqual([]);
+    expect(result.query).toEqual('some_tag:value');
+  });
+
+  it('applies array value conditions from event data', () => {
+    const view = new EventView({
+      ...state,
+      fields: [...state.fields, {field: 'error.type'}],
+    });
+    const event = {
+      type: 'error',
+      tags: [
+        {key: 'nope', value: 'nope'},
+        {key: 'custom_tag', value: 'tag_value'},
+      ],
+      'error.type': ['DeadSystem Exception', 'RuntimeException', 'RuntimeException'],
+    };
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual(
+      'event.type:error custom_tag:tag_value error.type:"DeadSystem Exception" error.type:RuntimeException error.type:RuntimeException'
+    );
   });
 
   it('applies project condition to project property', () => {

@@ -5,15 +5,37 @@ import {IssueAlertRule} from 'app/types/alerts';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias} from 'app/utils/discover/fields';
+import {ALERT_RULE_PRESET_AGGREGATES} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {PRESET_AGGREGATES} from 'app/views/settings/incidentRules/presets';
 import {
   Dataset,
   Datasource,
   EventTypes,
+  IncidentRule,
   SavedIncidentRule,
 } from 'app/views/settings/incidentRules/types';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
+
+// Use this api for requests that are getting cancelled
+const uncancellableApi = new Client();
+
+export function fetchAlertRule(orgId: string, ruleId: string): Promise<IncidentRule> {
+  return uncancellableApi.requestPromise(
+    `/organizations/${orgId}/alert-rules/${ruleId}/`
+  );
+}
+
+export function fetchIncidentsForRule(
+  orgId: string,
+  alertRule: string,
+  start: string,
+  end: string
+): Promise<Incident[]> {
+  return uncancellableApi.requestPromise(`/organizations/${orgId}/incidents/`, {
+    query: {alertRule, start, end, detailed: true},
+  });
+}
 
 export function fetchIncident(
   api: Client,
@@ -81,6 +103,15 @@ export function getIncidentMetricPreset(incident: Incident) {
   const dataset = alertRule?.dataset ?? Dataset.ERRORS;
 
   return PRESET_AGGREGATES.find(
+    p => p.validDataset.includes(dataset) && p.match.test(aggregate)
+  );
+}
+
+export function getIncidentRuleMetricPreset(rule?: IncidentRule) {
+  const aggregate = rule?.aggregate ?? '';
+  const dataset = rule?.dataset ?? Dataset.ERRORS;
+
+  return ALERT_RULE_PRESET_AGGREGATES.find(
     p => p.validDataset.includes(dataset) && p.match.test(aggregate)
   );
 }
@@ -153,7 +184,7 @@ export function getIncidentDiscoverUrl(opts: {
 }
 
 export function isIssueAlert(
-  data: IssueAlertRule | SavedIncidentRule
+  data: IssueAlertRule | SavedIncidentRule | IncidentRule
 ): data is IssueAlertRule {
   return !data.hasOwnProperty('triggers');
 }
@@ -208,4 +239,37 @@ export function convertDatasetEventTypesToSource(
   } else {
     return Datasource.ERROR;
   }
+}
+
+/**
+ * Attempt to guess the data source of a discover query
+ *
+ * @returns An object containing the datasource and new query without the datasource.
+ * Returns null on no datasource.
+ */
+export function getQueryDatasource(
+  query: string
+): {source: Datasource; query: string} | null {
+  let match = query.match(
+    /\(?\bevent\.type:(error|default|transaction)\)?\WOR\W\(?event\.type:(error|default|transaction)\)?/i
+  );
+  if (match) {
+    // should be [error, default] or [default, error]
+    const eventTypes = match.slice(1, 3).sort().join(',');
+    if (eventTypes !== 'default,error') {
+      return null;
+    }
+
+    return {source: Datasource.ERROR_DEFAULT, query: query.replace(match[0], '').trim()};
+  }
+
+  match = query.match(/(^|\s)event\.type:(error|default|transaction)/i);
+  if (match && Datasource[match[2].toUpperCase()]) {
+    return {
+      source: Datasource[match[2].toUpperCase()],
+      query: query.replace(match[0], '').trim(),
+    };
+  }
+
+  return null;
 }

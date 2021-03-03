@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 from contextlib import contextmanager
 import sentry_sdk
-import six
 from django.utils.http import urlquote
 from rest_framework.exceptions import APIException, ParseError
 
@@ -38,15 +35,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             return get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
     def get_snuba_params(self, request, organization, check_global_views=True):
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
             if len(request.GET.getlist("field")) > MAX_FIELDS:
                 raise ParseError(
-                    detail="You can view up to {0} fields at a time. Please delete some and try again.".format(
-                        MAX_FIELDS
-                    )
+                    detail=f"You can view up to {MAX_FIELDS} fields at a time. Please delete some and try again."
                 )
 
             params = self.get_filter_params(request, organization)
@@ -78,7 +73,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             _filter = get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
         snuba_args = {
             "start": _filter.start,
@@ -109,10 +104,17 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def handle_query_errors(self):
         try:
             yield
-        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
-            raise ParseError(detail=six.text_type(error))
+        except discover.InvalidSearchQuery as error:
+            message = str(error)
+            sentry_sdk.set_tag("query.error_reason", message)
+            raise ParseError(detail=message)
+        except snuba.QueryOutsideRetentionError as error:
+            sentry_sdk.set_tag("query.error_reason", "QueryOutsideRetentionError")
+            raise ParseError(detail=str(error))
         except snuba.QueryIllegalTypeOfArgument:
-            raise ParseError(detail="Invalid query. Argument to function is wrong type.")
+            message = "Invalid query. Argument to function is wrong type."
+            sentry_sdk.set_tag("query.error_reason", message)
+            raise ParseError(detail=message)
         except snuba.SnubaError as error:
             message = "Internal error. Please try again."
             if isinstance(
@@ -124,11 +126,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     snuba.QueryTooManySimultaneous,
                 ),
             ):
+                sentry_sdk.set_tag("query.error_reason", "Timeout")
                 raise ParseError(
                     detail="Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
                 )
             elif isinstance(error, (snuba.UnqualifiedQueryError)):
-                raise ParseError(detail=error.message)
+                sentry_sdk.set_tag("query.error_reason", str(error))
+                raise ParseError(detail=str(error))
             elif isinstance(
                 error,
                 (
@@ -149,8 +153,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     def build_cursor_link(self, request, name, cursor):
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.
-        querystring = u"&".join(
-            u"{0}={1}".format(urlquote(query[0]), urlquote(value))
+        querystring = "&".join(
+            f"{urlquote(query[0])}={urlquote(value)}"
             for query in request.GET.lists()
             if query[0] != "cursor"
             for value in query[1]
@@ -158,13 +162,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
-            base_url = u"{0}?{1}".format(base_url, querystring)
+            base_url = f"{base_url}?{querystring}"
         else:
             base_url = base_url + "?"
 
         return LINK_HEADER.format(
             uri=base_url,
-            cursor=six.text_type(cursor),
+            cursor=str(cursor),
             name=name,
             has_results="true" if bool(cursor) else "false",
         )
@@ -192,7 +196,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         has_issues = "issue" in fields
         if has_issues:  # Look up the short ID and return that in the results
             if has_issues:
-                issue_ids = set(row.get("issue.id") for row in results)
+                issue_ids = {row.get("issue.id") for row in results}
                 issues = Group.issues_mapping(issue_ids, project_ids, organization)
             for result in results:
                 if has_issues and "issue.id" in result:
@@ -214,7 +218,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         request,
         organization,
         get_event_stats,
-        top_events=False,
+        top_events=0,
         query_column="count()",
         params=None,
         query=None,
@@ -243,16 +247,20 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         "Your interval and date range would create too many results. "
                         "Use a larger interval, or a smaller date range."
                     ),
+                    top_events=top_events,
                 )
                 # Backwards compatibility for incidents which uses the old
                 # column aliases as it straddles both versions of events/discover.
                 # We will need these aliases until discover2 flags are enabled for all
                 # users.
+                # We need these rollup columns to generate correct events-stats results
                 column_map = {
                     "user_count": "count_unique(user)",
                     "event_count": "count()",
                     "epm()": "epm(%d)" % rollup,
                     "eps()": "eps(%d)" % rollup,
+                    "tpm()": "tpm(%d)" % rollup,
+                    "tps()": "tps(%d)" % rollup,
                 }
                 query_columns = [column_map.get(column, column) for column in columns]
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
@@ -261,9 +269,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_serialization"):
-            if top_events:
+            # When the request is for top_events, result can be a SnubaTSResult in the event that
+            # there were no top events found. In this case, result contains a zerofilled series
+            # that acts as a placeholder.
+            if top_events > 0 and isinstance(result, dict):
                 results = {}
-                for key, event_result in six.iteritems(result):
+                for key, event_result in result.items():
                     if len(query_columns) > 1:
                         results[key] = self.serialize_multiple_axis(
                             serializer, event_result, columns, query_columns

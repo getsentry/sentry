@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from sentry import tsdb, ratelimits
@@ -36,8 +34,15 @@ class DataForwardingPlugin(Plugin):
     def get_plugin_type(self):
         return "data-forwarding"
 
-    def post_process(self, event, **kwargs):
-        rl_key = u"{}:{}".format(self.conf_key, event.project.organization_id)
+    def get_rl_key(self, event):
+        return f"{self.conf_key}:{event.project.organization_id}"
+
+    def initialize_variables(self, event):
+        return
+
+    def is_ratelimited(self, event):
+        self.initialize_variables(event)
+        rl_key = self.get_rl_key(event)
         # limit segment to 50 requests/second
         limit, window = self.get_rate_limit()
         if limit and window and ratelimits.is_limited(rl_key, limit=limit, window=window):
@@ -50,6 +55,11 @@ class DataForwardingPlugin(Plugin):
                     "organization_id": event.project.organization_id,
                 },
             )
+            return True
+        return False
+
+    def post_process(self, event, **kwargs):
+        if self.is_ratelimited(event):
             return
 
         payload = self.get_event_payload(event)

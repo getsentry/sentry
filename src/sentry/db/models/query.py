@@ -1,13 +1,11 @@
-from __future__ import absolute_import
-
+from functools import reduce
 import itertools
-import six
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Model, Q
 from django.db.models.expressions import CombinedExpression
 from django.db.models.signals import post_save
-from six.moves import reduce
+
 
 from .utils import resolve_combined_expression
 
@@ -27,7 +25,7 @@ def update(self, using=None, **kwargs):
             kwargs[field.name] = field.pre_save(self, False)
 
     affected = self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
-    for k, v in six.iteritems(kwargs):
+    for k, v in kwargs.items():
         if isinstance(v, CombinedExpression):
             v = resolve_combined_expression(self, v)
         setattr(self, k, v)
@@ -79,7 +77,7 @@ def create_or_update(model, using=None, **kwargs):
 
     create_kwargs = kwargs.copy()
     inst = objects.model()
-    for k, v in itertools.chain(six.iteritems(values), six.iteritems(defaults)):
+    for k, v in itertools.chain(values.items(), defaults.items()):
         # XXX(dcramer): we want to support column shortcut on create so
         # we can do create_or_update(..., {'project': 1})
         if not isinstance(v, Model):
@@ -100,19 +98,19 @@ def create_or_update(model, using=None, **kwargs):
 
 def in_iexact(column, values):
     """Operator to test if any of the given values are (case-insensitive)
-       matching to values in the given column."""
+    matching to values in the given column."""
     from operator import or_
 
-    query = u"{}__iexact".format(column)
+    query = f"{column}__iexact"
 
     return reduce(or_, [Q(**{query: v}) for v in values])
 
 
 def in_icontains(column, values):
     """Operator to test if any of the given values are (case-insensitively)
-       contained within values in the given column."""
+    contained within values in the given column."""
     from operator import or_
 
-    query = u"{}__icontains".format(column)
+    query = f"{column}__icontains"
 
     return reduce(or_, [Q(**{query: v}) for v in values])

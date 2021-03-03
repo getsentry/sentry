@@ -31,13 +31,6 @@ type Props = {
 } & DefaultProps;
 
 class Pagination extends React.Component<Props> {
-  static propTypes = {
-    pageLinks: PropTypes.string,
-    to: PropTypes.string,
-    onCursor: PropTypes.func,
-    className: PropTypes.string,
-  };
-
   static contextTypes = {
     location: PropTypes.object,
   };
@@ -61,13 +54,7 @@ class Pagination extends React.Component<Props> {
       <div className={className}>
         <ButtonBar merged>
           <Button
-            icon={
-              <IconChevron
-                direction="left"
-                size="sm"
-                color={previousDisabled ? 'gray200' : 'gray500'}
-              />
-            }
+            icon={<IconChevron direction="left" size="sm" />}
             aria-label={t('Previous')}
             size={size}
             disabled={previousDisabled}
@@ -76,13 +63,7 @@ class Pagination extends React.Component<Props> {
             }}
           />
           <Button
-            icon={
-              <IconChevron
-                direction="right"
-                size="sm"
-                color={nextDisabled ? 'gray200' : 'gray500'}
-              />
-            }
+            icon={<IconChevron direction="right" size="sm" />}
             aria-label={t('Next')}
             size={size}
             disabled={nextDisabled}

@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from sentry.api.serializers import serialize, Serializer
 from sentry.testutils import TestCase
 
 
-class Foo(object):
+class Foo:
     pass
 
 

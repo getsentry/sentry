@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.compat import mock
 import os
 from hashlib import md5
@@ -7,7 +5,6 @@ from hashlib import md5
 from django.conf import settings
 from sentry_sdk import Hub
 
-import six
 
 TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")
@@ -119,7 +116,7 @@ def pytest_configure(config):
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
             "slack.verification-token": "slack-verification-token",
-            "slack.legacy-app": True,
+            "slack.signing-secret": "slack-signing-secret",
             "github-app.name": "sentry-test-app",
             "github-app.client-id": "github-client-id",
             "github-app.client-secret": "github-client-secret",
@@ -131,6 +128,14 @@ def pytest_configure(config):
             "vercel.client-secret": "vercel-client-secret",
             "msteams.client-id": "msteams-client-id",
             "msteams.client-secret": "msteams-client-secret",
+            "aws-lambda.access-key-id": "aws-key-id",
+            "aws-lambda.secret-access-key": "aws-secret-access-key",
+            "aws-lambda.cloudformation-url": "https://example.com/file.json",
+            "aws-lambda.account-number": "1234",
+            "aws-lambda.node.layer-name": "my-layer",
+            "aws-lambda.node.layer-version": "3",
+            "aws-lambda.python.layer-name": "my-python-layer",
+            "aws-lambda.python.layer-version": "34",
         }
     )
 
@@ -143,6 +148,9 @@ def pytest_configure(config):
     settings.GITHUB_API_SECRET = "123"
     # this isn't the real secret
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
+
+    # enable demo mode so we boot up tests with the demo routes
+    settings.DEMO_MODE = True
 
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
@@ -190,12 +198,14 @@ def register_extensions():
         ExampleRepositoryProvider,
         ServerExampleProvider,
         FeatureFlagIntegration,
+        AlertRuleIntegrationProvider,
     )
 
     integrations.register(ExampleIntegrationProvider)
     integrations.register(AliasedIntegrationProvider)
     integrations.register(ServerExampleProvider)
     integrations.register(FeatureFlagIntegration)
+    integrations.register(AlertRuleIntegrationProvider)
 
     from sentry.plugins.base import bindings
     from sentry.plugins.providers.dummy import DummyRepositoryProvider
@@ -268,10 +278,8 @@ def pytest_collection_modifyitems(config, items):
 
         # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
         # we want to only include items in `accepted` list
-
-        # TODO(joshuarli): six 1.12.0 adds ensure_binary: six.ensure_binary(item.location[0])
         item_to_group = (
-            int(md5(six.text_type(item.location[0]).encode("utf-8")).hexdigest(), 16)
+            int(md5(str(item.location[0]).encode("utf-8")).hexdigest(), 16)
             if grouping_strategy == "file"
             else len(accepted) - 1
         )

@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 import collections
 from copy import deepcopy
 import itertools
 
-import six
 
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import snuba, outcomes
@@ -35,31 +32,38 @@ class SnubaTSDB(BaseTSDB):
     will return empty results for unsupported models.
     """
 
+    # Since transactions are currently (and temporarily) written to Snuba's events storage we need to
+    # include this condition to ensure they are excluded from the query. Once we switch to the
+    # errors storage in Snuba, this can be omitted and transactions will be excluded by default.
+    events_type_condition = ["type", "!=", "transaction"]
+
     # ``non_outcomes_query_settings`` are all the query settings for for non outcomes based TSDB models.
     # Single tenant reads Snuba for these models, and writes to DummyTSDB. It reads and writes to Redis for all the
     # other models.
     non_outcomes_query_settings = {
         TSDBModel.project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", None, [["type", "!=", "transaction"]]
+            snuba.Dataset.Events, "project_id", None, [events_type_condition]
         ),
-        TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "group_id", None, None),
+        TSDBModel.group: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "group_id", None, [events_type_condition]
+        ),
         TSDBModel.release: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "tags[sentry:release]", None, None
+            snuba.Dataset.Events, "tags[sentry:release]", None, [events_type_condition]
         ),
         TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", "tags[sentry:user]", None
+            snuba.Dataset.Events, "group_id", "tags[sentry:user]", [events_type_condition]
         ),
         TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", "tags[sentry:user]", None
+            snuba.Dataset.Events, "project_id", "tags[sentry:user]", [events_type_condition]
         ),
         TSDBModel.frequent_environments_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", "environment", None
+            snuba.Dataset.Events, "group_id", "environment", [events_type_condition]
         ),
         TSDBModel.frequent_releases_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", "tags[sentry:release]", None
+            snuba.Dataset.Events, "group_id", "tags[sentry:release]", [events_type_condition]
         ),
         TSDBModel.frequent_issues_by_project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", "group_id", None
+            snuba.Dataset.Events, "project_id", "group_id", [events_type_condition]
         ),
     }
 
@@ -200,7 +204,7 @@ class SnubaTSDB(BaseTSDB):
     )
 
     def __init__(self, **options):
-        super(SnubaTSDB, self).__init__(**options)
+        super().__init__(**options)
 
     def get_data(
         self,
@@ -236,7 +240,7 @@ class SnubaTSDB(BaseTSDB):
             model_query_settings = self.model_query_settings.get(model)
 
         if model_query_settings is None:
-            raise Exception(u"Unsupported TSDBModel: {}".format(model.name))
+            raise Exception(f"Unsupported TSDBModel: {model.name}")
 
         model_group = model_query_settings.groupby
         model_aggregate = model_query_settings.aggregate
@@ -254,7 +258,7 @@ class SnubaTSDB(BaseTSDB):
 
         columns = (model_query_settings.groupby, model_query_settings.aggregate)
         keys_map = dict(zip(columns, self.flatten_keys(keys)))
-        keys_map = {k: v for k, v in six.iteritems(keys_map) if k is not None and v is not None}
+        keys_map = {k: v for k, v in keys_map.items() if k is not None and v is not None}
         if environment_ids is not None:
             keys_map["environment"] = environment_ids
 
@@ -273,6 +277,13 @@ class SnubaTSDB(BaseTSDB):
             conditions += deepcopy(model_query_settings.conditions)
             # copy because we modify the conditions in snuba.query
 
+        orderby = []
+        if group_on_time:
+            orderby.append("-time")
+
+        if group_on_model and model_group is not None:
+            orderby.append(model_group)
+
         if keys:
             result = snuba.query(
                 dataset=model_query_settings.dataset,
@@ -284,7 +295,8 @@ class SnubaTSDB(BaseTSDB):
                 aggregations=aggregations,
                 rollup=rollup,
                 limit=limit,
-                referrer="tsdb",
+                orderby=orderby,
+                referrer=f"tsdb-modelid:{model.value}",
                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group),
             )
         else:
@@ -344,7 +356,7 @@ class SnubaTSDB(BaseTSDB):
         else:
             model_query_settings = self.model_query_settings.get(model)
 
-        assert model_query_settings is not None, u"Unsupported TSDBModel: {}".format(model.name)
+        assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
 
         if model_query_settings.dataset == snuba.Dataset.Outcomes:
             aggregate_function = "sum"
@@ -417,7 +429,7 @@ class SnubaTSDB(BaseTSDB):
     def get_most_frequent(
         self, model, keys, start, end=None, rollup=None, limit=10, environment_id=None
     ):
-        aggregation = u"topK({})".format(limit)
+        aggregation = f"topK({limit})"
         result = self.get_data(
             model,
             keys,
@@ -431,7 +443,7 @@ class SnubaTSDB(BaseTSDB):
         #    {group:[top1, ...]}
         # into
         #    {group: [(top1, score), ...]}
-        for k, top in six.iteritems(result):
+        for k, top in result.items():
             item_scores = [(v, float(i + 1)) for i, v in enumerate(reversed(top or []))]
             result[k] = list(reversed(item_scores))
 
@@ -440,7 +452,7 @@ class SnubaTSDB(BaseTSDB):
     def get_most_frequent_series(
         self, model, keys, start, end=None, rollup=None, limit=10, environment_id=None
     ):
-        aggregation = u"topK({})".format(limit)
+        aggregation = f"topK({limit})"
         result = self.get_data(
             model,
             keys,

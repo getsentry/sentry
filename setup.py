@@ -1,21 +1,17 @@
 #!/usr/bin/env python
-from __future__ import absolute_import
 
 import os
 import sys
 
-version = sys.version_info
-if os.environ.get("SENTRY_PYTHON2") == "1" and version[:2] != (2, 7):
-    sys.exit("Error: Sentry [In DEPRECATED Python 2 mode] requires Python 2.7.")
+python_version = sys.version_info[:2]
 
-if os.environ.get("SENTRY_PYTHON2") != "1" and version[:2] != (2, 7):
-    if version[:2] < (3, 6):
-        sys.exit("Error: Sentry requires at least Python 3.6 ({})".format(version[:2]))
-    if version[:2] > (3, 6):
-        import logging
+if python_version < (3, 6):
+    sys.exit(f"Error: Sentry requires at least Python 3.6 ({python_version})")
+if python_version > (3, 6):
+    import logging
 
-        logger = logging.getLogger()
-        logger.warning("A Python version different than 3.6 is being used ({})".format(version[:2]))
+    logger = logging.getLogger()
+    logger.warning(f"A Python version different than 3.6 is being used ({python_version})")
 
 
 from distutils.command.build import build as BuildCommand
@@ -36,7 +32,7 @@ from sentry.utils.distutils import (
 )
 
 
-VERSION = "20.12.0.dev0"
+VERSION = "21.3.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 
@@ -84,7 +80,7 @@ cmdclass = {
 
 
 def get_requirements(env):
-    with open(u"requirements-{}.txt".format(env)) as fp:
+    with open(f"requirements-{env}.txt") as fp:
         return [x.strip() for x in fp.read().split("\n") if not x.startswith("#")]
 
 
@@ -113,12 +109,8 @@ setup(
     cmdclass=cmdclass,
     license="BSL-1.1",
     include_package_data=True,
-    package_data={
-        "sentry": ["static/sentry/{}/**".format(d) for d in ("dist", "js", "images", "vendor")]
-    },
-    exclude_package_data={
-        "sentry": ["static/sentry/{}/**".format(d) for d in ("app", "fonts", "less")]
-    },
+    package_data={"sentry": [f"static/sentry/{d}/**" for d in ("dist", "js", "images", "vendor")]},
+    exclude_package_data={"sentry": [f"static/sentry/{d}/**" for d in ("app", "fonts", "less")]},
     entry_points={
         "console_scripts": ["sentry = sentry.runner:main"],
         "sentry.apps": [
@@ -173,8 +165,6 @@ setup(
         "Intended Audience :: Developers",
         "Intended Audience :: System Administrators",
         "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Topic :: Software Development",

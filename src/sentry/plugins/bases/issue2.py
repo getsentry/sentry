@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from rest_framework.response import Response
 from social_auth.models import UserSocialAuth
 
@@ -56,7 +52,7 @@ class IssueTrackingPlugin2(Plugin):
 
     def get_group_body(self, request, group, event, **kwargs):
         result = []
-        for interface in six.itervalues(event.interfaces):
+        for interface in event.interfaces.values():
             output = safe_execute(interface.to_string, event, _with_transaction=False)
             if output:
                 result.append(output)
@@ -163,8 +159,8 @@ class IssueTrackingPlugin2(Plugin):
         e.g. GitHub represents issues as GH-XXX
         """
         if isinstance(issue, dict):
-            return u"#{}".format(issue["id"])
-        return u"#{}".format(issue)
+            return "#{}".format(issue["id"])
+        return f"#{issue}"
 
     def create_issue(self, request, group, form_data, **kwargs):
         """
@@ -181,7 +177,6 @@ class IssueTrackingPlugin2(Plugin):
 
         Returns ``{'id': '1', 'title': issue_title}``
         """
-        pass
 
     def has_auth_configured(self, **kwargs):
         if not self.auth_provider:
@@ -195,20 +190,20 @@ class IssueTrackingPlugin2(Plugin):
             if field.get("required", True) and not field.get("readonly"):
                 value = form_data.get(field["name"])
                 if value is None or value == "":
-                    errors[field["name"]] = u"%s is a required field." % field["label"]
+                    errors[field["name"]] = "%s is a required field." % field["label"]
         return errors
 
     def get_issue_field_map(self):
         # XXX(dcramer): legacy support
         conf_key = self.get_conf_key()
         if self.issue_fields is None:
-            return {"id": u"{}:tid".format(conf_key)}
-        return {key: u"{}:issue_{}".format(conf_key, key) for key in self.issue_fields}
+            return {"id": f"{conf_key}:tid"}
+        return {key: f"{conf_key}:issue_{key}" for key in self.issue_fields}
 
     def build_issue(self, group):
         issue_field_map = self.get_issue_field_map()
         issue = {}
-        for key, meta_name in six.iteritems(issue_field_map):
+        for key, meta_name in issue_field_map.items():
             issue[key] = GroupMeta.objects.get_value(group, meta_name, None)
         if not any(issue.values()):
             return None
@@ -219,7 +214,7 @@ class IssueTrackingPlugin2(Plugin):
 
     def unlink_issue(self, request, group, issue, **kwargs):
         issue_field_map = self.get_issue_field_map()
-        for meta_name in six.itervalues(issue_field_map):
+        for meta_name in issue_field_map.values():
             GroupMeta.objects.unset_value(group, meta_name)
         return self.redirect(group.get_absolute_url())
 
@@ -257,7 +252,7 @@ class IssueTrackingPlugin2(Plugin):
             issue = {"id": issue}
 
         issue_field_map = self.get_issue_field_map()
-        for key, meta_name in six.iteritems(issue_field_map):
+        for key, meta_name in issue_field_map.items():
             if key in issue:
                 GroupMeta.objects.set_value(group, meta_name, issue[key])
             else:
@@ -326,7 +321,7 @@ class IssueTrackingPlugin2(Plugin):
             issue["id"] = request.data["issue_id"]
 
         issue_field_map = self.get_issue_field_map()
-        for key, meta_name in six.iteritems(issue_field_map):
+        for key, meta_name in issue_field_map.items():
             if key in issue:
                 GroupMeta.objects.set_value(group, meta_name, issue[key])
             else:

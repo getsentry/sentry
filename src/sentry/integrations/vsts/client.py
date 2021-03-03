@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.utils.http import absolute_uri
 
@@ -16,27 +14,27 @@ FIELD_MAP = {
 INVALID_ACCESS_TOKEN = "HTTP 400 (invalid_request): The access token is not valid"
 
 
-class VstsApiPath(object):
-    commit = u"{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}"
-    commits = u"{instance}_apis/git/repositories/{repo_id}/commits"
-    commits_batch = u"{instance}_apis/git/repositories/{repo_id}/commitsBatch"
-    commits_changes = u"{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}/changes"
-    project = u"{instance}_apis/projects/{project_id}"
-    projects = u"{instance}_apis/projects"
-    repository = u"{instance}{project}_apis/git/repositories/{repo_id}"
-    repositories = u"{instance}{project}_apis/git/repositories"
-    subscription = u"{instance}_apis/hooks/subscriptions/{subscription_id}"
-    subscriptions = u"{instance}_apis/hooks/subscriptions"
-    work_items = u"{instance}_apis/wit/workitems/{id}"
-    work_items_create = u"{instance}{project}/_apis/wit/workitems/${type}"
+class VstsApiPath:
+    commit = "{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}"
+    commits = "{instance}_apis/git/repositories/{repo_id}/commits"
+    commits_batch = "{instance}_apis/git/repositories/{repo_id}/commitsBatch"
+    commits_changes = "{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}/changes"
+    project = "{instance}_apis/projects/{project_id}"
+    projects = "{instance}_apis/projects"
+    repository = "{instance}{project}_apis/git/repositories/{repo_id}"
+    repositories = "{instance}{project}_apis/git/repositories"
+    subscription = "{instance}_apis/hooks/subscriptions/{subscription_id}"
+    subscriptions = "{instance}_apis/hooks/subscriptions"
+    work_items = "{instance}_apis/wit/workitems/{id}"
+    work_items_create = "{instance}{project}/_apis/wit/workitems/${type}"
     # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
     work_item_search = (
-        u"https://{account_name}.almsearch.visualstudio.com/_apis/search/workitemsearchresults"
+        "https://{account_name}.almsearch.visualstudio.com/_apis/search/workitemsearchresults"
     )
-    work_item_states = u"{instance}{project}/_apis/wit/workitemtypes/{type}/states"
+    work_item_states = "{instance}{project}/_apis/wit/workitemtypes/{type}/states"
     # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
-    users = u"https://{account_name}.vssps.visualstudio.com/_apis/graph/users"
-    work_item_categories = u"{instance}{project}/_apis/wit/workitemtypecategories"
+    users = "https://{account_name}.vssps.visualstudio.com/_apis/graph/users"
+    work_item_categories = "{instance}{project}/_apis/wit/workitemtypecategories"
 
 
 class VstsApiClient(ApiClient, OAuth2RefreshMixin):
@@ -45,7 +43,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     integration_name = "vsts"
 
     def __init__(self, identity, oauth_redirect_url, *args, **kwargs):
-        super(VstsApiClient, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.identity = identity
         self.oauth_redirect_url = oauth_redirect_url
         if "access_token" not in self.identity.data:
@@ -54,7 +52,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def request(self, method, path, data=None, params=None, api_preview=False, timeout=None):
         self.check_auth(redirect_url=self.oauth_redirect_url)
         headers = {
-            "Accept": u"application/json; api-version={}{}".format(
+            "Accept": "application/json; api-version={}{}".format(
                 self.api_version, self.api_version_preview if api_preview else ""
             ),
             "Content-Type": "application/json-patch+json"
@@ -62,7 +60,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             else "application/json",
             "X-HTTP-Method-Override": method,
             "X-TFS-FedAuthRedirect": "Suppress",
-            "Authorization": u"Bearer {}".format(self.identity.data["access_token"]),
+            "Authorization": "Bearer {}".format(self.identity.data["access_token"]),
         }
         return self._request(
             method, path, headers=headers, data=data, params=params, timeout=timeout
@@ -166,7 +164,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         return self.get(
             VstsApiPath.repository.format(
                 instance=instance,
-                project=u"{}/".format(project) if project else "",
+                project=f"{project}/" if project else "",
                 repo_id=name_or_id,
             )
         )
@@ -174,7 +172,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def get_repos(self, instance, project=None):
         return self.get(
             VstsApiPath.repositories.format(
-                instance=instance, project=u"{}/".format(project) if project else ""
+                instance=instance, project=f"{project}/" if project else ""
             ),
             timeout=5,
         )
@@ -213,25 +211,21 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def get_projects(self, instance):
-        limit = 100  # 100 is max
-        offset = 0
-        projects = []
-
-        # no one should have more than 1000 projects
-        for i in range(10):
+        def gen_params(page_number, page_size):
             # ADO supports a continuation token in the response but only in the newer API version (https://docs.microsoft.com/en-us/rest/api/azure/devops/core/projects/list?view=azure-devops-rest-6.1)
             # the token comes as a repsponse header instead of the body and our API clients currently only return the body
             # we can use count, $skip, and $top to get the same result
-            resp = self.get(
-                VstsApiPath.projects.format(instance=instance),
-                params={"stateFilter": "WellFormed", "$skip": offset, "$top": limit},
-            )
-            projects += resp["value"]
-            offset += resp["count"]
-            # if the number is lower than our limit, we can quit
-            if resp["count"] < limit:
-                return projects
-        return projects
+            offset = self.page_size * page_number
+            return {"stateFilter": "WellFormed", "$skip": offset, "$top": page_size}
+
+        def get_results(resp):
+            return resp["value"]
+
+        return self.get_with_pagination(
+            VstsApiPath.projects.format(instance=instance),
+            gen_params=gen_params,
+            get_results=get_results,
+        )
 
     def get_users(self, account_name, continuation_token=None):
         """

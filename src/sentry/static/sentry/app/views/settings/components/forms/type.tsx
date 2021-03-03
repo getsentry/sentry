@@ -3,7 +3,9 @@ import {createFilter} from 'react-select';
 
 import Alert from 'app/components/alert';
 import {AvatarProject, Project} from 'app/types';
+import {ChoiceMapperProps} from 'app/views/settings/components/forms/choiceMapperField';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
+import {RichListProps} from 'app/views/settings/components/forms/richListField';
 
 export const FieldType = [
   'array',
@@ -46,7 +48,10 @@ type BaseField = {
   disabled?: boolean | ((props: any) => boolean);
   disabledReason?: string;
   defaultValue?: FieldValue;
+  /** Does editing this field require the Form to load new configs? */
   updatesForm?: boolean;
+  /** Does editing this field need to clear all other fields? */
+  resetsForm?: boolean;
   confirm?: {[key in ConfirmKeyType]?: string};
   autosize?: boolean;
   maxRows?: number;
@@ -106,7 +111,7 @@ type InputType = {type: 'string' | 'secret'} & {
 
 type SelectControlType = {type: 'choice' | 'select'} & {
   multiple?: boolean;
-
+  allowClear?: boolean;
   options?: Array<{label: string; value: any}>; //for new select
   defaultOptions?: Array<{label: string; value: any}> | boolean;
   filterOption?: ReturnType<typeof createFilter>;
@@ -157,6 +162,10 @@ export type ProjectMapperType = {
   iconType: string;
 };
 
+export type ChoiceMapperType = {
+  type: 'choice_mapper';
+} & ChoiceMapperProps;
+
 //selects a sentry project with avatars
 export type SentryProjectSelectorType = {
   type: 'sentry_project_selector';
@@ -164,16 +173,36 @@ export type SentryProjectSelectorType = {
   avatarSize?: number;
 };
 
+/**
+ * Json field configuration makes using generics hard.
+ * This isn't the ideal type to use, but it will cover
+ * general usage.
+ */
+export type RichListType = {
+  type: 'rich_list';
+} & Pick<
+  RichListProps,
+  | 'renderItem'
+  | 'addButtonText'
+  | 'onAddItem'
+  | 'onEditItem'
+  | 'onRemoveItem'
+  | 'addDropdown'
+  | 'removeConfirm'
+>;
+
 export type Field = (
   | CustomType
   | SelectControlType
   | InputType
   | TextareaType
   | RangeType
-  | {type: typeof FieldType[number]}
   | TableType
   | ProjectMapperType
   | SentryProjectSelectorType
+  | RichListType
+  | ChoiceMapperType
+  | {type: typeof FieldType[number]}
 ) &
   BaseField;
 

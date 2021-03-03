@@ -10,7 +10,8 @@ import ExternalLink from 'app/components/links/externalLink';
 import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import {IconInfo, IconOpen} from 'app/icons';
-import {EventTag} from 'app/types';
+import {Organization} from 'app/types';
+import {EventTag} from 'app/types/event';
 import {isUrl} from 'app/utils';
 import TraceHoverCard from 'app/utils/discover/traceHoverCard';
 
@@ -27,7 +28,7 @@ type Props = {
   releasesPath: string;
   query: Query;
   location: Location;
-  orgId: string;
+  organization: Organization;
   projectId: string;
   hasQueryFeature: boolean;
 };
@@ -35,7 +36,7 @@ type Props = {
 const EventTagsPill = ({
   tag,
   query,
-  orgId,
+  organization,
   projectId,
   streamPath,
   releasesPath,
@@ -66,7 +67,7 @@ const EventTagsPill = ({
       {isRelease && (
         <div className="pill-icon">
           <VersionHoverCard
-            orgSlug={orgId}
+            organization={organization}
             projectSlug={projectId}
             releaseVersion={value}
           >
@@ -80,7 +81,7 @@ const EventTagsPill = ({
         <TraceHoverCard
           containerClassName="pill-icon"
           traceId={value}
-          orgId={orgId}
+          orgSlug={organization.slug}
           location={location}
         >
           {({to}) => {

@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import functools
-import six
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Activity, Commit, Group, PullRequest
@@ -16,7 +13,7 @@ class ActivitySerializer(Serializer):
 
     def get_attrs(self, item_list, user):
         # TODO(dcramer); assert on relations
-        users = {d["id"]: d for d in serialize(set(i.user for i in item_list if i.user_id), user)}
+        users = {d["id"]: d for d in serialize({i.user for i in item_list if i.user_id}, user)}
 
         commit_ids = {
             i.data["commit"] for i in item_list if i.type == Activity.SET_RESOLVED_IN_COMMIT
@@ -53,18 +50,14 @@ class ActivitySerializer(Serializer):
         groups = apply_values(
             functools.partial(serialize, user=user),
             Group.objects.in_bulk(
-                set(
-                    i.data["source_id"] for i in item_list if i.type == Activity.UNMERGE_DESTINATION
-                )
-                | set(
-                    i.data["destination_id"] for i in item_list if i.type == Activity.UNMERGE_SOURCE
-                )
+                {i.data["source_id"] for i in item_list if i.type == Activity.UNMERGE_DESTINATION}
+                | {i.data["destination_id"] for i in item_list if i.type == Activity.UNMERGE_SOURCE}
             ),
         )
 
         return {
             item: {
-                "user": users[six.text_type(item.user_id)] if item.user_id else None,
+                "user": users[str(item.user_id)] if item.user_id else None,
                 "source": groups.get(item.data["source_id"])
                 if item.type == Activity.UNMERGE_DESTINATION
                 else None,
@@ -95,7 +88,7 @@ class ActivitySerializer(Serializer):
             data.pop("mentions", None)
 
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "user": attrs["user"],
             "type": obj.get_type_display(),
             "data": data,
@@ -108,26 +101,26 @@ class OrganizationActivitySerializer(ActivitySerializer):
         from sentry.api.serializers import GroupSerializer
 
         # TODO(dcramer); assert on relations
-        attrs = super(OrganizationActivitySerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         groups = {
             d["id"]: d
             for d in serialize(
-                set([i.group for i in item_list if i.group_id]),
+                {i.group for i in item_list if i.group_id},
                 user,
                 GroupSerializer(environment_func=self.environment_func),
             )
         }
 
-        projects = {d["id"]: d for d in serialize(set(i.project for i in item_list), user)}
+        projects = {d["id"]: d for d in serialize({i.project for i in item_list}, user)}
 
         for item in item_list:
-            attrs[item]["issue"] = groups[six.text_type(item.group_id)] if item.group_id else None
-            attrs[item]["project"] = projects[six.text_type(item.project_id)]
+            attrs[item]["issue"] = groups[str(item.group_id)] if item.group_id else None
+            attrs[item]["project"] = projects[str(item.project_id)]
         return attrs
 
     def serialize(self, obj, attrs, user):
-        context = super(OrganizationActivitySerializer, self).serialize(obj, attrs, user)
+        context = super().serialize(obj, attrs, user)
         context["issue"] = attrs["issue"]
         context["project"] = attrs["project"]
         return context

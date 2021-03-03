@@ -1,10 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import ImageViewer from 'app/components/events/attachmentViewers/imageViewer';
 import JsonViewer from 'app/components/events/attachmentViewers/jsonViewer';
 import LogFileViewer from 'app/components/events/attachmentViewers/logFileViewer';
@@ -15,7 +13,8 @@ import FileSize from 'app/components/fileSize';
 import {PanelTable} from 'app/components/panels';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Event, EventAttachment} from 'app/types';
+import {EventAttachment} from 'app/types';
+import {Event} from 'app/types/event';
 import AttachmentUrl from 'app/utils/attachmentUrl';
 import withApi from 'app/utils/withApi';
 
@@ -36,13 +35,6 @@ type State = {
 };
 
 class EventAttachments extends React.Component<Props, State> {
-  static propTypes: any = {
-    api: PropTypes.object.isRequired,
-    event: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-  };
-
   state: State = {
     attachmentList: [],
     expanded: false,
@@ -212,17 +204,15 @@ class EventAttachments extends React.Component<Props, State> {
                     </div>
                   )}
                 </AttachmentUrl>
-                <Feature features={['event-attachments-viewer']}>
-                  {this.renderInlineAttachment(attachment)}
+                {this.renderInlineAttachment(attachment)}
 
-                  {/* XXX: hack to deal with table grid borders */}
-                  {lastAttachmentPreviewed && (
-                    <React.Fragment>
-                      <div style={{display: 'none'}} />
-                      <div style={{display: 'none'}} />
-                    </React.Fragment>
-                  )}
-                </Feature>
+                {/* XXX: hack to deal with table grid borders */}
+                {lastAttachmentPreviewed && (
+                  <React.Fragment>
+                    <div style={{display: 'none'}} />
+                    <div style={{display: 'none'}} />
+                  </React.Fragment>
+                )}
               </React.Fragment>
             ))}
           </StyledPanelTable>

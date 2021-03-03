@@ -2,6 +2,7 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import {bulkDelete, bulkUpdate} from 'app/actionCreators/group';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -10,13 +11,12 @@ import {
 import {openModal} from 'app/actionCreators/modal';
 import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
+import ActionButton from 'app/components/actions/button';
 import IgnoreActions from 'app/components/actions/ignore';
 import ResolveActions from 'app/components/actions/resolve';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Link from 'app/components/links/link';
-import ShareIssue from 'app/components/shareIssue';
 import Tooltip from 'app/components/tooltip';
-import {IconRefresh, IconStar} from 'app/icons';
+import {IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -26,15 +26,18 @@ import {
   SavedQueryVersions,
   UpdateResolutionStatus,
 } from 'app/types';
+import {Event} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
 import {uniqueId} from 'app/utils/guid';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import ReviewAction from 'app/views/issueList/actions/reviewAction';
+import ShareIssue from 'app/views/organizationGroupDetails/actions/shareIssue';
 import ReprocessingDialogForm from 'app/views/organizationGroupDetails/reprocessingDialogForm';
 
-import SubscribeAction from '../subscribeAction';
-
 import DeleteAction from './deleteAction';
+import ReprocessAction from './reprocessAction';
+import SubscribeAction from './subscribeAction';
 
 type Props = {
   api: Client;
@@ -42,6 +45,7 @@ type Props = {
   project: Project;
   organization: Organization;
   disabled: boolean;
+  event?: Event;
 };
 
 type State = {
@@ -76,7 +80,7 @@ class Actions extends React.Component<Props, State> {
     const discoverQuery = {
       id: undefined,
       name: title || type,
-      fields: ['title', 'release', 'environment', 'user', 'timestamp'],
+      fields: ['title', 'release', 'environment', 'user.display', 'timestamp'],
       orderby: '-timestamp',
       query: `issue.id:${id}`,
       projects: [Number(project.id)],
@@ -93,7 +97,8 @@ class Actions extends React.Component<Props, State> {
 
     addLoadingMessage(t('Delete event\u2026'));
 
-    api.bulkDelete(
+    bulkDelete(
+      api,
       {
         orgId: organization.slug,
         projectId: project.slug,
@@ -110,13 +115,18 @@ class Actions extends React.Component<Props, State> {
   };
 
   onUpdate = (
-    data: {isBookmarked: boolean} | {isSubscribed: boolean} | UpdateResolutionStatus
+    data:
+      | {isBookmarked: boolean}
+      | {isSubscribed: boolean}
+      | {inbox: boolean}
+      | UpdateResolutionStatus
   ) => {
     const {group, project, organization, api} = this.props;
 
     addLoadingMessage(t('Saving changes\u2026'));
 
-    api.bulkUpdate(
+    bulkUpdate(
+      api,
       {
         orgId: organization.slug,
         projectId: project.slug,
@@ -130,11 +140,12 @@ class Actions extends React.Component<Props, State> {
   };
 
   onReprocess = () => {
-    const {group, organization} = this.props;
+    const {group, organization, project} = this.props;
     openModal(({closeModal, Header, Body}) => (
       <ReprocessingDialogForm
         group={group}
-        orgSlug={organization.slug}
+        organization={organization}
+        project={project}
         closeModal={closeModal}
         Header={Header}
         Body={Body}
@@ -147,7 +158,8 @@ class Actions extends React.Component<Props, State> {
     this.setState({shareBusy: true});
 
     // not sure why this is a bulkUpdate
-    api.bulkUpdate(
+    bulkUpdate(
+      api,
       {
         orgId: organization.slug,
         projectId: project.slug,
@@ -200,11 +212,8 @@ class Actions extends React.Component<Props, State> {
     });
   };
 
-  handleClick(
-    disabled: boolean,
-    onClick: (event: React.MouseEvent<HTMLDivElement>) => void
-  ) {
-    return function (event: React.MouseEvent<HTMLDivElement>) {
+  handleClick(disabled: boolean, onClick: (event: React.MouseEvent) => void) {
+    return function (event: React.MouseEvent) {
       if (disabled) {
         event.preventDefault();
         event.stopPropagation();
@@ -216,35 +225,37 @@ class Actions extends React.Component<Props, State> {
   }
 
   render() {
-    const {group, project, organization, disabled} = this.props;
+    const {group, project, organization, disabled, event} = this.props;
     const {status, isBookmarked} = group;
 
     const orgFeatures = new Set(organization.features);
-    const projectFeatures = new Set(project.features);
 
-    let buttonClassName = 'btn btn-default btn-sm';
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
 
     const isResolved = status === 'resolved';
     const isIgnored = status === 'ignored';
 
-    if (disabled) {
-      buttonClassName = `${buttonClassName} disabled`;
-    }
-
     return (
-      <div className="group-actions">
+      <Wrapper>
+        {orgFeatures.has('inbox') && (
+          <Tooltip disabled={!!group.inbox} title={t('Issue has been reviewed')}>
+            <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox} />
+          </Tooltip>
+        )}
         <GuideAnchor target="resolve" position="bottom" offset={space(3)}>
           <ResolveActions
             disabled={disabled}
+            disableDropdown={disabled}
             hasRelease={hasRelease}
             latestRelease={project.latestRelease}
             onUpdate={this.onUpdate}
             orgId={organization.slug}
             projectId={project.slug}
             isResolved={isResolved}
-            isAutoResolved={isResolved && group.statusDetails.autoResolved}
+            isAutoResolved={
+              group.status === 'resolved' ? group.statusDetails.autoResolved : undefined
+            }
           />
         </GuideAnchor>
         <GuideAnchor target="ignore_delete_discard" position="bottom" offset={space(3)}>
@@ -262,72 +273,50 @@ class Actions extends React.Component<Props, State> {
           onDiscard={this.onDiscard}
         />
         {orgFeatures.has('shared-issues') && (
-          <div className="btn-group">
-            <ShareIssue
-              disabled={disabled}
-              loading={this.state.shareBusy}
-              isShared={group.isPublic}
-              shareUrl={this.getShareUrl(group.shareId)}
-              onToggle={this.onToggleShare}
-              onReshare={() => this.onShare(true)}
-            />
-          </div>
+          <ShareIssue
+            disabled={disabled}
+            loading={this.state.shareBusy}
+            isShared={group.isPublic}
+            shareUrl={this.getShareUrl(group.shareId)}
+            onToggle={this.onToggleShare}
+            onReshare={() => this.onShare(true)}
+          />
         )}
+
         {orgFeatures.has('discover-basic') && (
-          <div className="btn-group">
-            <Link
-              className={buttonClassName}
-              title={t('Open in Discover')}
-              to={disabled ? '' : this.getDiscoverUrl()}
-            >
-              {t('Open in Discover')}
-            </Link>
-          </div>
+          <ActionButton disabled={disabled} to={disabled ? '' : this.getDiscoverUrl()}>
+            {t('Open in Discover')}
+          </ActionButton>
         )}
-        <div className="btn-group">
-          <BookmarkButton
-            className={buttonClassName}
-            role="button"
-            isActive={group.isBookmarked}
-            title={bookmarkTitle}
-            aria-label={bookmarkTitle}
-            onClick={this.handleClick(disabled, this.onToggleBookmark)}
-          >
-            <IconWrapper>
-              <IconStar isSolid size="xs" />
-            </IconWrapper>
-          </BookmarkButton>
-        </div>
+
+        <BookmarkButton
+          disabled={disabled}
+          isActive={group.isBookmarked}
+          title={bookmarkTitle}
+          label={bookmarkTitle}
+          onClick={this.handleClick(disabled, this.onToggleBookmark)}
+          icon={<IconStar isSolid size="xs" />}
+        />
+
         <SubscribeAction
+          disabled={disabled}
           group={group}
           onClick={this.handleClick(disabled, this.onToggleSubscribe)}
-          className={buttonClassName}
         />
-        {projectFeatures.has('reprocessing-v2') && (
-          <div className="btn-group">
-            <Tooltip title={t('Reprocess this issue')}>
-              <div
-                className={buttonClassName}
-                onClick={this.handleClick(disabled, this.onReprocess)}
-              >
-                <IconWrapper>
-                  <IconRefresh size="xs" />
-                </IconWrapper>
-              </div>
-            </Tooltip>
-          </div>
+
+        {orgFeatures.has('reprocessing-v2') && (
+          <ReprocessAction
+            event={event}
+            disabled={disabled}
+            onClick={this.handleClick(disabled, this.onReprocess)}
+          />
         )}
-      </div>
+      </Wrapper>
     );
   }
 }
 
-const IconWrapper = styled('span')`
-  position: relative;
-  top: 1px;
-`;
-
-const BookmarkButton = styled('div')<{isActive: boolean}>`
+const BookmarkButton = styled(ActionButton)<{isActive: boolean}>`
   ${p =>
     p.isActive &&
     `
@@ -336,6 +325,16 @@ const BookmarkButton = styled('div')<{isActive: boolean}>`
     border-color: ${p.theme.yellow300};
     text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
   `}
+`;
+
+const Wrapper = styled('div')`
+  display: grid;
+  justify-content: flex-start;
+  align-items: center;
+  grid-auto-flow: column;
+  gap: ${space(0.5)};
+  margin-top: ${space(2)};
+  white-space: nowrap;
 `;
 
 export {Actions};

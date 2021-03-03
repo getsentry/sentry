@@ -174,7 +174,13 @@ const definitions: Field[] = [
   },
   {
     key: 'mail.use-tls',
-    label: t('Use TLS?'),
+    label: t('Use STARTTLS? (exclusive with SSL)'),
+    component: BooleanField,
+    defaultValue: () => false,
+  },
+  {
+    key: 'mail.use-ssl',
+    label: t('Use SSL? (exclusive with STARTTLS)'),
     component: BooleanField,
     defaultValue: () => false,
   },

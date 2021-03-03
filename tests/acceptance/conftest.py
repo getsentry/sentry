@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import os
 import subprocess
 import time
@@ -30,7 +28,7 @@ def pytest_configure(config):
 
             if last_built <= 3600:
                 print(  # noqa: B314
-                    u"""
+                    """
 ###################
 #
 # Frontend assets last built {} seconds ago, skipping rebuilds for another {} seconds.
@@ -42,7 +40,7 @@ def pytest_configure(config):
                     )
                 )
                 return
-    except IOError:
+    except OSError:
         pass
     except Exception:
         pass

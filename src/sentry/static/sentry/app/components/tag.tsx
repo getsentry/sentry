@@ -67,7 +67,9 @@ function Tag({
       <Background type={type}>
         {tagIcon()}
 
-        <Text maxWidth={textMaxWidth}>{children}</Text>
+        <Text type={type} maxWidth={textMaxWidth}>
+          {children}
+        </Text>
 
         {defined(onDismiss) && (
           <DismissButton
@@ -116,10 +118,14 @@ function Tag({
     return tag;
   }
 
-  return <span {...props}>{tagWithParent()}</span>;
+  return <TagWrapper {...props}>{tagWithParent()}</TagWrapper>;
 }
 
-const Background = styled('div')<{type: keyof Theme['tag']}>`
+const TagWrapper = styled('span')`
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+export const Background = styled('div')<{type: keyof Theme['tag']}>`
   display: inline-flex;
   align-items: center;
   height: ${TAG_HEIGHT};
@@ -133,9 +139,8 @@ const IconWrapper = styled('span')`
   display: inline-flex;
 `;
 
-const Text = styled('span')<{maxWidth: number}>`
-  color: ${p => p.theme.gray500};
-  font-size: ${p => p.theme.fontSizeSmall};
+const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
+  color: ${p => (p.type === 'black' ? p.theme.white : p.theme.gray500)};
   max-width: ${p => p.maxWidth}px;
   overflow: hidden;
   white-space: nowrap;

@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 from time import time
 import logging
 import re
 
-import six
 from django import forms
 from django.utils.translation import ugettext as _
 
@@ -77,6 +74,12 @@ FEATURES = [
         """,
         IntegrationFeatures.ISSUE_SYNC,
     ),
+    FeatureDescription(
+        """
+        Automatically create Azure DevOps work items based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
+    ),
 ]
 
 metadata = IntegrationMetadata(
@@ -84,7 +87,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=VSTS%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Azure%20DevOps%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vsts",
     aspects={},
 )
@@ -101,7 +104,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
     inbound_assignee_key = "sync_reverse_assignment"
 
     def __init__(self, *args, **kwargs):
-        super(VstsIntegration, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.default_identity = None
 
     def reinstall(self):
@@ -119,7 +122,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         for repo in repos["value"]:
             data.append(
                 {
-                    "name": "%s/%s" % (repo["project"]["name"], repo["name"]),
+                    "name": "{}/{}".format(repo["project"]["name"], repo["name"]),
                     "identifier": repo["id"],
                 }
             )
@@ -314,9 +317,10 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     features = frozenset(
         [
+            IntegrationFeatures.COMMITS,
             IntegrationFeatures.ISSUE_BASIC,
             IntegrationFeatures.ISSUE_SYNC,
-            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.TICKET_RULES,
         ]
     )
 
@@ -409,9 +413,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             )
         except ApiError as e:
             auth_codes = (400, 401, 403)
-            permission_error = "permission" in six.text_type(
-                e
-            ) or "not authorized" in six.text_type(e)
+            permission_error = "permission" in str(e) or "not authorized" in str(e)
             if e.code in auth_codes or permission_error:
                 raise IntegrationError(
                     "You do not have sufficient account access to create webhooks "
@@ -523,7 +525,7 @@ class AccountConfigView(PipelineView):
 
 class AccountForm(forms.Form):
     def __init__(self, accounts, *args, **kwargs):
-        super(AccountForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["account"] = forms.ChoiceField(
             choices=[(acct["accountId"], acct["accountName"]) for acct in accounts],
             label="Account",

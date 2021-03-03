@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils.encoding import force_text
 from django import forms
 from django.db import models

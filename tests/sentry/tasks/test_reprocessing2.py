@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
+from io import BytesIO
 from time import time
 import pytest
 import uuid
-import six
 
 from sentry import eventstore
 from sentry.attachments import attachment_cache
@@ -19,20 +17,18 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.cache import cache_key_for_event
 
 
-# pytestmark = pytest.mark.skip(reason="Deadlock on Travis")
-
-
 @pytest.fixture(autouse=True)
 def reprocessing_feature(monkeypatch):
     monkeypatch.setattr("sentry.tasks.reprocessing2.GROUP_REPROCESSING_CHUNK_SIZE", 1)
 
-    with Feature({"projects:reprocessing-v2": True}):
+    with Feature({"organizations:reprocessing-v2": True}):
         yield
 
 
 @pytest.fixture
 def process_and_save(default_project, task_runner):
     def inner(data, seconds_ago=1):
+        data.setdefault("platform", "native")
         data.setdefault("timestamp", iso_format(before_now(seconds=seconds_ago)))
         mgr = EventManager(data=data, project=default_project)
         mgr.normalize()
@@ -84,7 +80,7 @@ def test_basic(
     def event_preprocessor(data):
         tags = data.setdefault("tags", [])
         assert all(not x or x[0] != "processing_counter" for x in tags)
-        tags.append(("processing_counter", "x{}".format(len(abs_count))))
+        tags.append(("processing_counter", f"x{len(abs_count)}"))
         abs_count.append(None)
 
         if change_groups:
@@ -200,11 +196,12 @@ def test_concurrent_events_go_into_new_group(
     assert group.short_id == original_short_id
     assert GroupAssignee.objects.get(group=group) == original_assignee
     activity = Activity.objects.get(group=group, type=Activity.REPROCESS)
-    assert activity.ident == six.text_type(original_issue_id)
+    assert activity.ident == str(original_issue_id)
 
 
 @pytest.mark.django_db
 @pytest.mark.snuba
+@pytest.mark.parametrize("remaining_events", ["delete", "keep"])
 def test_max_events(
     default_project,
     reset_snuba,
@@ -212,6 +209,7 @@ def test_max_events(
     process_and_save,
     burst_task_runner,
     monkeypatch,
+    remaining_events,
 ):
     @register_event_preprocessor
     def event_preprocessor(data):
@@ -221,25 +219,46 @@ def test_max_events(
         return data
 
     event_ids = [
-        process_and_save({"message": "hello world"}, seconds_ago=i + 1) for i in reversed(range(20))
+        process_and_save({"message": "hello world"}, seconds_ago=i + 1) for i in reversed(range(5))
     ]
 
-    (group_id,) = {
-        eventstore.get_event_by_id(default_project.id, event_id).group_id for event_id in event_ids
+    old_events = {
+        event_id: eventstore.get_event_by_id(default_project.id, event_id) for event_id in event_ids
     }
 
+    (group_id,) = {e.group_id for e in old_events.values()}
+
     with burst_task_runner() as burst:
-        reprocess_group(default_project.id, group_id, max_events=len(event_ids) // 2)
+        reprocess_group(
+            default_project.id,
+            group_id,
+            max_events=len(event_ids) // 2,
+            remaining_events=remaining_events,
+        )
 
     burst(max_jobs=100)
 
     for i, event_id in enumerate(event_ids):
         event = eventstore.get_event_by_id(default_project.id, event_id)
         if i < len(event_ids) / 2:
-            assert event is None
+            if remaining_events == "delete":
+                assert event is None
+            elif remaining_events == "keep":
+                assert event.group_id != group_id
+                assert dict(event.data) == dict(old_events[event_id].data)
+            else:
+                raise ValueError(remaining_events)
         else:
             assert event.group_id != group_id
             assert int(event.data["contexts"]["reprocessing"]["original_issue_id"]) == group_id
+            assert dict(event.data) != dict(old_events[event_id].data)
+
+    if remaining_events == "delete":
+        assert event.group.times_seen == len(event_ids) // 2
+    elif remaining_events == "keep":
+        assert event.group.times_seen == len(event_ids)
+    else:
+        raise ValueError(remaining_events)
 
     assert is_group_finished(group_id)
 
@@ -275,18 +294,20 @@ def test_attachments_and_userfeedback(
     for evt in (event, event_to_delete):
         for type in ("event.attachment", "event.minidump"):
             file = File.objects.create(name="foo", type=type)
-            file.putfile(six.BytesIO(b"hello world"))
+            file.putfile(BytesIO(b"hello world"))
             EventAttachment.objects.create(
                 event_id=evt.event_id,
                 group_id=evt.group_id,
                 project_id=default_project.id,
-                file=file,
+                file_id=file.id,
                 type=file.type,
                 name="foo",
             )
 
         UserReport.objects.create(
-            project_id=default_project.id, event_id=evt.event_id, name="User",
+            project_id=default_project.id,
+            event_id=evt.event_id,
+            name="User",
         )
 
     with burst_task_runner() as burst:
@@ -315,7 +336,11 @@ def test_attachments_and_userfeedback(
 @pytest.mark.django_db
 @pytest.mark.snuba
 def test_nodestore_missing(
-    default_project, reset_snuba, process_and_save, burst_task_runner, monkeypatch,
+    default_project,
+    reset_snuba,
+    process_and_save,
+    burst_task_runner,
+    monkeypatch,
 ):
     event_id = process_and_save({"message": "hello world"})
     event = eventstore.get_event_by_id(default_project.id, event_id)

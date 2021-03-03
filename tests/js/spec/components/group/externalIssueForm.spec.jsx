@@ -22,28 +22,41 @@ jest.mock('lodash/debounce', () => {
 });
 
 describe('ExternalIssueForm', () => {
-  let group, integration, handleSubmitSuccess, wrapper, formConfig;
+  let group, integration, onChange, wrapper, formConfig;
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     group = TestStubs.Group();
     integration = TestStubs.GitHubIntegration({externalIssues: []});
-    handleSubmitSuccess = jest.fn();
+    onChange = jest.fn();
   });
 
   afterEach(() => {
     jest.useRealTimers();
   });
 
-  const generateWrapper = (action = 'create') =>
-    mountWithTheme(
+  const generateWrapper = (action = 'create') => {
+    MockApiClient.addMockResponse(
+      {
+        url: `/groups/${group.id}/integrations/${integration.id}/`,
+        body: formConfig,
+      },
+      {
+        predicate: (_, options) => options?.query?.action === 'create',
+      }
+    );
+    const component = mountWithTheme(
       <ExternalIssueForm
+        Body={p => p.children}
+        Header={p => p.children}
         group={group}
         integration={integration}
-        onSubmitSuccess={handleSubmitSuccess}
-        action={action}
+        onChange={onChange}
       />,
       TestStubs.routerContext()
     );
+    component.instance().handleClick(action);
+    return component;
+  };
 
   describe('create', () => {
     // TODO: expand tests
@@ -52,7 +65,7 @@ describe('ExternalIssueForm', () => {
         createIssueConfig: [],
       };
       MockApiClient.addMockResponse({
-        url: `/groups/${group.id}/integrations/${integration.id}/?action=create`,
+        url: `/groups/${group.id}/integrations/${integration.id}/`,
         body: formConfig,
       });
     });
@@ -123,10 +136,15 @@ describe('ExternalIssueForm', () => {
         },
         id: '5',
       };
-      getFormConfigRequest = MockApiClient.addMockResponse({
-        url: `/groups/${group.id}/integrations/${integration.id}/?action=link`,
-        body: formConfig,
-      });
+      getFormConfigRequest = MockApiClient.addMockResponse(
+        {
+          url: `/groups/${group.id}/integrations/${integration.id}/`,
+          body: formConfig,
+        },
+        {
+          predicate: (_, options) => options?.query?.action === 'link',
+        }
+      );
     });
     it('renders', () => {
       wrapper = generateWrapper('link');
@@ -185,7 +203,7 @@ describe('ExternalIssueForm', () => {
 
       it('debounced function returns a promise with the options returned by fetch', async () => {
         const output = await wrapper.instance().getOptions(externalIssueField, 'd');
-        expect(output.options).toEqual(mockSuccessResponse);
+        expect(output).toEqual(mockSuccessResponse);
       });
     });
   });

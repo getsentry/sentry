@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
@@ -12,7 +9,6 @@ from sentry.integrations import IntegrationFeatures
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.models import Activity, ExternalIssue, GroupLink, Integration
 from sentry.signals import integration_issue_created, integration_issue_linked
-from sentry.web.decorators import transaction_start
 
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
@@ -45,7 +41,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             data=issue_information,
         )
 
-    @transaction_start("GroupIntegrationDetailsEndpoint")
     def get(self, request, group, integration_id):
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
@@ -81,10 +76,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 )
             )
         except IntegrationError as e:
-            return Response({"detail": six.text_type(e)}, status=400)
+            return Response({"detail": str(e)}, status=400)
 
     # was thinking put for link an existing issue, post for create new issue?
-    @transaction_start("GroupIntegrationDetailsEndpoint")
     def put(self, request, group, integration_id):
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
@@ -113,7 +107,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         except IntegrationFormError as exc:
             return Response(exc.field_errors, status=400)
         except IntegrationError as e:
-            return Response({"non_field_errors": [six.text_type(e)]}, status=400)
+            return Response({"non_field_errors": [str(e)]}, status=400)
 
         defaults = {
             "title": data.get("title"),
@@ -145,7 +139,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         except IntegrationFormError as exc:
             return Response(exc.field_errors, status=400)
         except IntegrationError as e:
-            return Response({"non_field_errors": [six.text_type(e)]}, status=400)
+            return Response({"non_field_errors": [str(e)]}, status=400)
 
         try:
             with transaction.atomic():
@@ -173,7 +167,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         }
         return Response(context, status=201)
 
-    @transaction_start("GroupIntegrationDetailsEndpoint")
     def post(self, request, group, integration_id):
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
@@ -198,7 +191,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         except IntegrationFormError as exc:
             return Response(exc.field_errors, status=400)
         except IntegrationError as e:
-            return Response({"non_field_errors": [six.text_type(e)]}, status=400)
+            return Response({"non_field_errors": [str(e)]}, status=400)
 
         external_issue_key = installation.make_external_key(data)
         external_issue, created = ExternalIssue.objects.get_or_create(
@@ -246,7 +239,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         }
         return Response(context, status=201)
 
-    @transaction_start("GroupIntegrationDetailsEndpoint")
     def delete(self, request, group, integration_id):
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)

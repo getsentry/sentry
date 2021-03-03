@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import re
-import six
 from django.db import IntegrityError
 from django.db.models import Q
 from django.db.models.functions import Coalesce
@@ -11,7 +8,7 @@ from rest_framework.exceptions import ParseError
 from sentry import analytics
 
 from sentry.api.bases import NoProjects
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository, ConflictError
 from sentry.api.paginator import OffsetPaginator, MergingOffsetPaginator
@@ -40,7 +37,6 @@ from sentry.snuba.sessions import (
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip as izip
 from sentry.utils.sdk import configure_scope, bind_organization_context
-from sentry.web.decorators import transaction_start
 
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
@@ -137,8 +133,9 @@ def debounce_update_release_health_data(organization, project_ids):
     cache.set_many(dict(izip(should_update.values(), [True] * len(should_update))), 60)
 
 
-class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
-    @transaction_start("OrganizationReleasesEndpoint.get")
+class OrganizationReleasesEndpoint(
+    OrganizationReleasesBaseEndpoint, EnvironmentMixin, ReleaseAnalyticsMixin
+):
     def get(self, request, organization):
         """
         List an Organization's Releases
@@ -264,10 +261,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 summary_stats_period=summary_stats_period,
                 environments=filter_params.get("environment") or None,
             ),
-            **paginator_kwargs
+            **paginator_kwargs,
         )
 
-    @transaction_start("OrganizationReleasesEndpoint.post")
     def post(self, request, organization):
         """
         Create a New Release for an Organization
@@ -371,6 +367,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 if commit_list:
                     try:
                         release.set_commits(commit_list)
+                        self.track_set_commits_local(
+                            request,
+                            organization_id=organization.id,
+                            project_ids=[project.id for project in projects],
+                        )
                     except ReleaseCommitError:
                         raise ConflictError("Release commits are currently being processed")
 
@@ -397,7 +398,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                         release.set_refs(refs, request.user, fetch=fetch_commits)
                     except InvalidRepository as e:
                         scope.set_tag("failure_reason", "InvalidRepository")
-                        return Response({"refs": [six.text_type(e)]}, status=400)
+                        return Response({"refs": [str(e)]}, status=400)
 
                 if not created and not new_projects:
                     # This is the closest status code that makes sense, and we want
@@ -416,6 +417,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),
                     created_status=status,
                 )
+
                 scope.set_tag("success_status", status)
                 return Response(serialize(release, request.user), status=status)
             scope.set_tag("failure_reason", "serializer_error")
@@ -423,7 +425,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
 
 
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
-    @transaction_start("OrganizationReleasesStatsEndpoint.get")
     def get(self, request, organization):
         """
         List an Organization's Releases specifically for building timeseries
@@ -441,7 +442,9 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
             Release.objects.filter(
                 organization=organization, projects__id__in=filter_params["project_id"]
             )
-            .annotate(date=Coalesce("date_released", "date_added"),)
+            .annotate(
+                date=Coalesce("date_released", "date_added"),
+            )
             .values("version", "date")
             .order_by("-date")
             .distinct()

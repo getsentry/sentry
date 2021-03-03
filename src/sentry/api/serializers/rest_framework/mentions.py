@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework import serializers
 
 from sentry.api.fields.actor import Actor
@@ -24,7 +22,7 @@ def extract_user_ids_from_mentions(organization_id, mentions):
     )
 
     return {
-        "users": set([user.id for user in actor_mentions["users"]]),
+        "users": {user.id for user in actor_mentions["users"]},
         "team_users": set(mentioned_team_users),
     }
 
@@ -43,7 +41,7 @@ def separate_resolved_actors(actors):
     return {"users": users, "teams": teams}
 
 
-class MentionsMixin(object):
+class MentionsMixin:
     def validate_mentions(self, mentions):
         if mentions and "projects" in self.context:
 

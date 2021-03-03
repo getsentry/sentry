@@ -3,8 +3,7 @@ import React from 'react';
 import ContextData from 'app/components/contextData';
 import EventDataSection from 'app/components/events/eventDataSection';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
-import {Event} from 'app/types';
+import {Event} from 'app/types/event';
 
 type Props = {
   event: Event;
@@ -12,7 +11,7 @@ type Props = {
 
 const DeviceInterface = ({event}: Props) => {
   const data = event.device || {};
-  const extras = Object.entries(data.data || {}).map(([key, value]) => {
+  const extras = Object.entries<any>(data.data || {}).map(([key, value]) => {
     return (
       <tr key={key}>
         <td className="key">{key}</td>
@@ -56,10 +55,6 @@ const DeviceInterface = ({event}: Props) => {
       </table>
     </EventDataSection>
   );
-};
-
-DeviceInterface.propTypes = {
-  event: SentryTypes.Event.isRequired,
 };
 
 export default DeviceInterface;

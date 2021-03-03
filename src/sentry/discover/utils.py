@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry.utils.snuba import Dataset, aliased_query, get_snuba_column_name, get_function_index
 
 # TODO(mark) Once this import is removed, transform_data should not
@@ -31,7 +27,7 @@ def parse_columns_in_functions(col, context=None, index=None):
         # that should be converted to snuba column names
         # e.g. ['func1', ['column', 'func2', ['arg1']]]
         if function_name_index > 0:
-            for i in six.moves.xrange(0, function_name_index):
+            for i in range(0, function_name_index):
                 if context is not None:
                     context[i] = get_snuba_column_name(col[i])
 
@@ -103,7 +99,7 @@ def transform_aliases_and_query(**kwargs):
 
     for aggregation in aggregations or []:
         derived_columns.add(aggregation[2])
-        if isinstance(aggregation[1], six.string_types):
+        if isinstance(aggregation[1], str):
             aggregation[1] = get_snuba_column_name(aggregation[1])
         elif isinstance(aggregation[1], (set, tuple, list)):
             aggregation[1] = [get_snuba_column_name(col) for col in aggregation[1]]
@@ -132,7 +128,7 @@ def transform_aliases_and_query(**kwargs):
         for field_with_order in orderby:
             field = field_with_order.lstrip("-")
             translated_orderby.append(
-                u"{}{}".format(
+                "{}{}".format(
                     "-" if field_with_order.startswith("-") else "",
                     field if field in derived_columns else get_snuba_column_name(field),
                 )
