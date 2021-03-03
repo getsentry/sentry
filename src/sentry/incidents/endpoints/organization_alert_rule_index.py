@@ -1,6 +1,8 @@
 from rest_framework import status
 from rest_framework.response import Response
 
+from django.db.models import Q
+
 from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationAlertRulePermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -49,8 +51,12 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         name = request.get("name", None)
         teams = request.get("teams", [])
         if teams:
-            alert_rules = alert_rules.filter(team_id__in=teams)
-            issue_rules = issue_rules.filter(team_id__in=teams)
+            alert_rules = alert_rules.filter(
+                Q(owner_id__in=Team.objects.filter(id__in=teams).values_list("actor_id", flat=True))
+            )
+            issue_rules = issue_rules.filter(
+                Q(owner_id__in=Team.objects.filter(id__in=teams).values_list("actor_id", flat=True))
+            )
 
         if name:
             alert_rules = alert_rules.filter(name__contains=name)

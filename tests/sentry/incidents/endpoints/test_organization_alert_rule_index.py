@@ -572,6 +572,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
 
     def test_team_filter(self):
+        # TODO: Will fix this test properly when the Actor migration merges and we have Actors
         self.setup_project_and_rules()
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -580,20 +581,27 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 200
-        print("res")
         result = json.loads(response.content)
         assert len(result) == 4
 
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "10", "project": [self.project.id], "team":[-1, 2, "all", "users"]}
+            request_data = {"per_page": "10", "project": [self.project.id], "team":[self.team.id, team_2.id]}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 200
-        print("res")
         result = json.loads(response.content)
         assert len(result) == 2
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "10", "project": [self.project.id], "team":[-1]}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 0
     
     def team_name_filter(self):
         assert True is False
