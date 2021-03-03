@@ -19,41 +19,41 @@ from collections import defaultdict
 # from .discover import zerofill
 
 
-def group_timestamps(result, groupby):
-    tranformed_results = {}
-    # input: {'project_id': 5, 'category': 1, 'time': 1614470400, 'times_seen': 8, 'quantity': 8}
-    # should i be worried about dictorder?
-    # output:
-    # {'project_id': 5, "errors": { 'times_seen': 8, 'quantity': 8} 'time': 1614470400,} "transactions"
-    grouping_key = groupby.copy()
-    if "category" in grouping_key:
-        grouping_key.remove("category")
-    for row in result:
-        row["category"] = (
-            DataCategory.ERROR
-            if row["category"] in DataCategory.error_categories()
-            else DataCategory(row["category"])
-        )
-        uniq_key = "-".join([str(row[gb]) for gb in grouping_key])
-        parsed_dc = DataCategory(row["category"]).api_name()
-        if uniq_key in tranformed_results:
-            if parsed_dc in tranformed_results[uniq_key]:
-                tranformed_results[uniq_key][parsed_dc]["quantity"] += row["quantity"]
-                tranformed_results[uniq_key][parsed_dc]["times_seen"] += row["times_seen"]
-            else:
-                tranformed_results[uniq_key][parsed_dc] = {
-                    "quantity": row["quantity"],
-                    "times_seen": row["times_seen"],
-                }
-        else:
-            tranformed_results[uniq_key] = {field: row[field] for field in grouping_key}
-            tranformed_results[uniq_key][parsed_dc] = {
-                "quantity": row["quantity"],
-                "times_seen": row["times_seen"],
-            }
+# def group_timestamps(result, groupby):
+#     tranformed_results = {}
+#     # input: {'project_id': 5, 'category': 1, 'time': 1614470400, 'times_seen': 8, 'quantity': 8}
+#     # should i be worried about dictorder?
+#     # output:
+#     # {'project_id': 5, "errors": { 'times_seen': 8, 'quantity': 8} 'time': 1614470400,} "transactions"
+#     grouping_key = groupby.copy()
+#     if "category" in grouping_key:
+#         grouping_key.remove("category")
+#     for row in result:
+#         row["category"] = (
+#             DataCategory.ERROR
+#             if row["category"] in DataCategory.error_categories()
+#             else DataCategory(row["category"])
+#         )
+#         uniq_key = "-".join([str(row[gb]) for gb in grouping_key])
+#         parsed_dc = DataCategory(row["category"]).api_name()
+#         if uniq_key in tranformed_results:
+#             if parsed_dc in tranformed_results[uniq_key]:
+#                 tranformed_results[uniq_key][parsed_dc]["quantity"] += row["quantity"]
+#                 tranformed_results[uniq_key][parsed_dc]["times_seen"] += row["times_seen"]
+#             else:
+#                 tranformed_results[uniq_key][parsed_dc] = {
+#                     "quantity": row["quantity"],
+#                     "times_seen": row["times_seen"],
+#                 }
+#         else:
+#             tranformed_results[uniq_key] = {field: row[field] for field in grouping_key}
+#             tranformed_results[uniq_key][parsed_dc] = {
+#                 "quantity": row["quantity"],
+#                 "times_seen": row["times_seen"],
+#             }
 
-    result = list(tranformed_results.values())
-    return result
+#     result = list(tranformed_results.values())
+#     return result
 
 
 def group_by_project(result):
@@ -74,17 +74,11 @@ def query(groupby, start, end, rollup, aggregations, orderby, fields=None, filte
         start=start,
         end=end,
         groupby=groupby,
-        # conditions=conditions,
         aggregations=aggregations,
         rollup=rollup,
-        # selected_columns=fields,
         filter_keys=filter_keys,
-        # having=snuba_filter.having,
         orderby=orderby,
         dataset=Dataset.Outcomes,
-        # limit=limit,
-        # offset=offset,
-        # referrer=referrer,
     )
 
     for row in result["data"]:
@@ -93,9 +87,7 @@ def query(groupby, start, end, rollup, aggregations, orderby, fields=None, filte
             if row["category"] in DataCategory.error_categories()
             else DataCategory(row["category"])
         )
-    result = result["data"]
-
-    return zerofill(result, start, end, rollup, "time")
+    return result["data"]
 
 
 # def get_outcomes_for_org_stats(

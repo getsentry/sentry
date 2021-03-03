@@ -5,14 +5,14 @@ from sentry.testutils import APITestCase
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry_relay import DataCategory
 from sentry.utils.outcomes import Outcome
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, timestamp_format
 
 
 class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
     def setUp(self):
         super().setUp()
         self.now = datetime.now()
-        self.one_day_ago = before_now(days=1)
+        self.start = before_now(seconds=10)
 
         self.login_as(user=self.user)
 
@@ -33,7 +33,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "timestamp": self.now,
                 "project_id": self.project.id,
                 "outcome": Outcome.ACCEPTED,
-                "reason": "TODO",
+                "reason": "none",
                 "category": DataCategory.ERROR,
                 "quantity": 1,
             }
@@ -44,7 +44,11 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             self.client.get, reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug])
         )
         response = make_request(
-            {"start": iso_format(self.one_day_ago), "end": iso_format(self.now), "interval": "1d"}
+            {
+                "start": timestamp_format(self.start),
+                "end": timestamp_format(self.now),
+                "interval": "1d",
+            }
         )
 
         assert response.status_code == 200, response.content
@@ -57,13 +61,19 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         }
         assert "time" in response.data["statsErrors"][0]  # TODO: write better test for this
 
+        assert len(response.data["statsErrors"]) == 2  # rollup is 1 day, interval rounds up
+
     def test_org_group_by_project(self):
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-project-index", args=[self.org.slug]),
         )
         response = make_request(
-            {"start": iso_format(self.one_day_ago), "end": iso_format(self.now), "interval": "1d"}
+            {
+                "start": timestamp_format(self.start),
+                "end": timestamp_format(self.now),
+                "interval": "1d",
+            }
         )
 
         assert response.status_code == 200, response.content
@@ -87,7 +97,11 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             self.client.get, reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug])
         )
         response = make_request(
-            {"start": iso_format(self.one_day_ago), "end": iso_format(self.now), "interval": "1d"}
+            {
+                "start": timestamp_format(self.start),
+                "end": timestamp_format(self.now),
+                "interval": "1d",
+            }
         )
 
         assert response.status_code == 200, response.content

@@ -9,6 +9,8 @@ from sentry_relay import DataCategory
 from sentry.utils.outcomes import Outcome
 from collections import defaultdict
 
+
+# TODO: add this onto the outcomes module?
 OUTCOME_TO_STR = {
     Outcome.ACCEPTED: "accepted",
     Outcome.FILTERED: "filtered",
@@ -63,7 +65,6 @@ def datamapper(row):
 class OrganizationStatsEndpointV2(OrganizationEndpoint):
     def get(self, request, organization):
         start, end, rollup = get_date_range_rollup_from_params(request.GET, "1h", round_range=True)
-
         result = outcomes.query(
             start=start,
             end=end,
@@ -73,7 +74,8 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
             filter_keys={"org_id": [organization.id]},
             orderby=["time"],
         )
-        # need .copy here?
+
+        # TODO: see if you can use a regular dict in lambda
         new_res = {
             "statsErrors": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
             "statsTransactions": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
