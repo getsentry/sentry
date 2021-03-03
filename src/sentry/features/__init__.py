@@ -68,6 +68,8 @@ default_manager.add("organizations:enterprise-perf", OrganizationFeature)  # NOQ
 default_manager.add("organizations:event-attachments", OrganizationFeature)  # NOQA
 default_manager.add("organizations:event-attachments-viewer", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events", OrganizationFeature)  # NOQA
+default_manager.add("organizations:external-team-associations", OrganizationFeature)  # NOQA
+default_manager.add("organizations:external-user-associations", OrganizationFeature)  # NOQA
 default_manager.add("organizations:filters-and-sampling", OrganizationFeature)  # NOQA
 default_manager.add("organizations:global-views", OrganizationFeature)  # NOQA
 default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
@@ -123,8 +125,6 @@ default_manager.add("organizations:performance-vitals-overview", OrganizationFea
 default_manager.add("organizations:performance-ops-breakdown", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-tag-explorer", OrganizationFeature)  # NOQA
 default_manager.add("organizations:team-alerts-ownership", OrganizationFeature)  # NOQA
-default_manager.add("organizations:external-user-associations", OrganizationFeature)  # NOQA
-default_manager.add("organizations:external-team-associations", OrganizationFeature)  # NOQA
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 
@@ -133,6 +133,7 @@ default_manager.add("projects:alert-filters", ProjectFeature)  # NOQA
 default_manager.add("projects:custom-inbound-filters", ProjectFeature)  # NOQA
 default_manager.add("projects:data-forwarding", ProjectFeature)  # NOQA
 default_manager.add("projects:discard-groups", ProjectFeature)  # NOQA
+default_manager.add("projects:import-codeowners", ProjectFeature)  # NOQA
 default_manager.add("projects:issue-alerts-targeting", ProjectFeature)  # NOQA
 default_manager.add("projects:minidump", ProjectFeature)  # NOQA
 default_manager.add("projects:rate-limits", ProjectFeature)  # NOQA
@@ -142,7 +143,6 @@ default_manager.add("projects:similarity-view", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-indexing", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-view-v2", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-indexing-v2", ProjectFeature)  # NOQA
-default_manager.add("projects:import-codeowners", ProjectFeature)  # NOQA
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature)  # NOQA
