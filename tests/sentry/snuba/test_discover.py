@@ -2540,6 +2540,59 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         assert "toy" not in keys
 
 
+# Temporary basic coverage for performance facets
+class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.project = self.create_project()
+        self.min_ago = before_now(minutes=1)
+        self.day_ago = before_now(days=1)
+        self.two_mins_ago = before_now(minutes=2)
+        self._transaction_count = 0
+
+    def store_transaction(self, name="exampleTransaction", duration=100, tags={}):
+        event = load_data("transaction")
+        event.update(
+            {
+                "transaction": name,
+                "event_id": f"{self._transaction_count:02x}".rjust(32, "0"),
+                "start_timestamp": iso_format(self.two_mins_ago - timedelta(seconds=duration)),
+                "timestamp": iso_format(self.two_mins_ago),
+                "tags": tags,
+            }
+        )
+        self._transaction_count += 1
+        self.store_event(data=event, project_id=self.project.id)
+
+    def test_invalid_query(self):
+        with pytest.raises(InvalidSearchQuery):
+            discover.get_performance_facets(
+                "\n", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+            )
+
+    def test_no_results(self):
+        results = discover.get_performance_facets(
+            "", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+        )
+        assert results == []
+
+    def test_single_project(self):
+        self.store_transaction(duration=1, tags={"color": "red"})
+        self.store_transaction(duration=2, tags={"color": "blue"})
+
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        result = discover.get_performance_facets("", params)
+        assert len(result) == 11
+        for r in result:
+            if r.key == "color" and r.value == "red":
+                assert r.count == 1000
+            elif r.key == "color" and r.value == "blue":
+                assert r.count == 2000
+            else:
+                assert r.count == 1500
+
+
 def test_zerofill():
     results = discover.zerofill(
         {}, datetime(2019, 1, 2, 0, 0), datetime(2019, 1, 9, 23, 59, 59), 86400, "time"

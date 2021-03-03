@@ -735,6 +735,128 @@ def get_facets(query, params, limit=10, referrer=None):
     return results
 
 
+def get_performance_facets(
+    query, params, aggregate_column="duration", aggregate_function="avg", limit=20, referrer=None
+):
+    """
+    High-level API for getting 'facet map' results for performance data
+
+    Performance facets are high frequency tags and the aggregate duration of
+    their most frequent values
+
+    query (str) Filter query string to create conditions from.
+    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
+    limit (int) The number of records to fetch.
+    referrer (str|None) A referrer string to help locate the origin of this query.
+
+    Returns Sequence[FacetResult]
+    """
+    with sentry_sdk.start_span(
+        op="discover.discover", description="facets.filter_transform"
+    ) as span:
+        span.set_data("query", query)
+        snuba_filter = get_filter(query, params)
+
+        # Resolve the public aliases into the discover dataset names.
+        snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
+
+    # Exclude tracing tags as they are noisy and generally not helpful.
+    # TODO(markus): Tracing tags are no longer written but may still reside in DB.
+    excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span", "project"]]
+
+    # Sampling keys for multi-project results as we don't need accuracy
+    # with that much data.
+    sample = len(snuba_filter.filter_keys["project_id"]) > 2
+
+    with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
+        # Get the most frequent tag keys
+        key_names = raw_query(
+            aggregations=[["stddevSamp", aggregate_column, "stddev"]],
+            start=snuba_filter.start,
+            end=snuba_filter.end,
+            conditions=snuba_filter.conditions,
+            filter_keys=snuba_filter.filter_keys,
+            orderby=["-stddev", "tags_key"],
+            groupby="tags_key",
+            having=[excluded_tags],
+            dataset=Dataset.Discover,
+            limit=limit,
+            referrer=referrer,
+            turbo=sample,
+        )
+        top_tags = [r["tags_key"] for r in key_names["data"]]
+        if not top_tags:
+            return []
+
+    results = []
+
+    sampling_enabled = True
+    sample_rate = 0.1 if sampling_enabled else None
+
+    max_aggregate_tags = 20
+    individual_tags = []
+    aggregate_tags = []
+    for i, tag in enumerate(top_tags):
+        if tag == "environment":
+            # Add here tags that you want to be individual
+            individual_tags.append(tag)
+        elif i >= len(top_tags) - max_aggregate_tags:
+            aggregate_tags.append(tag)
+        else:
+            individual_tags.append(tag)
+
+    with sentry_sdk.start_span(
+        op="discover.discover", description="facets.individual_tags"
+    ) as span:
+        span.set_data("tag_count", len(individual_tags))
+        for tag_name in individual_tags:
+            tag = f"tags[{tag_name}]"
+            tag_values = raw_query(
+                aggregations=[[aggregate_function, aggregate_column, "aggregate"]],
+                conditions=snuba_filter.conditions,
+                start=snuba_filter.start,
+                end=snuba_filter.end,
+                filter_keys=snuba_filter.filter_keys,
+                orderby=[],
+                groupby=[tag],
+                dataset=Dataset.Discover,
+                referrer=referrer,
+                sample=sample_rate,
+                limit=TOP_VALUES_DEFAULT_LIMIT,
+                turbo=sample_rate is not None,
+            )
+            results.extend(
+                [FacetResult(tag_name, r[tag], int(r["aggregate"])) for r in tag_values["data"]]
+            )
+
+    if aggregate_tags:
+        with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
+            conditions = snuba_filter.conditions
+            conditions.append(["tags_key", "IN", aggregate_tags])
+            tag_values = raw_query(
+                aggregations=[[aggregate_function, aggregate_column, "aggregate"]],
+                conditions=conditions,
+                start=snuba_filter.start,
+                end=snuba_filter.end,
+                filter_keys=snuba_filter.filter_keys,
+                orderby=["tags_key"],
+                groupby=["tags_key", "tags_value"],
+                dataset=Dataset.Discover,
+                referrer=referrer,
+                sample=sample_rate,
+                turbo=sample_rate is not None,
+                limitby=[TOP_VALUES_DEFAULT_LIMIT, "tags_key"],
+            )
+            results.extend(
+                [
+                    FacetResult(r["tags_key"], r["tags_value"], int(r["aggregate"]))
+                    for r in tag_values["data"]
+                ]
+            )
+
+    return results
+
+
 HistogramParams = namedtuple(
     "HistogramParams", ["num_buckets", "bucket_size", "start_offset", "multiplier"]
 )
