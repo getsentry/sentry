@@ -17,6 +17,7 @@ type Props = {
   transactionName?: string;
   vitalName?: string;
   eventSlug?: string;
+  traceSlug?: string;
   transactionComparison?: boolean;
   realUserMonitoring?: boolean;
 };
@@ -30,6 +31,7 @@ class Breadcrumb extends React.Component<Props> {
       transactionName,
       vitalName,
       eventSlug,
+      traceSlug,
       transactionComparison,
       realUserMonitoring,
     } = this.props;
@@ -100,6 +102,11 @@ class Breadcrumb extends React.Component<Props> {
       crumbs.push({
         to: '',
         label: t('Compare to Baseline'),
+      });
+    } else if (traceSlug) {
+      crumbs.push({
+        to: '',
+        label: t('Trace View'),
       });
     }
 

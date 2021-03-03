@@ -9,6 +9,7 @@ import {generateEventSlug} from 'app/utils/discover/urls';
 import {EventLite} from 'app/utils/performance/quickTrace/types';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
+import {getTraceSummaryUrl} from '../traceDetails/utils';
 import {getTransactionDetailsUrl} from '../utils';
 
 export function generateSingleEventTarget(
@@ -72,6 +73,11 @@ export function generateTraceTarget(
   organization: OrganizationSummary
 ): LocationDescriptor {
   const traceId = event.contexts?.trace?.trace_id ?? '';
+
+  if (organization.features.includes('trace-view-summary')) {
+    return getTraceSummaryUrl(organization, traceId, {});
+  }
+
   const {start, end} = getTraceDateTimeRange({
     start: event.startTimestamp,
     end: event.endTimestamp,
