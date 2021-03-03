@@ -530,7 +530,7 @@ const darkAliases = {
   progressBar: colors.purple200,
 } as const;
 
-const theme = {
+export const lightTheme = {
   ...commonTheme,
   ...aliases,
   button: generateButtonTheme(aliases),
@@ -542,12 +542,12 @@ export const darkTheme = {
   button: generateButtonTheme(darkAliases),
 } as const;
 
-export type Theme = typeof theme | typeof darkTheme;
+export type Theme = typeof lightTheme | typeof darkTheme;
 export type Color = keyof typeof colors;
 export type IconSize = keyof typeof iconSizes;
 export type Aliases = typeof aliases;
 
-export default theme;
+export default commonTheme;
 
 // This should never be used directly (except in storybook)
 export {aliases};
