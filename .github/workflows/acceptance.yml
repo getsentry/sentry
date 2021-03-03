@@ -17,13 +17,18 @@ jobs:
   frontend:
     name: frontend tests
     runs-on: ubuntu-20.04
-    timeout-minutes: 40
+    timeout-minutes: 20
 
     env:
       VISUAL_HTML_ENABLE: 1
     steps:
       - uses: actions/checkout@v2
         name: Checkout sentry
+
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
 
       - uses: volta-cli/action@v1
 
@@ -73,7 +78,7 @@ jobs:
   acceptance:
     name: acceptance
     runs-on: ubuntu-20.04
-    timeout-minutes: 40
+    timeout-minutes: 20
     strategy:
       matrix:
         instance: [0, 1, 2, 3]
