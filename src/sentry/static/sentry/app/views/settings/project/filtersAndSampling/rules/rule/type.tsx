@@ -18,10 +18,7 @@ function Type({type}: Props) {
     case DynamicSamplingRuleType.TRACE:
       return <TransactionLabel>{t('Transaction traces')}</TransactionLabel>;
     default: {
-      Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
-        Sentry.captureException(new Error('Unknown dynamic sampling rule type'));
-      });
+      Sentry.captureException(new Error('Unknown dynamic sampling rule type'));
       return null; //this shall never happen
     }
   }

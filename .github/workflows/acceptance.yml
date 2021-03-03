@@ -25,6 +25,11 @@ jobs:
       - uses: actions/checkout@v2
         name: Checkout sentry
 
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
       - uses: volta-cli/action@v1
 
       # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example

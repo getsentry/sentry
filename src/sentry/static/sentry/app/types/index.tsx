@@ -1494,6 +1494,7 @@ export type NewQuery = {
   fields: Readonly<string[]>;
   widths?: Readonly<string[]>;
   orderby?: string;
+  expired?: boolean;
 
   // GlobalSelectionHeader
   projects: Readonly<number[]>;

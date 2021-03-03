@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
 
 import {Client} from 'app/api';
@@ -62,6 +61,10 @@ export function flattenRelevantPaths(
     }
   }
 
+  if (!events.length) {
+    throw new Error('No relevant path exists!');
+  }
+
   /**
    * Traverse all transactions from current transaction onwards and add
    * them all to the relevant path.
@@ -115,19 +118,14 @@ export function parseQuickTrace(
   const {type, trace} = quickTrace;
 
   if (type === 'empty' || trace === null) {
-    return null;
+    throw new Error('Current event not in quick trace!');
   }
 
   const isFullTrace = type === 'full';
 
   const current = trace.find(e => e.event_id === event.id) ?? null;
   if (current === null) {
-    /**
-     * The current event should always be present in the trace, if not
-     * there is no reason to look at the rest for the quick trace.
-     */
-    Sentry.captureException(new Error('Current event not in quick trace'));
-    return null;
+    throw new Error('Current event not in quick trace!');
   }
 
   /**
