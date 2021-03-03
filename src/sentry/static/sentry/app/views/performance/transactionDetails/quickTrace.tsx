@@ -94,6 +94,27 @@ type QuickTracePillsProps = {
   organization: OrganizationSummary;
 };
 
+function singleEventHoverText(event: EventLite) {
+  return (
+    <div>
+      <Truncate
+        value={event.transaction}
+        maxLength={30}
+        leftTrim
+        trimRegex={/\.|\//g}
+        expandable={false}
+      />
+      <div>
+        {getDuration(
+          event['transaction.duration'] / 1000,
+          event['transaction.duration'] < 1000 ? 0 : 2,
+          true
+        )}
+      </div>
+    </div>
+  );
+}
+
 function QuickTracePills({
   event,
   quickTrace,
@@ -126,7 +147,7 @@ function QuickTracePills({
         organization={organization}
         events={[root]}
         text={t('Root')}
-        hoverText={t('View the root transaction in this trace.')}
+        hoverText={singleEventHoverText(root)}
         pad="right"
       />
     );
@@ -134,6 +155,10 @@ function QuickTracePills({
   }
 
   if (ancestors?.length) {
+    const ancestorHoverText =
+      ancestors.length === 1
+        ? singleEventHoverText(ancestors[0])
+        : t('View all ancestor transactions of this event');
     nodes.push(
       <EventNodeSelector
         key="ancestors-node"
@@ -141,11 +166,7 @@ function QuickTracePills({
         organization={organization}
         events={ancestors}
         text={tn('%s Ancestor', '%s Ancestors', ancestors.length)}
-        hoverText={tn(
-          'View the ancestor transaction of this event.',
-          'View all ancestor transactions of this event.',
-          ancestors.length
-        )}
+        hoverText={ancestorHoverText}
         extrasTarget={generateMultiEventsTarget(
           event,
           ancestors,
@@ -167,7 +188,7 @@ function QuickTracePills({
         organization={organization}
         events={[parent]}
         text={t('Parent')}
-        hoverText={t('View the parent transaction in this trace.')}
+        hoverText={singleEventHoverText(parent)}
         pad="right"
       />
     );
@@ -182,6 +203,10 @@ function QuickTracePills({
 
   if (children.length) {
     nodes.push(<TraceConnector key="children-connector" />);
+    const childHoverText =
+      children.length === 1
+        ? singleEventHoverText(children[0])
+        : t('View all child transactions of this event');
     nodes.push(
       <EventNodeSelector
         key="children-node"
@@ -189,11 +214,7 @@ function QuickTracePills({
         organization={organization}
         events={children}
         text={tn('%s Child', '%s Children', children.length)}
-        hoverText={tn(
-          'View the child transaction of this event.',
-          'View all child transactions of this event.',
-          children.length
-        )}
+        hoverText={childHoverText}
         extrasTarget={generateMultiEventsTarget(
           event,
           children,
@@ -208,6 +229,10 @@ function QuickTracePills({
 
   if (descendants?.length) {
     nodes.push(<TraceConnector key="descendants-connector" />);
+    const descendantHoverText =
+      descendants.length === 1
+        ? singleEventHoverText(descendants[0])
+        : t('View all child descendants of this event');
     nodes.push(
       <EventNodeSelector
         key="descendants-node"
@@ -215,11 +240,7 @@ function QuickTracePills({
         organization={organization}
         events={descendants}
         text={tn('%s Descendant', '%s Descendants', descendants.length)}
-        hoverText={tn(
-          'View the descendant transaction of this event.',
-          'View all descendant transactions of this event.',
-          descendants.length
-        )}
+        hoverText={descendantHoverText}
         extrasTarget={generateMultiEventsTarget(
           event,
           descendants,
@@ -280,8 +301,9 @@ function EventNodeSelector({
             <DropdownItem key={event.event_id} to={target} first={i === 0}>
               <Truncate
                 value={event.transaction}
-                maxLength={30}
+                maxLength={35}
                 leftTrim
+                trimRegex={/\.|\//g}
                 expandable={false}
               />
               <SectionSubtext>
