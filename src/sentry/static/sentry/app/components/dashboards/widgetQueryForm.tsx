@@ -2,11 +2,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {Client} from 'app/api';
 import Button from 'app/components/button';
 import SearchBar from 'app/components/events/searchBar';
 import SelectControl from 'app/components/forms/selectControl';
-import {IconDelete} from 'app/icons';
+import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, SelectValue} from 'app/types';
@@ -29,16 +28,16 @@ const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
 };
 
 type Props = {
-  api: Client;
-  widgetQuery: WidgetQuery;
   organization: Organization;
   selection: GlobalSelection;
   displayType: Widget['displayType'];
+  queries: WidgetQuery[];
+  errors?: Array<Record<string, any>>;
+  onChange: (queryIndex: number, widgetQuery: WidgetQuery) => void;
+  canAddSearchConditions: boolean;
+  handleAddSearchConditions: () => void;
+  handleDeleteQuery: (queryIndex: number) => void;
   fieldOptions: ReturnType<typeof generateFieldOptions>;
-  onChange: (widgetQuery: WidgetQuery) => void;
-  canRemove: boolean;
-  onRemove: () => void;
-  errors?: Record<string, any>;
 };
 
 /**
@@ -47,88 +46,113 @@ type Props = {
  */
 class WidgetQueryForm extends React.Component<Props> {
   // Handle scalar field values changing.
-  handleFieldChange = (field: string) => {
-    const {widgetQuery, onChange} = this.props;
+  handleFieldChange = (queryIndex: number, field: string) => {
+    const {queries, onChange} = this.props;
+    const widgetQuery = queries[queryIndex];
 
     return function handleChange(value: string) {
       const newQuery = {...widgetQuery, [field]: value};
-      onChange(newQuery);
+      onChange(queryIndex, newQuery);
     };
   };
 
-  handleFieldsChange = (fields: string[]) => {
-    const {widgetQuery, onChange} = this.props;
-    const newQuery = cloneDeep(widgetQuery);
-    newQuery.fields = fields;
-    onChange(newQuery);
-  };
+  getFirstQueryError(key: string) {
+    const {errors} = this.props;
+
+    if (!errors) {
+      return undefined;
+    }
+
+    return errors.find(queryError => queryError && queryError[key]);
+  }
 
   render() {
     const {
-      canRemove,
-      displayType,
-      errors,
-      fieldOptions,
       organization,
       selection,
-      widgetQuery,
+      errors,
+      queries,
+      canAddSearchConditions,
+      handleAddSearchConditions,
+      handleDeleteQuery,
+      displayType,
+      fieldOptions,
+      onChange,
     } = this.props;
 
     return (
       <QueryWrapper>
-        {canRemove && (
-          <DeleteRow>
-            <Button
-              data-test-id="remove-query"
-              size="xsmall"
-              priority="danger"
-              onClick={this.props.onRemove}
-              icon={<IconDelete />}
-            />
-          </DeleteRow>
-        )}
-        <Field
-          data-test-id="new-query"
-          label={t('Query')}
-          inline={false}
-          flexibleControlStateSize
-          stacked
-          error={errors?.conditions}
-        >
-          <SearchBar
-            organization={organization}
-            projectIds={selection.projects}
-            query={widgetQuery.conditions}
-            fields={[]}
-            onSearch={this.handleFieldChange('conditions')}
-            onBlur={this.handleFieldChange('conditions')}
-            useFormWrapper={false}
-          />
-        </Field>
-        {canRemove && (
-          <Field
-            data-test-id="Query Name"
-            label={t('Legend Alias')}
-            inline={false}
-            flexibleControlStateSize
-            stacked
-            error={errors?.name}
+        {queries.map((widgetQuery, queryIndex) => {
+          return (
+            <Field
+              key={queryIndex}
+              label={queryIndex === 0 ? t('Query') : null}
+              inline={false}
+              flexibleControlStateSize
+              stacked
+              error={errors?.[queryIndex].conditions}
+            >
+              <SearchConditionsWrapper>
+                <StyledSearchBar
+                  organization={organization}
+                  projectIds={selection.projects}
+                  query={widgetQuery.conditions}
+                  fields={[]}
+                  onSearch={this.handleFieldChange(queryIndex, 'conditions')}
+                  onBlur={this.handleFieldChange(queryIndex, 'conditions')}
+                  useFormWrapper={false}
+                />
+                <Input
+                  type="text"
+                  name="name"
+                  required
+                  value={widgetQuery.name}
+                  placeholder={t('Legend Alias')}
+                  onChange={event =>
+                    this.handleFieldChange(queryIndex, 'name')(event.target.value)
+                  }
+                />
+                {queries.length > 1 && (
+                  <Button
+                    size="zero"
+                    borderless
+                    onClick={event => {
+                      event.preventDefault();
+                      handleDeleteQuery(queryIndex);
+                    }}
+                    icon={<IconDelete />}
+                    title={t('Remove query')}
+                    label={t('Remove query')}
+                  />
+                )}
+              </SearchConditionsWrapper>
+            </Field>
+          );
+        })}
+        {canAddSearchConditions && (
+          <AddOverlayButton
+            size="small"
+            icon={<IconAdd isCircled />}
+            onClick={(event: React.MouseEvent) => {
+              event.preventDefault();
+              handleAddSearchConditions();
+            }}
           >
-            <Input
-              type="text"
-              name="name"
-              required
-              value={widgetQuery.name}
-              onChange={event => this.handleFieldChange('name')(event.target.value)}
-            />
-          </Field>
+            {t('Add Query')}
+          </AddOverlayButton>
         )}
         <WidgetQueryFields
           displayType={displayType}
           fieldOptions={fieldOptions}
-          errors={errors}
-          fields={widgetQuery.fields}
-          onChange={this.handleFieldsChange}
+          errors={this.getFirstQueryError('fields')}
+          fields={queries[0].fields}
+          onChange={fields => {
+            queries.forEach((widgetQuery, queryIndex) => {
+              const newQuery = cloneDeep(widgetQuery);
+              newQuery.fields = fields;
+              onChange(queryIndex, newQuery);
+            });
+          }}
         />
         {displayType === 'table' && (
           <Field
@@ -136,14 +160,14 @@ class WidgetQueryForm extends React.Component<Props> {
             inline={false}
             flexibleControlStateSize
             stacked
-            error={errors?.orderby}
+            error={this.getFirstQueryError('orderby')?.orderby}
           >
             <SelectControl
-              value={widgetQuery.orderby}
+              value={queries[0].orderby}
               name="orderby"
-              options={generateOrderOptions(widgetQuery.fields)}
+              options={generateOrderOptions(queries[0].fields)}
               onChange={(option: SelectValue<string>) =>
-                this.handleFieldChange('orderby')(option.value)
+                this.handleFieldChange(0, 'orderby')(option.value)
               }
               onSelectResetsInput={false}
               onCloseResetsInput={false}
@@ -161,8 +185,21 @@ const QueryWrapper = styled('div')`
   position: relative;
 `;
 
-const DeleteRow = styled('div')`
-  text-align: right;
+const AddOverlayButton = styled(Button)`
+  margin-bottom: ${space(2)};
+`;
+
+export const SearchConditionsWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+
+  > * + * {
+    margin-left: ${space(1)};
+  }
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  width: 100%;
 `;
 
 export default WidgetQueryForm;
