@@ -2148,7 +2148,11 @@ SENTRY_EXTRA_WORKERS = None
 # Enabling this will allow users to create accounts without an email or password.
 DEMO_MODE = False
 
+# all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None
 
 # Set this to True if running CDC and you need Postgres WAL replication in dev
 DEVSERVICES_WAL_REPLICATION = False
+
+# adds an extra JS to HTML template
+INJECTED_SCRIPT_ASSETS = []

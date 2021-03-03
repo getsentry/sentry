@@ -43,9 +43,10 @@ class DiscoverSavedQuerySerializer(Serializer):
         # expire queries that are beyond the retention period
         if "start" in obj.query:
             start, end = parse_timestamp(obj.query["start"]), parse_timestamp(obj.query["end"])
-            data["expired"], data["start"] = outside_retention_with_modified_start(
-                start, end, obj.organization
-            )
+            if start and end:
+                data["expired"], data["start"] = outside_retention_with_modified_start(
+                    start, end, obj.organization
+                )
 
         if obj.query.get("all_projects"):
             data["projects"] = list(ALL_ACCESS_PROJECTS)

@@ -5,17 +5,19 @@ import memoize from 'lodash/memoize';
 import moment from 'moment';
 
 import Access from 'app/components/acl/access';
+import Feature from 'app/components/acl/feature';
+import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
-import {IconDelete, IconSettings} from 'app/icons';
+import {IconDelete, IconSettings, IconUser} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Actor, Organization, Project} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 
 import {isIssueAlert} from '../utils';
@@ -51,6 +53,11 @@ class RuleListRow extends React.Component<Props, State> {
       !isIssueAlert(rule) && organization.features.includes('alert-details-redesign');
     const detailsLink = `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
 
+    const ownerId = rule.owner?.split(':')[1];
+    const teamActor = ownerId
+      ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
+      : null;
+
     return (
       <ErrorBoundary>
         <RuleType>{isIssueAlert(rule) ? t('Issue') : t('Metric')}</RuleType>
@@ -61,6 +68,15 @@ class RuleListRow extends React.Component<Props, State> {
           avatarSize={18}
           project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
         />
+        <Feature features={['organizations:team-alerts-ownership']}>
+          <TeamIcon>
+            {teamActor ? (
+              <ActorAvatar actor={teamActor} size={24} />
+            ) : (
+              <IconUser size="20px" color="gray400" />
+            )}
+          </TeamIcon>
+        </Feature>
         <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>
         <div>{dateCreated}</div>
         <RightColumn>
@@ -136,6 +152,11 @@ const CreatedBy = styled('div')`
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
+`;
+
+const TeamIcon = styled('div')`
+  display: flex;
+  align-items: center;
 `;
 
 export default RuleListRow;
