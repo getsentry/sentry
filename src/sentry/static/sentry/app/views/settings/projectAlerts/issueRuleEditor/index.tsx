@@ -19,6 +19,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import LoadingMask from 'app/components/loadingMask';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SelectMembers from 'app/components/selectMembers';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {IconChevron, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -427,6 +428,18 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }));
   };
 
+  getTeamId = () => {
+    const {rule} = this.state;
+    const owner = rule?.owner ?? '';
+    // ownership follows the format team:<id>, just grab the id
+    return owner.split(':')[1];
+  };
+
+  handleOwnerChange = (optionRecord: {value: string; label: string}) => {
+    // currently only supporting teams as owners
+    this.handleChange('owner', `team:${optionRecord.value}`);
+  };
+
   renderLoading() {
     return this.renderBody();
   }
@@ -506,6 +519,22 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   onChange={val => this.handleEnvironmentChange(val)}
                   disabled={!hasAccess}
                 />
+
+                <Feature features={['organizations:team-alerts-ownership']}>
+                  <StyledField
+                    label={t('Team')}
+                    help={t('The team that owns this alert.')}
+                    disabled={!hasAccess}
+                  >
+                    <SelectMembers
+                      showTeam
+                      project={project}
+                      organization={organization}
+                      value={this.getTeamId()}
+                      onChange={this.handleOwnerChange}
+                    />
+                  </StyledField>
+                </Feature>
 
                 <StyledField
                   label={t('Alert name')}

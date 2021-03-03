@@ -76,6 +76,8 @@ class MiniGraph extends React.Component<Props> {
       topEvents,
       orderby,
       showDaily: isDaily,
+      expired: eventView.expired,
+      name: eventView.name,
     };
   }
 
@@ -135,6 +137,8 @@ class MiniGraph extends React.Component<Props> {
       topEvents,
       orderby,
       showDaily,
+      expired,
+      name,
     } = this.getRefreshProps(this.props);
 
     return (
@@ -153,6 +157,8 @@ class MiniGraph extends React.Component<Props> {
         field={field}
         topEvents={topEvents}
         orderby={orderby}
+        expired={expired}
+        name={name}
       >
         {({loading, timeseriesData, results, errored}) => {
           if (errored) {

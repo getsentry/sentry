@@ -104,6 +104,7 @@ class GetSupportedFunctionsTest(TestCase):
                 "Functions": [
                     {"FunctionName": "lambdaC", "Runtime": "nodejs12.x"},
                     {"FunctionName": "lambdaD", "Runtime": "python3.6"},
+                    {"FunctionName": "lambdaE", "Runtime": "nodejs14.x"},
                 ]
             },
         ]
@@ -116,6 +117,7 @@ class GetSupportedFunctionsTest(TestCase):
         {"FunctionName": "lambdaB", "Runtime": "nodejs10.x"},
         {"FunctionName": "lambdaC", "Runtime": "nodejs12.x"},
         {"FunctionName": "lambdaD", "Runtime": "python3.6"},
+        {"FunctionName": "lambdaE", "Runtime": "nodejs14.x"},
     ]
 
     mock_client.get_paginator.assert_called_once_with("list_functions")
