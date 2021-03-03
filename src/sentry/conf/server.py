@@ -972,6 +972,10 @@ SENTRY_FEATURES = {
     "organizations:images-loaded-v2": False,
     # Enable teams to have ownership of alert rules
     "organizations:team-alerts-ownership": False,
+    # Enable the API to create/update/delete external user associations
+    "organizations:external-user-associations": False,
+    # Enable the API to create/update/delete external team associations
+    "organizations:external-team-associations": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -997,6 +1001,8 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
+    # Enable the API to importing CODEOWNERS for a project
+    "projects:import-codeowners": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
