@@ -44,7 +44,7 @@ import {
   TagCollection,
 } from 'app/types';
 import {defined} from 'app/utils';
-import {analytics, metric, trackAnalyticsEvent} from 'app/utils/analytics';
+import {analytics, logExperiment, metric, trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import CursorPoller from 'app/utils/cursorPoller';
 import {getUtcDateString} from 'app/utils/dates';
@@ -178,6 +178,7 @@ class IssueListOverview extends React.Component<Props, State> {
     this.fetchSavedSearches();
     this.fetchTags();
     this.fetchMemberList();
+    this.logInboxExperiment();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -655,6 +656,14 @@ class IssueListOverview extends React.Component<Props, State> {
     const {orgId} = this.props.params;
 
     return `/organizations/${orgId}/issues-stats/`;
+  }
+
+  logInboxExperiment() {
+    const {organization} = this.props;
+    // Only log users in experiment
+    if ([0, 1].includes(organization.experiments?.InboxExperiment!)) {
+      logExperiment({organization, key: 'InboxExperiment'});
+    }
   }
 
   onRealtimeChange = (realtime: boolean) => {
