@@ -17,7 +17,7 @@ jobs:
   frontend:
     name: frontend tests
     runs-on: ubuntu-20.04
-    timeout-minutes: 40
+    timeout-minutes: 20
 
     env:
       VISUAL_HTML_ENABLE: 1
@@ -73,7 +73,7 @@ jobs:
   acceptance:
     name: acceptance
     runs-on: ubuntu-20.04
-    timeout-minutes: 40
+    timeout-minutes: 20
     strategy:
       matrix:
         instance: [0, 1, 2, 3]
