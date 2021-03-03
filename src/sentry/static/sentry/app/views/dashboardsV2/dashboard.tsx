@@ -169,5 +169,5 @@ const WidgetContainer = styled('div')`
 `;
 
 function generateWidgetId(widget: Widget, index: number) {
-  return widget.id ?? `index-${index}`;
+  return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
 }
