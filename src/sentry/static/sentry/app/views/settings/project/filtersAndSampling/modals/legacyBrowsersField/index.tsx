@@ -30,16 +30,16 @@ function LegacyBrowsersField({onChange, selectedLegacyBrowsers = []}: Props) {
       onChange={handleChange}
       columnsCount={0}
     >
-      {({selectedIds, onRowToggle, onAllRowsToggle, isAllSelected}) => (
+      {({selectedIds, onRowToggle, onPageRowsToggle, isPageSelected}) => (
         <StyledPanelTable
           headers={[
             '',
             <Switch
               key="switch"
               size="lg"
-              isActive={isAllSelected}
+              isActive={isPageSelected}
               toggle={() => {
-                onAllRowsToggle(!isAllSelected);
+                onPageRowsToggle(!isPageSelected);
               }}
             />,
           ]}
