@@ -93,6 +93,8 @@ class User(BaseModel, AbstractBaseUser):
             "If set to true then the user needs to change the " "password on next sign in."
         ),
     )
+    # Sentry users are cool by default
+    is_cool = models.BooleanField(default=True)
     last_password_change = models.DateTimeField(
         _("date of last password change"),
         null=True,
@@ -114,7 +116,6 @@ class User(BaseModel, AbstractBaseUser):
     session_nonce = models.CharField(max_length=12, null=True)
 
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
-    last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
 
     objects = UserManager(cache_fields=["pk"])
 
