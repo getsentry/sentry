@@ -16,7 +16,12 @@ def get_link(config, filepath, default, version=None):
 
     formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
 
-    return install.get_stacktrace_link(config.repository, formatted_path, default, version)
+    attempted_url = None
+    link = install.get_stacktrace_link(config.repository, formatted_path, default, version)
+
+    if not link:
+        attempted_url = install.format_source_url(config.repository, formatted_path, default)
+    return (link, attempted_url)
 
 
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
@@ -71,7 +76,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                     result["error"] = "stack_root_mismatch"
                     continue
 
-                link = get_link(config, filepath, config.default_branch, commitId)
+                link, attempted_url = get_link(config, filepath, config.default_branch, commitId)
 
                 # it's possible for the link to be None, and in that
                 # case it means we could not find a match for the
@@ -81,6 +86,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                     scope.set_tag("stacktrace_link.found", False)
                     scope.set_tag("stacktrace_link.error", "file_not_found")
                     result["error"] = "file_not_found"
+                    result["attemptedUrl"] = attempted_url
                 else:
                     scope.set_tag("stacktrace_link.found", True)
                     # if we found a match, we can break

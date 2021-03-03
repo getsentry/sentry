@@ -106,6 +106,7 @@ describe('StacktraceLink', function () {
         sourceUrl: null,
         error: 'file_not_found',
         integrations: [integration],
+        attemptedUrl: 'https://something.io/blah',
       },
     });
     const wrapper = mountWithTheme(
@@ -120,8 +121,9 @@ describe('StacktraceLink', function () {
     );
     expect(wrapper.state('match').sourceUrl).toBeFalsy();
     expect(wrapper.find('CodeMappingButtonContainer').text()).toContain(
-      'Could not find source file, check your repository and source code root.'
+      'Source file not found.'
     );
+    expect(wrapper.state('match').attemptedUrl).toEqual('https://something.io/blah');
   });
 
   it('renders stack_root_mismatch message', async function () {
@@ -147,7 +149,33 @@ describe('StacktraceLink', function () {
     );
     expect(wrapper.state('match').sourceUrl).toBeFalsy();
     expect(wrapper.find('CodeMappingButtonContainer').text()).toContain(
-      'Error matching your configuration, check your stack trace root.'
+      'Error matching your configuration.'
+    );
+  });
+
+  it('renders default error message', async function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      query: {file: frame.filename, commitId: 'master', platform},
+      body: {
+        config,
+        sourceUrl: null,
+        integrations: [integration],
+      },
+    });
+    const wrapper = mountWithTheme(
+      <StacktraceLink
+        frame={frame}
+        event={event}
+        projects={[project]}
+        organization={org}
+        lineNo={frame.lineNo}
+      />,
+      TestStubs.routerContext()
+    );
+    expect(wrapper.state('match').sourceUrl).toBeFalsy();
+    expect(wrapper.find('CodeMappingButtonContainer').text()).toContain(
+      'There was an error encountered with the code mapping for this project'
     );
   });
 });
