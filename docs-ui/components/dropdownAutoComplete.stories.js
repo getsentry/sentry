@@ -1,6 +1,4 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
-import {withInfo} from '@storybook/addon-info';
 
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
@@ -33,6 +31,10 @@ const groupedItems = [
       {
         value: 'other recent thing',
         label: 'other recent thing',
+      },
+      {
+        value: 'yet another recent thing',
+        label: 'yet another recent thing',
       },
     ],
   },
@@ -81,57 +83,82 @@ const groupedItems = [
   },
 ];
 
-const addTo = name =>
-  storiesOf(name, module)
-    .add(
-      'ungrouped',
-      withInfo('The item label can be a component or a string')(() => (
-        <DropdownAutoComplete items={items} alignMenu="left">
-          {({isOpen, selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
-        </DropdownAutoComplete>
-      ))
-    )
-    .add(
-      'grouped',
-      withInfo('Group labels can receive a component too')(() => (
-        <DropdownAutoComplete
-          items={groupedItems}
-          alignMenu="left"
-          virtualizedHeight={44}
-          virtualizedLabelHeight={28}
-        >
-          {({isOpen, selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
-        </DropdownAutoComplete>
-      ))
-    )
-    .add(
-      'with dropdownButton',
-      withInfo('Use it with dropdownbutton for maximum fun')(() => (
-        <DropdownAutoComplete items={groupedItems} alignMenu="left">
-          {({isOpen, selectedItem}) => (
-            <DropdownButton isOpen={isOpen}>
-              {selectedItem ? selectedItem.label : 'Click me!'}
-            </DropdownButton>
-          )}
-        </DropdownAutoComplete>
-      ))
-    )
-    .add(
-      'with extra action',
-      withInfo('Add a call to action button')(() => (
-        <DropdownAutoComplete
-          items={items}
-          action={<Button priority="primary">Now click me!</Button>}
-          alignMenu="left"
-        >
-          {({isOpen, selectedItem}) => (
-            <DropdownButton isOpen={isOpen}>
-              {selectedItem ? selectedItem.label : 'Click me!'}
-            </DropdownButton>
-          )}
-        </DropdownAutoComplete>
-      ))
-    );
+export default {
+  title: 'Core/Buttons/Dropdowns/DropdownAutoComplete',
+  component: DropdownAutoComplete,
+};
 
-addTo('UI|AutoComplete/DropdownAutoComplete');
-addTo('UI|Dropdowns/DropdownAutoComplete');
+export const Ungrouped = () => (
+  <DropdownAutoComplete items={items}>
+    {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
+  </DropdownAutoComplete>
+);
+
+Ungrouped.storyName = 'ungrouped';
+Ungrouped.parameters = {
+  docs: {
+    description: {
+      story: 'The item label can be a component or a string',
+    },
+  },
+};
+
+export const Grouped = () => (
+  <DropdownAutoComplete
+    items={groupedItems}
+    virtualizedHeight={44}
+    virtualizedLabelHeight={28}
+  >
+    {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
+  </DropdownAutoComplete>
+);
+
+Grouped.storyName = 'grouped';
+Grouped.parameters = {
+  docs: {
+    description: {
+      story: 'Group labels can receive a component too',
+    },
+  },
+};
+
+export const WithDropdownButton = () => (
+  <DropdownAutoComplete items={groupedItems}>
+    {({isOpen, selectedItem}) => (
+      <DropdownButton isOpen={isOpen}>
+        {selectedItem ? selectedItem.label : 'Click me!'}
+      </DropdownButton>
+    )}
+  </DropdownAutoComplete>
+);
+
+WithDropdownButton.storyName = 'with dropdownButton';
+WithDropdownButton.parameters = {
+  docs: {
+    description: {
+      story: 'Use it with dropdownbutton for maximum fun',
+    },
+  },
+};
+
+export const WithExtraAction = () => (
+  <DropdownAutoComplete
+    items={items}
+    action={<Button priority="primary">Now click me!</Button>}
+  >
+    {({isOpen, selectedItem}) => (
+      <DropdownButton isOpen={isOpen}>
+        {selectedItem ? selectedItem.label : 'Click me!'}
+      </DropdownButton>
+    )}
+  </DropdownAutoComplete>
+);
+
+WithExtraAction.storyName = 'with extra action';
+WithExtraAction.parameters = {
+  docs: {
+    description: {
+      story: 'Add a call to action button',
+    },
+  },
+};

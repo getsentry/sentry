@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.paginator import DateTimePaginator
@@ -21,20 +19,17 @@ class GroupUserReportsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
 
         try:
-            environment = self._get_environment_from_request(
-                request,
-                group.organization.id,
-            )
+            environment = self._get_environment_from_request(request, group.organization.id)
         except Environment.DoesNotExist:
             report_list = UserReport.objects.none()
         else:
-            report_list = UserReport.objects.filter(group=group)
+            report_list = UserReport.objects.filter(group_id=group.id)
             if environment is not None:
-                report_list = report_list.filter(environment=environment)
+                report_list = report_list.filter(environment_id=environment.id)
         return self.paginate(
             request=request,
             queryset=report_list,
-            order_by='-date_added',
+            order_by="-date_added",
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=DateTimePaginator,
         )

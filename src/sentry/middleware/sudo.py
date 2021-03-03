@@ -1,12 +1,3 @@
-"""
-sentry.middleware.sudo
-~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-from __future__ import absolute_import
-
 from sudo.middleware import SudoMiddleware as BaseSudoMiddleware
 
 
@@ -17,4 +8,4 @@ class SudoMiddleware(BaseSudoMiddleware):
         if user.is_authenticated() and not user.has_usable_password():
             return True
 
-        return super(SudoMiddleware, self).has_sudo_privileges(request)
+        return super().has_sudo_privileges(request)

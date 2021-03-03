@@ -1,0 +1,14 @@
+---
+created: '2020-02-26T19:54:26.650163Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+default:
+  hash: "3d2933f4b5ec459ec8d569a398fd328c"
+  component:
+    default*
+      expect-ct*
+        salt* (a static salt)
+          "expect-ct"
+        hostname*
+          "example.com"

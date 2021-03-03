@@ -1,0 +1,13 @@
+---
+created: '2020-08-11T11:59:09.204232Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","aha"],["module","test"]],[["function","test"],["module","test"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","callAnotherThing"],["module","test"]],[["function","aha"],["module","test"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","callback"],["module","test"]],[["function","callAnotherThing"],["module","test"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","test"],["module","test"]],[["module","test"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","testMethod"],["module","test"]],[["function","aha"],["module","test"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["module","test"]],[["function","callback"],["module","test"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["module","test"]],[["function","testMethod"],["module","test"]]]
+similarity:2020-07-23:type:ident-shingle: "Error"

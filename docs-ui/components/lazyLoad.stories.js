@@ -1,19 +1,28 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
-import {withInfo} from '@storybook/addon-info';
 
 import LazyLoad from 'app/components/lazyLoad';
 
-storiesOf('Utility|LazyLoad', module).add(
-  'LazyLoad',
-  withInfo('Lazy loads a view/component')(() => {
-    const MyComponent = () => (
-      <div>View that is loaded after 1000ms to simulate dynamic import</div>
-    );
+export default {
+  title: 'Utilities/LazyLoad',
+  component: LazyLoad,
+};
 
-    const getComponent = () =>
-      new Promise(resolve => setTimeout(() => resolve(MyComponent), 1000));
+export const _LazyLoad = () => {
+  const MyComponent = () => (
+    <div>View that is loaded after 1000ms to simulate dynamic import</div>
+  );
 
-    return <LazyLoad component={getComponent} />;
-  })
-);
+  const getComponent = () =>
+    new Promise(resolve => setTimeout(() => resolve(MyComponent), 1000));
+
+  return <LazyLoad component={getComponent} />;
+};
+
+_LazyLoad.storyName = 'LazyLoad';
+_LazyLoad.parameters = {
+  docs: {
+    description: {
+      story: 'Lazy loads a view/component',
+    },
+  },
+};

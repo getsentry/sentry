@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 import collections
-import six
+from sentry.utils.compat import map
 
 
-class Meta(object):
+class Meta:
     """
     A lazy view to detached validation and normalization meta data. It allows to
     safely traverse the meta tree and create a deep path lazily. Use ``enter``
@@ -27,14 +25,14 @@ class Meta(object):
         Enters into sub meta data at the specified path. This always returns a
         new ``Meta`` object, regardless whether the path already exists.
         """
-        return Meta(self._meta, path=self._path + map(six.text_type, path))
+        return Meta(self._meta, path=self._path + map(str, path))
 
     @property
     def path(self):
         """
         Returns the full path of this meta instance, joined with dots (".").
         """
-        return '.'.join(self._path)
+        return ".".join(self._path)
 
     def raw(self):
         """
@@ -57,7 +55,7 @@ class Meta(object):
         It is not safe to mutate the return value since it might be detached
         from the actual meta tree.
         """
-        return self.raw().get('') or {}
+        return self.raw().get("") or {}
 
     def create(self):
         """
@@ -65,7 +63,7 @@ class Meta(object):
         recursively creates the entire parent tree.
         """
         meta = self._meta
-        for key in self._path + ['']:
+        for key in self._path + [""]:
             if key not in meta or meta[key] is None:
                 meta[key] = {}
             meta = meta[key]
@@ -85,11 +83,11 @@ class Meta(object):
             return
 
         meta = self.create()
-        err = meta.get('err')
+        err = meta.get("err")
         meta.update(other)
 
-        if err and other.get('err'):
-            meta['err'] = err + other['err']
+        if err and other.get("err"):
+            meta["err"] = err + other["err"]
 
         return meta
 
@@ -101,10 +99,7 @@ class Meta(object):
          - ``type`` is the error constant also used in EventError
          - ``data`` a dictionary of additional error infos
         """
-        return (
-            ([err, {}] if isinstance(err, six.string_types) else err)
-            for err in self.get().get('err') or ()
-        )
+        return (([err, {}] if isinstance(err, str) else err) for err in self.get().get("err") or ())
 
     def get_event_errors(self):
         """
@@ -113,17 +108,17 @@ class Meta(object):
         """
 
         errors = []
-        value = self.get().get('val')
+        value = self.get().get("val")
 
         for error, data in self.iter_errors():
             eventerror = dict(data)
-            eventerror['type'] = error
+            eventerror["type"] = error
 
             if self._path:
-                eventerror['name'] = '.'.join(self._path)
+                eventerror["name"] = ".".join(self._path)
 
             if value is not None:
-                eventerror['value'] = value
+                eventerror["value"] = value
                 value = None
 
             errors.append(eventerror)
@@ -144,21 +139,21 @@ class Meta(object):
         with the entire parent tree.
         """
         meta = self.create()
-        if 'err' not in meta or meta['err'] is None:
-            meta['err'] = []
+        if "err" not in meta or meta["err"] is None:
+            meta["err"] = []
 
-        error = six.text_type(error)
+        error = str(error)
         if isinstance(data, collections.Mapping):
             error = [error, dict(data)]
-        meta['err'].append(error)
+        meta["err"].append(error)
 
         if value is not None:
-            meta['val'] = value
+            meta["val"] = value
 
     def __iter__(self):
         """
         Iterates all child meta entries that potentially have errors set.
         """
         for key in self.raw():
-            if key != '':
+            if key != "":
                 yield self.enter(key)

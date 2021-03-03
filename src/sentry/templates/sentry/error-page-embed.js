@@ -1,6 +1,6 @@
 /*eslint no-var:0,strict:0,block-scoped-var:0*/
 /*global sentryEmbedCallback:false*/
-(function(window, document, JSON){
+(function (window, document, JSON) {
   'use strict';
   // TODO(dcramer): expose API for building a new error embed so things like
   // JS applications can render this on demand
@@ -13,17 +13,34 @@
     };
    */
 
-  var strings = {{ strings }};
-  var template = /*{{ template }}*/'';
-  var endpoint = /*{{ endpoint }}*/'';
+  var strings = /*{{ strings }}*/ '';
+  var template = /*{{ template }}*/ '';
+  var endpoint = /*{{ endpoint }}*/ '';
 
-  var GENERIC_ERROR = '<p class="message-error">' + strings.generic_error + '</p>';
-  var FORM_ERROR = '<p class="message-error">' + strings.form_error + '</p>';
+  var setChild = function (target, child) {
+    target.innerHTML = '';
+    target.appendChild(child);
+  };
+
+  var buildMessage = function (className, message) {
+    var p = document.createElement('p');
+    p.className = className;
+    p.appendChild(document.createTextNode(message));
+    return p;
+  };
+
+  var focusable =
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  var handleFocus;
+
+  var GENERIC_ERROR = buildMessage('message-error', strings.generic_error);
+  var FORM_ERROR = buildMessage('message-error', strings.form_error);
+  var FORM_SUCCESS = buildMessage('message-success', strings.sent_message);
 
   // XMLHttpRequest.DONE does not exist in all browsers
   var XHR_DONE = 4;
 
-  var serialize = function(form) {
+  var serialize = function (form) {
     var q = [];
     for (var i = 0; i < form.elements.length; i++) {
       q.push(form.elements[i].name + '=' + encodeURIComponent(form.elements[i].value));
@@ -31,34 +48,37 @@
     return q.join('&');
   };
 
-  var onReady = function(f) {
+  var onReady = function (f) {
     /in/.test(document.readyState)
-      ? setTimeout(function() { onReady(f); }, 9)
+      ? setTimeout(function () {
+          onReady(f);
+        }, 9)
       : f();
   };
 
-  var SentryErrorEmbed = function(options) {
+  var SentryErrorEmbed = function () {
     this.build();
   };
 
-  SentryErrorEmbed.prototype.build = function() {
+  SentryErrorEmbed.prototype.build = function () {
     var self = this;
     this.element = document.createElement('div');
     this.element.className = 'sentry-error-embed-wrapper';
     this.element.innerHTML = template;
-    self.element.onclick = function(e){
+    self.element.onclick = function (e) {
       if (e.target !== self.element) return;
       self.close();
     };
 
     this._form = this.element.getElementsByTagName('form')[0];
-    this._form.onsumbit = function(e) {
+    this._form.onsumbit = function (e) {
       e.preventDefault();
       self.submit(self.serialize());
     };
 
-    this._submitBtn = this.element.getElementsByTagName('button')[0];
-    this._submitBtn.onclick = function(e) {
+    var buttons = this.element.getElementsByTagName('button');
+    this._submitBtn = buttons[0];
+    this._submitBtn.onclick = function (e) {
       e.preventDefault();
       self.submit(self.serialize());
     };
@@ -74,18 +94,11 @@
       }
     }
 
-    var linkTags = this.element.getElementsByTagName('a');
-
-    var onclickHandler = function(e) {
+    var cancelHandler = function (e) {
       e.preventDefault();
       self.close();
     };
-
-    for (i = 0; i < linkTags.length; i++) {
-      if (linkTags[i].className === 'close') {
-        linkTags[i].onclick = onclickHandler;
-      }
-    }
+    buttons[1].onclick = cancelHandler;
 
     this._formMap = {};
     var node;
@@ -93,31 +106,62 @@
       node = this._form.elements[i];
       this._formMap[node.name] = node.parentNode;
     }
+
+    if (document.querySelectorAll) {
+      var focusableElements = this.element.querySelectorAll(focusable);
+      var firstFocus = focusableElements[0];
+      var lastFocus = focusableElements[focusableElements.length - 1];
+      // Trap focus to improve UX and help screenreaders.
+      handleFocus = function (event) {
+        var isTab = event.key === 'Tab' || event.keyCode === 9;
+        if (!isTab) {
+          return;
+        }
+        if (event.shiftKey) {
+          if (document.activeElement === firstFocus) {
+            lastFocus.focus();
+            event.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastFocus) {
+            firstFocus.focus();
+            event.preventDefault();
+          }
+        }
+      };
+      document.addEventListener('keydown', handleFocus);
+
+      setTimeout(function () {
+        firstFocus.focus();
+      }, 1);
+    }
   };
 
-  SentryErrorEmbed.prototype.serialize = function() {
+  SentryErrorEmbed.prototype.serialize = function () {
     return serialize(this._form);
   };
 
-  SentryErrorEmbed.prototype.close = function() {
+  SentryErrorEmbed.prototype.close = function () {
+    if (handleFocus) {
+      document.removeEventListener('keydown', handleFocus);
+    }
     this.element.parentNode.removeChild(this.element);
   };
 
-  SentryErrorEmbed.prototype.submit = function(body) {
+  SentryErrorEmbed.prototype.submit = function (body) {
     var self = this;
-    if (this._submitInProgress)
-      return;
+    if (this._submitInProgress) return;
     this._submitInProgress = true;
 
     var xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
+    xhr.onreadystatechange = function () {
       if (xhr.readyState === XHR_DONE) {
         if (xhr.status === 200) {
           self.onSuccess();
-        } else if (xhr.status == 400) {
+        } else if (xhr.status === 400) {
           self.onFormError(JSON.parse(xhr.responseText));
         } else {
-          self._errorWrapper.innerHTML = GENERIC_ERROR;
+          setChild(self._errorWrapper, GENERIC_ERROR);
         }
         self._submitInProgress = false;
       }
@@ -127,10 +171,13 @@
     xhr.send(body);
   };
 
-  SentryErrorEmbed.prototype.onSuccess = function() {
+  SentryErrorEmbed.prototype.onSuccess = function () {
     this._errorWrapper.innerHTML = '';
-    this._formContent.innerHTML = '<p class="message-success">' + strings.sent_message + '</p>';
+    setChild(this._formContent, FORM_SUCCESS);
     this._submitBtn.parentNode.removeChild(this._submitBtn);
+    if (handleFocus) {
+      document.removeEventListener('keydown', handleFocus);
+    }
   };
 
   SentryErrorEmbed.prototype.onFormError = function (data) {
@@ -145,21 +192,21 @@
         node.className = node.className.replace(/form-errors/, '');
       }
     }
-    this._errorWrapper.innerHTML = FORM_ERROR;
+    setChild(this._errorWrapper, FORM_ERROR);
   };
 
-  SentryErrorEmbed.prototype.attach = function(parent) {
+  SentryErrorEmbed.prototype.attach = function (parent) {
     parent.appendChild(this.element);
   };
 
   var options = window.sentryConfig || {};
-  var embed = new SentryErrorEmbed(options);
+  var embed = new SentryErrorEmbed();
   if (options.attachOnLoad !== false) {
-    onReady(function(){
+    onReady(function () {
       embed.attach(options.parent || document.body);
       if (window.sentryEmbedCallback && typeof sentryEmbedCallback === 'function') {
         sentryEmbedCallback(embed);
       }
     });
   }
-}(window, document, JSON));
+})(window, document, JSON);

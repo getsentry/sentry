@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import Organization, OrganizationStatus
@@ -8,10 +6,11 @@ from sentry.testutils import TestCase, PermissionTestCase
 
 class RestoreOrganizationPermissionTest(PermissionTestCase):
     def setUp(self):
-        super(RestoreOrganizationPermissionTest, self).setUp()
+        super().setUp()
         self.organization = self.create_organization(
-            name='foo', owner=self.user, status=OrganizationStatus.PENDING_DELETION)
-        self.path = reverse('sentry-restore-organization', args=[self.organization.slug])
+            name="foo", owner=self.user, status=OrganizationStatus.PENDING_DELETION
+        )
+        self.path = reverse("sentry-restore-organization", args=[self.organization.slug])
 
     def test_teamless_admin_cannot_load(self):
         self.assert_teamless_admin_cannot_access(self.path)
@@ -25,12 +24,13 @@ class RestoreOrganizationPermissionTest(PermissionTestCase):
 
 class RemoveOrganizationTest(TestCase):
     def setUp(self):
-        super(RemoveOrganizationTest, self).setUp()
+        super().setUp()
 
         self.organization = self.create_organization(
-            name='foo', owner=self.user, status=OrganizationStatus.PENDING_DELETION)
+            name="foo", owner=self.user, status=OrganizationStatus.PENDING_DELETION
+        )
         self.team = self.create_team(organization=self.organization)
-        self.path = reverse('sentry-restore-organization', args=[self.organization.slug])
+        self.path = reverse("sentry-restore-organization", args=[self.organization.slug])
 
         self.login_as(self.user)
 
@@ -39,23 +39,23 @@ class RemoveOrganizationTest(TestCase):
 
         assert resp.status_code == 200
 
-        self.assertTemplateUsed(resp, 'sentry/restore-organization.html')
+        self.assertTemplateUsed(resp, "sentry/restore-organization.html")
 
-        assert resp.context['deleting_organization'] == self.organization
-        assert resp.context['pending_deletion'] is True
+        assert resp.context["deleting_organization"] == self.organization
+        assert resp.context["pending_deletion"] is True
 
-        Organization.objects.filter(
-            id=self.organization.id,
-        ).update(status=OrganizationStatus.DELETION_IN_PROGRESS)
+        Organization.objects.filter(id=self.organization.id).update(
+            status=OrganizationStatus.DELETION_IN_PROGRESS
+        )
 
         resp = self.client.get(self.path)
 
         assert resp.status_code == 200
 
-        self.assertTemplateUsed(resp, 'sentry/restore-organization.html')
+        self.assertTemplateUsed(resp, "sentry/restore-organization.html")
 
-        assert resp.context['deleting_organization'] == self.organization
-        assert resp.context['pending_deletion'] is False
+        assert resp.context["deleting_organization"] == self.organization
+        assert resp.context["pending_deletion"] is False
 
     def test_success(self):
         resp = self.client.post(self.path)
@@ -67,9 +67,9 @@ class RemoveOrganizationTest(TestCase):
         assert org.status == OrganizationStatus.VISIBLE
 
     def test_too_late_still_restores(self):
-        Organization.objects.filter(
-            id=self.organization.id,
-        ).update(status=OrganizationStatus.DELETION_IN_PROGRESS)
+        Organization.objects.filter(id=self.organization.id).update(
+            status=OrganizationStatus.DELETION_IN_PROGRESS
+        )
 
         resp = self.client.post(self.path)
 

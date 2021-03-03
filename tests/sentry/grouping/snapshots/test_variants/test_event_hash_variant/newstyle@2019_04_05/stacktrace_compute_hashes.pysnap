@@ -1,0 +1,28 @@
+---
+created: '2020-02-26T19:54:32.413901Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "1effb24729ae4c43efa36b460511136a"
+  component:
+    app*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+        frame (non app frame)
+          filename*
+            "bar.py"
+--------------------------------------------------------------------------
+system:
+  hash: "659ad79e2e70c822d30a53d7d889529e"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+        frame*
+          filename*
+            "bar.py"

@@ -1,25 +1,15 @@
-"""
-sentry.utils.debug
-~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-from __future__ import absolute_import
-
 import cProfile
+from io import StringIO
 import re
 import pstats
-import six
 import sys
 
 from django.conf import settings
 from django.http import HttpResponse
-from six import StringIO
 
 from sentry.auth.superuser import is_active_superuser
 
-words_re = re.compile(r'\s+')
+words_re = re.compile(r"\s+")
 
 group_prefix_re = [
     re.compile(r"^.*/django/[^/]+"),
@@ -28,13 +18,13 @@ group_prefix_re = [
 ]
 
 
-class ProfileMiddleware(object):
+class ProfileMiddleware:
     def can(self, request):
-        if 'prof' not in request.GET:
+        if "prof" not in request.GET:
             return False
         if settings.DEBUG:
             return True
-        if hasattr(request, 'user') and is_active_superuser(request):
+        if hasattr(request, "user") and is_active_superuser(request):
             return True
         return False
 
@@ -52,13 +42,15 @@ class ProfileMiddleware(object):
                 return name[0]
 
     def get_summary(self, results_dict, total):
-        results = [(item[1], item[0]) for item in six.iteritems(results_dict)]
+        results = [(item[1], item[0]) for item in results_dict.items()]
         results.sort(reverse=True)
         results = results[:40]
 
         res = "      tottime\n"
         for item in results:
-            res += "%4.1f%% %7.3f %s\n" % (100 * item[0] / total if total else 0, item[0], item[1])
+            res += "{:4.1f}% {:7.3f} {}\n".format(
+                100 * item[0] / total if total else 0, item[0], item[1]
+            )
 
         return res
 
@@ -71,7 +63,7 @@ class ProfileMiddleware(object):
         def rel_filename(filename):
             for path in python_paths:
                 if filename.startswith(path):
-                    return filename[len(path) + 1:]
+                    return filename[len(path) + 1 :]
             return os.path.basename(filename)
 
         def func_strip_path(func_name):
@@ -81,12 +73,12 @@ class ProfileMiddleware(object):
         oldstats = stats.stats
         stats.stats = newstats = {}
         max_name_len = 0
-        for func, (cc, nc, tt, ct, callers) in six.iteritems(oldstats):
+        for func, (cc, nc, tt, ct, callers) in oldstats.items():
             newfunc = func_strip_path(func)
             if len(func_std_string(newfunc)) > max_name_len:
                 max_name_len = len(func_std_string(newfunc))
             newcallers = {}
-            for func2, caller in six.iteritems(callers):
+            for func2, caller in callers.items():
                 newcallers[func_strip_path(func2)] = caller
 
             if newfunc in newstats:
@@ -128,10 +120,15 @@ class ProfileMiddleware(object):
                     mygroups[group] = 0
                 mygroups[group] += time
 
-        return "\n" + \
-               " ---- By file ----\n\n" + self.get_summary(mystats, total) + "\n" + \
-               " ---- By group ---\n\n" + self.get_summary(mygroups, total) + \
-               "\n"
+        return (
+            "\n"
+            + " ---- By file ----\n\n"
+            + self.get_summary(mystats, total)
+            + "\n"
+            + " ---- By group ---\n\n"
+            + self.get_summary(mygroups, total)
+            + "\n"
+        )
 
     def process_response(self, request, response):
         if not self.can(request):
@@ -143,7 +140,7 @@ class ProfileMiddleware(object):
 
         stats = pstats.Stats(self.prof)
         self.normalize_paths(stats)
-        stats.sort_stats('time', 'calls')
+        stats.sort_stats("time", "calls")
         stats.print_stats()
 
         sys.stdout = old_stdout
@@ -153,4 +150,4 @@ class ProfileMiddleware(object):
         content += "\n\n"
         content += self.summary_for_files(stats_str)
 
-        return HttpResponse(content, 'text/plain')
+        return HttpResponse(content, "text/plain")

@@ -1,13 +1,10 @@
-from __future__ import absolute_import
-
-import six
 import sys
 import types
 
 from sentry.utils.cache import memoize
 
 
-class Param(object):
+class Param:
     """
     Argument declarations for Mediators.
 
@@ -16,7 +13,7 @@ class Param(object):
 
     Example Usage:
         >>> class Creator(Mediator):
-        >>>     name = Param(six.binary_type, default='example')
+        >>>     name = Param(str, default='example')
         >>>
         >>> c = Creator(name='foo')
         >>> c.name
@@ -29,7 +26,7 @@ class Param(object):
         >>> c = Creator(name=False)
         Traceback (most recent call last):
             ...
-        TypeError: `name` must be a <type 'six.binary_type'>
+        TypeError: `name` must be a <type 'str'>
 
     Type Validation:
         When a Mediator is instantiated, it validates each of it's Params. This
@@ -37,12 +34,12 @@ class Param(object):
         expected.
 
         >>> class Creator(Mediator):
-        >>>     name = Param(six.binary_type)
+        >>>     name = Param(str)
         >>>
         >>> c = Creator(name=False)
         Traceback (most recent call last):
             ...
-        TypeError: `name` must be a <type 'six.binary_type'>
+        TypeError: `name` must be a <type 'str'>
 
     Presence Validation:
         Without specifying otherwise, Params are assumed to be required. If
@@ -65,7 +62,7 @@ class Param(object):
         Declaration order DOES matter.
 
         >>> class Creator(Mediator):
-        >>>     name = Param(six.binary_type, default='Pete')
+        >>>     name = Param(str, default='Pete')
         >>>
         >>> c = Creator()
         >>> c.name
@@ -73,7 +70,7 @@ class Param(object):
 
         >>> class Creator(Mediator):
         >>>     user = Param(dict)
-        >>>     name = Param(six.binary_type, default=lambda self: self.user['name'])
+        >>>     name = Param(str, default=lambda self: self.user['name'])
     """
 
     def __init__(self, type, **kwargs):
@@ -82,7 +79,7 @@ class Param(object):
 
     def setup(self, target, name):
         delattr(target, name)
-        setattr(target, u'_{}'.format(name), self)
+        setattr(target, f"_{name}", self)
 
     def validate(self, target, name, value):
         """
@@ -93,12 +90,10 @@ class Param(object):
             value = self.default(target)
 
         if self._missing_value(value):
-            raise AttributeError(u'Missing required param: `{}`'.format(name))
+            raise AttributeError(f"Missing required param: `{name}`")
 
         if self.is_required and not isinstance(value, self.type):
-            raise TypeError(u'`{}` must be a {}, received {}'.format(
-                name, self.type, type(value)
-            ))
+            raise TypeError(f"`{name}` must be a {self.type}, received {type(value)}")
 
         return True
 
@@ -106,7 +101,7 @@ class Param(object):
         """
         Evaluated default value, when given.
         """
-        default = value = self.kwargs.get('default')
+        default = value = self.kwargs.get("default")
 
         if self.is_lambda_default:
             value = default(target)
@@ -115,21 +110,21 @@ class Param(object):
 
     @memoize
     def type(self):
-        if isinstance(self._type, six.string_types):
+        if isinstance(self._type, str):
             return self._eval_string_type()
         return self._type
 
     @memoize
     def has_default(self):
-        return 'default' in self.kwargs
+        return "default" in self.kwargs
 
     @memoize
     def is_lambda_default(self):
-        return isinstance(self.kwargs.get('default'), types.LambdaType)
+        return isinstance(self.kwargs.get("default"), types.LambdaType)
 
     @memoize
     def is_required(self):
-        if self.kwargs.get('required') is False:
+        if self.kwargs.get("required") is False:
             return False
         return True
 
@@ -142,7 +137,7 @@ class Param(object):
             >>> self._eval_string_type()
             sentry.models.project.Project
         """
-        mod, klass = self._type.rsplit('.', 1)
+        mod, klass = self._type.rsplit(".", 1)
         return getattr(sys.modules[mod], klass)
 
     def _missing_value(self, value):
@@ -155,5 +150,7 @@ def if_param(name):
             if not hasattr(self, name) or getattr(self, name) is None:
                 return
             return func(self, *args)
+
         return wrapper
+
     return _if_param

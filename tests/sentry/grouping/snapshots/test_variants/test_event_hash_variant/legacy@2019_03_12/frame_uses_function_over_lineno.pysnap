@@ -1,0 +1,30 @@
+---
+created: '2020-02-26T19:54:27.092053Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame* (frame considered in-app because no frame is in-app)
+          filename*
+            "foo.py"
+          function*
+            "bar"
+          lineno (function takes precedence)
+            1
+--------------------------------------------------------------------------
+system:
+  hash: "fb73cb54ced59b1c0c60d9bb40b7336b"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+          function*
+            "bar"
+          lineno (function takes precedence)
+            1

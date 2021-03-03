@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div id="page">
+    <div class="aui-page-panel">
+      <div class="aui-page-panel-inner">
+        <section class="aui-page-panel-content">
+          {% if is_configured %}
+            <section class="aui-page-panel-item">
+              <div class="aui-message aui-message-info">
+                  <p>This plugin has already been configured, but you can update the Sentry organization.</p>
+              </div>
+            </section>
+          {% endif %}
+            <form class="aui" action="" method="post">
+              {% csrf_token %}
+              {% for field in form %}
+                <div class="field-group">
+                  {{ field.errors }}
+                  {{ field.label_tag }} {{ field }}
+                  <div class="description">Choose which Sentry Organization to link</div>
+                </div>
+              {% endfor %}
+              <div class="field-group">
+                <button class="aui-button aui-button-primary" type="submit">
+                  {% if is_configured %}
+                    Update Plugin
+                  {% else %}
+                    Configure Plugin
+                  {% endif %}
+                </button>
+              </div>
+            </form>
+        </section>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -1,15 +1,19 @@
-from __future__ import absolute_import
-
+import atexit
 import logging
+import signal
+
+from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
+from sentry.utils import metrics
 
 from django.conf import settings
 
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options
 
 logger = logging.getLogger(__name__)
 
 
-class ProducerManager(object):
-    """\
+class ProducerManager:
+    """
     Manages one `confluent_kafka.Producer` per Kafka cluster.
 
     See `KAFKA_CLUSTERS` and `KAFKA_TOPICS` in settings.
@@ -19,7 +23,7 @@ class ProducerManager(object):
         self.__producers = {}
 
     def get(self, key):
-        cluster_name = settings.KAFKA_TOPICS[key]['cluster']
+        cluster_name = settings.KAFKA_TOPICS[key]["cluster"]
         producer = self.__producers.get(cluster_name)
 
         if producer:
@@ -27,30 +31,53 @@ class ProducerManager(object):
 
         from confluent_kafka import Producer
 
-        cluster_options = settings.KAFKA_CLUSTERS[cluster_name]
+        cluster_options = get_kafka_producer_cluster_options(cluster_name)
         producer = self.__producers[cluster_name] = Producer(cluster_options)
+
+        @atexit.register
+        def exit_handler():
+            pending_count = len(producer)
+            if pending_count == 0:
+                return
+
+            logger.debug(
+                "Waiting for %d messages to be flushed from %s before exiting...",
+                pending_count,
+                cluster_name,
+            )
+            producer.flush()
+
         return producer
 
 
 producers = ProducerManager()
 
 
-def delivery_callback(error, message):
-    if error is not None:
-        logger.error('Could not publish message (error: %s): %r', error, message)
-
-
-def produce_sync(topic_key, **kwargs):
-    producer = producers.get(topic_key)
-
-    try:
-        producer.produce(
-            topic=settings.KAFKA_TOPICS[topic_key]['topic'],
-            on_delivery=delivery_callback,
-            **kwargs
+def create_batching_kafka_consumer(topic_names, worker, **options):
+    cluster_names = {settings.KAFKA_TOPICS[topic_name]["cluster"] for topic_name in topic_names}
+    if len(cluster_names) > 1:
+        raise ValueError(
+            f"Cannot launch Kafka consumer listening to multiple topics ({topic_names}) on different clusters ({cluster_names})"
         )
-    except Exception as error:
-        logger.error('Could not publish message: %s', error, exc_info=True)
-        return
 
-    producer.flush()
+    (cluster_name,) = cluster_names
+
+    consumer = BatchingKafkaConsumer(
+        topics=topic_names,
+        cluster_name=cluster_name,
+        worker=worker,
+        metrics=metrics,
+        metrics_default_tags={
+            "topics": ",".join(sorted(topic_names)),
+            "group_id": options.get("group_id"),
+        },
+        **options,
+    )
+
+    def handler(signum, frame):
+        consumer.signal_shutdown()
+
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
+
+    return consumer

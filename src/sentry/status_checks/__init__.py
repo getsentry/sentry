@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-__all__ = ('check_all', 'sort_by_severity', 'Problem', 'StatusCheck')
+__all__ = ("check_all", "sort_by_severity", "Problem", "StatusCheck")
 
 from sentry.utils.warnings import seen_warnings
 
@@ -9,11 +7,7 @@ from .celery_alive import CeleryAliveCheck
 from .celery_app_version import CeleryAppVersionCheck
 from .warnings import WarningStatusCheck
 
-checks = [
-    CeleryAliveCheck(),
-    CeleryAppVersionCheck(),
-    WarningStatusCheck(seen_warnings),
-]
+checks = [CeleryAliveCheck(), CeleryAppVersionCheck(), WarningStatusCheck(seen_warnings)]
 
 
 def check_all():

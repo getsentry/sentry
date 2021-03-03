@@ -1,7 +1,9 @@
 ---
-created: '2019-03-14T17:12:35.216716Z'
+created: '2019-05-22T14:45:11.332344Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_debug_meta.py
 ---
 errors: null
-to_json: {}
+to_json:
+  images:
+  - null

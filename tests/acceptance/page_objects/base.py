@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
-
-class BasePage(object):
+class BasePage:
     """Base class for PageObjects"""
 
     def __init__(self, browser):
@@ -11,15 +8,18 @@ class BasePage(object):
     def driver(self):
         return self.browser.driver
 
+    def wait_until_loaded(self):
+        self.browser.wait_until_not(".loading-indicator")
 
-class BaseElement(object):
+
+class BaseElement:
     def __init__(self, element):
         self.element = element
 
 
 class ButtonElement(BaseElement):
-    label_attr = 'aria-label'
-    disabled_attr = 'aria-disabled'
+    label_attr = "aria-label"
+    disabled_attr = "aria-disabled"
 
     @property
     def disabled(self):
@@ -36,7 +36,7 @@ class ButtonElement(BaseElement):
 class ButtonWithIconElement(ButtonElement):
     @property
     def icon_href(self):
-        return self.element.find_element_by_tag_name('use').get_attribute('href')
+        return self.element.find_element_by_tag_name("use").get_attribute("href")
 
 
 class TextBoxElement(BaseElement):

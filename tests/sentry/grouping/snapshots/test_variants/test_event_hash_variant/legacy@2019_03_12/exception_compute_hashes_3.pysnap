@@ -1,0 +1,60 @@
+---
+created: '2020-02-26T19:54:26.583065Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      chained-exception (ignored because hash matches system variant)
+        exception*
+          stacktrace*
+            frame* (frame considered in-app because no frame is in-app)
+              filename*
+                "foo/baz.py"
+              lineno*
+                1
+          type*
+            "ValueError"
+          value (stacktrace and type take precedence)
+            "hello world"
+        exception*
+          stacktrace*
+            frame* (frame considered in-app because no frame is in-app)
+              filename*
+                "foo/baz.py"
+              lineno*
+                1
+          type*
+            "ValueError"
+          value (stacktrace and type take precedence)
+            "hello world"
+--------------------------------------------------------------------------
+system:
+  hash: "9aef9026a457d312531c07644b271314"
+  component:
+    system*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "foo/baz.py"
+              lineno*
+                1
+          type*
+            "ValueError"
+          value (stacktrace and type take precedence)
+            "hello world"
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "foo/baz.py"
+              lineno*
+                1
+          type*
+            "ValueError"
+          value (stacktrace and type take precedence)
+            "hello world"

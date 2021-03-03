@@ -1,15 +1,5 @@
-"""
-sentry.utils.safe
-~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-from __future__ import absolute_import, print_function
-
 import collections
 import logging
-import six
 
 from django.conf import settings
 from django.db import transaction
@@ -17,14 +7,14 @@ from django.utils.encoding import force_text
 
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
+from sentry.utils.compat import filter
 
 
 def safe_execute(func, *args, **kwargs):
     # TODO: we should make smart savepoints (only executing the savepoint server
     # side if we execute a query)
-    _with_transaction = kwargs.pop('_with_transaction', True)
-    expected_errors = kwargs.pop('expected_errors', None)
-    _passthrough_errors = kwargs.pop('_passthrough_errors', None)
+    _with_transaction = kwargs.pop("_with_transaction", True)
+    expected_errors = kwargs.pop("expected_errors", None)
     try:
         if _with_transaction:
             with transaction.atomic():
@@ -32,21 +22,19 @@ def safe_execute(func, *args, **kwargs):
         else:
             result = func(*args, **kwargs)
     except Exception as e:
-        if _passthrough_errors and isinstance(e, _passthrough_errors):
-            raise
-        if hasattr(func, 'im_class'):
+        if hasattr(func, "im_class"):
             cls = func.im_class
         else:
             cls = func.__class__
 
-        func_name = getattr(func, '__name__', six.text_type(func))
+        func_name = getattr(func, "__name__", str(func))
         cls_name = cls.__name__
-        logger = logging.getLogger('sentry.safe.%s' % (cls_name.lower(), ))
+        logger = logging.getLogger(f"sentry.safe.{cls_name.lower()}")
 
         if expected_errors and isinstance(e, expected_errors):
-            logger.info('%s.process_error_ignored', func_name, extra={'exception': e})
+            logger.info("%s.process_error_ignored", func_name, extra={"exception": e})
             return
-        logger.error('%s.process_error', func_name, exc_info=True, extra={'exception': e})
+        logger.error("%s.process_error", func_name, exc_info=True, extra={"exception": e})
     else:
         return result
 
@@ -58,7 +46,7 @@ def trim(
     object_hook=None,
     _depth=0,
     _size=0,
-    **kwargs
+    **kwargs,
 ):
     """
     Truncates a value to ```MAX_VARIABLE_SIZE```.
@@ -66,21 +54,21 @@ def trim(
     The method of truncation depends on the type of value.
     """
     options = {
-        'max_depth': max_depth,
-        'max_size': max_size,
-        'object_hook': object_hook,
-        '_depth': _depth + 1,
+        "max_depth": max_depth,
+        "max_size": max_size,
+        "object_hook": object_hook,
+        "_depth": _depth + 1,
     }
 
     if _depth > max_depth:
-        if not isinstance(value, six.string_types):
+        if not isinstance(value, str):
             value = json.dumps(value)
         return trim(value, _size=_size, max_size=max_size)
 
     elif isinstance(value, dict):
         result = {}
         _size += 2
-        for k in sorted(value.keys()):
+        for k in sorted(value.keys(), key=lambda x: (len(force_text(value[x])), x)):
             v = value[k]
             trim_v = trim(v, _size=_size, **options)
             result[k] = trim_v
@@ -100,7 +88,7 @@ def trim(
         if isinstance(value, tuple):
             result = tuple(result)
 
-    elif isinstance(value, six.string_types):
+    elif isinstance(value, str):
         result = truncatechars(value, max_size - _size)
 
     else:
@@ -142,21 +130,21 @@ def get_path(data, *path, **kwargs):
     filtered with the given callback. Alternatively, pass ``True`` as filter to
     only filter ``None`` values.
     """
-    default = kwargs.pop('default', None)
-    f = kwargs.pop('filter', None)
+    default = kwargs.pop("default", None)
+    f = kwargs.pop("filter", None)
     for k in kwargs:
-        raise TypeError("set_path() got an undefined keyword argument '%s'" % k)
+        raise TypeError("get_path() got an undefined keyword argument '%s'" % k)
 
     for p in path:
         if isinstance(data, collections.Mapping) and p in data:
             data = data[p]
-        elif isinstance(data, (list, tuple)) and -len(data) <= p < len(data):
+        elif isinstance(data, (list, tuple)) and isinstance(p, int) and -len(data) <= p < len(data):
             data = data[p]
         else:
             return default
 
     if f and data and isinstance(data, (list, tuple)):
-        data = list(filter((lambda x: x is not None) if f is True else f, data))
+        data = filter((lambda x: x is not None) if f is True else f, data)
 
     return data if data is not None else default
 
@@ -175,11 +163,11 @@ def set_path(data, *path, **kwargs):
     """
 
     try:
-        value = kwargs.pop('value')
+        value = kwargs.pop("value")
     except KeyError:
         raise TypeError("set_path() requires a 'value' keyword argument")
 
-    overwrite = kwargs.pop('overwrite', True)
+    overwrite = kwargs.pop("overwrite", True)
     for k in kwargs:
         raise TypeError("set_path() got an undefined keyword argument '%s'" % k)
 
@@ -210,5 +198,5 @@ def setdefault_path(data, *path, **kwargs):
     This function is equivalent to a recursive dict.setdefault, except for None
     values. Returns True if the value was set, otherwise False.
     """
-    kwargs['overwrite'] = False
+    kwargs["overwrite"] = False
     return set_path(data, *path, **kwargs)

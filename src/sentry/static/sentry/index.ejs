@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="robots" content="NONE,NOARCHIVE" />
+    <meta name="theme-color" content="#000000">
+    <title><%= htmlWebpackPlugin.options.title || 'Sentry Dev'%></title>
+    <script type="text/javascript">
+    try {
+      var reg = new RegExp(/\/organizations\/(.+?(?=(\/|$)))(\/|$)/, 'i');
+      var organization = window.location.pathname;
+      var slug = organization.match(reg)[1];
+
+      function promiseRequest(url) {
+        return new Promise(function (resolve, reject) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url);
+          xhr.onload = function () {
+            try {
+              this.status >= 200 && this.status < 300
+                ? resolve(JSON.parse(xhr.response))
+                : reject([this.status, this.statusText]);
+            } catch(e) {
+              reject();
+            }
+          };
+          xhr.onerror = function () {
+            reject([this.status, this.statusText]);
+          };
+          xhr.send();
+        });
+      }
+
+      function makeUrl(suffix) {
+        return '/api/0/organizations/' + slug + suffix;
+      }
+
+      var preloadPromises = { orgSlug: slug };
+      window.__sentry_preload = preloadPromises;
+
+      preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
+      preloadPromises.projects =  promiseRequest(makeUrl('/projects/?all_projects=1&collapse=latestDeploys'));
+      preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
+    } catch(_) {}
+    </script>
+  </head>
+
+  <body>
+    <% if (htmlWebpackPlugin.options.unsupportedBrowser) { %>
+    <style>.unsupported-browser { display: none; }</style>
+    <div class="unsupported-browser">
+      Sorry, your browser is not supported.  Please upgrade to
+      the latest version or switch your browser to use this site.
+      See <a href="http://outdatedbrowser.com/">outdatedbrowser.com</a>
+      for options.
+    </div>
+    <% } %>
+
+    <div id="blk_router">
+      <div class="loading triangle">
+        <div class="loading-mask"></div>
+        <div class="loading-indicator"></div>
+        <div class="loading-message">
+          <p>Please wait while we load an obnoxious amount of JavaScript.</p>
+          <p>
+            <small>You may need to disable adblocking extensions to load Sentry.</small>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <% if (htmlWebpackPlugin.options.window) { %>
+    <script>
+      <% for (var varName in htmlWebpackPlugin.options.window) { %>
+          window['<%=varName%>'] = <%= JSON.stringify(htmlWebpackPlugin.options.window[varName]) %>;
+        <% } %>
+    </script>
+    <% } %>
+
+    <% for (var chunk in htmlWebpackPlugin.files.chunks) { %>
+    <script src="<%= htmlWebpackPlugin.files.chunks[chunk].entry %>"></script>
+    <% } %>
+
+    <% if (htmlWebpackPlugin.options.devServer) { %>
+    <script src="<%= htmlWebpackPlugin.options.devServer%>/webpack-dev-server.js"></script>
+    <% } %>
+  </body>
+</html>

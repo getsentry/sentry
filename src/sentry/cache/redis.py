@@ -1,13 +1,3 @@
-"""
-sentry.cache.redis
-~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
-from __future__ import absolute_import
-
 from sentry.utils import json
 from sentry.utils.redis import get_cluster_from_options, redis_clusters
 
@@ -30,7 +20,7 @@ class CommonRedisCache(BaseCache):
         key = self.make_key(key, version=version)
         v = json.dumps(value) if not raw else value
         if len(v) > self.max_size:
-            raise ValueTooLarge('Cache key too large: %r %r' % (key, len(v)))
+            raise ValueTooLarge(f"Cache key too large: {key!r} {len(v)!r}")
         if timeout:
             self.client.setex(key, int(timeout), v)
         else:
@@ -49,10 +39,8 @@ class CommonRedisCache(BaseCache):
 
 
 class RbCache(CommonRedisCache):
-
     def __init__(self, **options):
-        cluster, options = get_cluster_from_options(
-            'SENTRY_CACHE_OPTIONS', options)
+        cluster, options = get_cluster_from_options("SENTRY_CACHE_OPTIONS", options)
         client = cluster.get_routing_client()
         CommonRedisCache.__init__(self, client, **options)
 
@@ -62,7 +50,6 @@ RedisCache = RbCache
 
 
 class RedisClusterCache(CommonRedisCache):
-
     def __init__(self, cluster_id, **options):
         client = redis_clusters.get(cluster_id)
         CommonRedisCache.__init__(self, client=client, **options)

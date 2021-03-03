@@ -1,0 +1,104 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block wrapperclass %}narrow auth{% endblock %}
+{% block modal_header_signout %}{% endblock %}
+
+{% block title %}{% trans "SAML2 Setup" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+<h3>Register Identity Provider</h3>
+
+<ul class="nav nav-tabs auth-toggle border-bottom">
+  <li {% if op == "url" %} class="active"{% endif %}>
+    <a href="#metadata-url" data-toggle="tab">Metadata URL</a>
+  </li>
+  <li {% if op == "xml" %} class="active"{% endif %}>
+    <a href="#xml" data-toggle="tab">XML</a>
+  </li>
+  <li {% if op == "idp" %} class="active"{% endif %}>
+    <a href="#idp-data" data-toggle="tab">IdP Data</a>
+  </li>
+</ul>
+
+<div class="tab-content">
+  <div class="tab-pane {% if op == "url" %}active{% endif %}" id="metadata-url">
+    <p>Provide a Metadata URL to retrieve the IdP details.</p>
+    <form action="" method="post" class="form-stacked">
+      {% csrf_token %}
+
+      {% if plugin %}
+          <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
+      {% endif %}
+
+      <input type="hidden" name="provider" value="saml2" />
+      {{ forms.url|as_crispy_errors }}
+
+      {% for field in forms.url %}
+          {{ field|as_crispy_field }}
+      {% endfor %}
+
+      <fieldset class="form-actions">
+        <button
+          type="submit"
+          class="btn btn-primary"
+          name="action_save" value="url">{% trans "Get metadata" %}</button>
+      </fieldset>
+    </form>
+  </div>
+
+  <div class="tab-pane {% if op == "xml" %}active{% endif %}" id="xml">
+    <p>Provide the raw Metadata XML IdP details.</p>
+    <form action="" method="post" class="form-stacked">
+      {% csrf_token %}
+
+      {% if plugin %}
+          <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
+      {% endif %}
+
+      <input type="hidden" name="provider" value="saml2" />
+      {{ forms.xml|as_crispy_errors }}
+
+      {% for field in forms.xml %}
+          {{ field|as_crispy_field }}
+      {% endfor %}
+
+      <fieldset class="form-actions">
+        <button
+          type="submit"
+          class="btn btn-primary"
+          name="action_save" value="xml">{% trans "Parse Metadata" %}</button>
+      </fieldset>
+    </form>
+  </div>
+
+  <div class="tab-pane {% if op == "idp" %}active{% endif %}" id="idp-data">
+    <p>
+      Provide your individual Identity Provider metadata fields.
+    </p>
+    <form action="" method="post" class="form-stacked">
+      {% csrf_token %}
+
+      {% if plugin %}
+          <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
+      {% endif %}
+
+      <input type="hidden" name="provider" value="saml2" />
+      {{ forms.idp|as_crispy_errors }}
+
+      {% for field in forms.idp %}
+          {{ field|as_crispy_field }}
+      {% endfor %}
+
+      <fieldset class="form-actions">
+        <button
+          type="submit"
+          class="btn btn-primary"
+          name="action_save" value="idp">{% trans "Save Metadata" %}</button>
+      </fieldset>
+    </form>
+  </div>
+</div>
+{% endblock %}

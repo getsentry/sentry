@@ -1,0 +1,35 @@
+---
+created: '2020-12-08T17:25:04.941471Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - '{{ package }}'
+    matchers:
+    - - type
+      - DatabaseUnavailable
+  version: 1
+fingerprint:
+- '{{ package }}'
+title: 'DatabaseUnavailable: For some reason the database went away'
+variants:
+  app:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component
+  custom-fingerprint:
+    matched_rule: type:"DatabaseUnavailable" -> "{{ package }}"
+    type: custom-fingerprint
+    values:
+    - foo.dylib
+  system:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component

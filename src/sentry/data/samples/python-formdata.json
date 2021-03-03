@@ -1,0 +1,60 @@
+{
+  "_meta": {
+    "request": {
+      "data": {
+        "bam": {
+          "": {
+            "len": 0,
+            "rem": [
+              [
+                "!raw",
+                "x",
+                0,
+                0
+              ]
+            ]
+          }
+        }
+      }
+    }
+  },
+  "request": {
+    "url": "http://127.0.0.1:5000/",
+    "headers": [
+      [
+        "Accept",
+        "*/*"
+      ],
+      [
+        "Content-Length",
+        "75378"
+      ],
+      [
+        "Content-Type",
+        "multipart/form-data; boundary=------------------------f1861cf25dfa767f"
+      ],
+      [
+        "Expect",
+        "100-continue"
+      ],
+      [
+        "Host",
+        "127.0.0.1:5000"
+      ],
+      [
+        "User-Agent",
+        "curl/7.54.0"
+      ]
+    ],
+    "env": {
+      "SERVER_PORT": "5000",
+      "SERVER_NAME": "127.0.0.1"
+    },
+    "data": {
+      "bam": "",
+      "foo": "bar"
+    },
+    "method": "POST",
+    "inferred_content_type": "multipart/form-data"
+  }
+}

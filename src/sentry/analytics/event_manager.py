@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
-__all__ = ('default_manager', 'EventManager')
+__all__ = ("default_manager", "EventManager")
 
 
-class EventManager(object):
+class EventManager:
     def __init__(self):
         self._event_types = {}
 

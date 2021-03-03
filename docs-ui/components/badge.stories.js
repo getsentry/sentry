@@ -1,20 +1,30 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
-// import {action} from '@storybook/addon-actions';
-import {withInfo} from '@storybook/addon-info';
 
 import Badge from 'app/components/badge';
 
-storiesOf('UI|Badge', module).add(
-  'default',
-  withInfo('Used to display numbers in a "badge"')(() => (
+export default {
+  title: 'Core/Tags/Badge',
+  component: Badge,
+  parameters: {
+    controls: {hideNoControlsWarning: true},
+  },
+};
+
+export const _Badge = () => (
+  <div>
     <div>
-      <div>
-        Normal <Badge text="0" />
-      </div>
-      <div>
-        New <Badge text="50" priority="new" />
-      </div>
+      Normal <Badge text="0" />
     </div>
-  ))
+    <div>
+      New <Badge text="50" priority="new" />
+    </div>
+  </div>
 );
+
+_Badge.parameters = {
+  docs: {
+    description: {
+      story: 'Used to display numbers in a "badge"',
+    },
+  },
+};

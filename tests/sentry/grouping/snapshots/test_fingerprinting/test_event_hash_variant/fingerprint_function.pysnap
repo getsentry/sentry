@@ -1,0 +1,41 @@
+---
+created: '2020-12-08T17:25:03.888626Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - database-unavailable
+    - '{{ function }}'
+    matchers:
+    - - type
+      - DatabaseUnavailable
+    - - module
+      - io.sentry.example.*
+  version: 1
+fingerprint:
+- database-unavailable
+- '{{ function }}'
+title: 'DatabaseUnavailable: For some reason the database went away'
+variants:
+  app:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component
+  custom-fingerprint:
+    matched_rule: type:"DatabaseUnavailable" module:"io.sentry.example.*" -> "database-unavailable{{
+      function }}"
+    type: custom-fingerprint
+    values:
+    - database-unavailable
+    - main
+  system:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component

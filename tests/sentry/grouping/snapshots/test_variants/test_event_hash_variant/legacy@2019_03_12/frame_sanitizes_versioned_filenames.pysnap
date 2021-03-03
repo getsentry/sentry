@@ -1,0 +1,26 @@
+---
+created: '2020-02-26T19:54:27.026661Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame* (frame considered in-app because no frame is in-app)
+          filename* (removed version)
+            "/data/foo/releases/<version>/app/views/foo.html.erb"
+          context-line*
+            "<% if @hotels.size > 0 %>"
+--------------------------------------------------------------------------
+system:
+  hash: "00ffe2f3150414a00633fb5671a918f8"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename* (removed version)
+            "/data/foo/releases/<version>/app/views/foo.html.erb"
+          context-line*
+            "<% if @hotels.size > 0 %>"

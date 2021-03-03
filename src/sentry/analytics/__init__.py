@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.conf import settings
 
 from sentry import options
@@ -19,7 +17,7 @@ def get_backend_path(backend):
 
 
 backend = LazyServiceWrapper(
-    Analytics, get_backend_path(options.get('analytics.backend')), options.get('analytics.options')
+    Analytics, get_backend_path(options.get("analytics.backend")), options.get("analytics.options")
 )
 backend.expose(locals())
 

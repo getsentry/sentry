@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 from django.utils import timezone
 from django.test import RequestFactory
@@ -17,7 +15,7 @@ class UserActiveMiddlewareTest(TestCase):
         self.view = lambda x: None
 
         user = self.user
-        req = self.factory.get('/')
+        req = self.factory.get("/")
         req.user = user
 
         resp = self.middleware.process_view(req, self.view, [], {})

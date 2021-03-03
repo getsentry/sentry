@@ -1,0 +1,15 @@
+---
+created: '2020-02-26T19:54:29.861138Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+default:
+  hash: "223cdacfe5b4b830dc700b5c18cc21b4"
+  component:
+    default*
+      csp*
+        salt* (a static salt)
+          "script-src"
+        violation (not a local script violation)
+        uri*
+          "example.com"

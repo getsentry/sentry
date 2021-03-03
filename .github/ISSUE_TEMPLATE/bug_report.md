@@ -1,22 +1,21 @@
 ---
 name: 🐞 Bug Report
 about: Report a bug to help improve Sentry
-
 ---
 
-<!--
-
-Do you want to ask a question? Are you looking for support? The Sentry message
-board is the best place for getting support: https://forum.sentry.io
--->
+<!-- WARNING: DO NOT remove any of the headers below or your issue will automatically be closed by our bot -->
 
 ## Important Details
 
 How are you running Sentry?
 
-* [ ] On-Premise docker [Version xyz]
-* [ ] Saas (sentry.io)
-* [ ] Other [briefly describe your environment]
+<!-- Please pick one of the following -->
+On-Premise w/ Docker, version x.y.z
+<!-- --------------- -->
+Saas (sentry.io)
+<!-- --------------- -->
+Other, version x.y.z, [briefly describe your environment]
+<!-- --------------- -->
 
 ## Description
 
@@ -31,12 +30,8 @@ How are you running Sentry?
 Good items to include here include:
 
 - Include a stacktrace or other logs when relevant
-- Include a redacted version of your configuration when relevant
+- Include a redacted version of your configuration (`sentry.conf.py` and `config.yml` files) when relevant
 
 ### What you expected to happen
 
 [What you think should be happening]
-
-### Possible Solution
-
-[If you have an idea on how this could be solved include that detail here.]

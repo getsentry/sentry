@@ -1,0 +1,80 @@
+{% extends "sentry/emails/activity/generic.html" %}
+
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block activity %}
+  <div class="alert-title">
+    <h3>
+      <a class="alert-title-link" href="{{ link }}">{{ incident_name }}</a>
+    </h3>
+    <p>
+      Triggered on {{ triggered_at }}
+    </p>
+  </div>
+
+  {% if enhanced_privacy %}
+    <div class="notice">
+      Details about this alert are not shown in this email since enhanced privacy
+      controls are enabled. For more details about this alert, <a href="{{ link }}">view on Sentry.</a>
+    </div>
+  {% else %}
+    <div class="alert-info-container alert-container-{{ status_key }}">
+      <h4>
+        <span class="alert-badge">{{ status }} alert</span>
+      </h4>
+      <table class="alert-rule-table">
+        <thead>
+          <th>
+            Threshold
+          </th>
+          <th>
+            Metric
+          </th>
+          <th>
+            Environment
+          </th>
+        </thead>
+
+        <tbody>
+        <tr>
+          <td>
+            {{ threshold_direction_string }} {{ threshold }}
+          </td>
+          <td>
+            {{ aggregate }}
+          </td>
+          <td>
+            {{ environment }}
+          </td>
+        </tbody>
+
+        <thead>
+          <th>
+            Time Interval
+          </th>
+          <th>
+            Filter
+          </th>
+          <th>
+            Project
+          </th>
+        </thead>
+
+        <tbody>
+        <tr>
+          <td>
+            {{ time_window }}
+          </td>
+          <td>
+            {{ query }}
+          </td>
+          <td>
+            {{ project_slug }}
+          </td>
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
-__all__ = ['Feature', 'OrganizationFeature', 'ProjectFeature', 'ProjectPluginFeature']
+__all__ = ["Feature", "OrganizationFeature", "ProjectFeature", "ProjectPluginFeature"]
 
 
-class Feature(object):
+class Feature:
     def __init__(self, name):
         self.name = name
 

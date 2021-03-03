@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
 from sentry import tsdb
@@ -13,17 +11,13 @@ class GroupStatsEndpoint(GroupEndpoint, EnvironmentMixin, StatsMixin):
     def get(self, request, group):
         try:
             environment_id = self._get_environment_id_from_request(
-                request,
-                group.project.organization_id,
+                request, group.project.organization_id
             )
         except Environment.DoesNotExist:
             raise ResourceDoesNotExist
 
         data = tsdb.get_range(
-            model=tsdb.models.group, keys=[group.id], **self._parse_args(
-                request,
-                environment_id,
-            )
+            model=tsdb.models.group, keys=[group.id], **self._parse_args(request, environment_id)
         )[group.id]
 
         return Response(data)

@@ -1,0 +1,52 @@
+---
+created: '2020-02-26T19:54:26.743230Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame* (frame considered in-app because no frame is in-app)
+          filename (ignored because filename is a URL)
+            "/foo.js"
+          context-line*
+            "hello world"
+          function (function name is not used if context-line is available)
+            "test"
+        frame* (frame considered in-app because no frame is in-app)
+          filename (ignored because filename is a URL)
+            "/foo.js"
+          context-line*
+            "hello world"
+          function (function name is not used if context-line is available)
+            "test"
+        frame (frame considered in-app because no frame is in-app)
+          filename (ignored because filename is a URL)
+            "/foo.js"
+          context-line (discarded because from URL origin)
+--------------------------------------------------------------------------
+system:
+  hash: "98f84fd484f8c2273f28cc645935f650"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename (ignored because filename is a URL)
+            "/foo.js"
+          context-line*
+            "hello world"
+          function (function name is not used if context-line is available)
+            "test"
+        frame*
+          filename (ignored because filename is a URL)
+            "/foo.js"
+          context-line*
+            "hello world"
+          function (function name is not used if context-line is available)
+            "test"
+        frame
+          filename (ignored because filename is a URL)
+            "/foo.js"
+          context-line (discarded because from URL origin)

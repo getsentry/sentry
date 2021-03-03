@@ -1,8 +1,0 @@
----
-created: '2019-05-08T07:29:42.048653Z'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
----
-custom-fingerprint:
-  hash: 'f30afa00b85f5cac5ee0bce01b31f08d'
-  values: [u'celery', u'SoftTimeLimitExceeded', u'sentry.tasks.store.process_event']

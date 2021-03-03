@@ -1,0 +1,26 @@
+---
+created: '2020-02-26T19:54:34.387948Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          module* (removed codegen marker)
+            "sun.reflect.GeneratedConstructorAccessor<auto>"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+system:
+  hash: "09e0efcab18f545166318118ed4e0292"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "sun.reflect.GeneratedConstructorAccessor<auto>"
+          function*
+            "invoke"

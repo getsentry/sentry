@@ -1,0 +1,210 @@
+{
+  "get": {
+    "tags": ["Teams"],
+    "description": "Return details on an individual team.",
+    "operationId": "Retrieve a Team",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the team belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "team_slug",
+        "in": "path",
+        "description": "The slug of the team to get.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/team.json#/TeamWithOrganization"
+            },
+            "example": {
+              "avatar": {
+                "avatarType": "letter_avatar",
+                "avatarUuid": null
+              },
+              "dateCreated": "2018-11-06T21:19:55.114Z",
+              "hasAccess": true,
+              "id": "2",
+              "isMember": true,
+              "isPending": false,
+              "memberCount": 1,
+              "name": "Powerful Abolitionist",
+              "organization": {
+                "avatar": {
+                  "avatarType": "letter_avatar",
+                  "avatarUuid": null
+                },
+                "dateCreated": "2018-11-06T21:19:55.101Z",
+                "id": "2",
+                "isEarlyAdopter": false,
+                "name": "The Interstellar Jurisdiction",
+                "require2FA": false,
+                "slug": "the-interstellar-jurisdiction",
+                "status": {
+                  "id": "active",
+                  "name": "active"
+                }
+              },
+              "slug": "powerful-abolitionist"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Team not found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["team:read"]
+      }
+    ]
+  },
+  "put": {
+    "tags": ["Teams"],
+    "description": "Update various attributes and configurable settings for the given team.",
+    "operationId": "Update a Team",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the team belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "team_slug",
+        "in": "path",
+        "description": "The slug of the team to get.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "required": ["name"],
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The new name for the team."
+              },
+              "slug": {
+                "type": "string",
+                "description": "A new slug for the team. It has to be unique and available."
+              }
+            }
+          },
+          "example": {
+            "name": "The Inflated Philosophers",
+            "slug": "the-inflated-philosophers"
+          }
+        }
+      },
+      "required": true
+    },
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/team.json#/Team"
+            },
+            "example": {
+              "avatar": {
+                "avatarType": "letter_avatar"
+              },
+              "dateCreated": "2018-11-06T21:20:08.115Z",
+              "hasAccess": true,
+              "id": "3",
+              "isMember": false,
+              "isPending": false,
+              "memberCount": 1,
+              "name": "The Inflated Philosophers",
+              "slug": "the-inflated-philosophers"
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Bad Input"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Team not found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["team:write"]
+      }
+    ]
+  },
+  "delete": {
+    "tags": ["Teams"],
+    "description": "Schedules a team for deletion.\n\nNote: Deletion happens asynchronously and therefore is not immediate. However once deletion has begun the state of a project changes and will be hidden from most public views.",
+    "operationId": "Delete a Team",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the team belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "team_slug",
+        "in": "path",
+        "description": "The slug of the team to get.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "204": {
+        "description": "Success"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Team not found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["team:admin"]
+      }
+    ]
+  }
+}

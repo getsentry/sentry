@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 from django.utils import timezone
 
@@ -9,18 +7,15 @@ from sentry.testutils import TestCase
 
 class GetOrCreateTest(TestCase):
     def setUp(self):
-        self.project = self.create_project(name='foo')
+        self.project = self.create_project(name="foo")
         self.datetime_now = timezone.now()
 
         self.release = Release.objects.create(
-            organization_id=self.project.organization_id,
-            version='42',
+            organization_id=self.project.organization_id, version="42"
         )
         self.release.add_project(self.project)
         self.environment = Environment.objects.create(
-            project_id=self.project.id,
-            organization_id=self.project.organization_id,
-            name='prod',
+            project_id=self.project.id, organization_id=self.project.organization_id, name="prod"
         )
 
     def test_create(self):

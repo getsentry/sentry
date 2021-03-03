@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.token_exchange import Validator
@@ -14,11 +12,7 @@ class TestValidator(TestCase):
         self.client_id = self.install.sentry_app.application.client_id
         self.user = self.install.sentry_app.proxy_user
 
-        self.validator = Validator(
-            install=self.install,
-            client_id=self.client_id,
-            user=self.user,
-        )
+        self.validator = Validator(install=self.install, client_id=self.client_id, user=self.user)
 
     def test_happy_path(self):
         assert self.validator.call()
@@ -41,7 +35,7 @@ class TestValidator(TestCase):
         with self.assertRaises(APIUnauthorized):
             self.validator.call()
 
-    @patch('sentry.models.ApiApplication.sentry_app')
+    @patch("sentry.models.ApiApplication.sentry_app")
     def test_raises_when_sentry_app_cannot_be_found(self, sentry_app):
         sentry_app.side_effect = SentryApp.DoesNotExist()
 
@@ -49,7 +43,7 @@ class TestValidator(TestCase):
             self.validator.call()
 
     def test_raises_with_invalid_client_id(self):
-        self.validator.client_id = '123'
+        self.validator.client_id = "123"
 
         with self.assertRaises(APIUnauthorized):
             self.validator.call()

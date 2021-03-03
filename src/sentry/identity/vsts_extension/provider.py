@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.identity.vsts.provider import VSTSIdentityProvider
 
 
@@ -15,4 +13,4 @@ class VstsExtensionIdentityProvider(VSTSIdentityProvider):
     also requires a new class; this one.
     """
 
-    key = 'vsts-extension'
+    key = "vsts-extension"

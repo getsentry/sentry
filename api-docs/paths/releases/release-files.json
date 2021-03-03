@@ -1,0 +1,140 @@
+{
+  "get": {
+    "tags": ["Releases"],
+    "description": "Return a list of files for a given release.",
+    "operationId": "List an Organization's Release Files",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "version",
+        "in": "path",
+        "description": "The version identifier of the release.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "../../components/schemas/releases/release-file.json#/ReleaseFile"
+              }
+            },
+            "example": [
+              {
+                "dateCreated": "2018-11-06T21:20:22.894Z",
+                "dist": null,
+                "headers": {
+                  "Content-Type": "text/plain; encoding=utf-8"
+                },
+                "id": "3",
+                "name": "/demo/goodbye.txt",
+                "sha1": "94d6b21e962a9fc65889617ec1f17a1e2fe11b65",
+                "size": 15
+              }
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:releases"]
+      }
+    ]
+  },
+  "post": {
+    "tags": ["Releases"],
+    "description": "Upload a new organization release file.",
+    "operationId": "Upload a New Organization Release File",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "version",
+        "in": "path",
+        "description": "The version identifier of the release.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "multipart/form-data": {
+          "schema": {
+            "type": "object",
+            "required": ["file"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The name (full path) of the file."
+              },
+              "file": {
+                "type": "string",
+                "format": "binary",
+                "description": "The multipart encoded file."
+              },
+              "dist": {
+                "type": "string",
+                "description": "The name of the dist."
+              },
+              "header": {
+                "type": "string",
+                "description": "This parameter can be supplied multiple times to attach headers to the file. Each header is a string in the format `key:value`. For instance it can be used to define a content type."
+              }
+            }
+          },
+          "example": {
+            "name": "/demo/release.min.js",
+            "file": "release.min.js"
+          }
+        }
+      }
+    },
+    "responses": {
+      "201": {
+        "description": "Success"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:releases"]
+      }
+    ]
+  }
+}

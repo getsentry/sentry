@@ -1,35 +1,25 @@
-"""
-sentry.utils.types
-~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2016 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-from __future__ import absolute_import, print_function
-
-import six
-
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
 
 from sentry.utils.yaml import safe_load
 
-__all__ = ('InvalidTypeError', 'Any', 'Bool', 'Int', 'Float', 'String', 'Dict', 'Sequence', )
+__all__ = ("InvalidTypeError", "Any", "Bool", "Int", "Float", "String", "Dict", "Sequence")
 
 
 class InvalidTypeError(TypeError):
     pass
 
 
-class Type(object):
+class Type:
     """Base Type that provides type coersion"""
-    name = ''
+
+    name = ""
     # Default value to be returned when initializing
     default = None
     # Types that do not need to be coerced
     expected_types = ()
     # Types that are acceptable for coersion
-    compatible_types = six.string_types
+    compatible_types = (str,)
 
     def __call__(self, value=None):
         if value is None:
@@ -42,7 +32,7 @@ class Type(object):
             # and give us the type we were expecting
             if self.test(rv):
                 return rv
-        raise InvalidTypeError(u'{!r} is not a valid {}'.format(value, repr(self)))
+        raise InvalidTypeError(f"{value!r} is not a valid {self!r}")
 
     def convert(self, value):
         return value
@@ -60,33 +50,35 @@ class Type(object):
 
 class AnyType(Type):
     """A type that accepts any value and does no coersion"""
-    name = 'any'
-    expected_types = (object, )
-    compatible_types = (object, )
+
+    name = "any"
+    expected_types = (object,)
+    compatible_types = (object,)
 
 
 class BoolType(Type):
     "Coerce a boolean from a string"
-    name = 'boolean'
+    name = "boolean"
     default = False
-    expected_types = (bool, )
-    compatible_types = six.string_types + six.integer_types
+    expected_types = (bool,)
+    compatible_types = (str, int)
 
     def convert(self, value):
-        if isinstance(value, six.integer_types):
+        if isinstance(value, int):
             return bool(value)
         value = value.lower()
-        if value in ('y', 'yes', 't', 'true', '1', 'on'):
+        if value in ("y", "yes", "t", "true", "1", "on"):
             return True
-        if value in ('n', 'no', 'f', 'false', '0', 'off'):
+        if value in ("n", "no", "f", "false", "0", "off"):
             return False
 
 
 class IntType(Type):
     """Coerce an integer from a string"""
-    name = 'integer'
+
+    name = "integer"
     default = 0
-    expected_types = six.integer_types
+    expected_types = (int,)
 
     def convert(self, value):
         try:
@@ -97,10 +89,11 @@ class IntType(Type):
 
 class FloatType(Type):
     """Coerce a float from a string or integer"""
-    name = 'float'
+
+    name = "float"
     default = 0.0
-    expected_types = (float, )
-    compatible_types = six.string_types + six.integer_types + (float, )
+    expected_types = (float,)
+    compatible_types = (str, int, float)
 
     def convert(self, value):
         try:
@@ -111,16 +104,18 @@ class FloatType(Type):
 
 class StringType(Type):
     """String type without any coersion, must be a string"""
-    name = 'string'
-    default = u''
-    expected_types = six.string_types
-    compatible_types = six.string_types
+
+    name = "string"
+    default = ""
+    expected_types = (str,)
+    compatible_types = (str,)
 
 
 class DictType(Type):
     """Coerce a dict out of a json/yaml string"""
-    name = 'dictionary'
-    expected_types = (dict, )
+
+    name = "dictionary"
+    expected_types = (dict,)
 
     def _default(self):
         # make sure we create a fresh dict each time
@@ -135,13 +130,14 @@ class DictType(Type):
 
 class SequenceType(Type):
     """Coerce a tuple out of a json/yaml string or a list"""
-    name = 'sequence'
+
+    name = "sequence"
     default = ()
     expected_types = (tuple, list)
-    compatible_types = six.string_types + (tuple, list)
+    compatible_types = (str, tuple, list)
 
     def convert(self, value):
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             try:
                 value = safe_load(value)
             except (AttributeError, ParserError, ScannerError):
@@ -165,12 +161,16 @@ _type_mapping = {
     bool: Bool,
     int: Int,
     float: Float,
-    six.binary_type: String,
-    six.text_type: String,
+    bytes: String,
+    str: String,
     dict: Dict,
     tuple: Sequence,
     list: Sequence,
 }
+try:
+    _type_mapping[long] = Int  # noqa: B311
+except NameError:  # long was removed in Python 3
+    pass
 
 
 def type_from_value(value):

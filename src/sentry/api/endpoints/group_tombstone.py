@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -24,7 +22,7 @@ class GroupTombstoneEndpoint(ProjectEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='id',
+            order_by="id",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )

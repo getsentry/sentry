@@ -1,0 +1,682 @@
+{
+  "Issue": {
+    "type": "object",
+    "required": [
+      "lastSeen",
+      "numComments",
+      "userCount",
+      "culprit",
+      "title",
+      "id",
+      "assignedTo",
+      "logger",
+      "stats",
+      "type",
+      "annotations",
+      "metadata",
+      "status",
+      "subscriptionDetails",
+      "isPublic",
+      "hasSeen",
+      "shortId",
+      "shareId",
+      "firstSeen",
+      "count",
+      "permalink",
+      "level",
+      "isSubscribed",
+      "isBookmarked",
+      "project",
+      "statusDetails"
+    ],
+    "properties": {
+      "annotations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "assignedTo": {
+        "type": "object",
+        "nullable": true
+      },
+      "count": {
+        "type": "string"
+      },
+      "culprit": {
+        "type": "string"
+      },
+      "firstSeen": {
+        "type": "string"
+      },
+      "hasSeen": {
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "isBookmarked": {
+        "type": "boolean"
+      },
+      "isPublic": {
+        "type": "boolean"
+      },
+      "isSubscribed": {
+        "type": "boolean"
+      },
+      "lastSeen": {
+        "type": "string"
+      },
+      "level": {
+        "type": "string"
+      },
+      "logger": {
+        "type": "string",
+        "nullable": true
+      },
+      "metadata": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "filename",
+              "type",
+              "value"
+            ],
+            "properties": {
+              "filename": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "title"
+            ],
+            "properties": {
+              "title": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "numComments": {
+        "type": "integer"
+      },
+      "permalink": {
+        "type": "string"
+      },
+      "project": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        }
+      },
+      "shareId": {
+        "type": "string",
+        "nullable": true
+      },
+      "shortId": {
+        "type": "string"
+      },
+      "stats": {
+        "type": "object",
+        "properties": {
+          "24h": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "resolved",
+          "unresolved",
+          "ignored"
+        ]
+      },
+      "statusDetails": {
+        "type": "object"
+      },
+      "subscriptionDetails": {
+        "type": "object",
+        "nullable": true
+      },
+      "title": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string"
+      },
+      "userCount": {
+        "type": "integer"
+      }
+    }
+  },
+  "IssueDetailed": {
+    "type": "object",
+    "required": [
+      "activity",
+      "annotations",
+      "assignedTo",
+      "count",
+      "culprit",
+      "firstRelease",
+      "firstSeen",
+      "hasSeen",
+      "id",
+      "isBookmarked",
+      "isPublic",
+      "isSubscribed",
+      "lastRelease",
+      "lastSeen",
+      "level",
+      "logger",
+      "metadata",
+      "numComments",
+      "participants",
+      "permalink",
+      "pluginActions",
+      "pluginContexts",
+      "pluginIssues",
+      "project",
+      "seenBy",
+      "shareId",
+      "shortId",
+      "stats",
+      "status",
+      "statusDetails",
+      "subscriptionDetails",
+      "tags",
+      "title",
+      "type",
+      "userCount",
+      "userReportCount"
+    ],
+    "properties": {
+      "activity": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "object"
+            },
+            "dateCreated": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "user": {
+              "type": "object",
+              "nullable": true
+            }
+          }
+        }
+      },
+      "annotations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "assignedTo": {
+        "type": "object",
+        "nullable": true
+      },
+      "count": {
+        "type": "string"
+      },
+      "culprit": {
+        "type": "string"
+      },
+      "firstRelease": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "authors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "commitCount": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "object",
+            "nullable": true
+          },
+          "dateCreated": {
+            "type": "string"
+          },
+          "dateReleased": {
+            "type": "string",
+            "nullable": true
+          },
+          "deployCount": {
+            "type": "integer"
+          },
+          "firstEvent": {
+            "type": "string"
+          },
+          "lastCommit": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastDeploy": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastEvent": {
+            "type": "string"
+          },
+          "newGroups": {
+            "type": "integer"
+          },
+          "owner": {
+            "type": "string",
+            "nullable": true
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "slug": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "ref": {
+            "type": "string",
+            "nullable": true
+          },
+          "shortVersion": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "firstSeen": {
+        "type": "string"
+      },
+      "hasSeen": {
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "isBookmarked": {
+        "type": "boolean"
+      },
+      "isPublic": {
+        "type": "boolean"
+      },
+      "isSubscribed": {
+        "type": "boolean"
+      },
+      "lastRelease": {
+        "type": "object",
+        "nullable": true
+      },
+      "lastSeen": {
+        "type": "string"
+      },
+      "level": {
+        "type": "string"
+      },
+      "logger": {
+        "type": "string",
+        "nullable": true
+      },
+      "metadata": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "filename",
+              "type",
+              "value"
+            ],
+            "properties": {
+              "filename": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "title"
+            ],
+            "properties": {
+              "title": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "numComments": {
+        "type": "integer"
+      },
+      "participants": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "permalink": {
+        "type": "string"
+      },
+      "pluginActions": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "pluginContexts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "pluginIssues": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "project": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        }
+      },
+      "seenBy": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "shareId": {
+        "type": "string",
+        "nullable": true
+      },
+      "shortId": {
+        "type": "string"
+      },
+      "stats": {
+        "type": "object",
+        "properties": {
+          "24h": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          "30d": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "resolved",
+          "unresolved",
+          "ignored"
+        ]
+      },
+      "statusDetails": {
+        "type": "object"
+      },
+      "subscriptionDetails": {
+        "type": "object",
+        "nullable": true
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "title": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string"
+      },
+      "userCount": {
+        "type": "integer"
+      },
+      "userReportCount": {
+        "type": "integer"
+      }
+    }
+  },
+  "IssueNoStats": {
+    "type": "object",
+    "required": [
+      "lastSeen",
+      "numComments",
+      "userCount",
+      "culprit",
+      "title",
+      "id",
+      "assignedTo",
+      "logger",
+      "type",
+      "annotations",
+      "metadata",
+      "status",
+      "subscriptionDetails",
+      "isPublic",
+      "hasSeen",
+      "shortId",
+      "shareId",
+      "firstSeen",
+      "count",
+      "permalink",
+      "level",
+      "isSubscribed",
+      "isBookmarked",
+      "project",
+      "statusDetails"
+    ],
+    "properties": {
+      "annotations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "assignedTo": {
+        "type": "object",
+        "nullable": true
+      },
+      "count": {
+        "type": "string"
+      },
+      "culprit": {
+        "type": "string"
+      },
+      "firstSeen": {
+        "type": "string"
+      },
+      "hasSeen": {
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "isBookmarked": {
+        "type": "boolean"
+      },
+      "isPublic": {
+        "type": "boolean"
+      },
+      "isSubscribed": {
+        "type": "boolean"
+      },
+      "lastSeen": {
+        "type": "string"
+      },
+      "level": {
+        "type": "string"
+      },
+      "logger": {
+        "type": "string",
+        "nullable": true
+      },
+      "metadata": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "filename",
+              "type",
+              "value"
+            ],
+            "properties": {
+              "filename": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "title"
+            ],
+            "properties": {
+              "title": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "numComments": {
+        "type": "integer"
+      },
+      "permalink": {
+        "type": "string"
+      },
+      "project": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        }
+      },
+      "shareId": {
+        "type": "string",
+        "nullable": true
+      },
+      "shortId": {
+        "type": "string"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "resolved",
+          "unresolved",
+          "ignored"
+        ]
+      },
+      "statusDetails": {
+        "type": "object"
+      },
+      "subscriptionDetails": {
+        "type": "object",
+        "nullable": true
+      },
+      "title": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string"
+      },
+      "userCount": {
+        "type": "integer"
+      }
+    }
+  }
+}

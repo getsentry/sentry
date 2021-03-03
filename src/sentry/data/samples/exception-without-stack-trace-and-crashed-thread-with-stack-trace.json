@@ -1,0 +1,68 @@
+{
+
+  "exception": {
+    "values": [
+      {
+        "type": "NameError",
+        "value": "undefined local variable or method `foo' for #<#<Class:0x00007fd86c31b018>:0x00007fd84829ab80>",
+        "module": ""
+      }
+    ]
+  },
+  "threads": {
+    "values": [
+      {
+        "id": 21100,
+        "name": "puma 004",
+        "crashed": true,
+        "current": true,
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "block in spawn_thread",
+              "filename": "puma (3.12.6) lib/puma/thread_pool.rb",
+              "abs_path": "puma (3.12.6) lib/puma/thread_pool.rb",
+              "lineno": 135,
+              "in_app": false
+            },
+            {
+              "function": "block in run",
+              "filename": "puma (3.12.6) lib/puma/server.rb",
+              "abs_path": "puma (3.12.6) lib/puma/server.rb",
+              "lineno": 334,
+              "in_app": false
+            },
+            {
+              "function": "index",
+              "filename": "app/controllers/welcome_controller.rb",
+              "abs_path": "app/controllers/welcome_controller.rb",
+              "lineno": 5,
+              "pre_context": [
+                "  before_action :set_sentry_context\n",
+                "\n",
+                "  def index\n"
+              ],
+              "context_line": "    1 / 0\n",
+              "post_context": ["  end\n", "\n", "  def view_error\n"],
+              "in_app": true
+            },
+            {
+              "function": "/",
+              "filename": "app/controllers/welcome_controller.rb",
+              "abs_path": "app/controllers/welcome_controller.rb",
+              "lineno": 5,
+              "pre_context": [
+                "  before_action :set_sentry_context\n",
+                "\n",
+                "  def index\n"
+              ],
+              "context_line": "    1 / 0\n",
+              "post_context": ["  end\n", "\n", "  def view_error\n"],
+              "in_app": true
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

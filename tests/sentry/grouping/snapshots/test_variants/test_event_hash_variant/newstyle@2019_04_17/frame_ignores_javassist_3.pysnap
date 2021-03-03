@@ -1,0 +1,26 @@
+---
+created: '2020-02-26T19:54:34.232494Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          filename* (cleaned javassist parts)
+            "entriesresource_$$_javassist<auto>.java"
+          function*
+            "fn"
+--------------------------------------------------------------------------
+system:
+  hash: "dc3d511120ce04996b1eef3496516e5c"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename* (cleaned javassist parts)
+            "entriesresource_$$_javassist<auto>.java"
+          function*
+            "fn"

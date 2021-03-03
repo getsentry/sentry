@@ -1,34 +1,51 @@
-from __future__ import absolute_import
-
-import six
-
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle  # NOQA
+_builtin_map = map
+_builtin_filter = filter
+_builtin_zip = zip
 
 
-def _identity(x):
-    return x
+def map(a, b, *c):
+    # TODO(joshuarli): Remove all this.
+    return list(_builtin_map(a, b, *c))
 
 
-if six.PY2:
-    # https://github.com/pallets/werkzeug/blob/master/werkzeug/_compat.py
-    def implements_to_string(cls):
-        cls.__unicode__ = cls.__str__
-        cls.__str__ = lambda x: x.__unicode__().encode('utf-8')
-        return cls
+def filter(a, b):
+    # TODO(joshuarli): Remove all this.
+    return list(_builtin_filter(a, b))
 
-    def implements_iterator(cls):
-        cls.next = cls.__next__
-        del cls.__next__
-        return cls
 
-    def implements_bool(cls):
-        cls.__nonzero__ = cls.__bool__
-        del cls.__bool__
-        return cls
-else:
-    implements_to_string = _identity
-    implements_iterator = _identity
-    implements_bool = _identity
+def zip(*a):
+    # TODO(joshuarli): Remove all this.
+    return list(_builtin_zip(*a))
+
+
+from binascii import crc32 as _crc32
+
+
+# In python3 crc32 was changed to never return a signed value, which is
+# different from the python2 implementation. As noted in
+# https://docs.python.org/3/library/binascii.html#binascii.crc32
+#
+# Note the documentation suggests the following:
+#
+# > Changed in version 3.0: The result is always unsigned. To generate the
+# > same numeric value across all Python versions and platforms, use
+# > crc32(data) & 0xffffffff.
+#
+# However this will not work when transitioning between versions, as the
+# value MUST match what was generated in python 2.
+#
+# We can sign the return value using the following bit math to ensure we
+# match the python2 output of crc32.
+#
+# XXX(BYK): This needs to stay as we transitioned from PY2 and still need to
+#           keep these compatible due to values stored in various places.
+def crc32(*args):
+    rt = _crc32(*args)
+    return rt - ((rt & 0x80000000) << 1)
+
+
+import types
+
+
+def new_module(name):
+    return types.ModuleType(name)

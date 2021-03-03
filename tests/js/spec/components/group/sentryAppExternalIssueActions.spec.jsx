@@ -1,36 +1,55 @@
 import React from 'react';
-import {mount} from 'enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
+
+import GlobalModal from 'app/components/globalModal';
 import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
-import {selectByValue} from '../../../helpers/select';
 
 describe('SentryAppExternalIssueActions', () => {
   let group;
   let component;
   let sentryApp;
   let install;
+  let submitUrl;
   let externalIssue;
   let wrapper;
 
   beforeEach(() => {
     group = TestStubs.Group();
-    component = TestStubs.SentryAppComponent();
     sentryApp = TestStubs.SentryApp();
+    component = TestStubs.SentryAppComponent({
+      sentryApp: {
+        uuid: sentryApp.uuid,
+        slug: sentryApp.slug,
+        name: sentryApp.name,
+      },
+    });
+    //unable to use the selectByValue here so remove the select option
+    component.schema.create.required_fields.pop();
     install = TestStubs.SentryAppInstallation({sentryApp});
+    submitUrl = `/sentry-app-installations/${install.uuid}/external-issue-actions/`;
     externalIssue = TestStubs.PlatformExternalIssue({
       groupId: group.id,
       serviceType: component.sentryApp.slug,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/sentry-apps/${sentryApp.slug}/interaction/`,
+      method: 'POST',
     });
   });
 
   describe('without an external issue linked', () => {
     beforeEach(() => {
-      wrapper = mount(
-        <SentryAppExternalIssueActions
-          group={group}
-          sentryAppInstallation={install}
-          sentryAppComponent={component}
-        />,
+      wrapper = mountWithTheme(
+        <React.Fragment>
+          <GlobalModal />
+          <SentryAppExternalIssueActions
+            group={group}
+            sentryAppInstallation={install}
+            sentryAppComponent={component}
+          />
+        </React.Fragment>,
         TestStubs.routerContext()
       );
     });
@@ -42,25 +61,24 @@ describe('SentryAppExternalIssueActions', () => {
     });
 
     it('renders the add icon', () => {
-      expect(wrapper.find('AddRemoveIcon').prop('isLinked')).toBe(false);
+      expect(wrapper.find('StyledIcon IconAdd')).toHaveLength(1);
     });
 
-    it('opens the modal', () => {
+    it('opens the modal', async () => {
       wrapper.find('IntegrationLink a').simulate('click');
-      expect(
-        wrapper
-          .find('Modal')
-          .first()
-          .prop('show')
-      ).toEqual(true);
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('Modal').first().prop('show')).toEqual(true);
     });
 
-    it('renders the Create Issue form fields, based on schema', () => {
+    it('renders the Create Issue form fields, based on schema', async () => {
       wrapper.find('IntegrationLink a').simulate('click');
-      wrapper
-        .find('Modal NavTabs li.create a')
-        .first()
-        .simulate('click'); // Create
+      await tick();
+      wrapper.update();
+
+      wrapper.find('Modal NavTabs li.create a').first().simulate('click'); // Create
 
       component.schema.create.required_fields.forEach(field => {
         expect(wrapper.exists(`SentryAppExternalIssueForm #${field.name}`)).toBe(true);
@@ -71,12 +89,12 @@ describe('SentryAppExternalIssueActions', () => {
       });
     });
 
-    it('renders the Link Issue form fields, based on schema', () => {
+    it('renders the Link Issue form fields, based on schema', async () => {
       wrapper.find('IntegrationLink a').simulate('click');
-      wrapper
-        .find('Modal NavTabs li.link a')
-        .first()
-        .simulate('click'); // Link
+      await tick();
+      wrapper.update();
+
+      wrapper.find('Modal NavTabs li.link a').first().simulate('click'); // Link
 
       component.schema.link.required_fields.forEach(field => {
         expect(wrapper.exists(`SentryAppExternalIssueForm #${field.name}`)).toBe(true);
@@ -87,14 +105,17 @@ describe('SentryAppExternalIssueActions', () => {
       });
     });
 
-    it('links to an existing Issue', () => {
+    it('links to an existing Issue', async () => {
       const request = MockApiClient.addMockResponse({
-        url: `/sentry-app-installations/${install.uuid}/external-issues/`,
+        url: submitUrl,
         method: 'POST',
         body: externalIssue,
       });
 
       wrapper.find('IntegrationLink a').simulate('click');
+
+      await tick();
+      wrapper.update();
 
       wrapper.find('NavTabs li.link a').simulate('click');
 
@@ -103,7 +124,7 @@ describe('SentryAppExternalIssueActions', () => {
       wrapper.find('Form form').simulate('submit');
 
       expect(request).toHaveBeenCalledWith(
-        `/sentry-app-installations/${install.uuid}/external-issues/`,
+        submitUrl,
         expect.objectContaining({
           data: expect.objectContaining({
             action: 'link',
@@ -114,24 +135,26 @@ describe('SentryAppExternalIssueActions', () => {
       );
     });
 
-    it('creates a new Issue', () => {
+    it('creates a new Issue', async () => {
       const request = MockApiClient.addMockResponse({
-        url: `/sentry-app-installations/${install.uuid}/external-issues/`,
+        url: submitUrl,
         method: 'POST',
         body: externalIssue,
       });
 
       wrapper.find('IntegrationLink a').simulate('click');
+      await tick();
+      wrapper.update();
+
       wrapper.find('NavTabs li.create a').simulate('click');
 
       wrapper.find('Input#title').simulate('change', {target: {value: 'foo'}});
       wrapper.find('TextArea#description').simulate('change', {target: {value: 'bar'}});
-      selectByValue(wrapper, 1, {name: 'numbers'});
 
       wrapper.find('Form form').simulate('submit');
 
       expect(request).toHaveBeenCalledWith(
-        `/sentry-app-installations/${install.uuid}/external-issues/`,
+        submitUrl,
         expect.objectContaining({
           data: expect.objectContaining({
             action: 'create',
@@ -146,7 +169,7 @@ describe('SentryAppExternalIssueActions', () => {
 
   describe('with an external issue linked', () => {
     beforeEach(() => {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryAppExternalIssueActions
           group={group}
           sentryAppComponent={component}
@@ -162,16 +185,13 @@ describe('SentryAppExternalIssueActions', () => {
     });
 
     it('links to the issue', () => {
-      expect(
-        wrapper
-          .find('IntegrationLink')
-          .first()
-          .prop('href')
-      ).toEqual(externalIssue.webUrl);
+      expect(wrapper.find('IntegrationLink').first().prop('href')).toEqual(
+        externalIssue.webUrl
+      );
     });
 
     it('renders the remove issue button', () => {
-      expect(wrapper.find('AddRemoveIcon').prop('isLinked')).toBe(true);
+      expect(wrapper.find('StyledIcon IconClose')).toHaveLength(1);
     });
 
     it('deletes a Linked Issue', () => {
@@ -180,7 +200,7 @@ describe('SentryAppExternalIssueActions', () => {
         method: 'DELETE',
       });
 
-      wrapper.find('AddRemoveIcon').simulate('click');
+      wrapper.find('StyledIcon').simulate('click');
 
       expect(request).toHaveBeenCalled();
     });

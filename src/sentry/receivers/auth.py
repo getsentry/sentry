@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import logging
-import six
 
 from django.contrib.auth.models import update_last_login
 from django.contrib.auth.signals import user_logged_in
@@ -11,12 +8,9 @@ from sentry.models import UserOption
 
 # Set user language if set
 def set_language_on_logon(request, user, **kwargs):
-    language = UserOption.objects.get_value(
-        user=user,
-        key='language',
-    )
-    if language and hasattr(request, 'session'):
-        request.session['django_language'] = language
+    language = UserOption.objects.get_value(user=user, key="language")
+    if language and hasattr(request, "session"):
+        request.session["django_language"] = language
 
 
 def safe_update_last_login(sender, user, **kwargs):
@@ -29,7 +23,7 @@ def safe_update_last_login(sender, user, **kwargs):
     try:
         update_last_login(sender, user, **kwargs)
     except DatabaseError as exc:
-        logging.warn(six.text_type(exc), exc_info=True)
+        logging.warn(str(exc), exc_info=True)
 
 
 def remove_lost_password_hashes(sender, user, **kwargs):
@@ -38,14 +32,9 @@ def remove_lost_password_hashes(sender, user, **kwargs):
 
 
 user_logged_in.disconnect(update_last_login)
-user_logged_in.connect(
-    safe_update_last_login,
-    dispatch_uid="safe_update_last_login",
-    weak=False,
-)
+user_logged_in.connect(safe_update_last_login, dispatch_uid="safe_update_last_login", weak=False)
 
 user_logged_in.connect(set_language_on_logon, dispatch_uid="set_language_on_logon", weak=False)
 user_logged_in.connect(
-    remove_lost_password_hashes,
-    dispatch_uid='remove_lost_password_hashes',
-    weak=False)
+    remove_lost_password_hashes, dispatch_uid="remove_lost_password_hashes", weak=False
+)

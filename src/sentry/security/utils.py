@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 
 from django.conf import settings
@@ -7,7 +5,7 @@ from django.utils import timezone
 
 from .emails import generate_security_email
 
-logger = logging.getLogger('sentry.security')
+logger = logging.getLogger("sentry.security")
 
 
 def capture_security_activity(
@@ -16,16 +14,12 @@ def capture_security_activity(
     if current_datetime is None:
         current_datetime = timezone.now()
 
-    logger_context = {
-        'ip_address': ip_address,
-        'user_id': account.id,
-        'actor_id': actor.id,
-    }
+    logger_context = {"ip_address": ip_address, "user_id": account.id, "actor_id": actor.id}
 
-    if type == 'mfa-removed' or type == 'mfa-added':
-        logger_context['authenticator_id'] = context['authenticator'].id
+    if type == "mfa-removed" or type == "mfa-added":
+        logger_context["authenticator_id"] = context["authenticator"].id
 
-    logger.info(u'user.{}'.format(type), extra=logger_context)
+    logger.info(f"user.{type}", extra=logger_context)
 
     if send_email:
         msg = generate_security_email(

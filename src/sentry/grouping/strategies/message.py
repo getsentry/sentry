@@ -1,14 +1,13 @@
-from __future__ import absolute_import
-
 import re
-import six
 from itertools import islice
 
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.strategies.base import strategy
+from sentry.grouping.strategies.base import strategy, produces_variants
+from sentry.grouping.strategies.similarity_encoders import text_shingle_encoder
 
 
-_irrelevant_re = re.compile(r'''(?x)
+_irrelevant_re = re.compile(
+    r"""(?x)
     (?P<email>
         [a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*
     ) |
@@ -77,6 +76,9 @@ _irrelevant_re = re.compile(r'''(?x)
             ([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
         )
     ) |
+    (?P<hex>
+        \b0[xX][0-9a-fA-F]+\b
+    ) |
     (?P<float>
         -\d+\.\d+\b |
         \b\d+\.\d+\b
@@ -85,47 +87,44 @@ _irrelevant_re = re.compile(r'''(?x)
         -\d+\b |
         \b\d+\b
     )
-''')
+"""
+)
 
 
 def trim_message_for_grouping(string):
-    s = '\n'.join(islice((x for x in string.splitlines() if x.strip()), 2)).strip()
+    s = "\n".join(islice((x for x in string.splitlines() if x.strip()), 2)).strip()
     if s != string:
-        s += '...'
+        s += "..."
 
     def _handle_match(match):
-        for key, value in six.iteritems(match.groupdict()):
+        for key, value in match.groupdict().items():
             if value is not None:
-                return '<%s>' % key
-        return ''
+                return "<%s>" % key
+        return ""
+
     return _irrelevant_re.sub(_handle_match, s)
 
 
-@strategy(
-    id='message:v1',
-    interfaces=['message'],
-    variants=['default'],
-    score=0,
-)
-def message_v1(message_interface, **meta):
-    return GroupingComponent(
-        id='message',
-        values=[message_interface.message or message_interface.formatted],
-    )
-
-
-@strategy(
-    id='message:v2',
-    interfaces=['message'],
-    variants=['default'],
-    score=0,
-)
-def message_v2(message_interface, **meta):
-    message_in = message_interface.message or message_interface.formatted
-    message_trimmed = trim_message_for_grouping(message_in)
-    hint = 'stripped common values' if message_in != message_trimmed else None
-    return GroupingComponent(
-        id='message',
-        values=[message_trimmed],
-        hint=hint
-    )
+@strategy(id="message:v1", interfaces=["message"], score=0)
+@produces_variants(["default"])
+def message_v1(message_interface, context, **meta):
+    if context["trim_message"]:
+        message_in = message_interface.message or message_interface.formatted or ""
+        message_trimmed = trim_message_for_grouping(message_in)
+        hint = "stripped common values" if message_in != message_trimmed else None
+        return {
+            context["variant"]: GroupingComponent(
+                id="message",
+                values=[message_trimmed],
+                hint=hint,
+                similarity_encoder=text_shingle_encoder(5),
+            )
+        }
+    else:
+        return {
+            context["variant"]: GroupingComponent(
+                id="message",
+                values=[message_interface.message or message_interface.formatted or ""],
+                similarity_encoder=text_shingle_encoder(5),
+            )
+        }

@@ -1,20 +1,13 @@
-"""
-sentry.db.models.fields.bounded
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
-from __future__ import absolute_import
-
 from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 __all__ = (
-    'BoundedAutoField', 'BoundedBigAutoField', 'BoundedIntegerField', 'BoundedBigIntegerField',
-    'BoundedPositiveIntegerField'
+    "BoundedAutoField",
+    "BoundedBigAutoField",
+    "BoundedIntegerField",
+    "BoundedBigIntegerField",
+    "BoundedPositiveIntegerField",
 )
 
 
@@ -25,7 +18,7 @@ class BoundedIntegerField(models.IntegerField):
         if value:
             value = int(value)
             assert value <= self.MAX_VALUE
-        return super(BoundedIntegerField, self).get_prep_value(value)
+        return super().get_prep_value(value)
 
 
 class BoundedPositiveIntegerField(models.PositiveIntegerField):
@@ -35,7 +28,7 @@ class BoundedPositiveIntegerField(models.PositiveIntegerField):
         if value:
             value = int(value)
             assert value <= self.MAX_VALUE
-        return super(BoundedPositiveIntegerField, self).get_prep_value(value)
+        return super().get_prep_value(value)
 
 
 class BoundedAutoField(models.AutoField):
@@ -45,7 +38,7 @@ class BoundedAutoField(models.AutoField):
         if value:
             value = int(value)
             assert value <= self.MAX_VALUE
-        return super(BoundedAutoField, self).get_prep_value(value)
+        return super().get_prep_value(value)
 
 
 if settings.SENTRY_USE_BIG_INTS:
@@ -62,7 +55,7 @@ if settings.SENTRY_USE_BIG_INTS:
             if value:
                 value = int(value)
                 assert value <= self.MAX_VALUE
-            return super(BoundedBigIntegerField, self).get_prep_value(value)
+            return super().get_prep_value(value)
 
     class BoundedBigAutoField(models.AutoField):
         description = _("Big Integer")
@@ -70,11 +63,7 @@ if settings.SENTRY_USE_BIG_INTS:
         MAX_VALUE = 9223372036854775807
 
         def db_type(self, connection):
-            engine = connection.settings_dict['ENGINE']
-            if 'postgres' in engine:
-                return "bigserial"
-            else:
-                raise NotImplemented
+            return "bigserial"
 
         def get_related_db_type(self, connection):
             return BoundedBigIntegerField().db_type(connection)
@@ -86,7 +75,8 @@ if settings.SENTRY_USE_BIG_INTS:
             if value:
                 value = int(value)
                 assert value <= self.MAX_VALUE
-            return super(BoundedBigAutoField, self).get_prep_value(value)
+            return super().get_prep_value(value)
+
 
 else:
     # we want full on classes for these
@@ -95,15 +85,3 @@ else:
 
     class BoundedBigAutoField(BoundedAutoField):
         pass
-
-
-if 'south' in settings.INSTALLED_APPS:
-    from south.modelsinspector import add_introspection_rules
-
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedAutoField"])
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedBigAutoField"])
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedIntegerField"])
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedBigIntegerField"])
-    add_introspection_rules(
-        [], ["^sentry\.db\.models\.fields\.bounded\.BoundedPositiveIntegerField"]
-    )

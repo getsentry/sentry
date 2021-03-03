@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
@@ -15,11 +13,11 @@ class BitbucketInstalledEndpoint(Endpoint):
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
-        return super(BitbucketInstalledEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        state = request.DATA
+        state = request.data
         data = BitbucketIntegrationProvider().build_integration(state)
-        ensure_integration('bitbucket', data)
+        ensure_integration("bitbucket", data)
 
         return self.respond()

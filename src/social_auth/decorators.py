@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from functools import wraps
 
 from django.core.urlresolvers import reverse
@@ -14,6 +12,7 @@ def dsa_view(redirect_name=None):
 
         redirect_name parameter is used to build redirect URL used by backend.
     """
+
     def dec(func):
         @wraps(func)
         def wrapper(request, backend, *args, **kwargs):
@@ -21,10 +20,11 @@ def dsa_view(redirect_name=None):
                 redirect = reverse(redirect_name, args=(backend,))
             else:
                 redirect = request.path
-            request.social_auth_backend = get_backend(backend, request,
-                                                      redirect)
+            request.social_auth_backend = get_backend(backend, request, redirect)
             if request.social_auth_backend is None:
                 raise WrongBackend(backend)
             return func(request, request.social_auth_backend, *args, **kwargs)
+
         return wrapper
+
     return dec

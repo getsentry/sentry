@@ -1,19 +1,18 @@
-from __future__ import absolute_import
-
 import logging
-import six
+from collections import defaultdict
 
 from sentry import features
-from sentry.integrations.exceptions import ApiError, IntegrationError
-from sentry.models import Activity, Event, ExternalIssue, Group, GroupLink, GroupStatus, Organization
+from sentry.models.useroption import UserOption
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupStatus, Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
+from sentry.utils.compat import filter
 
-logger = logging.getLogger('sentry.integrations.issues')
+logger = logging.getLogger("sentry.integrations.issues")
 
 
-class IssueBasicMixin(object):
-
+class IssueBasicMixin:
     def should_sync(self, attribute):
         return False
 
@@ -28,33 +27,27 @@ class IssueBasicMixin(object):
 
     def get_group_body(self, group, event, **kwargs):
         result = []
-        for interface in six.itervalues(event.interfaces):
+        for interface in event.interfaces.values():
             output = safe_execute(interface.to_string, event, _with_transaction=False)
             if output:
                 result.append(output)
-        return '\n\n'.join(result)
+        return "\n\n".join(result)
 
     def get_group_description(self, group, event, **kwargs):
         params = {}
-        if kwargs.get('link_referrer'):
-            params['referrer'] = kwargs.get('link_referrer')
+        if kwargs.get("link_referrer"):
+            params["referrer"] = kwargs.get("link_referrer")
         output = [
-            u'Sentry Issue: [{}]({})'.format(
-                group.qualified_short_id,
-                absolute_uri(group.get_absolute_url(params=params)),
+            "Sentry Issue: [{}]({})".format(
+                group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params))
             )
         ]
         body = self.get_group_body(group, event)
         if body:
-            output.extend([
-                '',
-                '```',
-                body,
-                '```',
-            ])
-        return '\n'.join(output)
+            output.extend(["", "```", body, "```"])
+        return "\n".join(output)
 
-    def get_create_issue_config(self, group, **kwargs):
+    def get_create_issue_config(self, group, user, **kwargs):
         """
         These fields are used to render a form for the user,
         and are then passed in the format of:
@@ -65,24 +58,23 @@ class IssueBasicMixin(object):
         in Jira, VSTS, GitHub, etc
         """
         event = group.get_latest_event()
-        if event is not None:
-            Event.objects.bind_nodes([event], 'data')
 
         return [
             {
-                'name': 'title',
-                'label': 'Title',
-                'default': self.get_group_title(group, event, **kwargs),
-                'type': 'string',
-                'required': True,
-            }, {
-                'name': 'description',
-                'label': 'Description',
-                'default': self.get_group_description(group, event, **kwargs),
-                'type': 'textarea',
-                'autosize': True,
-                'maxRows': 10,
-            }
+                "name": "title",
+                "label": "Title",
+                "default": self.get_group_title(group, event, **kwargs),
+                "type": "string",
+                "required": True,
+            },
+            {
+                "name": "description",
+                "label": "Description",
+                "default": self.get_group_description(group, event, **kwargs),
+                "type": "textarea",
+                "autosize": True,
+                "maxRows": 10,
+            },
         ]
 
     def get_link_issue_config(self, group, **kwargs):
@@ -91,14 +83,7 @@ class IssueBasicMixin(object):
         `ExternalIssue` using title/description obtained from calling
         `get_issue` described below.
         """
-        return [
-            {
-                'name': 'externalIssue',
-                'label': 'Issue',
-                'default': '',
-                'type': 'string',
-            }
-        ]
+        return [{"name": "externalIssue", "label": "Issue", "default": "", "type": "string"}]
 
     def get_persisted_default_config_fields(self):
         """
@@ -107,14 +92,21 @@ class IssueBasicMixin(object):
         """
         return []
 
-    def store_issue_last_defaults(self, project_id, data):
+    def get_persisted_user_default_config_fields(self):
+        """
+        Returns a list of field names that should have their last used values
+        persisted on a per-project, per-user basis.
+        """
+        return []
+
+    def store_issue_last_defaults(self, project, user, data):
         """
         Stores the last used field defaults on a per-project basis. This
         accepts a dict of values that will be filtered to keys returned by
         ``get_persisted_default_config_fields`` which will automatically be
         merged into the associated field config object as the default.
 
-        >>> integ.store_issue_last_defaults(1, {'externalProject': 2})
+        >>> integ.store_issue_last_defaults(project, user, {'externalProject': 2})
 
         When the integration is serialized these values will automatically be
         merged into the field configuration objects.
@@ -123,20 +115,42 @@ class IssueBasicMixin(object):
               differentiation is made between the two field configs.
         """
         persisted_fields = self.get_persisted_default_config_fields()
-        if not persisted_fields:
-            return
+        if persisted_fields:
+            project_defaults = {k: v for k, v in data.items() if k in persisted_fields}
+            self.org_integration.config.setdefault("project_issue_defaults", {}).setdefault(
+                str(project.id), {}
+            ).update(project_defaults)
+            self.org_integration.save()
 
-        defaults = {k: v for k, v in six.iteritems(data) if k in persisted_fields}
+        user_persisted_fields = self.get_persisted_user_default_config_fields()
+        if user_persisted_fields:
+            user_defaults = {k: v for k, v in data.items() if k in user_persisted_fields}
+            user_option_key = dict(user=user, key="issue:defaults", project=project)
+            new_user_defaults = UserOption.objects.get_value(default={}, **user_option_key)
+            new_user_defaults.setdefault(self.org_integration.integration.provider, {}).update(
+                user_defaults
+            )
+            UserOption.objects.set_value(value=new_user_defaults, **user_option_key)
 
-        self.org_integration.config.update({
-            'project_issue_defaults': {project_id: defaults},
-        })
-        self.org_integration.save()
+    def get_defaults(self, project, user):
+        project_defaults = self.get_project_defaults(project.id)
 
+        user_option_key = dict(user=user, key="issue:defaults", project=project)
+        user_defaults = UserOption.objects.get_value(default={}, **user_option_key).get(
+            self.org_integration.integration.provider, {}
+        )
+
+        defaults = {}
+        defaults.update(project_defaults)
+        defaults.update(user_defaults)
+
+        return defaults
+
+    # TODO(saif): Make private and move all usages over to `get_defaults`
     def get_project_defaults(self, project_id):
-        return self.org_integration.config \
-            .get('project_issue_defaults', {}) \
-            .get(six.text_type(project_id), {})
+        return self.org_integration.config.get("project_issue_defaults", {}).get(
+            str(project_id), {}
+        )
 
     def create_issue(self, data, **kwargs):
         """
@@ -181,46 +195,43 @@ class IssueBasicMixin(object):
         Does anything needed after an issue has been linked, i.e. creating
         a comment for a linked issue.
         """
-        pass
 
     def make_external_key(self, data):
         """
         Takes result of `get_issue` or `create_issue` and returns the formatted key
         """
-        return data['key']
+        return data["key"]
 
     def get_issue_display_name(self, external_issue):
         """
         Returns the display name of the issue.
 
         This is not required but helpful for integrations whose external issue key
-        does not match the disired display name.
+        does not match the desired display name.
         """
-        return ''
+        return ""
 
     def get_repository_choices(self, group, **kwargs):
         """
-        Returns the default repository and a set/subset of repositories of asscoaited with the installation
+        Returns the default repository and a set/subset of repositories of associated with the installation
         """
         try:
             repos = self.get_repositories()
         except ApiError:
-            raise IntegrationError(
-                'Unable to retrive repositories. Please try again later.'
-            )
+            raise IntegrationError("Unable to retrive repositories. Please try again later.")
         else:
-            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
+            repo_choices = [(repo["identifier"], repo["name"]) for repo in repos]
 
-        repo = kwargs.get('repo')
+        repo = kwargs.get("repo")
         if not repo:
-            params = kwargs.get('params', {})
+            params = kwargs.get("params", {})
             defaults = self.get_project_defaults(group.project_id)
-            repo = params.get('repo', defaults.get('repo'))
+            repo = params.get("repo", defaults.get("repo"))
 
         try:
             default_repo = repo or repo_choices[0][0]
         except IndexError:
-            return '', repo_choices
+            return "", repo_choices
 
         # If a repo has been selected outside of the default list of
         # repos, stick it onto the front of the list so that it can be
@@ -239,28 +250,39 @@ class IssueBasicMixin(object):
         """
         return (default_repo, default_repo)
 
-    def get_annotations(self, group):
-        external_issue_ids = GroupLink.objects.filter(
-            group_id=group.id,
-            project_id=group.project_id,
+    def get_annotations_for_group_list(self, group_list):
+        group_links = GroupLink.objects.filter(
+            group_id__in=[group.id for group in group_list],
+            project_id__in=list({group.project.id for group in group_list}),
             linked_type=GroupLink.LinkedType.issue,
             relationship=GroupLink.Relationship.references,
-        ).values_list('linked_id', flat=True)
+        )
 
         external_issues = ExternalIssue.objects.filter(
-            id__in=external_issue_ids,
+            id__in=[group_link.linked_id for group_link in group_links],
             integration_id=self.model.id,
         )
+
+        # group annotations by group id
+        annotations_by_group_id = defaultdict(list)
+        for group_link in group_links:
+            issues_for_group = filter(lambda x: x.id == group_link.linked_id, external_issues)
+            annotations = self.map_external_issues_to_annotations(issues_for_group)
+            annotations_by_group_id[group_link.group_id].extend(annotations)
+
+        return annotations_by_group_id
+
+    def map_external_issues_to_annotations(self, external_issues):
         annotations = []
         for ei in external_issues:
             link = self.get_issue_url(ei.key)
             label = self.get_issue_display_name(ei) or ei.key
-            annotations.append('<a href="%s">%s</a>' % (link, label))
+            annotations.append(f'<a href="{link}">{label}</a>')
 
         return annotations
 
     def get_comment_id(self, comment):
-        return comment['id']
+        return comment["id"]
 
     def create_comment(self, issue_id, user_id, group_note):
         pass
@@ -278,7 +300,7 @@ class IssueSyncMixin(IssueBasicMixin):
 
     def should_sync(self, attribute):
         try:
-            key = getattr(self, '%s_key' % attribute)
+            key = getattr(self, "%s_key" % attribute)
         except AttributeError:
             return False
 
@@ -331,39 +353,32 @@ class IssueSyncMixin(IssueBasicMixin):
         raise NotImplementedError
 
     def update_group_status(self, groups, status, activity_type):
-        updated = Group.objects.filter(
-            id__in=[g.id for g in groups],
-        ).exclude(
-            status=status,
-        ).update(
-            status=status,
+        updated = (
+            Group.objects.filter(id__in=[g.id for g in groups])
+            .exclude(status=status)
+            .update(status=status)
         )
         if updated:
             for group in groups:
                 activity = Activity.objects.create(
-                    project=group.project,
-                    group=group,
-                    type=activity_type,
+                    project=group.project, group=group, type=activity_type
                 )
                 activity.send_notification()
 
     def sync_status_inbound(self, issue_key, data):
-        if not self.should_sync('inbound_status'):
+        if not self.should_sync("inbound_status"):
             return
 
         organization = Organization.objects.get(id=self.organization_id)
-        has_issue_sync = features.has('organizations:integrations-issue-sync',
-                                      organization)
+        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
 
         if not has_issue_sync:
             return
 
         affected_groups = list(
-            Group.objects.get_groups_by_external_issue(
-                self.model, issue_key,
-            ).filter(
-                project__organization_id=self.organization_id,
-            ).select_related('project'),
+            Group.objects.get_groups_by_external_issue(self.model, issue_key)
+            .filter(project__organization_id=self.organization_id)
+            .select_related("project")
         )
 
         groups_to_resolve = []
@@ -378,11 +393,12 @@ class IssueSyncMixin(IssueBasicMixin):
             # is a bug in one of those methods
             if should_resolve is True and should_unresolve is True:
                 logger.warning(
-                    'sync-config-conflict', extra={
-                        'organization_id': group.project.organization_id,
-                        'integration_id': self.model.id,
-                        'provider': self.model.get_provider(),
-                    }
+                    "sync-config-conflict",
+                    extra={
+                        "organization_id": group.project.organization_id,
+                        "integration_id": self.model.id,
+                        "provider": self.model.get_provider(),
+                    },
                 )
                 continue
 
@@ -392,15 +408,9 @@ class IssueSyncMixin(IssueBasicMixin):
                 groups_to_resolve.append(group)
 
         if groups_to_resolve:
-            self.update_group_status(
-                groups_to_resolve,
-                GroupStatus.RESOLVED,
-                Activity.SET_RESOLVED,
-            )
+            self.update_group_status(groups_to_resolve, GroupStatus.RESOLVED, Activity.SET_RESOLVED)
 
         if groups_to_unresolve:
             self.update_group_status(
-                groups_to_unresolve,
-                GroupStatus.UNRESOLVED,
-                Activity.SET_UNRESOLVED
+                groups_to_unresolve, GroupStatus.UNRESOLVED, Activity.SET_UNRESOLVED
             )

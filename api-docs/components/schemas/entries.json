@@ -1,0 +1,353 @@
+{
+  "Breadcrumbs": {
+    "type": "object",
+    "required": ["type", "data"],
+    "properties": {
+      "type": {
+        "type": "string"
+      },
+      "data": {
+        "type": "object",
+        "required": ["values"],
+        "properties": {
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "category",
+                "level",
+                "event_id",
+                "timestamp",
+                "data",
+                "message",
+                "type"
+              ],
+              "properties": {
+                "category": {
+                  "type": "string"
+                },
+                "level": {
+                  "type": "string"
+                },
+                "event_id": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "timestamp": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "data": {
+                  "type": "object",
+                  "nullable": true
+                },
+                "message": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "type": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "Request": {
+    "type": "object",
+    "required": ["type", "data"],
+    "properties": {
+      "type": {
+        "type": "string"
+      },
+      "data": {
+        "type": "object",
+        "required": [
+          "fragment",
+          "cookies",
+          "inferredContentType",
+          "env",
+          "headers",
+          "url",
+          "query",
+          "data",
+          "method"
+        ],
+        "properties": {
+          "fragment": {
+            "type": "string",
+            "nullable": true
+          },
+          "cookies": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "inferredContentType": {
+            "type": "string",
+            "nullable": true
+          },
+          "env": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "ENV": {
+                "type": "string"
+              }
+            }
+          },
+          "headers": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "url": {
+            "type": "string"
+          },
+          "query": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "data": {
+            "type": "object",
+            "nullable": true
+          },
+          "method": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
+    }
+  },
+  "Message": {
+    "type": "object",
+    "required": ["type", "data"],
+    "properties": {
+      "type": {
+        "type": "string"
+      },
+      "data": {
+        "type": "object",
+        "required": ["formatted"],
+        "properties": {
+          "formatted": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "Exception": {
+    "type": "object",
+    "required": ["type", "data"],
+    "properties": {
+      "type": {
+        "type": "string"
+      },
+      "data": {
+        "type": "object",
+        "required": ["excOmitted", "hasSystemFrames", "values"],
+        "properties": {
+          "excOmitted": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "integer"
+            }
+          },
+          "hasSystemFrames": {
+            "type": "boolean"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "stacktrace",
+                "module",
+                "rawStacktrace",
+                "mechanism",
+                "threadId",
+                "value",
+                "type"
+              ],
+              "properties": {
+                "stacktrace": {
+                  "type": "object",
+                  "nullable": true,
+                  "required": [
+                    "frames",
+                    "framesOmitted",
+                    "registers",
+                    "hasSystemFrames"
+                  ],
+                  "properties": {
+                    "frames": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "function",
+                          "errors",
+                          "colNo",
+                          "vars",
+                          "package",
+                          "absPath",
+                          "inApp",
+                          "lineNo",
+                          "module",
+                          "filename",
+                          "platform",
+                          "instructionAddr",
+                          "context",
+                          "symbolAddr",
+                          "trust",
+                          "symbol"
+                        ],
+                        "properties": {
+                          "function": {
+                            "type": "string"
+                          },
+                          "errors": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "colNo": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "vars": {
+                            "type": "object",
+                            "nullable": true
+                          },
+                          "package": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "absPath": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "inApp": {
+                            "type": "boolean"
+                          },
+                          "lineNo": {
+                            "type": "integer"
+                          },
+                          "module": {
+                            "type": "string"
+                          },
+                          "filename": {
+                            "type": "string"
+                          },
+                          "platform": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "instructionAddr": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "context": {
+                            "type": "array",
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "oneOf": [
+                                  {
+                                    "type": "integer"
+                                  },
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "symbolAddr": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "trust": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "symbol": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    "framesOmitted": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "registers": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "hasSystemFrames": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "module": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "rawStacktrace": {
+                  "type": "object",
+                  "nullable": true
+                },
+                "mechanism": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "handled": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "threadId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "value": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "Template": {
+    "type": "object"
+  }
+}

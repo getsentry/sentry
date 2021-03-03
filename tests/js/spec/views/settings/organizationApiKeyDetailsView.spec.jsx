@@ -1,11 +1,9 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import {mount} from 'enzyme';
+import PropTypes from 'prop-types';
 
-import {Client} from 'app/api';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import OrganizationApiKeyDetails from 'app/views/settings/organizationApiKeys/organizationApiKeyDetails';
-
-jest.mock('jquery');
 
 const childContextTypes = {
   organization: PropTypes.object,
@@ -13,23 +11,18 @@ const childContextTypes = {
   location: PropTypes.object,
 };
 
-describe('OrganizationApiKeyDetails', function() {
-  beforeEach(function() {
-    Client.clearMockResponses();
-    Client.addMockResponse({
-      url: '/organizations/org-slug/api-keys/',
-      method: 'GET',
-      body: [TestStubs.ApiKey()],
-    });
-    Client.addMockResponse({
+describe('OrganizationApiKeyDetails', function () {
+  beforeEach(function () {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/1/',
       method: 'GET',
       body: TestStubs.ApiKey(),
     });
   });
 
-  it('renders', function() {
-    const wrapper = mount(
+  it('renders', function () {
+    const wrapper = mountWithTheme(
       <OrganizationApiKeyDetails params={{apiKey: 1, orgId: 'org-slug'}} />,
       {
         context: {
@@ -40,7 +33,8 @@ describe('OrganizationApiKeyDetails', function() {
         childContextTypes,
       }
     );
-    expect(wrapper.state('loading')).toBe(false);
-    expect(wrapper).toMatchSnapshot();
+
+    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
+    expect(wrapper).toSnapshot();
   });
 });

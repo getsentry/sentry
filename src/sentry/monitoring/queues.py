@@ -1,24 +1,16 @@
-"""
-sentry.monitoring.queues
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2016 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-from __future__ import absolute_import, print_function
-
 from django.conf import settings
 from django.utils.functional import cached_property
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
-class RedisBackend(object):
+class RedisBackend:
     def __init__(self, broker_url):
         self.broker_url = broker_url
 
     @cached_property
     def client(self):
         from redis import StrictRedis
+
         return StrictRedis.from_url(self.broker_url)
 
     def bulk_get_sizes(self, queues):
@@ -35,19 +27,22 @@ class RedisBackend(object):
         return size
 
 
-class AmqpBackend(object):
+class AmqpBackend:
     def __init__(self, broker_url):
         dsn = urlparse(broker_url)
+        host, port = dsn.hostname, dsn.port
+        if port is None:
+            port = 5672
         self.conn_info = dict(
-            host=dsn.hostname,
-            port=dsn.port,
+            host="%s:%d" % (host, port),
             userid=dsn.username,
             password=dsn.password,
             virtual_host=dsn.path[1:],
         )
 
     def get_conn(self):
-        from librabbitmq import Connection
+        from amqp import Connection
+
         return Connection(**self.conn_info)
 
     def _get_size_from_channel(self, channel, queue):
@@ -92,11 +87,7 @@ def get_queue_by_name(name):
             return queue
 
 
-backends = {
-    'redis': RedisBackend,
-    'amqp': AmqpBackend,
-    'librabbitmq': AmqpBackend,
-}
+backends = {"redis": RedisBackend, "amqp": AmqpBackend}
 
 try:
     backend = get_backend_for_broker(settings.BROKER_URL)

@@ -1,0 +1,31 @@
+{% extends "sentry/plugins/bases/issue/create_issue.html" %}
+
+{% load sentry_assets %}
+
+{% block scripts %}
+  {{ block.super }}
+  {% script %}
+  <script>
+    $(function(){
+      $("#id_project").on('change', function(){
+        $('#id_tasklist').select2("readonly", true);
+        $.ajax({
+          url: '?op=getTaskLists&pid=' + $(this).val(),
+          dataType: 'json',
+          success: function(data) {
+            $('#id_tasklist').html('');
+            for (var i=0; i<data.length; i++) {
+              var opt = $("<option/>");
+              opt.text(data[i].text);
+              opt.attr("value", data[i].id);
+              $('#id_tasklist').append(opt);
+            }
+            $('#id_tasklist').select2("readonly", false);
+            $('#id_tasklist').select2();
+          }
+        });
+      }).trigger('change');
+    });
+  </script>
+  {% endscript %}
+{% endblock %}

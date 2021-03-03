@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from collections import Hashable, MutableMapping
 
 __unset__ = object()
@@ -19,20 +17,20 @@ class BidirectionalMapping(MutableMapping):
         self.__data = data
         self.__inverse = {v: k for k, v in self.__data.items()}
         if len(self.__data) != len(self.__inverse):
-            raise ValueError('duplicate value provided')
+            raise ValueError("duplicate value provided")
 
     def __getitem__(self, key):
         return self.__data[key]
 
     def __setitem__(self, key, value):
         if not isinstance(key, Hashable):
-            raise TypeError('key must be hashable')
+            raise TypeError("key must be hashable")
 
         if not isinstance(value, Hashable):
-            raise TypeError('value must be hashable')
+            raise TypeError("value must be hashable")
 
         if value in self.__inverse:
-            raise ValueError('value already present')
+            raise ValueError("value already present")
 
         previous = self.__data.pop(key, __unset__)
         if previous is not __unset__:

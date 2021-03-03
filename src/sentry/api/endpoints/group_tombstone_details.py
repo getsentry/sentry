@@ -1,14 +1,9 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
 from sentry.api.bases import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 
-from sentry.models import (
-    GroupHash,
-    GroupTombstone,
-)
+from sentry.models import GroupHash, GroupTombstone
 
 
 class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
@@ -31,12 +26,9 @@ class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
         except GroupTombstone.DoesNotExist:
             raise ResourceDoesNotExist
 
-        GroupHash.objects.filter(
-            project_id=project.id,
-            group_tombstone_id=tombstone_id,
-        ).update(
+        GroupHash.objects.filter(project_id=project.id, group_tombstone_id=tombstone_id).update(
             # will allow new events to be captured
-            group_tombstone_id=None,
+            group_tombstone_id=None
         )
 
         tombstone.delete()

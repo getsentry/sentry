@@ -1,6 +1,4 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
-import {withInfo} from '@storybook/addon-info';
 
 import SplitDiff from 'app/components/splitDiff';
 
@@ -108,9 +106,28 @@ const target = `TypeError: Cannot read property 'id' of undefined
   at ReactCompositeComponentWrapper._performComponentUpdate(~/react/lib/ReactCompositeComponent.js:721:0)
   at ReactCompositeComponentWrapper.updateComponent(~/react/lib/ReactCompositeComponent.js:642:0)`;
 
-storiesOf('Other|SplitDiff', module).add(
-  'SplitDiff',
-  withInfo('Diffs two strings, split by newlines if present')(() => (
-    <SplitDiff base={base} target={target} />
-  ))
+export default {
+  title: 'DataVisualization/SplitDiff',
+  component: SplitDiff,
+  argTypes: {
+    type: {
+      control: {
+        type: 'select',
+        options: ['chars', 'words', 'lines'],
+      },
+    },
+  },
+};
+
+export const _SplitDiff = ({...args}) => (
+  <SplitDiff base={base} target={target} {...args} />
 );
+
+_SplitDiff.storyName = 'SplitDiff';
+_SplitDiff.parameters = {
+  docs: {
+    description: {
+      story: 'Diffs two strings, split by newlines if present',
+    },
+  },
+};

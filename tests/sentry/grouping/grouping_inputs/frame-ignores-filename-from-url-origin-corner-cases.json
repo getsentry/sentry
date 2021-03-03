@@ -1,0 +1,24 @@
+{
+  "platform": "javascript",
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "test",
+        "abs_path": "https://foo.com/foo.js",
+        "context_line": "hello world",
+        "filename": "/foo.js"
+      },
+      {
+        "function": "test",
+        "abs_path": "file:///foo.js",
+        "context_line": "hello world",
+        "filename": "/foo.js"
+      },
+      {
+        "abs_path": "https://foo.com/foo.js",
+        "context_line": "hello world",
+        "filename": "/foo.js"
+      }
+    ]
+  }
+}

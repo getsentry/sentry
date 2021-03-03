@@ -1,22 +1,23 @@
 /*global global*/
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 
-describe('AddIntegrationButton', function() {
+describe('AddIntegrationButton', function () {
   const provider = TestStubs.GitHubIntegrationProvider();
 
   const routerContext = TestStubs.routerContext();
 
-  it('Opens the setup dialog on click', function() {
+  it('Opens the setup dialog on click', function () {
     const onAdd = jest.fn();
 
     const focus = jest.fn();
     const open = jest.fn().mockReturnValue({focus});
     global.open = open;
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AddIntegrationButton provider={provider} onAddIntegration={onAdd} />,
       routerContext
     );

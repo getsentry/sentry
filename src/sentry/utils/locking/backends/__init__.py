@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
-
-class LockBackend(object):
+class LockBackend:
     """
     Interface for providing lock behavior that is used by the
     ``sentry.utils.locking.Lock`` class.
@@ -24,5 +21,11 @@ class LockBackend(object):
     def release(self, key, routing_key=None):
         """
         Release a lock. The return value is not used.
+        """
+        raise NotImplementedError
+
+    def locked(self, key, routing_key=None):
+        """
+        Check if a lock has been taken.
         """
         raise NotImplementedError

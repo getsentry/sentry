@@ -1,72 +1,87 @@
 import React from 'react';
-import styled from 'react-emotion';
-import {storiesOf} from '@storybook/react';
-import {withInfo} from '@storybook/addon-info';
+import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
+import space from 'app/styles/space';
 
-storiesOf('Other|IssueSyncListElement', module)
-  .add(
-    'without issue added',
-    withInfo('No issue id or url has been passed')(() => (
-      <StyledIssueSyncList>
-        <IssueSyncListElement integrationType="github" />
-        <IssueSyncListElement integrationType="jira" />
-        <IssueSyncListElement integrationType="vsts" />
-        <IssueSyncListElement integrationType="gitlab" />
-      </StyledIssueSyncList>
-    ))
-  )
-  .add(
-    'with issue added',
-    withInfo('Both an Issue ID and URL have been passed')(() => (
-      <StyledIssueSyncList>
-        <IssueSyncListElement
-          integrationType="github"
-          externalIssueLink="github.com/issues/gh-101"
-          externalIssueId="101"
-          onOpen={() => {}}
-          onClose={() => {}}
-        />
-        <IssueSyncListElement
-          integrationType="jira"
-          externalIssueLink="getsentry.atlassian.net/browse/APP-367"
-          externalIssueId="367"
-          onOpen={() => {}}
-          onClose={() => {}}
-        />
-        <IssueSyncListElement
-          integrationType="vsts"
-          externalIssueLink="visualstudio.microsoft.com/issues/vsts-35"
-          externalIssueId="35"
-          onOpen={() => {}}
-          onClose={() => {}}
-        />
-        <IssueSyncListElement
-          integrationType="gitlab"
-          externalIssueLink="gitlab.com/issues/35"
-          externalIssueId="35"
-          onOpen={() => {}}
-          onClose={() => {}}
-        />
-        <IssueSyncListElement
-          integrationType="bitbucket"
-          externalIssueLink="bitbucket.org/issues/35"
-          externalIssueId="35"
-          onOpen={() => {}}
-          onClose={() => {}}
-        />
-        <IssueSyncListElement
-          integrationType="jira_server"
-          externalIssueLink="jira.atlassian.net/browse/APP-367"
-          externalIssueId="367"
-          onOpen={() => {}}
-          onClose={() => {}}
-        />
-      </StyledIssueSyncList>
-    ))
-  );
+export default {
+  title: 'Features/Issues/IssueSyncListElement',
+  component: IssueSyncListElement,
+};
+
+export const WithoutIssueAdded = () => (
+  <StyledIssueSyncList>
+    <IssueSyncListElement integrationType="github" />
+    <IssueSyncListElement integrationType="jira" />
+    <IssueSyncListElement integrationType="vsts" />
+    <IssueSyncListElement integrationType="gitlab" />
+  </StyledIssueSyncList>
+);
+
+WithoutIssueAdded.storyName = 'without issue added';
+WithoutIssueAdded.parameters = {
+  docs: {
+    description: {
+      story: 'No issue id or url has been passed',
+    },
+  },
+};
+
+export const WithIssueAdded = () => (
+  <StyledIssueSyncList>
+    <IssueSyncListElement
+      integrationType="github"
+      externalIssueLink="github.com/issues/gh-101"
+      externalIssueId="101"
+      onOpen={() => {}}
+      onClose={() => {}}
+    />
+    <IssueSyncListElement
+      integrationType="jira"
+      externalIssueLink="getsentry.atlassian.net/browse/APP-367"
+      externalIssueId="367"
+      onOpen={() => {}}
+      onClose={() => {}}
+    />
+    <IssueSyncListElement
+      integrationType="vsts"
+      externalIssueLink="visualstudio.microsoft.com/issues/vsts-35"
+      externalIssueId="35"
+      onOpen={() => {}}
+      onClose={() => {}}
+    />
+    <IssueSyncListElement
+      integrationType="gitlab"
+      externalIssueLink="gitlab.com/issues/35"
+      externalIssueId="35"
+      onOpen={() => {}}
+      onClose={() => {}}
+    />
+    <IssueSyncListElement
+      integrationType="bitbucket"
+      externalIssueLink="bitbucket.org/issues/35"
+      externalIssueId="35"
+      onOpen={() => {}}
+      onClose={() => {}}
+    />
+    <IssueSyncListElement
+      integrationType="jira_server"
+      externalIssueLink="jira.atlassian.net/browse/APP-367"
+      externalIssueId="367"
+      onOpen={() => {}}
+      onClose={() => {}}
+    />
+  </StyledIssueSyncList>
+);
+
+WithIssueAdded.storyName = 'with issue added';
+WithIssueAdded.parameters = {
+  docs: {
+    description: {
+      story: 'Both an Issue ID and URL have been passed',
+    },
+  },
+};
 
 const StyledIssueSyncList = styled('div')`
   max-width: 300px;

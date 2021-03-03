@@ -1,0 +1,58 @@
+import React from 'react';
+import styled from '@emotion/styled';
+
+import TimeSince from 'app/components/timeSince';
+import {IconClock} from 'app/icons';
+import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+
+/**
+ * Renders the first & last seen times for a group or event with
+ * a clock icon.
+ */
+
+type Props = {
+  lastSeen: string;
+  firstSeen: string;
+};
+
+const Times = ({lastSeen, firstSeen}: Props) => (
+  <Container>
+    <FlexWrapper>
+      {lastSeen && (
+        <React.Fragment>
+          <StyledIconClock size="11px" />
+          <TimeSince date={lastSeen} suffix={t('ago')} />
+        </React.Fragment>
+      )}
+      {firstSeen && lastSeen && (
+        <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>
+      )}
+      {firstSeen && (
+        <TimeSince date={firstSeen} suffix={t('old')} className="hidden-xs hidden-sm" />
+      )}
+    </FlexWrapper>
+  </Container>
+);
+
+const Container = styled('div')`
+  flex-shrink: 1;
+  min-width: 0; /* flex-hack for overflow-ellipsised children */
+`;
+
+const FlexWrapper = styled('div')`
+  ${overflowEllipsis}
+
+  /* The following aligns the icon with the text, fixes bug in Firefox */
+  display: flex;
+  align-items: center;
+`;
+
+const StyledIconClock = styled(IconClock)`
+  /* this is solely for optics, since TimeSince always begins
+  with a number, and numbers do not have descenders */
+  margin-right: ${space(0.5)};
+`;
+
+export default Times;

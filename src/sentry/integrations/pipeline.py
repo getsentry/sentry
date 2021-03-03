@@ -1,6 +1,4 @@
-from __future__ import absolute_import, print_function
-
-__all__ = ['IntegrationPipeline']
+__all__ = ["IntegrationPipeline"]
 
 from django.db import IntegrityError
 from django.utils import timezone
@@ -8,7 +6,7 @@ from django.utils.translation import ugettext as _
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.pipeline import Pipeline
 from sentry.web.helpers import render_to_response
@@ -17,14 +15,12 @@ from . import default_manager
 
 def ensure_integration(key, data):
     defaults = {
-        'metadata': data.get('metadata', {}),
-        'name': data.get('name', data['external_id']),
-        'status': ObjectStatus.VISIBLE,
+        "metadata": data.get("metadata", {}),
+        "name": data.get("name", data["external_id"]),
+        "status": ObjectStatus.VISIBLE,
     }
     integration, created = Integration.objects.get_or_create(
-        provider=key,
-        external_id=data['external_id'],
-        defaults=defaults
+        provider=key, external_id=data["external_id"], defaults=defaults
     )
     if not created:
         integration.update(**defaults)
@@ -33,7 +29,7 @@ def ensure_integration(key, data):
 
 
 class IntegrationPipeline(Pipeline):
-    pipeline_name = 'integration_pipeline'
+    pipeline_name = "integration_pipeline"
     provider_manager = default_manager
 
     def finish_pipeline(self):
@@ -41,126 +37,127 @@ class IntegrationPipeline(Pipeline):
             data = self.provider.build_integration(self.state.data)
         except IntegrationError as e:
             self.get_logger().info(
-                'build-integration.failure',
+                "build-integration.failure",
                 extra={
-                    'error_message': e.message,
-                    'provider_key': self.provider.key,
-                }
+                    "error_message": str(e),
+                    "error_status": getattr(e, "code", None),
+                    "provider_key": self.provider.key,
+                },
             )
-            return self.error(e.message)
+            return self.error(str(e))
 
         response = self._finish_pipeline(data)
-        self.provider.post_install(self.integration, self.organization)
+
+        extra = data.get("post_install_data")
+
+        self.provider.create_audit_log_entry(
+            self.integration, self.organization, self.request, "install", extra=extra
+        )
+        self.provider.post_install(self.integration, self.organization, extra=extra)
         self.clear_session()
         return response
 
     def _finish_pipeline(self, data):
-        if 'reinstall_id' in data:
+        if "reinstall_id" in data:
             self.integration = Integration.objects.get(
-                provider=self.provider.integration_key,
-                id=data['reinstall_id'],
+                provider=self.provider.integration_key, id=data["reinstall_id"]
             )
-            self.integration.update(external_id=data['external_id'], status=ObjectStatus.VISIBLE)
+            self.integration.update(external_id=data["external_id"], status=ObjectStatus.VISIBLE)
             self.integration.get_installation(self.organization.id).reinstall()
-
-        elif 'expect_exists' in data:
+        elif "expect_exists" in data:
             self.integration = Integration.objects.get(
-                provider=self.provider.integration_key,
-                external_id=data['external_id'],
+                provider=self.provider.integration_key, external_id=data["external_id"]
             )
         else:
-            self.integration = ensure_integration(
-                self.provider.integration_key,
-                data,
-            )
+            self.integration = ensure_integration(self.provider.integration_key, data)
 
         # Does this integration provide a user identity for the user setting up
         # the integration?
-        identity = data.get('user_identity')
+        identity = data.get("user_identity")
 
         if identity:
             # Some identity providers may not be directly associated to the
             # external integration. Integrations may specify the external_id to
             # be used for the idp.
-            idp_external_id = data.get('idp_external_id', data['external_id'])
-            idp_config = data.get('idp_config', {})
+            idp_external_id = data.get("idp_external_id", data["external_id"])
+            idp_config = data.get("idp_config", {})
 
             # Create identity provider for this integration if necessary
             idp, created = IdentityProvider.objects.get_or_create(
-                external_id=idp_external_id,
-                type=identity['type'],
-                defaults={'config': idp_config},
+                external_id=idp_external_id, type=identity["type"], defaults={"config": idp_config}
             )
             if not created:
                 idp.update(config=idp_config)
 
             identity_data = {
-                'status': IdentityStatus.VALID,
-                'scopes': identity['scopes'],
-                'data': identity['data'],
-                'date_verified': timezone.now(),
+                "status": IdentityStatus.VALID,
+                "scopes": identity["scopes"],
+                "data": identity["data"],
+                "date_verified": timezone.now(),
             }
 
             try:
                 identity_model, created = Identity.objects.get_or_create(
                     idp=idp,
                     user=self.request.user,
-                    external_id=identity['external_id'],
+                    external_id=identity["external_id"],
                     defaults=identity_data,
                 )
-
                 if not created:
                     identity_model.update(**identity_data)
             except IntegrityError:
-                # If the external_id is already used for a different user or
-                # the user already has a different external_id remove those
-                # identities and recreate it, except in the case of GitHub
-                # where we need to be more careful because users may be using
-                # those identities to log in.
-                if idp.type in ('github', 'vsts'):
-                    try:
-                        other_identity = Identity.objects.get(
-                            idp=idp,
-                            external_id=identity['external_id'],
+                # If the external_id is already used for a different user then throw an error
+                # otherwise we have the same user with a new external id
+                # and we update the identity with the new external_id and identity data
+                try:
+                    matched_identity = Identity.objects.get(
+                        idp=idp, external_id=identity["external_id"]
+                    )
+                except Identity.DoesNotExist:
+                    # The user is linked to a different external_id. It's ok to relink
+                    # here because they'll still be able to log in with the new external_id.
+                    identity_model = Identity.update_external_id_and_defaults(
+                        idp, identity["external_id"], self.request.user, identity_data
+                    )
+                else:
+                    self.get_logger().info(
+                        "finish_pipeline.identity_linked_different_user",
+                        {
+                            "idp_id": idp.id,
+                            "external_id": identity["external_id"],
+                            "object_id": matched_identity.id,
+                            "user_id": self.request.user.id,
+                            "type": identity["type"],
+                        },
+                    )
+                    # if we don't need a default identity, we don't have to throw an error
+                    if self.provider.needs_default_identity:
+                        # The external_id is linked to a different user.
+                        proper_name = idp.get_provider().name
+                        return self._dialog_response(
+                            {
+                                "error": _(
+                                    "The provided %(proper_name)s account is linked to a different Sentry user. "
+                                    "To continue linking the current Sentry user, please use a different %(proper_name)s account."
+                                )
+                                % ({"proper_name": proper_name})
+                            },
+                            False,
                         )
-                    except Identity.DoesNotExist:
-                        # The user is linked to a different external_id. It's ok to relink
-                        # here because they'll still be able to log in with the new external_id.
-                        pass
-                    else:
-                        # The external_id is linked to a different user. If that user doesn't
-                        # have a password, we don't delete the link as it may lock them out.
-                        if not other_identity.user.has_usable_password():
-                            proper_name = 'GitHub' if idp.type == 'github' else 'Azure DevOps'
-                            return self._dialog_response({
-                                'error': _(
-                                    'The provided %s account is linked to a different user. '
-                                    'Please try again with a different %s account.'
-                                ) % (proper_name, proper_name)},
-                                False,
-                            )
-                identity_model = Identity.reattach(
-                    idp, identity['external_id'], self.request.user, identity_data)
 
         default_auth_id = None
         if self.provider.needs_default_identity:
             if not (identity and identity_model):
-                raise NotImplementedError('Integration requires an identity')
+                raise NotImplementedError("Integration requires an identity")
             default_auth_id = identity_model.id
-
         org_integration = self.integration.add_organization(
-            self.organization, self.request.user, default_auth_id=default_auth_id)
+            self.organization, self.request.user, default_auth_id=default_auth_id
+        )
+        return self._dialog_success(org_integration)
 
+    def _dialog_success(self, org_integration):
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
     def _dialog_response(self, data, success):
-        context = {
-            'payload': {
-                'success': success,
-                'data': data
-            }
-        }
-        return render_to_response(
-            'sentry/integrations/dialog-complete.html',
-            context,
-            self.request)
+        context = {"payload": {"success": success, "data": data}}
+        return render_to_response("sentry/integrations/dialog-complete.html", context, self.request)

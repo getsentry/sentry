@@ -1,6 +1,5 @@
-/*eslint-env node*/
 module.exports = {
-  extends: ['sentry-app'],
+  extends: ['sentry-app/strict'],
   globals: {
     require: false,
     expect: false,
@@ -10,5 +9,13 @@ module.exports = {
     tick: true,
     jest: true,
   },
+
   rules: {},
+
+  overrides: [
+    {
+      files: ['*.ts', '*.tsx'],
+      rules: {},
+    },
+  ],
 };

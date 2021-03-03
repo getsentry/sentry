@@ -1,0 +1,538 @@
+{
+  "get": {
+    "tags": ["Events"],
+    "description": "Retrieves the details of the latest event for an issue.",
+    "operationId": "Retrieve the Latest Event for an Issue",
+    "parameters": [
+      {
+        "name": "issue_id",
+        "in": "path",
+        "description": "The ID of the issue.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/event.json#/EventDetailed"
+            },
+            "example": {
+              "eventID": "9999aaaaca8b46d797c23c6077c6ff01",
+              "dist": null,
+              "userReport": null,
+              "previousEventID": null,
+              "message": "",
+              "title": "This is an example Python exception",
+              "id": "9999aaafcc8b46d797c23c6077c6ff01",
+              "size": 107762,
+              "errors": [
+                {
+                  "data": {
+                    "column": 8,
+                    "source": "https://s1.sentry-cdn.com/_static/bloopbloop/sentry/dist/app.js.map",
+                    "row": 15
+                  },
+                  "message": "Invalid location in sourcemap",
+                  "type": "js_invalid_sourcemap_location"
+                }
+              ],
+              "platform": "javascript",
+              "nextEventID": "99f9e199e9a74a14bfef6196ad741619",
+              "type": "error",
+              "metadata": {
+                "type": "ForbiddenError",
+                "value": "GET /organizations/hellboy-meowmeow/users/ 403"
+              },
+              "tags": [
+                {
+                  "value": "Chrome 83.0.4103",
+                  "key": "browser",
+                  "_meta": null
+                },
+                {
+                  "value": "Chrome",
+                  "key": "browser.name",
+                  "_meta": null
+                },
+                {
+                  "value": "prod",
+                  "key": "environment",
+                  "_meta": null
+                },
+                {
+                  "value": "yes",
+                  "key": "handled",
+                  "_meta": null
+                },
+                {
+                  "value": "error",
+                  "key": "level",
+                  "_meta": null
+                },
+                {
+                  "value": "generic",
+                  "key": "mechanism",
+                  "_meta": null
+                }
+              ],
+              "dateCreated": "2020-06-17T22:26:56.098086Z",
+              "dateReceived": "2020-06-17T22:26:56.428721Z",
+              "user": {
+                "username": null,
+                "name": "Hell Boy",
+                "ip_address": "192.168.1.1",
+                "email": "hell@boy.cat",
+                "data": {
+                  "isStaff": false
+                },
+                "id": "550747"
+              },
+              "entries": [
+                {
+                  "type": "exception",
+                  "data": {
+                    "values": [
+                      {
+                        "stacktrace": {
+                          "frames": [
+                            {
+                              "function": "ignoreOnError",
+                              "errors": null,
+                              "colNo": 23,
+                              "vars": null,
+                              "package": null,
+                              "absPath": "webpack:////usr/src/getsentry/src/sentry/node_modules/@sentry/browser/esm/helpers.js",
+                              "inApp": false,
+                              "lineNo": 71,
+                              "module": "usr/src/getsentry/src/sentry/node_modules/@sentry/browser/esm/helpers",
+                              "filename": "/usr/src/getsentry/src/sentry/node_modules/@sentry/browser/esm/helpers.js",
+                              "platform": null,
+                              "instructionAddr": null,
+                              "context": [
+                                [66, "            }"],
+                                [
+                                  67,
+                                  "            // Attempt to invoke user-land function"
+                                ],
+                                [
+                                  68,
+                                  "            // NOTE: If you are a Sentry user, and you are seeing this stack frame, it"
+                                ],
+                                [
+                                  69,
+                                  "            //       means the sentry.javascript SDK caught an error invoking your application code. This"
+                                ],
+                                [
+                                  70,
+                                  "            //       is expected behavior and NOT indicative of a bug with sentry.javascript."
+                                ],
+                                [
+                                  71,
+                                  "            return fn.apply(this, wrappedArguments);"
+                                ],
+                                [
+                                  72,
+                                  "            // tslint:enable:no-unsafe-any"
+                                ],
+                                [73, "        }"],
+                                [74, "        catch (ex) {"],
+                                [75, "            ignoreNextOnError();"],
+                                [76, "            withScope(function (scope) {"]
+                              ],
+                              "symbolAddr": null,
+                              "trust": null,
+                              "symbol": null
+                            },
+                            {
+                              "function": "apply",
+                              "errors": null,
+                              "colNo": 24,
+                              "vars": null,
+                              "package": null,
+                              "absPath": "webpack:////usr/src/getsentry/src/sentry/node_modules/reflux-core/lib/PublisherMethods.js",
+                              "inApp": false,
+                              "lineNo": 74,
+                              "module": "usr/src/getsentry/src/sentry/node_modules/reflux-core/lib/PublisherMethods",
+                              "filename": "/usr/src/getsentry/src/sentry/node_modules/reflux-core/lib/PublisherMethods.js",
+                              "platform": null,
+                              "instructionAddr": null,
+                              "context": [
+                                [69, "     */"],
+                                [
+                                  70,
+                                  "    triggerAsync: function triggerAsync() {"
+                                ],
+                                [71, "        var args = arguments,"],
+                                [72, "            me = this;"],
+                                [73, "        _.nextTick(function () {"],
+                                [74, "            me.trigger.apply(me, args);"],
+                                [75, "        });"],
+                                [76, "    },"],
+                                [77, ""],
+                                [78, "    /**"],
+                                [
+                                  79,
+                                  "     * Wraps the trigger mechanism with a deferral function."
+                                ]
+                              ],
+                              "symbolAddr": null,
+                              "trust": null,
+                              "symbol": null
+                            }
+                          ],
+                          "framesOmitted": null,
+                          "registers": null,
+                          "hasSystemFrames": true
+                        },
+                        "module": null,
+                        "rawStacktrace": {
+                          "frames": [
+                            {
+                              "function": "a",
+                              "errors": null,
+                              "colNo": 88800,
+                              "vars": null,
+                              "package": null,
+                              "absPath": "https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js",
+                              "inApp": false,
+                              "lineNo": 81,
+                              "module": null,
+                              "filename": "/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js",
+                              "platform": null,
+                              "instructionAddr": null,
+                              "context": [
+                                [76, "/*!"],
+                                [77, "  Copyright (c) 2018 Jed Watson."],
+                                [
+                                  78,
+                                  "  Licensed under the MIT License (MIT), see"
+                                ],
+                                [
+                                  79,
+                                  "  http://jedwatson.github.io/react-select"
+                                ],
+                                [80, "*/"],
+                                [
+                                  81,
+                                  "{snip} e,t)}));return e.handleEvent?e.handleEvent.apply(this,s):e.apply(this,s)}catch(e){throw c(),Object(o.m)((function(n){n.addEventProcessor((fu {snip}"
+                                ],
+                                [82, "/*!"],
+                                [83, " * JavaScript Cookie v2.2.1"],
+                                [
+                                  84,
+                                  " * https://github.com/js-cookie/js-cookie"
+                                ],
+                                [85, " *"],
+                                [
+                                  86,
+                                  " * Copyright 2006, 2015 Klaus Hartl & Fagner Brack"
+                                ]
+                              ],
+                              "symbolAddr": null,
+                              "trust": null,
+                              "symbol": null
+                            },
+                            {
+                              "function": null,
+                              "errors": null,
+                              "colNo": 149484,
+                              "vars": null,
+                              "package": null,
+                              "absPath": "https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js",
+                              "inApp": false,
+                              "lineNo": 119,
+                              "module": null,
+                              "filename": "/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js",
+                              "platform": null,
+                              "instructionAddr": null,
+                              "context": [
+                                [114, "/* @license"],
+                                [115, "Papa Parse"],
+                                [116, "v5.2.0"],
+                                [117, "https://github.com/mholt/PapaParse"],
+                                [118, "License: MIT"],
+                                [
+                                  119,
+                                  "{snip} (){var e=arguments,t=this;r.nextTick((function(){t.trigger.apply(t,e)}))},deferWith:function(e){var t=this.trigger,n=this,r=function(){t.app {snip}"
+                                ],
+                                [120, "/**!"],
+                                [
+                                  121,
+                                  " * @fileOverview Kickass library to create and place poppers near their reference elements."
+                                ],
+                                [122, " * @version 1.16.1"],
+                                [123, " * @license"],
+                                [
+                                  124,
+                                  " * Copyright (c) 2016 Federico Zivolo and contributors"
+                                ]
+                              ],
+                              "symbolAddr": null,
+                              "trust": null,
+                              "symbol": null
+                            }
+                          ],
+                          "framesOmitted": null,
+                          "registers": null,
+                          "hasSystemFrames": true
+                        },
+                        "mechanism": {
+                          "type": "generic",
+                          "handled": true
+                        },
+                        "threadId": null,
+                        "value": "GET /organizations/hellboy-meowmeow/users/ 403",
+                        "type": "ForbiddenError"
+                      }
+                    ],
+                    "excOmitted": null,
+                    "hasSystemFrames": true
+                  }
+                },
+                {
+                  "type": "breadcrumbs",
+                  "data": {
+                    "values": [
+                      {
+                        "category": "tracing",
+                        "level": "debug",
+                        "event_id": null,
+                        "timestamp": "2020-06-17T22:26:55.266586Z",
+                        "data": null,
+                        "message": "[Tracing] pushActivity: idleTransactionStarted#1",
+                        "type": "debug"
+                      },
+                      {
+                        "category": "xhr",
+                        "level": "info",
+                        "event_id": null,
+                        "timestamp": "2020-06-17T22:26:55.619446Z",
+                        "data": {
+                          "url": "/api/0/internal/health/",
+                          "status_code": 200,
+                          "method": "GET"
+                        },
+                        "message": null,
+                        "type": "http"
+                      },
+                      {
+                        "category": "sentry.transaction",
+                        "level": "info",
+                        "event_id": null,
+                        "timestamp": "2020-06-17T22:26:55.945016Z",
+                        "data": null,
+                        "message": "7787a027f3fb46c985aaa2287b3f4d09",
+                        "type": "default"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "request",
+                  "data": {
+                    "fragment": null,
+                    "cookies": [],
+                    "inferredContentType": null,
+                    "env": null,
+                    "headers": [
+                      [
+                        "User-Agent",
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36"
+                      ]
+                    ],
+                    "url": "https://sentry.io/organizations/hellboy-meowmeow/issues/",
+                    "query": [["project", "5236886"]],
+                    "data": null,
+                    "method": null
+                  }
+                }
+              ],
+              "packages": {},
+              "sdk": {
+                "version": "5.17.0",
+                "name": "sentry.javascript.browser"
+              },
+              "_meta": {
+                "user": null,
+                "context": null,
+                "entries": {},
+                "contexts": null,
+                "message": null,
+                "packages": null,
+                "tags": {},
+                "sdk": null
+              },
+              "contexts": {
+                "ForbiddenError": {
+                  "status": 403,
+                  "statusText": "Forbidden",
+                  "responseJSON": {
+                    "detail": "You do not have permission to perform this action."
+                  },
+                  "type": "default"
+                },
+                "browser": {
+                  "version": "83.0.4103",
+                  "type": "browser",
+                  "name": "Chrome"
+                },
+                "os": {
+                  "version": "10",
+                  "type": "os",
+                  "name": "Windows"
+                },
+                "trace": {
+                  "span_id": "83db1ad17e67dfe7",
+                  "type": "trace",
+                  "trace_id": "da6caabcd90e45fdb81f6655824a5f88",
+                  "op": "navigation"
+                },
+                "organization": {
+                  "type": "default",
+                  "id": "323938",
+                  "slug": "hellboy-meowmeow"
+                }
+              },
+              "fingerprints": ["fbe908cc63d63ea9763fd84cb6bad177"],
+              "context": {
+                "resp": {
+                  "status": 403,
+                  "responseJSON": {
+                    "detail": "You do not have permission to perform this action."
+                  },
+                  "name": "ForbiddenError",
+                  "statusText": "Forbidden",
+                  "message": "GET /organizations/hellboy-meowmeow/users/ 403",
+                  "stack": "Error\n    at https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/app.js:1:480441\n    at u (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:165:51006)\n    at Generator._invoke (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:165:50794)\n    at Generator.A.forEach.e.<computed> [as next] (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:165:51429)\n    at n (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:16:68684)\n    at s (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:16:68895)\n    at https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:16:68954\n    at new Promise (<anonymous>)\n    at https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:16:68835\n    at v (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/app.js:1:480924)\n    at m (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/app.js:1:480152)\n    at t.fetchMemberList (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/app.js:1:902983)\n    at t.componentDidMount (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/app.js:1:900527)\n    at t.componentDidMount (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:189:15597)\n    at Pc (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:181:101023)\n    at t.unstable_runWithPriority (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:189:3462)\n    at Ko (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:181:45529)\n    at Rc (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:181:97371)\n    at Oc (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:181:87690)\n    at https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:181:45820\n    at t.unstable_runWithPriority (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:189:3462)\n    at Ko (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:181:45529)\n    at Zo (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:181:45765)\n    at Jo (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:181:45700)\n    at gc (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:181:84256)\n    at Object.enqueueSetState (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:181:50481)\n    at t.M.setState (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:173:1439)\n    at t.onUpdate (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/app.js:1:543076)\n    at a.n (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:119:149090)\n    at a.emit (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:189:6550)\n    at p.trigger (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:119:149379)\n    at p.onInitializeUrlState (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/app.js:1:541711)\n    at a.n (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:119:149090)\n    at a.emit (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:189:6550)\n    at Function.trigger (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:119:149379)\n    at https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:119:149484\n    at a (https://s1.sentry-cdn.com/_static/dde778f9f93a48e2b6e58ecb0c5eb8f2/sentry/dist/vendor.js:81:88800)"
+                }
+              },
+              "release": {
+                "dateReleased": "2020-06-17T19:21:02.186004Z",
+                "newGroups": 4,
+                "commitCount": 11,
+                "url": "https://freight.getsentry.net/deploys/getsentry/production/8868/",
+                "data": {},
+                "lastDeploy": {
+                  "name": "b65bc521378269d3eaefdc964f8ef56621414943 to prod",
+                  "url": null,
+                  "environment": "prod",
+                  "dateStarted": null,
+                  "dateFinished": "2020-06-17T19:20:55.641748Z",
+                  "id": "6883490"
+                },
+                "deployCount": 1,
+                "dateCreated": "2020-06-17T18:45:31.042157Z",
+                "lastEvent": "2020-07-08T21:21:21Z",
+                "version": "b65bc521378269d3eaefdc964f8ef56621414943",
+                "firstEvent": "2020-06-17T22:25:14Z",
+                "lastCommit": {
+                  "repository": {
+                    "status": "active",
+                    "integrationId": "2933",
+                    "externalSlug": "getsentry/getsentry",
+                    "name": "getsentry/getsentry",
+                    "provider": {
+                      "id": "integrations:github",
+                      "name": "GitHub"
+                    },
+                    "url": "https://github.com/getsentry/getsentry",
+                    "id": "2",
+                    "dateCreated": "2016-10-10T21:36:45.373994Z"
+                  },
+                  "releases": [
+                    {
+                      "dateReleased": "2020-06-23T13:26:18.427090Z",
+                      "url": "https://freight.getsentry.net/deploys/getsentry/staging/2077/",
+                      "dateCreated": "2020-06-23T13:22:50.420265Z",
+                      "version": "f3783e5fe710758724f14267439fd46cc2bf5918",
+                      "shortVersion": "f3783e5fe710758724f14267439fd46cc2bf5918",
+                      "ref": "perf/source-maps-test"
+                    },
+                    {
+                      "dateReleased": "2020-06-17T19:21:02.186004Z",
+                      "url": "https://freight.getsentry.net/deploys/getsentry/production/8868/",
+                      "dateCreated": "2020-06-17T18:45:31.042157Z",
+                      "version": "b65bc521378269d3eaefdc964f8ef56621414943",
+                      "shortVersion": "b65bc521378269d3eaefdc964f8ef56621414943",
+                      "ref": "master"
+                    }
+                  ],
+                  "dateCreated": "2020-06-17T18:43:37Z",
+                  "message": "feat(billing): Get a lot of money",
+                  "id": "b65bc521378269d3eaefdc964f8ef56621414943"
+                },
+                "shortVersion": "b65bc521378269d3eaefdc964f8ef56621414943",
+                "authors": [
+                  {
+                    "username": "a37a1b4520ce46cea147ae2885a4e7e7",
+                    "lastLogin": "2020-09-14T22:34:55.550640Z",
+                    "isSuperuser": false,
+                    "isManaged": false,
+                    "experiments": {},
+                    "lastActive": "2020-09-15T22:13:20.503880Z",
+                    "isStaff": false,
+                    "id": "655784",
+                    "isActive": true,
+                    "has2fa": false,
+                    "name": "hell.boy@sentry.io",
+                    "avatarUrl": "https://secure.gravatar.com/avatar/eaa22e25b3a984659420831a77e4874e?s=32&d=mm",
+                    "dateJoined": "2020-04-20T16:21:25.365772Z",
+                    "emails": [
+                      {
+                        "is_verified": false,
+                        "id": "784574",
+                        "email": "hellboy@gmail.com"
+                      },
+                      {
+                        "is_verified": true,
+                        "id": "749185",
+                        "email": "hell.boy@sentry.io"
+                      }
+                    ],
+                    "avatar": {
+                      "avatarUuid": null,
+                      "avatarType": "letter_avatar"
+                    },
+                    "hasPasswordAuth": false,
+                    "email": "hell.boy@sentry.io"
+                  }
+                ],
+                "owner": null,
+                "ref": "master",
+                "projects": [
+                  {
+                    "name": "Sentry CSP",
+                    "slug": "sentry-csp"
+                  },
+                  {
+                    "name": "Backend",
+                    "slug": "sentry"
+                  },
+                  {
+                    "name": "Frontend",
+                    "slug": "javascript"
+                  }
+                ]
+              },
+              "groupID": "1341191803"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["event:read"]
+      }
+    ]
+  }
+}

@@ -5,7 +5,7 @@ Sentry marked an issue as resolved in an upcoming release
 
 ## Issue Details
 
-ornare elit pulvinar nisl integer cum ad massa
+goose smiling gobbler sterling feline
 
 http://testserver/organizations/organization/issues/1/?referrer=ResolvedInReleaseActivityEmail
 

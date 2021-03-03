@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
 from sentry.utils.locking.lock import Lock
 
 
-class LockManager(object):
+class LockManager:
     def __init__(self, backend):
         self.backend = backend
 

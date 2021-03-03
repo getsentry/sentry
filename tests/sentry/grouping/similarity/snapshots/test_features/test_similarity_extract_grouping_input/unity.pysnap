@@ -1,0 +1,61 @@
+---
+created: '2020-11-08T21:03:24.490578Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-ident: [["filename","samplescript.cs"],["function","SampleScript.ThrowNull ()"]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","button.cs"],["function","UnityEngine.UI.Button.OnPointerClick (UnityEngine.EventSystems.PointerEventData eventData)"]],[["filename","button.cs"],["function","UnityEngine.UI.Button.Press ()"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","button.cs"],["function","UnityEngine.UI.Button.Press ()"]],[["filename","unityevent_0.cs"],["function","UnityEngine.Events.UnityEvent.Invoke ()"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","eventsystem.cs"],["function","UnityEngine.EventSystems.EventSystem:Update()"]],[["filename","executeevents.cs"],["function","UnityEngine.EventSystems.ExecuteEvents.Execute[T] (UnityEngine.GameObject target, UnityEngine.EventSystems.BaseEventData eventData, UnityEngine.EventSystems.ExecuteEvents+EventFunction`1[T1] functor)"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","executeevents.cs"],["function","UnityEngine.EventSystems.ExecuteEvents.Execute (UnityEngine.EventSystems.IPointerClickHandler handler, UnityEngine.EventSystems.BaseEventData eventData)"]],[["filename","button.cs"],["function","UnityEngine.UI.Button.OnPointerClick (UnityEngine.EventSystems.PointerEventData eventData)"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","executeevents.cs"],["function","UnityEngine.EventSystems.ExecuteEvents.Execute[T] (UnityEngine.GameObject target, UnityEngine.EventSystems.BaseEventData eventData, UnityEngine.EventSystems.ExecuteEvents+EventFunction`1[T1] functor)"]],[["filename","executeevents.cs"],["function","UnityEngine.EventSystems.ExecuteEvents.Execute (UnityEngine.EventSystems.IPointerClickHandler handler, UnityEngine.EventSystems.BaseEventData eventData)"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","unityevent.cs"],["function","UnityEngine.Events.InvokableCall.Invoke ()"]],[["filename","samplescript.cs"],["function","SampleScript.ThrowNull ()"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","unityevent_0.cs"],["function","UnityEngine.Events.UnityEvent.Invoke ()"]],[["filename","unityevent.cs"],["function","UnityEngine.Events.InvokableCall.Invoke ()"]]]
+similarity:2020-07-23:type:ident-shingle: "NullReferenceException"
+similarity:2020-07-23:value:character-5-shingle: " an i"
+similarity:2020-07-23:value:character-5-shingle: " an o"
+similarity:2020-07-23:value:character-5-shingle: " inst"
+similarity:2020-07-23:value:character-5-shingle: " not "
+similarity:2020-07-23:value:character-5-shingle: " obje"
+similarity:2020-07-23:value:character-5-shingle: " of a"
+similarity:2020-07-23:value:character-5-shingle: " refe"
+similarity:2020-07-23:value:character-5-shingle: " set "
+similarity:2020-07-23:value:character-5-shingle: " to a"
+similarity:2020-07-23:value:character-5-shingle: "Objec"
+similarity:2020-07-23:value:character-5-shingle: "an in"
+similarity:2020-07-23:value:character-5-shingle: "an ob"
+similarity:2020-07-23:value:character-5-shingle: "ance "
+similarity:2020-07-23:value:character-5-shingle: "bject"
+similarity:2020-07-23:value:character-5-shingle: "ce no"
+similarity:2020-07-23:value:character-5-shingle: "ce of"
+similarity:2020-07-23:value:character-5-shingle: "ct re"
+similarity:2020-07-23:value:character-5-shingle: "e not"
+similarity:2020-07-23:value:character-5-shingle: "e of "
+similarity:2020-07-23:value:character-5-shingle: "ect r"
+similarity:2020-07-23:value:character-5-shingle: "efere"
+similarity:2020-07-23:value:character-5-shingle: "ence "
+similarity:2020-07-23:value:character-5-shingle: "erenc"
+similarity:2020-07-23:value:character-5-shingle: "et to"
+similarity:2020-07-23:value:character-5-shingle: "f an "
+similarity:2020-07-23:value:character-5-shingle: "feren"
+similarity:2020-07-23:value:character-5-shingle: "insta"
+similarity:2020-07-23:value:character-5-shingle: "ject "
+similarity:2020-07-23:value:character-5-shingle: "n ins"
+similarity:2020-07-23:value:character-5-shingle: "n obj"
+similarity:2020-07-23:value:character-5-shingle: "nce n"
+similarity:2020-07-23:value:character-5-shingle: "nce o"
+similarity:2020-07-23:value:character-5-shingle: "not s"
+similarity:2020-07-23:value:character-5-shingle: "nstan"
+similarity:2020-07-23:value:character-5-shingle: "o an "
+similarity:2020-07-23:value:character-5-shingle: "objec"
+similarity:2020-07-23:value:character-5-shingle: "of an"
+similarity:2020-07-23:value:character-5-shingle: "ot se"
+similarity:2020-07-23:value:character-5-shingle: "refer"
+similarity:2020-07-23:value:character-5-shingle: "rence"
+similarity:2020-07-23:value:character-5-shingle: "set t"
+similarity:2020-07-23:value:character-5-shingle: "stanc"
+similarity:2020-07-23:value:character-5-shingle: "t ref"
+similarity:2020-07-23:value:character-5-shingle: "t set"
+similarity:2020-07-23:value:character-5-shingle: "t to "
+similarity:2020-07-23:value:character-5-shingle: "tance"
+similarity:2020-07-23:value:character-5-shingle: "to an"

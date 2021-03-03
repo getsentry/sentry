@@ -1,7 +1,5 @@
-from __future__ import absolute_import, division
-
 import itertools
-import mock
+from sentry.utils.compat import mock
 import pytz
 
 from datetime import datetime, timedelta
@@ -9,7 +7,6 @@ from datetime import datetime, timedelta
 from unittest import TestCase
 from sentry.tsdb.base import BaseTSDB, ONE_MINUTE, ONE_HOUR, ONE_DAY
 from sentry.utils.dates import to_timestamp
-from six.moves import xrange
 
 
 class BaseTSDBTest(TestCase):
@@ -38,9 +35,7 @@ class BaseTSDBTest(TestCase):
         assert result == 1368890100
 
     def test_rollup(self):
-        pre_results = {
-            1: [(1368889980, 5), (1368890040, 10), (1368893640, 7)],
-        }
+        pre_results = {1: [(1368889980, 5), (1368890040, 10), (1368893640, 7)]}
         post_results = self.tsdb.rollup(pre_results, 3600)
         assert len(post_results) == 1
         assert post_results[1] == [[1368889200, 15], [1368892800, 7]]
@@ -50,31 +45,35 @@ class BaseTSDBTest(TestCase):
         result = self.tsdb.calculate_expiry(10, 30, timestamp)
         assert result == 1368890330
 
-    @mock.patch('django.utils.timezone.now')
+    @mock.patch("django.utils.timezone.now")
     def test_get_optimal_rollup_series_aligned_intervals(self, now):
         now.return_value = datetime(2016, 8, 1, tzinfo=pytz.utc)
 
         start = now() - timedelta(seconds=30)
         assert self.tsdb.get_optimal_rollup_series(start) == (
-            10, [to_timestamp(start + timedelta(seconds=10) * i) for i in xrange(4)],
+            10,
+            [to_timestamp(start + timedelta(seconds=10) * i) for i in range(4)],
         )
 
         start = now() - timedelta(minutes=30)
         assert self.tsdb.get_optimal_rollup_series(start) == (
-            ONE_MINUTE, [to_timestamp(start + timedelta(minutes=1) * i) for i in xrange(31)],
+            ONE_MINUTE,
+            [to_timestamp(start + timedelta(minutes=1) * i) for i in range(31)],
         )
 
         start = now() - timedelta(hours=5)
         assert self.tsdb.get_optimal_rollup_series(start) == (
-            ONE_HOUR, [to_timestamp(start + timedelta(hours=1) * i) for i in xrange(6)],
+            ONE_HOUR,
+            [to_timestamp(start + timedelta(hours=1) * i) for i in range(6)],
         )
 
         start = now() - timedelta(days=7)
         assert self.tsdb.get_optimal_rollup_series(start) == (
-            ONE_DAY, [to_timestamp(start + timedelta(hours=24) * i) for i in xrange(8)],
+            ONE_DAY,
+            [to_timestamp(start + timedelta(hours=24) * i) for i in range(8)],
         )
 
-    @mock.patch('django.utils.timezone.now')
+    @mock.patch("django.utils.timezone.now")
     def test_get_optimal_rollup_series_offset_intervals(self, now):
         # This test is a funny one (notice it doesn't return a range that
         # includes the start position.) This occurs because the algorithm for
@@ -85,48 +84,49 @@ class BaseTSDBTest(TestCase):
 
         now.return_value = datetime(2016, 8, 1, 0, 0, 15, tzinfo=pytz.utc)
         start = now() - timedelta(seconds=19)
-        assert self.tsdb.get_optimal_rollup_series(
-            start, rollup=10
-        ) == (
-            10, [
+        assert self.tsdb.get_optimal_rollup_series(start, rollup=10) == (
+            10,
+            [
                 to_timestamp(datetime(2016, 8, 1, 0, 0, 0, tzinfo=pytz.utc)),
                 to_timestamp(datetime(2016, 8, 1, 0, 0, 10, tzinfo=pytz.utc)),
-            ]
+            ],
         )
 
         now.return_value = datetime(2016, 8, 1, 0, 0, 30, tzinfo=pytz.utc)
         start = now() - timedelta(seconds=ONE_MINUTE - 1)
-        assert self.tsdb.get_optimal_rollup_series(
-            start, rollup=ONE_MINUTE
-        ) == (ONE_MINUTE, [to_timestamp(datetime(2016, 8, 1, 0, 0, 0, tzinfo=pytz.utc))])
+        assert self.tsdb.get_optimal_rollup_series(start, rollup=ONE_MINUTE) == (
+            ONE_MINUTE,
+            [to_timestamp(datetime(2016, 8, 1, 0, 0, 0, tzinfo=pytz.utc))],
+        )
 
         now.return_value = datetime(2016, 8, 1, 12, tzinfo=pytz.utc)
         start = now() - timedelta(seconds=ONE_DAY - 1)
-        assert self.tsdb.get_optimal_rollup_series(
-            start, rollup=ONE_DAY
-        ) == (ONE_DAY, [to_timestamp(datetime(2016, 8, 1, 0, tzinfo=pytz.utc))])
+        assert self.tsdb.get_optimal_rollup_series(start, rollup=ONE_DAY) == (
+            ONE_DAY,
+            [to_timestamp(datetime(2016, 8, 1, 0, tzinfo=pytz.utc))],
+        )
 
-    @mock.patch('django.utils.timezone.now')
+    @mock.patch("django.utils.timezone.now")
     def test_make_series_aligned_intervals(self, now):
         now.return_value = datetime(2016, 8, 1, tzinfo=pytz.utc)
 
         start = now() - timedelta(seconds=30)
         assert self.tsdb.make_series(0, start) == [
-            (to_timestamp(start + timedelta(seconds=10) * i), 0) for i in xrange(4)
+            (to_timestamp(start + timedelta(seconds=10) * i), 0) for i in range(4)
         ]
 
         start = now() - timedelta(minutes=30)
         assert self.tsdb.make_series(lambda timestamp: 1, start) == [
-            (to_timestamp(start + timedelta(minutes=1) * i), 1) for i in xrange(31)
+            (to_timestamp(start + timedelta(minutes=1) * i), 1) for i in range(31)
         ]
 
         counter = itertools.count()
         start = now() - timedelta(hours=5)
         assert self.tsdb.make_series(lambda timestamp: next(counter), start) == [
-            (to_timestamp(start + timedelta(hours=1) * i), i) for i in xrange(6)
+            (to_timestamp(start + timedelta(hours=1) * i), i) for i in range(6)
         ]
 
         start = now() - timedelta(days=7)
         assert self.tsdb.make_series(0, start) == [
-            (to_timestamp(start + timedelta(hours=24) * i), 0) for i in xrange(8)
+            (to_timestamp(start + timedelta(hours=24) * i), 0) for i in range(8)
         ]

@@ -1,90 +1,108 @@
-from __future__ import absolute_import
-
-import six
-
-from datetime import datetime
-from six import BytesIO
+from io import BytesIO
 
 from sentry.models import EventAttachment, File
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, PermissionTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-class EventAttachmentDetailsTest(APITestCase):
+class CreateAttachmentMixin:
+    def create_attachment(self):
+        self.project = self.create_project()
+        self.release = self.create_release(self.project, self.user)
+        min_ago = iso_format(before_now(minutes=1))
+        self.event = self.store_event(
+            data={
+                "fingerprint": ["group1"],
+                "timestamp": min_ago,
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+
+        self.file = File.objects.create(name="hello.png", type="image/png; foo=bar")
+        self.file.putfile(BytesIO(b"File contents here"))
+
+        self.attachment = EventAttachment.objects.create(
+            event_id=self.event.event_id,
+            project_id=self.event.project_id,
+            file_id=self.file.id,
+            type=self.file.type,
+            name="hello.png",
+        )
+        assert self.attachment.mimetype == "image/png"
+
+        return self.attachment
+
+
+class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        project = self.create_project()
-        release = self.create_release(project, self.user)
-        group = self.create_group(project=project, first_release=release)
-        event1 = self.create_event(
-            event_id='a',
-            group=group,
-            datetime=datetime(2016, 8, 13, 3, 8, 25),
-            tags={'sentry:release': release.version}
-        )
-        attachment1 = EventAttachment.objects.create(
-            event_id=event1.event_id,
-            group_id=event1.group_id,
-            project_id=event1.project_id,
-            file=File.objects.create(
-                name='hello.png',
-                type='image/png',
-            ),
-            name='hello.png',
-        )
+        self.create_attachment()
+        path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/"
 
-        path = u'/api/0/projects/{}/{}/events/{}/attachments/{}/'.format(
-            event1.project.organization.slug,
-            event1.project.slug,
-            event1.id,
-            attachment1.id,
-        )
-
-        with self.feature('organizations:event-attachments'):
+        with self.feature("organizations:event-attachments"):
             response = self.client.get(path)
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(attachment1.id)
+        assert response.data["id"] == str(self.attachment.id)
+        assert response.data["mimetype"] == self.attachment.mimetype
 
     def test_download(self):
         self.login_as(user=self.user)
 
-        project = self.create_project()
-        release = self.create_release(project, self.user)
-        group = self.create_group(project=project, first_release=release)
-        event1 = self.create_event(
-            event_id='a',
-            group=group,
-            datetime=datetime(2016, 8, 13, 3, 8, 25),
-            tags={'sentry:release': release.version}
-        )
+        self.create_attachment()
+        path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
 
-        file1 = File.objects.create(
-            name='hello.png',
-            type='image/png',
-        )
-        file1.putfile(BytesIO('File contents here'))
-
-        attachment1 = EventAttachment.objects.create(
-            event_id=event1.event_id,
-            group_id=event1.group_id,
-            project_id=event1.project_id,
-            file=file1,
-            name='hello.png',
-        )
-
-        path = u'/api/0/projects/{}/{}/events/{}/attachments/{}/?download'.format(
-            event1.project.organization.slug,
-            event1.project.slug,
-            event1.id,
-            attachment1.id,
-        )
-
-        with self.feature('organizations:event-attachments'):
+        with self.feature("organizations:event-attachments"):
             response = self.client.get(path)
 
         assert response.status_code == 200, response.content
-        assert response.get('Content-Disposition') == 'attachment; filename="hello.png"'
-        assert response.get('Content-Length') == six.text_type(file1.size)
-        assert response.get('Content-Type') == 'application/octet-stream'
-        assert 'File contents here' == BytesIO(b"".join(response.streaming_content)).getvalue()
+        assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
+        assert response.get("Content-Length") == str(self.file.size)
+        assert response.get("Content-Type") == "application/octet-stream"
+        assert b"File contents here" == BytesIO(b"".join(response.streaming_content)).getvalue()
+
+    def test_delete(self):
+        self.login_as(user=self.user)
+
+        self.create_attachment()
+        path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/"
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.delete(path)
+
+        assert response.status_code == 204, response.content
+        assert EventAttachment.objects.count() == 0
+
+
+class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentMixin):
+    def setUp(self):
+        super().setUp()
+        self.create_attachment()
+        self.path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
+
+    def test_member_can_access_by_default(self):
+        with self.feature("organizations:event-attachments"):
+            self.assert_member_can_access(self.path)
+            self.assert_can_access(self.owner, self.path)
+
+    def test_member_cannot_access_for_owner_role(self):
+        self.organization.update_option("sentry:attachments_role", "owner")
+        with self.feature("organizations:event-attachments"):
+            self.assert_member_cannot_access(self.path)
+            self.assert_can_access(self.owner, self.path)
+
+    def test_random_user_cannot_access(self):
+        self.organization.update_option("sentry:attachments_role", "owner")
+        user = self.create_user()
+
+        with self.feature("organizations:event-attachments"):
+            self.assert_cannot_access(user, self.path)
+
+    def test_superuser_can_access(self):
+        self.organization.update_option("sentry:attachments_role", "owner")
+        superuser = self.create_user(is_superuser=True)
+
+        with self.feature("organizations:event-attachments"):
+            self.assert_can_access(superuser, self.path)

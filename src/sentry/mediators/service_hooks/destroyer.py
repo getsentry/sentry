@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 from sentry.mediators import Mediator, Param
 
 
 class Destroyer(Mediator):
-    service_hook = Param('sentry.models.ServiceHook')
+    service_hook = Param("sentry.models.ServiceHook")
 
     def call(self):
         self._destroy_service_hook()

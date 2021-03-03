@@ -1,0 +1,118 @@
+---
+created: '2020-02-26T19:54:35.099293Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            filename (ignored because frame points to a URL)
+              "test.html"
+          frame (non app frame)
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "Foo.testMethod"
+          frame (non app frame)
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "aha"
+          frame (non app frame)
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "eval"
+          frame (non app frame)
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "test"
+          frame (non app frame)
+            filename (anonymous filename discarded)
+              "<anonymous>"
+            function*
+              "Array.map"
+          frame (non app frame)
+            filename (ignored because frame points to a URL)
+              "test.html"
+          frame (non app frame)
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "Object.callback"
+          frame (non app frame)
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame (non app frame)
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "Object.aha"
+        type*
+          "Error"
+        value*
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "f1eafcdff05ffb12bb43880c5d0da248"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame
+            filename (ignored because frame points to a URL)
+              "test.html"
+          frame*
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "Foo.testMethod"
+          frame*
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "aha"
+          frame*
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "eval"
+          frame*
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "test"
+          frame*
+            filename (anonymous filename discarded)
+              "<anonymous>"
+            function*
+              "Array.map"
+          frame
+            filename (ignored because frame points to a URL)
+              "test.html"
+          frame*
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "Object.callback"
+          frame*
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame*
+            filename (ignored because frame points to a URL)
+              "test.html"
+            function*
+              "Object.aha"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"

@@ -1,15 +1,13 @@
-from __future__ import absolute_import
-
-__all__ = ['PluginStatusMixin']
+__all__ = ["PluginStatusMixin"]
 
 
-class PluginStatus(object):
-    BETA = 'beta'
-    STABLE = 'stable'
-    UNKNOWN = 'unknown'
+class PluginStatus:
+    BETA = "beta"
+    STABLE = "stable"
+    UNKNOWN = "unknown"
 
 
-class PluginStatusMixin(object):
+class PluginStatusMixin:
     status = PluginStatus.UNKNOWN
 
     @classmethod

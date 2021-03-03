@@ -1,10 +1,12 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import TeamBadge from 'app/components/idBadge/teamBadge';
 
-describe('TeamBadge', function() {
-  it('renders with Avatar and team name', function() {
-    const wrapper = mount(
+describe('TeamBadge', function () {
+  it('renders with Avatar and team name', function () {
+    const wrapper = mountWithTheme(
       <TeamBadge team={TestStubs.Team()} />,
       TestStubs.routerContext()
     );

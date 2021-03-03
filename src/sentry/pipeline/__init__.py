@@ -1,17 +1,20 @@
-from __future__ import absolute_import, print_function
-
 import logging
 
 from types import LambdaType
 
 from sentry.models import Organization
 from sentry.web.frontend.base import BaseView
+from sentry.utils import json
 from sentry.utils.session_store import RedisSessionStore
 from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
+from sentry import analytics
+
+# give users an hour to complete
+INTEGRATION_EXPIRATION_TTL = 60 * 60
 
 
-class PipelineProvider(object):
+class PipelineProvider:
     """
     A class implementing the PipelineProvider interface provides the pipeline
     views that the Pipeline will traverse through.
@@ -27,7 +30,7 @@ class PipelineProvider(object):
 
     def set_config(self, config):
         """
-        Use set_config to allow additional provider configuration be assend to
+        Use set_config to allow additional provider configuration be assigned to
         the provider instance. This is useful for example when nesting
         pipelines and the provider needs to be configured differently.
         """
@@ -42,7 +45,7 @@ class PipelineProvider(object):
 
 class PipelineView(BaseView):
     """
-    A class implementing the PipelineView may be used in a PipleineProviders
+    A class implementing the PipelineView may be used in a PipelineProviders
     get_pipeline_views list.
     """
 
@@ -52,6 +55,13 @@ class PipelineView(BaseView):
         should be used to bind data and traverse the pipeline.
         """
         raise NotImplementedError
+
+    def render_react_view(self, request, pipelineName, props):
+        return render_to_response(
+            template="sentry/bases/react_pipeline.html",
+            request=request,
+            context={"pipelineName": pipelineName, "props": json.dumps(props)},
+        )
 
 
 class NestedPipelineView(PipelineView):
@@ -97,7 +107,7 @@ class NestedPipelineView(PipelineView):
         return nested_pipeline.current_step()
 
 
-class Pipeline(object):
+class Pipeline:
     """
     Pipeline provides a mechanism to guide the user through a request
     'pipeline', where each view may be completed by calling the ``next_step``
@@ -114,7 +124,7 @@ class Pipeline(object):
     :provider_model_cls:
     The Provider model object represents the instance of an object implementing
     the PipelineProvider interface. This is used to look up the instance
-    when constructing an in progress pipleine (get_for_request).
+    when constructing an in progress pipeline (get_for_request).
 
     :config:
     A object that specifies additional pipeline and provider runtime
@@ -122,13 +132,14 @@ class Pipeline(object):
     overriding the scopes. The config object will be passed into the provider
     using the ``set_config`` method.
     """
+
     pipeline_name = None
     provider_manager = None
     provider_model_cls = None
 
     @classmethod
     def get_for_request(cls, request):
-        state = RedisSessionStore(request, cls.pipeline_name)
+        state = RedisSessionStore(request, cls.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
         if not state.is_valid():
             return None
 
@@ -143,8 +154,13 @@ class Pipeline(object):
         provider_key = state.provider_key
         config = state.config
 
-        return cls(request, organization=organization, provider_key=provider_key,
-                   provider_model=provider_model, config=config)
+        return cls(
+            request,
+            organization=organization,
+            provider_key=provider_key,
+            provider_model=provider_model,
+            config=config,
+        )
 
     def __init__(self, request, provider_key, organization=None, provider_model=None, config=None):
         if config is None:
@@ -152,7 +168,7 @@ class Pipeline(object):
 
         self.request = request
         self.organization = organization
-        self.state = RedisSessionStore(request, self.pipeline_name)
+        self.state = RedisSessionStore(request, self.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
         self.provider = self.provider_manager.get(provider_key)
         self.provider_model = provider_model
 
@@ -165,8 +181,7 @@ class Pipeline(object):
         # we serialize the pipeline to be ['fqn.PipelineView', ...] which
         # allows us to determine if the pipeline has changed during the auth
         # flow or if the user is somehow circumventing a chunk of it
-        pipe_ids = [u'{}.{}'.format(type(v).__module__, type(v).__name__)
-                    for v in self.pipeline_views]
+        pipe_ids = [f"{type(v).__module__}.{type(v).__name__}" for v in self.pipeline_views]
         self.signature = md5_text(*pipe_ids).hexdigest()
 
     def get_pipeline_views(self):
@@ -183,16 +198,18 @@ class Pipeline(object):
         return self.state.is_valid() and self.state.signature == self.signature
 
     def initialize(self):
-        self.state.regenerate({
-            'uid': self.request.user.id if self.request.user.is_authenticated() else None,
-            'provider_model_id': self.provider_model.id if self.provider_model else None,
-            'provider_key': self.provider.key,
-            'org_id': self.organization.id if self.organization else None,
-            'step_index': 0,
-            'signature': self.signature,
-            'config': self.config,
-            'data': {},
-        })
+        self.state.regenerate(
+            {
+                "uid": self.request.user.id if self.request.user.is_authenticated() else None,
+                "provider_model_id": self.provider_model.id if self.provider_model else None,
+                "provider_key": self.provider.key,
+                "org_id": self.organization.id if self.organization else None,
+                "step_index": 0,
+                "signature": self.signature,
+                "config": self.config,
+                "data": {},
+            }
+        )
 
     def clear_session(self):
         self.state.clear()
@@ -212,20 +229,34 @@ class Pipeline(object):
         if isinstance(step, LambdaType):
             step = step()
 
-        return step.dispatch(
-            request=self.request,
-            pipeline=self,
-        )
+        return step.dispatch(request=self.request, pipeline=self)
 
     def error(self, message):
-        context = {'error': message}
-        return render_to_response('sentry/pipeline-error.html', context, self.request)
+        context = {"error": message}
+        extra = {
+            "organization_id": self.organization.id if self.organization else None,
+            "provider": self.provider.key,
+            "error": message,
+        }
+        logger = self.get_logger()
+        # log error
+        logger.error("pipeline error", extra=extra)
+        return render_to_response("sentry/pipeline-error.html", context, self.request)
 
-    def next_step(self):
+    def next_step(self, step_size=1):
         """
         Render the next step.
         """
-        self.state.step_index += 1
+        self.state.step_index += step_size
+        if self.organization:
+            analytics.record(
+                "integrations.pipeline_step",
+                user_id=self.request.user.id,
+                organization_id=self.organization.id,
+                integration=self.provider.key,
+                step_index=self.state.step_index,
+                pipeline_type="reauth" if self.fetch_state("integration_id") else "install",
+            )
         return self.current_step()
 
     def finish_pipeline(self):
@@ -241,7 +272,10 @@ class Pipeline(object):
         self.state.data = data
 
     def fetch_state(self, key=None):
-        return self.state.data if key is None else self.state.data.get(key)
+        data = self.state.data
+        if not data:
+            return None
+        return data if key is None else data.get(key)
 
     def get_logger(self):
-        return logging.getLogger('sentry.integration.%s' % (self.provider.key, ))
+        return logging.getLogger(f"sentry.integration.{self.provider.key}")

@@ -1,0 +1,14 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Microsoft Teams Linked" %} | {{ block.super }}{% endblock %}
+{% block wrapperclass %}narrow auth{% endblock %}
+
+{% block main %}
+  <div class="align-center">
+    <p>
+      {% trans "Your Microsoft Teams identity has been associated with your Sentry account. You may now take actions through Microsoft Teams." %}
+    </p>
+  </div>
+{% endblock %}

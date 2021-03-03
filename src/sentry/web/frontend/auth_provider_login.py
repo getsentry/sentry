@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.core.urlresolvers import reverse
 
 from sentry.auth.helper import AuthHelper
@@ -12,8 +10,8 @@ class AuthProviderLoginView(BaseView):
     def handle(self, request):
         helper = AuthHelper.get_for_request(request)
         if helper is None:
-            return self.redirect(reverse('sentry-login'))
+            return self.redirect(reverse("sentry-login"))
 
         if not helper.pipeline_is_valid():
-            return helper.error('Something unexpected happened during authentication.')
+            return helper.error("Something unexpected happened during authentication.")
         return helper.current_step()

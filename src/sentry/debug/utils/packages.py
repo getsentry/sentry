@@ -1,7 +1,5 @@
-from __future__ import absolute_import
-
-import six
 import sys
+from sentry.utils.compat import map
 
 try:
     import pkg_resources
@@ -21,13 +19,13 @@ def get_package_version(module_name, app):
         except Exception:
             pass
 
-    if hasattr(app, 'get_version'):
+    if hasattr(app, "get_version"):
         version = app.get_version
-    elif hasattr(app, '__version__'):
+    elif hasattr(app, "__version__"):
         version = app.__version__
-    elif hasattr(app, 'VERSION'):
+    elif hasattr(app, "VERSION"):
         version = app.VERSION
-    elif hasattr(app, 'version'):
+    elif hasattr(app, "version"):
         version = app.version
 
     if callable(version):
@@ -36,26 +34,26 @@ def get_package_version(module_name, app):
         except Exception:
             return None
 
-    if not isinstance(version, six.string_types + (list, tuple)):
+    if not isinstance(version, (str,) + (list, tuple)):
         version = None
 
     if version is None:
         return None
 
     if isinstance(version, (list, tuple)):
-        version = '.'.join(map(six.text_type, version))
+        version = ".".join(map(str, version))
 
-    return six.text_type(version)
+    return str(version)
 
 
 def get_all_package_versions():
     packages = {}
     for module_name, app in sys.modules.items():
         # ignore items that look like submodules
-        if '.' in module_name:
+        if "." in module_name:
             continue
 
-        if 'sys' == module_name:
+        if "sys" == module_name:
             continue
 
         version = get_package_version(module_name, app)
@@ -65,6 +63,6 @@ def get_all_package_versions():
 
         packages[module_name] = version
 
-    packages['sys'] = u'{0}.{1}.{2}'.format(*sys.version_info)
+    packages["sys"] = "{}.{}.{}".format(*sys.version_info)
 
     return packages

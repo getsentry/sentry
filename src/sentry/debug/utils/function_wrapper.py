@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
 from time import time
 
 
-class FunctionWrapper(object):
+class FunctionWrapper:
     def __init__(self, collector):
         self.collector = collector
 
@@ -16,17 +14,17 @@ class FunctionWrapper(object):
         finally:
             end = time()
 
-            if getattr(func, 'im_class', None):
+            if getattr(func, "im_class", None):
                 arg_str = repr(args[1:])
             else:
                 arg_str = repr(args)
 
             data = {
-                'name': func.__name__,
-                'args': arg_str,
-                'kwargs': repr(kwargs),
-                'start': start,
-                'end': end,
+                "name": func.__name__,
+                "args": arg_str,
+                "kwargs": repr(kwargs),
+                "start": start,
+                "end": end,
             }
             self.record(data)
 

@@ -1,0 +1,7 @@
+---
+created: '2019-07-11T17:56:10.526330Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_spans.py
+---
+errors: null
+to_json: []

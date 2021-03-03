@@ -1,0 +1,26 @@
+---
+created: '2021-02-15T18:20:09.965798Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-max:
+  hash: null
+  component:
+    app-depth-max (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          module* (removed codegen marker)
+            "sentry_clojure_example.core$_main$fn__<auto>"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+system:
+  hash: "526b64456c48836a46ec1a89544fd412"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "sentry_clojure_example.core$_main$fn__<auto>"
+          function*
+            "invoke"

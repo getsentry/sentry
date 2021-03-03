@@ -1,9 +1,13 @@
 ---
-created: '2019-03-14T17:12:35.477288Z'
+created: '2020-10-13T11:56:18.763884Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_expectct.py
 ---
 errors: null
+metadata:
+  message: XXX EXPECTCT MESSAGE NOT THROUGH RELAY XXX
+  origin: www.example.com
+title: XXX EXPECTCT MESSAGE NOT THROUGH RELAY XXX
 to_json:
   date_time: '2014-04-06T13:00:50Z'
   effective_expiration_date: '2014-05-01T12:40:50Z'

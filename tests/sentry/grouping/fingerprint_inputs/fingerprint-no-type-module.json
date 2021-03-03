@@ -1,0 +1,23 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [
+        ["function", "main"]
+      ],
+      "fingerprint": ["{{ type }}", "{{ module }}", "{{ function }}"]
+    }
+  ],
+  "transaction": "my-transaction",
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "main",
+        "abs_path": "Application.java",
+        "filename": "Application.java",
+        "lineno": 13,
+        "in_app": false
+      }
+    ]
+  },
+  "platform": "java"
+}

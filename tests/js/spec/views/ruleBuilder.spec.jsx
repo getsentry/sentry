@@ -1,26 +1,25 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+import {findOption, openMenu, selectByValueAsync} from 'sentry-test/select-new';
 
 import MemberListStore from 'app/stores/memberListStore';
-import TeamStore from 'app/stores/teamStore';
 import ProjectsStore from 'app/stores/projectsStore';
-
+import TeamStore from 'app/stores/teamStore';
 import RuleBuilder from 'app/views/settings/project/projectOwnership/ruleBuilder';
 
-jest.mock('jquery');
-
-describe('RuleBuilder', function() {
+describe('RuleBuilder', function () {
   const organization = TestStubs.Organization();
   let project;
   let handleAdd;
   const USER_1 = TestStubs.User({
     id: '1',
-    name: 'Jane Doe',
-    email: 'janedoe@example.com',
+    name: 'Jane Bloggs',
+    email: 'janebloggs@example.com',
     user: {
       id: '1',
-      name: 'Jane Doe',
-      email: 'janedoe@example.com',
+      name: 'Jane Bloggs',
+      email: 'janebloggs@example.com',
     },
   });
   const USER_2 = TestStubs.User({
@@ -47,7 +46,7 @@ describe('RuleBuilder', function() {
     slug: 'team-not-in-project',
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     // User in project
     MemberListStore.loadInitialData([USER_1]);
     // All teams
@@ -68,10 +67,10 @@ describe('RuleBuilder', function() {
     });
   });
 
-  afterEach(function() {});
+  afterEach(function () {});
 
-  it('renders', async function() {
-    const wrapper = mount(
+  it('renders', async function () {
+    const wrapper = mountWithTheme(
       <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />,
       TestStubs.routerContext()
     );
@@ -90,9 +89,9 @@ describe('RuleBuilder', function() {
     add.simulate('click');
     expect(handleAdd).not.toHaveBeenCalled();
 
-    // Simulate select first element via down arrow / enter
-    wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 40});
-    wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
+    // Select the first item in the list.
+    await selectByValueAsync(wrapper, 'user:1', {name: 'owners', control: true});
+    await wrapper.update();
 
     expect(wrapper.find('Button').prop('disabled')).toBe(false);
     add.simulate('click');
@@ -101,11 +100,11 @@ describe('RuleBuilder', function() {
     // This is because after selecting, react-select (async) reloads
     await tick();
     wrapper.update();
-    expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
+    expect(wrapper.find(RuleBuilder)).toSnapshot();
   });
 
-  it('renders with suggestions', async function() {
-    const wrapper = mount(
+  it('renders with suggestions', async function () {
+    const wrapper = mountWithTheme(
       <RuleBuilder
         project={project}
         organization={organization}
@@ -116,13 +115,10 @@ describe('RuleBuilder', function() {
       TestStubs.routerContext()
     );
 
-    wrapper.find('SelectOwners .Select-input input').simulate('focus');
-
+    // Open the menu so we can do some assertions.
+    openMenu(wrapper, {name: 'owners', control: true});
     await tick();
     wrapper.update();
-
-    // Simulate select first element via down arrow / enter
-    wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 40});
 
     // Should have all 4 users/teams listed
     expect(wrapper.find('IdBadge')).toHaveLength(4);
@@ -131,23 +127,15 @@ describe('RuleBuilder', function() {
     expect(wrapper.find('DisabledLabel IdBadge')).toHaveLength(2);
 
     // Team not in project should not be selectable
-    expect(
-      wrapper
-        .find('DisabledLabel IdBadge')
-        .at(0)
-        .prop('team').id
-    ).toBe('4');
+    expect(wrapper.find('DisabledLabel IdBadge').at(0).prop('team').id).toBe('4');
 
     // John Smith should not be selectable
-    expect(
-      wrapper
-        .find('DisabledLabel IdBadge')
-        .at(1)
-        .prop('user').id
-    ).toBe('2');
+    expect(wrapper.find('DisabledLabel IdBadge').at(1).prop('user').id).toBe('2');
 
-    // Enter to select Jane Doe
-    wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
+    // Enter to select Jane Bloggs
+    findOption(wrapper, {value: 'user:1'}, {name: 'owners', control: true})
+      .at(0)
+      .simulate('click');
 
     const ruleCandidate = wrapper.find('RuleCandidate').first();
     ruleCandidate.simulate('click');
@@ -155,7 +143,7 @@ describe('RuleBuilder', function() {
     // This is because after selecting, react-select (async) reloads
     await tick();
     wrapper.update();
-    expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
+    expect(wrapper.find(RuleBuilder)).toSnapshot();
 
     wrapper.find('Button').simulate('click');
     expect(handleAdd).toHaveBeenCalled();

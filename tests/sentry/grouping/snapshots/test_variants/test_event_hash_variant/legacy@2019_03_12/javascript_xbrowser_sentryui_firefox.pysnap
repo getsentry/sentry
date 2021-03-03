@@ -1,0 +1,410 @@
+---
+created: '2020-02-26T19:54:27.567632Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "7e5b9ebe8c869ab99af044367bf7d347"
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/core-js/modules/_microtask"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/core-js/modules/_microtask.js"
+            context-line*
+              "        fn();"
+            function (function name is not used if context-line is available)
+              "M"
+            lineno (line number is not used if context-line is available)
+              18
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise.js"
+            context-line*
+              "    while (chain.length > i) run(chain[i++]); // variable length - can't use forEach"
+            function (function name is not used if context-line is available)
+              "fn"
+            lineno (line number is not used if context-line is available)
+              92
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise.js"
+            context-line*
+              "            result = handler(value); // may throw"
+            function (function name is not used if context-line is available)
+              "run"
+            lineno (line number is not used if context-line is available)
+              75
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator.js"
+            context-line*
+              "        asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"
+            function (function name is not used if context-line is available)
+              "_next"
+            lineno (line number is not used if context-line is available)
+              25
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator.js"
+            context-line*
+              "    var info = gen[key](arg);"
+            function (function name is not used if context-line is available)
+              "asyncGeneratorStep"
+            lineno (line number is not used if context-line is available)
+              3
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js"
+            context-line*
+              "        return this._invoke(method, arg);"
+            function (function name is not used if context-line is available)
+              "key"
+            lineno (line number is not used if context-line is available)
+              114
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js"
+            context-line*
+              "        var record = tryCatch(innerFn, self, context);"
+            function (function name is not used if context-line is available)
+              "this"
+            lineno (line number is not used if context-line is available)
+              288
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js"
+            context-line*
+              "      return { type: \"normal\", arg: fn.call(obj, arg) };"
+            function (function name is not used if context-line is available)
+              "tryCatch"
+            lineno (line number is not used if context-line is available)
+              62
+          frame*
+            module*
+              "app/components/lazyLoad"
+            filename (module takes precedence)
+              "./app/components/lazyLoad.jsx"
+            context-line*
+              "      this.setState({"
+            function (function name is not used if context-line is available)
+              "fn"
+            lineno (line number is not used if context-line is available)
+              100
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production.min.js"
+            context-line (discarded because line too long)
+            function*
+              "this"
+            lineno (function takes precedence)
+              13
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js"
+            context-line (discarded because line too long)
+            function*
+              "this"
+            lineno (function takes precedence)
+              130
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js"
+            context-line (discarded because line too long)
+            function*
+              "If"
+            lineno (function takes precedence)
+              200
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js"
+            context-line (discarded because line too long)
+            function*
+              "Yg"
+            lineno (function takes precedence)
+              204
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js"
+            context-line (discarded because line too long)
+            function*
+              "Xg"
+            lineno (function takes precedence)
+              205
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js"
+            context-line (discarded because line too long)
+            function*
+              "rh"
+            lineno (function takes precedence)
+              213
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "./app/views/groupDetails/shared/groupEventDetails.jsx"
+            context-line*
+              "    this.fetchData();"
+            function (function name is not used if context-line is available)
+              "X"
+            lineno (line number is not used if context-line is available)
+              42
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "./app/views/groupDetails/shared/groupEventDetails.jsx"
+            context-line*
+              "    fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
+            function (function name is not used if context-line is available)
+              "this"
+            lineno (line number is not used if context-line is available)
+              96
+          frame*
+            module*
+              "app/api"
+            filename (module takes precedence)
+              "./app/api.jsx"
+            context-line*
+              "    const preservedError = new Error();"
+            function (function name is not used if context-line is available)
+              "fetchGroupEventAndMarkSeen"
+            lineno (line number is not used if context-line is available)
+              276
+        type*
+          "NotFoundError"
+        value (stacktrace and type take precedence)
+          "GET /issues/1017871644/events/latest/ 404"
+--------------------------------------------------------------------------
+system:
+  hash: "e8f6c1a30ea99526223c0bba1bcd8c13"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/core-js/modules/_microtask"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/core-js/modules/_microtask.js"
+            context-line*
+              "        fn();"
+            function (function name is not used if context-line is available)
+              "M"
+            lineno (line number is not used if context-line is available)
+              18
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise.js"
+            context-line*
+              "    while (chain.length > i) run(chain[i++]); // variable length - can't use forEach"
+            function (function name is not used if context-line is available)
+              "fn"
+            lineno (line number is not used if context-line is available)
+              92
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise.js"
+            context-line*
+              "            result = handler(value); // may throw"
+            function (function name is not used if context-line is available)
+              "run"
+            lineno (line number is not used if context-line is available)
+              75
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator.js"
+            context-line*
+              "        asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"
+            function (function name is not used if context-line is available)
+              "_next"
+            lineno (line number is not used if context-line is available)
+              25
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator.js"
+            context-line*
+              "    var info = gen[key](arg);"
+            function (function name is not used if context-line is available)
+              "asyncGeneratorStep"
+            lineno (line number is not used if context-line is available)
+              3
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js"
+            context-line*
+              "        return this._invoke(method, arg);"
+            function (function name is not used if context-line is available)
+              "key"
+            lineno (line number is not used if context-line is available)
+              114
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js"
+            context-line*
+              "        var record = tryCatch(innerFn, self, context);"
+            function (function name is not used if context-line is available)
+              "this"
+            lineno (line number is not used if context-line is available)
+              288
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js"
+            context-line*
+              "      return { type: \"normal\", arg: fn.call(obj, arg) };"
+            function (function name is not used if context-line is available)
+              "tryCatch"
+            lineno (line number is not used if context-line is available)
+              62
+          frame*
+            module*
+              "app/components/lazyLoad"
+            filename (module takes precedence)
+              "./app/components/lazyLoad.jsx"
+            context-line*
+              "      this.setState({"
+            function (function name is not used if context-line is available)
+              "fn"
+            lineno (line number is not used if context-line is available)
+              100
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production.min.js"
+            context-line (discarded because line too long)
+            function*
+              "this"
+            lineno (function takes precedence)
+              13
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js"
+            context-line (discarded because line too long)
+            function*
+              "this"
+            lineno (function takes precedence)
+              130
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js"
+            context-line (discarded because line too long)
+            function*
+              "If"
+            lineno (function takes precedence)
+              200
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js"
+            context-line (discarded because line too long)
+            function*
+              "Yg"
+            lineno (function takes precedence)
+              204
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js"
+            context-line (discarded because line too long)
+            function*
+              "Xg"
+            lineno (function takes precedence)
+              205
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "/usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js"
+            context-line (discarded because line too long)
+            function*
+              "rh"
+            lineno (function takes precedence)
+              213
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "./app/views/groupDetails/shared/groupEventDetails.jsx"
+            context-line*
+              "    this.fetchData();"
+            function (function name is not used if context-line is available)
+              "X"
+            lineno (line number is not used if context-line is available)
+              42
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "./app/views/groupDetails/shared/groupEventDetails.jsx"
+            context-line*
+              "    fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
+            function (function name is not used if context-line is available)
+              "this"
+            lineno (line number is not used if context-line is available)
+              96
+          frame*
+            module*
+              "app/api"
+            filename (module takes precedence)
+              "./app/api.jsx"
+            context-line*
+              "    const preservedError = new Error();"
+            function (function name is not used if context-line is available)
+              "fetchGroupEventAndMarkSeen"
+            lineno (line number is not used if context-line is available)
+              276
+        type*
+          "NotFoundError"
+        value (stacktrace and type take precedence)
+          "GET /issues/1017871644/events/latest/ 404"

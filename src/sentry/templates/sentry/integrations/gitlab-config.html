@@ -4,7 +4,6 @@
 {% load i18n %}
 
 {% block css %}
-  <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
   <style>
     ol li {
       padding:10px 0px;
@@ -42,7 +41,7 @@
 
     <fieldset class="form-actions clearfix">
       <div class="pull-right">
-        <a class="btn btn-default" href="{% url "sentry-extension-setup" "gitlab" %}">{% trans "Back to instructions" %}</a>
+        <a class="btn btn-default" href="{% url "sentry-extension-setup" "gitlab" %}?goback=1">{% trans "Back to instructions" %}</a>
         <button type="submit" class="btn btn-primary" name="save_mappings" value="url">{% trans "Submit" %}</button>
       </div>
     </fieldset>
@@ -50,9 +49,10 @@
 {% else %}
 <h3>{% trans "Step 1: Create a Sentry App in GitLab" %}</h3>
   <p>{% trans "To configure GitLab with Sentry, you will need to create a Sentry app in your GitLab instance." %}</p>
+  <p>{% trans "You'll also need to be a maintainer or owner in GitLab. Projects owned by users are not supported." %}</p>
   <ol>
     <li>{% trans "Navigate to the User Settings section of your GitLab instance." %} </li>
-    <li>{% trans "In the sidebar, select 'Applications'." %}</li>
+    <li>{% trans "In the sidebar, select 'Applications'.<br /> Or go to the <code>/profile/applications</code> path in your GitLab instance." %}</li>
     <li>{% trans "In the resulting form, enter the following information:" %}
       <ul class="list-unstyled code-list">
         {% for val in setup_values %}

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -17,15 +15,9 @@ class IndexEndpoint(Endpoint):
             user = None
 
         if request.auth:
-            auth = {
-                'scopes': request.auth.get_scopes(),
-            }
+            auth = {"scopes": request.auth.get_scopes()}
         else:
             auth = None
 
-        context = {
-            'version': '0',
-            'auth': auth,
-            'user': user,
-        }
+        context = {"version": "0", "auth": auth, "user": user}
         return Response(context, status=200)

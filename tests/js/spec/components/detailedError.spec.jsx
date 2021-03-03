@@ -1,19 +1,20 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DetailedError from 'app/components/errors/detailedError';
 
-describe('DetailedError', function() {
-  it('renders', function() {
-    const wrapper = shallow(
+describe('DetailedError', function () {
+  it('renders', function () {
+    const wrapper = mountWithTheme(
       <DetailedError heading="Error heading" message={<div>Message</div>} />
     );
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('renders with "Retry" button', function() {
-    const wrapper = shallow(
+  it('renders with "Retry" button', function () {
+    const wrapper = mountWithTheme(
       <DetailedError
         onRetry={() => {}}
         heading="Error heading"
@@ -21,11 +22,11 @@ describe('DetailedError', function() {
       />
     );
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('can hide support links', function() {
-    const wrapper = shallow(
+  it('can hide support links', function () {
+    const wrapper = mountWithTheme(
       <DetailedError
         hideSupportLinks
         onRetry={() => {}}
@@ -34,11 +35,11 @@ describe('DetailedError', function() {
       />
     );
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('hides footer when no "Retry" and no support links', function() {
-    const wrapper = shallow(
+  it('hides footer when no "Retry" and no support links', function () {
+    const wrapper = mountWithTheme(
       <DetailedError
         hideSupportLinks
         heading="Error heading"
@@ -46,6 +47,6 @@ describe('DetailedError', function() {
       />
     );
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

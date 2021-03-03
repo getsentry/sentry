@@ -1,0 +1,28 @@
+---
+created: '2020-07-09T11:33:30.140674Z'
+creator: sentry
+source: tests/sentry/api/endpoints/test_project_filters.py
+---
+- active: false
+  description: Certain browser extensions will inject inline scripts and are known
+    to cause errors.
+  hello: browser-extensions - Filter out errors known to be caused by browser extensions
+  id: browser-extensions
+  name: Filter out errors known to be caused by browser extensions
+- active: false
+  description: This applies to both IPv4 (``127.0.0.1``) and IPv6 (``::1``) addresses.
+  hello: localhost - Filter out events coming from localhost
+  id: localhost
+  name: Filter out events coming from localhost
+- active: false
+  description: Older browsers often give less accurate information, and while they
+    may report valid issues, the context to understand them is incorrect or missing.
+  hello: legacy-browsers - Filter out known errors from legacy browsers
+  id: legacy-browsers
+  name: Filter out known errors from legacy browsers
+- active: false
+  description: Some crawlers may execute pages in incompatible ways which then cause
+    errors that are unlikely to be seen by a normal user.
+  hello: web-crawlers - Filter out known web crawlers
+  id: web-crawlers
+  name: Filter out known web crawlers

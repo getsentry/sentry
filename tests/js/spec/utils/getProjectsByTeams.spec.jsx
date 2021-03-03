@@ -1,8 +1,8 @@
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 
-describe('getProjectsByTeams', function() {
+describe('getProjectsByTeams', function () {
   let projectsByTeams;
-  beforeEach(function() {
+  beforeEach(function () {
     const team1 = TestStubs.Team({id: '1', slug: 'team1'});
     const team2 = TestStubs.Team({id: '2', slug: 'team2'});
     const teams = [team1, team2];
@@ -13,11 +13,11 @@ describe('getProjectsByTeams', function() {
     projectsByTeams = getProjectsByTeams(teams, projects);
   });
 
-  it('lists projects by team', function() {
+  it('lists projects by team', function () {
     expect(Object.keys(projectsByTeams.projectsByTeam)).toEqual(['team1', 'team2']);
   });
 
-  it('lists teamless projecrts', function() {
+  it('lists teamless projecrts', function () {
     expect(projectsByTeams.teamlessProjects).toHaveLength(1);
   });
 });

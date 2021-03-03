@@ -1,14 +1,4 @@
-"""
-sentry.tasks.options
-~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-from __future__ import absolute_import
-
 import logging
-import six
 
 from datetime import timedelta
 from django.utils import timezone
@@ -19,10 +9,10 @@ from sentry.options.manager import UnknownOption
 from sentry.tasks.base import instrumented_task
 
 ONE_HOUR = 60 * 60
-logger = logging.getLogger('sentry')
+logger = logging.getLogger("sentry")
 
 
-@instrumented_task(name='sentry.tasks.options.sync_options', queue='options')
+@instrumented_task(name="sentry.tasks.options.sync_options", queue="options")
 def sync_options(cutoff=ONE_HOUR):
     """
     Ensures all options that have been updated (within the database) since
@@ -38,4 +28,4 @@ def sync_options(cutoff=ONE_HOUR):
             opt = default_manager.lookup_key(option.key)
             default_manager.store.set_cache(opt, option.value)
         except UnknownOption as e:
-            logger.exception(six.text_type(e))
+            logger.exception(str(e))

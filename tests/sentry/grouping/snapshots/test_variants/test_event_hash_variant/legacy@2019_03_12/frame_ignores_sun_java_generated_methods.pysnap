@@ -1,0 +1,36 @@
+---
+created: '2020-02-26T19:54:26.977309Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame* (frame considered in-app because no frame is in-app)
+          module* (removed reflection marker)
+            "sun.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+        frame* (frame considered in-app because no frame is in-app)
+          module* (removed reflection marker)
+            "jdk.internal.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+system:
+  hash: "9bc326575875422d0d4ced3c35d9f916"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (removed reflection marker)
+            "sun.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+        frame*
+          module* (removed reflection marker)
+            "jdk.internal.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"

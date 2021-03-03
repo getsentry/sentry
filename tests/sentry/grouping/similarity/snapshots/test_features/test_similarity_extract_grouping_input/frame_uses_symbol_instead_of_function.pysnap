@@ -1,0 +1,6 @@
+---
+created: '2020-08-11T11:59:10.036578Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-ident: [["function","int main()"],["module","libfoo"]]

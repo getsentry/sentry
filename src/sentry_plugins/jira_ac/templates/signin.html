@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% load sentry_assets %}
+
+{% block content %}
+  <div id="login">
+    <div class="aui-page-panel">
+      <div class="aui-page-panel-inner">
+        <div class="aui-group">
+          <div class="aui-message aui-message-info">
+              <p>In order to use this plugin, you must be signed into Sentry.</p>
+          </div>
+        </div>
+        <div class="aui-group">
+          <div class="aui-item">
+            <a class="aui-button aui-button-default" href="{{ login_url }}" target="_blank">
+              Sign In to Sentry
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block javascript %}
+  {% script type="text/javascript" %}
+  <script>
+    (function() {
+      var hidden, visibilityChange;
+      if (typeof document.hidden !== 'undefined') { // Opera 12.10 and Firefox 18 and later support
+        hidden = 'hidden';
+        visibilityChange = 'visibilitychange';
+      } else if (typeof document.mozHidden !== 'undefined') {
+        hidden = 'mozHidden';
+        visibilityChange = 'mozvisibilitychange';
+      } else if (typeof document.msHidden !== 'undefined') {
+        hidden = 'msHidden';
+        visibilityChange = 'msvisibilitychange';
+      } else if (typeof document.webkitHidden !== 'undefined') {
+        hidden = 'webkitHidden';
+        visibilityChange = 'webkitvisibilitychange';
+      }
+      document.addEventListener(visibilityChange, function() {
+        // see if they've logged in while away from tab
+        if (!document[hidden]) {
+          window.location.reload();
+        }
+      });
+    })();
+  </script>
+  {% endscript %}
+{% endblock %}

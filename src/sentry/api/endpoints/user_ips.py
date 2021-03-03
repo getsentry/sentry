@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.paginator import DateTimePaginator
@@ -24,7 +22,7 @@ class UserIPsEndpoint(UserEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-last_seen',
+            order_by="-last_seen",
             paginator_cls=DateTimePaginator,
             on_results=lambda x: serialize(x, request),
         )

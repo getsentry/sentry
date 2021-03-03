@@ -1,0 +1,187 @@
+---
+created: '2020-08-25T09:17:12.117575Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "a3bcd79525a31922367598b0e6b6fda4"
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.utils.safe"
+            filename (module takes precedence)
+              "safe.py"
+            function*
+              "safe_execute"
+          frame*
+            module*
+              "sentry.utils.services"
+            filename (module takes precedence)
+              "services.py"
+            function*
+              "<lambda>"
+          frame*
+            module*
+              "getsentry.quotas"
+            filename (module takes precedence)
+              "quotas.py"
+            function*
+              "is_rate_limited"
+          frame*
+            module*
+              "sentry.quotas.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "is_rate_limited"
+          frame*
+            module*
+              "sentry.utils.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "call_script"
+          frame (non app frame)
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "__call__"
+          frame (non app frame)
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "evalsha"
+          frame (non app frame)
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "execute_command"
+          frame (non app frame)
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "parse_response"
+          frame (non app frame)
+            module*
+              "redis.connection"
+            filename (module takes precedence)
+              "connection.py"
+            function*
+              "read_response"
+          frame (non app frame)
+            module*
+              "redis.connection"
+            filename (module takes precedence)
+              "connection.py"
+            function*
+              "read_response"
+        type*
+          "ConnectionError"
+        value (ignored because stacktrace takes precedence)
+          "Error while reading from socket: ('Connection closed by server.',)"
+--------------------------------------------------------------------------
+default:
+  hash: null
+  component:
+    default (exception of app/system takes precedence)
+      message (exception of app/system takes precedence)
+        "%s.process_error"
+--------------------------------------------------------------------------
+system:
+  hash: "011c0e7a2decebaeb1897a7f08baeb1a"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.utils.safe"
+            filename (module takes precedence)
+              "safe.py"
+            function*
+              "safe_execute"
+          frame*
+            module*
+              "sentry.utils.services"
+            filename (module takes precedence)
+              "services.py"
+            function*
+              "<lambda>"
+          frame*
+            module*
+              "getsentry.quotas"
+            filename (module takes precedence)
+              "quotas.py"
+            function*
+              "is_rate_limited"
+          frame*
+            module*
+              "sentry.quotas.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "is_rate_limited"
+          frame*
+            module*
+              "sentry.utils.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "call_script"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "__call__"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "evalsha"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "execute_command"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "parse_response"
+          frame*
+            module*
+              "redis.connection"
+            filename (module takes precedence)
+              "connection.py"
+            function*
+              "read_response"
+          frame*
+            module*
+              "redis.connection"
+            filename (module takes precedence)
+              "connection.py"
+            function*
+              "read_response"
+        type*
+          "ConnectionError"
+        value (ignored because stacktrace takes precedence)
+          "Error while reading from socket: ('Connection closed by server.',)"

@@ -1,5 +1,7 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import OrganizationApiKeysList from 'app/views/settings/organizationApiKeys/organizationApiKeysList';
 
@@ -12,11 +14,11 @@ const routes = [
   {path: 'api-keys/', name: 'API Key'},
 ];
 
-describe('OrganizationApiKeysList', function() {
-  beforeEach(function() {});
+describe('OrganizationApiKeysList', function () {
+  beforeEach(function () {});
 
-  it('renders', function() {
-    const wrapper = mount(
+  it('renders', function () {
+    const wrapper = mountWithTheme(
       <OrganizationApiKeysList
         params={{orgId: 'org-slug'}}
         routes={routes}
@@ -24,11 +26,11 @@ describe('OrganizationApiKeysList', function() {
       />,
       TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
-  it('opens a modal when trying to delete a key', function() {
-    const wrapper = mount(
+  it('opens a modal when trying to delete a key', async function () {
+    const wrapper = mountWithTheme(
       <OrganizationApiKeysList
         params={{orgId: 'org-slug'}}
         routes={routes}
@@ -39,11 +41,11 @@ describe('OrganizationApiKeysList', function() {
 
     wrapper.update();
     // Click remove button
-    wrapper.find('.icon-trash').simulate('click');
+    wrapper.find('ForwardRef(IconDelete)').simulate('click');
     wrapper.update();
 
     // expect a modal
-    const modal = wrapper.find('Modal');
-    expect(modal.first().prop('show')).toBe(true);
+    const modal = await mountGlobalModal();
+    expect(modal.find('Modal[show=true]').exists()).toBe(true);
   });
 });

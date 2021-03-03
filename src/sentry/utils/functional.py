@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
-import six
-
 from django.utils.functional import empty
+from sentry.utils.compat import zip
 
 
 def extract_lazy_object(lo):
@@ -12,7 +9,7 @@ def extract_lazy_object(lo):
     ProTip: This is relying on `django.utils.functional.empty`, which may
     or may not be removed in the future. It's 100% undocumented.
     """
-    if not hasattr(lo, '_wrapped'):
+    if not hasattr(lo, "_wrapped"):
         return lo
     if lo._wrapped is empty:
         lo._setup()
@@ -35,12 +32,7 @@ def apply_values(function, mapping):
         return {}
 
     keys, values = zip(*mapping.items())
-    return dict(
-        zip(
-            keys,
-            function(values),
-        ),
-    )
+    return dict(zip(keys, function(values)))
 
 
 def compact(seq):
@@ -51,7 +43,7 @@ def compact(seq):
         Removes keys with a corresponding ``None`` value.
 
     list:
-        Removes ``None`` valules.
+        Removes ``None`` values.
 
     >>> compact({'foo': 'bar', 'baz': None})
     {'foo': 'bar'}
@@ -60,7 +52,7 @@ def compact(seq):
     [1, 2]
     """
     if isinstance(seq, dict):
-        return {k: v for k, v in six.iteritems(seq) if v is not None}
+        return {k: v for k, v in seq.items() if v is not None}
 
     elif isinstance(seq, list):
         return [k for k in seq if k is not None]

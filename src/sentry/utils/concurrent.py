@@ -1,14 +1,11 @@
-from __future__ import absolute_import
-
 import logging
-import sys
 import threading
-from Queue import Full, PriorityQueue
+import collections
+import functools
+from queue import Full, PriorityQueue
 from concurrent.futures import Future
 from concurrent.futures._base import RUNNING, FINISHED
 from time import time
-
-from six.moves import xrange
 
 
 logger = logging.getLogger(__name__)
@@ -23,8 +20,8 @@ def execute(function, daemon=True):
 
         try:
             result = function()
-        except Exception:
-            future.set_exception_info(*sys.exc_info()[1:])
+        except Exception as e:
+            future.set_exception(e)
         else:
             future.set_result(result)
 
@@ -35,10 +32,19 @@ def execute(function, daemon=True):
     return future
 
 
+@functools.total_ordering
+class PriorityTask(collections.namedtuple("PriorityTask", "priority item")):
+    def __eq__(self, b):
+        return self.priority == b.priority
+
+    def __lt__(self, b):
+        return self.priority < b.priority
+
+
 class TimedFuture(Future):
     def __init__(self, *args, **kwargs):
         self.__timing = [None, None]  # [started, finished/cancelled]
-        super(TimedFuture, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def get_timing(self):
         """\
@@ -49,7 +55,7 @@ class TimedFuture(Future):
         a timestamp or ``None`` (if the future has not been either completed or
         cancelled.)
 
-        There are some idiosyncracies with the way the timings are recorded:
+        There are some idiosyncrasies with the way the timings are recorded:
 
         - The ``started`` value will generally not be ``None`` if the
           ``finished`` value is also not ``None``. However, for a future that
@@ -65,7 +71,7 @@ class TimedFuture(Future):
         return tuple(self.__timing)
 
     def set_running_or_notify_cancel(self, *args, **kwargs):
-        result = super(TimedFuture, self).set_running_or_notify_cancel(*args, **kwargs)
+        result = super().set_running_or_notify_cancel(*args, **kwargs)
         # This method can only be called once (the second invocation will raise
         # a ``RuntimeError``) so if we've gotten this far we can be reasonably
         # confident that the start time hasn't been set.
@@ -83,26 +89,22 @@ class TimedFuture(Future):
             # future was cancelled.
             if self._state not in [RUNNING, FINISHED] and self.__timing[1] is None:
                 self.__timing[1] = time()
-            return super(TimedFuture, self).cancel(*args, **kwargs)
+            return super().cancel(*args, **kwargs)
 
     def set_result(self, *args, **kwargs):
         with self._condition:
             # This method always overwrites the result, so we always overwrite
             # the timing, even if another timing was already recorded.
             self.__timing[1] = time()
-            return super(TimedFuture, self).set_result(*args, **kwargs)
+            return super().set_result(*args, **kwargs)
 
-    def set_exception_info(self, *args, **kwargs):
-        # XXX: This makes the potentially unsafe assumption that
-        # ``set_exception`` will always continue to call this function.
+    def set_exception(self, *args, **kwargs):
         with self._condition:
-            # This method always overwrites the result, so we always overwrite
-            # the timing, even if another timing was already recorded.
             self.__timing[1] = time()
-            return super(TimedFuture, self).set_exception_info(*args, **kwargs)
+            return super().set_exception(*args, **kwargs)
 
 
-class Executor(object):
+class Executor:
     """
     This class provides an API for executing tasks in different contexts
     (immediately, or asynchronously.)
@@ -113,6 +115,7 @@ class Executor(object):
     similar), and ``submit`` passes all additional arguments to ``queue.put``
     to allow controlling whether or not queue insertion should be blocking.
     """
+
     Future = TimedFuture
 
     def submit(self, callable, priority=0, block=True, timeout=None):
@@ -145,8 +148,8 @@ class SynchronousExecutor(Executor):
         assert future.set_running_or_notify_cancel()
         try:
             result = callable()
-        except Exception:
-            future.set_exception_info(*sys.exc_info()[1:])
+        except Exception as e:
+            future.set_exception(e)
         else:
             future.set_result(result)
         return future
@@ -165,7 +168,7 @@ class ThreadedExecutor(Executor):
 
     def __init__(self, worker_count=1, maxsize=0):
         self.__worker_count = worker_count
-        self.__workers = set([])
+        self.__workers = set()
         self.__started = False
         self.__queue = PriorityQueue(maxsize)
         self.__lock = threading.Lock()
@@ -178,8 +181,8 @@ class ThreadedExecutor(Executor):
                 continue
             try:
                 result = function()
-            except Exception:
-                future.set_exception_info(*sys.exc_info()[1:])
+            except Exception as e:
+                future.set_exception(e)
             else:
                 future.set_result(result)
             queue.task_done()
@@ -189,7 +192,7 @@ class ThreadedExecutor(Executor):
             if self.__started:
                 return
 
-            for i in xrange(self.__worker_count):
+            for i in range(self.__worker_count):
                 t = threading.Thread(target=self.__worker)
                 t.daemon = True
                 t.start()
@@ -212,7 +215,7 @@ class ThreadedExecutor(Executor):
             self.start()
 
         future = self.Future()
-        task = (priority, (callable, future))
+        task = PriorityTask(priority, (callable, future))
         try:
             self.__queue.put(task, block=block, timeout=timeout)
         except Full as error:
@@ -221,7 +224,7 @@ class ThreadedExecutor(Executor):
         return future
 
 
-class FutureSet(object):
+class FutureSet:
     """\
     Coordinates a set of ``Future`` objects (either from
     ``concurrent.futures``, or otherwise API compatible), and allows for
@@ -246,9 +249,7 @@ class FutureSet(object):
         try:
             callback(self)
         except Exception as error:
-            logger.warning(
-                'Error when calling callback %r: %s',
-                callback, error, exc_info=True)
+            logger.warning("Error when calling callback %r: %s", callback, error, exc_info=True)
 
     def __mark_completed(self, future):
         with self.__lock:

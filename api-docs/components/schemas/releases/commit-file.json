@@ -1,0 +1,30 @@
+{
+    "CommitFile": {
+        "type": "object",
+        "properties": {
+            "author": {
+                "type": "object",
+                "nullable": true
+            },
+            "commitMessage": {
+                "type": "string"
+            },
+            "filename": {
+                "type": "string"
+            },
+            "orgId": {
+                "type": "integer"
+            },
+            "repoName": {
+                "type": "string"
+            },
+            "type": {
+                "type": "string",
+                "enum": ["M", "A", "D"]
+            },
+            "id": {
+                "type": "string"
+            }
+        }
+    }
+}

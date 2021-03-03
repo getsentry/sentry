@@ -1,0 +1,17 @@
+---
+created: '2020-02-26T19:54:26.490911Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+default:
+  hash: "537a973f594c364842893e9a72af62a5"
+  component:
+    default*
+      csp*
+        salt* (a static salt)
+          "style-src-elem"
+        violation (not a local script violation)
+        uri*
+          "use.fontawesome.com"
+      message (csp takes precedence)
+        "Blocked 'style' from 'use.fontawesome.com'"

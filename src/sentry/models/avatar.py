@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
-import six
-
+from django.utils.encoding import force_bytes
 from django.db import models, transaction
+from io import BytesIO
 from PIL import Image
-from six import BytesIO
 from uuid import uuid4
 
 from sentry.db.models import FlexibleForeignKey, Model
@@ -17,13 +14,14 @@ class AvatarBase(Model):
     and ProjectAvatar models. Associates those entities with their
     avatar preferences/files.
     """
+
     __core__ = False
 
     ALLOWED_SIZES = (20, 32, 36, 48, 52, 64, 80, 96, 120)
 
     FILE_TYPE = None
 
-    file = FlexibleForeignKey('sentry.File', unique=True, null=True, on_delete=models.SET_NULL)
+    file = FlexibleForeignKey("sentry.File", unique=True, null=True, on_delete=models.SET_NULL)
     ident = models.CharField(max_length=32, unique=True, db_index=True)
 
     class Meta:
@@ -32,12 +30,12 @@ class AvatarBase(Model):
     def save(self, *args, **kwargs):
         if not self.ident:
             self.ident = uuid4().hex
-        return super(AvatarBase, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         if self.file:
             self.file.delete()
-        return super(AvatarBase, self).delete(*args, **kwargs)
+        return super().delete(*args, **kwargs)
 
     def get_cache_key(self, size):
         raise NotImplementedError
@@ -55,9 +53,9 @@ class AvatarBase(Model):
         if photo is None:
             photo_file = self.file.getfile()
             with Image.open(photo_file) as image:
-                image = image.resize((size, size))
+                image = image.resize((size, size), Image.LANCZOS)
                 image_file = BytesIO()
-                image.save(image_file, 'PNG')
+                image.save(image_file, "PNG")
                 photo = image_file.getvalue()
                 cache.set(cache_key, photo)
         return photo
@@ -68,12 +66,11 @@ class AvatarBase(Model):
 
         if avatar:
             with transaction.atomic():
-                photo = File.objects.create(
-                    name=filename,
-                    type=cls.FILE_TYPE,
-                )
-                if isinstance(avatar, six.string_types):
-                    avatar = BytesIO(avatar)
+                photo = File.objects.create(name=filename, type=cls.FILE_TYPE)
+                # XXX: Avatar may come in as a string instance in python2
+                # if it's not wrapped in BytesIO.
+                if isinstance(avatar, str):
+                    avatar = BytesIO(force_bytes(avatar))
                 photo.putfile(avatar)
         else:
             photo = None

@@ -1,9 +1,12 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
+
 import Confirm from 'app/components/confirm';
 
-describe('Confirm', function() {
-  it('renders', function() {
+describe('Confirm', function () {
+  it('renders', function () {
     const mock = jest.fn();
     const wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock}>
@@ -11,10 +14,11 @@ describe('Confirm', function() {
       </Confirm>,
       TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
+
+    expect(wrapper).toSnapshot();
   });
 
-  it('clicking action button opens Modal', function() {
+  it('clicking action button opens Modal', async function () {
     const mock = jest.fn();
     const wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock}>
@@ -25,28 +29,14 @@ describe('Confirm', function() {
 
     wrapper.find('button').simulate('click');
 
-    expect(wrapper.find('Modal').prop('show')).toBe(true);
+    const modal = await mountGlobalModal();
+
+    expect(modal.find('Modal[show=true]').exists()).toBe(true);
   });
 
-  it('clicking action button twice causes Modal to end up closed', function() {
+  it('clicks Confirm in modal and calls `onConfirm` callback', async function () {
     const mock = jest.fn();
-    const wrapper = shallow(
-      <Confirm message="Are you sure?" onConfirm={mock}>
-        <button>Confirm?</button>
-      </Confirm>,
-      TestStubs.routerContext()
-    );
-
-    const button = wrapper.find('button');
-
-    button.simulate('click');
-    button.simulate('click');
-    expect(wrapper.find('Modal').prop('show')).toBe(false);
-  });
-
-  it('clicks Confirm in modal and calls `onConfirm` callback', function() {
-    const mock = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
       </Confirm>,
@@ -56,27 +46,23 @@ describe('Confirm', function() {
     expect(mock).not.toHaveBeenCalled();
 
     wrapper.find('button').simulate('click');
-    wrapper.update();
+
+    const modal = await mountGlobalModal();
 
     // Click "Confirm" button, should be last button
-    wrapper
-      .find('Button')
-      .last()
-      .simulate('click');
+    modal.find('Button').last().simulate('click');
 
-    expect(
-      wrapper
-        .find('Modal')
-        .first()
-        .prop('show')
-    ).toBe(false);
+    await tick();
+    modal.update();
+
+    expect(modal.find('Modal[show=true]').exists()).toBe(false);
     expect(mock).toHaveBeenCalled();
     expect(mock.mock.calls).toHaveLength(1);
   });
 
-  it('can stop propagation on the event', function() {
+  it('can stop propagation on the event', function () {
     const mock = jest.fn();
-    const wrapper = mount(
+    const wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock} stopPropagation>
         <button>Confirm?</button>
       </Confirm>,

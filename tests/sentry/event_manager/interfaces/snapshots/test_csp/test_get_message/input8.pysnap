@@ -1,19 +1,15 @@
 ---
-created: '2019-03-14T17:12:35.174624Z'
+created: '2020-10-13T11:56:18.343570Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_csp.py
 ---
-culprit: ''
 errors: null
-message: Blocked 'script' from 'cdn.ajaxapis.com'
-origin: http://example.com/foo
-tags:
-- - effective-directive
-  - script-src-elem
-- - blocked-uri
-  - http://cdn.ajaxapis.com/foo
+metadata:
+  directive: script-src-elem
+  message: XXX CSP MESSAGE NOT THROUGH RELAY XXX
+  uri: cdn.ajaxapis.com
+title: XXX CSP MESSAGE NOT THROUGH RELAY XXX
 to_json:
   blocked_uri: http://cdn.ajaxapis.com/foo
   document_uri: http://example.com/foo
   effective_directive: script-src-elem
-  violated_directive: ''

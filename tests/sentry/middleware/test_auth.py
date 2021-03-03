@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.test import RequestFactory
 from exam import fixture
 
@@ -14,7 +12,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
 
     @fixture
     def request(self):
-        rv = RequestFactory().get('/')
+        rv = RequestFactory().get("/")
         rv.session = self.session
         return rv
 
@@ -28,39 +26,36 @@ class AuthenticationMiddlewareTestCase(TestCase):
         self.middleware.process_request(request)
         assert request.user.is_authenticated()
         assert request.user == self.user
-        assert '_nonce' not in request.session
-        assert UserIP.objects.filter(
-            user=self.user,
-            ip_address='127.0.0.1',
-        ).exists()
+        assert "_nonce" not in request.session
+        assert UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
 
     def test_process_request_good_nonce(self):
         request = self.request
         user = self.user
-        user.session_nonce = 'xxx'
+        user.session_nonce = "xxx"
         user.save()
         assert login(request, user)
         self.middleware.process_request(request)
         assert request.user.is_authenticated()
         assert request.user == self.user
-        assert request.session['_nonce'] == 'xxx'
+        assert request.session["_nonce"] == "xxx"
 
     def test_process_request_missing_nonce(self):
         request = self.request
         user = self.user
-        user.session_nonce = 'xxx'
+        user.session_nonce = "xxx"
         user.save()
         assert login(request, user)
-        del request.session['_nonce']
+        del request.session["_nonce"]
         self.middleware.process_request(request)
         assert request.user.is_anonymous()
 
     def test_process_request_bad_nonce(self):
         request = self.request
         user = self.user
-        user.session_nonce = 'xxx'
+        user.session_nonce = "xxx"
         user.save()
         assert login(request, user)
-        request.session['_nonce'] = 'gtfo'
+        request.session["_nonce"] = "gtfo"
         self.middleware.process_request(request)
         assert request.user.is_anonymous()

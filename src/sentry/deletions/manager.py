@@ -1,11 +1,9 @@
-from __future__ import absolute_import, print_function
-
 from collections import defaultdict
 
-__all__ = ['DeletionTaskManager']
+__all__ = ["DeletionTaskManager"]
 
 
-class DeletionTaskManager(object):
+class DeletionTaskManager:
     def __init__(self, default_task=None):
         self.tasks = {}
         self.default_task = default_task
@@ -14,7 +12,7 @@ class DeletionTaskManager(object):
 
     def get(self, task=None, **kwargs):
         if task is None:
-            model = kwargs.get('model')
+            model = kwargs.get("model")
             try:
                 task = self.tasks[model]
             except KeyError:

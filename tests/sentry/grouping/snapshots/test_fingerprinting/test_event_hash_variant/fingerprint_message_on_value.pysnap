@@ -1,0 +1,38 @@
+---
+created: '2021-01-11T19:06:27.995697Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - what-is-love
+    - '{{ message }}'
+    matchers:
+    - - message
+      - '*love*'
+  version: 1
+fingerprint:
+- what-is-love
+- '{{ message }}'
+title: 'NoLove: something has no love.'
+variants:
+  app:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component
+  custom-fingerprint:
+    matched_rule: message:"*love*" -> "what-is-love{{ message }}"
+    type: custom-fingerprint
+    values:
+    - what-is-love
+    - something has no love.
+  system:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component

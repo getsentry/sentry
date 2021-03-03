@@ -1,13 +1,16 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 
-from sentry.api.bases import OrganizationEndpoint, SentryAppBaseEndpoint
+from sentry.api.bases import (
+    OrganizationEndpoint,
+    SentryAppBaseEndpoint,
+    add_integration_platform_metric_tag,
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.coreapi import APIError
 from sentry.mediators import sentry_app_components
-from sentry.models import Project, SentryAppComponent
+from sentry.models import Project, SentryAppComponent, SentryAppInstallation
 
 
 class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
@@ -21,31 +24,29 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
 
 
 class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
+    @add_integration_platform_metric_tag
     def get(self, request, organization):
+        project_id = request.GET.get("projectId")
+        if not project_id:
+            raise ValidationError("Required parameter 'projectId' is missing")
+
         try:
-            project = Project.objects.get(
-                id=request.GET['projectId'],
-                organization_id=organization.id,
-            )
+            project = Project.objects.get(id=project_id, organization_id=organization.id)
         except Project.DoesNotExist:
             return Response([], status=404)
 
         components = []
 
-        for install in organization.sentry_app_installations.all():
-            _components = SentryAppComponent.objects.filter(
-                sentry_app_id=install.sentry_app_id,
-            )
+        for install in SentryAppInstallation.get_installed_for_org(organization.id):
+            _components = SentryAppComponent.objects.filter(sentry_app_id=install.sentry_app_id)
 
-            if 'filter' in request.GET:
-                _components = _components.filter(type=request.GET['filter'])
+            if "filter" in request.GET:
+                _components = _components.filter(type=request.GET["filter"])
 
             for component in _components:
                 try:
                     sentry_app_components.Preparer.run(
-                        component=component,
-                        install=install,
-                        project=project,
+                        component=component, install=install, project=project
                     )
                     components.append(component)
                 except APIError:

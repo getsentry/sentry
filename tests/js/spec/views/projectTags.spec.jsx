@@ -1,14 +1,14 @@
 import React from 'react';
 
-import $ from 'jquery';
+import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
-import {mount} from 'enzyme';
-import ProjectTags from 'app/views/projectTags';
+import ProjectTags from 'app/views/settings/projectTags';
 
-describe('ProjectTags', function() {
-  let org, project, wrapper;
+describe('ProjectTags', function () {
+  let org, project;
 
-  beforeEach(function() {
+  beforeEach(function () {
     org = TestStubs.Organization();
     project = TestStubs.Project();
 
@@ -22,14 +22,18 @@ describe('ProjectTags', function() {
       url: `/projects/${org.slug}/${project.slug}/tags/browser/`,
       method: 'DELETE',
     });
+  });
 
-    wrapper = mount(
+  it('renders', function () {
+    const wrapper = mountWithTheme(
       <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
+
+    expect(wrapper).toSnapshot();
   });
 
-  it('renders empty', function() {
+  it('renders empty', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,
@@ -37,7 +41,7 @@ describe('ProjectTags', function() {
       body: [],
     });
 
-    wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
@@ -45,12 +49,12 @@ describe('ProjectTags', function() {
     expect(wrapper.find('EmptyMessage')).toHaveLength(1);
   });
 
-  it('disables delete button for users without access', function() {
+  it('disables delete button for users without access', function () {
     const context = {
       organization: TestStubs.Organization({access: []}),
     };
 
-    wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext([context])
     );
@@ -58,23 +62,21 @@ describe('ProjectTags', function() {
     expect(wrapper.find('Button[disabled=false]')).toHaveLength(0);
   });
 
-  it('renders', function() {
-    expect(wrapper).toMatchSnapshot();
-  });
+  it('deletes tag', async function () {
+    const wrapper = mountWithTheme(
+      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
+      TestStubs.routerContext()
+    );
 
-  it('deletes tag', function() {
     const tags = wrapper.state('tags').length;
 
-    wrapper
-      .find('Button')
-      .first()
-      .simulate('click');
+    wrapper.find('button[data-test-id="delete"]').first().simulate('click');
 
     // Press confirm in modal
-    $(document.body)
-      .find('.modal button:contains("Confirm")')
-      .click();
+    const modal = await mountGlobalModal();
+    modal.find('Button[priority="primary"]').simulate('click');
 
+    await tick(); // Wait for the handleDelete function
     wrapper.update();
 
     expect(wrapper.state('tags')).toHaveLength(tags - 1);

@@ -1,0 +1,158 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block wrapperclass %}narrow auth{% endblock %}
+{% block modal_header_signout %}{% endblock %}
+
+{% block title %}{% trans "Slack Migration" %} | {{ block.super }}{% endblock %}
+
+{% block css %}
+  <style>
+    li {
+        list-style-type: none;
+    }
+    .channel-name {
+        margin-left: 20px;
+        font-size: 80%;
+    }
+    div {
+        padding:10px 0px;
+    }
+    h6 {
+        margin-bottom:3px;
+    }
+    .section-info {
+        font-size: 80%;
+    }
+    .extra-org {
+        display: block;
+        margin-left: 10px;
+    }
+    .extra-org::before {
+        content: " • ";
+    }
+    .multi-org-alert {
+        display: flex;
+        flex-direction: column;
+    }
+    .footer-text {
+        display: inline-block;
+        font-size: 90%;
+    }
+    .loader, .loader:after {
+        border-radius: 50%;
+        width: 10em;
+        height: 10em;
+    }
+    .loader {
+        margin: 60px auto;
+        font-size: 10px;
+        position: relative;
+        text-indent: -9999em;
+        border-top: 1.1em solid rgba(70, 67, 67, 0.2);
+        border-right: 1.1em solid rgba(70, 67, 67, 0.2);
+        border-bottom: 1.1em solid rgba(70, 67, 67, 0.2);
+        border-left: 1.1em solid #494343;
+        -webkit-transform: translateZ(0);
+        -ms-transform: translateZ(0);
+        transform: translateZ(0);
+        -webkit-animation: load8 1.1s infinite linear;
+        animation: load8 1.1s infinite linear;
+    }
+    @-webkit-keyframes load8 {
+        0% {
+            -webkit-transform: rotate(0deg);
+            transform: rotate(0deg);
+        }
+        100% {
+            -webkit-transform: rotate(360deg);
+            transform: rotate(360deg);
+        }
+    }
+    @keyframes load8 {
+        0% {
+            -webkit-transform: rotate(0deg);
+            transform: rotate(0deg);
+        }
+        100% {
+            -webkit-transform: rotate(360deg);
+            transform: rotate(360deg);
+        }
+    }
+  </style>
+{% endblock %}
+
+{% block main %}
+{% script %}
+<script>
+    function loading() {
+        document.getElementById("loader").setAttribute("class", "loader");
+    };
+</script>
+{% endscript %}
+    <h3>{% trans "Time For An Upgrade" %}</h3>
+
+    <h5>{% trans "Farewell to Slack's legacy workspace apps." %}</h5>
+    <p>
+        {% trans "The time has come, Slack's deprecated its workspace apps. And with it, goes our legacy Slack integration." %}
+    </p>
+    <p>
+        {% trans "But don't worry, we built you a whole new Sentry-Slack integration. Just authorize the app, and then you can get back to doing whatever it is you came here to do." %}
+    </p>
+    <p>
+        {% blocktrans %}
+        Want to know more about the move? We wrote you some <a href="https://docs.sentry.io/product/integrations/slack/#upgrading-slack">docs</a>.
+        {% endblocktrans %}
+    </p>
+
+    <h5>{% trans "Your existing alert rules may need some love." %}</h5>
+    <p>
+        {% trans "If you don't have private channels in your alert rules, just authorize our new Slack app and then you can get on with your life." %}
+    </p>
+    <p>
+        {% blocktrans %}
+        If you <strong>do</strong> have private channels being used in your alert rules, bear with us. You've got an extra step to go.
+        {% endblocktrans %}
+    </p>
+    <p>
+        {% blocktrans %}
+        How do you know which channels are used in alert rules? We'll tell you. Our next step audits your configuration to identify
+        which channels need some post-authentication love. Bear in mind that if you've got a lot of Slack channels with alert rules,
+        this might take a hot minute.
+        {% endblocktrans %}
+    </p>
+
+
+    {% if extra_orgs %}
+    <p class="alert alert-block flex">
+        <i class="icon icon-exclamation"></i>
+        <span class="multi-org-alert">
+            <span>
+                {% blocktrans %}
+                    Your Slack workspace, <strong>{{workspace}}</strong>, is installed on additional organizations:
+                {% endblocktrans %}
+            </span>
+            {% for org in extra_orgs %}
+                <span class="extra-org">{{org}}</span>
+            {% endfor %}
+                {% trans "Once you've upgraded your integration, all other organizations with the same workspace will be upgraded as well." %}
+        </span>
+    </p>
+    {% endif %}
+
+    <div id="loader"></div>
+    <div class="form-actions clearfix">
+        <div>
+            <div class="footer-text">
+                {% blocktrans %}
+                Have questions? Emails us at <a href="mailto:partners@sentry.io?subject=Slack Upgrade"><strong>partners@sentry.io</strong></a>
+                {% endblocktrans %}
+            </div>
+            <div class="pull-right">
+                <a class="btn btn-primary" onclick="loading()" href="{{ next_url }}">{% trans "Continue" %}</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
