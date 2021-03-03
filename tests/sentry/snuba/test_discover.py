@@ -1331,8 +1331,8 @@ class QueryTransformTest(TestCase):
         end_time = before_now(seconds=1)
 
         discover.query(
-            selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
-            query="http.method:GET max(time):>2019-12-01",
+            selected_columns=["transaction", "avg(transaction.duration)", "max(timestamp)"],
+            query="http.method:GET max(timestamp):>2019-12-01",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
         )
@@ -1344,9 +1344,9 @@ class QueryTransformTest(TestCase):
             dataset=Dataset.Discover,
             aggregations=[
                 ["avg", "duration", "avg_transaction_duration"],
-                ["max", "time", "max_time"],
+                ["max", "timestamp", "max_timestamp"],
             ],
-            having=[["max_time", ">", 1575158400]],
+            having=[["max_timestamp", ">", 1575158400]],
             end=end_time,
             start=start_time,
             orderby=None,
@@ -1372,7 +1372,7 @@ class QueryTransformTest(TestCase):
                 "data": [{"transaction": "api.do_things", "duration": 200}],
             }
             discover.query(
-                selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
+                selected_columns=["transaction", "avg(transaction.duration)", "max(timestamp)"],
                 query=f"http.method:GET avg(transaction.duration):>{query_string}",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
@@ -1385,7 +1385,7 @@ class QueryTransformTest(TestCase):
                 dataset=Dataset.Discover,
                 aggregations=[
                     ["avg", "duration", "avg_transaction_duration"],
-                    ["max", "time", "max_time"],
+                    ["max", "timestamp", "max_timestamp"],
                 ],
                 having=[["avg_transaction_duration", ">", value]],
                 end=end_time,
@@ -1408,7 +1408,7 @@ class QueryTransformTest(TestCase):
         with pytest.raises(InvalidSearchQuery):
             discover.query(
                 selected_columns=["transaction"],
-                query="http.method:GET max(time):>5",
+                query="http.method:GET max(timestamp):>5",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
             )
@@ -1425,7 +1425,7 @@ class QueryTransformTest(TestCase):
         with pytest.raises(InvalidSearchQuery):
             discover.query(
                 selected_columns=["transaction"],
-                query="http.method:GET max(time):>5",
+                query="http.method:GET max(timestamp):>5",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
                 auto_aggregations=True,
@@ -1443,7 +1443,7 @@ class QueryTransformTest(TestCase):
         with pytest.raises(AssertionError):
             discover.query(
                 selected_columns=["transaction"],
-                query="http.method:GET max(time):>5",
+                query="http.method:GET max(timestamp):>5",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=False,
                 auto_aggregations=True,
@@ -1460,14 +1460,17 @@ class QueryTransformTest(TestCase):
 
         discover.query(
             selected_columns=["transaction", "p95()"],
-            query="http.method:GET max(time):>5",
+            query="http.method:GET max(timestamp):>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
             auto_aggregations=True,
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            aggregations=[["quantile(0.95)", "duration", "p95"], ["max", "time", "max_time"]],
+            aggregations=[
+                ["quantile(0.95)", "duration", "p95"],
+                ["max", "timestamp", "max_timestamp"],
+            ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["transaction"],
@@ -1475,7 +1478,7 @@ class QueryTransformTest(TestCase):
             start=start_time,
             end=end_time,
             orderby=None,
-            having=[["max_time", ">", 5.0]],
+            having=[["max_timestamp", ">", 5.0]],
             limit=50,
             offset=None,
             referrer=None,
@@ -1491,15 +1494,18 @@ class QueryTransformTest(TestCase):
         end_time = before_now(seconds=1)
 
         discover.query(
-            selected_columns=["transaction", "min(time)"],
-            query="max(time):>5 AND min(time):<10",
+            selected_columns=["transaction", "min(timestamp)"],
+            query="max(timestamp):>5 AND min(timestamp):<10",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
             auto_aggregations=True,
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            aggregations=[["min", "time", "min_time"], ["max", "time", "max_time"]],
+            aggregations=[
+                ["min", "timestamp", "min_timestamp"],
+                ["max", "timestamp", "max_timestamp"],
+            ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["transaction"],
@@ -1507,7 +1513,7 @@ class QueryTransformTest(TestCase):
             start=start_time,
             end=end_time,
             orderby=None,
-            having=[["max_time", ">", 5.0], ["min_time", "<", 10.0]],
+            having=[["max_timestamp", ">", 5.0], ["min_timestamp", "<", 10.0]],
             limit=50,
             offset=None,
             referrer=None,
