@@ -14,13 +14,19 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         self.now = datetime.now()
         self.one_day_ago = before_now(days=1)
 
-        self.login_as(user=self.user, superuser=False)
+        self.login_as(user=self.user)
 
         self.org = self.create_organization(owner=self.user, name="foo")
 
-        self.project = self.create_project(name="bar", organization=self.org)
+        self.project = self.create_project(
+            name="bar", teams=[self.create_team(organization=self.org, members=[self.user])]
+        )
 
-        self.other_project = self.create_project(name="other")
+        # self.other_project = self.create_project(name="bees", organization=self.org)
+        self.other_project = self.create_project(
+            name="foo", teams=[self.create_team(organization=self.org, members=[self.user])]
+        )
+
         self.store_outcomes(
             {
                 "org_id": self.org.id,
@@ -59,7 +65,6 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         response = make_request(
             {"start": iso_format(self.one_day_ago), "end": iso_format(self.now), "interval": "1d"}
         )
-        # print(json.dumps(response.data))
 
         assert response.status_code == 200, response.content
         assert response.data[self.project.id]["statsErrors"][0]["accepted"] == {
@@ -76,7 +81,24 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             "other": {"quantity": 0, "times_seen": 0},
         }
         assert self.other_project.id in response.data
-        # assert len(response.data) ==
+
+    def test_project_org_stats(self):
+        make_request = functools.partial(
+            self.client.get, reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug])
+        )
+        response = make_request(
+            {"start": iso_format(self.one_day_ago), "end": iso_format(self.now), "interval": "1d"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["statsErrors"][0]["accepted"] == {"quantity": 1, "times_seen": 1}
+        assert response.data["statsErrors"][0]["filtered"] == {"quantity": 0, "times_seen": 0}
+        assert response.data["statsErrors"][0]["dropped"] == {
+            "overQuota": {"quantity": 0, "times_seen": 0},
+            "spikeProtection": {"quantity": 0, "times_seen": 0},
+            "other": {"quantity": 0, "times_seen": 0},
+        }
+        assert "time" in response.data["statsErrors"][0]  # TODO: write better test for this
 
     # def test_resolution(self):
     #     self.login_as(user=self.user)

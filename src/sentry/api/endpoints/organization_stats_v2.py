@@ -62,16 +62,6 @@ def datamapper(row):
 
 class OrganizationStatsEndpointV2(OrganizationEndpoint):
     def get(self, request, organization):
-        # group = request.GET.get("group", "organization")
-        # if group == "organization":
-        #     keys = [organization.id]
-        # team_list = Team.objects.get_for_user(organization=organization, user=request.user)
-
-        # do we always want all of the projects in an org? is there any case where we wouldnt?
-        # project_list = []
-        # for team in team_list:
-        #     project_list.extend(Project.objects.get_for_user(team=team, user=request.user))
-
         start, end, rollup = get_date_range_rollup_from_params(request.GET, "1h", round_range=True)
 
         result = outcomes.query(
@@ -103,22 +93,13 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
 
 class OrganizationProjectStatsIndex(OrganizationEndpoint):
     def get(self, request, organization):
-        # group = request.GET.get("group", "organization")
-        # if group == "organization":
-        #     keys = [organization.id]
-        # team_list = Team.objects.get_for_user(organization=organization, user=request.user)
-
-        # do we always want all of the projects in an org? is there any case where we wouldnt?
-        # project_list = []
-        # for team in team_list:
-        #     project_list.extend(Project.objects.get_for_user(team=team, user=request.user))
-        # make sure this only has projects user has access to
         start, end, rollup = get_date_range_rollup_from_params(request.GET, "1h", round_range=True)
 
         project_list = []
         team_list = Team.objects.get_for_user(organization=organization, user=request.user)
         for team in team_list:
             project_list.extend(Project.objects.get_for_user(team=team, user=request.user))
+        project_ids = list({p.id for p in project_list})
 
         result = outcomes.query(
             start=start,
@@ -126,10 +107,9 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
             rollup=rollup,
             groupby=["project_id", "category", "time", "outcome", "reason"],
             aggregations=[["sum", "times_seen", "times_seen"], ["sum", "quantity", "quantity"]],
-            filter_keys={"org_id": [organization.id]},
+            filter_keys={"org_id": [organization.id], "project_id": project_ids},
             orderby=["times_seen", "time"],
         )
-        # TODO: filter out projects user doesnt have access to.
         # need .copy here?
         # TODO: zerofill projects
         template = {
@@ -158,10 +138,13 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
             }
             for project_id, val2 in new_res.items()
         }
-        # new_res = {
-        #     category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")
-        #     for category, val in new_res.items()
-        # }
+        for project_id in project_ids:
+            if project_id not in new_res:
+                new_res[project_id] = template.copy()
+                for val in CATEGORY_NAME_MAP.values():
+                    # TODO: zerofill w/ empty objects?
+                    new_res[project_id][val] = outcomes.zerofill([], start, end, rollup, "time")
+
         return Response(new_res)
 
 
