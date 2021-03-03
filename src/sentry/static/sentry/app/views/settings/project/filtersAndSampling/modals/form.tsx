@@ -296,10 +296,19 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
       !defined(sampleRate) ||
       (!!conditions.length &&
         !!conditions.find(condition => {
-          if (condition.category !== DynamicSamplingInnerName.EVENT_LEGACY_BROWSER) {
-            return !condition.match;
+          if (condition.category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER) {
+            return !(condition.legacyBrowsers ?? []).length;
           }
-          return false;
+
+          if (
+            condition.category === DynamicSamplingInnerName.EVENT_LOCALHOST ||
+            condition.category === DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
+            condition.category === DynamicSamplingInnerName.EVENT_WEB_CRAWLERS
+          ) {
+            return false;
+          }
+
+          return !condition.match;
         }));
 
     return (
