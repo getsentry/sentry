@@ -20,11 +20,14 @@ SnubaModelQuerySettings = collections.namedtuple(
     ["dataset", "groupby", "aggregate", "conditions"],
 )
 
+# combine DEFAULT, ERROR, and SECURITY as errors. We are now recording outcome by
+# category, and these TSDB models and where they're used assume only errors.
+# see relay: py/sentry_relay/consts.py
 OUTCOMES_CATEGORY_CONDITION = [
     "category",
     "IN",
-    [DataCategory.DEFAULT, DataCategory.ERROR, DataCategory.SECURITY],
-]  # all of these outcome categories are grouped together as errors.
+    DataCategory.error_categories(),
+]
 
 
 class SnubaTSDB(BaseTSDB):
@@ -200,7 +203,10 @@ class SnubaTSDB(BaseTSDB):
             [["outcome", "=", outcomes.Outcome.FILTERED], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.key_total_received: SnubaModelQuerySettings(
-            snuba.Dataset.OutcomesRaw, "key_id", None, [["outcome", "!=", outcomes.Outcome.INVALID]]
+            snuba.Dataset.OutcomesRaw,
+            "key_id",
+            None,
+            [["outcome", "!=", outcomes.Outcome.INVALID], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.key_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw,

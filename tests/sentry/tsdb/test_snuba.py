@@ -6,6 +6,7 @@ from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.dates import to_timestamp
 from sentry.utils.outcomes import Outcome
+from sentry_relay import DataCategory
 
 
 def floor_to_hour_epoch(value):
@@ -37,23 +38,70 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
             self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.start_time, 1, 3
-            )
-            self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.one_day_later, 1, 4
-            )
-
-            # Also create some outcomes we shouldn't be querying
-            self.store_outcomes(
-                other_organization.id, self.project.id, outcome.value, self.one_day_later, 1, 5
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ERROR,
+                self.start_time,
+                1,
+                3,
             )
             self.store_outcomes(
                 self.organization.id,
                 self.project.id,
                 outcome.value,
+                DataCategory.ERROR,
+                self.one_day_later,
+                1,
+                4,
+            )
+
+            # Also create some outcomes we shouldn't be querying
+            self.store_outcomes(
+                other_organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ERROR,
+                self.one_day_later,
+                1,
+                5,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ERROR,
                 self.day_before_start_time,
                 1,
                 6,
+            )
+            # we also shouldn't see any other datacategories in these queries
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.TRANSACTION,
+                self.one_day_later,
+                1,
+                1,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ATTACHMENT,
+                self.one_day_later,
+                1,
+                1,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.SESSION,
+                self.one_day_later,
+                1,
+                1,
             )
 
         for tsdb_model, granularity, floor_func, start_time_count, day_later_count in [
@@ -85,23 +133,71 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
             self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.start_time, 1, 3
-            )
-            self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.one_day_later, 1, 4
-            )
-
-            # Also create some outcomes we shouldn't be querying
-            self.store_outcomes(
-                self.organization.id, other_project.id, outcome.value, self.one_day_later, 1, 5
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ERROR,
+                self.start_time,
+                1,
+                3,
             )
             self.store_outcomes(
                 self.organization.id,
                 self.project.id,
                 outcome.value,
+                DataCategory.ERROR,
+                self.one_day_later,
+                1,
+                4,
+            )
+
+            # Also create some outcomes we shouldn't be querying
+            self.store_outcomes(
+                self.organization.id,
+                other_project.id,
+                outcome.value,
+                DataCategory.ERROR,
+                self.one_day_later,
+                1,
+                5,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ERROR,
                 self.day_before_start_time,
                 1,
                 6,
+            )
+
+            # we also shouldn't see any other datacategories in these queries
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.TRANSACTION,
+                self.one_day_later,
+                1,
+                1,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ATTACHMENT,
+                self.one_day_later,
+                1,
+                1,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.SESSION,
+                self.one_day_later,
+                1,
+                1,
             )
 
         for tsdb_model, granularity, floor_func, start_time_count, day_later_count in [
@@ -137,6 +233,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 self.organization.id,
                 self.project.id,
                 outcome.value,
+                DataCategory.ERROR,
                 self.start_time,
                 project_key.id,
                 3,
@@ -145,6 +242,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 self.organization.id,
                 self.project.id,
                 outcome.value,
+                DataCategory.ERROR,
                 self.one_day_later,
                 project_key.id,
                 4,
@@ -155,6 +253,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 self.organization.id,
                 self.project.id,
                 outcome.value,
+                DataCategory.ERROR,
                 self.one_day_later,
                 other_project_key.id,
                 5,
@@ -163,9 +262,38 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 self.organization.id,
                 self.project.id,
                 outcome.value,
+                DataCategory.ERROR,
                 self.day_before_start_time,
                 project_key.id,
                 6,
+            )
+            # we also shouldn't see any other datacategories in these queries
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.TRANSACTION,
+                self.one_day_later,
+                project_key.id,
+                1,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ATTACHMENT,
+                self.one_day_later,
+                project_key.id,
+                1,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.SESSION,
+                self.one_day_later,
+                project_key.id,
+                1,
             )
 
         for tsdb_model, granularity, floor_func, start_time_count, day_later_count in [
