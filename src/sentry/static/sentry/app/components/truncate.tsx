@@ -3,7 +3,7 @@ import React from 'react';
 type DefaultProps = {
   maxLength: number;
   leftTrim: boolean;
-  trimRegex: RegExp;
+  trimRegex?: RegExp;
   expandable: boolean;
 };
 
@@ -20,7 +20,6 @@ class Truncate extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     maxLength: 50,
     leftTrim: false,
-    trimRegex: false,
     expandable: true,
   };
 
