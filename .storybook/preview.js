@@ -135,7 +135,7 @@ export const parameters = {
     values: [
       {
         name: 'light',
-        value: theme.background,
+        value: lightTheme.background,
       },
       {
         name: 'dark',
