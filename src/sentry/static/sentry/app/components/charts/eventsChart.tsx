@@ -1,6 +1,7 @@
 import React from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
 import {EChartOption} from 'echarts/lib/echarts';
+import {withTheme} from 'emotion-theming';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -20,11 +21,12 @@ import {DateString, OrganizationSummary} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {aggregateMultiPlotType} from 'app/utils/discover/fields';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 import EventsRequest from './eventsRequest';
 
 type ChartProps = {
+  theme: Theme;
   loading: boolean;
   reloading: boolean;
   zoomRenderProps: ZoomRenderProps;
@@ -129,6 +131,7 @@ class Chart extends React.Component<ChartProps, State> {
 
   render() {
     const {
+      theme,
       loading: _loading,
       reloading: _reloading,
       yAxis,
@@ -230,7 +233,8 @@ class Chart extends React.Component<ChartProps, State> {
   }
 }
 
-type Props = {
+export type EventsChartProps = {
+  theme: Theme;
   api: Client;
   router: InjectedRouter;
   organization: OrganizationSummary;
@@ -332,9 +336,10 @@ type ChartDataProps = {
   releaseSeries?: Series[];
 };
 
-class EventsChart extends React.Component<Props> {
+class EventsChart extends React.Component<EventsChartProps> {
   render() {
     const {
+      theme,
       api,
       period,
       utc,
@@ -402,6 +407,7 @@ class EventsChart extends React.Component<Props> {
           {React.isValidElement(chartHeader) && chartHeader}
 
           <Chart
+            theme={theme}
             zoomRenderProps={zoomRenderProps}
             loading={loading}
             reloading={reloading}
@@ -485,4 +491,4 @@ class EventsChart extends React.Component<Props> {
   }
 }
 
-export default EventsChart;
+export default withTheme(EventsChart);
