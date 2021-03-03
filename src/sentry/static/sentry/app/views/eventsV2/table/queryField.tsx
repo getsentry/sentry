@@ -92,6 +92,7 @@ class QueryField extends React.Component<Props> {
     switch (value.kind) {
       case FieldValueKind.TAG:
       case FieldValueKind.MEASUREMENT:
+      case FieldValueKind.BREAKDOWN:
       case FieldValueKind.FIELD:
         fieldValue = {kind: 'field', field: value.meta.name};
         break;
@@ -128,7 +129,8 @@ class QueryField extends React.Component<Props> {
           } else if (
             (field.kind === FieldValueKind.FIELD ||
               field.kind === FieldValueKind.TAG ||
-              field.kind === FieldValueKind.MEASUREMENT) &&
+              field.kind === FieldValueKind.MEASUREMENT ||
+              field.kind === FieldValueKind.BREAKDOWN) &&
             validateColumnTypes(param.columnTypes as ValidateColumnTypes, field)
           ) {
             // New function accepts current field.
@@ -199,6 +201,11 @@ class QueryField extends React.Component<Props> {
       return fieldOptions[measurementName].value;
     }
 
+    const spanOperationBreakdownName = `span_op_breakdown:${name}`;
+    if (fieldOptions[spanOperationBreakdownName]) {
+      return fieldOptions[spanOperationBreakdownName].value;
+    }
+
     const tagName =
       name.indexOf('tags[') === 0
         ? `tag:${name.replace(/tags\[(.*?)\]/, '$1')}`
@@ -264,7 +271,8 @@ class QueryField extends React.Component<Props> {
                 ({value}) =>
                   (value.kind === FieldValueKind.FIELD ||
                     value.kind === FieldValueKind.TAG ||
-                    value.kind === FieldValueKind.MEASUREMENT) &&
+                    value.kind === FieldValueKind.MEASUREMENT ||
+                    value.kind === FieldValueKind.BREAKDOWN) &&
                   validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
               ),
             };
@@ -397,6 +405,10 @@ class QueryField extends React.Component<Props> {
         break;
       case FieldValueKind.MEASUREMENT:
         text = 'measure';
+        tagType = 'info';
+        break;
+      case FieldValueKind.BREAKDOWN:
+        text = 'breakdown';
         tagType = 'info';
         break;
       case FieldValueKind.TAG:
