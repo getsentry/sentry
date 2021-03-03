@@ -74,4 +74,10 @@ class DemoStartView(BaseView):
         ProjectKey.objects.filter(project__organization=org).delete()
 
         auth.login(request, user)
-        return self.redirect(auth.get_login_redirect(request))
+
+        resp = self.redirect(auth.get_login_redirect(request))
+        # set a cookie of whether the user accepteed tracking so we know
+        # whether to initialize analytics when accepted_tracking=1
+        resp.set_cookie("accepted_tracking", request.GET.get("accepted_tracking"))
+
+        return resp
