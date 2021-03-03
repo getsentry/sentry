@@ -1566,6 +1566,22 @@ SENTRY_DEVSERVICES = {
         "image": "postgres:9.6-alpine",
         "pull": True,
         "ports": {"5432/tcp": 5432},
+        "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
+        "volumes": {
+            "postgres": {"bind": "/var/lib/postgresql/data"},
+        },
+        "healthcheck": {
+            "test": ["CMD", "pg_isready"],
+            "interval": 1000000000,  # Test every 1 second (in ns).
+            "timeout": 1000000000,  # Time we should expect the test to take.
+            "retries": 5,
+        },
+        "only_if": lambda settings, options: (not settings.DEVSERVICES_WAL_REPLICATION),
+    },
+    "postgres_wal_replication": {
+        "image": "postgres:9.6-alpine",
+        "pull": True,
+        "ports": {"5432/tcp": 5432},
         "command": [
             "postgres",
             "-c",
@@ -1586,6 +1602,7 @@ SENTRY_DEVSERVICES = {
             "timeout": 1000000000,  # Time we should expect the test to take.
             "retries": 5,
         },
+        "only_if": lambda settings, options: (settings.DEVSERVICES_WAL_REPLICATION),
     },
     "zookeeper": {
         "image": "confluentinc/cp-zookeeper:5.1.2",
@@ -2132,3 +2149,6 @@ SENTRY_EXTRA_WORKERS = None
 DEMO_MODE = False
 
 DEMO_ORG_OWNER_EMAIL = None
+
+# Set this to True if running CDC and you need Postgres WAL replication in dev
+DEVSERVICES_WAL_REPLICATION = False
