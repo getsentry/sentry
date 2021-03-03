@@ -1,7 +1,7 @@
 from enum import Enum
 
 from django.db import models
-from sentry.db.models import Model, FlexibleForeignKey
+from sentry.db.models import Model
 
 
 class ActorType(Enum):
@@ -12,7 +12,6 @@ class ActorType(Enum):
 class Actor(Model):
     __core__ = True
 
-    organization = FlexibleForeignKey("sentry.Organization")
     type = models.PositiveSmallIntegerField(
         choices=(
             (ActorType.TEAM, "team"),
