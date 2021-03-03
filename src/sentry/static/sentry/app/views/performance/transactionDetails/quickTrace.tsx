@@ -96,7 +96,7 @@ type QuickTracePillsProps = {
 
 function singleEventHoverText(event: EventLite) {
   return (
-    <span>
+    <div>
       <Truncate
         value={event.transaction}
         maxLength={30}
@@ -104,13 +104,14 @@ function singleEventHoverText(event: EventLite) {
         trimRegex={/\.|\//g}
         expandable={false}
       />
-      <br />
-      {getDuration(
-        event['transaction.duration'] / 1000,
-        event['transaction.duration'] < 1000 ? 0 : 2,
-        true
-      )}
-    </span>
+      <div>
+        {getDuration(
+          event['transaction.duration'] / 1000,
+          event['transaction.duration'] < 1000 ? 0 : 2,
+          true
+        )}
+      </div>
+    </div>
   );
 }
 
