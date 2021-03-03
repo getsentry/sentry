@@ -89,7 +89,7 @@ const EventDetailHeader = styled('div')`
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: minmax(150px, 2fr) minmax(150px, 2fr) minmax(150px, 2fr) 4fr;
+    grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;
     grid-row-gap: 0;
     margin-bottom: 0;
   }
