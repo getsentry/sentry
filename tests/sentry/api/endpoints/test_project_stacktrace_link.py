@@ -101,7 +101,10 @@ class ProjectStacktraceLinkTest(APITestCase):
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "file_not_found"
         assert response.data["integrations"] == [self._serialized_integration()]
-        assert response.data["attemptedUrl"] == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
+        assert (
+            response.data["attemptedUrl"]
+            == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
+        )
 
     def test_stack_root_mismatch_error(self):
         self.login_as(user=self.user)
