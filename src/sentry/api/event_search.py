@@ -975,6 +975,8 @@ def format_search_filter(term, params):
     name = term.key.name
     value = term.value.value
     if name in (PROJECT_ALIAS, PROJECT_NAME_ALIAS):
+        if term.operator == "=" and value == "":
+            raise InvalidSearchQuery("Invalid query for 'has' search: 'project' cannot be empty.")
         project = None
         try:
             project = Project.objects.get(id__in=params.get("project_id", []), slug=value)
@@ -1528,6 +1530,19 @@ class CountColumn(FunctionArg):
         return value
 
 
+class FieldColumn(CountColumn):
+    """ Allow any field column, of any type """
+
+    def get_type(self, value):
+        if is_duration_measurement(value):
+            return "duration"
+        elif value == "transaction.duration":
+            return "duration"
+        elif value == "timestamp":
+            return "date"
+        return "string"
+
+
 class StringArg(FunctionArg):
     def __init__(self, name, unquote=False, unescape_quotes=False):
         super().__init__(name)
@@ -1985,7 +2000,7 @@ FUNCTIONS = {
         ),
         Function(
             "epm",
-            optional_args=[IntervalDefault("interval", 60, None)],
+            optional_args=[IntervalDefault("interval", 1, None)],
             transform="divide(count(), divide({interval:g}, 60))",
             default_result_type="number",
         ),
@@ -2152,6 +2167,13 @@ FUNCTIONS = {
             aggregate=["sum", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+        ),
+        Function(
+            "any",
+            required_args=[FieldColumn("column")],
+            aggregate=["min", ArgValue("column"), None],
+            result_type_fn=reflective_result_type(),
+            redundant_grouping=True,
         ),
         # Currently only being used by the baseline PoC
         Function(

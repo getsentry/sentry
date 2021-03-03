@@ -32,6 +32,9 @@ import EventView from 'app/utils/discover/eventView';
 import {FIELD_TAGS} from 'app/utils/discover/fields';
 import {eventDetailsRoute} from 'app/utils/discover/urls';
 import {getMessage} from 'app/utils/events';
+import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
+import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
+import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
 import EventMetas from 'app/views/performance/transactionDetails/eventMetas';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
@@ -149,14 +152,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           })
         : null;
 
-    const hasQuickTraceView =
-      event.type === 'transaction' &&
-      organization.features.includes('trace-view-quick') &&
-      organization.features.includes('trace-view-summary');
-
     const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
 
-    return (
+    const renderContent = (results?: QuickTraceQueryChildrenProps) => (
       <React.Fragment>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -173,7 +171,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               <Button onClick={this.toggleSidebar}>
                 {isSidebarVisible ? 'Hide Details' : 'Show Details'}
               </Button>
-              {hasQuickTraceView && (
+              {results && (
                 <Button icon={<IconOpen />} href={eventJsonUrl} external>
                   {t('JSON')} (<FileSize bytes={event.size} />)
                 </Button>
@@ -195,9 +193,10 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
-          {hasQuickTraceView && (
+          {results && (
             <Layout.Main fullWidth>
               <EventMetas
+                quickTrace={results}
                 event={event}
                 organization={organization}
                 projectId={this.projectId}
@@ -224,14 +223,16 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                       },
                     }}
                   >
-                    <BorderlessEventEntries
-                      organization={organization}
-                      event={event}
-                      project={projects[0] as Project}
-                      location={location}
-                      showExampleCommit={false}
-                      showTagSummary={false}
-                    />
+                    <QuickTraceContext.Provider value={results}>
+                      <BorderlessEventEntries
+                        organization={organization}
+                        event={event}
+                        project={projects[0] as Project}
+                        location={location}
+                        showExampleCommit={false}
+                        showTagSummary={false}
+                      />
+                    </QuickTraceContext.Provider>
                   </SpanEntryContext.Provider>
                 ) : (
                   <LoadingIndicator />
@@ -241,7 +242,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           </Layout.Main>
           {isSidebarVisible && (
             <Layout.Side>
-              {!hasQuickTraceView && (
+              {results === undefined && (
                 <React.Fragment>
                   <EventMetadata
                     event={event}
@@ -266,6 +267,21 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
         </Layout.Body>
       </React.Fragment>
     );
+
+    const hasQuickTraceView =
+      event.type === 'transaction' &&
+      (organization.features.includes('trace-view-quick') ||
+        organization.features.includes('trace-view-summary'));
+
+    if (hasQuickTraceView) {
+      return (
+        <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
+          {results => renderContent(results)}
+        </QuickTraceQuery>
+      );
+    }
+
+    return renderContent();
   }
 
   renderError(error: Error) {

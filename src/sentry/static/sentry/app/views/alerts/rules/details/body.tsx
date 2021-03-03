@@ -1,5 +1,5 @@
 import React from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
@@ -11,6 +11,7 @@ import Button from 'app/components/button';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import {SectionHeading} from 'app/components/charts/styles';
 import {getInterval} from 'app/components/charts/utils';
+import DateTime from 'app/components/dateTime';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
 import * as Layout from 'app/components/layouts/thirds';
@@ -20,7 +21,7 @@ import TimeSince from 'app/components/timeSince';
 import {IconCheckmark} from 'app/icons/iconCheckmark';
 import {IconFire} from 'app/icons/iconFire';
 import {IconWarning} from 'app/icons/iconWarning';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
@@ -52,10 +53,12 @@ type Props = {
     start: string;
     end: string;
     label: string;
+    custom?: boolean;
   };
   organization: Organization;
   location: Location;
   theme: Theme;
+  handleTimePeriodChange: (value: string) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 class DetailsBody extends React.Component<Props> {
@@ -100,16 +103,6 @@ class DetailsBody extends React.Component<Props> {
 
     return getInterval({start, end}, true);
   }
-
-  handleTimePeriodChange = (value: string) => {
-    const {location} = this.props;
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        period: value,
-      },
-    });
-  };
 
   calculateSummaryPercentages(
     incidents: Incident[] | undefined,
@@ -166,10 +159,13 @@ class DetailsBody extends React.Component<Props> {
         <span>{t('Time Window')}</span>
         <span>{rule?.timeWindow && <Duration seconds={rule?.timeWindow * 60} />}</span>
 
-        {rule?.query && (
+        {(rule?.dataset || rule?.query) && (
           <React.Fragment>
             <span>{t('Filter')}</span>
-            <span title={rule?.query}>{rule?.query}</span>
+            <span>
+              {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
+              {rule?.query}
+            </span>
           </React.Fragment>
         )}
 
@@ -362,20 +358,26 @@ class DetailsBody extends React.Component<Props> {
           return initiallyLoaded ? (
             <Layout.Body>
               <Layout.Main>
-                <DropdownControl
-                  buttonProps={{prefix: t('Display')}}
-                  label={timePeriod.label}
-                >
-                  {TIME_OPTIONS.map(({label, value}) => (
-                    <DropdownItem
-                      key={value}
-                      eventKey={value}
-                      onSelect={this.handleTimePeriodChange}
-                    >
-                      {label}
-                    </DropdownItem>
-                  ))}
-                </DropdownControl>
+                <ChartControls>
+                  <DropdownControl label={timePeriod.label}>
+                    {TIME_OPTIONS.map(({label, value}) => (
+                      <DropdownItem
+                        key={value}
+                        eventKey={value}
+                        onSelect={this.props.handleTimePeriodChange}
+                      >
+                        {label}
+                      </DropdownItem>
+                    ))}
+                  </DropdownControl>
+                  {timePeriod.custom && (
+                    <StyledTimeRange>
+                      <DateTime date={timePeriod.start} timeAndDate />
+                      {' — '}
+                      <DateTime date={timePeriod.end} timeAndDate />
+                    </StyledTimeRange>
+                  )}
+                </ChartControls>
                 <ChartPanel>
                   <PanelBody withPadding>
                     <ChartHeader>
@@ -443,27 +445,6 @@ class DetailsBody extends React.Component<Props> {
               </Layout.Main>
               <Layout.Side>
                 {this.renderMetricStatus()}
-                <ChartParameters>
-                  {tct('Metric: [metric] over [window]', {
-                    metric: <code>{rule?.aggregate ?? '\u2026'}</code>,
-                    window: (
-                      <code>
-                        {rule?.timeWindow ? (
-                          <Duration seconds={rule?.timeWindow * 60} />
-                        ) : (
-                          '\u2026'
-                        )}
-                      </code>
-                    ),
-                  })}
-                  {(rule?.query || rule?.dataset) &&
-                    tct('Filter: [datasetType] [filter]', {
-                      datasetType: rule?.dataset && (
-                        <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>
-                      ),
-                      filter: rule?.query && <code>{rule.query}</code>,
-                    })}
-                </ChartParameters>
                 <SidebarHeading>
                   <span>{t('Alert Rule')}</span>
                 </SidebarHeading>
@@ -551,6 +532,16 @@ const SidebarHeading = styled(SectionHeading)`
   justify-content: space-between;
 `;
 
+const ChartControls = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+`;
+
+const StyledTimeRange = styled('div')`
+  margin-left: ${space(2)};
+`;
+
 const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
 `;
@@ -593,28 +584,6 @@ const StatCount = styled('span')`
   margin-left: ${space(0.5)};
   margin-top: ${space(0.25)};
   color: black;
-`;
-
-const ChartParameters = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-  align-items: center;
-  overflow-x: auto;
-
-  > * {
-    position: relative;
-  }
-
-  > *:not(:last-of-type):after {
-    content: '';
-    display: block;
-    height: 70%;
-    width: 1px;
-    background: ${p => p.theme.gray200};
-    position: absolute;
-    right: -${space(2)};
-    top: 15%;
-  }
 `;
 
 const RuleDetails = styled('div')`

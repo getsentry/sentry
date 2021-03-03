@@ -90,23 +90,14 @@ export const Title = styled('h2')`
  * are stacked vertically.
  */
 export const Header = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  flex-grow: 0;
-  justify-content: space-between;
-  padding: ${space(2)} ${space(4)} 0 ${space(4)};
-  margin: 0;
-
+  display: grid;
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
   background-color: transparent;
   border-bottom: 1px solid ${p => p.theme.border};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    flex-direction: column;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: 1fr auto;
+    padding: ${space(2)} ${space(4)} 0 ${space(4)};
   }
 `;
 

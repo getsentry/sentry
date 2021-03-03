@@ -26,8 +26,8 @@ type State = {
   creating: boolean;
 };
 
-const EVENT_POLL_RETRIES = 6;
-const EVENT_POLL_INTERVAL = 800;
+const EVENT_POLL_RETRIES = 10;
+const EVENT_POLL_INTERVAL = 1000;
 
 async function latestEventAvailable(
   api: Client,

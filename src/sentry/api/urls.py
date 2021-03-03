@@ -111,7 +111,10 @@ from .endpoints.organization_events_trends import (
     OrganizationEventsTrendsEndpoint,
     OrganizationEventsTrendsStatsEndpoint,
 )
-from .endpoints.organization_events_trace import OrganizationEventsTraceLightEndpoint
+from .endpoints.organization_events_trace import (
+    OrganizationEventsTraceLightEndpoint,
+    OrganizationEventsTraceEndpoint,
+)
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
@@ -219,6 +222,7 @@ from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_codeowners import ProjectCodeOwnersEndpoint
+from .endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
@@ -714,6 +718,17 @@ urlpatterns = [
                     ChunkUploadEndpoint.as_view(),
                     name="sentry-api-0-chunk-upload",
                 ),
+                # Code Path Mappings
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/repo-project-path-configs/$",
+                    OrganizationIntegrationRepositoryProjectPathConfigEndpoint.as_view(),
+                    name="sentry-api-0-organization-repository-project-path-config",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/repo-project-path-configs/(?P<config_id>[^\/]+)/$",
+                    OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-repository-project-path-config-details",
+                ),
                 # Discover
                 url(
                     r"^(?P<organization_slug>[^\/]+)/discover/query/$",
@@ -918,6 +933,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-trace-light",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/events-trace/(?P<trace_id>[^\/]+)/$",
+                    OrganizationEventsTraceEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-trace",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/issues/new/$",
                     OrganizationIssuesNewEndpoint.as_view(),
                 ),
@@ -951,16 +971,6 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repos/$",
                     OrganizationIntegrationReposEndpoint.as_view(),
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repo-project-path-configs/$",
-                    OrganizationIntegrationRepositoryProjectPathConfigEndpoint.as_view(),
-                    name="sentry-api-0-organization-integration-repository-project-path-config",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repo-project-path-configs/(?P<config_id>[^\/]+)/$",
-                    OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint.as_view(),
-                    name="sentry-api-0-organization-integration-repository-project-path-config-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/serverless-functions/$",
@@ -1687,6 +1697,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners/$",
                     ProjectCodeOwnersEndpoint.as_view(),
                     name="sentry-api-0-project-codeowners",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners/(?P<codeowners_id>[^\/]+)/$",
+                    ProjectCodeOwnersDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-codeowners-details",
                 ),
                 # Load plugin project urls
                 url(

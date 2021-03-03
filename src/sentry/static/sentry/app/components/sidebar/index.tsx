@@ -23,7 +23,6 @@ import {
   IconReleases,
   IconSettings,
   IconSiren,
-  IconStack,
   IconStats,
   IconSupport,
   IconTelescope,
@@ -173,7 +172,6 @@ class Sidebar extends React.Component<Props, State> {
     const globalSelectionRoutes = [
       'dashboards',
       'issues',
-      'events',
       'releases',
       'user-feedback',
       'discover',
@@ -200,7 +198,7 @@ class Sidebar extends React.Component<Props, State> {
   };
 
   /**
-   * Determine which mix of discovers and events tabs to show for an account.
+   * Determine which mix of discovers tabs to show for an account.
    */
   discoverSidebarState() {
     const {organization} = this.props;
@@ -208,7 +206,6 @@ class Sidebar extends React.Component<Props, State> {
     const sidebarState = {
       discover1: false,
       discover2: false,
-      events: false,
     };
 
     // Bail as we can't do any more checks.
@@ -227,13 +224,10 @@ class Sidebar extends React.Component<Props, State> {
     if (features.includes('discover')) {
       sidebarState.discover1 = true;
     }
-    if (features.includes('events')) {
-      sidebarState.events = true;
-    }
 
-    // If an organization doesn't have events, or discover-basic
-    // Enable the tab so we can show an upsell state in saas.
-    if (!sidebarState.events) {
+    // If an organization doesn't have discover1
+    // Enable discover2 so we can show an upsell state in saas.
+    if (!sidebarState.discover1) {
       sidebarState.discover2 = true;
     }
 
@@ -282,28 +276,6 @@ class Sidebar extends React.Component<Props, State> {
         to={`/organizations/${organization.slug}/issues/`}
         id="issues"
       />
-    );
-
-    const events = hasOrganization && discoverState.events && (
-      <Feature
-        features={['events']}
-        hookName="feature-disabled:events-sidebar-item"
-        organization={organization}
-      >
-        <SidebarItem
-          {...sidebarItemProps}
-          onClick={(_id, evt) =>
-            this.navigateWithGlobalSelection(
-              `/organizations/${organization.slug}/events/`,
-              evt
-            )
-          }
-          icon={<IconStack size="md" />}
-          label={t('Events')}
-          to={`/organizations/${organization.slug}/events/`}
-          id="events"
-        />
-      </Feature>
     );
 
     const discover1 = hasOrganization && discoverState.discover1 && (
@@ -515,7 +487,6 @@ class Sidebar extends React.Component<Props, State> {
                   {alerts}
                   {discover1}
                   {discover2}
-                  {events}
                 </SidebarSection>
 
                 <SidebarSection>

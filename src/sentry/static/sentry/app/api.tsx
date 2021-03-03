@@ -27,11 +27,12 @@ export class Request {
    */
   requestPromise: Promise<Response>;
   /**
-   * AbortController to cancel the in-flight request
+   * AbortController to cancel the in-flight request. This will not be set in
+   * unsupported browsers.
    */
-  aborter: AbortController;
+  aborter?: AbortController;
 
-  constructor(requestPromise: Promise<Response>, aborter: AbortController) {
+  constructor(requestPromise: Promise<Response>, aborter?: AbortController) {
     this.requestPromise = requestPromise;
     this.aborter = aborter;
     this.alive = true;
@@ -39,7 +40,7 @@ export class Request {
 
   cancel() {
     this.alive = false;
-    this.aborter.abort();
+    this.aborter?.abort();
     metric('app.api.request-abort', 1);
   }
 }
@@ -353,7 +354,12 @@ export class Client {
         data: {status: resp?.status},
       });
 
-      if (resp && resp.status !== 0 && resp.status !== 404) {
+      if (
+        resp &&
+        resp.status !== 0 &&
+        resp.status !== 404 &&
+        errorThrown !== 'Request was aborted'
+      ) {
         run(Sentry =>
           Sentry.withScope(scope => {
             // `requestPromise` can pass its error object
@@ -371,6 +377,7 @@ export class Client {
             // Setting this to warning because we are going to capture all failed requests
             scope.setLevel(Severity.Warning);
             scope.setTag('http.statusCode', String(resp.status));
+            scope.setTag('error.reason', errorThrown);
             Sentry.captureException(errorObjectToUse);
           })
         );
@@ -394,7 +401,9 @@ export class Client {
         true
       )(jqXHR, textStatus);
 
-    const aborter = new AbortController();
+    // AbortController is optional, though most browser should support it.
+    const aborter =
+      typeof AbortController !== 'undefined' ? new AbortController() : undefined;
 
     // GET requests may not have a body
     const body = method !== 'GET' ? data : undefined;
@@ -418,22 +427,24 @@ export class Client {
       body,
       headers,
       credentials: 'same-origin',
-      signal: aborter.signal,
+      signal: aborter?.signal,
     });
 
     // XXX(epurkhiser): We're migrating off of jquery, so for now we have a
     // compatibility layer which mimics that of the jquery response objects.
     fetchRequest
       .then(async response => {
+        // The Response's body can only be resolved/used at most once.
+        // So we clone the response so we can resolve the body content as text content.
+        // Response objects need to be cloned before its body can be used.
+        const responseClone = response.clone();
+
         let responseJSON: any;
         let responseText: any;
 
-        // Try to get JSON out of the response no matter the status
-        try {
-          responseJSON = await response.json();
-        } catch {
-          // No json came out.. too bad
-        }
+        const {status, statusText} = response;
+        let {ok} = response;
+        let errorReason = 'Request not OK'; // the default error reason
 
         // Try to get text out of the response no matter the status
         try {
@@ -442,7 +453,25 @@ export class Client {
           // No text came out.. too bad
         }
 
-        const {ok, status, statusText} = response;
+        const responseContentType = response.headers.get('content-type');
+        const isResponseJSON = responseContentType?.includes('json');
+
+        const isStatus3XX = status >= 300 && status < 400;
+        if (status !== 204 && !isStatus3XX) {
+          try {
+            responseJSON = await responseClone.json();
+          } catch (error) {
+            if (error.name === 'AbortError') {
+              ok = false;
+              errorReason = 'Request was aborted';
+            } else if (isResponseJSON && error instanceof SyntaxError) {
+              // If the MIME type is `application/json` but decoding failed,
+              // this should be an error.
+              ok = false;
+              errorReason = 'JSON parse error';
+            }
+          }
+        }
 
         const emulatedJQueryXHR: any = {
           status,
@@ -452,11 +481,14 @@ export class Client {
           getResponseHeader: (header: string) => response.headers.get(header),
         };
 
+        // Respect the response content-type header
+        const responseData = isResponseJSON ? responseJSON : responseText;
+
         if (ok) {
-          successHandler(responseJSON, statusText, emulatedJQueryXHR);
+          successHandler(responseData, statusText, emulatedJQueryXHR);
         } else {
           globalErrorHandlers.forEach(handler => handler(emulatedJQueryXHR));
-          errorHandler(emulatedJQueryXHR, statusText, 'Request not OK');
+          errorHandler(emulatedJQueryXHR, statusText, errorReason);
         }
 
         completeHandler(emulatedJQueryXHR, statusText);

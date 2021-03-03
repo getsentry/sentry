@@ -820,9 +820,35 @@ def create_mock_transactions(project_map, load_trends=False, slow=False):
                     for name, backend_span_id in backend_span_ids
                 ],
             )
-            if slow:
-                time.sleep(0.05)
             for service_project, (name, backend_span_id) in zip(service_projects, backend_span_ids):
+                if slow:
+                    time.sleep(0.05)
+
+                service_duration = random_normal(650 + 50 * day, 250, 250)
+
+                # create a flat chain of tasks that after "tasks.create_invoice" only
+                # make sure to skip this when loading trends to avoid
+                should_create_process_tasks = not load_trends and name == "tasks.create_invoice"
+                service_spans = (
+                    None
+                    if not should_create_process_tasks
+                    else [
+                        {
+                            "same_process_as_parent": True,
+                            "op": "celery.task",
+                            "description": "task.process_invoice",
+                            "data": {
+                                "duration": random_normal(
+                                    0.75 - 0.05 * day, 0.25, 0.01, service_duration / 1000
+                                ),
+                                "offset": 0.02,
+                            },
+                            "span_id": uuid4().hex[:16],
+                            "trace_id": trace_id,
+                        }
+                    ]
+                )
+
                 create_sample_event(
                     project=service_project,
                     platform="transaction",
@@ -830,14 +856,52 @@ def create_mock_transactions(project_map, load_trends=False, slow=False):
                     event_id=uuid4().hex,
                     user=transaction_user,
                     timestamp=timestamp,
-                    start_timestamp=timestamp
-                    - timedelta(milliseconds=random_normal(650 + 50 * day, 250, 250)),
+                    start_timestamp=timestamp - timedelta(milliseconds=service_duration),
                     # match the trace from the javascript transaction
                     trace=trace_id,
                     parent_span_id=backend_span_id,
+                    spans=service_spans,
                 )
-                if slow:
-                    time.sleep(0.05)
+
+                if service_spans is not None:
+                    depth = 4  # want a trace with >6 layers
+                    previous_spans = service_spans
+                    for i in range(depth):
+                        sub_service_spans = (
+                            None
+                            if i + 1 >= depth  # dont add spans for the last transaction
+                            else [
+                                {
+                                    "same_process_as_parent": True,
+                                    "op": "celery.task",
+                                    "description": "tasks.process_invoice",
+                                    "data": {
+                                        "duration": random_normal(
+                                            0.75 - 0.05 * day, 0.25, 0.01, service_duration / 1000
+                                        ),
+                                        "offset": 0.02,
+                                    },
+                                    "span_id": uuid4().hex[:16],
+                                    "trace_id": trace_id,
+                                }
+                            ]
+                        )
+                        if slow:
+                            time.sleep(0.05)
+                        create_sample_event(
+                            project=service_project,
+                            platform="transaction",
+                            transaction="task.process_invoice",
+                            event_id=uuid4().hex,
+                            user=transaction_user,
+                            timestamp=timestamp,
+                            start_timestamp=timestamp
+                            - timedelta(milliseconds=random_normal(650 + 50 * day, 250, 250)),
+                            trace=trace_id,
+                            parent_span_id=previous_spans[0]["span_id"],
+                            spans=sub_service_spans,
+                        )
+                        previous_spans = sub_service_spans
 
             # Unless we want to load a 14d trend, 1 trace is enough
             if not load_trends:
@@ -850,18 +914,31 @@ if __name__ == "__main__":
     from optparse import OptionParser
 
     parser = OptionParser()
-    parser.add_option("--events", dest="num_events", default=1, type=int)
-    parser.add_option("--extra-events", dest="extra_events", default=False, action="store_true")
-    parser.add_option("--load-trends", dest="load_trends", default=False, action="store_true")
-    # load transactions slower so we don't hit clickhouse hard enough to crash it, useful if load-trends crashes
-    # clickhouse
-    parser.add_option("--slow", dest="slow", default=False, action="store_true")
+    parser.add_option("--events", default=1, type=int, help="number of events to generate")
+    parser.add_option(
+        "--extra-events",
+        default=False,
+        action="store_true",
+        help="add multiple events for each error group",
+    )
+    parser.add_option(
+        "--load-trends",
+        default=False,
+        action="store_true",
+        help="load multiple transactions for each id to show trends",
+    )
+    parser.add_option(
+        "--slow",
+        default=False,
+        action="store_true",
+        help="sleep between each transaction to let clickhouse rest",
+    )
 
     (options, args) = parser.parse_args()
 
     try:
         main(
-            num_events=options.num_events,
+            num_events=options.events,
             extra_events=options.extra_events,
             load_trends=options.load_trends,
             slow=options.slow,

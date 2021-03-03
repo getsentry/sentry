@@ -86,7 +86,11 @@ class DebugMeta extends React.PureComponent<Props, State> {
   };
 
   componentDidMount() {
-    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange, undefined);
+    this.unsubscribeFromDebugMetaStore = DebugMetaStore.listen(
+      this.onDebugMetaStoreChange,
+      undefined
+    );
+
     cache.clearAll();
     this.getRelevantImages();
     this.openImageDetailsModal();
@@ -101,17 +105,17 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   componentWillUnmount() {
-    if (this.unsubscribeFromStore) {
-      this.unsubscribeFromStore();
+    if (this.unsubscribeFromDebugMetaStore) {
+      this.unsubscribeFromDebugMetaStore();
     }
   }
 
-  unsubscribeFromStore: any;
+  unsubscribeFromDebugMetaStore: any;
 
   panelTableRef = React.createRef<HTMLDivElement>();
   listRef: List | null = null;
 
-  onStoreChange = (store: {filter: string}) => {
+  onDebugMetaStoreChange = (store: {filter: string}) => {
     const {searchTerm} = this.state;
 
     if (store.filter !== searchTerm) {
@@ -203,7 +207,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   openImageDetailsModal() {
-    const {location, organization, projectId, data} = this.props;
+    const {location, organization, projectId} = this.props;
     const {query} = location;
 
     const {imageCodeId, imageDebugId} = query;
@@ -212,10 +216,10 @@ class DebugMeta extends React.PureComponent<Props, State> {
       return;
     }
 
-    const {images} = data;
+    const {filteredImages} = this.state;
     const image =
       imageCodeId !== IMAGE_INFO_UNAVAILABLE || imageDebugId !== IMAGE_INFO_UNAVAILABLE
-        ? images.find(
+        ? filteredImages.find(
             ({code_id, debug_id}) => code_id === imageCodeId || debug_id === imageDebugId
           )
         : undefined;
@@ -482,7 +486,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
       filteredImagesByFilter: images,
     } = this.state;
 
-    const displayFilter = Object.values(filterOptions).length > 1;
+    const displayFilter = (Object.values(filterOptions ?? {})[0] ?? []).length > 1;
 
     return (
       <StyledEventDataSection
