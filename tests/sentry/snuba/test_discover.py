@@ -2553,15 +2553,14 @@ class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
 
     def store_transaction(self, name="exampleTransaction", duration=100, tags=None):
         if tags is None:
-            tags = {}
-        event = load_data("transaction")
+            tags = []
+        event = load_data("transaction").copy()
         event.update(
             {
                 "transaction": name,
                 "event_id": f"{self._transaction_count:02x}".rjust(32, "0"),
                 "start_timestamp": iso_format(self.two_mins_ago - timedelta(seconds=duration)),
                 "timestamp": iso_format(self.two_mins_ago),
-                "tags": tags,
             }
         )
         self._transaction_count += 1
@@ -2580,19 +2579,27 @@ class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
         assert results == []
 
     def test_single_project(self):
-        self.store_transaction(duration=1, tags={"color": "red"})
-        self.store_transaction(duration=2, tags={"color": "blue"})
+        self.store_transaction(duration=1, tags=[["color", "red"]])
+        self.store_transaction(duration=2, tags=[["color", "blue"]])
 
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_performance_facets("", params)
-        assert len(result) == 11
-        for r in result:
-            if r.key == "color" and r.value == "red":
-                assert r.count == 1000
-            elif r.key == "color" and r.value == "blue":
-                assert r.count == 2000
-            else:
-                assert r.count == 1500
+
+        with self.options(
+            {
+                "discover2.tags_performance_facet_sample_rate": 1,
+            }
+        ):
+            result = discover.get_performance_facets("", params)
+            self.wait_for_event_count(self.project.id, 2)
+
+            assert len(result) == 10
+            for r in result:
+                if r.key == "color" and r.value == "red":
+                    assert r.count == 1000
+                elif r.key == "color" and r.value == "blue":
+                    assert r.count == 2000
+                else:
+                    assert r.count == 1500
 
 
 def test_zerofill():

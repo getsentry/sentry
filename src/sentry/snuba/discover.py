@@ -792,43 +792,15 @@ def get_performance_facets(
     results = []
 
     sampling_enabled = True
-    sample_rate = 0.1 if sampling_enabled else None
+    options_sample_rate = options.get("discover2.tags_performance_facet_sample_rate") or 0.1
+
+    sample_rate = options_sample_rate if sampling_enabled else None
 
     max_aggregate_tags = 20
-    individual_tags = []
     aggregate_tags = []
     for i, tag in enumerate(top_tags):
-        if tag == "environment":
-            # Add here tags that you want to be individual
-            individual_tags.append(tag)
-        elif i >= len(top_tags) - max_aggregate_tags:
+        if i >= len(top_tags) - max_aggregate_tags:
             aggregate_tags.append(tag)
-        else:
-            individual_tags.append(tag)
-
-    with sentry_sdk.start_span(
-        op="discover.discover", description="facets.individual_tags"
-    ) as span:
-        span.set_data("tag_count", len(individual_tags))
-        for tag_name in individual_tags:
-            tag = f"tags[{tag_name}]"
-            tag_values = raw_query(
-                aggregations=[[aggregate_function, aggregate_column, "aggregate"]],
-                conditions=snuba_filter.conditions,
-                start=snuba_filter.start,
-                end=snuba_filter.end,
-                filter_keys=snuba_filter.filter_keys,
-                orderby=[],
-                groupby=[tag],
-                dataset=Dataset.Discover,
-                referrer=referrer,
-                sample=sample_rate,
-                limit=TOP_VALUES_DEFAULT_LIMIT,
-                turbo=sample_rate is not None,
-            )
-            results.extend(
-                [FacetResult(tag_name, r[tag], int(r["aggregate"])) for r in tag_values["data"]]
-            )
 
     if aggregate_tags:
         with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
