@@ -213,11 +213,11 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     ],
                 },
                 {
-                    "title": "Errors over time",
-                    "displayType": "line",
+                    "title": "Errors per project",
+                    "displayType": "table",
                     "interval": "5m",
                     "queries": [
-                        {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
+                        {"name": "Errors", "fields": ["count()", "project"], "conditions": "event.type:error"}
                     ],
                 },
             ],
