@@ -189,12 +189,11 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
         data = {}
         if isinstance(instance, Event):
             data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
-            send_webhooks(installation, event, data=data)
         else:
             data[name] = serialize(instance)
-            send_webhooks(installation, event, data=data)
 
-        metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
+        # Trigger a new task for each webhook
+        send_resource_change_webhook.delay(installation=installation, event=event, data=data)
 
 
 @instrumented_task("sentry.tasks.process_resource_change_bound", bind=True, **TASK_OPTIONS)
@@ -255,6 +254,14 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
     data.update({"issue": serialize(issue)})
 
     send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
+
+
+@instrumented_task("sentry.tasks.send_process_resource_change_webhook", **TASK_OPTIONS)
+@retry(**RETRY_OPTIONS)
+def send_resource_change_webhook(installation, event, data, *args, **kwargs):
+    send_webhooks(installation, event, data=data)
+
+    metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
 
 
 def notify_sentry_app(event, futures):
