@@ -180,6 +180,15 @@ def post_process_group(
     from sentry.utils import snuba
     from sentry.reprocessing2 import is_reprocessed_event
 
+    # We should not do any post processing on transaction events. It is temporary
+    # that transactions share the events topic and are produced to the commit log.
+    # Eventually they will not make their way into here, and deletion from
+    # Redis can be moved to the last step of the save_event task.
+    if group_id is None:
+        with metrics.timer("tasks.post_process.delete_event_cache"):
+            event_processing_store.delete_by_key(cache_key)
+        return
+
     with snuba.options_override({"consistent": True}):
         # We use the data being present/missing in the processing store
         # to ensure that we don't duplicate work should the forwarding consumers
