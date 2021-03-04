@@ -73,4 +73,6 @@ class OrganizationHasMobileAppEvents(OrganizationEventsEndpointBase):
             return {
                 "browserName": one_result["browser.name"],
                 "clientOsName": one_result["client_os.name"],
+                "projectSlug": one_result["project"],
+                "eventId": one_result["id"],
             }

@@ -32,14 +32,21 @@ class OrganizationIntegrationRequestTest(APITestCase):
                 }
             ]
         }
+        expected = {
+            "browserName": "okhttp",
+            "clientOsName": "",
+            "projectSlug": self.project.slug,
+            "eventId": "1234",
+        }
+
         response = self.get_response(self.organization.slug, userAgents=["okhttp"])
         assert response.status_code == 200
-        assert response.data == {"browserName": "okhttp", "clientOsName": ""}
+        assert response.data == expected
         assert mock_query.call_count == 1
 
         response = self.get_response(self.organization.slug, userAgents=["okhttp"])
         assert response.status_code == 200
-        assert response.data == {"browserName": "okhttp", "clientOsName": ""}
+        assert response.data == expected
         assert mock_query.call_count == 1
 
     def test_no_match(self):
