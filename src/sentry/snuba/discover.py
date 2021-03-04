@@ -736,7 +736,13 @@ def get_facets(query, params, limit=10, referrer=None):
 
 
 def get_performance_facets(
-    query, params, aggregate_column="duration", aggregate_function="avg", limit=20, referrer=None
+    query,
+    params,
+    orderby=None,
+    aggregate_column="duration",
+    aggregate_function="avg",
+    limit=20,
+    referrer=None,
 ):
     """
     High-level API for getting 'facet map' results for performance data
@@ -802,6 +808,9 @@ def get_performance_facets(
         if i >= len(top_tags) - max_aggregate_tags:
             aggregate_tags.append(tag)
 
+    if orderby is None:
+        orderby = []
+
     if aggregate_tags:
         with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
             conditions = snuba_filter.conditions
@@ -812,7 +821,7 @@ def get_performance_facets(
                 start=snuba_filter.start,
                 end=snuba_filter.end,
                 filter_keys=snuba_filter.filter_keys,
-                orderby=["tags_key"],
+                orderby=orderby + ["tags_key"],
                 groupby=["tags_key", "tags_value"],
                 dataset=Dataset.Discover,
                 referrer=referrer,

@@ -24,6 +24,7 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
             return Response([])
 
         aggregate_column = request.GET.get("aggregateColumn", "duration")
+        orderby = request.GET.getlist("order", None)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
             with self.handle_query_errors():
@@ -32,6 +33,7 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
                     params=params,
                     referrer="api.organization-events-facets-performance.top-tags",
                     aggregate_column=aggregate_column,
+                    orderby=orderby,
                 )
 
         with sentry_sdk.start_span(op="discover.endpoint", description="populate_results") as span:
