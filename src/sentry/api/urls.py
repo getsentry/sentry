@@ -95,7 +95,6 @@ from .endpoints.organization_environments import OrganizationEnvironmentsEndpoin
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import (
-    OrganizationEventsEndpoint,
     OrganizationEventsV2Endpoint,
     OrganizationEventsGeoEndpoint,
 )
@@ -857,11 +856,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-config-repositories",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/events/$",
-                    OrganizationEventsEndpoint.as_view(),
-                    name="sentry-api-0-organization-events",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/sdk-updates/$",
                     OrganizationSdkUpdatesEndpoint.as_view(),
                     name="sentry-api-0-organization-sdk-updates",
@@ -871,7 +865,7 @@ urlpatterns = [
                     OrganizationHasMobileAppEvents.as_view(),
                     name="sentry-api-0-organization-has-mobile-events",
                 ),
-                # This is temporary while we alpha test eventsv2
+                # TODO add an alias for /organizations/:slug/events/ and deprecate eventsv2
                 url(
                     r"^(?P<organization_slug>[^\/]+)/eventsv2/$",
                     OrganizationEventsV2Endpoint.as_view(),
