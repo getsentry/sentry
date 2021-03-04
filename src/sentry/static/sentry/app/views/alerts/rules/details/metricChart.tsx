@@ -13,6 +13,7 @@ import {Trigger} from 'app/views/settings/incidentRules/types';
 import {Incident} from '../../types';
 
 const X_AXIS_BOUNDARY_GAP = 15;
+const VERTICAL_PADDING = 22;
 
 type Props = {
   data: Series[];
@@ -107,10 +108,9 @@ export default class MetricChart extends React.PureComponent<Props, State> {
         type: 'line',
         draggable: false,
         position: [position, 0],
-        shape: {y1: 0, y2: height, x1: 1, x2: 1},
+        shape: {y1: 0, y2: height - VERTICAL_PADDING, x1: 1, x2: 1},
         style: {
-          stroke: theme.gray300,
-          lineDash: [2],
+          stroke: theme.gray200,
         },
       },
       {
@@ -120,10 +120,10 @@ export default class MetricChart extends React.PureComponent<Props, State> {
         shape: {
           // +1 makes the gray area go midway onto the dashed line above
           width: position - X_AXIS_BOUNDARY_GAP + 1,
-          height,
+          height: height - VERTICAL_PADDING,
         },
         style: {
-          fill: color(theme.gray300).alpha(0.25).rgb().string(),
+          fill: color(theme.gray100).alpha(0.42).rgb().string(),
         },
         z: 100,
       },
