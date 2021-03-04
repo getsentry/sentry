@@ -43,9 +43,14 @@ class DemoStartView(BaseView):
             email=email,
             username=email,
             is_managed=True,
+            flags=User.flags["demo_mode"],
         )
 
-        org = Organization.objects.create(name=name, slug=slug)
+        org = Organization.objects.create(
+            name=name,
+            slug=slug,
+            flags=Organization.flags["demo_mode"],
+        )
         team = org.team_set.create(name=org.name)
 
         owner = User.objects.get(email=settings.DEMO_ORG_OWNER_EMAIL)

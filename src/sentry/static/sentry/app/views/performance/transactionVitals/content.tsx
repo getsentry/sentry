@@ -6,6 +6,7 @@ import {Location} from 'history';
 import Button from 'app/components/button';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import SearchBar from 'app/components/events/searchBar';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
@@ -14,7 +15,6 @@ import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import SearchBar from 'app/views/events/searchBar';
 
 import TransactionHeader, {Tab} from '../transactionSummary/header';
 

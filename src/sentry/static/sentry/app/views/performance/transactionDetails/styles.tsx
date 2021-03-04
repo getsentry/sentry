@@ -6,7 +6,7 @@ import {SectionHeading} from 'app/components/charts/styles';
 import MenuItem from 'app/components/menuItem';
 import QuestionTooltip from 'app/components/questionTooltip';
 import Tag, {Background} from 'app/components/tag';
-import {IconEllipsis} from 'app/icons';
+import Truncate from 'app/components/truncate';
 import space from 'app/styles/space';
 
 type MetaDataProps = {
@@ -80,14 +80,9 @@ export const QuickTraceContainer = styled('div')`
   align-items: center;
 `;
 
-export const StyledIconEllipsis = styled(IconEllipsis)`
-  vertical-align: middle;
-  margin-bottom: 2px;
-`;
-
 const StyledMenuItem = styled(MenuItem)<{first?: boolean}>`
   border-top: ${p => (!p.first ? `1px solid ${p.theme.innerBorder}` : null)};
-  width: 220px;
+  width: 350px;
 `;
 
 const MenuItemContent = styled('div')`
@@ -109,3 +104,20 @@ export function DropdownItem({children, first, to}: DropdownItemProps) {
     </StyledMenuItem>
   );
 }
+
+export const DropdownItemSubContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+`;
+
+export const StyledTruncate = styled(Truncate)`
+  margin-left: ${space(1)};
+
+  /**
+   * This is the class added to the element that is shown on hover.
+   */
+  .full-value {
+    left: auto;
+    right: -5px;
+  }
+`;

@@ -288,6 +288,7 @@ export type Health = {
   sessionsCrashed: number;
   sessionsErrored: number;
   adoption: number | null;
+  sessions_adoption: number | null;
   hasHealthData: boolean;
   durationP50: number | null;
   durationP90: number | null;
@@ -1256,7 +1257,7 @@ export type GroupIntegration = Integration & {
 
 export type PlatformExternalIssue = {
   id: string;
-  groupId: string;
+  issueId: string;
   serviceType: string;
   displayName: string;
   webUrl: string;
@@ -1493,6 +1494,7 @@ export type NewQuery = {
   fields: Readonly<string[]>;
   widths?: Readonly<string[]>;
   orderby?: string;
+  expired?: boolean;
 
   // GlobalSelectionHeader
   projects: Readonly<number[]>;

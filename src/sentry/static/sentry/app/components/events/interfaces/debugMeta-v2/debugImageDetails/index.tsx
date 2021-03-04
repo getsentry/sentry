@@ -229,6 +229,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
       arch: architecture,
       unwind_status,
       debug_status,
+      status,
     } = image ?? {};
 
     const candidates = this.getCandidates();
@@ -291,6 +292,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
               </SearchInSettingsAction>
             )}
             <Candidates
+              imageStatus={status}
               candidates={candidates}
               organization={organization}
               projectId={projectId}
