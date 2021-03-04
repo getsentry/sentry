@@ -165,7 +165,13 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
       {showDateAdded && dateAdded && (
         <React.Fragment>
           <Separator type={tagType ?? 'default'}>{' | '}</Separator>
-          <TimeSince date={dateAdded} suffix="" shorten disabledAbsoluteTooltip />
+          <TimeSince
+            date={dateAdded}
+            suffix=""
+            shorten
+            extraShort
+            disabledAbsoluteTooltip
+          />
         </React.Fragment>
       )}
     </StyledTag>

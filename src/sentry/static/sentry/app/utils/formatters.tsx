@@ -57,7 +57,8 @@ export const SECOND = 1000;
 export function getDuration(
   seconds: number,
   fixedDigits: number = 0,
-  abbreviation: boolean = false
+  abbreviation: boolean = false,
+  extraShort: boolean = false
 ): string {
   const value = Math.abs(seconds * 1000);
 
@@ -69,19 +70,31 @@ export function getDuration(
   }
   if (value >= WEEK) {
     const {label, result} = roundWithFixed(value / WEEK, fixedDigits);
-    return `${label}${abbreviation ? t('wk') : ` ${tn('week', 'weeks', result)}`}`;
+    return `${label}${
+      abbreviation ? (extraShort ? t('w') : t('wk')) : ` ${tn('week', 'weeks', result)}`
+    }`;
   }
   if (value >= 172800000) {
     const {label, result} = roundWithFixed(value / DAY, fixedDigits);
-    return `${label}${abbreviation ? t('d') : ` ${tn('day', 'days', result)}`}`;
+    return `${label}${
+      abbreviation ? (extraShort ? t('d') : t('d')) : ` ${tn('day', 'days', result)}`
+    }`;
   }
   if (value >= 7200000) {
     const {label, result} = roundWithFixed(value / HOUR, fixedDigits);
-    return `${label}${abbreviation ? t('hr') : ` ${tn('hour', 'hours', result)}`}`;
+    return `${label}${
+      abbreviation ? (extraShort ? t('h') : t('hr')) : ` ${tn('hour', 'hours', result)}`
+    }`;
   }
   if (value >= 120000) {
     const {label, result} = roundWithFixed(value / MINUTE, fixedDigits);
-    return `${label}${abbreviation ? t('min') : ` ${tn('minute', 'minutes', result)}`}`;
+    return `${label}${
+      abbreviation
+        ? extraShort
+          ? t('m')
+          : t('min')
+        : ` ${tn('minute', 'minutes', result)}`
+    }`;
   }
   if (value >= SECOND) {
     const {label, result} = roundWithFixed(value / SECOND, fixedDigits);
