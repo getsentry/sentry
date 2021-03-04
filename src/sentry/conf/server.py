@@ -906,6 +906,10 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
+    # Enable the API to create/update/delete external team associations
+    "organizations:external-team-associations": False,
+    # Enable the API to create/update/delete external user associations
+    "organizations:external-user-associations": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
@@ -939,6 +943,8 @@ SENTRY_FEATURES = {
     "organizations:releases-top-charts": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
+    # Enable calculating release adoption based on sessions
+    "organizations:session-adoption": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -981,6 +987,8 @@ SENTRY_FEATURES = {
     "projects:discard-groups": False,
     # DEPRECATED: pending removal
     "projects:dsym": False,
+    # Enable the API to importing CODEOWNERS for a project
+    "projects:import-codeowners": False,
     # Enable selection of members, teams or code owners as email targets for issue alerts.
     "projects:issue-alerts-targeting": True,
     # Enable functionality for attaching  minidumps to events and displaying
@@ -988,6 +996,8 @@ SENTRY_FEATURES = {
     "projects:minidump": True,
     # Enable functionality for project plugins.
     "projects:plugins": True,
+    # Enable alternative version of group creation that is supposed to be less racy.
+    "projects:race-free-group-creation": False,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
     # Enable functionality for sampling of events on projects.
@@ -2118,4 +2128,8 @@ SENTRY_EXTRA_WORKERS = None
 # Enabling this will allow users to create accounts without an email or password.
 DEMO_MODE = False
 
+# all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None
+
+# adds an extra JS to HTML template
+INJECTED_SCRIPT_ASSETS = []

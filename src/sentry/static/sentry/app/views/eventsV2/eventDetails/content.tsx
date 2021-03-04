@@ -33,9 +33,8 @@ import {FIELD_TAGS} from 'app/utils/discover/fields';
 import {eventDetailsRoute} from 'app/utils/discover/urls';
 import {getMessage} from 'app/utils/events';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
-import QuickTraceQuery, {
-  QuickTraceQueryChildrenProps,
-} from 'app/utils/performance/quickTrace/quickTraceQuery';
+import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
+import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
 import EventMetas from 'app/views/performance/transactionDetails/eventMetas';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
@@ -271,8 +270,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const hasQuickTraceView =
       event.type === 'transaction' &&
-      organization.features.includes('trace-view-quick') &&
-      organization.features.includes('trace-view-summary');
+      (organization.features.includes('trace-view-quick') ||
+        organization.features.includes('trace-view-summary'));
 
     if (hasQuickTraceView) {
       return (
