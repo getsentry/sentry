@@ -36,11 +36,11 @@ type Props = DefaultProps & {
   disabledAbsoluteTooltip?: boolean;
 
   /**
-   * For relative time shortens minutes to min, day to d etc.
+   * For relative time shortens minutes to min, hour to hr etc.
    */
   shorten?: boolean;
   /**
-   * Shorter date abbreviations than shorten
+   * Shortens the shortened relative time. Pass both shorten and extraShort.
    * min to m, hr to h
    */
   extraShort?: boolean;
