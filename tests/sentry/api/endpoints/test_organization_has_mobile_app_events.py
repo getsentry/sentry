@@ -22,7 +22,16 @@ class OrganizationIntegrationRequestTest(APITestCase):
 
     @mock.patch("sentry.api.endpoints.organization_has_mobile_app_events.discover.query")
     def test_hit_cache_on_success(self, mock_query):
-        mock_query.return_value = {"data": [{"browser.name": "okhttp", "client_os.name": ""}]}
+        mock_query.return_value = {
+            "data": [
+                {
+                    "browser.name": "okhttp",
+                    "client_os.name": "",
+                    "project": self.project.slug,
+                    "id": "1234",
+                }
+            ]
+        }
         response = self.get_response(self.organization.slug, userAgents=["okhttp"])
         assert response.status_code == 200
         assert response.data == {"browserName": "okhttp", "clientOsName": ""}

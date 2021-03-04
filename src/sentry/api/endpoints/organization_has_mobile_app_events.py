@@ -44,7 +44,7 @@ class OrganizationHasMobileAppEvents(OrganizationEventsEndpointBase):
             result = discover.query(
                 query=query,
                 orderby="-timestamp",
-                selected_columns=["browser.name", "client_os.name", "timestamp"],
+                selected_columns=["browser.name", "client_os.name", "timestamp", "project", "id"],
                 limit=1,
                 params={
                     "start": timezone.now() - timedelta(days=1),
@@ -59,6 +59,16 @@ class OrganizationHasMobileAppEvents(OrganizationEventsEndpointBase):
                 return None
 
             one_result = data[0]
+            # log the info so we can debug this later
+            logger.info(
+                "result_found",
+                extra={
+                    "organization_id": organization.id,
+                    "organization_slug": organization.slug,
+                    "project_slug": one_result["project"],
+                    "event_id": one_result["id"],
+                },
+            )
             # only send back browserName and clientOsName for now
             return {
                 "browserName": one_result["browser.name"],
