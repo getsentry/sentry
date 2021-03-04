@@ -123,9 +123,8 @@ def value_from_row(row, tagkey):
 
 def zerofill(data, start, end, rollup):
     rv = []
-    end = int(to_timestamp(end))
     rollup_start = (int(to_timestamp(start)) // rollup) * rollup
-    rollup_end = (end // rollup) * rollup
+    rollup_end = (int(to_timestamp(end)) // rollup) * rollup + rollup
 
     # Fudge the end value when we're only getting a single window.
     # This ensure that we get both values for a single large window that
