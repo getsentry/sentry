@@ -995,6 +995,8 @@ SENTRY_FEATURES = {
     "projects:minidump": True,
     # Enable functionality for project plugins.
     "projects:plugins": True,
+    # Enable alternative version of group creation that is supposed to be less racy.
+    "projects:race-free-group-creation": False,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
     # Enable functionality for sampling of events on projects.
