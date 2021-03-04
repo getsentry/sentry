@@ -8,13 +8,8 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.deletion import delete_organization
 
 
-MAX_RETRIES = 5
-
-
 @instrumented_task(
     name="sentry.demo.tasks.delete_users_orgs",
-    default_retry_delay=60 * 5,
-    max_retries=MAX_RETRIES,
 )
 def delete_users_orgs(**kwargs):
     if not settings.DEMO_MODE:
@@ -24,6 +19,7 @@ def delete_users_orgs(**kwargs):
     cutoff_time = timezone.now() - timedelta(days=1)
 
     # first mark orgs for deletion
+    # note this only runs in demo mode (not SaaS) so the underlying tables here are small
     org_list = Organization.objects.filter(
         date_added__lte=cutoff_time, flags=F("flags").bitor(Organization.flags["demo_mode"])
     )
