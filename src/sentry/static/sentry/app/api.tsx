@@ -265,6 +265,8 @@ export class Client {
     const code = response?.responseJSON?.detail?.code;
     const isSudoRequired = code === SUDO_REQUIRED || code === SUPERUSER_REQUIRED;
 
+    let didSuccessfullyRetry = false;
+
     if (isSudoRequired) {
       openSudo({
         superuser: code === SUPERUSER_REQUIRED,
@@ -273,13 +275,14 @@ export class Client {
           try {
             const data = await this.requestPromise(path, requestOptions);
             requestOptions.success?.(data);
+            didSuccessfullyRetry = true;
           } catch (err) {
             requestOptions.error?.(err);
           }
         },
         onClose: () =>
           // If modal was closed, then forward the original response
-          requestOptions.error?.(response),
+          !didSuccessfullyRetry && requestOptions.error?.(response),
       });
       return;
     }
