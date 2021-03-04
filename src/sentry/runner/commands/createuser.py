@@ -87,7 +87,8 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
             click.echo(f"User: {email} exists, use --force-update to force")
             sys.exit(3)
     else:
-        user = User.objects.create_user(**fields, password="")
+        user = User(**fields)
+        user.save()
         verb = "created"
 
         # TODO(dcramer): kill this when we improve flows
