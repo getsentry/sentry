@@ -1,4 +1,5 @@
 import React from 'react';
+import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
 
@@ -12,6 +13,7 @@ import Truncate from 'app/components/truncate';
 import {t, tn} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
 import {
@@ -45,6 +47,14 @@ type Props = {
   organization: OrganizationSummary;
   quickTrace: QuickTraceQueryChildrenProps;
 };
+
+function handleTraceLink(organization) {
+  trackAnalyticsEvent({
+    eventKey: 'quick_trace.trace_id.clicked',
+    eventName: 'Quick Trace: Trace ID clicked',
+    organization_id: parseInt(organization.id, 10),
+  });
+}
 
 export default function QuickTrace({
   event,
@@ -84,7 +94,9 @@ export default function QuickTrace({
         traceId === null ? (
           '\u2014'
         ) : (
-          <Link to={traceTarget}>{t('Trace ID: %s', getShortEventId(traceId))}</Link>
+          <Link to={traceTarget} onClick={() => handleTraceLink(organization)}>
+            {t('Trace ID: %s', getShortEventId(traceId))}
+          </Link>
         )
       }
     />
@@ -260,6 +272,19 @@ function QuickTracePills({
   return <QuickTraceContainer>{nodes}</QuickTraceContainer>;
 }
 
+function handleDropdownItem(
+  target: LocationDescriptor,
+  organization: OrganizationSummary,
+  extra: boolean
+) {
+  trackAnalyticsEvent({
+    eventKey: 'quick_trace.dropdown.clicked' + (extra ? '_extra' : ''),
+    eventName: 'Quick Trace: Dropdown clicked',
+    organization_id: parseInt(organization.id, 10),
+  });
+  ReactRouter.browserHistory.push(target);
+}
+
 type EventNodeSelectorProps = {
   location: Location;
   organization: OrganizationSummary;
@@ -302,7 +327,11 @@ function EventNodeSelector({
         {events.slice(0, numEvents).map((event, i) => {
           const target = generateSingleEventTarget(event, organization, location);
           return (
-            <DropdownItem key={event.event_id} to={target} first={i === 0}>
+            <DropdownItem
+              key={event.event_id}
+              onSelect={() => handleDropdownItem(target, organization, false)}
+              first={i === 0}
+            >
               <DropdownItemSubContainer>
                 <Projects orgId={organization.slug} slugs={[event.project_slug]}>
                   {({projects}) => {
@@ -334,7 +363,11 @@ function EventNodeSelector({
           );
         })}
         {events.length > numEvents && hoverText && extrasTarget && (
-          <DropdownItem to={extrasTarget}>{hoverText}</DropdownItem>
+          <DropdownItem
+            onSelect={() => handleDropdownItem(extrasTarget, organization, true)}
+          >
+            {hoverText}
+          </DropdownItem>
         )}
       </DropdownLink>
     );
