@@ -2,19 +2,23 @@ import logging
 
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
+
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ProjectCodeOwners
 from sentry.api.exceptions import ResourceDoesNotExist
 
-from .project_codeowners import ProjectCodeOwnerSerializer
+from .project_codeowners import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
 
 from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin
 
 logger = logging.getLogger(__name__)
 
 
-class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
+class ProjectCodeOwnersDetailsEndpoint(
+    ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin
+):
     def convert_args(
         self, request, organization_slug, project_slug, codeowners_id, *args, **kwargs
     ):
@@ -42,6 +46,9 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
         :param string codeMappingId: id of the RepositoryProjectPathConfig object
         :auth: required
         """
+        if not self.has_feature(request, project):
+            raise PermissionDenied
+
         serializer = ProjectCodeOwnerSerializer(
             instance=codeowners,
             context={"ownership": self.get_ownership(project), "project": project},
@@ -59,6 +66,8 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
         """
         Delete a CodeOwners
         """
+        if not self.has_feature(request, project):
+            raise PermissionDenied
 
         codeowners.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

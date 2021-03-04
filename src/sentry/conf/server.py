@@ -905,6 +905,10 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
+    # Enable the API to create/update/delete external team associations
+    "organizations:external-team-associations": False,
+    # Enable the API to create/update/delete external user associations
+    "organizations:external-user-associations": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
@@ -982,6 +986,8 @@ SENTRY_FEATURES = {
     "projects:discard-groups": False,
     # DEPRECATED: pending removal
     "projects:dsym": False,
+    # Enable the API to importing CODEOWNERS for a project
+    "projects:import-codeowners": False,
     # Enable selection of members, teams or code owners as email targets for issue alerts.
     "projects:issue-alerts-targeting": True,
     # Enable functionality for attaching  minidumps to events and displaying
@@ -989,6 +995,8 @@ SENTRY_FEATURES = {
     "projects:minidump": True,
     # Enable functionality for project plugins.
     "projects:plugins": True,
+    # Enable alternative version of group creation that is supposed to be less racy.
+    "projects:race-free-group-creation": False,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
     # Enable functionality for sampling of events on projects.
