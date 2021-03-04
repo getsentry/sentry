@@ -69,29 +69,26 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
     from sentry.models import User
     from django.conf import settings
 
-    user = User(
+    fields = dict(
         email=email, username=email, is_superuser=superuser, is_staff=superuser, is_active=True
     )
 
-    if password:
-        user.set_password(password)
-
+    verb = None
     try:
-        existing_user_id = User.objects.get(username=email).id
+        user = User.objects.get(username=email)
     except User.DoesNotExist:
-        existing_user_id = None
+        user = None
 
-    if existing_user_id is not None:
+    if user is not None:
         if force_update:
-            user.id = existing_user_id
-            user.save(force_update=force_update)
-            click.echo(f"User updated: {email}")
+            user.update(**fields)
+            verb = "updated"
         else:
             click.echo(f"User: {email} exists, use --force-update to force")
             sys.exit(3)
     else:
-        user.save()
-        click.echo(f"User created: {email}")
+        user = User.objects.create_user(**fields)
+        verb = "created"
 
         # TODO(dcramer): kill this when we improve flows
         if settings.SENTRY_SINGLE_ORGANIZATION:
@@ -110,3 +107,9 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
             if len(teams) == 1:
                 OrganizationMemberTeam.objects.create(team=teams[0], organizationmember=member)
             click.echo(f"Added to organization: {org.slug}")
+
+    if password:
+        user.set_password(password)
+        user.save()
+
+    click.echo(f"User {verb}: {email}")
