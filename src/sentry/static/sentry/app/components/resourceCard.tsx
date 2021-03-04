@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {analytics} from 'app/utils/analytics';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
+import {analytics} from 'app/utils/analytics';
 
 type Props = {
   title: string;
@@ -44,7 +44,7 @@ const StyledImg = styled('img')`
 `;
 
 const StyledTitle = styled('div')`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeLarge};
   text-align: center;
   font-weight: bold;

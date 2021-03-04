@@ -1,18 +1,17 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {Location} from 'history';
 
-import {OrganizationSummary} from 'app/types';
-import DataExport, {ExportQueryType} from 'app/components/dataExport';
-import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
-import {IconDownload, IconStack, IconTag} from 'app/icons';
+import Button from 'app/components/button';
+import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import Hovercard from 'app/components/hovercard';
+import {IconDownload, IconStack, IconTag} from 'app/icons';
 import {t} from 'app/locale';
+import {OrganizationSummary} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
 import {TableData} from 'app/utils/discover/discoverQuery';
+import EventView from 'app/utils/discover/eventView';
 
 import {downloadAsCsv} from '../utils';
 
@@ -66,9 +65,6 @@ function renderBrowserExportButton(canEdit: boolean, {isLoading, ...props}: Prop
     </Button>
   );
 }
-renderBrowserExportButton.propTypes = {
-  title: PropTypes.string,
-};
 
 function renderAsyncExportButton(canEdit: boolean, props: Props) {
   const {isLoading, location} = props;
@@ -87,9 +83,6 @@ function renderAsyncExportButton(canEdit: boolean, props: Props) {
   );
 }
 // Placate eslint proptype checking
-renderAsyncExportButton.propTypes = {
-  isLoading: PropTypes.bool,
-};
 
 function renderEditButton(canEdit: boolean, props: Props) {
   const onClick = canEdit ? props.onEdit : undefined;
@@ -106,9 +99,6 @@ function renderEditButton(canEdit: boolean, props: Props) {
   );
 }
 // Placate eslint proptype checking
-renderEditButton.propTypes = {
-  onEdit: PropTypes.func,
-};
 
 function renderSummaryButton({onChangeShowTags, showTags}: Props) {
   return (

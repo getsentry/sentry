@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from exam import mock
 
 from sentry.models import Integration
@@ -18,12 +16,12 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
     """
 
     def setUp(self):
-        super(OrganizationIntegrationDetailView, self).setUp()
+        super().setUp()
         features.add("organizations:integrations-feature_flag_integration", OrganizationFeature)
         self.login_as(self.user)
 
     def load_page(self, slug, configuration_tab=False):
-        url = u"/settings/{}/integrations/{}/".format(self.organization.slug, slug)
+        url = f"/settings/{self.organization.slug}/integrations/{slug}/"
         if configuration_tab:
             url += "?tab=configurations"
         self.browser.get(url)
@@ -31,10 +29,10 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
 
     def test_example_installation(self):
         self.provider = mock.Mock()
-        self.provider.key = "example"
+        self.provider.key = "alert_rule_integration"
         self.provider.name = "Example Installation"
 
-        self.load_page("example")
+        self.load_page("alert_rule_integration")
         self.browser.snapshot("integrations - integration detail overview")
 
         detail_view_page = OrganizationIntegrationDetailViewPage(browser=self.browser)
@@ -43,20 +41,22 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
             ExampleIntegrationSetupWindowElement, {"name": self.provider.name}
         )
 
-        # provider_element might be rerendered
-        assert Integration.objects.filter(
+        integration = Integration.objects.filter(
             provider=self.provider.key, external_id=self.provider.name
-        ).exists()
+        ).first()
 
-        detail_view_page.switch_to_configuration_view()
-        assert self.browser.element_exists('[aria-label="Configure"]')
+        assert integration
+        assert (
+            f"/settings/{self.organization.slug}/integrations/{self.provider.key}/{integration.id}/"
+            in self.browser.driver.current_url
+        )
 
     def test_uninstallation(self):
         model = Integration.objects.create(
             provider="slack",
             external_id="some_slack",
             name="Test Slack",
-            metadata={"domain_name": "slack-test.slack.com"},
+            metadata={"domain_name": "slack-test.slack.com", "installation_type": "born_as_bot"},
         )
 
         model.add_organization(self.organization, self.user)

@@ -1,5 +1,4 @@
-from __future__ import absolute_import
-
+from django.http import HttpResponse
 from rest_framework import serializers, status
 from rest_framework.fields import SkipField
 from rest_framework.response import Response
@@ -7,6 +6,7 @@ from rest_framework.response import Response
 import logging
 import petname
 
+from sentry.app import ratelimiter
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
@@ -126,7 +126,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             pass
 
         if interface_id == "totp":
-            response["qrcode"] = interface.get_provision_qrcode(user.email)
+            response["qrcode"] = interface.get_provision_url(user.email)
 
         if interface_id == "u2f":
             response["challenge"] = interface.start_enrollment()
@@ -150,6 +150,16 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         :auth: required
         """
+        if ratelimiter.is_limited(
+            f"auth:authenticator-enroll:{request.user.id}:{interface_id}",
+            limit=10,
+            window=86400,  # 10 per day should be fine
+        ):
+            return HttpResponse(
+                "You have made too many authenticator enrollment attempts. Please try again later.",
+                content_type="text/plain",
+                status=429,
+            )
 
         # Using `request.user` here because superuser should not be able to set a user's 2fa
 

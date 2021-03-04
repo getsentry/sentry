@@ -1,8 +1,7 @@
-import PropTypes from 'prop-types';
 import React, {Component} from 'react';
 
-import ButtonBar from 'app/components/buttonBar';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import EventDataSection from 'app/components/events/eventDataSection';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import {t} from 'app/locale';
@@ -30,11 +29,6 @@ type State = {
 } & Pick<Props, 'data'>;
 
 export default class GenericInterface extends Component<Props, State> {
-  static propTypes = {
-    type: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired,
-  };
-
   state: State = {
     view: 'report',
     data: this.props.data,

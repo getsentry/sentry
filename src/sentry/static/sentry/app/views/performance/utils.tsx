@@ -1,16 +1,16 @@
 import {Location, LocationDescriptor, Query} from 'history';
 
-import {OrganizationSummary, GlobalSelection} from 'app/types';
-import {decodeScalar} from 'app/utils/queryString';
-import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
+import {GlobalSelection, OrganizationSummary} from 'app/types';
 import {statsPeriodToDays} from 'app/utils/dates';
+import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
+import {decodeScalar} from 'app/utils/queryString';
 
 export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
   return `/organizations/${organization.slug}/performance/`;
 }
 
-export function getTransactionSearchQuery(location: Location) {
-  return String(decodeScalar(location.query.query) || '').trim();
+export function getTransactionSearchQuery(location: Location, query: string = '') {
+  return decodeScalar(location.query.query, query).trim();
 }
 
 export function getTransactionDetailsUrl(
@@ -57,9 +57,16 @@ export function addRoutePerformanceContext(selection: GlobalSelection) {
     selection.datetime.start,
     selection.datetime.end
   );
-  const seconds = Math.floor(days * 86400);
+  const oneDay = 86400;
+  const seconds = Math.floor(days * oneDay);
 
-  transaction?.setTag('statsPeriod', seconds.toString());
+  transaction?.setTag('query.period', seconds.toString());
+  let groupedPeriod = '>30d';
+  if (seconds <= oneDay) groupedPeriod = '<=1d';
+  else if (seconds <= oneDay * 7) groupedPeriod = '<=7d';
+  else if (seconds <= oneDay * 14) groupedPeriod = '<=14d';
+  else if (seconds <= oneDay * 30) groupedPeriod = '<=30d';
+  transaction?.setTag('query.period.grouped', groupedPeriod);
 }
 
 export function getTransactionName(location: Location): string | undefined {

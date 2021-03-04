@@ -2,9 +2,9 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import EventIdField from 'app/views/settings/components/dataScrubbing/modals/form/eventIdField';
-import {EventIdStatus, EventId} from 'app/views/settings/components/dataScrubbing/types';
 import theme from 'app/utils/theme';
+import EventIdField from 'app/views/settings/components/dataScrubbing/modals/form/eventIdField';
+import {EventId, EventIdStatus} from 'app/views/settings/components/dataScrubbing/types';
 
 const handleUpdateEventId = jest.fn();
 const eventIdValue = '887ab369df634e74aea708bcafe1a175';
@@ -58,7 +58,7 @@ describe('EventIdField', () => {
     const iconCheckmark = eventIdField.find('IconCheckmark');
     expect(iconCheckmark).toHaveLength(1);
     const iconCheckmarkColor = iconCheckmark.prop('color');
-    expect(theme[iconCheckmarkColor]).toBe(theme.green400);
+    expect(theme[iconCheckmarkColor]).toBe(theme.green300);
   });
 
   it('ERROR status', () => {

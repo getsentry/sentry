@@ -1,6 +1,6 @@
 import {Client} from 'app/api';
 
-import {SavedIncidentRule, IncidentRule} from './types';
+import {IncidentRule, SavedIncidentRule} from './types';
 
 function isSavedRule(rule: IncidentRule): rule is SavedIncidentRule {
   return !!rule.id;

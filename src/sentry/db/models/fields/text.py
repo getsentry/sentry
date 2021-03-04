@@ -13,14 +13,13 @@ python to allow us to size up the lengths without any
 migrations.
 """
 
-from __future__ import absolute_import
 
 from django.db import models
 
 __all__ = ("CharField", "EmailField")
 
 
-class TextType(object):
+class TextType:
     def db_type(self, connection):
         return "text"
 

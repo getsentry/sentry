@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:26.341445Z'
+created: '2020-11-12T10:56:53.043078Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -15,35 +15,35 @@ app:
           frame
             function (function name is not used if module or filename are available)
               "__pthread_body"
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "thread.rs"
             function*
               "std::sys::unix::thread::Thread::new::thread_start"
             lineno (function takes precedence)
               24
-          frame (marked out of app by grouping enhancement rule (family:native function:alloc::* -app))
+          frame (marked out of app by stack trace rule (family:native function:alloc::* -app))
             filename*
               "boxed.rs"
             function*
               "<F as alloc::boxed::FnBox<A>>::call_box"
             lineno (function takes precedence)
               673
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}"
             lineno (function takes precedence)
               476
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "panic.rs"
             function*
               "std::panic::catch_unwind"
             lineno (function takes precedence)
               398
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "panicking.rs"
             function*
@@ -57,28 +57,28 @@ app:
               "___rust_maybe_catch_panic"
             lineno (function takes precedence)
               102
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "panicking.rs"
             function*
               "std::panicking::try::do_call"
             lineno (function takes precedence)
               310
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "panic.rs"
             function*
               "<std::panic::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once"
             lineno (function takes precedence)
               319
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"
             lineno (function takes precedence)
               477
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "backtrace.rs"
             function*
@@ -113,14 +113,14 @@ app:
               "tokio_reactor::with_default"
             lineno (function takes precedence)
               212
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
             function*
               "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
             function*
@@ -148,14 +148,14 @@ app:
               "tokio_timer::clock::clock::with_default"
             lineno (function takes precedence)
               124
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
             function*
               "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
             function*
@@ -183,14 +183,14 @@ app:
               "tokio_timer::timer::handle::with_default"
             lineno (function takes precedence)
               81
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
             function*
               "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
             function*
@@ -218,14 +218,14 @@ app:
               "tokio_executor::global::with_default"
             lineno (function takes precedence)
               162
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
             function*
               "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
             function*
@@ -281,14 +281,14 @@ app:
               "<tokio_current_thread::Borrow<'a, U>>::enter"
             lineno (function takes precedence)
               776
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
             function*
               "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
             function*
@@ -372,7 +372,7 @@ app:
               "<futures::task_impl::Spawn<T>>::poll_future_notify::{{closure}}"
             lineno (function takes precedence)
               326
-          frame (marked out of app by grouping enhancement rule (family:native function:alloc::* -app))
+          frame (marked out of app by stack trace rule (family:native function:alloc::* -app))
             filename*
               "mod.rs"
             function*
@@ -512,14 +512,14 @@ app:
               "sentry::hub::Hub::with"
             lineno (function takes precedence)
               190
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
             function*
               "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             filename*
               "local.rs"
             function*
@@ -564,7 +564,7 @@ system:
               "std::sys::unix::thread::Thread::new::thread_start"
             lineno (function takes precedence)
               24
-          frame* (marked out of app by grouping enhancement rule (family:native function:alloc::* -app))
+          frame* (marked out of app by stack trace rule (family:native function:alloc::* -app))
             filename*
               "boxed.rs"
             function*

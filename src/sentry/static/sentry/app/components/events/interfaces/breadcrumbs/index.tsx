@@ -1,41 +1,40 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import pick from 'lodash/pick';
 import omit from 'lodash/omit';
+import pick from 'lodash/pick';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Button from 'app/components/button';
 import ErrorBoundary from 'app/components/errorBoundary';
 import EventDataSection from 'app/components/events/eventDataSection';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import {t} from 'app/locale';
-import {Event} from 'app/types';
-import space from 'app/styles/space';
 import SearchBar from 'app/components/searchBar';
-import Button from 'app/components/button';
 import {IconWarning} from 'app/icons/iconWarning';
-import {defined} from 'app/utils';
-
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization} from 'app/types';
 import {
   Breadcrumb,
+  BreadcrumbLevelType,
   BreadcrumbsWithDetails,
   BreadcrumbType,
-  BreadcrumbLevelType,
-} from './types';
-import transformCrumbs from './transformCrumbs';
-import Filter from './filter';
-import List from './list';
-import Level from './level';
-import Icon from './icon';
-import {aroundContentStyle} from './styles';
+} from 'app/types/breadcrumbs';
+import {EntryType, Event} from 'app/types/event';
+import {defined} from 'app/utils';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-const ISO_STRING_DATE_AND_TIME_DIVISION = 10;
+import Filter from './filter';
+import Icon from './icon';
+import Level from './level';
+import List from './list';
+import {aroundContentStyle} from './styles';
+import transformCrumbs from './transformCrumbs';
 
 type FilterProps = React.ComponentProps<typeof Filter>;
 type FilterOptions = FilterProps['options'];
 
 type Props = {
   event: Event;
-  orgId: string | null;
+  organization: Organization;
   type: string;
   data: {
     values: Array<Breadcrumb>;
@@ -70,8 +69,8 @@ class Breadcrumbs extends React.Component<Props, State> {
     const {data} = this.props;
     let breadcrumbs = data.values;
 
-    // Add the error event as the final (virtual) breadcrumb
-    const virtualCrumb = this.getVirtualCrumb(breadcrumbs[0]);
+    // Add the (virtual) breadcrumb based on the error or message event if possible.
+    const virtualCrumb = this.getVirtualCrumb();
     if (virtualCrumb) {
       breadcrumbs = [...breadcrumbs, virtualCrumb];
     }
@@ -156,24 +155,16 @@ class Breadcrumbs extends React.Component<Props, State> {
     return match[1];
   }
 
-  getVirtualCrumb(breadcrumb: Breadcrumb): Breadcrumb | undefined {
+  getVirtualCrumb(): Breadcrumb | undefined {
     const {event} = this.props;
 
-    const timestamp =
-      breadcrumb?.timestamp && event.dateCreated
-        ? `${breadcrumb.timestamp.slice(
-            0,
-            ISO_STRING_DATE_AND_TIME_DIVISION
-          )}${event.dateCreated.slice(ISO_STRING_DATE_AND_TIME_DIVISION)}`
-        : undefined;
-
-    const exception = event.entries.find(
-      entry => entry.type === BreadcrumbType.EXCEPTION
-    );
+    const exception = event.entries.find(entry => entry.type === EntryType.EXCEPTION);
 
     if (!exception && !event.message) {
       return undefined;
     }
+
+    const timestamp = event.dateCreated;
 
     if (exception) {
       const {type, value, module: mdl} = exception.data.values[0];
@@ -343,7 +334,7 @@ class Breadcrumbs extends React.Component<Props, State> {
   };
 
   render() {
-    const {type, event, orgId} = this.props;
+    const {type, event, organization} = this.props;
     const {
       filterOptions,
       searchTerm,
@@ -377,7 +368,7 @@ class Breadcrumbs extends React.Component<Props, State> {
             <List
               breadcrumbs={filteredBySearch}
               event={event}
-              orgId={orgId}
+              orgId={organization.slug}
               onSwitchTimeFormat={this.handleSwitchTimeFormat}
               displayRelativeTime={displayRelativeTime}
               searchTerm={searchTerm}

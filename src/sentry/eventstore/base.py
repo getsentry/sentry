@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from copy import deepcopy
 
 import sentry_sdk
@@ -11,7 +9,7 @@ from sentry.utils.services import Service
 from .models import Event
 
 
-class Filter(object):
+class Filter:
     """
     A set of conditions, start/end times and project, group and event ID sets
     used to restrict the results of a Snuba query.
@@ -29,6 +27,7 @@ class Filter(object):
     groupby (Sequence[str]): List of columns to group results by
 
     condition_aggregates (Sequence[str]): List of aggregates used in the condition
+    aliases (Dict[str, Alias]): Endpoint specific aliases
     """
 
     def __init__(
@@ -48,6 +47,7 @@ class Filter(object):
         groupby=None,
         orderby=None,
         condition_aggregates=None,
+        aliases=None,
     ):
         self.start = start
         self.end = end
@@ -65,6 +65,7 @@ class Filter(object):
         self.groupby = groupby
         self.orderby = orderby
         self.condition_aggregates = condition_aggregates
+        self.aliases = aliases
 
     @property
     def filter_keys(self):

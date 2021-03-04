@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import time
 import re
-import six
 
 from datetime import datetime, timedelta
 from django.conf import settings
@@ -29,7 +26,7 @@ class UserSocialAuth(models.Model):
     user = models.ForeignKey(AUTH_USER_MODEL, related_name="social_auth")
     provider = models.CharField(max_length=32)
     uid = models.CharField(max_length=UID_LENGTH)
-    extra_data = JSONField(default=u"{}")
+    extra_data = JSONField(default="{}")
 
     class Meta:
         """Meta data"""
@@ -37,9 +34,9 @@ class UserSocialAuth(models.Model):
         unique_together = ("provider", "uid", "user")
         app_label = "social_auth"
 
-    def __unicode__(self):
+    def __str__(self):
         """Return associated user unicode representation"""
-        return u"%s - %s" % (six.text_type(self.user), self.provider.title())
+        return f"{self.user} - {self.provider.title()}"
 
     def get_backend(self):
         # Make import here to avoid recursive imports :-/
@@ -170,8 +167,8 @@ class UserSocialAuth(models.Model):
 
     @classmethod
     def create_social_auth(cls, user, uid, provider):
-        if not isinstance(uid, six.string_types):
-            uid = six.text_type(uid)
+        if not isinstance(uid, str):
+            uid = str(uid)
         return cls.objects.create(user=user, uid=uid, provider=provider)
 
     @classmethod

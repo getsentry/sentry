@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import PlatformPicker from 'app/components/platformPicker';
@@ -94,7 +94,7 @@ describe('PlatformPicker', function () {
       );
 
       wrapper.find('ClearButton').simulate('click');
-      expect(props.setPlatform).toHaveBeenCalledWith('');
+      expect(props.setPlatform).toHaveBeenCalledWith(null);
     });
   });
 });

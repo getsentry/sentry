@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import unittest
 
 import pytz
@@ -215,7 +214,7 @@ class ReleaseDeleteTest(APITestCase):
 
 class ReleaseSerializerTest(unittest.TestCase):
     def setUp(self):
-        super(ReleaseSerializerTest, self).setUp()
+        super().setUp()
         self.commits = [{"id": "a" * 40}, {"id": "b" * 40}]
         self.ref = "master"
         self.url = "https://example.com"
@@ -232,7 +231,7 @@ class ReleaseSerializerTest(unittest.TestCase):
         )
 
         assert serializer.is_valid()
-        assert sorted(serializer.fields.keys()) == sorted(["ref", "url", "dateReleased", "commits"])
+        assert set(serializer.fields.keys()) == {"ref", "url", "dateReleased", "commits", "status"}
 
         result = serializer.validated_data
         assert result["ref"] == self.ref

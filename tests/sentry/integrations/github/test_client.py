@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 import responses
 from sentry.utils.compat import mock
 
 from sentry.testutils import TestCase
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.models import Integration
+from sentry.models import Integration, Repository
 
 
 class GitHubAppsClientTest(TestCase):
@@ -18,9 +16,17 @@ class GitHubAppsClientTest(TestCase):
             external_id="1",
             metadata={"access_token": None, "expires_at": None},
         )
+        self.repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            integration_id=integration.id,
+        )
 
-        install = integration.get_installation(organization_id="123")
-        self.client = install.get_client()
+        self.install = integration.get_installation(organization_id="123")
+        self.client = self.install.get_client()
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
@@ -53,16 +59,17 @@ class GitHubAppsClientTest(TestCase):
             content_type="application/json",
         )
 
-        repo = "getsentry/sentry"
-        path = "/src/sentry/integrations/github/client.py"
+        path = "src/sentry/integrations/github/client.py"
         version = "master"
-        url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(repo, path, version)
+        url = f"https://api.github.com/repos/{self.repo.name}/contents/{path}?ref={version}"
 
         responses.add(
-            method=responses.HEAD, url=url, json={"text": 200},
+            method=responses.HEAD,
+            url=url,
+            json={"text": 200},
         )
 
-        resp = self.client.check_file(repo, path, version)
+        resp = self.client.check_file(self.repo, path, version)
         assert resp.status_code == 200
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -75,13 +82,40 @@ class GitHubAppsClientTest(TestCase):
             content_type="application/json",
         )
 
-        repo = "getsentry/sentry"
-        path = "/src/santry/integrations/github/client.py"
+        path = "src/santry/integrations/github/client.py"
         version = "master"
-        url = u"https://api.github.com/repos/{}/contents/{}?ref={}".format(repo, path, version)
+        url = f"https://api.github.com/repos/{self.repo.name}/contents/{path}?ref={version}"
 
         responses.add(method=responses.HEAD, url=url, status=404)
 
         with self.assertRaises(ApiError):
-            self.client.check_file(repo, path, version)
+            self.client.check_file(self.repo, path, version)
         assert responses.calls[1].response.status_code == 404
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_stacktrace_link(self, get_jwt):
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/app/installations/1/access_tokens",
+            body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
+            content_type="application/json",
+        )
+
+        path = "/src/sentry/integrations/github/client.py"
+        version = "master"
+        url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(
+            self.repo.name, path.lstrip("/"), version
+        )
+
+        responses.add(
+            method=responses.HEAD,
+            url=url,
+            json={"text": 200},
+        )
+
+        source_url = self.install.get_stacktrace_link(self.repo, path, "master", version)
+        assert (
+            source_url
+            == "https://github.com/Test-Organization/foo/blob/master/src/sentry/integrations/github/client.py"
+        )

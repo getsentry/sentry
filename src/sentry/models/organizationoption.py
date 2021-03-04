@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.db import models
 
 from sentry.db.models import Model, FlexibleForeignKey, sane_repr
@@ -11,9 +9,9 @@ from sentry.tasks.relay import schedule_update_config_cache
 
 class OrganizationOptionManager(OptionManager):
     def get_value_bulk(self, instances, key):
-        instance_map = dict((i.id, i) for i in instances)
+        instance_map = {i.id: i for i in instances}
         queryset = self.filter(organization__in=instances, key=key)
-        result = dict((i, None) for i in instances)
+        result = {i: None for i in instances}
         for obj in queryset:
             result[instance_map[obj.organization_id]] = obj.value
         return result
@@ -56,7 +54,7 @@ class OrganizationOptionManager(OptionManager):
             )
 
         cache_key = self._make_key(organization_id)
-        result = dict((i.key, i.value) for i in self.filter(organization=organization_id))
+        result = {i.key: i.value for i in self.filter(organization=organization_id)}
         cache.set(cache_key, result)
         self._option_cache[cache_key] = result
         return result

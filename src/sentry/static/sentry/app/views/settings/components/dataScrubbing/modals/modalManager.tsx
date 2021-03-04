@@ -1,26 +1,27 @@
 import React from 'react';
-import omit from 'lodash/omit';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Organization, Project} from 'app/types';
 
-import {
-  RuleType,
-  MethodType,
-  Rule,
-  ProjectId,
-  KeysOfUnion,
-  EventIdStatus,
-} from '../types';
 import submitRules from '../submitRules';
-import Form from './form';
-import Modal from './modal';
-import handleError, {ErrorType} from './handleError';
+import {
+  EventIdStatus,
+  KeysOfUnion,
+  MethodType,
+  ProjectId,
+  Rule,
+  RuleType,
+} from '../types';
 import {valueSuggestions} from '../utils';
+
+import Form from './form';
+import handleError, {ErrorType} from './handleError';
+import Modal from './modal';
 import {fetchSourceGroupData, saveToSourceGroupData} from './utils';
 
 type FormProps = React.ComponentProps<typeof Form>;

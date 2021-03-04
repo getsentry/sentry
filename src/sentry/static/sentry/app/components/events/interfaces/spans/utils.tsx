@@ -1,23 +1,24 @@
-import isString from 'lodash/isString';
-import moment from 'moment';
-import set from 'lodash/set';
 import isNumber from 'lodash/isNumber';
+import isString from 'lodash/isString';
+import set from 'lodash/set';
+import moment from 'moment';
 
-import {SentryTransactionEvent} from 'app/types';
-import {assert} from 'app/types/utils';
 import CHART_PALETTE from 'app/constants/chartPalette';
+import {EntryType, EventTransaction} from 'app/types/event';
+import {assert} from 'app/types/utils';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 
 import {
+  GapSpanType,
+  OrphanSpanType,
+  OrphanTreeDepth,
   ParsedTraceType,
   ProcessedSpanType,
-  GapSpanType,
   RawSpanType,
-  OrphanSpanType,
-  SpanType,
   SpanEntry,
+  SpanType,
   TraceContextType,
   TreeDepthType,
-  OrphanTreeDepth,
 } from './types';
 
 type Rect = {
@@ -298,40 +299,6 @@ export const pickSpanBarColour = (input: string | undefined): string => {
   ];
 };
 
-export type UserSelectValues = {
-  userSelect: string | null;
-  MozUserSelect: string | null;
-  msUserSelect: string | null;
-  webkitUserSelect: string | null;
-};
-
-export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValues => {
-  // NOTE: Vendor prefixes other than `ms` should begin with a capital letter.
-  // ref: https://reactjs.org/docs/dom-elements.html#style
-
-  const previousValues = {
-    userSelect: document.body.style.userSelect,
-    // MozUserSelect is not typed in TS
-    // @ts-expect-error
-    MozUserSelect: document.body.style.MozUserSelect,
-    // msUserSelect is not typed in TS
-    // @ts-expect-error
-    msUserSelect: document.body.style.msUserSelect,
-    webkitUserSelect: document.body.style.webkitUserSelect,
-  };
-
-  document.body.style.userSelect = nextValues.userSelect || '';
-  // MozUserSelect is not typed in TS
-  // @ts-expect-error
-  document.body.style.MozUserSelect = nextValues.MozUserSelect || '';
-  // msUserSelect is not typed in TS
-  // @ts-expect-error
-  document.body.style.msUserSelect = nextValues.msUserSelect || '';
-  document.body.style.webkitUserSelect = nextValues.webkitUserSelect || '';
-
-  return previousValues;
-};
-
 export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
   const rootSpan: RawSpanType = {
     trace_id: trace.traceID,
@@ -421,15 +388,15 @@ export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined
 }
 
 export function getTraceContext(
-  event: Readonly<SentryTransactionEvent>
+  event: Readonly<EventTransaction>
 ): TraceContextType | undefined {
   return event?.contexts?.trace;
 }
 
-export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTraceType {
-  const spanEntry: SpanEntry | undefined = event.entries.find(
-    (entry: {type: string}) => entry.type === 'spans'
-  );
+export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
+  const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
+    return entry.type === EntryType.SPANS;
+  });
 
   const spans: Array<RawSpanType> = spanEntry?.data ?? [];
 
@@ -598,7 +565,7 @@ export function unwrapTreeDepth(treeDepth: TreeDepthType): number {
   return treeDepth;
 }
 
-export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): boolean {
+export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolean {
   const sdkName = event.sdk?.name;
   if (!sdkName) {
     return false;
@@ -609,6 +576,8 @@ export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): 
     'sentry.javascript.react',
     'sentry.javascript.gatsby',
     'sentry.javascript.ember',
+    'sentry.javascript.vue',
+    'sentry.javascript.angular',
   ].includes(sdkName.toLowerCase());
 }
 
@@ -617,7 +586,31 @@ export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): 
 // PerformancePaintTiming: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformancePaintTiming
 export const durationlessBrowserOps = ['mark', 'paint'];
 
-export function getMeasurements(event: SentryTransactionEvent): Map<number, string[]> {
+type Measurements = {
+  [name: string]: number | undefined;
+};
+
+type VerticalMark = {
+  marks: Measurements;
+  failedThreshold: boolean;
+};
+
+function hasFailedThreshold(marks: Measurements): boolean {
+  const names = Object.keys(marks);
+  const records = Object.values(WEB_VITAL_DETAILS).filter(vital =>
+    names.includes(vital.slug)
+  );
+
+  return records.some(record => {
+    const value = marks[record.slug];
+    if (typeof value === 'number') {
+      return value >= record.poorThreshold;
+    }
+    return false;
+  });
+}
+
+export function getMeasurements(event: EventTransaction): Map<number, VerticalMark> {
   if (!event.measurements) {
     return new Map();
   }
@@ -625,25 +618,45 @@ export function getMeasurements(event: SentryTransactionEvent): Map<number, stri
   const measurements = Object.keys(event.measurements)
     .filter(name => name.startsWith('mark.'))
     .map(name => {
+      const slug = name.slice('mark.'.length);
+      const associatedMeasurement = event.measurements![slug];
       return {
         name,
         timestamp: event.measurements![name].value,
+        value: associatedMeasurement ? associatedMeasurement.value : undefined,
       };
     });
 
-  const mergedMeasurements = new Map<number, string[]>();
+  const mergedMeasurements = new Map<number, VerticalMark>();
 
   measurements.forEach(measurement => {
     const name = measurement.name.slice('mark.'.length);
+    const value = measurement.value;
 
     if (mergedMeasurements.has(measurement.timestamp)) {
-      const names = mergedMeasurements.get(measurement.timestamp) as string[];
-      names.push(name);
-      mergedMeasurements.set(measurement.timestamp, names);
+      const verticalMark = mergedMeasurements.get(measurement.timestamp) as VerticalMark;
+
+      verticalMark.marks = {
+        ...verticalMark.marks,
+        [name]: value,
+      };
+
+      if (!verticalMark.failedThreshold) {
+        verticalMark.failedThreshold = hasFailedThreshold(verticalMark.marks);
+      }
+
+      mergedMeasurements.set(measurement.timestamp, verticalMark);
       return;
     }
 
-    mergedMeasurements.set(measurement.timestamp, [name]);
+    const marks = {
+      [name]: value,
+    };
+
+    mergedMeasurements.set(measurement.timestamp, {
+      marks,
+      failedThreshold: hasFailedThreshold(marks),
+    });
   });
 
   return mergedMeasurements;

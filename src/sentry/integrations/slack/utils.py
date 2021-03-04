@@ -1,14 +1,13 @@
-from __future__ import absolute_import
-
 import logging
 import time
-import six
 
 from django.core.cache import cache
 from django.http import Http404
+from urllib.parse import urlparse, urlencode, parse_qs
 
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
+from sentry.constants import ObjectStatus
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -26,7 +25,10 @@ from sentry.models import (
     Team,
     ReleaseProject,
 )
-from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    DuplicateDisplayNameError,
+)
 from sentry.integrations.metric_alerts import incident_attachment_info
 
 from .client import SlackClient
@@ -58,9 +60,9 @@ def get_integration_type(integration):
 
 def format_actor_option(actor):
     if isinstance(actor, User):
-        return {"text": actor.get_display_name(), "value": u"user:{}".format(actor.id)}
+        return {"text": actor.get_display_name(), "value": f"user:{actor.id}"}
     if isinstance(actor, Team):
-        return {"text": u"#{}".format(actor.slug), "value": u"team:{}".format(actor.id)}
+        return {"text": f"#{actor.slug}", "value": f"team:{actor.id}"}
 
     raise NotImplementedError
 
@@ -104,7 +106,7 @@ def build_attachment_title(obj):
     if ev_type == "error" and "type" in ev_metadata:
         return ev_metadata["type"]
     elif ev_type == "csp":
-        return u"{} - {}".format(ev_metadata["directive"], ev_metadata["uri"])
+        return "{} - {}".format(ev_metadata["directive"], ev_metadata["uri"])
     else:
         return obj.title
 
@@ -130,21 +132,19 @@ def build_assigned_text(group, identity, assignee):
         return
 
     if actor.type == Team:
-        assignee_text = u"#{}".format(assigned_actor.slug)
+        assignee_text = f"#{assigned_actor.slug}"
     elif actor.type == User:
         try:
             assignee_ident = Identity.objects.get(
                 user=assigned_actor, idp__type="slack", idp__external_id=identity.idp.external_id
             )
-            assignee_text = u"<@{}>".format(assignee_ident.external_id)
+            assignee_text = f"<@{assignee_ident.external_id}>"
         except Identity.DoesNotExist:
             assignee_text = assigned_actor.get_display_name()
     else:
         raise NotImplementedError
 
-    return u"*Issue assigned to {assignee_text} by <@{user_id}>*".format(
-        assignee_text=assignee_text, user_id=identity.external_id
-    )
+    return f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*"
 
 
 def build_action_text(group, identity, action):
@@ -160,7 +160,7 @@ def build_action_text(group, identity, action):
     if status not in statuses:
         return
 
-    return u"*Issue {status} by <@{user_id}>*".format(
+    return "*Issue {status} by <@{user_id}>*".format(
         status=statuses[status], user_id=identity.external_id
     )
 
@@ -168,28 +168,13 @@ def build_action_text(group, identity, action):
 def build_rule_url(rule, group, project):
     org_slug = group.organization.slug
     project_slug = project.slug
-    rule_url = u"/organizations/{}/alerts/rules/{}/{}/".format(org_slug, project_slug, rule.id)
+    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
     return absolute_uri(rule_url)
 
 
-def build_upgrade_notice_attachment(group):
-    org_slug = group.organization.slug
-    url = absolute_uri(
-        u"/settings/{}/integrations/slack/?tab=configurations&referrer=slack".format(org_slug)
-    )
-
-    return {
-        "title": "Deprecation Notice",
-        "text": (
-            u"This alert is coming from a deprecated version of the Sentry-Slack integration. "
-            u"Your Slack integration, along with any data associated with it, will be *permanently deleted on January 14, 2021* "
-            u"if you do not transition to the new supported Slack integration. "
-            u"Click <{}|here> to complete the process.".format(url)
-        ),
-    }
-
-
-def build_group_attachment(group, event=None, tags=None, identity=None, actions=None, rules=None):
+def build_group_attachment(
+    group, event=None, tags=None, identity=None, actions=None, rules=None, link_to_event=False
+):
     # XXX(dcramer): options are limited to 100 choices, even when nested
     status = group.get_status()
 
@@ -293,20 +278,25 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
         event_ts = event.datetime
         ts = max(ts, event_ts)
 
-    footer = u"{}".format(group.qualified_short_id)
+    footer = f"{group.qualified_short_id}"
 
     if rules:
         rule_url = build_rule_url(rules[0], group, project)
-        footer += u" via <{}|{}>".format(rule_url, rules[0].label)
+        footer += f" via <{rule_url}|{rules[0].label}>"
 
         if len(rules) > 1:
-            footer += u" (+{} other)".format(len(rules) - 1)
+            footer += f" (+{len(rules) - 1} other)"
 
     obj = event if event is not None else group
+    if event and link_to_event:
+        title_link = group.get_absolute_url(params={"referrer": "slack"}, event_id=event.event_id)
+    else:
+        title_link = group.get_absolute_url(params={"referrer": "slack"})
+
     return {
-        "fallback": u"[{}] {}".format(project.slug, obj.title),
+        "fallback": f"[{project.slug}] {obj.title}",
         "title": build_attachment_title(obj),
-        "title_link": group.get_absolute_url(params={"referrer": "slack"}),
+        "title_link": title_link,
         "text": text,
         "fields": fields,
         "mrkdwn_in": ["text"],
@@ -319,7 +309,7 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
     }
 
 
-def build_incident_attachment(incident, metric_value=None):
+def build_incident_attachment(action, incident, metric_value=None, method=None):
     """
     Builds an incident attachment for slack unfurling
     :param incident: The `Incident` to build the attachment for
@@ -328,7 +318,7 @@ def build_incident_attachment(incident, metric_value=None):
     :return:
     """
 
-    data = incident_attachment_info(incident, metric_value)
+    data = incident_attachment_info(incident, metric_value, action=action, method=method)
 
     colors = {
         "Resolved": RESOLVED_COLOR,
@@ -353,11 +343,6 @@ def build_incident_attachment(incident, metric_value=None):
 
 # Different list types in slack that we'll use to resolve a channel name. Format is
 # (<list_name>, <result_name>, <prefix>).
-LEGACY_LIST_TYPES = [
-    ("channels", "channels", CHANNEL_PREFIX),
-    ("groups", "groups", CHANNEL_PREFIX),
-    ("users", "members", MEMBER_PREFIX),
-]
 LIST_TYPES = [("conversations", "channels", CHANNEL_PREFIX), ("users", "members", MEMBER_PREFIX)]
 
 
@@ -367,15 +352,15 @@ def strip_channel_name(name):
 
 def get_channel_id(organization, integration, name, use_async_lookup=False):
     """
-   Fetches the internal slack id of a channel.
-   :param organization: The organization that is using this integration
-   :param integration: The slack integration
-   :param name: The name of the channel
-   :return: a tuple of three values
-       1. prefix: string (`"#"` or `"@"`)
-       2. channel_id: string or `None`
-       3. timed_out: boolean (whether we hit our self-imposed time limit)
-   """
+    Fetches the internal slack id of a channel.
+    :param organization: The organization that is using this integration
+    :param integration: The slack integration
+    :param name: The name of the channel
+    :return: a tuple of three values
+        1. prefix: string (`"#"` or `"@"`)
+        2. channel_id: string or `None`
+        3. timed_out: boolean (whether we hit our self-imposed time limit)
+    """
 
     name = strip_channel_name(name)
 
@@ -405,18 +390,15 @@ def get_channel_id_with_timeout(integration, name, timeout):
         3. timed_out: boolean (whether we hit our self-imposed time limit)
     """
 
-    token_payload = {"token": integration.metadata["access_token"]}
+    headers = {"Authorization": "Bearer %s" % integration.metadata["access_token"]}
 
-    # Look for channel ID
-    payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
+    payload = {
+        "exclude_archived": False,
+        "exclude_members": True,
+        "types": "public_channel,private_channel",
+    }
 
-    # workspace tokens are the only tokens that don't works with the conversations.list endpoint,
-    # once eveyone is migrated we can remove this check and usages of channels.list
-    if get_integration_type(integration) == "workspace_app":
-        list_types = LEGACY_LIST_TYPES
-    else:
-        list_types = LIST_TYPES
-        payload = dict(payload, **{"types": "public_channel,private_channel"})
+    list_types = LIST_TYPES
 
     time_to_quit = time.time() + timeout
 
@@ -429,11 +411,11 @@ def get_channel_id_with_timeout(integration, name, timeout):
             endpoint = "/%s.list" % list_type
             try:
                 # Slack limits the response of `<list_type>.list` to 1000 channels
-                items = client.get(endpoint, params=dict(payload, cursor=cursor, limit=1000))
-            except ApiError as e:
-                logger.info(
-                    "rule.slack.%s_list_failed" % list_type, extra={"error": six.text_type(e)}
+                items = client.get(
+                    endpoint, headers=headers, params=dict(payload, cursor=cursor, limit=1000)
                 )
+            except ApiError as e:
+                logger.info("rule.slack.%s_list_failed" % list_type, extra={"error": str(e)})
                 return (prefix, None, False)
 
             for c in items[result_name]:
@@ -466,10 +448,20 @@ def get_channel_id_with_timeout(integration, name, timeout):
     return (prefix, None, False)
 
 
-def send_incident_alert_notification(action, incident, metric_value):
+def send_incident_alert_notification(action, incident, metric_value, method):
+    # Make sure organization integration is still active:
+    try:
+        integration = Integration.objects.get(
+            id=action.integration_id,
+            organizations=incident.organization,
+            status=ObjectStatus.VISIBLE,
+        )
+    except Integration.DoesNotExist:
+        # Integration removed, but rule is still active.
+        return
+
     channel = action.target_identifier
-    integration = action.integration
-    attachment = build_incident_attachment(incident, metric_value)
+    attachment = build_incident_attachment(action, incident, metric_value, method)
     payload = {
         "token": integration.metadata["access_token"],
         "channel": channel,
@@ -480,7 +472,7 @@ def send_incident_alert_notification(action, incident, metric_value):
     try:
         client.post("/chat.postMessage", data=payload, timeout=5)
     except ApiError as e:
-        logger.info("rule.fail.slack_post", extra={"error": six.text_type(e)})
+        logger.info("rule.fail.slack_post", extra={"error": str(e)})
 
 
 def get_identity(user, organization_id, integration_id):
@@ -500,3 +492,31 @@ def get_identity(user, organization_id, integration_id):
         raise Http404
 
     return organization, integration, idp
+
+
+def parse_link(url):
+    """
+    For data aggreggation purposes, rm unique information from URL
+    """
+
+    url_parts = list(urlparse(url))
+    query = dict(parse_qs(url_parts[4]))
+    for param in query:
+        if param == "project":
+            query.update({"project": "{project}"})
+
+    url_parts[4] = urlencode(query)
+    parsed_path = url_parts[2].strip("/").split("/")
+    scrubbed_items = {"organizations": "organization", "issues": "issue_id", "events": "event_id"}
+    new_path = []
+    for index, item in enumerate(parsed_path):
+        if item in scrubbed_items:
+            if len(parsed_path) > index + 1:
+                parsed_path[index + 1] = "{%s}" % (scrubbed_items[item])
+        new_path.append(item)
+
+    parsed_path = "/".join(new_path)
+
+    parsed_path += "/" + str(url_parts[4])
+
+    return parsed_path

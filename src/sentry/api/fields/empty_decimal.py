@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework import serializers
 from rest_framework.fields import empty
 
@@ -14,9 +12,9 @@ class EmptyDecimalField(serializers.DecimalField):
     def to_internal_value(self, data):
         if data == "":
             return None
-        return super(EmptyDecimalField, self).to_internal_value(data)
+        return super().to_internal_value(data)
 
     def run_validation(self, data=empty):
         if data == "":
             return None
-        return super(EmptyDecimalField, self).run_validation(data)
+        return super().run_validation(data)

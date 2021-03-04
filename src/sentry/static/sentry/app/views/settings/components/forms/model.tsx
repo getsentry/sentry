@@ -1,11 +1,11 @@
-import {observable, computed, action, ObservableMap} from 'mobx';
 import isEqual from 'lodash/isEqual';
+import {action, computed, observable, ObservableMap} from 'mobx';
 
-import {Client, APIRequestMethod} from 'app/api';
 import {addErrorMessage, saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
-import {defined} from 'app/utils';
-import {t} from 'app/locale';
+import {APIRequestMethod, Client} from 'app/api';
 import FormState from 'app/components/forms/state';
+import {t} from 'app/locale';
+import {defined} from 'app/utils';
 
 type Snapshot = Map<string, FieldValue>;
 type SaveSnapshot = (() => number) | null;
@@ -28,7 +28,12 @@ export type FormOptions = {
   onSubmitError?: (error: any, instance: FormModel, id?: string) => void;
 };
 
-type OptionsWithInitial = FormOptions & {initialData?: object};
+type ClientOptions = ConstructorParameters<typeof Client>[0];
+
+type OptionsWithInitial = FormOptions & {
+  initialData?: object;
+  apiOptions?: ClientOptions;
+};
 
 class FormModel {
   /**
@@ -53,7 +58,7 @@ class FormModel {
   /**
    * State of the form as a whole
    */
-  @observable formState;
+  @observable formState: FormState | undefined;
 
   /**
    * Holds field properties as declared in <Form>
@@ -78,13 +83,14 @@ class FormModel {
 
   options: FormOptions;
 
-  constructor({initialData, ...options}: OptionsWithInitial = {}) {
-    this.options = options || {};
+  constructor({initialData, apiOptions, ...options}: OptionsWithInitial = {}) {
+    this.options = options ?? {};
+
     if (initialData) {
       this.setInitialData(initialData);
     }
 
-    this.api = new Client();
+    this.api = new Client(apiOptions);
   }
 
   /**
@@ -214,11 +220,7 @@ class FormModel {
   }
 
   getValue(id: string) {
-    if (!this.fields.has(id)) {
-      return '';
-    }
-
-    return this.fields.get(id);
+    return this.fields.has(id) ? this.fields.get(id) : '';
   }
 
   getTransformedValue(id: string) {
@@ -713,6 +715,47 @@ class FormModel {
 
   mapFormErrors(responseJSON?: any) {
     return responseJSON;
+  }
+}
+
+/**
+ * The mock model mocks the model interface to simply return values from the props
+ *
+ * This is valuable for using form fields outside of a Form context. Disables a
+ * lot of functionality however.
+ */
+export class MockModel {
+  //TODO(TS)
+  props: any;
+
+  initialData: object;
+
+  constructor(props) {
+    this.props = props;
+
+    this.initialData = {
+      [props.name]: props.value,
+    };
+  }
+
+  setValue() {}
+
+  setFieldDescriptor() {}
+
+  removeField() {}
+
+  handleBlurField() {}
+
+  getValue() {
+    return this.props.value;
+  }
+
+  getError() {
+    return this.props.error;
+  }
+
+  getFieldState() {
+    return false;
   }
 }
 

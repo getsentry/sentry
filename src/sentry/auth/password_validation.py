@@ -1,10 +1,7 @@
-from __future__ import unicode_literals, absolute_import
-
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.functional import lazy
 from django.utils.html import format_html
-from django.utils.six import text_type
 from django.utils.translation import ugettext as _, ungettext
 
 from sentry.utils.imports import import_string
@@ -73,10 +70,10 @@ def _password_validators_help_text_html(password_validators=None):
     return "<ul>%s</ul>" % "".join(help_items) if help_items else ""
 
 
-password_validators_help_text_html = lazy(_password_validators_help_text_html, text_type)
+password_validators_help_text_html = lazy(_password_validators_help_text_html, str)
 
 
-class MinimumLengthValidator(object):
+class MinimumLengthValidator:
     """
     Validate whether the password is of a minimum length.
     """
@@ -97,14 +94,17 @@ class MinimumLengthValidator(object):
             )
 
     def get_help_text(self):
-        return ungettext(
-            "Your password must contain at least %(min_length)d character.",
-            "Your password must contain at least %(min_length)d characters.",
-            self.min_length,
-        ) % {"min_length": self.min_length}
+        return (
+            ungettext(
+                "Your password must contain at least %(min_length)d character.",
+                "Your password must contain at least %(min_length)d characters.",
+                self.min_length,
+            )
+            % {"min_length": self.min_length}
+        )
 
 
-class MaximumLengthValidator(object):
+class MaximumLengthValidator:
     """
     Validate whether the password is of a maximum length.
     """
@@ -125,14 +125,17 @@ class MaximumLengthValidator(object):
             )
 
     def get_help_text(self):
-        return ungettext(
-            "Your password must contain no more than %(max_length)d character.",
-            "Your password must contain no more than %(max_length)d characters.",
-            self.max_length,
-        ) % {"max_length": self.max_length}
+        return (
+            ungettext(
+                "Your password must contain no more than %(max_length)d character.",
+                "Your password must contain no more than %(max_length)d characters.",
+                self.max_length,
+            )
+            % {"max_length": self.max_length}
+        )
 
 
-class NumericPasswordValidator(object):
+class NumericPasswordValidator:
     """
     Validate whether the password is alphanumeric.
     """

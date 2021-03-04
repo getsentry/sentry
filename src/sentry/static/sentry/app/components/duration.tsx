@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {getDuration, getExactDuration} from 'app/utils/formatters';
@@ -17,12 +16,5 @@ const Duration = ({seconds, fixedDigits, abbreviation, exact, ...props}: Props) 
       : getDuration(seconds, fixedDigits, abbreviation)}
   </span>
 );
-
-Duration.propTypes = {
-  seconds: PropTypes.number.isRequired,
-  fixedDigits: PropTypes.number,
-  abbreviation: PropTypes.bool,
-  exact: PropTypes.bool,
-};
 
 export default Duration;

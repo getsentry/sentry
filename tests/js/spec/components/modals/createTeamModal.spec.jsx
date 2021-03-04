@@ -1,4 +1,3 @@
-import {Modal} from 'react-bootstrap';
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -26,8 +25,8 @@ describe('CreateTeamModal', function () {
   it('calls createTeam action creator on submit', async function () {
     const wrapper = mountWithTheme(
       <CreateTeamModal
-        Body={Modal.Body}
-        Header={Modal.Header}
+        Body={p => p.children}
+        Header={p => p.children}
         organization={org}
         closeModal={closeModal}
         onClose={onClose}

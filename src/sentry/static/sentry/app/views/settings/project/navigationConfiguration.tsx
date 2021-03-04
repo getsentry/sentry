@@ -1,6 +1,6 @@
 import {t} from 'app/locale';
-import {NavigationSection} from 'app/views/settings/types';
 import {Organization, Project} from 'app/types';
+import {NavigationSection} from 'app/views/settings/types';
 
 type ConfigParams = {
   organization?: Organization;
@@ -59,17 +59,18 @@ export default function getConfiguration({
       name: t('Processing'),
       items: [
         {
-          path: `${pathPrefix}/debug-symbols/`,
-          title: t('Debug Files'),
+          path: `${pathPrefix}/filters/`,
+          title: t('Inbound Filters'),
+          description: t(
+            "Configure a project's inbound filters (e.g. browsers, messages)"
+          ),
         },
         {
-          path: `${pathPrefix}/source-maps/`,
-          title: t('Source Maps'),
-        },
-        {
-          path: `${pathPrefix}/proguard/`,
-          title: t('ProGuard'),
-          show: () => !!organization?.features?.includes('android-mappings'),
+          path: `${pathPrefix}/filters-and-sampling/`,
+          title: t('Filters & Sampling'),
+          show: () => !!organization?.features?.includes('filters-and-sampling'),
+          description: t("Manage an organization's inbound data"),
+          badge: () => 'new',
         },
         {
           path: `${pathPrefix}/security-and-privacy/`,
@@ -78,7 +79,10 @@ export default function getConfiguration({
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing) for a project'
           ),
         },
-
+        {
+          path: `${pathPrefix}/issue-grouping/`,
+          title: t('Issue Grouping'),
+        },
         {
           path: `${pathPrefix}/processing-issues/`,
           title: t('Processing Issues'),
@@ -94,11 +98,17 @@ export default function getConfiguration({
           },
         },
         {
-          path: `${pathPrefix}/filters/`,
-          title: t('Inbound Filters'),
-          description: t(
-            "Configure a project's inbound filters (e.g. browsers, messages)"
-          ),
+          path: `${pathPrefix}/debug-symbols/`,
+          title: t('Debug Files'),
+        },
+        {
+          path: `${pathPrefix}/proguard/`,
+          title: t('ProGuard'),
+          show: () => !!organization?.features?.includes('android-mappings'),
+        },
+        {
+          path: `${pathPrefix}/source-maps/`,
+          title: t('Source Maps'),
         },
       ],
     },

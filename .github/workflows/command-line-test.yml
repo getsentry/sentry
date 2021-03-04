@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     name: cli test
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
@@ -21,11 +21,16 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
+      - name: Set python version output
+        id: python-version
+        run: |
+          echo "::set-output name=python-version::$(cat .python-version)"
+
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
         if: steps.changes.outputs.backend == 'true'
         with:
-          python-version: 2.7.17
+          python-version: ${{ steps.python-version.outputs.python-version }}
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
@@ -45,10 +50,11 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         if: steps.changes.outputs.backend == 'true'
-        with:
-          python: 2
 
       - name: Run test
         if: steps.changes.outputs.backend == 'true'
         run: |
           make test-cli
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts

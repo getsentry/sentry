@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
@@ -28,7 +26,7 @@ class CreateSnubaQueryTest(TestCase):
         assert snuba_query.time_window == int(time_window.total_seconds())
         assert snuba_query.resolution == int(resolution.total_seconds())
         assert snuba_query.environment is None
-        assert set(snuba_query.event_types) == set([SnubaQueryEventType.EventType.ERROR])
+        assert set(snuba_query.event_types) == {SnubaQueryEventType.EventType.ERROR}
 
     def test_environment(self):
         dataset = QueryDatasets.EVENTS
@@ -45,7 +43,7 @@ class CreateSnubaQueryTest(TestCase):
         assert snuba_query.time_window == int(time_window.total_seconds())
         assert snuba_query.resolution == int(resolution.total_seconds())
         assert snuba_query.environment == self.environment
-        assert set(snuba_query.event_types) == set([SnubaQueryEventType.EventType.ERROR])
+        assert set(snuba_query.event_types) == {SnubaQueryEventType.EventType.ERROR}
 
     def test_event_types(self):
         dataset = QueryDatasets.EVENTS
@@ -68,7 +66,7 @@ class CreateSnubaQueryTest(TestCase):
         assert snuba_query.time_window == int(time_window.total_seconds())
         assert snuba_query.resolution == int(resolution.total_seconds())
         assert snuba_query.environment is None
-        assert set(snuba_query.event_types) == set([SnubaQueryEventType.EventType.DEFAULT])
+        assert set(snuba_query.event_types) == {SnubaQueryEventType.EventType.DEFAULT}
 
 
 class CreateSnubaSubscriptionTest(TestCase):
@@ -141,7 +139,14 @@ class UpdateSnubaQueryTest(TestCase):
         resolution = timedelta(minutes=1)
         event_types = [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT]
         update_snuba_query(
-            snuba_query, dataset, query, aggregate, time_window, resolution, None, event_types,
+            snuba_query,
+            dataset,
+            query,
+            aggregate,
+            time_window,
+            resolution,
+            None,
+            event_types,
         )
         assert snuba_query.dataset == dataset.value
         assert snuba_query.query == query
@@ -153,7 +158,14 @@ class UpdateSnubaQueryTest(TestCase):
 
         event_types = [SnubaQueryEventType.EventType.DEFAULT]
         update_snuba_query(
-            snuba_query, dataset, query, aggregate, time_window, resolution, None, event_types,
+            snuba_query,
+            dataset,
+            query,
+            aggregate,
+            time_window,
+            resolution,
+            None,
+            event_types,
         )
         assert set(snuba_query.event_types) == set(event_types)
 

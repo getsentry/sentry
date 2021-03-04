@@ -1,9 +1,7 @@
-from __future__ import absolute_import, print_function
-
 import inspect
-import six
 
 from django.conf import settings
+from django.urls import resolve
 
 import sentry_sdk
 
@@ -22,6 +20,21 @@ UNSAFE_FILES = (
     # This consumer lives outside of sentry but is just as unsafe.
     "outcomes_consumer.py",
 )
+
+# URLs that should always be sampled
+SAMPLED_URL_NAMES = {
+    # releases
+    "sentry-api-0-organization-releases",
+    "sentry-api-0-organization-release-details",
+    "sentry-api-0-project-releases",
+    "sentry-api-0-project-release-details",
+    # integrations
+    "sentry-extensions-jira-issue-hook",
+    "sentry-api-0-group-integration-details",
+    # integration platform
+    "external-issues",
+    "sentry-api-0-sentry-app-authorizations",
+}
 
 UNSAFE_TAG = "_unsafe"
 
@@ -100,7 +113,7 @@ def get_project_key():
             extra={
                 "project_id": settings.SENTRY_PROJECT,
                 "project_key": settings.SENTRY_PROJECT_KEY,
-                "error_message": six.text_type(exc),
+                "error_message": str(exc),
             },
         )
     if key is None:
@@ -112,6 +125,35 @@ def get_project_key():
             },
         )
     return key
+
+
+def _override_on_full_queue(transport, metric_name):
+    if transport is None:
+        return
+
+    def on_full_queue(*args, **kwargs):
+        metrics.incr(metric_name, tags={"reason": "queue_full"})
+
+    transport._worker.on_full_queue = on_full_queue
+
+
+def traces_sampler(sampling_context):
+    # If there's already a sampling decision, just use that
+    if sampling_context["parent_sampled"] is not None:
+        return sampling_context["parent_sampled"]
+
+    # Resolve the url, and see if we want to set our own sampling
+    if "wsgi_environ" in sampling_context:
+        try:
+            match = resolve(sampling_context["wsgi_environ"].get("PATH_INFO"))
+            if match and match.url_name in SAMPLED_URL_NAMES:
+                return 1.0
+        except Exception:
+            # On errors or 404, continue to default sampling decision
+            pass
+
+    # Default to the sampling rate in settings
+    return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
 def configure_sdk():
@@ -127,6 +169,7 @@ def configure_sdk():
     relay_dsn = sdk_options.pop("relay_dsn", None)
     internal_project_key = get_project_key()
     upstream_dsn = sdk_options.pop("dsn", None)
+    sdk_options["traces_sampler"] = traces_sampler
 
     if upstream_dsn:
         upstream_transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
@@ -142,8 +185,24 @@ def configure_sdk():
     else:
         relay_transport = None
 
+    _override_on_full_queue(relay_transport, "internal.uncaptured.events.relay")
+    _override_on_full_queue(upstream_transport, "internal.uncaptured.events.upstream")
+
     class MultiplexingTransport(sentry_sdk.transport.Transport):
         def capture_envelope(self, envelope):
+            # Temporarily capture envelope counts to compare to ingested
+            # transactions.
+            metrics.incr("internal.captured.events.envelopes")
+            transaction = envelope.get_transaction_event()
+
+            # Temporarily also capture counts for one specific transaction to check ingested amount
+            if (
+                transaction
+                and transaction.get("transaction")
+                == "/api/0/organizations/{organization_slug}/issues/"
+            ):
+                metrics.incr("internal.captured.events.envelopes.issues")
+
             # Assume only transactions get sent via envelopes
             if options.get("transaction-events.force-disable-internal-project"):
                 return
@@ -175,7 +234,11 @@ def configure_sdk():
                     metrics.incr("internal.captured.events.relay")
                     getattr(relay_transport, method_name)(*args, **kwargs)
                 else:
-                    metrics.incr("internal.uncaptured.events.relay", skip_internal=False)
+                    metrics.incr(
+                        "internal.uncaptured.events.relay",
+                        skip_internal=False,
+                        tags={"reason": "unsafe"},
+                    )
 
     sentry_sdk.init(
         transport=MultiplexingTransport(),
@@ -186,11 +249,11 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
         ],
-        **sdk_options
+        **sdk_options,
     )
 
 
-class RavenShim(object):
+class RavenShim:
     """Wrapper around sentry-sdk in case people are writing their own
     integrations that rely on this being here."""
 

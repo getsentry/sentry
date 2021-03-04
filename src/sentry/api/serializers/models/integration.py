@@ -1,12 +1,32 @@
-from __future__ import absolute_import
-
+import logging
 from collections import defaultdict
-
-import six
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import ExternalIssue, GroupLink, Integration, OrganizationIntegration
+from sentry.models import (
+    ExternalIssue,
+    GroupLink,
+    Integration,
+    OrganizationIntegration,
+    ExternalTeam,
+    ExternalUser,
+)
+from sentry.shared_integrations.exceptions import ApiError
+
+logger = logging.getLogger(__name__)
+
+
+# converts the provider to JSON
+def serialize_provider(provider):
+    return {
+        "key": provider.key,
+        "slug": provider.key,
+        "name": provider.name,
+        "canAdd": provider.can_add,
+        "canDisable": provider.can_disable,
+        "features": sorted([f.value for f in provider.features]),
+        "aspects": provider.metadata.aspects,
+    }
 
 
 @register(Integration)
@@ -14,30 +34,23 @@ class IntegrationSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         provider = obj.get_provider()
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "name": obj.name,
             "icon": obj.metadata.get("icon"),
             "domainName": obj.metadata.get("domain_name"),
             "accountType": obj.metadata.get("account_type"),
             "status": obj.get_status_display(),
-            "provider": {
-                "key": provider.key,
-                "slug": provider.key,
-                "name": provider.name,
-                "canAdd": provider.can_add,
-                "canDisable": provider.can_disable,
-                "features": [f.value for f in provider.features],
-                "aspects": provider.metadata.aspects,
-            },
+            "provider": serialize_provider(provider),
         }
 
 
 class IntegrationConfigSerializer(IntegrationSerializer):
-    def __init__(self, organization_id=None):
+    def __init__(self, organization_id=None, params=None):
         self.organization_id = organization_id
+        self.params = params or {}
 
     def serialize(self, obj, attrs, user, include_config=True):
-        data = super(IntegrationConfigSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
 
         if not include_config:
             return data
@@ -53,11 +66,20 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         else:
             data.update({"configOrganization": install.get_organization_config()})
 
+            # Query param "action" only attached in TicketRuleForm modal.
+            if self.params.get("action") == "create":
+                data["createIssueConfig"] = install.get_create_issue_config(
+                    None, user, params=self.params
+                )
+
         return data
 
 
 @register(OrganizationIntegration)
 class OrganizationIntegrationSerializer(Serializer):
+    def __init__(self, params=None):
+        self.params = params
+
     def serialize(self, obj, attrs, user, include_config=True):
         # XXX(epurkhiser): This is O(n) for integrations, especially since
         # we're using the IntegrationConfigSerializer which pulls in the
@@ -66,26 +88,37 @@ class OrganizationIntegrationSerializer(Serializer):
         integration = serialize(
             objects=obj.integration,
             user=user,
-            serializer=IntegrationConfigSerializer(obj.organization.id),
+            serializer=IntegrationConfigSerializer(obj.organization.id, params=self.params),
             include_config=include_config,
         )
 
-        # TODO: skip adding configData if include_config is False
-        # we need to wait until the Slack migration is complete first
-        # because we have a dependency on configData in the integration directory
+        dynamic_display_information = None
+        config_data = None
+
         try:
             installation = obj.integration.get_installation(obj.organization_id)
         except NotImplementedError:
             # slack doesn't have an installation implementation
-            config_data = obj.config
-            dynamic_display_information = None
+            config_data = obj.config if include_config else None
         else:
-            # just doing this to avoid querying for an object we already have
-            installation._org_integration = obj
-            config_data = installation.get_config_data()
-            dynamic_display_information = installation.get_dynamic_display_information()
+            try:
+                # just doing this to avoid querying for an object we already have
+                installation._org_integration = obj
+                config_data = installation.get_config_data() if include_config else None
+                dynamic_display_information = installation.get_dynamic_display_information()
+            except ApiError as e:
+                # If there is an ApiError from our 3rd party integration providers, assume there is an problem with the configuration and set it to disabled.
+                integration.update({"status": "disabled"})
+                name = "sentry.serializers.model.organizationintegration"
+                log_info = {
+                    "error": str(e),
+                    "integration_id": obj.integration.id,
+                    "integration_provider": obj.integration.provider,
+                }
+                logger.info(name, extra=log_info)
 
         integration.update({"configData": config_data})
+
         if dynamic_display_information:
             integration.update({"dynamicDisplayInformation": dynamic_display_information})
 
@@ -106,8 +139,8 @@ class IntegrationProviderSerializer(Serializer):
             "canDisable": obj.can_disable,
             "features": [f.value for f in obj.features],
             "setupDialog": dict(
-                url=u"/organizations/{}/integrations/{}/setup/".format(organization.slug, obj.key),
-                **obj.setup_dialog_config
+                url=f"/organizations/{organization.slug}/integrations/{obj.key}/setup/",
+                **obj.setup_dialog_config,
             ),
         }
 
@@ -130,7 +163,7 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
         self.params = params
 
     def serialize(self, obj, attrs, user, organization_id=None):
-        data = super(IntegrationIssueConfigSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         installation = obj.get_installation(organization_id)
 
         if self.action == "link":
@@ -138,7 +171,7 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
             data["linkIssueConfig"] = config
 
         if self.action == "create":
-            config = installation.get_create_issue_config(self.group, params=self.params)
+            config = installation.get_create_issue_config(self.group, user, params=self.params)
             data["createIssueConfig"] = config
 
         return data
@@ -168,7 +201,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
             )
             issues_by_integration[ei.integration_id].append(
                 {
-                    "id": six.text_type(ei.id),
+                    "id": str(ei.id),
                     "key": ei.key,
                     "url": installation.get_issue_url(ei.key),
                     "title": ei.title,
@@ -182,6 +215,30 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         }
 
     def serialize(self, obj, attrs, user):
-        data = super(IntegrationIssueSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         data["externalIssues"] = attrs.get("external_issues", [])
         return data
+
+
+@register(ExternalTeam)
+class ExternalTeamSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        provider = ExternalTeam.get_provider_string(obj.provider)
+        return {
+            "id": str(obj.id),
+            "teamId": str(obj.team_id),
+            "provider": provider,
+            "externalName": obj.external_name,
+        }
+
+
+@register(ExternalUser)
+class ExternalUserSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        provider = ExternalUser.get_provider_string(obj.provider)
+        return {
+            "id": str(obj.id),
+            "memberId": str(obj.organizationmember_id),
+            "provider": provider,
+            "externalName": obj.external_name,
+        }

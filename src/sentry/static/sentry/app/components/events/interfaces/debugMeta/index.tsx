@@ -1,37 +1,36 @@
-import isNil from 'lodash/isNil';
 import React from 'react';
-import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 import {
-  List,
-  ListRowProps,
   AutoSizer,
   CellMeasurer,
   CellMeasurerCache,
+  List,
+  ListRowProps,
 } from 'react-virtualized';
+import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
+import isNil from 'lodash/isNil';
 
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import space from 'app/styles/space';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import Checkbox from 'app/components/checkbox';
 import EventDataSection from 'app/components/events/eventDataSection';
-import {Panel, PanelBody} from 'app/components/panels';
-import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
-import SearchBar from 'app/components/searchBar';
-import {parseAddress, getImageRange} from 'app/components/events/interfaces/utils';
 import ImageForBar from 'app/components/events/interfaces/imageForBar';
-import {t, tct} from 'app/locale';
-import ClippedBox from 'app/components/clippedBox';
+import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
+import {Panel, PanelBody} from 'app/components/panels';
+import SearchBar from 'app/components/searchBar';
 import {IconWarning} from 'app/icons';
-import {Organization, Project, Event, Frame} from 'app/types';
+import {t, tct} from 'app/locale';
+import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
+import space from 'app/styles/space';
+import {Frame, Organization, Project} from 'app/types';
+import {Event} from 'app/types/event';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import DebugImage from './debugImage';
 import {getFileName} from './utils';
 
 const MIN_FILTER_LEN = 3;
-const DEFAULT_CLIP_HEIGHT = 560;
-const PANEL_MAX_HEIGHT = 600;
+const PANEL_MAX_HEIGHT = 400;
 
 type Image = React.ComponentProps<typeof DebugImage>['image'];
 
@@ -43,7 +42,7 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   event: Event;
-  orgId: Organization['id'];
+  organization: Organization;
   projectId: Project['id'];
 };
 
@@ -53,10 +52,13 @@ type State = {
   filteredImages: Array<Image>;
   showUnused: boolean;
   showDetails: boolean;
-  clipHeight: number;
   foundFrame?: Frame;
   panelBodyHeight?: number;
 };
+
+function normalizeId(id: string | undefined): string {
+  return id ? id.trim().toLowerCase().replace(/[- ]/g, '') : '';
+}
 
 const cache = new CellMeasurerCache({
   fixedWidth: true,
@@ -74,7 +76,6 @@ class DebugMeta extends React.PureComponent<Props, State> {
     filteredImages: [],
     showUnused: false,
     showDetails: false,
-    clipHeight: DEFAULT_CLIP_HEIGHT,
   };
 
   componentDidMount() {
@@ -163,19 +164,24 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
 
     // When searching for an address, check for the address range of the image
-    // instead of an exact match.
+    // instead of an exact match.  Note that images cannot be found by index
+    // if they are at 0x0.  For those relative addressing has to be used.
     if (searchTerm.indexOf('0x') === 0) {
       const needle = parseAddress(searchTerm);
-      if (needle > 0) {
+      if (needle > 0 && image.image_addr !== '0x0') {
         const [startAddress, endAddress] = getImageRange(image);
         return needle >= startAddress && needle < endAddress;
       }
     }
 
+    // the searchTerm ending at "!" is the end of the ID search.
+    const relMatch = searchTerm.match(/^\s*(.*?)!/); // debug_id!address
+    const idSearchTerm = normalizeId(relMatch?.[1] || searchTerm);
+
     return (
       // Prefix match for identifiers
-      (image.code_id?.toLowerCase() || '').indexOf(searchTerm) === 0 ||
-      (image.debug_id?.toLowerCase() || '').indexOf(searchTerm) === 0 ||
+      normalizeId(image.code_id).indexOf(idSearchTerm) === 0 ||
+      normalizeId(image.debug_id).indexOf(idSearchTerm) === 0 ||
       // Any match for file paths
       (image.code_file?.toLowerCase() || '').indexOf(searchTerm) >= 0 ||
       (image.debug_file?.toLowerCase() || '').indexOf(searchTerm) >= 0
@@ -218,7 +224,24 @@ class DebugMeta extends React.PureComponent<Props, State> {
       return undefined;
     }
 
-    const searchTerm = this.state.filter.toLowerCase();
+    const searchTerm = normalizeId(this.state.filter);
+    const relMatch = searchTerm.match(/^\s*(.*?)!(.*)$/); // debug_id!address
+
+    if (relMatch) {
+      const debugImages = this.getDebugImages().map(
+        (image, idx) => [idx, image] as [number, Image]
+      );
+      const filteredImages = debugImages.filter(([_, image]) => this.filterImage(image));
+      if (filteredImages.length === 1) {
+        return frames.find(
+          frame =>
+            frame.addrMode === `rel:${filteredImages[0][0]}` &&
+            frame.instructionAddr?.toLowerCase() === relMatch[2]
+        );
+      }
+
+      return undefined;
+    }
 
     return frames.find(frame => frame.instructionAddr?.toLowerCase() === searchTerm);
   }
@@ -289,7 +312,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   renderRow = ({index, key, parent, style}: ListRowProps) => {
-    const {orgId, projectId} = this.props;
+    const {organization, projectId} = this.props;
     const {filteredImages, showDetails} = this.state;
 
     return (
@@ -303,7 +326,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         <DebugImage
           style={style}
           image={filteredImages[index]}
-          orgId={orgId}
+          organization={organization}
           projectId={projectId}
           showDetails={showDetails}
         />
@@ -327,15 +350,15 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   renderImageList() {
-    const {filteredImages, showDetails, panelBodyHeight, clipHeight} = this.state;
-    const {orgId, projectId} = this.props;
+    const {filteredImages, showDetails, panelBodyHeight} = this.state;
+    const {organization, projectId} = this.props;
 
     if (!panelBodyHeight) {
       return filteredImages.map(filteredImage => (
         <DebugImage
           key={filteredImage.debug_id}
           image={filteredImage}
-          orgId={orgId}
+          organization={organization}
           projectId={projectId}
           showDetails={showDetails}
         />
@@ -357,24 +380,11 @@ class DebugMeta extends React.PureComponent<Props, State> {
             rowRenderer={this.renderRow}
             width={width}
             isScrolling={false}
-            overflowHidden={panelBodyHeight > clipHeight}
           />
         )}
       </AutoSizer>
     );
   }
-
-  handleOnReveal = () => {
-    const {panelBodyHeight} = this.state;
-
-    if (!panelBodyHeight) {
-      return;
-    }
-
-    this.setState({
-      clipHeight: panelBodyHeight,
-    });
-  };
 
   handleChangeShowUnused = (event: React.ChangeEvent<HTMLInputElement>) => {
     const showUnused = event.target.checked;
@@ -395,13 +405,13 @@ class DebugMeta extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {filteredImages, foundFrame, panelBodyHeight, clipHeight} = this.state;
+    const {filteredImages, foundFrame} = this.state;
 
     return (
       <StyledEventDataSection
-        type="packages"
+        type="images-loaded"
         title={
-          <GuideAnchor target="packages" position="bottom">
+          <GuideAnchor target="images-loaded" position="bottom">
             <h3>{t('Images Loaded')}</h3>
           </GuideAnchor>
         }
@@ -411,11 +421,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
       >
         <DebugImagesPanel>
           {filteredImages.length > 0 ? (
-            <ClippedBox
-              clipHeight={clipHeight}
-              renderedHeight={panelBodyHeight}
-              onReveal={this.handleOnReveal}
-            >
+            <React.Fragment>
               {foundFrame && (
                 <ImageForBar
                   frame={foundFrame}
@@ -425,7 +431,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
               <PanelBody forwardRef={this.panelBodyRef}>
                 {this.renderImageList()}
               </PanelBody>
-            </ClippedBox>
+            </React.Fragment>
           ) : (
             <EmptyMessage icon={<IconWarning size="xl" />}>
               {this.getNoImagesMessage()}
@@ -439,8 +445,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
 export default DebugMeta;
 
-const StyledList = styled(List)<{overflowHidden: boolean; height: number}>`
-  ${p => p.overflowHidden && 'overflow: hidden !important;'}
+const StyledList = styled(List)<{height: number}>`
   height: auto !important;
   max-height: ${p => p.height}px;
   outline: none;
@@ -450,6 +455,7 @@ const Label = styled('label')`
   font-weight: normal;
   margin-right: 1em;
   margin-bottom: 0;
+  white-space: nowrap;
 
   > input {
     margin-right: 1ex;
@@ -480,13 +486,29 @@ const ToolbarWrapper = styled('div')`
     margin-top: ${space(1)};
   }
 `;
+
 const SearchInputWrapper = styled('div')`
-  max-width: 180px;
-  display: inline-block;
+  width: 100%;
+
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     width: 100%;
     max-width: 100%;
     margin-top: ${space(1)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) and (max-width: ${p =>
+      p.theme.breakpoints[3]}) {
+    max-width: 180px;
+    display: inline-block;
+  }
+
+  @media (min-width: ${props => props.theme.breakpoints[3]}) {
+    width: 330px;
+    max-width: none;
+  }
+
+  @media (min-width: 1550px) {
+    width: 510px;
   }
 `;
 // TODO(matej): remove this once we refactor SearchBar to not use css classes

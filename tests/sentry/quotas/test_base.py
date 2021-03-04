@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from sentry.constants import DataCategory
 from sentry.models import OrganizationOption, ProjectKey
 from sentry.quotas.base import Quota, QuotaConfig, QuotaScope

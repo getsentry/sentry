@@ -1,13 +1,12 @@
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import DetailedError from 'app/components/errors/detailedError';
 import {IconFlag} from 'app/icons';
+import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
 
 type DefaultProps = {
@@ -35,12 +34,6 @@ function getExclamation() {
 }
 
 class ErrorBoundary extends React.Component<Props, State> {
-  static propTypes = {
-    mini: PropTypes.bool,
-    message: PropTypes.node,
-    customComponent: PropTypes.node,
-  };
-
   static defaultProps: DefaultProps = {
     mini: false,
   };
@@ -95,7 +88,7 @@ class ErrorBoundary extends React.Component<Props, State> {
 
     const {customComponent, mini, message, className} = this.props;
 
-    if (customComponent) {
+    if (typeof customComponent !== 'undefined') {
       return customComponent;
     }
 
@@ -127,7 +120,7 @@ Anyway, we apologize for the inconvenience.`
 }
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   padding: ${p => p.theme.grid * 3}px;
   max-width: 1000px;
   margin: auto;

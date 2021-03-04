@@ -1,5 +1,5 @@
-import DocumentTitle from 'react-document-title';
 import React from 'react';
+import DocumentTitle from 'react-document-title';
 
 import AsyncComponent from 'app/components/asyncComponent';
 

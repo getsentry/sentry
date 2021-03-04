@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
-from django.db import migrations, transaction
+from django.db import migrations
 
 
 def remove_trailing_spaces(apps, schema_editor):
@@ -37,7 +34,5 @@ class Migration(migrations.Migration):
     dependencies = [("sentry", "0106_service_hook_project_id_nullable")]
 
     operations = [
-        migrations.RunPython(
-            remove_trailing_spaces, reverse_code=migrations.RunPython.noop
-        )
+        migrations.RunPython(remove_trailing_spaces, reverse_code=migrations.RunPython.noop)
     ]

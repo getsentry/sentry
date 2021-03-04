@@ -1,13 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import ActivityAuthor from 'app/components/activity/author';
-import ConfigStore from 'app/stores/configStore';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import {User} from 'app/types';
 import {Theme} from 'app/utils/theme';
-import Tooltip from 'app/components/tooltip';
 
 import EditorTools from './editorTools';
 
@@ -53,7 +53,7 @@ const NoteHeader = ({authorName, user, onEdit, onDelete}: Props) => {
 
 const getActionStyle = (p: {theme: Theme}) => `
   padding: 0 7px;
-  color: ${p.theme.gray400};
+  color: ${p.theme.gray200};
   font-weight: normal;
 `;
 
@@ -62,13 +62,13 @@ const Edit = styled('a')`
   margin-left: 7px;
 
   &:hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
 
 const Remove = styled('span')`
   ${getActionStyle};
-  border-left: 1px solid ${p => p.theme.borderLight};
+  border-left: 1px solid ${p => p.theme.border};
 
   &:hover {
     color: ${p => p.theme.error};

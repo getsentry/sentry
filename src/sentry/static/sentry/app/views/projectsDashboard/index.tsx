@@ -1,31 +1,28 @@
-import {Link} from 'react-router';
-import LazyLoad from 'react-lazyload';
-import PropTypes from 'prop-types';
 import React from 'react';
+import LazyLoad from 'react-lazyload';
+import {Link, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import uniqBy from 'lodash/uniqBy';
-import flatten from 'lodash/flatten';
 import {withProfiler} from '@sentry/react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import flatten from 'lodash/flatten';
+import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'app/api';
-import {TeamWithProjects, Organization} from 'app/types';
-import {sortProjects} from 'app/utils';
-import {t} from 'app/locale';
-import LoadingError from 'app/components/loadingError';
 import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {IconAdd} from 'app/icons';
+import {t} from 'app/locale';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import LoadingIndicator from 'app/components/loadingIndicator';
+import {Organization, TeamWithProjects} from 'app/types';
+import {sortProjects} from 'app/utils';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
-import {IconAdd} from 'app/icons';
 
 import Resources from './resources';
 import TeamSection from './teamSection';
@@ -39,13 +36,6 @@ type Props = {
 } & RouteComponentProps<{orgId: string}, {}>;
 
 class Dashboard extends React.Component<Props> {
-  static propTypes = {
-    teams: PropTypes.array,
-    organization: SentryTypes.Organization,
-    loadingTeams: PropTypes.bool,
-    error: PropTypes.instanceOf(Error),
-  };
-
   componentWillUnmount() {
     ProjectsStatsStore.reset();
   }

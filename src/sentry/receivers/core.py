@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from click import echo
@@ -103,7 +101,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
     project.update_option("sentry:origins", ["*"])
 
     if verbosity > 0:
-        echo("Created internal Sentry project (slug=%s, id=%s)" % (project.slug, project.id))
+        echo(f"Created internal Sentry project (slug={project.slug}, id={project.id})")
 
     return project
 

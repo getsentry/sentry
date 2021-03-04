@@ -1,26 +1,23 @@
-import Modal from 'react-bootstrap/lib/Modal';
-import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t} from 'app/locale';
-import {ResolutionStatusDetails} from 'app/types';
+import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {t} from 'app/locale';
+import {Choices, ResolutionStatusDetails} from 'app/types';
 import InputField from 'app/views/settings/components/forms/inputField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
 type CountNames = 'ignoreCount' | 'ignoreUserCount';
 type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';
 
-type Props = {
+type Props = ModalRenderProps & {
   onSelected: (statusDetails: ResolutionStatusDetails) => void;
-  onCanceled: () => void;
-  show: boolean;
   label: string;
   countLabel: string;
   countName: CountNames;
   windowName: WindowNames;
-  windowChoices: string[] | [number, string][];
+  windowChoices: Choices;
 };
 
 type State = {
@@ -28,18 +25,7 @@ type State = {
   window: number | null;
 };
 
-export default class CustomIgnoreCountModal extends React.Component<Props, State> {
-  static propTypes = {
-    onSelected: PropTypes.func,
-    onCanceled: PropTypes.func,
-    show: PropTypes.bool,
-    label: PropTypes.string.isRequired,
-    countLabel: PropTypes.string.isRequired,
-    countName: PropTypes.string.isRequired,
-    windowName: PropTypes.string.isRequired,
-    windowChoices: PropTypes.array.isRequired,
-  };
-
+class CustomIgnoreCountModal extends React.Component<Props, State> {
   state: State = {
     count: 100,
     window: null,
@@ -54,6 +40,7 @@ export default class CustomIgnoreCountModal extends React.Component<Props, State
       statusDetails[windowName] = window;
     }
     this.props.onSelected(statusDetails);
+    this.props.closeModal();
   };
 
   handleChange = (name: keyof State, value: number) => {
@@ -61,14 +48,22 @@ export default class CustomIgnoreCountModal extends React.Component<Props, State
   };
 
   render() {
-    const {countLabel, label, show, windowChoices, onCanceled} = this.props;
+    const {
+      Header,
+      Footer,
+      Body,
+      countLabel,
+      label,
+      closeModal,
+      windowChoices,
+    } = this.props;
     const {count, window} = this.state;
     return (
-      <Modal show={show} animation={false} onHide={onCanceled}>
-        <Modal.Header>
+      <React.Fragment>
+        <Header>
           <h4>{label}</h4>
-        </Modal.Header>
-        <Modal.Body>
+        </Header>
+        <Body>
           <InputField
             inline={false}
             flexibleControlStateSize
@@ -82,31 +77,32 @@ export default class CustomIgnoreCountModal extends React.Component<Props, State
             placeholder={t('e.g. 100')}
           />
           <SelectField
-            deprecatedSelectControl
             inline={false}
             flexibleControlStateSize
             stacked
             label={t('Time window')}
             value={window}
             name="window"
-            onChange={val => this.handleChange('window' as 'window', val)}
+            onChange={val => this.handleChange('window' as const, val)}
             choices={windowChoices}
             placeholder={t('e.g. per hour')}
             allowClear
             help={t('(Optional) If supplied, this rule will apply as a rate of change.')}
           />
-        </Modal.Body>
-        <Modal.Footer>
+        </Body>
+        <Footer>
           <ButtonBar gap={1}>
-            <Button type="button" onClick={onCanceled}>
+            <Button type="button" onClick={closeModal}>
               {t('Cancel')}
             </Button>
             <Button type="button" priority="primary" onClick={this.handleSubmit}>
               {t('Ignore')}
             </Button>
           </ButtonBar>
-        </Modal.Footer>
-      </Modal>
+        </Footer>
+      </React.Fragment>
     );
   }
 }
+
+export default CustomIgnoreCountModal;

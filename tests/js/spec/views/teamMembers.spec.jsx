@@ -2,11 +2,11 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
 import {
   openInviteMembersModal,
   openTeamAccessRequestModal,
 } from 'app/actionCreators/modal';
+import {Client} from 'app/api';
 import TeamMembers from 'app/views/settings/organizationTeams/teamMembers';
 
 jest.mock('app/actionCreators/modal', () => ({

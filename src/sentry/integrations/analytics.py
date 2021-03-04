@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from sentry import analytics
 
 
@@ -99,6 +97,19 @@ class IntegrationResolvePREvent(analytics.Event):
     )
 
 
+class IntegrationStacktraceLinkEvent(analytics.Event):
+    type = "integration.stacktrace.linked"
+
+    attributes = (
+        analytics.Attribute("provider"),
+        analytics.Attribute("config_id"),
+        analytics.Attribute("project_id"),
+        analytics.Attribute("organization_id"),
+        analytics.Attribute("filepath"),
+        analytics.Attribute("status"),
+    )
+
+
 analytics.register(IntegrationAddedEvent)
 analytics.register(IntegrationIssueCreatedEvent)
 analytics.register(IntegrationIssueLinkedEvent)
@@ -108,3 +119,4 @@ analytics.register(IntegrationIssueCommentsSyncedEvent)
 analytics.register(IntegrationRepoAddedEvent)
 analytics.register(IntegrationResolveCommitEvent)
 analytics.register(IntegrationResolvePREvent)
+analytics.register(IntegrationStacktraceLinkEvent)

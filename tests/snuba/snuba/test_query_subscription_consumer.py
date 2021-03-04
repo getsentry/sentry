@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from copy import deepcopy
 from datetime import timedelta
 from uuid import uuid4
@@ -61,13 +59,15 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
     def producer(self):
         cluster_name = settings.KAFKA_TOPICS[self.topic]["cluster"]
         conf = {
-            "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"],
+            "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
+                "bootstrap.servers"
+            ],
             "session.timeout.ms": 6000,
         }
         return Producer(conf)
 
     def setUp(self):
-        super(QuerySubscriptionConsumerTest, self).setUp()
+        super().setUp()
         self.override_settings_cm = override_settings(
             KAFKA_TOPICS={self.topic: {"cluster": "default", "topic": self.topic}}
         )
@@ -75,7 +75,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         self.orig_registry = deepcopy(subscriber_registry)
 
     def tearDown(self):
-        super(QuerySubscriptionConsumerTest, self).tearDown()
+        super().tearDown()
         self.override_settings_cm.__exit__(None, None, None)
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
@@ -104,7 +104,9 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         cluster_name = settings.KAFKA_TOPICS[self.topic]["cluster"]
 
         conf = {
-            "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"],
+            "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
+                "bootstrap.servers"
+            ],
             "session.timeout.ms": 6000,
         }
 
@@ -126,7 +128,9 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         cluster_name = settings.KAFKA_TOPICS[self.topic]["cluster"]
 
         conf = {
-            "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"],
+            "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
+                "bootstrap.servers"
+            ],
             "session.timeout.ms": 6000,
         }
 

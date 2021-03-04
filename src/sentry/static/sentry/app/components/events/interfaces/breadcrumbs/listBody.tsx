@@ -1,17 +1,17 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Event} from 'app/types';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
+import {BreadcrumbsWithDetails, BreadcrumbType} from 'app/types/breadcrumbs';
+import {Event} from 'app/types/event';
 
-import Time from './time';
-import Data from './data';
 import Category from './category';
+import Data from './data';
 import Icon from './icon';
 import Level from './level';
 import {GridCell, GridCellLeft} from './styles';
-import {BreadcrumbsWithDetails, BreadcrumbType} from './types';
+import Time from './time';
 
 type Props = {
   breadcrumb: BreadcrumbsWithDetails[0];

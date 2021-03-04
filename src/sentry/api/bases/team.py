@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Team, TeamStatus
@@ -22,7 +20,7 @@ class TeamPermission(OrganizationPermission):
     }
 
     def has_object_permission(self, request, view, team):
-        result = super(TeamPermission, self).has_object_permission(request, view, team.organization)
+        result = super().has_object_permission(request, view, team.organization)
         if not result:
             return result
 

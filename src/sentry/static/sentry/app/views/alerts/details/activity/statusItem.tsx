@@ -1,15 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t, tct} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
+import {t, tct} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
 
 import {
+  ActivityType,
   Incident,
   IncidentActivityType,
   IncidentStatus,
-  ActivityType,
   IncidentStatusMethod,
 } from '../../types';
 
@@ -104,7 +104,7 @@ const StatusValue = styled('span')`
   font-weight: bold;
 `;
 
-function getTriggerName(value: string | null) {
+export function getTriggerName(value: string | null) {
   if (value === `${IncidentStatus.WARNING}`) {
     return t('Warning');
   }

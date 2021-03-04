@@ -6,7 +6,7 @@ import Button from 'app/components/button';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {PluginWithProjectList, PluginProjectItem} from 'app/types';
+import {PluginProjectItem, PluginWithProjectList} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
@@ -103,10 +103,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   handleAddToProject = () => {
     const plugin = this.plugin;
     const {organization, router} = this.props;
-    this.trackIntegrationEvent({
-      eventKey: 'integrations.plugin_add_to_project_clicked',
-      eventName: 'Integrations: Plugin Add to Project Clicked',
-    });
+    this.trackIntegrationEvent('integrations.plugin_add_to_project_clicked');
     modal.openModal(
       modalProps => (
         <ContextPickerModal

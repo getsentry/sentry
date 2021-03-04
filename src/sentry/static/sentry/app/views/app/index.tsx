@@ -1,43 +1,32 @@
-import $ from 'jquery';
-import {RouteComponentProps} from 'react-router/lib/Router';
-import {browserHistory} from 'react-router';
-import Cookies from 'js-cookie';
-import PropTypes from 'prop-types';
 import React from 'react';
-import isEqual from 'lodash/isEqual';
 import keydown from 'react-keydown';
+import {RouteComponentProps} from 'react-router';
+import isEqual from 'lodash/isEqual';
+import PropTypes from 'prop-types';
 
-import {Client} from 'app/api';
-import {Config} from 'app/types';
-import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
 import {
   displayDeployPreviewAlert,
   displayExperimentalSpaAlert,
 } from 'app/actionCreators/deployPreview';
 import {fetchGuides} from 'app/actionCreators/guides';
 import {openCommandPalette} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
 import AlertActions from 'app/actions/alertActions';
-import ConfigStore from 'app/stores/configStore';
+import {Client, initApiClientErrorHandling} from 'app/api';
 import ErrorBoundary from 'app/components/errorBoundary';
 import GlobalModal from 'app/components/globalModal';
-import HookStore from 'app/stores/hookStore';
 import Indicators from 'app/components/indicators';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import NewsletterConsent from 'app/views/newsletterConsent';
+import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import HookStore from 'app/stores/hookStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
+import {Config} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
+import NewsletterConsent from 'app/views/newsletterConsent';
 
 import SystemAlerts from './systemAlerts';
-
-// TODO: Need better way of identifying anonymous pages that don't trigger redirect
-const ALLOWED_ANON_PAGES = [
-  /^\/accept\//,
-  /^\/share\//,
-  /^\/auth\/login\//,
-  /^\/join-request\//,
-];
 
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {
@@ -128,40 +117,7 @@ class App extends React.Component<Props, State> {
       displayExperimentalSpaAlert();
     }
 
-    $(document).ajaxError(function (_evt, jqXHR) {
-      const pageAllowsAnon = ALLOWED_ANON_PAGES.find(regex =>
-        regex.test(window.location.pathname)
-      );
-
-      // Ignore error unless it is a 401
-      if (!jqXHR || jqXHR.status !== 401 || pageAllowsAnon) {
-        return;
-      }
-
-      const code = jqXHR?.responseJSON?.detail?.code;
-      const extra = jqXHR?.responseJSON?.detail?.extra;
-
-      // 401s can also mean sudo is required or it's a request that is allowed to fail
-      // Ignore if these are the cases
-      if (code === 'sudo-required' || code === 'ignore') {
-        return;
-      }
-
-      // If user must login via SSO, redirect to org login page
-      if (code === 'sso-required') {
-        window.location.assign(extra.loginUrl);
-        return;
-      }
-
-      // Otherwise, the user has become unauthenticated. Send them to auth
-      Cookies.set('session_expired', '1');
-
-      if (EXPERIMENTAL_SPA) {
-        browserHistory.replace('/auth/login/');
-      } else {
-        window.location.reload();
-      }
-    });
+    initApiClientErrorHandling();
 
     const user = ConfigStore.get('user');
     if (user) {
@@ -189,19 +145,26 @@ class App extends React.Component<Props, State> {
     if (config.needsUpgrade !== undefined) {
       newState.needsUpgrade = config.needsUpgrade;
     }
+
     if (config.user !== undefined) {
       newState.user = config.user;
     }
+
     if (Object.keys(newState).length > 0) {
       this.setState(newState);
     }
   }
 
-  @keydown('meta+shift+p', 'meta+k')
+  @keydown('meta+shift+p', 'meta+k', 'ctrl+shift+p', 'ctrl+k')
   openCommandPalette(e) {
     openCommandPalette();
     e.preventDefault();
     e.stopPropagation();
+  }
+
+  @keydown('meta+shift+l', 'ctrl+shift+l')
+  toggleDarkMode() {
+    ConfigStore.set('theme', ConfigStore.get('theme') === 'light' ? 'dark' : 'light');
   }
 
   onConfigured = () => this.setState({needsUpgrade: false});

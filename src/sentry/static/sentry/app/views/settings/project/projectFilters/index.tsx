@@ -1,19 +1,17 @@
-import {Link} from 'react-router';
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {Link, RouteComponentProps} from 'react-router';
 
-import {t} from 'app/locale';
-import GroupTombstones from 'app/views/settings/project/projectFilters/groupTombstones';
 import NavTabs from 'app/components/navTabs';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import ProjectFiltersChart from 'app/views/settings/project/projectFilters/projectFiltersChart';
-import ProjectFiltersSettings from 'app/views/settings/project/projectFilters/projectFiltersSettings';
+import {t} from 'app/locale';
+import {Project} from 'app/types';
+import recreateRoute from 'app/utils/recreateRoute';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import recreateRoute from 'app/utils/recreateRoute';
-import withProject from 'app/utils/withProject';
-import {Project} from 'app/types';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
+import GroupTombstones from 'app/views/settings/project/projectFilters/groupTombstones';
+import ProjectFiltersChart from 'app/views/settings/project/projectFilters/projectFiltersChart';
+import ProjectFiltersSettings from 'app/views/settings/project/projectFilters/projectFiltersSettings';
 
 type Props = {
   project: Project;
@@ -21,7 +19,7 @@ type Props = {
 
 class ProjectFilters extends React.Component<Props> {
   render() {
-    const {project, params} = this.props;
+    const {project, params, location} = this.props;
     const {orgId, projectId, filterType} = params;
     if (!project) {
       return null;
@@ -62,7 +60,7 @@ class ProjectFilters extends React.Component<Props> {
           )}
 
           {filterType === 'discarded-groups' ? (
-            <GroupTombstones orgId={orgId} projectId={project.slug} />
+            <GroupTombstones orgId={orgId} projectId={project.slug} location={location} />
           ) : (
             <ProjectFiltersSettings
               project={project}
@@ -76,4 +74,4 @@ class ProjectFilters extends React.Component<Props> {
   }
 }
 
-export default withProject(ProjectFilters);
+export default ProjectFilters;

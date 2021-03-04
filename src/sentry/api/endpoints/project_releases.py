@@ -1,6 +1,5 @@
-from __future__ import absolute_import
-
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 
 from rest_framework.response import Response
 
@@ -11,17 +10,15 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
-from sentry.models import Activity, Environment, Release
+from sentry.models import Activity, Environment, Release, ReleaseStatus
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.signals import release_created
 from sentry.utils.sdk import configure_scope, bind_organization_context
-from sentry.web.decorators import transaction_start
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectReleasePermission,)
 
-    @transaction_start("ProjectReleasesEndpoint.get")
     def get(self, request, project):
         """
         List a Project's Releases
@@ -43,9 +40,14 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             queryset = Release.objects.none()
             environment = None
         else:
-            queryset = Release.objects.filter(
-                projects=project, organization_id=project.organization_id
-            ).select_related("owner")
+            queryset = (
+                Release.objects.filter(
+                    projects=project,
+                    organization_id=project.organization_id,
+                )
+                .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
+                .select_related("owner")
+            )
             if environment is not None:
                 queryset = queryset.filter(
                     releaseprojectenvironment__project=project,
@@ -67,7 +69,6 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             ),
         )
 
-    @transaction_start("ProjectReleasesEndpoint.post")
     def post(self, request, project):
         """
         Create a New Release for a Project
@@ -108,6 +109,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                 result = serializer.validated_data
                 scope.set_tag("version", result["version"])
 
+                new_status = result.get("status")
+
                 # release creation is idempotent to simplify user
                 # experiences
                 try:
@@ -120,6 +123,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                                 url=result.get("url"),
                                 owner=result.get("owner"),
                                 date_released=result.get("dateReleased"),
+                                status=new_status or ReleaseStatus.OPEN,
                             ),
                             True,
                         )
@@ -134,6 +138,10 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     was_released = bool(release.date_released)
                 else:
                     release_created.send_robust(release=release, sender=self.__class__)
+
+                if not created and new_status is not None and new_status != release.status:
+                    release.status = new_status
+                    release.save()
 
                 created = release.add_project(project)
 
@@ -170,6 +178,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     created_status=status,
                 )
                 scope.set_tag("success_status", status)
-                return Response(serialize(release, request.user), status=status)
+
+                # Disable snuba here as it often causes 429s when overloaded and
+                # a freshly created release won't have health data anyways.
+                return Response(serialize(release, request.user, no_snuba=True), status=status)
             scope.set_tag("failure_reason", "serializer_error")
             return Response(serializer.errors, status=400)

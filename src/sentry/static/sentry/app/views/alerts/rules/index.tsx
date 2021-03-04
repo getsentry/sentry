@@ -1,29 +1,29 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import Feature from 'app/components/acl/feature';
+import AsyncComponent from 'app/components/asyncComponent';
+import * as Layout from 'app/components/layouts/thirds';
+import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import Pagination from 'app/components/pagination';
+import {PanelTable, PanelTableHeader} from 'app/components/panels';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {IconArrow, IconCheckmark} from 'app/icons';
 import {t, tct} from 'app/locale';
-import {IconCheckmark, IconArrow} from 'app/icons';
+import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import AsyncComponent from 'app/components/asyncComponent';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ExternalLink from 'app/components/links/externalLink';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import * as Layout from 'app/components/layouts/thirds';
-import Pagination from 'app/components/pagination';
 import Projects from 'app/utils/projects';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {addErrorMessage} from 'app/actionCreators/indicator';
 
 import AlertHeader from '../list/header';
 import {isIssueAlert} from '../utils';
-import {TableLayout} from './styles';
+
 import RuleListRow from './row';
 
 const DEFAULT_SORT: {asc: boolean; field: 'date_added'} = {
@@ -42,7 +42,7 @@ type State = {
 };
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
-  getEndpoints(): [string, string, any][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {params, location} = this.props;
     const {query} = location;
 
@@ -64,14 +64,21 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     }
 
     return (
-      <EmptyMessage
-        size="medium"
-        icon={<IconCheckmark isCircled size="48" />}
-        title={t('No alert rules exist for these projects.')}
-        description={tct('Learn more about [link:Alerts]', {
-          link: <ExternalLink href={DOCS_URL} />,
-        })}
-      />
+      <React.Fragment>
+        {
+          <IconWrapper>
+            <IconCheckmark isCircled size="48" />
+          </IconWrapper>
+        }
+        {<Title>{t('No alert rules exist for these projects.')}</Title>}
+        {
+          <Description>
+            {tct('Learn more about [link:Alerts]', {
+              link: <ExternalLink href={DOCS_URL} />,
+            })}
+          </Description>
+        }
+      </React.Fragment>
     );
   }
 
@@ -98,9 +105,12 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   }
 
   renderList() {
+    const {
+      params: {orgId},
+      location: {query},
+      organization,
+    } = this.props;
     const {loading, ruleList = [], ruleListPageLinks} = this.state;
-    const {orgId} = this.props.params;
-    const {query} = this.props.location;
 
     const allProjectsFromIncidents = new Set(
       flatten(ruleList?.map(({projects}) => projects))
@@ -113,16 +123,18 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     };
 
     return (
-      <Layout.Body>
+      <StyledLayoutBody>
         <Layout.Main fullWidth>
-          <Panel>
-            <PanelHeader>
-              <TableLayout>
-                <div>{t('Type')}</div>
-                <div>{t('Alert Name')}</div>
-                <div>{t('Project')}</div>
-                <div>{t('Created By')}</div>
-                <div>
+          <Feature features={['organizations:team-alerts-ownership']}>
+            {({hasFeature}) => (
+              <StyledPanelTable
+                headers={[
+                  t('Type'),
+                  t('Alert Name'),
+                  t('Project'),
+                  ...(hasFeature ? [t('Team')] : []),
+                  t('Created By'),
+                  // eslint-disable-next-line react/jsx-key
                   <StyledSortLink
                     to={{
                       pathname: `/organizations/${orgId}/alerts/rules/`,
@@ -134,44 +146,40 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                   >
                     {t('Created')}{' '}
                     <IconArrow
-                      color="gray500"
+                      color="gray300"
                       size="xs"
                       direction={sort.asc ? 'up' : 'down'}
                     />
-                  </StyledSortLink>
-                </div>
-                <div>{t('Actions')}</div>
-              </TableLayout>
-            </PanelHeader>
-
-            {loading ? (
-              <LoadingIndicator />
-            ) : (
-              this.tryRenderEmpty() ?? (
-                <PanelBody>
-                  <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
-                    {({initiallyLoaded, projects}) =>
-                      ruleList.map(rule => (
-                        <RuleListRow
-                          // Metric and issue alerts can have the same id
-                          key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
-                          projectsLoaded={initiallyLoaded}
-                          projects={projects as Project[]}
-                          rule={rule}
-                          orgId={orgId}
-                          onDelete={this.handleDeleteRule}
-                        />
-                      ))
-                    }
-                  </Projects>
-                </PanelBody>
-              )
+                  </StyledSortLink>,
+                  t('Actions'),
+                ]}
+                isLoading={loading}
+                isEmpty={ruleList?.length === 0}
+                emptyMessage={this.tryRenderEmpty()}
+                showTeamCol={hasFeature}
+              >
+                <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+                  {({initiallyLoaded, projects}) =>
+                    ruleList.map(rule => (
+                      <RuleListRow
+                        // Metric and issue alerts can have the same id
+                        key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
+                        projectsLoaded={initiallyLoaded}
+                        projects={projects as Project[]}
+                        rule={rule}
+                        orgId={orgId}
+                        onDelete={this.handleDeleteRule}
+                        organization={organization}
+                      />
+                    ))
+                  }
+                </Projects>
+              </StyledPanelTable>
             )}
-          </Panel>
-
+          </Feature>
           <Pagination pageLinks={ruleListPageLinks} />
         </Layout.Main>
-      </Layout.Body>
+      </StyledLayoutBody>
     );
   }
 
@@ -219,10 +227,44 @@ class AlertRulesListContainer extends React.Component<Props> {
 
 export default AlertRulesListContainer;
 
+const StyledLayoutBody = styled(Layout.Body)`
+  margin-bottom: -20px;
+`;
+
 const StyledSortLink = styled(Link)`
   color: inherit;
 
   :hover {
     color: inherit;
   }
+`;
+
+const StyledPanelTable = styled(PanelTable)<{showTeamCol: boolean}>`
+  ${PanelTableHeader} {
+    line-height: normal;
+  }
+  font-size: ${p => p.theme.fontSizeMedium};
+  grid-template-columns: auto 1.5fr 1fr 1fr 1fr ${p => (p.showTeamCol ? '1fr' : '')} auto;
+  margin-bottom: 0;
+  white-space: nowrap;
+  ${p =>
+    p.emptyMessage &&
+    `svg:not([data-test-id='icon-check-mark']) {
+    display: none;`}
+`;
+
+const IconWrapper = styled('span')`
+  color: ${p => p.theme.gray200};
+  display: block;
+`;
+
+const Title = styled('strong')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin-bottom: ${space(1)};
+`;
+
+const Description = styled('span')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  display: block;
+  margin: 0;
 `;

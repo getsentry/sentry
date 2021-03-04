@@ -1,35 +1,50 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
-import {Organization, Event, Group, GroupTombstone} from 'app/types';
-import {getTitle} from 'app/utils/events';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import {Group, GroupTombstone, Organization} from 'app/types';
+import {Event} from 'app/types/event';
+import {getTitle} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
+
+import StacktracePreview from './stacktracePreview';
 
 type Props = {
   data: Event | Group | GroupTombstone;
   organization: Organization;
   style?: React.CSSProperties;
   hasGuideAnchor?: boolean;
+  withStackTracePreview?: boolean;
 };
 
 class EventOrGroupTitle extends React.Component<Props> {
   render() {
-    const {hasGuideAnchor, organization} = this.props;
-    const {title, subtitle} = getTitle(this.props.data as Event, organization);
+    const {hasGuideAnchor, data, organization, withStackTracePreview} = this.props;
+    const {title, subtitle} = getTitle(data as Event, organization);
+
+    const titleWithHoverStacktrace = (
+      <StacktracePreview
+        organization={organization}
+        issueId={data.id}
+        disablePreview={!withStackTracePreview}
+      >
+        {title}
+      </StacktracePreview>
+    );
 
     return subtitle ? (
       <span style={this.props.style}>
         <GuideAnchor disabled={!hasGuideAnchor} target="issue_title" position="bottom">
-          <span>{title}</span>
+          <span>{titleWithHoverStacktrace}</span>
         </GuideAnchor>
         <Spacer />
-        <em title={subtitle}>{subtitle}</em>
+        <Subtitle title={subtitle}>{subtitle}</Subtitle>
         <br />
       </span>
     ) : (
       <span style={this.props.style}>
         <GuideAnchor disabled={!hasGuideAnchor} target="issue_title" position="bottom">
-          {title}
+          {titleWithHoverStacktrace}
         </GuideAnchor>
       </span>
     );
@@ -44,3 +59,8 @@ export default withOrganization(EventOrGroupTitle);
  * title to be highlighted without spilling over to the subtitle.
  */
 const Spacer = () => <span style={{display: 'inline-block', width: 10}}>&nbsp;</span>;
+
+const Subtitle = styled('em')`
+  color: ${p => p.theme.gray300};
+  font-style: normal;
+`;

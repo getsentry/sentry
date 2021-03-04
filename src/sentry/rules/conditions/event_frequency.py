@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import re
 
 from datetime import timedelta
@@ -53,7 +51,7 @@ class BaseEventFrequencyCondition(EventCondition):
     def __init__(self, *args, **kwargs):
         self.tsdb = kwargs.pop("tsdb", tsdb)
 
-        super(BaseEventFrequencyCondition, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def passes(self, event, state):
         interval = self.get_option("interval")
@@ -81,8 +79,7 @@ class BaseEventFrequencyCondition(EventCondition):
         return query_result
 
     def query_hook(self, event, start, end, environment_id):
-        """
-        """
+        """"""
         raise NotImplementedError  # subclass must implement
 
     def get_rate(self, event, interval, environment_id):

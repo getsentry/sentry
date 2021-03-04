@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import Http404
@@ -14,9 +12,7 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
 
     def convert_args(self, request, sentry_app_slug, api_token, *args, **kwargs):
         # get the sentry_app from the SentryAppBaseEndpoint class
-        (args, kwargs) = super(SentryInternalAppTokenDetailsEndpoint, self).convert_args(
-            request, sentry_app_slug, *args, **kwargs
-        )
+        (args, kwargs) = super().convert_args(request, sentry_app_slug, *args, **kwargs)
 
         try:
             kwargs["api_token"] = ApiToken.objects.get(token=api_token)

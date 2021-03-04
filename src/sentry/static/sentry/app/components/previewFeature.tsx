@@ -1,12 +1,11 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import {IconLab} from 'app/icons';
-import Alert, {Props as AlertProps} from 'app/components/alert';
+import {t} from 'app/locale';
 
 type Props = {
-  type?: AlertProps['type'];
+  type?: React.ComponentProps<typeof Alert>['type'];
 };
 
 const PreviewFeature = ({type = 'info'}: Props) => (
@@ -16,9 +15,5 @@ const PreviewFeature = ({type = 'info'}: Props) => (
     )}
   </Alert>
 );
-
-PreviewFeature.propTypes = {
-  type: PropTypes.oneOf(['success', 'error', 'warning', 'info']),
-};
 
 export default PreviewFeature;

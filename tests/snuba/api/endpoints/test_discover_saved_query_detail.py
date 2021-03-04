@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 from sentry.testutils import APITestCase, SnubaTestCase
 from django.core.urlresolvers import reverse
 
@@ -11,7 +8,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     feature_name = "organizations:discover"
 
     def setUp(self):
-        super(DiscoverSavedQueryDetailTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.org_without_access = self.create_organization()
@@ -44,7 +41,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.query_id)
+        assert response.data["id"] == str(self.query_id)
         assert set(response.data["projects"]) == set(self.project_ids)
         assert response.data["fields"] == ["test"]
         assert response.data["conditions"] == []
@@ -58,7 +55,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.query_id)
+        assert response.data["id"] == str(self.query_id)
         assert set(response.data["projects"]) == set(self.project_ids)
         assert response.data["fields"] == ["test"]
         assert response.data["conditions"] == []
@@ -78,7 +75,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(model.id)
+        assert response.data["id"] == str(model.id)
         assert set(response.data["projects"]) == set(self.project_ids)
         assert response.data["fields"] == ["event_id"]
         assert response.data["query"] == "event.type:error"
@@ -116,7 +113,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.query_id)
+        assert response.data["id"] == str(self.query_id)
         assert set(response.data["projects"]) == set(self.project_ids)
         assert response.data["fields"] == []
         assert response.data["conditions"] == []

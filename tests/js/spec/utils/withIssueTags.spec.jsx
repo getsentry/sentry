@@ -2,8 +2,9 @@ import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
 
-import TagStore from 'app/stores/tagStore';
 import MemberListStore from 'app/stores/memberListStore';
+import TagStore from 'app/stores/tagStore';
+import TeamStore from 'app/stores/teamStore';
 import withIssueTags from 'app/utils/withIssueTags';
 
 describe('withIssueTags HoC', function () {
@@ -37,7 +38,7 @@ describe('withIssueTags HoC', function () {
     expect(tagsProp['stack.filename']).toBeTruthy();
   });
 
-  it('updates the assigned and bookmark tags with users', async function () {
+  it('updates the assigned tags with users and teams, and bookmark tags with users', async function () {
     const MyComponent = () => null;
     const Container = withIssueTags(MyComponent);
     const wrapper = mount(<Container other="value" />);
@@ -50,17 +51,32 @@ describe('withIssueTags HoC', function () {
 
     let tagsProp = wrapper.find('MyComponent').prop('tags');
     expect(tagsProp.assigned).toBeTruthy();
-    expect(tagsProp.assigned.values).toEqual(['me']);
+    expect(tagsProp.assigned.values).toEqual(['me', 'me_or_none']);
+
+    expect(tagsProp.assigned_or_suggested).toBeTruthy();
+    expect(tagsProp.assigned_or_suggested.values).toEqual(['me', 'me_or_none']);
 
     const users = [TestStubs.User(), TestStubs.User({username: 'joe@example.com'})];
+    TeamStore.loadInitialData([
+      {slug: 'best-team-na', name: 'Best Team NA', isMember: true},
+    ]);
     MemberListStore.loadInitialData(users);
     await wrapper.update();
 
     tagsProp = wrapper.find('MyComponent').prop('tags');
     expect(tagsProp.assigned.values).toEqual([
       'me',
+      'me_or_none',
       'foo@example.com',
       'joe@example.com',
+      '#best-team-na',
+    ]);
+    expect(tagsProp.assigned_or_suggested.values).toEqual([
+      'me',
+      'me_or_none',
+      'foo@example.com',
+      'joe@example.com',
+      '#best-team-na',
     ]);
     expect(tagsProp.bookmarks.values).toEqual([
       'me',

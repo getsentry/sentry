@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import logging
-import six
 
 from collections import namedtuple
 from datetime import timedelta
@@ -18,7 +15,7 @@ from sentry.utils.safe import safe_execute
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 
-class RuleProcessor(object):
+class RuleProcessor:
     logger = logging.getLogger("sentry.rules")
 
     def __init__(self, event, is_new, is_regression, is_new_group_environment, has_reappeared):
@@ -34,6 +31,11 @@ class RuleProcessor(object):
         self.grouped_futures = {}
 
     def get_rules(self):
+        """
+        Get all of the rules for this project from the DB (or cache).
+
+        :return: a list of `Rule`s
+        """
         return Rule.get_for_project(self.project.id)
 
     def get_rule_status(self, rule):
@@ -81,6 +83,12 @@ class RuleProcessor(object):
         return None
 
     def apply_rule(self, rule):
+        """
+        If all conditions and filters pass, execute every action.
+
+        :param rule: `Rule` object
+        :return: void
+        """
         condition_match = rule.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
         rule_condition_list = rule.data.get("conditions", ())
@@ -183,9 +191,9 @@ class RuleProcessor(object):
     def apply(self):
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
-            return six.itervalues({})
+            return {}.values()
 
         self.grouped_futures.clear()
         for rule in self.get_rules():
             self.apply_rule(rule)
-        return six.itervalues(self.grouped_futures)
+        return self.grouped_futures.values()

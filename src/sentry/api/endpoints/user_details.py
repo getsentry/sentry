@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import datetime
 
 import pytz
@@ -27,10 +25,10 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 def _get_timezone_choices():
     results = []
-    for tz in pytz.common_timezones:
+    for tz in pytz.all_timezones:
         now = datetime.now(pytz.timezone(tz))
         offset = now.strftime("%z")
-        results.append((int(offset), tz, "(UTC%s) %s" % (offset, tz)))
+        results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
     results.sort()
 
     for i in range(len(results)):
@@ -53,6 +51,14 @@ class UserOptionsSerializer(serializers.Serializer):
     )
     timezone = serializers.ChoiceField(choices=TIMEZONE_CHOICES, required=False)
     clock24Hours = serializers.BooleanField(required=False)
+    theme = serializers.ChoiceField(
+        choices=(
+            ("light", _("Light")),
+            ("dark", _("Dark")),
+            ("system", _("Default to system")),
+        ),
+        required=False,
+    )
 
 
 class BaseUserSerializer(serializers.ModelSerializer):
@@ -62,7 +68,7 @@ class BaseUserSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        attrs = super(BaseUserSerializer, self).validate(attrs)
+        attrs = super().validate(attrs)
 
         if self.instance.email == self.instance.username:
             if attrs.get("username", self.instance.email) != self.instance.email:
@@ -74,7 +80,7 @@ class BaseUserSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         if "isActive" not in validated_data:
             validated_data["isActive"] = instance.is_active
-        return super(BaseUserSerializer, self).update(instance, validated_data)
+        return super().update(instance, validated_data)
 
 
 class UserSerializer(BaseUserSerializer):
@@ -86,7 +92,7 @@ class UserSerializer(BaseUserSerializer):
         for field in settings.SENTRY_MANAGED_USER_FIELDS:
             attrs.pop(field, None)
 
-        return super(UserSerializer, self).validate(attrs)
+        return super().validate(attrs)
 
 
 class SuperuserUserSerializer(BaseUserSerializer):
@@ -131,6 +137,7 @@ class UserDetailsEndpoint(UserEndpoint):
         :param string stacktrace_order: One of -1 (default), 1 (most recent call last), 2 (most recent call first).
         :param string timezone: timezone option
         :param clock_24_hours boolean: use 24 hour clock
+        :param string theme: UI theme, either "light", "dark", or "system"
         :auth: required
         """
 
@@ -150,6 +157,7 @@ class UserDetailsEndpoint(UserEndpoint):
 
         # map API keys to keys in model
         key_map = {
+            "theme": "theme",
             "language": "language",
             "timezone": "timezone",
             "stacktraceOrder": "stacktrace_order",
@@ -196,7 +204,7 @@ class UserDetailsEndpoint(UserEndpoint):
         for org in org_list:
             org_results.append({"organization": org, "single_owner": org.has_single_owner()})
 
-        avail_org_slugs = set([o["organization"].slug for o in org_results])
+        avail_org_slugs = {o["organization"].slug for o in org_results}
         orgs_to_remove = set(serializer.validated_data.get("organizations")).intersection(
             avail_org_slugs
         )
@@ -206,9 +214,7 @@ class UserDetailsEndpoint(UserEndpoint):
                 orgs_to_remove.add(result["organization"].slug)
 
         for org_slug in orgs_to_remove:
-            client.delete(
-                path=u"/organizations/{}/".format(org_slug), request=request, is_sudo=True
-            )
+            client.delete(path=f"/organizations/{org_slug}/", request=request, is_sudo=True)
 
         remaining_org_ids = [
             o.id for o in org_list if o.slug in avail_org_slugs.difference(orgs_to_remove)

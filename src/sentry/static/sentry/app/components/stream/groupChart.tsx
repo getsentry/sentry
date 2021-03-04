@@ -1,37 +1,33 @@
-import LazyLoad from 'react-lazyload';
 import React from 'react';
+import LazyLoad from 'react-lazyload';
 
-import {Series} from 'app/types/echarts';
-import {Group, TimeseriesValue} from 'app/types';
-import {t} from 'app/locale';
 import MiniBarChart from 'app/components/charts/miniBarChart';
+import {t} from 'app/locale';
+import {Group, TimeseriesValue} from 'app/types';
+import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 
 type Props = {
   statsPeriod: string;
   data: Group;
-  hasDynamicIssueCounts?: boolean;
   height?: number;
   showSecondaryPoints?: boolean;
 };
 
 function GroupChart({
   data,
-  hasDynamicIssueCounts,
   statsPeriod,
   showSecondaryPoints = false,
   height = 24,
 }: Props) {
   const stats: TimeseriesValue[] = statsPeriod
-    ? hasDynamicIssueCounts && data.filtered
+    ? data.filtered
       ? data.filtered.stats[statsPeriod]
       : data.stats[statsPeriod]
-    : null;
+    : [];
 
   const secondaryStats: TimeseriesValue[] | null =
-    statsPeriod && hasDynamicIssueCounts && data.filtered
-      ? data.stats[statsPeriod]
-      : null;
+    statsPeriod && data.filtered ? data.stats[statsPeriod] : null;
 
   if (!stats || !stats.length) {
     return null;
@@ -53,8 +49,8 @@ function GroupChart({
   } else {
     // Colors are custom to preserve historical appearance where the single series is
     // considerably darker than the two series results.
-    colors = [theme.gray500];
-    emphasisColors = [theme.purple400];
+    colors = [theme.gray300];
+    emphasisColors = [theme.purple300];
     series.push({
       seriesName: t('Events'),
       data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
@@ -70,6 +66,7 @@ function GroupChart({
         series={series}
         colors={colors}
         emphasisColors={emphasisColors}
+        hideDelay={50}
       />
     </LazyLoad>
   );

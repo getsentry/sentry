@@ -1,15 +1,13 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(DiscoverSavedQueryBase, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.projects = [
@@ -31,7 +29,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
     feature_name = "organizations:discover"
 
     def setUp(self):
-        super(DiscoverSavedQueriesTest, self).setUp()
+        super().setUp()
         self.url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
 
     def test_get(self):
@@ -48,6 +46,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data[0]["version"] == 1
         assert "createdBy" in response.data[0]
         assert response.data[0]["createdBy"]["username"] == self.user.username
+        assert not response.data[0]["expired"]
 
     def test_get_version_filter(self):
         with self.feature(self.feature_name):
@@ -91,7 +90,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             model = DiscoverSavedQuery.objects.create(
                 organization=self.org,
                 created_by=self.user,
-                name="My query {}".format(i),
+                name=f"My query {i}",
                 query=query,
                 version=1,
             )
@@ -174,6 +173,26 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.status_code == 200, response.content
         values = [int(item["createdBy"]["id"]) for item in response.data]
         assert values == [self.user.id, uhoh_user.id, whoops_user.id]
+
+    def test_get_expired_query(self):
+        query = {
+            "start": iso_format(before_now(days=90)),
+            "end": iso_format(before_now(days=61)),
+        }
+        DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by=self.user,
+            name="My expired query",
+            query=query,
+            version=2,
+            date_created=before_now(days=90),
+            date_updated=before_now(minutes=10),
+        )
+        with self.options({"system.event-retention-days": 60}), self.feature(self.feature_name):
+            response = self.client.get(self.url, {"query": "name:My expired query"})
+
+        assert response.status_code == 200, response.content
+        assert response.data[0]["expired"]
 
     def test_post(self):
         with self.feature(self.feature_name):
@@ -258,7 +277,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
     feature_name = "organizations:discover-query"
 
     def setUp(self):
-        super(DiscoverSavedQueriesVersion2Test, self).setUp()
+        super().setUp()
         self.url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
 
     def test_post_invalid_conditions(self):
@@ -346,7 +365,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "projects": self.project_ids,
                     "fields": ["title", "count()"],
                     "range": "24h",
-                    "query": "project:{}".format(self.projects[0].slug),
+                    "query": f"project:{self.projects[0].slug}",
                     "version": 2,
                 },
             )
@@ -365,7 +384,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "projects": [],
                     "fields": ["title", "count()"],
                     "range": "24h",
-                    "query": "project:{}".format(project.slug),
+                    "query": f"project:{project.slug}",
                     "version": 2,
                 },
             )
@@ -421,7 +440,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "projects": [project.id],
                     "fields": ["title", "count()"],
                     "range": "24h",
-                    "query": "project:{}".format(project.slug),
+                    "query": f"project:{project.slug}",
                     "version": 2,
                 },
             )
@@ -437,7 +456,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "projects": [project.id, project2.id],
                     "fields": ["title", "count()"],
                     "range": "24h",
-                    "query": "project:{} project:{}".format(project.slug, project2.slug),
+                    "query": f"project:{project.slug} project:{project2.slug}",
                     "version": 2,
                 },
             )
@@ -454,7 +473,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "projects": [-1],
                     "fields": ["title", "count()"],
                     "range": "24h",
-                    "query": "project:{} project:{}".format(project.slug, project2.slug),
+                    "query": f"project:{project.slug} project:{project2.slug}",
                     "version": 2,
                 },
             )

@@ -1,5 +1,5 @@
-import {Client} from 'app/api';
 import {doEventsRequest} from 'app/actionCreators/events';
+import {Client} from 'app/api';
 
 describe('Events ActionCreator', function () {
   const api = new Client();

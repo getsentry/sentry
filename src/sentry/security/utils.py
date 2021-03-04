@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 
 from django.conf import settings
@@ -21,7 +19,7 @@ def capture_security_activity(
     if type == "mfa-removed" or type == "mfa-added":
         logger_context["authenticator_id"] = context["authenticator"].id
 
-    logger.info(u"user.{}".format(type), extra=logger_context)
+    logger.info(f"user.{type}", extra=logger_context)
 
     if send_email:
         msg = generate_security_email(

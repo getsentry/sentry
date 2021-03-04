@@ -1,11 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {MemberRole} from 'app/types';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
 import Radio from 'app/components/radio';
+import {t} from 'app/locale';
+import {MemberRole} from 'app/types';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const Label = styled('label')`
@@ -24,17 +23,6 @@ type Props = {
 };
 
 class RoleSelect extends React.Component<Props> {
-  static propTypes = {
-    /**
-     * Whether to disable or not using `allowed` prop from API request
-     */
-    enforceAllowed: PropTypes.bool,
-    disabled: PropTypes.bool,
-    selectedRole: PropTypes.string,
-    roleList: PropTypes.array,
-    setRole: PropTypes.func,
-  };
-
   render() {
     const {disabled, enforceAllowed, roleList, selectedRole} = this.props;
 

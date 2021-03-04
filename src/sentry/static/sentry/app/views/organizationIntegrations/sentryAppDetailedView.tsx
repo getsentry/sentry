@@ -135,9 +135,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   handleInstall = async () => {
     const {organization} = this.props;
     const {sentryApp} = this.state;
-    this.trackIntegrationEvent({
-      eventKey: 'integrations.installation_start',
-      eventName: 'Integrations: Installation Start',
+    this.trackIntegrationEvent('integrations.installation_start', {
       integration_status: sentryApp.status,
     });
     // installSentryApp adds a message on failure
@@ -145,9 +143,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
 
     //installation is complete if the status is installed
     if (install.status === 'installed') {
-      this.trackIntegrationEvent({
-        eventKey: 'integrations.installation_complete',
-        eventName: 'Integrations: Installation Complete',
+      this.trackIntegrationEvent('integrations.installation_complete', {
         integration_status: sentryApp.status,
       });
     }
@@ -174,9 +170,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   handleUninstall = async (install: SentryAppInstallation) => {
     try {
       await uninstallSentryApp(this.api, install);
-      this.trackIntegrationEvent({
-        eventKey: 'integrations.uninstall_completed',
-        eventName: 'Integrations: Uninstall Completed',
+      this.trackIntegrationEvent('integrations.uninstall_completed', {
         integration_status: this.sentryApp.status,
       });
       const appInstalls = this.state.appInstalls.filter(
@@ -190,9 +184,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
 
   recordUninstallClicked = () => {
     const sentryApp = this.sentryApp;
-    this.trackIntegrationEvent({
-      eventKey: 'integrations.uninstall_clicked',
-      eventName: 'Integrations: Uninstall Clicked',
+    this.trackIntegrationEvent('integrations.uninstall_clicked', {
       integration_status: sentryApp.status,
     });
   };
@@ -316,10 +308,10 @@ const InstallButton = styled(Button)`
 `;
 
 const StyledUninstallButton = styled(Button)`
-  color: ${p => p.theme.gray500};
-  background: #ffffff;
+  color: ${p => p.theme.gray300};
+  background: ${p => p.theme.background};
 
-  border: ${p => `1px solid ${p.theme.gray500}`};
+  border: ${p => `1px solid ${p.theme.gray300}`};
   box-sizing: border-box;
   box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
   border-radius: 4px;

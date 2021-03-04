@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 __all__ = ("Stacktrace",)
 
-import six
 
 from django.utils.translation import ugettext as _
 
@@ -40,16 +37,16 @@ def trim_package(pkg):
 def to_hex_addr(addr):
     if addr is None:
         return None
-    elif isinstance(addr, six.integer_types):
+    elif isinstance(addr, int):
         rv = "0x%x" % addr
-    elif isinstance(addr, six.string_types):
+    elif isinstance(addr, str):
         if addr[:2] == "0x":
             addr = int(addr[2:], 16)
         rv = "0x%x" % int(addr)
     else:
-        raise ValueError("Unsupported address format %r" % (addr,))
+        raise ValueError(f"Unsupported address format {addr!r}")
     if len(rv) > 24:
-        raise ValueError("Address too long %r" % (rv,))
+        raise ValueError(f"Address too long {rv!r}")
     return rv
 
 
@@ -144,6 +141,7 @@ class Frame(Interface):
             "image_addr",
             "in_app",
             "instruction_addr",
+            "addr_mode",
             "lineno",
             "module",
             "package",
@@ -172,6 +170,7 @@ class Frame(Interface):
                 "symbol": self.symbol,
                 "symbol_addr": self.symbol_addr,
                 "instruction_addr": self.instruction_addr,
+                "addr_mode": self.addr_mode,
                 "trust": self.trust,
                 "in_app": self.in_app,
                 "context_line": self.context_line,
@@ -214,6 +213,10 @@ class Frame(Interface):
         }
         if not is_public:
             data["vars"] = self.vars
+
+        if self.addr_mode and self.addr_mode != "abs":
+            data["addrMode"] = self.addr_mode
+
         # TODO(dcramer): abstract out this API
         if self.data and "sourcemap" in data:
             data.update(
@@ -471,7 +474,7 @@ class Stacktrace(Interface):
             return meta
 
         frame_meta = {}
-        for index, value in six.iteritems(meta.get("frames", {})):
+        for index, value in meta.get("frames", {}).items():
             if index == "":
                 continue
             frame = self.frames[int(index)]

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 
 from exam import fixture
@@ -9,7 +7,7 @@ from sentry_plugins.sessionstack.plugin import SessionStackPlugin
 
 EXPECTED_SESSION_URL = (
     "https://app.sessionstack.com/player/#/sessions/588778a6c5762c1d566653ff"
-    "?access_token=example-access-token"
+    "?source=sentry&access_token=example-access-token"
 )
 
 ACCESS_TOKENS_URL = (

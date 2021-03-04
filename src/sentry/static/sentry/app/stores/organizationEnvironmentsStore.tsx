@@ -1,8 +1,8 @@
 import Reflux from 'reflux';
 
 import EnvironmentActions from 'app/actions/environmentActions';
-import {getDisplayName, getUrlRoutingName} from 'app/utils/environment';
 import {Environment} from 'app/types';
+import {getDisplayName, getUrlRoutingName} from 'app/utils/environment';
 
 type EnhancedEnvironment = Environment & {
   displayName: string;
@@ -79,4 +79,8 @@ const storeConfig: Reflux.StoreDefinition & OrganizationEnvironmentsStoreInterfa
 type OrganizationEnvironmentsStore = Reflux.Store &
   OrganizationEnvironmentsStoreInterface;
 
-export default Reflux.createStore(storeConfig) as OrganizationEnvironmentsStore;
+const OrganizationEnvironmentsStore = Reflux.createStore(
+  storeConfig
+) as OrganizationEnvironmentsStore;
+
+export default OrganizationEnvironmentsStore;

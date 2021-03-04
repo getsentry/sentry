@@ -1,14 +1,13 @@
-import {browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select';
+import {mountGlobalModal} from 'sentry-test/modal';
+import {selectByValue} from 'sentry-test/select-new';
 
+import ProjectsStore from 'app/stores/projectsStore';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
-import ProjectsStore from 'app/stores/projectsStore';
-
-jest.mock('jquery');
 
 describe('projectGeneralSettings', function () {
   const org = TestStubs.Organization();
@@ -98,7 +97,7 @@ describe('projectGeneralSettings', function () {
     expect(wrapper.find('Switch[name="scrapeJavaScript"]').prop('isActive')).toBeFalsy();
   });
 
-  it('project admins can remove project', function () {
+  it('project admins can remove project', async function () {
     const deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'DELETE',
@@ -117,12 +116,13 @@ describe('projectGeneralSettings', function () {
     removeBtn.simulate('click');
 
     // Confirm Modal
-    wrapper.find('Modal Button[priority="danger"]').simulate('click');
+    const modal = await mountGlobalModal();
+    modal.find('Button[priority="danger"]').simulate('click');
 
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('project admins can transfer project', function () {
+  it('project admins can transfer project', async function () {
     const deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/transfer/`,
       method: 'POST',
@@ -141,10 +141,11 @@ describe('projectGeneralSettings', function () {
     removeBtn.simulate('click');
 
     // Confirm Modal
-    wrapper
+    const modal = await mountGlobalModal();
+    modal
       .find('input[name="email"]')
       .simulate('change', {target: {value: 'billy@sentry.io'}});
-    wrapper.find('Modal Button[priority="danger"]').simulate('click');
+    modal.find('Modal Button[priority="danger"]').simulate('click');
 
     expect(deleteMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/transfer/`,
@@ -255,7 +256,7 @@ describe('projectGeneralSettings', function () {
 
     // Slug does not save on blur
     expect(putMock).not.toHaveBeenCalled();
-    wrapper.find('SaveButton').simulate('click');
+    wrapper.find('MessageAndActions button[aria-label="Save"]').simulate('click');
 
     // fetches new slug
     const newProjectGet = MockApiClient.addMockResponse({
@@ -317,7 +318,9 @@ describe('projectGeneralSettings', function () {
       await tick();
       wrapper.update();
       // Initially does not have "Cancel" button
-      expect(wrapper.find('MessageAndActions CancelButton')).toHaveLength(0);
+      expect(wrapper.find('MessageAndActions button[aria-label="Cancel"]')).toHaveLength(
+        0
+      );
       // Has initial value
       expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(19);
 
@@ -330,12 +333,16 @@ describe('projectGeneralSettings', function () {
       // Has updated value
       expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(12);
       // Has "Cancel" button visible
-      expect(wrapper.find('MessageAndActions CancelButton')).toHaveLength(1);
+      expect(wrapper.find('MessageAndActions button[aria-label="Cancel"]')).toHaveLength(
+        1
+      );
 
       // Click cancel
-      wrapper.find('MessageAndActions CancelButton').simulate('click');
+      wrapper.find('MessageAndActions button[aria-label="Cancel"]').simulate('click');
       // Cancel row should disappear
-      expect(wrapper.find('MessageAndActions CancelButton')).toHaveLength(0);
+      expect(wrapper.find('MessageAndActions button[aria-label="Cancel"]')).toHaveLength(
+        0
+      );
       // Value should be reverted
       expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(19);
       // PUT should not be called
@@ -346,7 +353,7 @@ describe('projectGeneralSettings', function () {
       await tick();
       wrapper.update();
       // Initially does not have "Save" button
-      expect(wrapper.find('MessageAndActions SaveButton')).toHaveLength(0);
+      expect(wrapper.find('MessageAndActions button[aria-label="Save"]')).toHaveLength(0);
 
       // Change value
       wrapper
@@ -355,13 +362,13 @@ describe('projectGeneralSettings', function () {
         .simulate('mouseUp');
 
       // Has "Save" button visible
-      expect(wrapper.find('MessageAndActions SaveButton')).toHaveLength(1);
+      expect(wrapper.find('MessageAndActions button[aria-label="Save"]')).toHaveLength(1);
 
       // Should not have put mock called yet
       expect(putMock).not.toHaveBeenCalled();
 
       // Click "Save"
-      wrapper.find('MessageAndActions SaveButton').simulate('click');
+      wrapper.find('MessageAndActions button[aria-label="Save"]').simulate('click');
       // API endpoint should have been called
       expect(putMock).toHaveBeenCalledWith(
         expect.anything(),
@@ -375,7 +382,7 @@ describe('projectGeneralSettings', function () {
       // Should hide "Save" button after saving
       await tick();
       wrapper.update();
-      expect(wrapper.find('MessageAndActions SaveButton')).toHaveLength(0);
+      expect(wrapper.find('MessageAndActions button[aria-label="Save"]')).toHaveLength(0);
     });
   });
 });

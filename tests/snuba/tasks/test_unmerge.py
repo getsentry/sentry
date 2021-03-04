@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import functools
 import hashlib
 import itertools
@@ -31,7 +29,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.tasks.merge import merge_groups
 
-from six.moves import xrange
 from sentry.utils.compat import map
 
 # Use the default redis client as a cluster client in the similarity index
@@ -45,7 +42,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             get_fingerprint(
                 self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
             )
-            == hashlib.md5(u"Hello world".encode("utf-8")).hexdigest()
+            == hashlib.md5(b"Hello world").hexdigest()
         )
 
         assert (
@@ -55,7 +52,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                     project_id=self.project.id,
                 )
             )
-            == hashlib.md5(u"Not hello world".encode("utf-8")).hexdigest()
+            == hashlib.md5(b"Not hello world").hexdigest()
         )
 
     def test_get_group_creation_attributes(self):
@@ -227,7 +224,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             create_message_event(
                 "This is message #%s.", i, environment="production", release="version"
             )
-            for i in xrange(10)
+            for i in range(10)
         ):
             events.setdefault(get_fingerprint(event), []).append(event)
 
@@ -239,7 +236,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 release="version2",
                 fingerprint="group2",
             )
-            for i in xrange(10, 16)
+            for i in range(10, 16)
         ):
             events.setdefault(get_fingerprint(event), []).append(event)
 
@@ -267,14 +264,12 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             merge_groups.delay([merge_source.id], source.id)
             eventstream.end_merge(eventstream_state)
 
-        assert set(
-            [
-                (gtv.value, gtv.times_seen)
-                for gtv in tagstore.get_group_tag_values(
-                    project.id, source.id, production_environment.id, "color"
-                )
-            ]
-        ) == set([("red", 6), ("green", 5), ("blue", 5)])
+        assert {
+            (gtv.value, gtv.times_seen)
+            for gtv in tagstore.get_group_tag_values(
+                project.id, source.id, production_environment.id, "color"
+            )
+        } == {("red", 6), ("green", 5), ("blue", 5)}
 
         similar_items = features.compare(source)
         assert len(similar_items) == 2
@@ -328,16 +323,14 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             GroupRelease.objects.filter(group_id=source.id).values_list(
                 "environment", "first_seen", "last_seen"
             )
-        ) == set([(u"production", time_from_now(10), time_from_now(15))])
+        ) == {("production", time_from_now(10), time_from_now(15))}
 
-        assert set(
-            [
-                (gtv.value, gtv.times_seen)
-                for gtv in tagstore.get_group_tag_values(
-                    project.id, destination.id, production_environment.id, "color"
-                )
-            ]
-        ) == set([(u"red", 4), (u"green", 3), (u"blue", 3)])
+        assert {
+            (gtv.value, gtv.times_seen)
+            for gtv in tagstore.get_group_tag_values(
+                project.id, destination.id, production_environment.id, "color"
+            )
+        } == {("red", 4), ("green", 3), ("blue", 3)}
 
         destination_event_ids = map(
             lambda event: event.event_id, list(events.values())[0] + list(events.values())[2]
@@ -355,21 +348,17 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             GroupRelease.objects.filter(group_id=destination.id).values_list(
                 "environment", "first_seen", "last_seen"
             )
-        ) == set(
-            [
-                ("production", time_from_now(0), time_from_now(9)),
-                ("staging", time_from_now(16), time_from_now(16)),
-            ]
-        )
+        ) == {
+            ("production", time_from_now(0), time_from_now(9)),
+            ("staging", time_from_now(16), time_from_now(16)),
+        }
 
-        assert set(
-            [
-                (gtk.value, gtk.times_seen)
-                for gtk in tagstore.get_group_tag_values(
-                    project.id, destination.id, production_environment.id, "color"
-                )
-            ]
-        ) == set([("red", 4), ("blue", 3), ("green", 3)])
+        assert {
+            (gtk.value, gtk.times_seen)
+            for gtk in tagstore.get_group_tag_values(
+                project.id, destination.id, production_environment.id, "color"
+            )
+        } == {("red", 4), ("blue", 3), ("green", 3)}
 
         rollup_duration = 3600
 

@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 import pytest
 
 from sentry.utils.glob import glob_match
 
 
-class GlobInput(object):
+class GlobInput:
     def __init__(self, value, pat, **kwargs):
         self.value = value
         self.pat = pat
@@ -15,7 +13,7 @@ class GlobInput(object):
         return glob_match(self.value, self.pat, **self.kwargs)
 
     def __repr__(self):
-        return "<GlobInput %r>" % (self.__dict__,)
+        return f"<GlobInput {self.__dict__!r}>"
 
 
 @pytest.mark.parametrize(
@@ -23,6 +21,8 @@ class GlobInput(object):
     [
         [GlobInput("hello.py", "*.py"), True],
         [GlobInput("hello.py", "*.js"), False],
+        [GlobInput(None, "*.js"), False],
+        [GlobInput(None, "*"), True],
         [GlobInput("foo/hello.py", "*.py"), True],
         [GlobInput("foo/hello.py", "*.py", doublestar=True), False],
         [GlobInput("foo/hello.py", "**/*.py", doublestar=True), True],

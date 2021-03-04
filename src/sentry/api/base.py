@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import functools
 import logging
-import six
 import time
 import sentry_sdk
 
@@ -17,7 +14,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry import tsdb
+from sentry import tsdb, analytics
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.utils.cursors import Cursor
@@ -39,7 +36,7 @@ ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
-LINK_HEADER = u'<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
+LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
 
 DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, SessionAuthentication)
 
@@ -98,20 +95,18 @@ class Endpoint(APIView):
     permission_classes = (NoPermission,)
 
     def build_cursor_link(self, request, name, cursor):
-        querystring = u"&".join(
-            u"{0}={1}".format(urlquote(k), urlquote(v))
-            for k, v in six.iteritems(request.GET)
-            if k != "cursor"
+        querystring = "&".join(
+            f"{urlquote(k)}={urlquote(v)}" for k, v in request.GET.items() if k != "cursor"
         )
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
-            base_url = u"{0}?{1}".format(base_url, querystring)
+            base_url = f"{base_url}?{querystring}"
         else:
             base_url = base_url + "?"
 
         return LINK_HEADER.format(
             uri=base_url,
-            cursor=six.text_type(cursor),
+            cursor=str(cursor),
             name=name,
             has_results="true" if bool(cursor) else "false",
         )
@@ -121,7 +116,7 @@ class Endpoint(APIView):
 
     def handle_exception(self, request, exc):
         try:
-            response = super(Endpoint, self).handle_exception(exc)
+            response = super().handle_exception(exc)
         except Exception:
             import sys
             import traceback
@@ -167,7 +162,7 @@ class Endpoint(APIView):
         # keep track of these here and reassign them as needed.
         orig_auth = getattr(request, "auth", None)
         orig_user = getattr(request, "user", None)
-        rv = super(Endpoint, self).initialize_request(request, *args, **kwargs)
+        rv = super().initialize_request(request, *args, **kwargs)
         # If our request is being made via our internal API client, we need to
         # stitch back on auth and user information
         if getattr(request, "__from_api_client__", False):
@@ -210,7 +205,7 @@ class Endpoint(APIView):
                 if origin and request.auth:
                     allowed_origins = request.auth.get_allowed_origins()
                     if not is_valid_origin(origin, allowed=allowed_origins):
-                        response = Response("Invalid origin: %s" % (origin,), status=400)
+                        response = Response(f"Invalid origin: {origin}", status=400)
                         self.response = self.finalize_response(request, response, *args, **kwargs)
                         return self.response
 
@@ -232,7 +227,7 @@ class Endpoint(APIView):
 
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
-                description="{}.{}".format(type(self).__name__, handler.__name__),
+                description=f"{type(self).__name__}.{handler.__name__}",
             ):
                 response = handler(request, *args, **kwargs)
 
@@ -249,7 +244,8 @@ class Endpoint(APIView):
 
             if duration < (settings.SENTRY_API_RESPONSE_DELAY / 1000.0):
                 with sentry_sdk.start_span(
-                    op="base.dispatch.sleep", description=type(self).__name__,
+                    op="base.dispatch.sleep",
+                    description=type(self).__name__,
                 ) as span:
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
@@ -275,6 +271,18 @@ class Endpoint(APIView):
     def respond(self, context=None, **kwargs):
         return Response(context, **kwargs)
 
+    def get_per_page(self, request, default_per_page=100, max_per_page=100):
+        try:
+            per_page = int(request.GET.get("per_page", default_per_page))
+        except ValueError:
+            raise ParseError(detail="Invalid per_page parameter.")
+
+        max_per_page = max(max_per_page, default_per_page)
+        if per_page > max_per_page:
+            raise ParseError(detail=f"Invalid per_page value. Cannot exceed {max_per_page}.")
+
+        return per_page
+
     def paginate(
         self,
         request,
@@ -283,14 +291,11 @@ class Endpoint(APIView):
         paginator_cls=Paginator,
         default_per_page=100,
         max_per_page=100,
-        **paginator_kwargs
+        **paginator_kwargs,
     ):
         assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
 
-        try:
-            per_page = int(request.GET.get("per_page", default_per_page))
-        except ValueError:
-            raise ParseError(detail="Invalid per_page parameter.")
+        per_page = self.get_per_page(request, default_per_page, max_per_page)
 
         input_cursor = None
         if request.GET.get("cursor"):
@@ -299,39 +304,37 @@ class Endpoint(APIView):
             except ValueError:
                 raise ParseError(detail="Invalid cursor parameter.")
 
-        max_per_page = max(max_per_page, default_per_page)
-        if per_page > max_per_page:
-            raise ParseError(
-                detail="Invalid per_page value. Cannot exceed {}.".format(max_per_page)
-            )
-
         if not paginator:
             paginator = paginator_cls(**paginator_kwargs)
 
         try:
             with sentry_sdk.start_span(
-                op="base.paginate.get_result", description=type(self).__name__,
+                op="base.paginate.get_result",
+                description=type(self).__name__,
             ) as span:
                 span.set_data("Limit", per_page)
                 cursor_result = paginator.get_result(limit=per_page, cursor=input_cursor)
         except BadPaginationError as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
         # map results based on callback
         if on_results:
             with sentry_sdk.start_span(
-                op="base.paginate.on_results", description=type(self).__name__,
+                op="base.paginate.on_results",
+                description=type(self).__name__,
             ):
                 results = on_results(cursor_result.results)
         else:
             results = cursor_result.results
 
         response = Response(results)
+
         self.add_cursor_headers(request, response, cursor_result)
+
         return response
 
 
-class EnvironmentMixin(object):
+class EnvironmentMixin:
     def _get_environment_func(self, request, organization_id):
         """\
         Creates a function that when called returns the ``Environment``
@@ -366,25 +369,37 @@ class EnvironmentMixin(object):
         return request._cached_environment
 
 
-class StatsMixin(object):
+class StatsMixin:
     def _parse_args(self, request, environment_id=None):
-        resolution = request.GET.get("resolution")
-        if resolution:
-            resolution = self._parse_resolution(resolution)
-            assert resolution in tsdb.get_rollups()
+        try:
+            resolution = request.GET.get("resolution")
+            if resolution:
+                resolution = self._parse_resolution(resolution)
+                if resolution not in tsdb.get_rollups():
+                    raise ValueError
+        except ValueError:
+            raise ParseError(detail="Invalid resolution")
 
-        end = request.GET.get("until")
-        if end:
-            end = to_datetime(float(end))
-        else:
-            end = datetime.utcnow().replace(tzinfo=utc)
+        try:
+            end = request.GET.get("until")
+            if end:
+                end = to_datetime(float(end))
+            else:
+                end = datetime.utcnow().replace(tzinfo=utc)
+        except ValueError:
+            raise ParseError(detail="until must be a numeric timestamp.")
 
-        start = request.GET.get("since")
-        if start:
-            start = to_datetime(float(start))
-            assert start <= end, "start must be before or equal to end"
-        else:
-            start = end - timedelta(days=1, seconds=-1)
+        try:
+            start = request.GET.get("since")
+            if start:
+                start = to_datetime(float(start))
+                assert start <= end
+            else:
+                start = end - timedelta(days=1, seconds=-1)
+        except ValueError:
+            raise ParseError(detail="since must be a numeric timestamp")
+        except AssertionError:
+            raise ParseError(detail="start must be before or equal to end")
 
         if not resolution:
             resolution = tsdb.get_optimal_rollup(start, end)
@@ -407,3 +422,14 @@ class StatsMixin(object):
             return int(value[:-1])
         else:
             raise ValueError(value)
+
+
+class ReleaseAnalyticsMixin:
+    def track_set_commits_local(self, request, organization_id=None, project_ids=None):
+        analytics.record(
+            "release.set_commits_local",
+            user_id=request.user.id if request.user and request.user.id else None,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        )

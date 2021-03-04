@@ -1,18 +1,14 @@
-from __future__ import absolute_import
-
 import unittest
 from copy import deepcopy
 from datetime import timedelta
 
-import mock
-import six
 import pytz
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from exam import fixture, patcher
 
 from sentry.utils import json
-from sentry.utils.compat.mock import Mock
+from sentry.utils.compat import mock
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.query_subscription_consumer import (
     InvalidMessageError,
@@ -25,7 +21,7 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.cases import TestCase
 
 
-class BaseQuerySubscriptionTest(object):
+class BaseQuerySubscriptionTest:
     @fixture
     def consumer(self):
         return QuerySubscriptionConsumer("hello")
@@ -52,7 +48,7 @@ class BaseQuerySubscriptionTest(object):
         }
 
     def build_mock_message(self, data, topic=None):
-        message = Mock()
+        message = mock.Mock()
         message.value.return_value = json.dumps(data)
         if topic:
             message.topic.return_value = topic
@@ -93,7 +89,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
 
     def test_subscription_registered(self):
         registration_key = "registered_test"
-        mock_callback = Mock()
+        mock_callback = mock.Mock()
         register_subscriber(registration_key)(mock_callback)
         with self.tasks():
             snuba_query = create_snuba_query(
@@ -147,7 +143,7 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
     def test_invalid_version(self):
         with self.assertRaises(InvalidMessageError) as cm:
             self.run_test({"version": 50, "payload": {}})
-        assert six.text_type(cm.exception) == "Version specified in wrapper has no schema"
+        assert str(cm.exception) == "Version specified in wrapper has no schema"
 
     def test_valid(self):
         self.run_test({"version": 2, "payload": self.valid_payload})
@@ -189,4 +185,4 @@ class RegisterSubscriberTest(unittest.TestCase):
         assert subscriber_registry["hello"] == callback
         with self.assertRaises(Exception) as cm:
             register_subscriber("hello")(other_callback)
-        assert six.text_type(cm.exception) == "Handler already registered for hello"
+        assert str(cm.exception) == "Handler already registered for hello"

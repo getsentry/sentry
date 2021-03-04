@@ -1,9 +1,10 @@
 import React from 'react';
 
-import {mountWithTheme, mount} from 'sentry-test/enzyme';
+import {mount, mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
+import {closeModal, openModal} from 'app/actionCreators/modal';
 import GlobalModal from 'app/components/globalModal';
-import {openModal, closeModal} from 'app/actionCreators/modal';
 
 describe('GlobalModal', function () {
   it('renders', function () {
@@ -12,25 +13,22 @@ describe('GlobalModal', function () {
     wrapper.unmount();
   });
 
-  it('uses actionCreators to open and close Modal', function (done) {
+  it('uses actionCreators to open and close Modal', async function () {
     const wrapper = mount(<GlobalModal />);
 
     openModal(() => <div id="modal-test">Hi</div>);
 
-    // async :<
-    setTimeout(() => {
-      wrapper.update();
-      const modal = $(document.body).find('.modal');
-      expect(modal.text()).toBe('Hi');
-      expect(wrapper.find('GlobalModal').prop('visible')).toBe(true);
+    const modal = await mountGlobalModal();
+    expect(modal.text()).toBe('Hi');
 
-      closeModal();
-      setTimeout(() => {
-        wrapper.update();
-        expect(wrapper.find('GlobalModal').prop('visible')).toBe(false);
-        done();
-      }, 1);
-    }, 1);
+    wrapper.update();
+    expect(wrapper.find('GlobalModal').prop('visible')).toBe(true);
+
+    closeModal();
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('GlobalModal').prop('visible')).toBe(false);
   });
 
   it('calls onClose handler when modal is clicked out of', async function () {
@@ -46,14 +44,12 @@ describe('GlobalModal', function () {
       {onClose: closeSpy}
     );
 
+    const modal = await mountGlobalModal();
+
+    modal.find('CloseButton').simulate('click');
     await tick();
-
     wrapper.update();
-    $(document.body).find('.modal .close').click();
 
-    await tick();
-
-    wrapper.update();
     expect(closeSpy).toHaveBeenCalled();
   });
 

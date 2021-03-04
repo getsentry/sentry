@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
+import {ModalOptions, ModalRenderProps} from 'app/actionCreators/modal';
 import ModalActions from 'app/actions/modalActions';
-import {ModalRenderProps, ModalOptions} from 'app/actionCreators/modal';
 
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
@@ -25,13 +25,6 @@ const ModalStore = Reflux.createStore({
   },
 
   onCloseModal() {
-    const onClose = this.state?.options?.onClose;
-
-    // Trigger the options.onClose callback
-    if (typeof onClose === 'function') {
-      onClose();
-    }
-
     this.reset();
     this.trigger(this.state);
   },

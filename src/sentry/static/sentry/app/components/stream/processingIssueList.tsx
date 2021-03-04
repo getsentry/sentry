@@ -1,12 +1,10 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 
-import {Client} from 'app/api';
-import {Organization, ProcessingIssue} from 'app/types';
 import {fetchProcessingIssues} from 'app/actionCreators/processingIssues';
+import {Client} from 'app/api';
 import ProcessingIssueHint from 'app/components/stream/processingIssueHint';
-import SentryTypes from 'app/sentryTypes';
+import {Organization, ProcessingIssue} from 'app/types';
 
 const defaultProps = {
   showProject: false,
@@ -23,12 +21,6 @@ type State = {
 };
 
 class ProcessingIssueList extends React.Component<Props, State> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    projectIds: PropTypes.array,
-    showProject: PropTypes.bool,
-  };
-
   static defaultProps = defaultProps;
 
   state: State = {

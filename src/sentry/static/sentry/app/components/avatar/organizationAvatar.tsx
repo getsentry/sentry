@@ -1,20 +1,14 @@
 import React from 'react';
 
+import BaseAvatar from 'app/components/avatar/baseAvatar';
 import {OrganizationSummary} from 'app/types';
 import {explodeSlug} from 'app/utils';
-import BaseAvatar from 'app/components/avatar/baseAvatar';
-import SentryTypes from 'app/sentryTypes';
 
 type Props = {
   organization?: OrganizationSummary;
 } & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
 class OrganizationAvatar extends React.Component<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    ...BaseAvatar.propTypes,
-  };
-
   render() {
     const {organization, ...props} = this.props;
     if (!organization) {

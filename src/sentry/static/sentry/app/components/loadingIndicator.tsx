@@ -1,7 +1,6 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import {withProfiler} from '@sentry/react';
+import classNames from 'classnames';
 
 type Props = {
   overlay?: boolean;
@@ -87,17 +86,6 @@ function LoadingIndicator(props: Props) {
     </div>
   );
 }
-LoadingIndicator.propTypes = {
-  overlay: PropTypes.bool,
-  dark: PropTypes.bool,
-  mini: PropTypes.bool,
-  triangle: PropTypes.bool,
-  finished: PropTypes.bool,
-  relative: PropTypes.bool,
-  hideMessage: PropTypes.bool,
-  size: PropTypes.number,
-  hideSpinner: PropTypes.bool,
-};
 
 export default withProfiler(LoadingIndicator, {
   includeUpdates: false,

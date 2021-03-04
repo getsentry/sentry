@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import requests
 
 from sentry.utils import json
@@ -8,6 +6,7 @@ from sentry.http import safe_urlopen
 from .utils import get_basic_auth, remove_trailing_slashes, add_query_params
 
 ACCESS_TOKEN_NAME = "Sentry"
+DEFAULT_SENTRY_SOURCE = "sentry"
 
 API_URL = "https://api.sessionstack.com"
 PLAYER_URL = "https://app.sessionstack.com/player"
@@ -20,7 +19,7 @@ SESSION_URL_PATH = "/#/sessions/"
 MILLISECONDS_BEFORE_EVENT = 5000
 
 
-class SessionStackClient(object):
+class SessionStackClient:
     def __init__(self, account_email, api_token, website_id, **kwargs):
         self.website_id = website_id
 
@@ -56,6 +55,7 @@ class SessionStackClient(object):
 
         player_url = self.player_url + SESSION_URL_PATH + session_id
         query_params = {}
+        query_params["source"] = DEFAULT_SENTRY_SOURCE
 
         access_token = self._get_access_token(session_id)
         if access_token is not None:

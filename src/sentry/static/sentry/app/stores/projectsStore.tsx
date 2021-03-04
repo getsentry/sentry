@@ -1,8 +1,8 @@
 import Reflux from 'reflux';
 
-import {Project, Team} from 'app/types';
 import ProjectActions from 'app/actions/projectActions';
 import TeamActions from 'app/actions/teamActions';
+import {Project, Team} from 'app/types';
 
 type State = {
   projects: Project[];
@@ -227,4 +227,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface =
 
 type ProjectsStore = Reflux.Store & ProjectsStoreInterface;
 
-export default Reflux.createStore(storeConfig) as ProjectsStore;
+const ProjectsStore = Reflux.createStore(storeConfig) as ProjectsStore;
+
+export default ProjectsStore;

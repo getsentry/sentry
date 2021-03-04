@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import atexit
 import logging
 import signal
@@ -9,10 +7,12 @@ from sentry.utils import metrics
 
 from django.conf import settings
 
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options
+
 logger = logging.getLogger(__name__)
 
 
-class ProducerManager(object):
+class ProducerManager:
     """
     Manages one `confluent_kafka.Producer` per Kafka cluster.
 
@@ -31,7 +31,7 @@ class ProducerManager(object):
 
         from confluent_kafka import Producer
 
-        cluster_options = settings.KAFKA_CLUSTERS[cluster_name]
+        cluster_options = get_kafka_producer_cluster_options(cluster_name)
         producer = self.__producers[cluster_name] = Producer(cluster_options)
 
         @atexit.register
@@ -54,30 +54,24 @@ producers = ProducerManager()
 
 
 def create_batching_kafka_consumer(topic_names, worker, **options):
-    cluster_names = set(settings.KAFKA_TOPICS[topic_name]["cluster"] for topic_name in topic_names)
+    cluster_names = {settings.KAFKA_TOPICS[topic_name]["cluster"] for topic_name in topic_names}
     if len(cluster_names) > 1:
         raise ValueError(
-            "Cannot launch Kafka consumer listening to multiple topics ({}) on different clusters ({})".format(
-                topic_names, cluster_names
-            )
+            f"Cannot launch Kafka consumer listening to multiple topics ({topic_names}) on different clusters ({cluster_names})"
         )
 
     (cluster_name,) = cluster_names
 
-    bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"]
-    if not isinstance(bootstrap_servers, (list, tuple)):
-        bootstrap_servers = bootstrap_servers.split(",")
-
     consumer = BatchingKafkaConsumer(
         topics=topic_names,
-        bootstrap_servers=bootstrap_servers,
+        cluster_name=cluster_name,
         worker=worker,
         metrics=metrics,
         metrics_default_tags={
             "topics": ",".join(sorted(topic_names)),
             "group_id": options.get("group_id"),
         },
-        **options
+        **options,
     )
 
     def handler(signum, frame):

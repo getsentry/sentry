@@ -26,12 +26,12 @@ describe('EventCauseEmpty', function () {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
       body: {},
     });
     putMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
     });
   });
 
@@ -65,8 +65,11 @@ describe('EventCauseEmpty', function () {
 
     wrapper.find('button[aria-label="Snooze"]').first().simulate('click');
 
+    await tick();
+    await wrapper.update();
+
     expect(putMock).toHaveBeenCalledWith(
-      '/promptsactivity/',
+      '/prompts-activity/',
       expect.objectContaining({
         method: 'PUT',
         data: {
@@ -94,7 +97,7 @@ describe('EventCauseEmpty', function () {
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
       body: {data: {snoozed_ts}},
     });
 
@@ -114,7 +117,7 @@ describe('EventCauseEmpty', function () {
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
       body: {data: {snoozed_ts}},
     });
 
@@ -140,8 +143,11 @@ describe('EventCauseEmpty', function () {
 
     wrapper.find('button[aria-label="Dismiss"]').first().simulate('click');
 
+    await tick();
+    await wrapper.update();
+
     expect(putMock).toHaveBeenCalledWith(
-      '/promptsactivity/',
+      '/prompts-activity/',
       expect.objectContaining({
         method: 'PUT',
         data: {
@@ -167,7 +173,7 @@ describe('EventCauseEmpty', function () {
   it('does not render when dismissed', async function () {
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
       body: {data: {dismissed_ts: moment().unix()}},
     });
 

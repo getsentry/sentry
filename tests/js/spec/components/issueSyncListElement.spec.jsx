@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mountWithTheme, mount} from 'sentry-test/enzyme';
+import {mount, mountWithTheme} from 'sentry-test/enzyme';
 
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 

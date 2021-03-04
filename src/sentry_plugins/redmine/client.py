@@ -1,17 +1,15 @@
-from __future__ import absolute_import
-
 from sentry import http
 from sentry.utils import json
 
 
-class RedmineClient(object):
+class RedmineClient:
     def __init__(self, host, key):
         self.host = host.rstrip("/")
         self.key = key
 
     def request(self, method, path, data=None):
         headers = {"X-Redmine-API-Key": self.key, "Content-Type": "application/json"}
-        url = "{}{}".format(self.host, path)
+        url = f"{self.host}{path}"
         session = http.build_session()
         req = getattr(session, method.lower())(url, json=data, headers=headers)
         return json.loads(req.text)
@@ -21,7 +19,7 @@ class RedmineClient(object):
         projects = []
 
         def get_response(limit, offset):
-            return self.request("GET", "/projects.json?limit=%s&offset=%s" % (limit, offset))
+            return self.request("GET", f"/projects.json?limit={limit}&offset={offset}")
 
         response = get_response(limit, 0)
 

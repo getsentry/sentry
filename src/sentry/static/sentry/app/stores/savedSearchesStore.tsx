@@ -1,8 +1,8 @@
 import findIndex from 'lodash/findIndex';
 import Reflux from 'reflux';
 
-import {SavedSearch, SavedSearchType} from 'app/types';
 import SavedSearchesActions from 'app/actions/savedSearchesActions';
+import {SavedSearch, SavedSearchType} from 'app/types';
 
 type State = {
   savedSearches: SavedSearch[];
@@ -228,4 +228,8 @@ const savedSearchesStoreConfig: Reflux.StoreDefinition & SavedSearchesStoreInter
 
 type SavedSearchesStore = Reflux.Store & SavedSearchesStoreInterface;
 
-export default Reflux.createStore(savedSearchesStoreConfig) as SavedSearchesStore;
+const SavedSearchesStore = Reflux.createStore(
+  savedSearchesStoreConfig
+) as SavedSearchesStore;
+
+export default SavedSearchesStore;

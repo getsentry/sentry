@@ -1,12 +1,11 @@
-import {browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory} from 'react-router';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import OrganizationGeneralSettings from 'app/views/settings/organizationGeneralSettings';
-
-jest.mock('jquery');
 
 describe('OrganizationGeneralSettings', function () {
   let organization;
@@ -66,7 +65,7 @@ describe('OrganizationGeneralSettings', function () {
       .simulate('change', {target: {value: 'new-slug'}})
       .simulate('blur');
 
-    wrapper.find('SaveButton').simulate('click');
+    wrapper.find('button[aria-label="Save"]').simulate('click');
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
       expect.objectContaining({
@@ -138,12 +137,14 @@ describe('OrganizationGeneralSettings', function () {
     wrapper.update();
     wrapper.find('Confirm[priority="danger"]').simulate('click');
 
+    const modal = await mountGlobalModal();
+
     // Lists projects in modal
-    expect(wrapper.find('Modal .ref-projects')).toHaveLength(1);
-    expect(wrapper.find('Modal .ref-projects li').text()).toBe('project');
+    expect(modal.find('.ref-projects')).toHaveLength(1);
+    expect(modal.find('.ref-projects li').text()).toBe('project');
 
     // Confirm delete
-    wrapper.find('Modal Portal Button[priority="danger"]').simulate('click');
+    modal.find('Button[priority="danger"]').simulate('click');
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
       expect.objectContaining({

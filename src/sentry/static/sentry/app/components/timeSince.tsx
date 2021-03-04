@@ -1,11 +1,12 @@
+import React from 'react';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
-import PropTypes from 'prop-types';
-import React from 'react';
 import moment from 'moment-timezone';
 
-import ConfigStore from 'app/stores/configStore';
 import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import {getDuration} from 'app/utils/formatters';
+import getDynamicText from 'app/utils/getDynamicText';
 
 import Tooltip from './tooltip';
 
@@ -34,6 +35,13 @@ type Props = DefaultProps & {
    */
   disabledAbsoluteTooltip?: boolean;
 
+  /**
+   * For relative time shortens minutes to min, day to d etc.
+   */
+  shorten?: boolean;
+
+  tooltipTitle?: string;
+
   className?: string;
 } & TimeProps;
 
@@ -42,11 +50,6 @@ type State = {
 };
 
 class TimeSince extends React.PureComponent<Props, State> {
-  static propTypes = {
-    date: PropTypes.any.isRequired,
-    suffix: PropTypes.string,
-  };
-
   static defaultProps: DefaultProps = {
     suffix: 'ago',
   };
@@ -59,7 +62,7 @@ class TimeSince extends React.PureComponent<Props, State> {
   // See: https://github.com/emotion-js/emotion/pull/1514
   static getDerivedStateFromProps(props) {
     return {
-      relative: getRelativeDate(props.date, props.suffix),
+      relative: getRelativeDate(props.date, props.suffix, props.shorten),
     };
   }
 
@@ -79,7 +82,7 @@ class TimeSince extends React.PureComponent<Props, State> {
   setRelativeDateTicker = () => {
     this.ticker = window.setTimeout(() => {
       this.setState({
-        relative: getRelativeDate(this.props.date, this.props.suffix),
+        relative: getRelativeDate(this.props.date, this.props.suffix, this.props.shorten),
       });
       this.setRelativeDateTicker();
     }, ONE_MINUTE_IN_MS);
@@ -91,17 +94,30 @@ class TimeSince extends React.PureComponent<Props, State> {
       suffix: _suffix,
       disabledAbsoluteTooltip,
       className,
+      tooltipTitle,
+      shorten: _shorten,
       ...props
     } = this.props;
     const dateObj = getDateObj(date);
     const user = ConfigStore.get('user');
     const options = user ? user.options : null;
-    const format = options?.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
+    const format = options?.clock24Hours ? 'MMMM D, YYYY HH:mm z' : 'LLL z';
+    const tooltip = getDynamicText({
+      fixed: options?.clock24Hours
+        ? 'November 3, 2020 08:57 UTC'
+        : 'November 3, 2020 8:58 AM UTC',
+      value: moment.tz(dateObj, options?.timezone ?? '').format(format),
+    });
 
     return (
       <Tooltip
-        title={moment.tz(dateObj, options?.timezone ?? '').format(format)}
         disabled={disabledAbsoluteTooltip}
+        title={
+          <div>
+            <div>{tooltipTitle}</div>
+            {tooltip}
+          </div>
+        }
       >
         <time dateTime={dateObj.toISOString()} className={className} {...props}>
           {this.state.relative}
@@ -120,10 +136,21 @@ function getDateObj(date: RelaxedDateType): Date {
   return date;
 }
 
-function getRelativeDate(currentDateTime: RelaxedDateType, suffix?: string): string {
+export function getRelativeDate(
+  currentDateTime: RelaxedDateType,
+  suffix?: string,
+  shorten?: boolean
+): string {
   const date = getDateObj(currentDateTime);
 
-  if (!suffix) {
+  if (shorten && suffix) {
+    return t('%(time)s %(suffix)s', {
+      time: getDuration(moment().diff(moment(date), 'seconds'), 0, true),
+      suffix,
+    });
+  } else if (shorten && !suffix) {
+    return getDuration(moment().diff(moment(date), 'seconds'), 0, true);
+  } else if (!suffix) {
     return moment(date).fromNow(true);
   } else if (suffix === 'ago') {
     return moment(date).fromNow();

@@ -3,8 +3,8 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import AlertRulesList from 'app/views/alerts/rules';
 import ProjectsStore from 'app/stores/projectsStore';
+import AlertRulesList from 'app/views/alerts/rules';
 
 describe('OrganizationRuleList', () => {
   const {routerContext, organization} = initializeOrg();
@@ -55,11 +55,9 @@ describe('OrganizationRuleList', () => {
   it('displays list', async () => {
     const wrapper = await createWrapper();
 
-    const items = wrapper.find('AlertRulesPanelItem');
-    expect(items).toHaveLength(1);
-    expect(items.find('RuleType').text()).toBe('Issue');
-    expect(items.find('Title').text()).toBe('First Issue Alert');
-    expect(items.find('CreatedBy').text()).toBe('Samwise');
+    expect(wrapper.find('RuleType').text()).toBe('Issue');
+    expect(wrapper.find('Title').text()).toBe('First Issue Alert');
+    expect(wrapper.find('CreatedBy').text()).toBe('Samwise');
 
     // GlobalSelectionHeader loads projects + the Projects render-prop
     // component to load projects for all rows.
@@ -68,10 +66,10 @@ describe('OrganizationRuleList', () => {
     expect(projectMock).toHaveBeenLastCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {query: 'slug:earth'},
+        query: expect.objectContaining({query: 'slug:earth'}),
       })
     );
-    expect(items.at(0).find('IdBadge').prop('project')).toMatchObject({
+    expect(wrapper.find('IdBadge').prop('project')).toMatchObject({
       slug: 'earth',
     });
   });
@@ -126,8 +124,7 @@ describe('OrganizationRuleList', () => {
     // Enabled with access
     wrapper = await createWrapper();
 
-    // NOTE: A link when not disabled
-    const addLink = wrapper.find('a[aria-label="Create Alert Rule"]');
+    const addLink = wrapper.find('button[aria-label="Create Alert Rule"]');
     expect(addLink.props()['aria-disabled']).toBe(false);
   });
 });

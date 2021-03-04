@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from collections import defaultdict
 
 from sentry.api.bases.user import UserEndpoint
@@ -99,7 +95,7 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
         if serializer.is_valid():
             for key in serializer.validated_data:
                 db_key = USER_OPTION_SETTINGS[key]["key"]
-                val = six.text_type(int(serializer.validated_data[key]))
+                val = str(int(serializer.validated_data[key]))
                 (uo, created) = UserOption.objects.get_or_create(
                     user=user, key=db_key, project=None, organization=None
                 )

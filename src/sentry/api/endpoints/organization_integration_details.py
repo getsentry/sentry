@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 from uuid import uuid4
 
-import six
 
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
 from sentry.models import AuditLogEntryEvent, ObjectStatus, OrganizationIntegration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.deletion import delete_organization_integration
@@ -19,7 +17,11 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
     def get(self, request, organization, integration_id):
         org_integration = self.get_organization_integration(organization, integration_id)
 
-        return self.respond(serialize(org_integration, request.user))
+        return self.respond(
+            serialize(
+                org_integration, request.user, OrganizationIntegrationSerializer(params=request.GET)
+            )
+        )
 
     def delete(self, request, organization, integration_id):
         # Removing the integration removes the organization
@@ -56,6 +58,6 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         try:
             installation.update_organization_config(request.data)
         except IntegrationError as e:
-            return self.respond({"detail": six.text_type(e)}, status=400)
+            return self.respond({"detail": str(e)}, status=400)
 
         return self.respond(status=200)

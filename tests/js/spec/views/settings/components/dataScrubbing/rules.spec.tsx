@@ -2,8 +2,8 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Rules from 'app/views/settings/components/dataScrubbing/rules';
 import convertRelayPiiConfig from 'app/views/settings/components/dataScrubbing/convertRelayPiiConfig';
+import Rules from 'app/views/settings/components/dataScrubbing/rules';
 
 // @ts-expect-error
 const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();

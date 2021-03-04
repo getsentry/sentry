@@ -1,7 +1,7 @@
 import React from 'react';
 
-import BaseBadge from 'app/components/idBadge/baseBadge';
 import BadgeDisplayName from 'app/components/idBadge/badgeDisplayName';
+import BaseBadge from 'app/components/idBadge/baseBadge';
 
 type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;
 type Project = NonNullable<BaseBadgeProps['project']>;

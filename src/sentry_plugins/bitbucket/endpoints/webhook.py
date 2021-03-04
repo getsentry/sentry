@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import dateutil.parser
 import logging
-import six
 import re
 
 import ipaddress
@@ -24,17 +21,17 @@ logger = logging.getLogger("sentry.webhooks")
 # Bitbucket Cloud IP range:
 # https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html#Managewebhooks-trigger_webhookTriggeringwebhooks
 BITBUCKET_IP_RANGES = (
-    ipaddress.ip_network(u"104.192.136.0/21"),
+    ipaddress.ip_network("104.192.136.0/21"),
     # Not documented in the webhook docs, but defined here:
     # https://bitbucket.org/blog/new-ip-addresses-bitbucket-cloud
-    ipaddress.ip_network(u"18.205.93.0/25"),
-    ipaddress.ip_network(u"18.234.32.128/25"),
-    ipaddress.ip_network(u"13.52.5.0/25"),
+    ipaddress.ip_network("18.205.93.0/25"),
+    ipaddress.ip_network("18.234.32.128/25"),
+    ipaddress.ip_network("13.52.5.0/25"),
 )
-BITBUCKET_IPS = [u"34.198.203.127", u"34.198.178.64", u"34.198.32.85"]
+BITBUCKET_IPS = ["34.198.203.127", "34.198.178.64", "34.198.32.85"]
 
 
-class Webhook(object):
+class Webhook:
     def __call__(self, organization, event):
         raise NotImplementedError
 
@@ -61,7 +58,7 @@ class PushEventWebhook(Webhook):
             repo = Repository.objects.get(
                 organization_id=organization.id,
                 provider="bitbucket",
-                external_id=six.text_type(event["repository"]["uuid"]),
+                external_id=str(event["repository"]["uuid"]),
             )
         except Repository.DoesNotExist:
             raise Http404()
@@ -118,7 +115,7 @@ class BitbucketWebhookEndpoint(View):
         if request.method != "POST":
             return HttpResponse(status=405)
 
-        return super(BitbucketWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, organization_id):
         try:
@@ -129,7 +126,7 @@ class BitbucketWebhookEndpoint(View):
             )
             return HttpResponse(status=400)
 
-        body = six.binary_type(request.body)
+        body = bytes(request.body)
         if not body:
             logger.error(
                 "bitbucket.webhook.missing-body", extra={"organization_id": organization.id}
@@ -147,7 +144,7 @@ class BitbucketWebhookEndpoint(View):
         if not handler:
             return HttpResponse(status=204)
 
-        address_string = six.text_type(request.META["REMOTE_ADDR"])
+        address_string = str(request.META["REMOTE_ADDR"])
         ip = ipaddress.ip_address(address_string)
         valid_ip = False
         for ip_range in BITBUCKET_IP_RANGES:

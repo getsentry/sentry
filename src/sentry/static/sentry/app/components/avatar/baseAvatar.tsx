@@ -1,14 +1,14 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 import classNames from 'classnames';
 import * as qs from 'query-string';
-import styled from '@emotion/styled';
 
+import BackgroundAvatar from 'app/components/avatar/backgroundAvatar';
 import LetterAvatar from 'app/components/letterAvatar';
 import Tooltip from 'app/components/tooltip';
 
-import {imageStyle} from './styles';
 import Gravatar from './gravatar';
+import {imageStyle, ImageStyleProps} from './styles';
 
 const DEFAULT_GRAVATAR_SIZE = 64;
 const ALLOWED_SIZES = [20, 32, 36, 48, 52, 64, 80, 96, 120];
@@ -60,13 +60,15 @@ type Props = {
   /**
    * Additional props for the tooltip
    */
-  tooltipOptions?: Tooltip['props'];
+  tooltipOptions?: Omit<Tooltip['props'], 'children' | 'title'>;
 
   className?: string;
 
   forwardedRef?: React.Ref<HTMLSpanElement>;
 
   style?: React.CSSProperties;
+
+  suggested?: boolean;
 } & Partial<DefaultProps> &
   React.HTMLAttributes<HTMLSpanElement>;
 
@@ -77,51 +79,6 @@ type State = {
 };
 
 class BaseAvatar extends React.Component<Props, State> {
-  static propTypes = {
-    size: PropTypes.number,
-    /**
-     * This is the size of the remote image to request.
-     */
-    remoteImageSize: PropTypes.oneOf(ALLOWED_SIZES),
-    /**
-     * Default gravatar to display
-     */
-    default: PropTypes.string,
-    /**
-     * Enable to display tooltips.
-     */
-    hasTooltip: PropTypes.bool,
-    /**
-     * The type of avatar being rendered.
-     */
-    type: PropTypes.string,
-    /**
-     * Path to uploaded avatar (differs based on model type)
-     */
-    uploadPath: PropTypes.oneOf([
-      'avatar',
-      'team-avatar',
-      'organization-avatar',
-      'project-avatar',
-    ]),
-    uploadId: PropTypes.string,
-    gravatarId: PropTypes.string,
-    letterId: PropTypes.string,
-    title: PropTypes.string,
-    /**
-     * The content for the tooltip. Requires hasTooltip to display
-     */
-    tooltip: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
-    /**
-     * Additional props for the tooltip
-     */
-    tooltipOptions: PropTypes.object,
-    /**
-     * Should avatar be round instead of a square
-     */
-    round: PropTypes.bool,
-  };
-
   static defaultProps = defaultProps;
 
   constructor(props: Props) {
@@ -167,7 +124,7 @@ class BaseAvatar extends React.Component<Props, State> {
       return null;
     }
 
-    const {type, round, gravatarId} = this.props;
+    const {type, round, gravatarId, suggested} = this.props;
 
     const eventProps = {
       onError: this.handleError,
@@ -181,21 +138,47 @@ class BaseAvatar extends React.Component<Props, State> {
           gravatarId={gravatarId}
           round={round}
           remoteSize={DEFAULT_REMOTE_SIZE}
+          suggested={suggested}
+          grayscale={suggested}
           {...eventProps}
         />
       );
     }
 
     if (type === 'upload') {
-      return <Image round={round} src={this.buildUploadUrl()} {...eventProps} />;
+      return (
+        <Image
+          round={round}
+          src={this.buildUploadUrl()}
+          {...eventProps}
+          suggested={suggested}
+          grayscale={suggested}
+        />
+      );
+    }
+
+    if (type === 'background') {
+      return this.renderBackgroundAvatar();
     }
 
     return this.renderLetterAvatar();
   };
 
   renderLetterAvatar() {
-    const {title, letterId, round} = this.props;
-    return <LetterAvatar round={round} displayName={title} identifier={letterId} />;
+    const {title, letterId, round, suggested} = this.props;
+    return (
+      <LetterAvatar
+        round={round}
+        displayName={title}
+        identifier={letterId}
+        suggested={suggested}
+      />
+    );
+  }
+
+  renderBackgroundAvatar() {
+    const {round, suggested} = this.props;
+    return <BackgroundAvatar round={round} suggested={suggested} />;
   }
 
   render() {
@@ -205,6 +188,7 @@ class BaseAvatar extends React.Component<Props, State> {
       round,
       hasTooltip,
       size,
+      suggested,
       tooltip,
       tooltipOptions,
       forwardedRef,
@@ -226,6 +210,7 @@ class BaseAvatar extends React.Component<Props, State> {
           loaded={this.state.hasLoaded}
           className={classNames('avatar', className)}
           round={!!round}
+          suggested={!!suggested}
           style={{
             ...sizeStyle,
             ...style,
@@ -244,12 +229,18 @@ export default BaseAvatar;
 
 // Note: Avatar will not always be a child of a flex layout, but this seems like a
 // sensible default.
-const StyledBaseAvatar = styled('span')<{round: boolean; loaded: boolean}>`
+const StyledBaseAvatar = styled('span')<{
+  round: boolean;
+  loaded: boolean;
+  suggested: boolean;
+}>`
   flex-shrink: 0;
-  ${p => !p.loaded && 'background-color: rgba(200, 200, 200, 0.1);'};
-  ${p => p.round && 'border-radius: 100%;'};
+  border-radius: ${p => (p.round ? '50%' : '3px')};
+  border: ${p => (p.suggested ? `1px dashed ${p.theme.gray400}` : 'none')};
+  background-color: ${p =>
+    p.loaded ? p.theme.background : 'background-color: rgba(200, 200, 200, 0.1);'};
 `;
 
-const Image = styled('img')<Pick<Props, 'round'>>`
+const Image = styled('img')<ImageStyleProps>`
   ${imageStyle};
 `;

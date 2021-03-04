@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import re
-import six
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError
 from django.db.models import Q
 from django.db.models.functions import Coalesce
 from rest_framework.response import Response
@@ -11,9 +8,9 @@ from rest_framework.exceptions import ParseError
 from sentry import analytics
 
 from sentry.api.bases import NoProjects
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.exceptions import InvalidRepository
+from sentry.api.exceptions import InvalidRepository, ConflictError
 from sentry.api.paginator import OffsetPaginator, MergingOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
@@ -22,7 +19,14 @@ from sentry.api.serializers.rest_framework import (
     ReleaseWithVersionSerializer,
     ListField,
 )
-from sentry.models import Activity, Release, Project, ReleaseProject
+from sentry.models import (
+    Activity,
+    Release,
+    ReleaseCommitError,
+    ReleaseProject,
+    ReleaseStatus,
+    Project,
+)
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
     get_changed_project_release_model_adoptions,
@@ -33,7 +37,6 @@ from sentry.snuba.sessions import (
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip as izip
 from sentry.utils.sdk import configure_scope, bind_organization_context
-from sentry.web.decorators import transaction_start
 
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
@@ -130,8 +133,9 @@ def debounce_update_release_health_data(organization, project_ids):
     cache.set_many(dict(izip(should_update.values(), [True] * len(should_update))), 60)
 
 
-class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
-    @transaction_start("OrganizationReleasesEndpoint.get")
+class OrganizationReleasesEndpoint(
+    OrganizationReleasesBaseEndpoint, EnvironmentMixin, ReleaseAnalyticsMixin
+):
     def get(self, request, organization):
         """
         List an Organization's Releases
@@ -144,6 +148,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         """
         query = request.GET.get("query")
         with_health = request.GET.get("health") == "1"
+        status_filter = request.GET.get("status", "open")
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
         health_stat = request.GET.get("healthStat") or "sessions"
@@ -170,10 +175,21 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         if with_health:
             debounce_update_release_health_data(organization, filter_params["project_id"])
 
-        queryset = (
-            Release.objects.filter(organization=organization)
-            .select_related("owner")
-            .annotate(date=Coalesce("date_released", "date_added"),)
+        queryset = Release.objects.filter(organization=organization)
+
+        if status_filter:
+            try:
+                status_int = ReleaseStatus.from_string(status_filter)
+            except ValueError:
+                raise ParseError(detail="invalid value for status")
+
+            if status_int == ReleaseStatus.OPEN:
+                queryset = queryset.filter(Q(status=status_int) | Q(status=None))
+            else:
+                queryset = queryset.filter(status=status_int)
+
+        queryset = queryset.select_related("owner").annotate(
+            date=Coalesce("date_released", "date_added"),
         )
 
         queryset = add_environment_to_queryset(queryset, filter_params)
@@ -245,10 +261,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 summary_stats_period=summary_stats_period,
                 environments=filter_params.get("environment") or None,
             ),
-            **paginator_kwargs
+            **paginator_kwargs,
         )
 
-    @transaction_start("OrganizationReleasesEndpoint.post")
     def post(self, request, organization):
         """
         Create a New Release for an Organization
@@ -305,30 +320,32 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                         return Response({"projects": ["Invalid project slugs"]}, status=400)
                     projects.append(allowed_projects[slug])
 
+                new_status = result.get("status")
+
                 # release creation is idempotent to simplify user
                 # experiences
                 try:
-                    with transaction.atomic():
-                        release, created = (
-                            Release.objects.create(
-                                organization_id=organization.id,
-                                version=result["version"],
-                                ref=result.get("ref"),
-                                url=result.get("url"),
-                                owner=result.get("owner"),
-                                date_released=result.get("dateReleased"),
-                            ),
-                            True,
-                        )
-                except IntegrityError:
-                    release, created = (
-                        Release.objects.get(
-                            organization_id=organization.id, version=result["version"]
-                        ),
-                        False,
+                    release, created = Release.objects.get_or_create(
+                        organization_id=organization.id,
+                        version=result["version"],
+                        defaults={
+                            "ref": result.get("ref"),
+                            "url": result.get("url"),
+                            "owner": result.get("owner"),
+                            "date_released": result.get("dateReleased"),
+                            "status": new_status or ReleaseStatus.OPEN,
+                        },
                     )
-                else:
+                except IntegrityError:
+                    raise ConflictError(
+                        "Could not create the release it conflicts with existing data",
+                    )
+                if created:
                     release_created.send_robust(release=release, sender=self.__class__)
+
+                if not created and new_status is not None and new_status != release.status:
+                    release.status = new_status
+                    release.save()
 
                 new_projects = []
                 for project in projects:
@@ -348,7 +365,15 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
 
                 commit_list = result.get("commits")
                 if commit_list:
-                    release.set_commits(commit_list)
+                    try:
+                        release.set_commits(commit_list)
+                        self.track_set_commits_local(
+                            request,
+                            organization_id=organization.id,
+                            project_ids=[project.id for project in projects],
+                        )
+                    except ReleaseCommitError:
+                        raise ConflictError("Release commits are currently being processed")
 
                 refs = result.get("refs")
                 if not refs:
@@ -373,7 +398,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                         release.set_refs(refs, request.user, fetch=fetch_commits)
                     except InvalidRepository as e:
                         scope.set_tag("failure_reason", "InvalidRepository")
-                        return Response({"refs": [six.text_type(e)]}, status=400)
+                        return Response({"refs": [str(e)]}, status=400)
 
                 if not created and not new_projects:
                     # This is the closest status code that makes sense, and we want
@@ -392,6 +417,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),
                     created_status=status,
                 )
+
                 scope.set_tag("success_status", status)
                 return Response(serialize(release, request.user), status=status)
             scope.set_tag("failure_reason", "serializer_error")
@@ -399,7 +425,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
 
 
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
-    @transaction_start("OrganizationReleasesStatsEndpoint.get")
     def get(self, request, organization):
         """
         List an Organization's Releases specifically for building timeseries
@@ -417,7 +442,9 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
             Release.objects.filter(
                 organization=organization, projects__id__in=filter_params["project_id"]
             )
-            .annotate(date=Coalesce("date_released", "date_added"),)
+            .annotate(
+                date=Coalesce("date_released", "date_added"),
+            )
             .values("version", "date")
             .order_by("-date")
             .distinct()

@@ -1,7 +1,10 @@
 {% extends "sentry/plugins/bases/issue/create_issue.html" %}
 
+{% load sentry_assets %}
+
 {% block scripts %}
   {{ block.super }}
+  {% script %}
   <script>
     $(function(){
       $("#id_project").on('change', function(){
@@ -24,4 +27,5 @@
       }).trigger('change');
     });
   </script>
+  {% endscript %}
 {% endblock %}

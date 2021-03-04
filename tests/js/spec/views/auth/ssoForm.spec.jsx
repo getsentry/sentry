@@ -1,5 +1,5 @@
-import {browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory} from 'react-router';
 
 import {mount} from 'sentry-test/enzyme';
 

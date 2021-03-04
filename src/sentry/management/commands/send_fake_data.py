@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import datetime
 import itertools
 import random
-import six
 import time
 
 from django.core.management.base import BaseCommand, CommandError
@@ -30,13 +27,13 @@ def funcs():
             seconds=random.randint(0, timestamp_max)
         )
         try:
-            raise six.next(exceptions)
-        except Exception as exc:
-            email = six.next(emails)
+            raise next(exceptions)
+        except Exception:
+            email = next(emails)
             return client.captureException(
                 exc_info=exc,
                 data={
-                    "logger": six.next(loggers),
+                    "logger": next(loggers),
                     "site": "web",
                     "user": {"id": email, "email": email},
                 },

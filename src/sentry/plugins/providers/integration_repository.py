@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import dateutil.parser
-import six
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.response import Response
@@ -14,7 +11,7 @@ from sentry.models import Repository, Integration
 from sentry.signals import repo_linked
 
 
-class IntegrationRepositoryProvider(object):
+class IntegrationRepositoryProvider:
     """
     Repository Provider for Integrations in the Sentry Repository.
     Does not include plugins.
@@ -57,7 +54,7 @@ class IntegrationRepositoryProvider(object):
                     },
                 )
             # update from params
-            for field_name, field_value in six.iteritems(repo_update_params):
+            for field_name, field_value in repo_update_params.items():
                 setattr(repo, field_name, field_value)
             # also update the status if it was in a bad state
             repo.status = ObjectStatus.VISIBLE
@@ -96,23 +93,19 @@ class IntegrationRepositoryProvider(object):
         context = {"error_type": "unknown"}
 
         if isinstance(e, IntegrationError):
-            if "503" in six.text_type(e):
-                context.update(
-                    {"error_type": "service unavailable", "errors": {"__all__": six.text_type(e)}}
-                )
+            if "503" in str(e):
+                context.update({"error_type": "service unavailable", "errors": {"__all__": str(e)}})
                 status = 503
             else:
                 # TODO(dcramer): we should have a proper validation error
-                context.update(
-                    {"error_type": "validation", "errors": {"__all__": six.text_type(e)}}
-                )
+                context.update({"error_type": "validation", "errors": {"__all__": str(e)}})
                 status = 400
         elif isinstance(e, Integration.DoesNotExist):
-            context.update({"error_type": "not found", "errors": {"__all__": six.text_type(e)}})
+            context.update({"error_type": "not found", "errors": {"__all__": str(e)}})
             status = 404
         else:
             if self.logger:
-                self.logger.exception(six.text_type(e))
+                self.logger.exception(str(e))
             status = 500
         return Response(context, status=status)
 

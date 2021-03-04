@@ -4,13 +4,14 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'app/api';
-import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
 import LineChart from 'app/components/charts/lineChart';
+import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
 
 jest.mock('app/components/charts/lineChart');
 
 describe('Incident Rules Create', () => {
   let eventStatsMock;
+  let eventCountsMock;
   let api;
 
   beforeEach(() => {
@@ -20,6 +21,10 @@ describe('Incident Rules Create', () => {
     eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: TestStubs.EventsStats(),
+    });
+    eventCountsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {count: 5},
     });
   });
 
@@ -53,6 +58,18 @@ describe('Incident Rules Create', () => {
           query: 'event.type:error',
           statsPeriod: '1d',
           yAxis: 'count()',
+        },
+      })
+    );
+
+    expect(eventCountsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          project: ['2'],
+          query: 'event.type:error',
+          statsPeriod: '1d',
+          environment: [],
         },
       })
     );
@@ -103,6 +120,18 @@ describe('Incident Rules Create', () => {
           query: 'event.type:error',
           statsPeriod: '1d',
           yAxis: 'count()',
+        },
+      })
+    );
+
+    expect(eventCountsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          project: ['2'],
+          query: 'event.type:error',
+          statsPeriod: '1d',
+          environment: [],
         },
       })
     );

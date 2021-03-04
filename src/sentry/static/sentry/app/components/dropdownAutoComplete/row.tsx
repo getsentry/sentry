@@ -1,35 +1,33 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import AutoComplete from 'app/components/autoComplete';
 import space from 'app/styles/space';
 
-import {GetItemArgs} from './types';
+import {Item} from './types';
 
 type ItemSize = 'zero' | 'small';
+type AutoCompleteChildrenArgs<T> = Parameters<AutoComplete<T>['props']['children']>[0];
 
-type Props = {
-  // The highlight index according the search
-  highlightedIndex: number;
-  getItemProps: (args: GetItemArgs) => void;
-  /**
-   * Search field's input value
-   */
-  inputValue: string;
+type Props<T> = Pick<
+  AutoCompleteChildrenArgs<T>,
+  'highlightedIndex' | 'getItemProps' | 'inputValue'
+> &
+  Omit<Parameters<AutoCompleteChildrenArgs<T>['getItemProps']>[0], 'index'> & {
+    /**
+     * Size for dropdown items
+     */
+    itemSize?: ItemSize;
+  };
 
-  /**
-   * Size for dropdown items
-   */
-  itemSize?: ItemSize;
-} & Omit<GetItemArgs, 'index'>;
-
-const Row = ({
+function Row<T extends Item>({
   item,
   style,
   itemSize,
   highlightedIndex,
   inputValue,
   getItemProps,
-}: Props) => {
+}: Props<T>) {
   const {index} = item;
 
   if (item?.groupLabel) {
@@ -43,21 +41,33 @@ const Row = ({
   return (
     <AutoCompleteItem
       itemSize={itemSize}
-      hasGrayBackground={index === highlightedIndex}
+      isHighlighted={index === highlightedIndex}
       {...getItemProps({item, index, style})}
     >
       {typeof item.label === 'function' ? item.label({inputValue}) : item.label}
     </AutoCompleteItem>
   );
-};
+}
 
 export default Row;
 
+const getItemPaddingForSize = (itemSize?: ItemSize) => {
+  if (itemSize === 'small') {
+    return `${space(0.5)} ${space(1)}`;
+  }
+
+  if (itemSize === 'zero') {
+    return '0';
+  }
+
+  return space(1);
+};
+
 const LabelWithBorder = styled('div')`
-  background-color: ${p => p.theme.gray100};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 
   :first-child {
@@ -72,19 +82,7 @@ const GroupLabel = styled('div')`
   padding: ${space(0.25)} ${space(1)};
 `;
 
-const getItemPaddingForSize = (itemSize?: ItemSize) => {
-  if (itemSize === 'small') {
-    return `${space(0.5)} ${space(1)}`;
-  }
-
-  if (itemSize === 'zero') {
-    return '0';
-  }
-
-  return space(1);
-};
-
-const AutoCompleteItem = styled('div')<{hasGrayBackground: boolean; itemSize?: ItemSize}>`
+const AutoCompleteItem = styled('div')<{isHighlighted: boolean; itemSize?: ItemSize}>`
   /* needed for virtualized lists that do not fill parent height */
   /* e.g. breadcrumbs (org height > project, but want same fixed height for both) */
   display: flex;
@@ -92,16 +90,18 @@ const AutoCompleteItem = styled('div')<{hasGrayBackground: boolean; itemSize?: I
   justify-content: center;
 
   font-size: 0.9em;
-  background-color: ${p => (p.hasGrayBackground ? p.theme.gray100 : 'transparent')};
+  background-color: ${p => (p.isHighlighted ? p.theme.focus : 'transparent')};
+  color: ${p => (p.isHighlighted ? p.theme.textColor : 'inherit')};
   padding: ${p => getItemPaddingForSize(p.itemSize)};
   cursor: pointer;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
 
   :last-child {
     border-bottom: none;
   }
 
   :hover {
-    background-color: ${p => p.theme.gray100};
+    color: ${p => p.theme.textColor};
+    background-color: ${p => p.theme.focus};
   }
 `;

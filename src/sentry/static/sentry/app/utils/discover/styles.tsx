@@ -13,10 +13,7 @@ export const Container = styled('div')`
 `;
 
 export const VersionContainer = styled('div')`
-  ${overflowEllipsis};
-  max-width: 100%;
-  width: auto;
-  display: inline-block;
+  display: flex;
 `;
 
 export const NumberContainer = styled('div')`
@@ -25,7 +22,7 @@ export const NumberContainer = styled('div')`
 `;
 
 export const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   ${overflowEllipsis};
 `;
 

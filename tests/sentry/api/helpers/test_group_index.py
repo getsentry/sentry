@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.compat.mock import patch, Mock
 from django.http import QueryDict
 
@@ -76,7 +74,7 @@ class UpdateGroupsTest(TestCase):
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
         request.data = {"status": "unresolved"}
-        request.GET = QueryDict(query_string="id={}".format(resolved_group.id))
+        request.GET = QueryDict(query_string=f"id={resolved_group.id}")
 
         search_fn = Mock()
         update_groups(request, [self.project], self.organization.id, search_fn)
@@ -90,12 +88,13 @@ class UpdateGroupsTest(TestCase):
     @patch("sentry.signals.issue_resolved.send_robust")
     def test_resolving_unresolved_group(self, send_robust):
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
+        add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
         assert unresolved_group.status == GroupStatus.UNRESOLVED
 
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
         request.data = {"status": "resolved"}
-        request.GET = QueryDict(query_string="id={}".format(unresolved_group.id))
+        request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
 
         search_fn = Mock()
         update_groups(request, [self.project], self.organization.id, search_fn)
@@ -103,6 +102,7 @@ class UpdateGroupsTest(TestCase):
         unresolved_group.refresh_from_db()
 
         assert unresolved_group.status == GroupStatus.RESOLVED
+        assert not GroupInbox.objects.filter(group=unresolved_group).exists()
         assert send_robust.called
 
     @patch("sentry.signals.issue_ignored.send_robust")
@@ -113,7 +113,7 @@ class UpdateGroupsTest(TestCase):
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
         request.data = {"status": "ignored"}
-        request.GET = QueryDict(query_string="id={}".format(group.id))
+        request.GET = QueryDict(query_string=f"id={group.id}")
 
         search_fn = Mock()
         update_groups(request, [self.project], self.organization.id, search_fn)
@@ -131,7 +131,7 @@ class UpdateGroupsTest(TestCase):
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
         request.data = {"status": "unresolved"}
-        request.GET = QueryDict(query_string="id={}".format(group.id))
+        request.GET = QueryDict(query_string=f"id={group.id}")
 
         search_fn = Mock()
         update_groups(request, [self.project], self.organization.id, search_fn)
@@ -140,3 +140,22 @@ class UpdateGroupsTest(TestCase):
 
         assert group.status == GroupStatus.UNRESOLVED
         assert send_robust.called
+
+    @patch("sentry.signals.issue_mark_reviewed.send_robust")
+    def test_mark_reviewed_group(self, send_robust):
+        with self.feature("organizations:inbox"):
+            group = self.create_group()
+            add_group_to_inbox(group, GroupInboxReason.NEW)
+
+            request = self.make_request(user=self.user, method="GET")
+            request.user = self.user
+            request.data = {"inbox": False}
+            request.GET = QueryDict(query_string=f"id={group.id}")
+
+            search_fn = Mock()
+            update_groups(request, [self.project], self.organization.id, search_fn)
+
+            group.refresh_from_db()
+
+            assert not GroupInbox.objects.filter(group=group).exists()
+            assert send_robust.called

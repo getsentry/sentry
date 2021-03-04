@@ -7,7 +7,6 @@ Over time we want to fully phase out the culprit.  Until then this is the
 code that generates it.
 """
 
-from __future__ import absolute_import
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
@@ -68,5 +67,5 @@ def get_frame_culprit(frame, platform):
     elif platform in ("javascript", "node"):
         # function and fileloc might be unicode here, so let it coerce
         # to a unicode string if needed.
-        return "%s(%s)" % (frame.get("function") or "?", fileloc)
-    return "%s in %s" % (fileloc, frame.get("function") or "?")
+        return "{}({})".format(frame.get("function") or "?", fileloc)
+    return "{} in {}".format(fileloc, frame.get("function") or "?")

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import random
 import functools
 import logging
@@ -63,7 +61,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 elif message_type == "user_report":
                     other_messages.append((process_userreport, message))
                 else:
-                    raise ValueError("Unknown message type: {}".format(message_type))
+                    raise ValueError(f"Unknown message type: {message_type}")
                 metrics.incr(
                     "ingest_consumer.flush.messages_seen", tags={"message_type": message_type}
                 )
@@ -124,7 +122,7 @@ def _do_process_event(message, projects):
     # This code has been ripped from the old python store endpoint. We're
     # keeping it around because it does provide some protection against
     # reprocessing good events if a single consumer is in a restart loop.
-    deduplication_key = "ev:{}:{}".format(project_id, event_id)
+    deduplication_key = f"ev:{project_id}:{event_id}"
     if cache.get(deduplication_key) is not None:
         logger.warning(
             "pre-process-forwarder detected a duplicated event" " with id:%s for project:%s.",
@@ -259,12 +257,13 @@ def process_userreport(message, projects):
     try:
         save_userreport(project, feedback, start_time=start_time)
         return True
-    except KeyError as e:
-        # XXX(markus): Hotfix because we have broken data in kafka
-        logger.error("Missing user report key: %s", e)
-        return False
     except Conflict as e:
         logger.info("Invalid userreport: %s", e)
+        return False
+    except Exception:
+        # XXX(markus): Hotfix because we have broken data in kafka
+        # If you want to remove this make sure to have triaged all errors in Sentry
+        logger.exception("userreport.save.crash")
         return False
 
 
@@ -274,9 +273,7 @@ def get_ingest_consumer(consumer_types, once=False, **options):
 
     The events should have already been processed (normalized... ) upstream (by Relay).
     """
-    topic_names = set(
-        ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types
-    )
+    topic_names = {ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types}
     return create_batching_kafka_consumer(
         topic_names=topic_names, worker=IngestConsumerWorker(), **options
     )

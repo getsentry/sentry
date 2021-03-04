@@ -1,12 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import {IconFilter} from 'app/icons';
 import {formatAddress, parseAddress} from 'app/components/events/interfaces/utils';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
+import Tooltip from 'app/components/tooltip';
+import {IconFilter} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
 
 type Props = {
@@ -15,8 +15,12 @@ type Props = {
   isAbsolute: boolean;
   isFoundByStackScanning: boolean;
   isInlineFrame: boolean;
-  relativeAddressMaxlength: number;
-  onToggle: (event: React.MouseEvent<SVGElement>) => void;
+  relativeAddressMaxlength?: number;
+  onToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  /**
+   * Is the stack trace being previewed in a hovercard?
+   */
+  isHoverPreviewed?: boolean;
 };
 
 const TogglableAddress = ({
@@ -27,6 +31,7 @@ const TogglableAddress = ({
   isFoundByStackScanning,
   isAbsolute,
   onToggle,
+  isHoverPreviewed,
 }: Props) => {
   const convertAbsoluteAddressToRelative = () => {
     if (!startingAddress) {
@@ -61,18 +66,24 @@ const TogglableAddress = ({
   const canBeConverted = !!(onToggle && relativeAddress);
   const formattedAddress = !relativeAddress || isAbsolute ? address : relativeAddress;
   const tooltipTitle = getAddressTooltip();
+  const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
 
   return (
     <Wrapper>
       {canBeConverted && (
         <AddressIconTooltip
-          title={isAbsolute ? t('Switch to absolute') : t('Switch to relative')}
+          title={isAbsolute ? t('Switch to relative') : t('Switch to absolute')}
           containerDisplayMode="inline-flex"
+          delay={tooltipDelay}
         >
-          <AddressToggleIcon onClick={onToggle} size="xs" color="purple400" />
+          <AddressToggleIcon onClick={onToggle} size="xs" color="purple300" />
         </AddressIconTooltip>
       )}
-      <Tooltip title={tooltipTitle} disabled={!(isFoundByStackScanning || isInlineFrame)}>
+      <Tooltip
+        title={tooltipTitle}
+        disabled={!(isFoundByStackScanning || isInlineFrame)}
+        delay={tooltipDelay}
+      >
         <Address
           isFoundByStackScanning={isFoundByStackScanning}
           isInlineFrame={isInlineFrame}
@@ -103,11 +114,11 @@ const getAddresstextBorderBottom = (
   p: Pick<Partial<Props>, 'isFoundByStackScanning' | 'isInlineFrame'> & {theme: Theme}
 ) => {
   if (p.isFoundByStackScanning) {
-    return `1px dashed ${p.theme.red400}`;
+    return `1px dashed ${p.theme.red300}`;
   }
 
   if (p.isInlineFrame) {
-    return `1px dashed ${p.theme.blue400}`;
+    return `1px dashed ${p.theme.blue300}`;
   }
 
   return 'none';
@@ -116,14 +127,14 @@ const getAddresstextBorderBottom = (
 const Address = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
   padding-left: ${p => (p.canBeConverted ? null : '18px')};
   border-bottom: ${getAddresstextBorderBottom};
-  ${overflowEllipsis};
   max-width: 93px;
+  white-space: pre-wrap;
 `;
 
 const Wrapper = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   letter-spacing: -0.25px;
   width: 100%;
   flex-grow: 0;

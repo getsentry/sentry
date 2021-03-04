@@ -1,17 +1,19 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+import {Location} from 'history';
 
 import {Client} from 'app/api';
+import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
 import {Organization, TagCollection} from 'app/types';
 import {metric} from 'app/utils/analytics';
+import {TableData} from 'app/utils/discover/discoverQuery';
+import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import Measurements from 'app/utils/measurements/measurements';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
-import Measurements from 'app/utils/measurements/measurements';
-import Pagination from 'app/components/pagination';
-import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-import {TableData} from 'app/utils/discover/discoverQuery';
 
 import TableView from './tableView';
 
@@ -133,6 +135,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
             status: err.status,
           },
         });
+
         const message = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({
           isLoading: false,
@@ -142,6 +145,11 @@ class Table extends React.PureComponent<TableProps, TableState> {
           tableData: null,
         });
         setError(message, err.status);
+
+        // We always want to make sure an useful error message is set.
+        if (!err?.responseJSON?.detail) {
+          Sentry.captureException(err);
+        }
       });
   };
 
@@ -149,6 +157,10 @@ class Table extends React.PureComponent<TableProps, TableState> {
     const {eventView, tags} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
     const tagKeys = Object.values(tags).map(({key}) => key);
+
+    const isFirstPage = pageLinks
+      ? parseLinkHeader(pageLinks).previous.results === false
+      : false;
 
     return (
       <Container>
@@ -159,6 +171,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
               <TableView
                 {...this.props}
                 isLoading={isLoading}
+                isFirstPage={isFirstPage}
                 error={error}
                 eventView={eventView}
                 tableData={tableData}

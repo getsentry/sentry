@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from sentry.utils.compat import mock
-import six
 
 from datetime import timedelta
 
@@ -13,6 +8,7 @@ from sentry.utils.compat.mock import patch
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import (
+    Group,
     Environment,
     GroupLink,
     GroupResolution,
@@ -73,7 +69,7 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group, user)
         assert result["status"] == "ignored"
-        assert result["statusDetails"]["actor"]["id"] == six.text_type(user.id)
+        assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
     def test_resolved_in_next_release(self):
         release = self.create_release(project=self.project, version="a")
@@ -109,7 +105,7 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group, user)
         assert result["status"] == "resolved"
-        assert result["statusDetails"]["actor"]["id"] == six.text_type(user.id)
+        assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
     def test_resolved_in_commit(self):
         repo = self.create_repo(project=self.project)
@@ -261,6 +257,25 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group)
         assert not result["isSubscribed"]
+
+    def test_reprocessing(self):
+        from sentry.reprocessing2 import start_group_reprocessing
+
+        group = self.create_group()
+        start_group_reprocessing(
+            project_id=group.project_id, group_id=group.id, remaining_events="delete"
+        )
+
+        result = serialize(Group.objects.get(id=group.id))
+
+        assert result["status"] == "reprocessing"
+        assert result["statusDetails"] == {
+            "pendingEvents": 0,
+            "info": {
+                "totalEvents": 0,
+                "dateCreated": result["statusDetails"]["info"]["dateCreated"],
+            },
+        }
 
 
 class StreamGroupSerializerTestCase(TestCase):

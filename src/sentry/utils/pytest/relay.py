@@ -1,6 +1,5 @@
 # Fixtures used to interact with a test Relay server
 
-from __future__ import absolute_import
 
 import datetime
 import shutil
@@ -9,8 +8,7 @@ import time
 import pytest
 from os import path
 
-import six
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 import requests
 
 from sentry.runner.commands.devservices import get_docker_client
@@ -46,11 +44,11 @@ def relay_server_setup(live_server, tmpdir_factory):
         datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")
     )
     config_path = tmpdir_factory.mktemp(prefix)
-    config_path = six.text_type(config_path)
+    config_path = str(config_path)
 
     parsed_live_server_url = urlparse(live_server.url)
     if parsed_live_server_url.port is not None:
-        port = six.text_type(parsed_live_server_url.port)
+        port = str(parsed_live_server_url.port)
     else:
         port = "80"
 
@@ -81,11 +79,11 @@ def relay_server_setup(live_server, tmpdir_factory):
     for source in sources:
         source_path = path.join(template_path, source)
         dest_path = path.join(config_path, source)
-        with open(source_path, "rt") as input:
+        with open(source_path) as input:
             content = input.read()
 
-        for var_name, var_val in six.iteritems(template_vars):
-            content = content.replace("${%s}" % var_name, six.text_type(var_val))
+        for var_name, var_val in template_vars.items():
+            content = content.replace("${%s}" % var_name, str(var_val))
 
         with open(dest_path, "wt") as output:
             output.write(content)
@@ -106,7 +104,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     }
 
     # Some structure similar to what the live_server fixture returns
-    server_info = {"url": "http://127.0.0.1:{}".format(relay_port), "options": options}
+    server_info = {"url": f"http://127.0.0.1:{relay_port}", "options": options}
 
     yield server_info
 
@@ -154,9 +152,11 @@ def adjust_settings_for_relay_tests(settings):
     ]
     settings.KAFKA_CLUSTERS = {
         "default": {
-            "bootstrap.servers": "127.0.0.1:9092",
-            "compression.type": "lz4",
-            "message.max.bytes": 50000000,  # 50MB, default is 1MB
+            "common": {"bootstrap.servers": "127.0.0.1:9092"},
+            "producers": {
+                "compression.type": "lz4",
+                "message.max.bytes": 50000000,  # 50MB, default is 1MB
+            },
         }
     }
     settings.SENTRY_RELAY_WHITELIST_PK = ["SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"]

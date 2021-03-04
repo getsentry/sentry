@@ -2,9 +2,10 @@ import React from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlock';
 
-import getRuntimeKnownData from './getRuntimeKnownData';
-import {RuntimeData, RuntimeKnownDataType, RuntimeIgnoredDataType} from './types';
 import getUnknownData from '../getUnknownData';
+
+import getRuntimeKnownData from './getRuntimeKnownData';
+import {RuntimeData, RuntimeIgnoredDataType, RuntimeKnownDataType} from './types';
 
 type Props = {
   data: RuntimeData;

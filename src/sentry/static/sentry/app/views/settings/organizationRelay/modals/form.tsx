@@ -1,12 +1,14 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Relay} from 'app/types';
 import Input from 'app/views/settings/components/forms/controls/input';
-import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 import Textarea from 'app/views/settings/components/forms/controls/textarea';
 import Field from 'app/views/settings/components/forms/field';
+import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import {Relay} from 'app/types';
 
 type FormField = keyof Pick<Relay, 'name' | 'publicKey' | 'description'>;
 type Values = Record<FormField, string>;
@@ -78,28 +80,30 @@ const Form = ({
           </TextCopyInput>
         </Field>
       ) : (
-        <Field
-          label={t('Public Key')}
-          error={errors.publicKey}
-          flexibleControlStateSize
-          inline={false}
-          stacked
-          required
-        >
-          <Input
-            type="text"
-            name="publicKey"
-            placeholder={t('Public Key')}
-            onChange={handleChange('publicKey')}
-            value={values.publicKey}
-            onBlur={onValidateKey}
-          />
+        <FieldWrapper>
+          <StyledField
+            label={t('Public Key')}
+            error={errors.publicKey}
+            flexibleControlStateSize
+            inline={false}
+            stacked
+            required
+          >
+            <Input
+              type="text"
+              name="publicKey"
+              placeholder={t('Public Key')}
+              onChange={handleChange('publicKey')}
+              value={values.publicKey}
+              onBlur={onValidateKey}
+            />
+          </StyledField>
           <FieldHelp>
             {t(
               'Only enter the Public Key value from your credentials file. Never share the Secret key with Sentry or any third party'
             )}
           </FieldHelp>
-        </Field>
+        </FieldWrapper>
       )}
       <Field flexibleControlStateSize label={t('Description')} inline={false} stacked>
         <Textarea
@@ -115,3 +119,11 @@ const Form = ({
 };
 
 export default Form;
+
+const FieldWrapper = styled('div')`
+  padding-bottom: ${space(2)};
+`;
+
+const StyledField = styled(Field)`
+  padding-bottom: 0;
+`;

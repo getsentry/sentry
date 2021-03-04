@@ -35,4 +35,4 @@ function getFileName(path: string) {
   return path.split(directorySeparator).pop();
 }
 
-export {getFileName, combineStatus};
+export {combineStatus, getFileName};

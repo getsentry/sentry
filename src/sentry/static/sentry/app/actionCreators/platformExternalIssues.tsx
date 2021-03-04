@@ -1,5 +1,5 @@
-import {Client} from 'app/api';
 import PlatformExternalIssueActions from 'app/actions/platformExternalIssueActions';
+import {Client} from 'app/api';
 
 export async function deleteExternalIssue(
   api: Client,

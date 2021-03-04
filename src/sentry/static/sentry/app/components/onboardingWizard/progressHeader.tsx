@@ -1,12 +1,12 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import {OnboardingTaskStatus, OnboardingTaskDescriptor} from 'app/types';
-import {t} from 'app/locale';
-import theme from 'app/utils/theme';
 import ProgressRing from 'app/components/progressRing';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {OnboardingTaskDescriptor, OnboardingTaskStatus} from 'app/types';
+import theme from 'app/utils/theme';
 
 type Props = {
   allTasks: OnboardingTaskDescriptor[];
@@ -14,23 +14,23 @@ type Props = {
 };
 const ProgressHeader = ({allTasks, completedTasks}: Props) => (
   <Container>
-    <ProgressRing
-      size={88}
-      barWidth={12}
+    <StyledProgressRing
+      size={80}
+      barWidth={8}
       text={allTasks.length - completedTasks.length}
       animateText
       value={(completedTasks.length / allTasks.length) * 100}
       progressEndcaps="round"
-      backgroundColor={theme.gray300}
+      backgroundColor={theme.gray100}
       textCss={() => css`
         font-size: 26px;
-        color: ${theme.gray500};
+        color: ${theme.textColor};
       `}
     />
-    <HeadingText>
-      <h4>{t('Setup Sentry')}</h4>
-      <p>{t('Complete these tasks to take full advantage of Sentry in your project')}</p>
-    </HeadingText>
+    <HeaderTitle>{t('Quick Start')}</HeaderTitle>
+    <Description>
+      {t("Take full advantage of Sentry's powerful monitoring features.")}
+    </Description>
   </Container>
 );
 
@@ -38,21 +38,25 @@ export default ProgressHeader;
 
 const Container = styled('div')`
   display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-gap: ${space(2)};
-  padding: ${space(4)};
-  align-items: center;
+  grid-template-columns: min-content 1fr;
+  grid-template-rows: min-content 1fr;
+  grid-column-gap: ${space(2)};
+  margin: 90px ${space(4)} 0 ${space(4)};
 `;
 
-const HeadingText = styled('div')`
-  h4 {
-    font-weight: normal;
-    margin-bottom: ${space(1)};
-  }
+const StyledProgressRing = styled(ProgressRing)`
+  grid-column: 1/2;
+  grid-row: 1/3;
+`;
 
-  p {
-    color: ${p => p.theme.gray500};
-    margin: 0;
-    line-height: 2rem;
-  }
+const HeaderTitle = styled('h3')`
+  margin: 0;
+  grid-column: 2/3;
+  grid-row: 1/2;
+`;
+
+const Description = styled('div')`
+  color: ${p => p.theme.gray300};
+  grid-column: 2/3;
+  grid-row: 2/3;
 `;

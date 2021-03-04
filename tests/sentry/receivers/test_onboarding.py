@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils import timezone
 
 from sentry.models import (
@@ -294,6 +292,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             user=self.user,
             rule_type="issue",
             sender=type(Rule),
+            is_api_token=False,
         )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -378,6 +377,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             user=self.user,
             rule_type="issue",
             sender=type(Rule),
+            is_api_token=False,
         )
 
         assert (

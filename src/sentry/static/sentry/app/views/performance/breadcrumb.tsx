@@ -1,20 +1,23 @@
 import React from 'react';
 import {Location, LocationDescriptor} from 'history';
 
+import Breadcrumbs, {Crumb} from 'app/components/breadcrumbs';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
-import Breadcrumbs, {Crumb} from 'app/components/breadcrumbs';
 import {decodeScalar} from 'app/utils/queryString';
 
-import {getPerformanceLandingUrl} from './utils';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
+import {vitalDetailRouteWithQuery} from './vitalDetail/utils';
+import {getPerformanceLandingUrl} from './utils';
 
 type Props = {
   organization: Organization;
   location: Location;
   transactionName?: string;
+  vitalName?: string;
   eventSlug?: string;
+  traceSlug?: string;
   transactionComparison?: boolean;
   realUserMonitoring?: boolean;
 };
@@ -26,7 +29,9 @@ class Breadcrumb extends React.Component<Props> {
       organization,
       location,
       transactionName,
+      vitalName,
       eventSlug,
+      traceSlug,
       transactionComparison,
       realUserMonitoring,
     } = this.props;
@@ -46,7 +51,19 @@ class Breadcrumb extends React.Component<Props> {
       preserveGlobalSelection: true,
     });
 
-    if (transactionName) {
+    if (vitalName) {
+      const rumTarget = vitalDetailRouteWithQuery({
+        orgSlug: organization.slug,
+        vitalName: 'fcp',
+        projectID: decodeScalar(location.query.project),
+        query: location.query,
+      });
+      crumbs.push({
+        to: rumTarget,
+        label: t('Vital Detail'),
+        preserveGlobalSelection: true,
+      });
+    } else if (transactionName) {
       if (realUserMonitoring) {
         const rumTarget = vitalsRouteWithQuery({
           orgSlug: organization.slug,
@@ -85,6 +102,11 @@ class Breadcrumb extends React.Component<Props> {
       crumbs.push({
         to: '',
         label: t('Compare to Baseline'),
+      });
+    } else if (traceSlug) {
+      crumbs.push({
+        to: '',
+        label: t('Trace View'),
       });
     }
 

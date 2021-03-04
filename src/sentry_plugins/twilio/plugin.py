@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import re
 import phonenumbers
 
@@ -78,19 +76,17 @@ class TwilioConfigurationForm(forms.Form):
     def clean_sms_from(self):
         data = self.cleaned_data["sms_from"]
         if not validate_phone(data):
-            raise forms.ValidationError("{0} is not a valid phone number.".format(data))
+            raise forms.ValidationError(f"{data} is not a valid phone number.")
         return clean_phone(data)
 
     def clean_sms_to(self):
         data = self.cleaned_data["sms_to"]
         phones = split_sms_to(data)
         if len(phones) > 10:
-            raise forms.ValidationError(
-                "Max of 10 phone numbers, {0} were given.".format(len(phones))
-            )
+            raise forms.ValidationError(f"Max of 10 phone numbers, {len(phones)} were given.")
         for phone in phones:
             if not validate_phone(phone):
-                raise forms.ValidationError("{0} is not a valid phone number.".format(phone))
+                raise forms.ValidationError(f"{phone} is not a valid phone number.")
         return ",".join(sorted(set(map(clean_phone, phones))))
 
     def clean(self):
@@ -153,7 +149,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
         code = data.get("code")
         message = data.get("message")
         more_info = data.get("more_info")
-        error_message = "%s - %s %s" % (code, message, more_info)
+        error_message = f"{code} - {message} {more_info}"
         if message:
             return error_message
         return None

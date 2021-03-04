@@ -2,8 +2,8 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
 import GuideActions from 'app/actions/guideActions';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ConfigStore from 'app/stores/configStore';
 import theme from 'app/utils/theme';
 
@@ -42,7 +42,7 @@ describe('GuideAnchor', function () {
 
     expect(wrapper.find('Hovercard').exists()).toBe(true);
     expect(wrapper.find('GuideTitle').text()).toBe("Let's Get This Over With");
-    expect(wrapper.find('Hovercard').prop('tipColor')).toBe(theme.purple400);
+    expect(wrapper.find('Hovercard').prop('tipColor')).toBe(theme.purple300);
 
     // Clicking on next should deactivate the current card and activate the next one.
     wrapper.find('StyledButton[aria-label="Next"]').simulate('click');

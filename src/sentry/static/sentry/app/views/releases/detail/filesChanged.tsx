@@ -1,29 +1,30 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {InjectedRouter, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
-import {Client} from 'app/api';
-import {t, tn} from 'app/locale';
-import {CommitFile, Repository} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import {formatVersion} from 'app/utils/formatters';
-import withApi from 'app/utils/withApi';
-import {Main} from 'app/components/layouts/thirds';
-import Pagination from 'app/components/pagination';
-import AsyncView from 'app/views/asyncView';
-import {PanelHeader, Panel, PanelBody} from 'app/components/panels';
 import FileChange from 'app/components/fileChange';
+import {Body, Main} from 'app/components/layouts/thirds';
+import Pagination from 'app/components/pagination';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {t, tn} from 'app/locale';
+import {CommitFile, Organization, Repository} from 'app/types';
+import {formatVersion} from 'app/utils/formatters';
+import routeTitleGen from 'app/utils/routeTitle';
+import AsyncView from 'app/views/asyncView';
 
-import {getFilesByRepository, getReposToRender, getQuery} from './utils';
-import withRepositories from './withRepositories';
-import RepositorySwitcher from './repositorySwitcher';
 import EmptyState from './emptyState';
+import RepositorySwitcher from './repositorySwitcher';
+import {getFilesByRepository, getQuery, getReposToRender} from './utils';
+import withReleaseRepos from './withReleaseRepos';
 
 type Props = RouteComponentProps<{orgId: string; release: string}, {}> & {
-  api: Client;
-  repositories: Array<Repository>;
-  projectSlug: string;
-  activeRepository?: Repository;
+  location: Location;
+  router: InjectedRouter;
+  orgSlug: Organization['slug'];
+  release: string;
+  releaseRepos: Repository[];
+  activeReleaseRepo?: Repository;
 } & AsyncView['props'];
 
 type State = {
@@ -49,32 +50,32 @@ class FilesChanged extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints = (): ReturnType<AsyncView['getEndpoints']> => {
-    const {params, activeRepository, location} = this.props;
-    const {orgId, release} = params;
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {activeReleaseRepo: activeRepository, location, release, orgSlug} = this.props;
+
     const query = getQuery({location, activeRepository});
 
     return [
       [
         'fileList',
-        `/organizations/${orgId}/releases/${encodeURIComponent(release)}/commitfiles/`,
+        `/organizations/${orgSlug}/releases/${encodeURIComponent(release)}/commitfiles/`,
         {query},
       ],
     ];
-  };
+  }
 
   renderContent() {
     const {fileList, fileListPageLinks} = this.state;
-    const {activeRepository} = this.props;
+    const {activeReleaseRepo} = this.props;
 
     if (!fileList.length) {
       return (
         <EmptyState>
-          {!activeRepository
+          {!activeReleaseRepo
             ? t('There are no changed files associated with this release.')
             : t(
                 'There are no changed files associated with this release in the %s repository.',
-                activeRepository.name
+                activeReleaseRepo.name
               )}
         </EmptyState>
       );
@@ -116,13 +117,13 @@ class FilesChanged extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {activeRepository, router, repositories, location} = this.props;
+    const {activeReleaseRepo, releaseRepos, router, location} = this.props;
     return (
       <React.Fragment>
-        {repositories.length > 1 && (
+        {releaseRepos.length > 1 && (
           <RepositorySwitcher
-            repositories={repositories}
-            activeRepository={activeRepository}
+            repositories={releaseRepos}
+            activeRepository={activeReleaseRepo}
             location={location}
             router={router}
           />
@@ -133,11 +134,15 @@ class FilesChanged extends AsyncView<Props, State> {
   }
 
   renderComponent() {
-    return <Main fullWidth>{super.renderComponent()}</Main>;
+    return (
+      <Body>
+        <Main fullWidth>{super.renderComponent()}</Main>
+      </Body>
+    );
   }
 }
 
-export default withApi(withRepositories(FilesChanged));
+export default withReleaseRepos(FilesChanged);
 
 const StyledFileChange = styled(FileChange)`
   border-radius: 0;

@@ -1,5 +1,4 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 import styled from '@emotion/styled';
 
 import theme, {aliases} from 'app/utils/theme';
@@ -33,7 +32,7 @@ const DESCRIPTIONS = {
   chartLabel: 'Color for chart label text',
 };
 
-export const Default = withInfo('Top level colors')(() => {
+export const Default = () => {
   const colorsToDisplay = Object.entries(theme).filter(([_name, val]) => {
     return typeof val === 'string' && val.match(/^\#[0-9a-fA-F]{6}$/);
   });
@@ -66,7 +65,8 @@ export const Default = withInfo('Top level colors')(() => {
       </Swatches>
     </React.Fragment>
   );
-});
+};
+Default.storyName = 'Colors';
 
 const Swatches = styled('div')`
   display: grid;
@@ -79,7 +79,8 @@ const Swatch = styled('div')`
   align-items: center;
   justify-content: center;
   background-color: ${p => p.color};
-  color: ${p => (p.color[1].match(/[0-8]{1}/) ? p.theme.gray100 : p.theme.gray800)};
+  color: ${p =>
+    p.color[1].match(/[0-8]{1}/) ? p.theme.backgroundSecondary : p.theme.gray500};
   font-size: ${p => p.theme.fontSizeSmall};
   height: 80px;
   text-align: center;

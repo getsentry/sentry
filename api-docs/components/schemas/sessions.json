@@ -1,0 +1,41 @@
+{
+  "Sessions": {
+    "type": "object",
+    "required": ["intervals", "groups"],
+    "properties": {
+      "intervals": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "groups": {
+        "type": "array",
+        "items": {
+          "$ref": "#/Group"
+        }
+      }
+    }
+  },
+  "Group": {
+    "type": "object",
+    "description": "A grouped result, as requested by the `groupBy` request parameter.",
+    "required": ["by", "totals", "series"],
+    "properties": {
+      "by": {
+        "type": "object",
+        "description": "These are key/value pairs, the key being the requested `groupBy` property with its corresponding value."
+      },
+      "totals": {
+        "type": "object",
+        "description": "These are key/value pairs, the key being the requested `field`, and the value the corresponding total over the requested time frame."
+      },
+      "series": {
+        "type": "object",
+        "description": "These are key/value pairs, the key boeing the requested `field`, and the value is an array of aggregated values. The array corresponds to the times given in the `intervals` array.",
+        "additionalProperties": {"type": "array"}
+      }
+    }
+  }
+}

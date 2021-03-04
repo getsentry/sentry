@@ -1,23 +1,19 @@
-from __future__ import absolute_import
-
 import posixpath
-import six
 
 from django.http import StreamingHttpResponse
 
 from sentry import eventstore, features, roles
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.serializers import serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
-from sentry.models import EventAttachment, OrganizationMember
+from sentry.models import EventAttachment, File, OrganizationMember
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
     def has_object_permission(self, request, view, project):
-        result = super(EventAttachmentDetailsPermission, self).has_object_permission(
-            request, view, project
-        )
+        result = super().has_object_permission(request, view, project)
 
         if not result:
             return result
@@ -51,7 +47,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     permission_classes = (EventAttachmentDetailsPermission,)
 
     def download(self, attachment):
-        file = attachment.file
+        file = File.objects.get(id=attachment.file_id)
         fp = file.getfile()
         response = StreamingHttpResponse(
             iter(lambda: fp.read(4096), b""),
@@ -86,29 +82,16 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
             return self.respond({"detail": "Event not found"}, status=404)
 
         try:
-            attachment = (
-                EventAttachment.objects.filter(
-                    project_id=project.id, event_id=event.event_id, id=attachment_id
-                )
-                .select_related("file")
-                .get()
-            )
+            attachment = EventAttachment.objects.filter(
+                project_id=project.id, event_id=event.event_id, id=attachment_id
+            ).get()
         except EventAttachment.DoesNotExist:
             return self.respond({"detail": "Attachment not found"}, status=404)
 
         if request.GET.get("download") is not None:
             return self.download(attachment)
 
-        return self.respond(
-            {
-                "id": six.text_type(attachment.id),
-                "name": attachment.name,
-                "headers": attachment.file.headers,
-                "size": attachment.file.size,
-                "sha1": attachment.file.checksum,
-                "dateCreated": attachment.file.timestamp,
-            }
-        )
+        return self.respond(serialize(attachment, request.user))
 
     def delete(self, request, project, event_id, attachment_id):
         """
@@ -127,13 +110,9 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
             return self.respond(status=404)
 
         try:
-            attachment = (
-                EventAttachment.objects.filter(
-                    project_id=project.id, event_id=event_id, id=attachment_id
-                )
-                .select_related("file")
-                .get()
-            )
+            attachment = EventAttachment.objects.filter(
+                project_id=project.id, event_id=event_id, id=attachment_id
+            ).get()
         except EventAttachment.DoesNotExist:
             return self.respond({"detail": "Attachment not found"}, status=404)
 

@@ -1,11 +1,7 @@
-from __future__ import absolute_import
-
-import six
-
 from rest_framework import serializers
 
 from sentry import features
-from sentry.constants import MIGRATED_CONDITIONS
+from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
 from sentry.models import Environment
 from sentry.rules import rules
 
@@ -16,7 +12,7 @@ ValidationError = serializers.ValidationError
 
 class RuleNodeField(serializers.Field):
     def __init__(self, type):
-        super(RuleNodeField, self).__init__()
+        super().__init__()
         self.type_name = type
 
     def to_representation(self, value):
@@ -46,7 +42,7 @@ class RuleNodeField(serializers.Field):
             # XXX(epurkhiser): Very hacky, but we really just want validation
             # errors that are more specific, not just 'this wasn't filled out',
             # give a more generic error for those.
-            first_error = next(six.itervalues(form.errors))[0]
+            first_error = next(iter(form.errors.values()))[0]
 
             if first_error != "This field is required.":
                 raise ValidationError(first_error)
@@ -70,7 +66,7 @@ class RuleSerializer(serializers.Serializer):
     filterMatch = serializers.ChoiceField(
         choices=(("all", "all"), ("any", "any"), ("none", "none")), required=False
     )
-    actions = ListField(child=RuleNodeField(type="action/event"))
+    actions = ListField(child=RuleNodeField(type="action/event"), required=False)
     conditions = ListField(child=RuleNodeField(type="condition/event"), required=False)
     filters = ListField(child=RuleNodeField(type="filter/event"), required=False)
     frequency = serializers.IntegerField(min_value=5, max_value=60 * 24 * 30)
@@ -84,14 +80,9 @@ class RuleSerializer(serializers.Serializer):
                 self.context["project"].organization_id, environment
             ).id
         except Environment.DoesNotExist:
-            raise serializers.ValidationError(u"This environment has not been created.")
+            raise serializers.ValidationError("This environment has not been created.")
 
         return environment
-
-    def validate_actions(self, value):
-        if not value:
-            raise serializers.ValidationError(u"Must select an action.")
-        return value
 
     def validate(self, attrs):
         # XXX(meredith): For rules that have the Slack integration as an action
@@ -100,6 +91,13 @@ class RuleSerializer(serializers.Serializer):
         # project_rule(_details) endpoints by setting it on attrs
         actions = attrs.get("actions", tuple())
         for action in actions:
+            # XXX(colleen): For ticket rules we need to ensure the user has
+            # at least done minimal configuration
+            if action["id"] in TICKET_ACTIONS:
+                if not action.get("dynamic_form_fields"):
+                    raise serializers.ValidationError(
+                        {"actions": "Must configure issue link settings."}
+                    )
             # remove this attribute because we don't want it to be saved in the rule
             if action.pop("pending_save", None):
                 attrs["pending_save"] = True
@@ -112,7 +110,7 @@ class RuleSerializer(serializers.Serializer):
             if not filter_match:
                 raise serializers.ValidationError(
                     {
-                        "filterMatch": u"Must select a filter match (all, any, none) if filters are supplied."
+                        "filterMatch": "Must select a filter match (all, any, none) if filters are supplied."
                     }
                 )
 
@@ -127,7 +125,7 @@ class RuleSerializer(serializers.Serializer):
             if old_conditions:
                 raise serializers.ValidationError(
                     {
-                        "conditions": u"Conditions evaluating an event attribute, tag, or level are outdated please use an appropriate filter instead."
+                        "conditions": "Conditions evaluating an event attribute, tag, or level are outdated please use an appropriate filter instead."
                     }
                 )
 
@@ -135,7 +133,7 @@ class RuleSerializer(serializers.Serializer):
         if project_has_filters and attrs.get("actionMatch") == "none":
             raise serializers.ValidationError(
                 {
-                    "conditions": u"The 'none' match on conditions is outdated and no longer supported."
+                    "conditions": "The 'none' match on conditions is outdated and no longer supported."
                 }
             )
 

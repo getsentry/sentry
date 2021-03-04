@@ -59,6 +59,15 @@
         "description": "Found an error? Let us know.",
         "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/releases/&template=api_error_template.md"
       }
+    },
+    {
+      "name": "Integration",
+      "x-sidebar-name": "Integration Platform",
+      "description": "Endpoints for the integration platform",
+      "externalDocs": {
+        "description": "Found an error? Let us know.",
+        "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md"
+      }
     }
   ],
   "paths": {
@@ -94,6 +103,9 @@
     },
     "/api/0/organizations/{organization_slug}/stats/": {
       "$ref": "paths/organizations/stats.json"
+    },
+    "/api/0/organizations/{organization_slug}/sessions/": {
+      "$ref": "paths/organizations/sessions.json"
     },
     "/api/0/organizations/{organization_slug}/users/": {
       "$ref": "paths/organizations/users.json"
@@ -196,6 +208,15 @@
     },
     "/api/0/organizations/{organization_slug}/releases/{version}/deploys/": {
       "$ref": "paths/releases/deploys.json"
+    },
+    "/api/0/organizations/{organization_slug}/sentry-app-installations/": {
+      "$ref": "paths/integration-platform/sentry-app-installations.json"
+    },
+    "/api/0/sentry-app-installations/{uuid}/external-issues/": {
+      "$ref": "paths/integration-platform/sentry-app-external-issues.json"
+    },
+    "/api/0/sentry-app-installations/{uuid}/external-issues/{external_issue_id}/": {
+      "$ref": "paths/integration-platform/sentry-app-external-issue-details.json"
     }
   },
   "components": {

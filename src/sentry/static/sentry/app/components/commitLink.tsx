@@ -1,11 +1,11 @@
 import React from 'react';
 
-import {Repository} from 'app/types';
-import {t} from 'app/locale';
-import {getShortCommitHash} from 'app/utils';
 import Button from 'app/components/button';
-import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
+import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'app/icons';
+import {t} from 'app/locale';
+import {Repository} from 'app/types';
+import {getShortCommitHash} from 'app/utils';
 
 type CommitFormatterParameters = {
   baseUrl: string;

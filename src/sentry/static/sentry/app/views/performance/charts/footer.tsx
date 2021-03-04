@@ -1,28 +1,29 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
 import * as Sentry from '@sentry/react';
+import {Location} from 'history';
 
-import {Organization} from 'app/types';
-import {t} from 'app/locale';
+import {fetchTotalCount} from 'app/actionCreators/events';
 import {Client} from 'app/api';
+import OptionSelector from 'app/components/charts/optionSelector';
 import {
   ChartControls,
   InlineContainer,
   SectionHeading,
   SectionValue,
 } from 'app/components/charts/styles';
-import {fetchTotalCount} from 'app/actionCreators/events';
-import OptionSelector from 'app/components/charts/optionSelector';
+import {t} from 'app/locale';
+import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 
-import {getAxisOptions} from '../data';
+import {getAxisOptions, TooltipOption} from '../data';
 
 type Props = {
   api: Client;
   eventView: EventView;
   organization: Organization;
+  options?: TooltipOption[];
   location: Location;
   rightAxis: string;
   leftAxis: string;
@@ -108,7 +109,7 @@ class ChartFooter extends React.Component<Props, State> {
 
     const value = typeof totalValues === 'number' ? totalValues.toLocaleString() : '-';
 
-    const options = getAxisOptions(organization);
+    const options = this.props.options || getAxisOptions(organization);
     const leftOptions = options.map(opt => ({
       ...opt,
       disabled: opt.value === rightAxis,
@@ -130,14 +131,12 @@ class ChartFooter extends React.Component<Props, State> {
             selected={leftAxis}
             options={leftOptions}
             onChange={(val: string) => this.handleSelectorChange('left', val)}
-            menuWidth="200px"
           />
           <OptionSelector
             title={t('Display 2')}
             selected={rightAxis}
             options={rightOptions}
             onChange={(val: string) => this.handleSelectorChange('right', val)}
-            menuWidth="200px"
           />
         </InlineContainer>
       </ChartControls>

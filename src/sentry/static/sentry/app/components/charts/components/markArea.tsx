@@ -1,3 +1,5 @@
+import 'echarts/lib/component/markArea';
+
 import {EChartOption} from 'echarts';
 
 /**

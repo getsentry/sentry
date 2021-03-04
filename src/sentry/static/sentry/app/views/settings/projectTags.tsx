@@ -1,23 +1,23 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import {IconDelete} from 'app/icons';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Confirm from 'app/components/confirm';
 import ExternalLink from 'app/components/links/externalLink';
-import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
-import routeTitleGen from 'app/utils/routeTitle';
+import {IconDelete} from 'app/icons';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {TagWithTopValues} from 'app/types';
+import routeTitleGen from 'app/utils/routeTitle';
+import AsyncView from 'app/views/asyncView';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 type Props = RouteComponentProps<{projectId: string; orgId: string}, {}> &
   AsyncView['props'];
@@ -89,7 +89,7 @@ class ProjectTags extends AsyncView<Props, State> {
               <EmptyMessage>
                 {tct('There are no tags, [link:learn how to add tags]', {
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/enriching-error-data/additional-data/" />
+                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/guides/enrich-data/" />
                   ),
                 })}
               </EmptyMessage>
@@ -110,19 +110,18 @@ class ProjectTags extends AsyncView<Props, State> {
                                 : t('You do not have permission to remove tags.')
                             }
                           >
-                            <LinkWithConfirmation
-                              title={t('Remove tag?')}
+                            <Confirm
                               message={t('Are you sure you want to remove this tag?')}
                               onConfirm={this.handleDelete(key, idx)}
                               disabled={!enabled}
                             >
                               <Button
                                 size="xsmall"
+                                title={t('Remove tag')}
                                 icon={<IconDelete size="xs" />}
                                 data-test-id="delete"
-                                disabled={!enabled}
                               />
-                            </LinkWithConfirmation>
+                            </Confirm>
                           </Tooltip>
                         </Actions>
                       </TagPanelItem>

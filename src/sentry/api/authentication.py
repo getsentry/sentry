@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_text
@@ -175,10 +173,10 @@ class DSNAuthentication(StandardAuthentication):
         try:
             key = ProjectKey.from_dsn(token)
         except ProjectKey.DoesNotExist:
-            raise AuthenticationFailed("Invalid token")
+            raise AuthenticationFailed("Invalid dsn")
 
         if not key.is_active:
-            raise AuthenticationFailed("Invalid token")
+            raise AuthenticationFailed("Invalid dsn")
 
         with configure_scope() as scope:
             scope.set_tag("api_token_type", self.token_name)

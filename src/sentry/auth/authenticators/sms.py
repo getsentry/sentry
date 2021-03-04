@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.utils.decorators import classproperty
@@ -28,7 +26,7 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
         return sms_available()
 
     def generate_new_config(self):
-        config = super(SmsInterface, self).generate_new_config()
+        config = super().generate_new_config()
         config["phone_number"] = None
         return config
 
@@ -49,7 +47,7 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
         if len(phone_number) == 10:
             mask = "(***) ***-**%s" % (phone_number[-2:])
         else:
-            mask = "%s%s" % ((len(phone_number) - 2) * "*", phone_number[-2:])
+            mask = "{}{}".format((len(phone_number) - 2) * "*", phone_number[-2:])
 
         if self.send_text(request=request):
             return ActivationMessageResult(
@@ -80,7 +78,7 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
             text = _("%(code)s is your Sentry authentication code.")
 
         if request is not None:
-            text = u"%s\n\n%s" % (text, _("Requested from %(ip)s"))
+            text = "{}\n\n{}".format(text, _("Requested from %(ip)s"))
             ctx["ip"] = request.META["REMOTE_ADDR"]
 
         return send_sms(text % ctx, to=self.phone_number)

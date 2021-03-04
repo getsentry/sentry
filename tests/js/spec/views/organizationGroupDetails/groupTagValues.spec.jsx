@@ -1,10 +1,10 @@
 import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import GroupTagValues from 'app/views/organizationGroupDetails/groupTagValues';
 import DetailedError from 'app/components/errors/detailedError';
+import GroupTagValues from 'app/views/organizationGroupDetails/groupTagValues';
 
 describe('GroupTagValues', () => {
   const {routerContext, router} = initializeOrg({});

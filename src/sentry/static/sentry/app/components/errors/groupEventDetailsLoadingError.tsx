@@ -1,8 +1,8 @@
 import React from 'react';
 
+import DetailedError from 'app/components/errors/detailedError';
 import {t} from 'app/locale';
 import {Environment} from 'app/types';
-import DetailedError from 'app/components/errors/detailedError';
 
 type Props = {
   environments: Environment[];

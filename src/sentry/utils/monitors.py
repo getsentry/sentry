@@ -1,10 +1,6 @@
-from __future__ import absolute_import
-
-import six
-
 from celery.signals import task_prerun, task_postrun
 from django.conf import settings
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from time import time
 
 from sentry.net.http import SafeSession
@@ -16,8 +12,8 @@ def get_api_root_from_dsn(dsn):
         return
     parsed = urlparse(dsn)
     if parsed.port:
-        return u"{}://{}:{}".format(parsed.scheme, parsed.hostname, parsed.port)
-    return u"{}://{}".format(parsed.scheme, parsed.hostname)
+        return f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"
+    return f"{parsed.scheme}://{parsed.hostname}"
 
 
 SENTRY_DSN = settings.SENTRY_MONITOR_DSN
@@ -37,7 +33,7 @@ def connect(app):
         if hasattr(app.conf, "beat_schedule")
         else app.conf["CELERYBEAT_SCHEDULE"]
     )
-    for schedule_name, monitor_id in six.iteritems(settings.SENTRY_CELERYBEAT_MONITORS):
+    for schedule_name, monitor_id in settings.SENTRY_CELERYBEAT_MONITORS.items():
         schedule[schedule_name].setdefault("options", {}).setdefault("headers", {}).setdefault(
             "X-Sentry-Monitor", monitor_id
         )
@@ -73,15 +69,15 @@ def report_monitor_begin(task, **kwargs):
     with configure_scope() as scope:
         scope.set_context("monitor", {"id": monitor_id})
 
-    session = SafeSession()
-    req = session.post(
-        u"{}/api/0/monitors/{}/checkins/".format(API_ROOT, monitor_id),
-        headers={"Authorization": u"DSN {}".format(SENTRY_DSN)},
-        json={"status": "in_progress"},
-    )
-    req.raise_for_status()
-    # HACK:
-    headers["X-Sentry-Monitor-CheckIn"] = (req.json()["id"], time())
+    with SafeSession() as session:
+        req = session.post(
+            f"{API_ROOT}/api/0/monitors/{monitor_id}/checkins/",
+            headers={"Authorization": f"DSN {SENTRY_DSN}"},
+            json={"status": "in_progress"},
+        )
+        req.raise_for_status()
+        # HACK:
+        headers["X-Sentry-Monitor-CheckIn"] = (req.json()["id"], time())
 
 
 @suppress_errors
@@ -104,9 +100,12 @@ def report_monitor_complete(task, retval, **kwargs):
 
     duration = int((time() - start_time) * 1000)
 
-    session = SafeSession()
-    session.put(
-        u"{}/api/0/monitors/{}/checkins/{}/".format(API_ROOT, monitor_id, checkin_id),
-        headers={"Authorization": u"DSN {}".format(SENTRY_DSN)},
-        json={"status": "error" if isinstance(retval, Exception) else "ok", "duration": duration},
-    ).raise_for_status()
+    with SafeSession() as session:
+        session.put(
+            f"{API_ROOT}/api/0/monitors/{monitor_id}/checkins/{checkin_id}/",
+            headers={"Authorization": f"DSN {SENTRY_DSN}"},
+            json={
+                "status": "error" if isinstance(retval, Exception) else "ok",
+                "duration": duration,
+            },
+        ).raise_for_status()

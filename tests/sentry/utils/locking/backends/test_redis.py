@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 
 from exam import fixture
@@ -19,7 +17,7 @@ class RedisLockBackendTestCase(TestCase):
         return RedisLockBackend(self.cluster)
 
     def test_success(self):
-        key = u"\U0001F4A9"
+        key = "\U0001F4A9"
         duration = 60
         full_key = self.backend.prefix_key(key)
         client = self.backend.get_client(key)
@@ -51,3 +49,12 @@ class RedisLockBackendTestCase(TestCase):
 
         with pytest.raises(Exception):
             self.backend.acquire(key, duration)
+
+    def test_locked(self):
+        key = "lock:testkey"
+        duration = 60
+        assert self.backend.locked(key) is False
+
+        self.backend.acquire(key, duration)
+        assert self.backend.locked(key)
+        self.backend.release(key)

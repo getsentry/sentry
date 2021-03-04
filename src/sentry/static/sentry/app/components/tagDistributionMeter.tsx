@@ -1,17 +1,16 @@
 import React from 'react';
 import {Link} from 'react-router';
-import {LocationDescriptor} from 'history';
-import PropTypes from 'prop-types';
-import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
+import styled from '@emotion/styled';
+import {LocationDescriptor} from 'history';
 
 import {TagSegment} from 'app/actionCreators/events';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {percent} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import Version from 'app/components/version';
+import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {percent} from 'app/utils';
 
 type DefaultProps = {
   isLoading: boolean;
@@ -36,25 +35,6 @@ type SegmentValue = {
 };
 
 export default class TagDistributionMeter extends React.Component<Props> {
-  static propTypes = {
-    title: PropTypes.string.isRequired,
-    totalValues: PropTypes.number,
-    isLoading: PropTypes.bool,
-    hasError: PropTypes.bool,
-    segments: PropTypes.arrayOf(
-      PropTypes.shape({
-        count: PropTypes.number.isRequired,
-        name: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
-        value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
-        url: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
-      })
-    ).isRequired,
-    renderEmpty: PropTypes.func,
-    renderLoading: PropTypes.func,
-    renderError: PropTypes.func,
-    onTagClick: PropTypes.func,
-  };
-
   static defaultProps: DefaultProps = {
     isLoading: false,
     hasError: false,
@@ -244,14 +224,14 @@ const Title = styled('div')`
 `;
 
 const TitleType = styled('div')`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   font-weight: bold;
   ${overflowEllipsis};
 `;
 
 const TitleDescription = styled('div')`
   display: flex;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   text-align: right;
 `;
 
@@ -263,7 +243,7 @@ const Label = styled('div')`
 const Percent = styled('div')`
   font-weight: bold;
   padding-left: ${space(0.5)};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
 `;
 
 const OtherSegment = styled('span')`

@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import mock
-
 from pytz import utc
 from rest_framework.exceptions import ParseError
 
@@ -9,11 +5,12 @@ from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 
 
 class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsMetaEndpoint, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1)
         self.login_as(user=self.user)
         self.project = self.create_project()
@@ -175,7 +172,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
 
 class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventBaselineEndpoint, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.project = self.create_project()
         self.prototype = {
@@ -318,7 +315,7 @@ class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
 
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsRelatedIssuesEndpoint, self).setUp()
+        super().setUp()
 
     def test_find_related_issue(self):
         self.login_as(user=self.user)
@@ -440,7 +437,9 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
             kwargs={"organization_slug": project1.organization.slug},
         )
         response = self.client.get(
-            url, {"transaction": "/beth/sanchez", "project": project1.id}, format="json",
+            url,
+            {"transaction": "/beth/sanchez", "project": project1.id},
+            format="json",
         )
 
         assert response.status_code == 200, response.content
@@ -466,7 +465,9 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
             kwargs={"organization_slug": project.organization.slug},
         )
         response = self.client.get(
-            url, {"transaction": '/beth/"sanchez"', "project": project.id}, format="json",
+            url,
+            {"transaction": '/beth/"sanchez"', "project": project.id},
+            format="json",
         )
 
         assert response.status_code == 200, response.content
@@ -479,7 +480,9 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
             kwargs={"organization_slug": project.organization.slug},
         )
         response = self.client.get(
-            url, {"transaction": '/beth/\\"sanchez\\"', "project": project.id}, format="json",
+            url,
+            {"transaction": '/beth/\\"sanchez\\"', "project": project.id},
+            format="json",
         )
 
         assert response.status_code == 200, response.content

@@ -2,29 +2,41 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import space from 'app/styles/space';
-import Count from 'app/components/count';
-import Version from 'app/components/version';
-import {Panel, PanelBody, PanelItem} from 'app/components/panels';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import {Panel} from 'app/components/panels';
 import ReleaseStats from 'app/components/releaseStats';
-import {Release, GlobalSelection} from 'app/types';
-import TimeSince from 'app/components/timeSince';
-import {t, tn} from 'app/locale';
-import {AvatarListWrapper} from 'app/components/avatar/avatarList';
 import TextOverflow from 'app/components/textOverflow';
+import TimeSince from 'app/components/timeSince';
+import Version from 'app/components/version';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import DeployBadge from 'app/components/deployBadge';
-import Link from 'app/components/links/link';
-import Feature from 'app/components/acl/feature';
-import Tooltip from 'app/components/tooltip';
+import space from 'app/styles/space';
+import {GlobalSelection, Organization, Release} from 'app/types';
 
 import ReleaseHealth from './releaseHealth';
-import NotAvailable from './notAvailable';
-import {getReleaseNewIssuesUrl} from '../utils';
+import {DisplayOption} from './utils';
+
+function getReleaseProjectId(release: Release, selection: GlobalSelection) {
+  // if a release has only one project
+  if (release.projects.length === 1) {
+    return release.projects[0].id;
+  }
+
+  // if only one project is selected in global header and release has it (second condition will prevent false positives like -1)
+  if (
+    selection.projects.length === 1 &&
+    release.projects.map(p => p.id).includes(selection.projects[0])
+  ) {
+    return selection.projects[0];
+  }
+
+  // project selector on release detail page will pick it up
+  return undefined;
+}
 
 type Props = {
   release: Release;
-  orgSlug: string;
+  organization: Organization;
+  activeDisplay: DisplayOption;
   location: Location;
   selection: GlobalSelection;
   reloading: boolean;
@@ -33,197 +45,113 @@ type Props = {
 
 const ReleaseCard = ({
   release,
-  orgSlug,
+  organization,
+  activeDisplay,
   location,
   reloading,
   selection,
   showHealthPlaceholders,
 }: Props) => {
-  const {version, commitCount, lastDeploy, authors, dateCreated} = release;
+  const {version, commitCount, lastDeploy, dateCreated, versionInfo} = release;
 
   return (
     <StyledPanel reloading={reloading ? 1 : 0}>
-      <PanelBody>
-        <StyledPanelItem>
-          <HeaderLayout>
-            <VersionColumn>
-              <ColumnTitle>{t('Release Version')}</ColumnTitle>
-            </VersionColumn>
+      <ReleaseInfo>
+        <ReleaseInfoHeader>
+          <GlobalSelectionLink
+            to={{
+              pathname: `/organizations/${
+                organization.slug
+              }/releases/${encodeURIComponent(version)}/`,
+              query: {project: getReleaseProjectId(release, selection)},
+            }}
+          >
+            <VersionWrapper>
+              <StyledVersion version={version} tooltipRawVersion anchor={false} />
+            </VersionWrapper>
+          </GlobalSelectionLink>
+          {commitCount > 0 && <ReleaseStats release={release} withHeading={false} />}
+        </ReleaseInfoHeader>
+        <ReleaseInfoSubheader>
+          {versionInfo?.package && (
+            <PackageName ellipsisDirection="left">{versionInfo.package}</PackageName>
+          )}
+          <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
+          {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
+        </ReleaseInfoSubheader>
+      </ReleaseInfo>
 
-            <CreatedColumn>
-              <ColumnTitle>
-                {lastDeploy?.dateFinished ? t('Last Deploy') : t('Date Created')}
-              </ColumnTitle>
-            </CreatedColumn>
-
-            <CommitsColumn>
-              <ColumnTitle>
-                {commitCount > 0
-                  ? [
-                      tn('%s commit', '%s commits', commitCount || 0),
-                      t('by'),
-                      tn('%s author', '%s authors', authors.length || 0),
-                    ].join(' ')
-                  : t('Commits')}
-              </ColumnTitle>
-            </CommitsColumn>
-
-            <NewIssuesColumn>
-              <ColumnTitle>{t('New issues')}</ColumnTitle>
-            </NewIssuesColumn>
-          </HeaderLayout>
-
-          <Layout>
-            <VersionColumn>
-              <VersionWrapper>
-                <Version version={version} tooltipRawVersion truncate anchor={false} />
-              </VersionWrapper>
-            </VersionColumn>
-
-            <CreatedColumn>
-              <TextOverflow>
-                {lastDeploy?.dateFinished && <StyledDeployBadge deploy={lastDeploy} />}
-                <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
-              </TextOverflow>
-            </CreatedColumn>
-
-            <CommitsColumn>
-              <CommitsWrapper>
-                {commitCount > 0 ? (
-                  <ReleaseStats release={release} withHeading={false} />
-                ) : (
-                  <NotAvailable />
-                )}
-              </CommitsWrapper>
-            </CommitsColumn>
-
-            <NewIssuesColumn>
-              <Feature features={['global-views']}>
-                {({hasFeature}) =>
-                  hasFeature ? (
-                    <Tooltip title={t('Open in Issues')}>
-                      <Link to={getReleaseNewIssuesUrl(orgSlug, null, version)}>
-                        <Count value={release.newGroups || 0} />
-                      </Link>
-                    </Tooltip>
-                  ) : (
-                    <Count value={release.newGroups || 0} />
-                  )
-                }
-              </Feature>
-            </NewIssuesColumn>
-          </Layout>
-        </StyledPanelItem>
-      </PanelBody>
-
-      <ReleaseHealth
-        release={release}
-        orgSlug={orgSlug}
-        location={location}
-        showPlaceholders={showHealthPlaceholders}
-        selection={selection}
-      />
+      <ReleaseProjects>
+        <ReleaseHealth
+          release={release}
+          organization={organization}
+          activeDisplay={activeDisplay}
+          location={location}
+          showPlaceholders={showHealthPlaceholders}
+          reloading={reloading}
+          selection={selection}
+        />
+      </ReleaseProjects>
     </StyledPanel>
   );
 };
 
-const StyledPanel = styled(Panel)<{reloading: number}>`
-  opacity: ${p => (p.reloading ? 0.5 : 1)};
-  pointer-events: ${p => (p.reloading ? 'none' : 'auto')};
-  overflow: hidden;
-`;
-
-const StyledPanelItem = styled(PanelItem)`
-  flex-direction: column;
-`;
-
-const Layout = styled('div')`
-  display: grid;
-  /* 0fr a,b,c are here to match the health grid layout (offset because of gap on fewer columns) */
-  grid-template-areas: 'version created a b commits c new-issues';
-  grid-template-columns: 2fr 4.8fr 0fr 0fr 2.1fr 0fr 1.5fr;
-  grid-column-gap: ${space(1.5)};
-  width: 100%;
-  align-items: center;
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-areas: 'version created a commits b new-issues';
-    grid-template-columns: 2fr 3.5fr 0fr 2.5fr 0fr 1fr;
-  }
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-areas: 'version created a b new-issues';
-    grid-template-columns: 2fr 3fr 0fr 0fr 2fr;
-  }
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-areas: 'version created new-issues';
-    grid-template-columns: 2fr 1.6fr 1fr;
-  }
-`;
-
-const HeaderLayout = styled(Layout)`
-  align-items: flex-end;
-`;
-
-const Column = styled('div')`
-  overflow: hidden;
-  ${AvatarListWrapper} {
-    padding-left: ${space(0.75)};
-  }
-`;
-
-const RightAlignedColumn = styled(Column)`
-  text-align: right;
-`;
-
-const VersionColumn = styled(Column)`
-  grid-area: version;
+const VersionWrapper = styled('div')`
   display: flex;
   align-items: center;
 `;
 
-const CommitsColumn = styled(Column)`
-  grid-area: commits;
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    display: none;
+const StyledVersion = styled(Version)`
+  ${overflowEllipsis};
+`;
+
+const StyledPanel = styled(Panel)<{reloading: number}>`
+  opacity: ${p => (p.reloading ? 0.5 : 1)};
+  pointer-events: ${p => (p.reloading ? 'none' : 'auto')};
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: flex;
   }
 `;
 
-const CreatedColumn = styled(Column)`
-  grid-area: created;
+const ReleaseInfo = styled('div')`
+  padding: ${space(1.5)} ${space(2)};
+  flex-shrink: 0;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    border-right: 1px solid ${p => p.theme.border};
+    min-width: 260px;
+    width: 22%;
+    max-width: 300px;
+  }
 `;
 
-const NewIssuesColumn = styled(RightAlignedColumn)`
-  grid-area: new-issues;
-`;
-
-const ColumnTitle = styled('div')`
-  text-transform: uppercase;
-  color: ${p => p.theme.gray500};
+const ReleaseInfoSubheader = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
-  margin-bottom: ${space(0.75)};
-  line-height: 1.2;
-  ${overflowEllipsis};
+  color: ${p => p.theme.gray400};
 `;
 
-const VersionWrapper = styled('div')`
-  ${overflowEllipsis};
-  max-width: 100%;
-  width: auto;
-  display: inline-block;
+const PackageName = styled(TextOverflow)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray500};
 `;
 
-const StyledDeployBadge = styled(DeployBadge)`
-  position: relative;
-  bottom: ${space(0.25)};
-  margin-right: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
+const ReleaseProjects = styled('div')`
+  border-top: 1px solid ${p => p.theme.border};
+  flex-grow: 1;
+  display: grid;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    border-top: none;
   }
 `;
 
-const CommitsWrapper = styled('div')`
-  position: relative;
-  bottom: ${space(0.25)};
+const ReleaseInfoHeader = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  grid-gap: ${space(2)};
+  align-items: center;
 `;
 
 export default ReleaseCard;

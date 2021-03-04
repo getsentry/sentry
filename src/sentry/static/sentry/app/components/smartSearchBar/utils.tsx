@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {t} from 'app/locale';
 import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'app/icons';
+import {t} from 'app/locale';
 
 import {ItemType, SearchGroup, SearchItem} from './types';
 
@@ -72,7 +72,10 @@ export function createSearchGroups(
   const activeSearchItem = 0;
 
   if (maxSearchItems && maxSearchItems > 0) {
-    searchItems = searchItems.slice(0, maxSearchItems);
+    searchItems = searchItems.filter(
+      (value: SearchItem, index: number) =>
+        index < maxSearchItems || value.ignoreMaxSearchItems
+    );
   }
 
   const searchGroup: SearchGroup = {

@@ -1,10 +1,11 @@
 import {Location} from 'history';
 import identity from 'lodash/identity';
+import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import pickBy from 'lodash/pickBy';
 
-import {GlobalSelection} from 'app/types';
 import {DATE_TIME_KEYS, URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {GlobalSelection} from 'app/types';
 import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 
@@ -86,4 +87,33 @@ export function getDefaultSelection(): GlobalSelection {
       utc: typeof utc !== 'undefined' ? utc === 'true' : null,
     },
   };
+}
+
+/**
+ * Compare the non-utc values of two selections.
+ * Useful when re-fetching data based on globalselection changing.
+ *
+ * utc is not compared as there is a problem somewhere in the selection
+ * data flow that results in it being undefined | null | boolean instead of null | boolean.
+ * The additional undefined state makes this function just as unreliable as isEqual(selection, other)
+ */
+export function isSelectionEqual(
+  selection: GlobalSelection,
+  other: GlobalSelection
+): boolean {
+  if (
+    !isEqual(selection.projects, other.projects) ||
+    !isEqual(selection.environments, other.environments)
+  ) {
+    return false;
+  }
+  // Use string comparison as we aren't interested in the identity of the datetimes.
+  if (
+    selection.datetime.period !== other.datetime.period ||
+    selection.datetime.start?.toString() !== other.datetime.start?.toString() ||
+    selection.datetime.end?.toString() !== other.datetime.end?.toString()
+  ) {
+    return false;
+  }
+  return true;
 }

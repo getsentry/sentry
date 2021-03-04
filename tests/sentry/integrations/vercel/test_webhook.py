@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import hashlib
 import hmac
 import responses
@@ -45,7 +43,7 @@ class SignatureVercelTest(APITestCase):
 
 class VercelReleasesTest(APITestCase):
     def setUp(self):
-        super(VercelReleasesTest, self).setUp()
+        super().setUp()
         self.project = self.create_project(organization=self.organization)
         self.integration = Integration.objects.create(
             provider="vercel",
@@ -64,7 +62,9 @@ class VercelReleasesTest(APITestCase):
         )
 
         self.sentry_app = self.create_internal_integration(
-            webhook_url=None, name="Vercel Internal Integration", organization=self.organization,
+            webhook_url=None,
+            name="Vercel Internal Integration",
+            organization=self.organization,
         )
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=self.sentry_app)
         self.installation_for_provider = SentryAppInstallationForProvider.objects.create(
@@ -109,7 +109,7 @@ class VercelReleasesTest(APITestCase):
                     }
                 ],
             }
-            assert release_request.headers["User-Agent"] == u"sentry_vercel/{}".format(VERSION)
+            assert release_request.headers["User-Agent"] == f"sentry_vercel/{VERSION}"
 
     @responses.activate
     def test_no_match(self):
@@ -267,7 +267,7 @@ class VercelReleasesTest(APITestCase):
     @responses.activate
     def test_manual_vercel_deploy(self):
         local_signature = hmac.new(
-            key="vercel-client-secret".encode("utf-8"),
+            key=b"vercel-client-secret",
             msg=DEPLOYMENT_WEBHOOK_NO_COMMITS.encode("utf-8"),
             digestmod=hashlib.sha1,
         ).hexdigest()

@@ -1,12 +1,10 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import {AvatarUser} from 'app/types';
-import SentryTypes from 'app/sentryTypes';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Tooltip from 'app/components/tooltip';
+import {AvatarUser} from 'app/types';
 
 const defaultProps = {
   avatarSize: 28,
@@ -26,15 +24,6 @@ type Props = {
 } & DefaultProps;
 
 export default class AvatarList extends React.Component<Props> {
-  static propTypes = {
-    users: PropTypes.arrayOf(SentryTypes.User).isRequired,
-    avatarSize: PropTypes.number,
-    maxVisibleAvatars: PropTypes.number,
-    renderTooltip: PropTypes.func,
-    tooltipOptions: PropTypes.object,
-    typeMembers: PropTypes.string,
-  };
-
   static defaultProps = defaultProps;
 
   render() {
@@ -86,9 +75,9 @@ export const AvatarListWrapper = styled('div')`
   flex-direction: row-reverse;
 `;
 
-const Circle = css`
+const Circle = p => css`
   border-radius: 50%;
-  border: 2px solid white;
+  border: 2px solid ${p.theme.background};
   margin-left: -8px;
   cursor: default;
 
@@ -109,8 +98,8 @@ const CollapsedUsers = styled('div')<{size: number}>`
   position: relative;
   text-align: center;
   font-weight: 600;
-  background-color: ${p => p.theme.gray300};
-  color: ${p => p.theme.gray500};
+  background-color: ${p => p.theme.gray200};
+  color: ${p => p.theme.gray300};
   font-size: ${p => Math.floor(p.size / 2.3)}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;

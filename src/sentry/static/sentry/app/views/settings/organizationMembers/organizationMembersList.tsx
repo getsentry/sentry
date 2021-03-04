@@ -1,30 +1,29 @@
-import {ClassNames} from '@emotion/core';
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
+import {ClassNames} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {Organization, Member, MemberRole} from 'app/types';
-import {IconSliders} from 'app/icons';
-import {t, tct} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ConfigStore from 'app/stores/configStore';
-import Pagination from 'app/components/pagination';
-import routeTitleGen from 'app/utils/routeTitle';
-import SentryTypes from 'app/sentryTypes';
-import {redirectToRemainingOrganization} from 'app/actionCreators/organizations';
 import {resendMemberInvite} from 'app/actionCreators/members';
-import withOrganization from 'app/utils/withOrganization';
+import {redirectToRemainingOrganization} from 'app/actionCreators/organizations';
 import Button from 'app/components/button';
 import DropdownMenu from 'app/components/dropdownMenu';
-import space from 'app/styles/space';
+import Pagination from 'app/components/pagination';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {MEMBER_ROLES} from 'app/constants';
+import {IconSliders} from 'app/icons';
+import {t, tct} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import space from 'app/styles/space';
+import {Member, MemberRole, Organization} from 'app/types';
+import routeTitleGen from 'app/utils/routeTitle';
 import theme from 'app/utils/theme';
+import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-import OrganizationMemberRow from './organizationMemberRow';
 import MembersFilter from './components/membersFilter';
+import OrganizationMemberRow from './organizationMemberRow';
 
 type Props = {
   organization: Organization;
@@ -37,10 +36,6 @@ type State = AsyncView['state'] & {
 };
 
 class OrganizationMembersList extends AsyncView<Props, State> {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-  };
-
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -49,12 +44,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): [
-    string,
-    string,
-    {query?: {query: string}},
-    {paginate?: boolean; allowError?: (error: any) => boolean}
-  ][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
 
     return [
@@ -170,11 +160,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
         <DropdownMenu closeOnEscape>
           {({getActorProps, isOpen}) => (
             <FilterWrapper>
-              <Button
-                size="small"
-                icon={<IconSliders size="xs" />}
-                {...getActorProps({})}
-              >
+              <Button icon={<IconSliders size="xs" />} {...getActorProps({})}>
                 {t('Search Filters')}
               </Button>
               {isOpen && (
@@ -200,7 +186,6 @@ class OrganizationMembersList extends AsyncView<Props, State> {
               children: renderSearch,
               className: css`
                 font-size: ${theme.fontSizeMedium};
-                padding: ${space(0.75)};
               `,
             })
           }
@@ -216,7 +201,6 @@ class OrganizationMembersList extends AsyncView<Props, State> {
                 key={member.id}
                 member={member}
                 status={this.state.invited[member.id]}
-                orgId={params.orgId}
                 orgName={orgName}
                 memberCanLeave={!isOnlyOwner}
                 currentUser={currentUser}
@@ -267,12 +251,12 @@ const StyledMembersFilter = styled(MembersFilter)`
     height: 16px;
     width: 16px;
     border: 8px solid transparent;
-    border-bottom-color: ${p => p.theme.gray100};
+    border-bottom-color: ${p => p.theme.backgroundSecondary};
   }
 
   &:before {
     margin-top: -1px;
-    border-bottom-color: ${p => p.theme.borderLight};
+    border-bottom-color: ${p => p.theme.border};
   }
 `;
 export default withOrganization(OrganizationMembersList);

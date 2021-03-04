@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.conf import settings
 from django.middleware.csrf import get_token as get_csrf_token
 
@@ -9,7 +7,7 @@ from sentry.web.helpers import render_to_response
 from sentry.web.frontend.base import BaseView, OrganizationView
 
 
-class ReactMixin(object):
+class ReactMixin:
     def handle_react(self, request):
         context = {"CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME}
 
@@ -32,7 +30,7 @@ class ReactPageView(OrganizationView, ReactMixin):
             return self.handle_react(request)
 
         # For normal users, let parent class handle (e.g. redirect to login page)
-        return super(ReactPageView, self).handle_auth_required(request, *args, **kwargs)
+        return super().handle_auth_required(request, *args, **kwargs)
 
     def handle(self, request, organization, **kwargs):
         if "project_id" in kwargs and request.GET.get("onboarding"):

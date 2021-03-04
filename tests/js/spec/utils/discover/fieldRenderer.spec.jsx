@@ -27,7 +27,6 @@ describe('getFieldRenderer', function () {
       numeric: 1.23,
       createdAt: new Date(2019, 9, 3, 12, 13, 14),
       url: '/example',
-      latest_event: 'deadbeef',
       project: project.slug,
       release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
       user,
@@ -91,6 +90,29 @@ describe('getFieldRenderer', function () {
     expect(wrapper.text()).toEqual('n/a');
   });
 
+  it('can render error.handled values', function () {
+    const renderer = getFieldRenderer('error.handled', {'error.handled': 'boolean'});
+
+    // Should render the last value.
+    let wrapper = mount(renderer({'error.handled': [0, 1]}, {location, organization}));
+    expect(wrapper.text()).toEqual('true');
+
+    wrapper = mount(renderer({'error.handled': [0, 0]}, {location, organization}));
+    expect(wrapper.text()).toEqual('false');
+
+    // null = true for error.handled data.
+    wrapper = mount(renderer({'error.handled': [null]}, {location, organization}));
+    expect(wrapper.text()).toEqual('true');
+
+    // Default events won't have error.handled and will return an empty list.
+    wrapper = mount(renderer({'error.handled': []}, {location, organization}));
+    expect(wrapper.text()).toEqual('n/a');
+
+    // Transactions will have null for error.handled as the 'tag' won't be set.
+    wrapper = mount(renderer({'error.handled': null}, {location, organization}));
+    expect(wrapper.text()).toEqual('n/a');
+  });
+
   it('can render user fields with aliased user', function () {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
@@ -151,12 +173,12 @@ describe('getFieldRenderer', function () {
       context.routerContext
     );
 
-    const value = wrapper.find('IconStar');
+    const value = wrapper.find('StyledKey');
     expect(value).toHaveLength(1);
     expect(value.props().isSolid).toBeTruthy();
 
     // Since there is not project column, it's not clickable
-    expect(wrapper.find('Button')).toHaveLength(0);
+    expect(wrapper.find('KeyColumn')).toHaveLength(0);
   });
 
   it('can render key transaction as a clickable star', async function () {
@@ -171,23 +193,23 @@ describe('getFieldRenderer', function () {
 
     let value;
 
-    value = wrapper.find('IconStar');
+    value = wrapper.find('StyledKey');
     expect(value).toHaveLength(1);
     expect(value.props().isSolid).toBeTruthy();
 
-    wrapper.find('Button').simulate('click');
+    wrapper.find('KeyColumn').simulate('click');
     await tick();
     wrapper.update();
 
-    value = wrapper.find('IconStar');
+    value = wrapper.find('StyledKey');
     expect(value).toHaveLength(1);
     expect(value.props().isSolid).toBeFalsy();
 
-    wrapper.find('Button').simulate('click');
+    wrapper.find('KeyColumn').simulate('click');
     await tick();
     wrapper.update();
 
-    value = wrapper.find('IconStar');
+    value = wrapper.find('StyledKey');
     expect(value).toHaveLength(1);
     expect(value.props().isSolid).toBeTruthy();
   });

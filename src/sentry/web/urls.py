@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.conf import settings
 from django.conf.urls import include, url
 from django.http import HttpResponse
@@ -67,6 +65,13 @@ if settings.DEBUG:
             generic.dev_favicon,
             name="sentry-dev-favicon",
         )
+    ]
+
+if settings.DEMO_MODE:
+    from sentry.web.frontend.demo_start import DemoStartView
+
+    urlpatterns += [
+        url(r"^demo/start/$", DemoStartView.as_view(), name="sentry-demo-start"),
     ]
 
 urlpatterns += [
@@ -404,11 +409,6 @@ urlpatterns += [
                     name="sentry-organization-members-requests",
                 ),
                 url(
-                    r"^(?P<organization_slug>[\w_-]+)/members/new/$",
-                    react_page_view,
-                    name="sentry-create-organization-member",
-                ),
-                url(
                     r"^(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$",
                     react_page_view,
                     name="sentry-organization-member-settings",
@@ -501,13 +501,6 @@ urlpatterns += [
                         pattern_name="sentry-organization-members", permanent=False
                     ),
                     name="sentry-organization-members-old",
-                ),
-                url(
-                    r"^(?P<organization_slug>[\w_-]+)/members/new/$",
-                    RedirectView.as_view(
-                        pattern_name="sentry-create-organization-member", permanent=False
-                    ),
-                    name="sentry-create-organization-member-old",
                 ),
                 url(
                     r"^(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$",

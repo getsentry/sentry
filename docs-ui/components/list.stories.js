@@ -1,15 +1,14 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
-import {IconBusiness, IconTelescope, IconLightning, IconSiren} from 'app/icons';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
+import {IconBusiness, IconLightning, IconSiren, IconTelescope} from 'app/icons';
 
 export default {
   title: 'Core/List',
 };
 
-export const Default = withInfo('Default message goes here')(() => (
+export const _List = () => (
   <React.Fragment>
     <div className="section">
       <h4>Without Symbol</h4>
@@ -60,4 +59,4 @@ export const Default = withInfo('Default message goes here')(() => (
       </List>
     </div>
   </React.Fragment>
-));
+);

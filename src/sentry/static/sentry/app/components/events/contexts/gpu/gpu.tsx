@@ -2,9 +2,10 @@ import React from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlock';
 
+import getUnknownData from '../getUnknownData';
+
 import getOperatingSystemKnownData from './getGPUKnownData';
 import {GPUData, GPUKnownDataType} from './types';
-import getUnknownData from '../getUnknownData';
 
 type Props = {
   data: GPUData;

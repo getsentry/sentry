@@ -1,11 +1,11 @@
-import styled from '@emotion/styled';
 import React from 'react';
+import styled from '@emotion/styled';
 
-import BookmarkStar from 'app/components/projects/bookmarkStar';
 import Link from 'app/components/links/link';
 import ProjectLabel from 'app/components/projectLabel';
+import BookmarkStar from 'app/components/projects/bookmarkStar';
 import space from 'app/styles/space';
-import {Project, Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 
 type Props = {
   project: Project;

@@ -1,9 +1,8 @@
 import React, {CSSProperties} from 'react';
-import PropTypes from 'prop-types';
 import classNames from 'classnames';
 
-import {selectText} from 'app/utils/selectText';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
+import {selectText} from 'app/utils/selectText';
 
 type ChildRenderProps = {
   doSelect: () => void;
@@ -26,10 +25,6 @@ type Props = {
 };
 
 class AutoSelectText extends React.Component<Props> {
-  static propTypes = {
-    children: PropTypes.oneOfType([PropTypes.func, PropTypes.node]),
-  };
-
   private el: HTMLElement | undefined;
 
   selectText = () => {

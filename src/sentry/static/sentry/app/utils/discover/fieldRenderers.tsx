@@ -1,23 +1,25 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
-import styled from '@emotion/styled';
 
-import {Organization} from 'app/types';
-import {t} from 'app/locale';
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import UserMisery from 'app/components/userMisery';
 import Version from 'app/components/version';
+import {t} from 'app/locale';
+import {Organization} from 'app/types';
 import {defined} from 'app/utils';
-import getDynamicText from 'app/utils/getDynamicText';
-import {formatFloat, formatPercentage} from 'app/utils/formatters';
-import {getAggregateAlias, AGGREGATIONS} from 'app/utils/discover/fields';
-import Projects from 'app/utils/projects';
+import {AGGREGATIONS, getAggregateAlias} from 'app/utils/discover/fields';
 import {getShortEventId} from 'app/utils/events';
+import {formatFloat, formatPercentage} from 'app/utils/formatters';
+import getDynamicText from 'app/utils/getDynamicText';
+import Projects from 'app/utils/projects';
 
+import ArrayValue from './arrayValue';
+import {EventData, MetaType} from './eventView';
 import KeyTransactionField from './keyTransactionField';
 import {
   BarContainer,
@@ -28,7 +30,6 @@ import {
   StyledShortId,
   VersionContainer,
 } from './styles';
-import {MetaType, EventData} from './eventView';
 
 /**
  * Types, functions and definitions for rendering fields in discover results.
@@ -38,13 +39,9 @@ type RenderFunctionBaggage = {
   location: Location;
 };
 
-type FieldFormatterRenderFunction = (
-  field: string,
-  data: EventData,
-  baggage: RenderFunctionBaggage
-) => React.ReactNode;
+type FieldFormatterRenderFunction = (field: string, data: EventData) => React.ReactNode;
 
-export type FieldFormatterRenderFunctionPartial = (
+type FieldFormatterRenderFunctionPartial = (
   data: EventData,
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;
@@ -62,12 +59,13 @@ type FieldFormatters = {
   number: FieldFormatter;
   percentage: FieldFormatter;
   string: FieldFormatter;
+  array: FieldFormatter;
 };
 
 export type FieldTypes = keyof FieldFormatters;
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
 
@@ -147,6 +145,13 @@ const FIELD_FORMATTERS: FieldFormatters = {
       return <Container>{value}</Container>;
     },
   },
+  array: {
+    isSortable: true,
+    renderFunc: (field, data) => {
+      const value = Array.isArray(data[field]) ? data[field] : [data[field]];
+      return <ArrayValue value={value} />;
+    },
+  },
 };
 
 type SpecialFieldRenderFunc = (
@@ -169,6 +174,7 @@ type SpecialFields = {
   issue: SpecialField;
   release: SpecialField;
   key_transaction: SpecialField;
+  'trend_percentage()': SpecialField;
 };
 
 /**
@@ -304,6 +310,10 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'error.handled',
     renderFunc: data => {
       const values = data['error.handled'];
+      // Transactions will have null, and default events have no handled attributes.
+      if (values === null || values?.length === 0) {
+        return <Container>{emptyValue}</Container>;
+      }
       const value = Array.isArray(values) ? values.slice(-1)[0] : values;
       return <Container>{[1, null].includes(value) ? 'true' : 'false'}</Container>;
     },
@@ -319,6 +329,16 @@ const SPECIAL_FIELDS: SpecialFields = {
           transactionName={data.transaction}
         />
       </Container>
+    ),
+  },
+  'trend_percentage()': {
+    sortField: 'trend_percentage()',
+    renderFunc: data => (
+      <NumberContainer>
+        {typeof data.trend_percentage === 'number'
+          ? formatPercentage(data.trend_percentage - 1)
+          : emptyValue}
+      </NumberContainer>
     ),
   },
 };
@@ -423,6 +443,29 @@ export function getFieldRenderer(
       return SPECIAL_FUNCTIONS[alias];
     }
   }
+
+  if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
+    return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
+  }
+  return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
+}
+
+type FieldTypeFormatterRenderFunctionPartial = (data: EventData) => React.ReactNode;
+
+/**
+ * Get the field renderer for the named field only based on its type from the given
+ * metadata.
+ *
+ * @param {String} field name
+ * @param {object} metadata mapping.
+ * @returns {Function}
+ */
+export function getFieldFormatter(
+  field: string,
+  meta: MetaType
+): FieldTypeFormatterRenderFunctionPartial {
+  const fieldName = getAggregateAlias(field);
+  const fieldType = meta[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);

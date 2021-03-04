@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from django.dispatch.dispatcher import NO_RECEIVERS, Signal
@@ -86,13 +84,20 @@ save_search_created = BetterSignal(providing_args=["project", "user"])
 inbound_filter_toggled = BetterSignal(providing_args=["project"])
 sso_enabled = BetterSignal(providing_args=["organization", "user", "provider"])
 data_scrubber_enabled = BetterSignal(providing_args=["organization"])
-alert_rule_created = BetterSignal(providing_args=["project", "rule", "user", "rule_type"])
+alert_rule_created = BetterSignal(
+    providing_args=["project", "rule", "user", "rule_type", "is_api_token"]
+)
 repo_linked = BetterSignal(providing_args=["repo", "user"])
 release_created = BetterSignal(providing_args=["release"])
 deploy_created = BetterSignal(providing_args=["deploy"])
 ownership_rule_created = BetterSignal(providing_args=["project"])
 issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
 issue_unignored = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
+issue_mark_reviewed = BetterSignal(providing_args=["project", "user", "group"])
+inbox_in = BetterSignal(providing_args=["project", "user", "group", "reason"])
+inbox_out = BetterSignal(
+    providing_args=["project", "user", "group", "action", "inbox_date_added", "referrer"]
+)
 
 terms_accepted = BetterSignal(providing_args=["organization", "user", "ip_address"])
 team_created = BetterSignal(providing_args=["organization", "user", "team"])

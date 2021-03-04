@@ -1,14 +1,16 @@
-import Reflux from 'reflux';
 import pick from 'lodash/pick';
+import Reflux from 'reflux';
 
-import {Group, Project, Organization, Event} from 'app/types';
-import {Client} from 'app/api';
+import {mergeGroups} from 'app/actionCreators/group';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import GroupingActions from 'app/actions/groupingActions';
+import {Client} from 'app/api';
+import {Group, Organization, Project} from 'app/types';
+import {Event} from 'app/types/event';
 
 // Between 0-100
 const MIN_SCORE = 0.6;
@@ -45,14 +47,14 @@ type State = {
 
 type ScoreMap = Record<string, number | null>;
 
-type Item = {
+export type Fingerprint = {
   id: string;
   latestEvent: Event;
   state?: string;
 };
 
 type ResponseProcessors = {
-  merged: (item: Item) => Item;
+  merged: (item: Fingerprint) => Fingerprint;
   similar: (
     data: [Group, ScoreMap]
   ) => {
@@ -65,8 +67,6 @@ type ResponseProcessors = {
 };
 
 type DataKey = keyof ResponseProcessors;
-
-type Version = '1' | '2';
 
 type ResultsAsArrayDataMerged = Array<Parameters<ResponseProcessors['merged']>[0]>;
 
@@ -93,12 +93,10 @@ type GroupingStoreInterface = Reflux.StoreDefinition & {
     newState: IdState
   ) => Array<IdState>;
   isAllUnmergedSelected: () => boolean;
-  convertScoreStructure: (scoreMap: ScoreMap, version?: Version) => ScoreMap;
   onFetch: (
     toFetchArray?: Array<{
       dataKey: DataKey;
       endpoint: string;
-      version?: Version;
       queryParams?: Record<string, any>;
     }>
   ) => Promise<any>;
@@ -211,42 +209,9 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
     );
   },
 
-  convertScoreStructure(scoreMap, version) {
-    if (scoreMap.hasOwnProperty('exception:stacktrace:application-chunks')) {
-      delete scoreMap['exception:stacktrace:application-chunks'];
-    }
-
-    if (!version || version === '1') {
-      return scoreMap;
-    }
-
-    const newScoreMap = {};
-
-    const scoreMapKeys = Object.keys(scoreMap);
-
-    for (const key in scoreMapKeys) {
-      const scoreMapKey = scoreMapKeys[key];
-      if (scoreMapKey.includes('message:character-5-shingle')) {
-        newScoreMap['message:message:character-shingles'] = scoreMap[scoreMapKey];
-        continue;
-      }
-      if (scoreMapKey.includes('value:character-5-shingle')) {
-        newScoreMap['exception:message:character-shingles'] = scoreMap[scoreMapKey];
-        continue;
-      }
-      if (scoreMapKey.includes('stacktrace:frames-pairs')) {
-        newScoreMap['exception:stacktrace:pairs'] = scoreMap[scoreMapKey];
-        continue;
-      }
-    }
-
-    return newScoreMap;
-  },
-
   // Fetches data
   onFetch(toFetchArray) {
     const requests = toFetchArray || this.toFetchArray;
-    const version = toFetchArray?.[0]?.version;
 
     // Reset state and trigger update
     this.init();
@@ -282,15 +247,16 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
         return item;
       },
       similar: ([issue, scoreMap]) => {
-        const convertedScore = this.convertScoreStructure(scoreMap, version);
         // Hide items with a low scores
-        const isBelowThreshold = checkBelowThreshold(convertedScore);
+        const isBelowThreshold = checkBelowThreshold(scoreMap);
 
         // List of scores indexed by interface (i.e., exception and message)
-        const scoresByInterface = Object.keys(convertedScore)
-          .map(scoreKey => [scoreKey, convertedScore[scoreKey]])
+        // Note: for v2, the interface is always "similarity". When v2 is
+        // rolled out we can get rid of this grouping entirely.
+        const scoresByInterface = Object.keys(scoreMap)
+          .map(scoreKey => [scoreKey, scoreMap[scoreKey]])
           .reduce((acc, [scoreKey, score]) => {
-            // tokenize scorekey, first token is the interface name
+            // v1 layout: '<interface>:...'
             const [interfaceName] = String(scoreKey).split(':');
 
             if (!acc[interfaceName]) {
@@ -317,7 +283,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
 
         return {
           issue,
-          score: convertedScore,
+          score: scoreMap,
           scoresByInterface,
           aggregate,
           isBelowThreshold,
@@ -477,7 +443,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
       // Disable merge button
       const {orgId, groupId} = params;
 
-      this.api.merge(
+      mergeGroups(
+        this.api,
         {
           orgId,
           projectId: projectId || params.projectId,
@@ -582,4 +549,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
   },
 };
 
-export default Reflux.createStore(storeConfig) as GroupingStore;
+const GroupingStore = Reflux.createStore(storeConfig) as GroupingStore;
+
+export default GroupingStore;

@@ -1,7 +1,7 @@
-import {Client} from 'app/api';
-import {Organization, OnboardingTask} from 'app/types';
 import OrganizationActions from 'app/actions/organizationActions';
+import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
+import {OnboardingTask, Organization} from 'app/types';
 
 /**
  * Update an onboarding task.

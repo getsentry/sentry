@@ -1,12 +1,12 @@
-import * as Sentry from '@sentry/react';
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import IndicatorActions from 'app/actions/indicatorActions';
 import {DEFAULT_TOAST_DURATION} from 'app/constants';
 import {t, tct} from 'app/locale';
-import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
-import IndicatorActions from 'app/actions/indicatorActions';
 import space from 'app/styles/space';
+import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
 
 type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
 
@@ -101,7 +101,7 @@ const PRETTY_VALUES: Map<unknown, string> = new Map([
 
 // Transform form values into a string
 // Otherwise bool values will not get rendered and empty strings look like a bug
-const prettyFormString = (val: FieldValue, model: FormModel, fieldName: string) => {
+const prettyFormString = (val: ChangeValue, model: FormModel, fieldName: string) => {
   const descriptor = model.fieldDescriptor.get(fieldName);
 
   if (descriptor && typeof descriptor.formatMessageValue === 'function') {
@@ -119,9 +119,13 @@ const prettyFormString = (val: FieldValue, model: FormModel, fieldName: string) 
   return `${val}`;
 };
 
+// Some fields have objects in them.
+// For example project key rate limits.
+type ChangeValue = FieldValue | Record<string, any>;
+
 type Change = {
-  old: FieldValue;
-  new: FieldValue;
+  old: ChangeValue;
+  new: ChangeValue;
 };
 
 /**
@@ -146,7 +150,7 @@ export function saveOnBlurUndoMessage(
     return;
   }
 
-  const prettifyValue = (val: FieldValue) => prettyFormString(val, model, fieldName);
+  const prettifyValue = (val: ChangeValue) => prettyFormString(val, model, fieldName);
 
   // Hide the change text when formatMessageValue is explicitly set to false
   const showChangeText = model.getDescriptor(fieldName, 'formatMessageValue') !== false;

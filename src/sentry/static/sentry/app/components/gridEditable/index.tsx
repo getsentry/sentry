@@ -1,11 +1,26 @@
 import React from 'react';
 import {Location} from 'history';
 
-import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
 
+import {
+  Body,
+  Grid,
+  GridBody,
+  GridBodyCell,
+  GridBodyCellStatus,
+  GridHead,
+  GridHeadCell,
+  GridHeadCellStatic,
+  GridResizer,
+  GridRow,
+  Header,
+  HeaderButtonContainer,
+  HeaderTitle,
+} from './styles';
 import {
   GridColumn,
   GridColumnHeader,
@@ -13,21 +28,6 @@ import {
   GridColumnSortBy,
   ObjectKey,
 } from './types';
-import {
-  Header,
-  HeaderTitle,
-  HeaderButtonContainer,
-  Body,
-  Grid,
-  GridRow,
-  GridHead,
-  GridHeadCell,
-  GridHeadCellStatic,
-  GridBody,
-  GridBodyCell,
-  GridBodyCellStatus,
-  GridResizer,
-} from './styles';
 import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED, ColResizeMetadata} from './utils';
 
 type GridEditableProps<DataRow, ColumnKey> = {
@@ -94,7 +94,7 @@ class GridEditable<
   // Static methods do not allow the use of generics bounded to the parent class
   // For more info: https://github.com/microsoft/TypeScript/issues/14600
   static getDerivedStateFromProps(
-    props: GridEditableProps<Object, keyof Object>,
+    props: Readonly<GridEditableProps<Object, keyof Object>>,
     prevState: GridEditableState
   ): GridEditableState {
     return {
@@ -347,7 +347,7 @@ class GridEditable<
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <IconWarning color="gray500" size="lg" />
+          <IconWarning color="gray300" size="lg" />
         </GridBodyCellStatus>
       </GridRow>
     );
@@ -368,7 +368,7 @@ class GridEditable<
       <GridRow>
         <GridBodyCellStatus>
           <EmptyStateWarning>
-            <p>{t('No results found')}</p>
+            <p>{t('No results found for your query')}</p>
           </EmptyStateWarning>
         </GridBodyCellStatus>
       </GridRow>

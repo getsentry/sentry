@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = ["PluggableViewMixin"]
 
 from django.http import HttpResponseRedirect
@@ -7,7 +5,7 @@ from django.http import HttpResponseRedirect
 from .response import Response
 
 
-class PluggableViewMixin(object):
+class PluggableViewMixin:
     """
     A mix-in which provides a render method which returns a special object to
     enable embedding of content within base-views.

@@ -1,14 +1,13 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
-import theme from 'app/utils/theme';
 import MiniBarChart from 'app/components/charts/miniBarChart';
+import theme from 'app/utils/theme';
 
 export default {
   title: 'DataVisualization/Charts/MiniBarChart',
 };
 
-export const _MiniBarChart = withInfo('Stacked MiniBarChart')(() => {
+export const _MiniBarChart = () => {
   const startTime = 1601992800;
   const interval = 3600;
   const all = [
@@ -98,12 +97,12 @@ export const _MiniBarChart = withInfo('Stacked MiniBarChart')(() => {
               barGap: '-100%',
               name: 'First Seen',
               value: (startTime + interval) * 1000,
-              color: theme.pink400,
+              color: theme.pink300,
             },
             {
               name: 'Last Seen',
               value: (startTime + interval * 23) * 1000,
-              color: theme.green400,
+              color: theme.green300,
             },
           ]}
         />
@@ -116,7 +115,7 @@ export const _MiniBarChart = withInfo('Stacked MiniBarChart')(() => {
           height={24}
           isGroupedByDate
           showTimeInTooltip
-          emphasisColors={[theme.purple400]}
+          emphasisColors={[theme.purple300]}
           series={[
             {
               seriesName: 'Events',
@@ -157,8 +156,6 @@ export const _MiniBarChart = withInfo('Stacked MiniBarChart')(() => {
       </div>
     </React.Fragment>
   );
-});
-
-_MiniBarChart.story = {
-  name: 'MiniBarChart',
 };
+
+_MiniBarChart.storyName = 'MiniBarChart';

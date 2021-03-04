@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {selectByLabel, openMenu} from 'sentry-test/select-new';
+import {openMenu, selectByLabel} from 'sentry-test/select-new';
 
 import ColumnEditModal from 'app/views/eventsV2/table/columnEditModal';
 
@@ -117,7 +117,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       expect(
         fieldRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
       ).toBe('user-def');
-      expect(fieldRow.find('SelectControl[name="field"] Badge')).toHaveLength(1);
+      expect(fieldRow.find('SelectControl[name="field"] Tag')).toHaveLength(1);
       expect(fieldRow.find('BlankSpace')).toHaveLength(1);
     });
   });
@@ -140,7 +140,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       expect(
         funcRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
       ).toBe('project');
-      expect(funcRow.find('SelectControl[name="field"] Badge')).toHaveLength(1);
+      expect(funcRow.find('SelectControl[name="field"] Tag')).toHaveLength(1);
     });
 
     it('selects tag expressions that overlap functions', function () {
@@ -148,7 +148,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       expect(
         funcRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
       ).toBe('count');
-      expect(funcRow.find('SelectControl[name="field"] Badge')).toHaveLength(1);
+      expect(funcRow.find('SelectControl[name="field"] Tag')).toHaveLength(1);
     });
   });
 

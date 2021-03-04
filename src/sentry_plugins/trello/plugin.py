@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import re
 from django.conf.urls import url
 from rest_framework.response import Response
@@ -122,7 +120,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         """
         Return the URLs and the matching views
         """
-        return super(TrelloPlugin, self).get_group_urls() + [
+        return super().get_group_urls() + [
             url(
                 r"^options",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_options", plugin=self),
@@ -144,7 +142,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         """
         Return the fields needed for creating a new issue
         """
-        fields = super(TrelloPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
         client = self.get_client(group.project)
         organization = self.get_option("organization", group.project)
 
@@ -295,7 +293,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             client = self.get_client(group.project)
             cards = client.get_cards(query, organization)
             output = [
-                {"text": "(#%s) %s" % (card["idShort"], card["name"]), "id": card["shortLink"]}
+                {"text": "(#{}) {}".format(card["idShort"], card["name"]), "id": card["shortLink"]}
                 for card in cards
             ]
 

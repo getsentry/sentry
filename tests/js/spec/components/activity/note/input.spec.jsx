@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import NoteInput from 'app/components/activity/note/input';
 

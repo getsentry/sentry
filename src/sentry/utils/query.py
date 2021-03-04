@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 import progressbar
 import re
-import six
 
 from django.db import connections, router
+from sentry import eventstore
 
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
@@ -14,7 +12,56 @@ class InvalidQuerySetError(ValueError):
     pass
 
 
-class RangeQuerySetWrapper(object):
+def celery_run_batch_query(filter, batch_size, referrer, state=None, fetch_events=True):  # noqa
+    """
+    A tool for batched queries similar in purpose to RangeQuerySetWrapper that
+    is used for celery tasks in issue merge/unmerge/reprocessing.
+    """
+
+    # We process events sorted in descending order by -timestamp, -event_id. We need
+    # to include event_id as well as timestamp in the ordering criteria since:
+    #
+    # - Event timestamps are rounded to the second so multiple events are likely
+    # to have the same timestamp.
+    #
+    # - When sorting by timestamp alone, Snuba may not give us a deterministic
+    # order for events with the same timestamp.
+    #
+    # - We need to ensure that we do not skip any events between batches. If we
+    # only sorted by timestamp < last_event.timestamp it would be possible to
+    # have missed an event with the same timestamp as the last item in the
+    # previous batch.
+    #
+    # state contains data about the last event ID and timestamp. Changing
+    # the keys in here needs to be done carefully as the state object is
+    # semi-persisted in celery queues.
+    if state is not None:
+        filter.conditions = filter.conditions or []
+        filter.conditions.append(["timestamp", "<=", state["timestamp"]])
+        filter.conditions.append(
+            [["timestamp", "<", state["timestamp"]], ["event_id", "<", state["event_id"]]]
+        )
+
+    method = eventstore.get_events if fetch_events else eventstore.get_unfetched_events
+
+    events = list(
+        method(
+            filter=filter,  # noqa
+            limit=batch_size,
+            referrer=referrer,
+            orderby=["-timestamp", "-event_id"],
+        )
+    )
+
+    if events:
+        state = {"timestamp": events[-1].timestamp, "event_id": events[-1].event_id}
+    else:
+        state = None
+
+    return state, events
+
+
+class RangeQuerySetWrapper:
     """
     Iterates through a queryset by chunking results by ``step`` and using GREATER THAN
     and LESS THAN queries on the primary key.
@@ -108,23 +155,23 @@ class RangeQuerySetWrapperWithProgressBar(RangeQuerySetWrapper):
         total_count = self.queryset.count()
         if not total_count:
             return iter([])
-        iterator = super(RangeQuerySetWrapperWithProgressBar, self).__iter__()
+        iterator = super().__iter__()
         label = self.queryset.model._meta.verbose_name_plural.title()
         return iter(WithProgressBar(iterator, total_count, label))
 
 
-class WithProgressBar(object):
+class WithProgressBar:
     def __init__(self, iterator, count=None, caption=None):
         if count is None and hasattr(iterator, "__len__"):
             count = len(iterator)
         self.iterator = iterator
         self.count = count
-        self.caption = six.text_type(caption or u"Progress")
+        self.caption = str(caption or "Progress")
 
     def __iter__(self):
         if self.count != 0:
             widgets = [
-                "%s: " % (self.caption,),
+                f"{self.caption}: ",
                 progressbar.Percentage(),
                 " ",
                 progressbar.Bar(),
@@ -156,11 +203,11 @@ def bulk_delete_objects(
 
     if partition_key:
         for column, value in partition_key.items():
-            partition_query.append("%s = %%s" % (quote_name(column),))
+            partition_query.append(f"{quote_name(column)} = %s")
             params.append(value)
 
     for column, value in filters.items():
-        query.append("%s = %%s" % (quote_name(column),))
+        query.append(f"{quote_name(column)} = %s")
         params.append(value)
 
     query = """

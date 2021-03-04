@@ -1,10 +1,9 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import IntegrationIcon from 'app/views/organizationIntegrations/integrationIcon';
 import space from 'app/styles/space';
 import {Integration} from 'app/types';
+import IntegrationIcon from 'app/views/organizationIntegrations/integrationIcon';
 
 type DefaultProps = {
   compact: boolean;
@@ -14,11 +13,6 @@ type Props = DefaultProps & {
   integration: Integration;
 };
 export default class IntegrationItem extends React.Component<Props> {
-  static propTypes = {
-    integration: PropTypes.object.isRequired,
-    compact: PropTypes.bool,
-  };
-
   static defaultProps: DefaultProps = {
     compact: false,
   };
@@ -63,7 +57,7 @@ const IntegrationName = styled('div')`
 // as it sets width 100% which causes layout issues in the
 // integration list.
 const DomainName = styled('div')<StyledProps>`
-  color: ${p => (p.compact ? p.theme.gray400 : p.theme.gray600)};
+  color: ${p => (p.compact ? p.theme.gray200 : p.theme.gray400)};
   margin-left: ${p => (p.compact ? space(1) : 'inherit')};
   margin-top: ${p => (!p.compact ? space(0.25) : 'inherit')};
   font-size: 1.4rem;

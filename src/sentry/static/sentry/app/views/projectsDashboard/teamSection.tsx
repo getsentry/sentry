@@ -1,14 +1,12 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
-import {Team, Project, Scope} from 'app/types';
-import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
 import PageHeading from 'app/components/pageHeading';
+import space from 'app/styles/space';
+import {Project, Scope, Team} from 'app/types';
 
-import TeamMembers from './teamMembers';
 import ProjectCard from './projectCard';
+import TeamMembers from './teamMembers';
 
 type Props = {
   team: Team;
@@ -43,15 +41,6 @@ const TeamSection = ({team, projects, title, showBorder, orgId, access}: Props) 
   );
 };
 
-TeamSection.propTypes = {
-  team: SentryTypes.Team,
-  orgId: PropTypes.string,
-  showBorder: PropTypes.bool,
-  access: PropTypes.object,
-  title: PropTypes.node,
-  projects: PropTypes.array,
-};
-
 const ProjectCards = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
@@ -71,7 +60,7 @@ const ProjectCards = styled('div')`
 `;
 
 const TeamSectionWrapper = styled('div')<{showBorder: boolean}>`
-  border-bottom: ${p => (p.showBorder ? '1px solid ' + p.theme.borderLight : 0)};
+  border-bottom: ${p => (p.showBorder ? '1px solid ' + p.theme.border : 0)};
   padding: 0 ${space(4)} ${space(4)};
 `;
 

@@ -1,8 +1,9 @@
 import {EChartOption} from 'echarts';
+import merge from 'lodash/merge';
 
-import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 import BaseChart from 'app/components/charts/baseChart';
-import theme from 'app/utils/theme';
+import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
+import {Theme} from 'app/utils/theme';
 
 import {truncationFormatter, useShortInterval} from '../utils';
 
@@ -15,21 +16,19 @@ type HelperProps =
   | 'period'
   | 'utc';
 
-type Props = ChartProps['xAxis'] & Pick<ChartProps, HelperProps>;
+type Props = ChartProps['xAxis'] & Pick<ChartProps, HelperProps> & {theme: Theme};
 
 export default function XAxis({
   isGroupedByDate,
   useShortDate,
-  axisLabel,
-  axisTick,
-  axisLine,
+  theme,
 
   start,
   end,
   period,
   utc,
   ...props
-}: Props = {}): EChartOption.XAxis {
+}: Props): EChartOption.XAxis {
   const axisLabelFormatter = (value: string, index: number) => {
     if (isGroupedByDate) {
       const timeFormat = getTimeFormat();
@@ -45,45 +44,46 @@ export default function XAxis({
     }
   };
 
-  return {
-    type: isGroupedByDate ? 'time' : 'category',
-    boundaryGap: false,
-    axisLine: {
-      lineStyle: {
-        color: theme.gray400,
+  return merge(
+    {
+      type: isGroupedByDate ? 'time' : 'category',
+      boundaryGap: false,
+      axisLine: {
+        lineStyle: {
+          color: theme.chartLabel,
+        },
       },
-      ...(axisLine || {}),
-    },
-    axisTick: {
-      lineStyle: {
-        color: theme.gray400,
+      axisTick: {
+        lineStyle: {
+          color: theme.chartLabel,
+        },
       },
-      ...(axisTick || {}),
-    },
-    splitLine: {
-      show: false,
-    },
-    axisLabel: {
-      margin: 12,
-
-      // This was default with ChartZoom, we are making it default for all charts now
-      // Otherwise the xAxis can look congested when there is always a min/max label
-      showMaxLabel: false,
-      showMinLabel: false,
-
-      formatter: axisLabelFormatter,
-      ...(axisLabel || {}),
-    },
-    axisPointer: {
-      show: true,
-      type: 'line',
-      label: {
+      splitLine: {
         show: false,
       },
-      lineStyle: {
-        width: 0.5,
+      axisLabel: {
+        color: theme.chartLabel,
+        fontFamily: theme.text.family,
+        margin: 12,
+
+        // This was default with ChartZoom, we are making it default for all charts now
+        // Otherwise the xAxis can look congested when there is always a min/max label
+        showMaxLabel: false,
+        showMinLabel: false,
+
+        formatter: axisLabelFormatter,
+      },
+      axisPointer: {
+        show: true,
+        type: 'line',
+        label: {
+          show: false,
+        },
+        lineStyle: {
+          width: 0.5,
+        },
       },
     },
-    ...props,
-  };
+    props
+  );
 }

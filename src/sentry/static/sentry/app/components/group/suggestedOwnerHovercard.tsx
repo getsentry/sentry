@@ -1,19 +1,19 @@
 import React from 'react';
-import moment from 'moment';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
-import {Actor, Commit} from 'app/types';
-import {t, tct} from 'app/locale';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
-import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Alert from 'app/components/alert';
+import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Button from 'app/components/button';
 import Hovercard from 'app/components/hovercard';
-import {IconCommit, IconWarning} from 'app/icons';
 import Link from 'app/components/links/link';
+import {IconCommit, IconWarning} from 'app/icons';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
+import {Actor, Commit} from 'app/types';
 import {defined} from 'app/utils';
+import theme from 'app/utils/theme';
 
 type Props = {
   /**
@@ -135,8 +135,8 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
 }
 
 const tagColors = {
-  url: theme.green300,
-  path: theme.purple400,
+  url: theme.green200,
+  path: theme.purple300,
   tag: theme.blue300,
 };
 
@@ -151,7 +151,7 @@ const CommitMessage = styled(({message = '', date, ...props}) => (
     <CommitDate date={date} />
   </div>
 ))`
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   margin-top: ${space(0.25)};
   hyphens: auto;
@@ -161,7 +161,7 @@ const CommitDate = styled(({date, ...props}) => (
   <div {...props}>{moment(date).fromNow()}</div>
 ))`
   margin-top: ${space(0.5)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const CommitReasonItem = styled('div')`
@@ -200,7 +200,7 @@ const ViewMoreButton = styled(p => (
   </Button>
 ))`
   border: none;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.25)} ${space(0.5)};
   margin: ${space(1)} ${space(0.25)} ${space(0.25)} 0;

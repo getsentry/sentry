@@ -1,16 +1,16 @@
 import React from 'react';
-import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
-import {Client} from 'app/api';
-import {Deploy, Release} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
-import ReleaseStore from 'app/stores/releaseStore';
 import {getProjectRelease, getReleaseDeploys} from 'app/actionCreators/release';
+import {Client} from 'app/api';
+import ReleaseStore from 'app/stores/releaseStore';
+import {Deploy, Organization, Release} from 'app/types';
+import getDisplayName from 'app/utils/getDisplayName';
 
 type DependentProps = {
   api: Client;
-  orgSlug: string;
+  organization: Organization;
   projectSlug: string;
   releaseVersion: string;
 };
@@ -46,9 +46,10 @@ const withRelease = <P extends DependentProps>(
     },
 
     fetchRelease() {
-      const {api, orgSlug, projectSlug, releaseVersion} = this.props as P &
+      const {api, organization, projectSlug, releaseVersion} = this.props as P &
         DependentProps;
       const releaseData = ReleaseStore.get(projectSlug, releaseVersion);
+      const orgSlug = organization.slug;
 
       if (
         (!releaseData.release && !releaseData.releaseLoading) ||
@@ -59,9 +60,10 @@ const withRelease = <P extends DependentProps>(
     },
 
     fetchDeploys() {
-      const {api, orgSlug, projectSlug, releaseVersion} = this.props as P &
+      const {api, organization, projectSlug, releaseVersion} = this.props as P &
         DependentProps;
       const releaseData = ReleaseStore.get(projectSlug, releaseVersion);
+      const orgSlug = organization.slug;
 
       if (
         (!releaseData.deploys && !releaseData.deploysLoading) ||

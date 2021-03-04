@@ -1,5 +1,5 @@
-import Reflux from 'reflux';
 import {PlainRoute} from 'react-router';
+import Reflux from 'reflux';
 
 import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
@@ -52,4 +52,8 @@ const storeConfig: Reflux.StoreDefinition &
 
 type SettingsBreadcrumbStore = Reflux.Store & SettingsBreadcrumbStoreInterface;
 
-export default Reflux.createStore(storeConfig) as SettingsBreadcrumbStore;
+const SettingsBreadcrumbStore = Reflux.createStore(
+  storeConfig
+) as SettingsBreadcrumbStore;
+
+export default SettingsBreadcrumbStore;

@@ -1,11 +1,8 @@
-from __future__ import absolute_import, print_function
-
 import functools
 import itertools
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-import six
 import pytz
 import logging
 
@@ -15,7 +12,7 @@ from django.utils import timezone
 
 import sentry_sdk
 
-from sentry import tagstore, tsdb, features
+from sentry import tagstore, tsdb
 from sentry.app import env
 from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.serializers import Serializer, register, serialize
@@ -31,7 +28,6 @@ from sentry.models import (
     GroupAssignee,
     GroupBookmark,
     GroupEnvironment,
-    GroupInbox,
     GroupLink,
     GroupMeta,
     GroupResolution,
@@ -46,8 +42,9 @@ from sentry.models import (
     User,
     UserOption,
     UserOptionValue,
-    Organization,
 )
+from sentry.models.groupinbox import get_inbox_details
+from sentry.models.groupowner import get_owner_details
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils import snuba
@@ -55,6 +52,7 @@ from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
 from sentry.utils.compat import map, zip
 from sentry.utils.snuba import Dataset, raw_query
+from sentry.reprocessing2 import get_progress
 
 SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.comment: "commented",
@@ -76,11 +74,35 @@ logger = logging.getLogger(__name__)
 
 
 def merge_list_dictionaries(dict1, dict2):
-    for key, val in six.iteritems(dict2):
+    for key, val in dict2.items():
         dict1.setdefault(key, []).extend(val)
 
 
 class GroupSerializerBase(Serializer):
+    def __init__(
+        self,
+        collapse=None,
+        expand=None,
+        has_inbox=False,
+    ):
+        self.collapse = collapse
+        self.expand = expand
+        self.has_inbox = has_inbox
+
+    def _expand(self, key):
+        if self.expand is None:
+            return False
+
+        if key == "inbox" and not self.has_inbox:
+            return False
+
+        return key in self.expand
+
+    def _collapse(self, key):
+        if self.collapse is None:
+            return False
+        return key in self.collapse
+
     def _get_seen_stats(self, item_list, user):
         """
         Returns a dictionary keyed by item that includes:
@@ -98,9 +120,10 @@ class GroupSerializerBase(Serializer):
         # but it has to be at least 14 days, and not more than 90 days ago.
         # Fallback to the 30 days ago if we are not able to calculate the value.
         last_seen = None
-        for item in seen_stats.values():
-            if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
-                last_seen = item["last_seen"]
+        if seen_stats:
+            for item in seen_stats.values():
+                if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
+                    last_seen = item["last_seen"]
 
         if last_seen is None:
             return datetime.now(pytz.utc) - timedelta(days=30)
@@ -131,10 +154,11 @@ class GroupSerializerBase(Serializer):
             groupby=["group_id"],
             filter_keys=filter_keys,
             start=start,
+            orderby="group_id",
             referrer="group.unhandled-flag",
         )
 
-        return dict((x["group_id"], {"unhandled": x["unhandled"]}) for x in rv["data"])
+        return {x["group_id"]: {"unhandled": x["unhandled"]} for x in rv["data"]}
 
     def _get_subscriptions(self, item_list, user):
         """
@@ -261,7 +285,7 @@ class GroupSerializerBase(Serializer):
                     where=[
                         "sentry_grouplink.linked_id = sentry_commit.id",
                         "sentry_grouplink.group_id IN ({})".format(
-                            ", ".join(six.text_type(i.id) for i in resolved_item_list)
+                            ", ".join(str(i.id) for i in resolved_item_list)
                         ),
                         "sentry_grouplink.linked_type = %s",
                         "sentry_grouplink.relationship = %s",
@@ -276,8 +300,8 @@ class GroupSerializerBase(Serializer):
             release_resolutions = {}
             commit_resolutions = {}
 
-        actor_ids = set(r[-1] for r in six.itervalues(release_resolutions))
-        actor_ids.update(r.actor_id for r in six.itervalues(ignore_items))
+        actor_ids = {r[-1] for r in release_resolutions.values()}
+        actor_ids.update(r.actor_id for r in ignore_items.values())
         if actor_ids:
             users = list(User.objects.filter(id__in=actor_ids, is_active=True))
             actors = {u.id: d for u, d in zip(users, serialize(users, user))}
@@ -294,24 +318,19 @@ class GroupSerializerBase(Serializer):
 
         annotations_by_group_id = defaultdict(list)
 
-        organization_id_list = list(set(item.project.organization_id for item in item_list))
+        organization_id_list = list({item.project.organization_id for item in item_list})
         # if no groups, then we can't proceed but this seems to be a valid use case
         if not item_list:
             return {}
         if len(organization_id_list) > 1:
             # this should never happen but if it does we should know about it
             logger.warn(
-                u"Found multiple organizations for groups: %s, with orgs: %s"
+                "Found multiple organizations for groups: %s, with orgs: %s"
                 % ([item.id for item in item_list], organization_id_list)
             )
 
         # should only have 1 org at this point
         organization_id = organization_id_list[0]
-        organization = Organization.objects.get_from_cache(id=organization_id)
-
-        has_unhandled_flag = features.has(
-            "organizations:unhandled-issue-flag", organization, actor=user
-        )
 
         # find all the integration installs that have issue tracking
         for integration in Integration.objects.filter(organizations=organization_id):
@@ -343,9 +362,7 @@ class GroupSerializerBase(Serializer):
         )
         merge_list_dictionaries(annotations_by_group_id, local_annotations_by_group_id)
 
-        snuba_stats = {}
-        if has_unhandled_flag:
-            snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
+        snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
         for item in item_list:
             active_date = item.active_at or item.first_seen
@@ -381,6 +398,7 @@ class GroupSerializerBase(Serializer):
                 ignore_actor = None
 
             result[item] = {
+                "id": item.id,
                 "assigned_to": resolved_assignees.get(item.id),
                 "is_bookmarked": item.id in bookmarks,
                 "subscription": subscriptions[item.id],
@@ -394,10 +412,10 @@ class GroupSerializerBase(Serializer):
                 "share_id": share_ids.get(item.id),
             }
 
-            if has_unhandled_flag:
-                result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
+            result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
 
-            result[item].update(seen_stats.get(item, {}))
+            if seen_stats:
+                result[item].update(seen_stats.get(item, {}))
         return result
 
     def _get_status(self, attrs, obj):
@@ -417,7 +435,9 @@ class GroupSerializerBase(Serializer):
                         "ignoreUntil": snooze.until,
                         "ignoreUserCount": (
                             snooze.user_count - (attrs["user_count"] - snooze.state["users_seen"])
-                            if snooze.user_count and not snooze.user_window
+                            if snooze.user_count
+                            and not snooze.user_window
+                            and not self._collapse("stats")
                             else snooze.user_count
                         ),
                         "ignoreUserWindow": snooze.user_window,
@@ -447,6 +467,9 @@ class GroupSerializerBase(Serializer):
             status_label = "pending_deletion"
         elif status == GroupStatus.PENDING_MERGE:
             status_label = "pending_merge"
+        elif status == GroupStatus.REPROCESSING:
+            status_label = "reprocessing"
+            status_details["pendingEvents"], status_details["info"] = get_progress(attrs["id"])
         else:
             status_label = "unresolved"
         return status_details, status_label
@@ -499,7 +522,7 @@ class GroupSerializerBase(Serializer):
         is_subscribed, subscription_details = self._get_subscription(attrs)
         share_id = attrs["share_id"]
         group_dict = {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "shareId": share_id,
             "shortId": obj.qualified_short_id,
             "title": obj.title,
@@ -512,7 +535,7 @@ class GroupSerializerBase(Serializer):
             "isPublic": share_id is not None,
             "platform": obj.platform,
             "project": {
-                "id": six.text_type(obj.project.id),
+                "id": str(obj.project.id),
                 "name": obj.project.name,
                 "slug": obj.project.slug,
                 "platform": obj.project.platform,
@@ -531,13 +554,13 @@ class GroupSerializerBase(Serializer):
         # This attribute is currently feature gated
         if "is_unhandled" in attrs:
             group_dict["isUnhandled"] = attrs["is_unhandled"]
-
-        group_dict.update(self._convert_seen_stats(attrs))
+        if "times_seen" in attrs:
+            group_dict.update(self._convert_seen_stats(attrs))
         return group_dict
 
     def _convert_seen_stats(self, stats):
         return {
-            "count": six.text_type(stats["times_seen"]),
+            "count": str(stats["times_seen"]),
             "userCount": stats["user_count"],
             "firstSeen": stats["first_seen"],
             "lastSeen": stats["last_seen"],
@@ -547,6 +570,7 @@ class GroupSerializerBase(Serializer):
 @register(Group)
 class GroupSerializer(GroupSerializerBase):
     def __init__(self, environment_func=None):
+        GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 
     def _get_seen_stats(self, item_list, user):
@@ -592,7 +616,7 @@ class GroupSerializer(GroupSerializerBase):
         return attrs
 
 
-class GroupStatsMixin(object):
+class GroupStatsMixin:
     STATS_PERIOD_CHOICES = {
         "14d": StatsPeriod(14, timedelta(hours=24)),
         "24h": StatsPeriod(24, timedelta(hours=1)),
@@ -668,7 +692,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         matching_event_id=None,
         matching_event_environment=None,
     ):
-        super(StreamGroupSerializer, self).__init__(environment_func)
+        super().__init__(environment_func)
 
         if stats_period is not None:
             assert stats_period in self.STATS_PERIOD_CHOICES or stats_period == "auto"
@@ -689,13 +713,13 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
                 model=tsdb.models.group,
                 keys=group_ids,
                 environment_ids=environment and [environment.id],
-                **query_params
+                **query_params,
             )
 
         return stats
 
     def get_attrs(self, item_list, user):
-        attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         if self.stats_period:
             stats = self.get_stats(item_list, user)
@@ -705,7 +729,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        result = super(StreamGroupSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
 
         if self.stats_period:
             result["stats"] = {self.stats_period: attrs["stats"]}
@@ -721,11 +745,11 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
 
 class TagBasedStreamGroupSerializer(StreamGroupSerializer):
     def __init__(self, tags, **kwargs):
-        super(TagBasedStreamGroupSerializer, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.tags = tags
 
     def serialize(self, obj, attrs, user):
-        result = super(TagBasedStreamGroupSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
         result["tagLastSeen"] = self.tags[obj.id].last_seen
         result["tagFirstSeen"] = self.tags[obj.id].first_seen
         return result
@@ -733,7 +757,7 @@ class TagBasedStreamGroupSerializer(StreamGroupSerializer):
 
 class SharedGroupSerializer(GroupSerializer):
     def serialize(self, obj, attrs, user):
-        result = super(SharedGroupSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
         del result["annotations"]
         return result
 
@@ -744,7 +768,10 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "status",
         "bookmarked_by",
         "assigned_to",
+        "for_review",
+        "assigned_or_suggested",
         "unassigned",
+        "linked",
         "subscribed_by",
         "active_at",
         "first_release",
@@ -755,7 +782,21 @@ class GroupSerializerSnuba(GroupSerializerBase):
         # condition
     }
 
-    def __init__(self, environment_ids=None, start=None, end=None, search_filters=None):
+    def __init__(
+        self,
+        environment_ids=None,
+        start=None,
+        end=None,
+        search_filters=None,
+        collapse=None,
+        expand=None,
+        has_inbox=False,
+    ):
+        super().__init__(
+            collapse=collapse,
+            expand=expand,
+            has_inbox=has_inbox,
+        )
         from sentry.search.snuba.executors import get_search_filter
 
         self.environment_ids = environment_ids
@@ -786,7 +827,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
     def _execute_seen_stats_query(
         self, item_list, start=None, end=None, conditions=None, environment_ids=None
     ):
-        project_ids = list(set([item.project_id for item in item_list]))
+        project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
         aggregations = [
             ["count()", "", "times_seen"],
@@ -809,7 +850,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         )
         seen_data = {
             issue["group_id"]: fix_tag_value_data(
-                dict(filter(lambda key: key[0] != "group_id", six.iteritems(issue)))
+                dict(filter(lambda key: key[0] != "group_id", issue.items()))
             )
             for issue in result["data"]
         }
@@ -864,11 +905,18 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         start=None,
         end=None,
         search_filters=None,
-        has_dynamic_issue_counts=False,
-        include_inbox=False,
+        collapse=None,
+        expand=None,
+        has_inbox=False,
     ):
-        super(StreamGroupSerializerSnuba, self).__init__(
-            environment_ids, start, end, search_filters
+        super().__init__(
+            environment_ids,
+            start,
+            end,
+            search_filters,
+            collapse=collapse,
+            expand=expand,
+            has_inbox=has_inbox,
         )
 
         if stats_period is not None:
@@ -880,51 +928,40 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.stats_period_start = stats_period_start
         self.stats_period_end = stats_period_end
         self.matching_event_id = matching_event_id
-        self.has_dynamic_issue_counts = has_dynamic_issue_counts
-        self.include_inbox = include_inbox
 
     def _get_seen_stats(self, item_list, user):
-        partial_execute_seen_stats_query = functools.partial(
-            self._execute_seen_stats_query,
-            item_list=item_list,
-            environment_ids=self.environment_ids,
-            start=self.start,
-            end=self.end,
-        )
-        time_range_result = partial_execute_seen_stats_query()
-        if self.has_dynamic_issue_counts:
+        if not self._collapse("stats"):
+            partial_execute_seen_stats_query = functools.partial(
+                self._execute_seen_stats_query,
+                item_list=item_list,
+                environment_ids=self.environment_ids,
+                start=self.start,
+                end=self.end,
+            )
+            time_range_result = partial_execute_seen_stats_query()
             filtered_result = (
                 partial_execute_seen_stats_query(conditions=self.conditions)
-                if self.conditions
+                if self.conditions and not self._collapse("filtered")
                 else None
             )
-            lifetime_result = (
-                partial_execute_seen_stats_query(start=None, end=None)
-                if self.start or self.end
-                else time_range_result
-            )
+            if not self._collapse("lifetime"):
+                lifetime_result = (
+                    partial_execute_seen_stats_query(start=None, end=None)
+                    if self.start or self.end
+                    else time_range_result
+                )
+            else:
+                lifetime_result = None
+
             for item in item_list:
                 time_range_result[item].update(
                     {
-                        "filtered": filtered_result.get(item) if self.conditions else None,
-                        "lifetime": lifetime_result.get(item),
+                        "filtered": filtered_result.get(item) if filtered_result else None,
+                        "lifetime": lifetime_result.get(item) if lifetime_result else None,
                     }
                 )
-        return time_range_result
-
-    def _get_inbox_details(self, item_list):
-        group_ids = [g.id for g in item_list]
-        group_inboxes = GroupInbox.objects.filter(group__in=group_ids)
-        inbox_stats = {
-            gi.group_id: {
-                "reason": gi.reason,
-                "reason_details": gi.reason_details,
-                "date_added": gi.date_added,
-            }
-            for gi in group_inboxes
-        }
-
-        return inbox_stats
+            return time_range_result
+        return None
 
     def query_tsdb(self, group_ids, query_params, conditions=None, environment_ids=None, **kwargs):
         return snuba_tsdb.get_range(
@@ -932,57 +969,84 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             keys=group_ids,
             environment_ids=environment_ids,
             conditions=conditions,
-            **query_params
+            **query_params,
         )
 
     def get_attrs(self, item_list, user):
-        attrs = super(StreamGroupSerializerSnuba, self).get_attrs(item_list, user)
-        if self.stats_period:
+        if not self._collapse("base"):
+            attrs = super().get_attrs(item_list, user)
+        else:
+            seen_stats = self._get_seen_stats(item_list, user)
+            if seen_stats:
+                attrs = {item: seen_stats.get(item, {}) for item in item_list}
+            else:
+                attrs = {item: {} for item in item_list}
+
+        if self.stats_period and not self._collapse("stats"):
             partial_get_stats = functools.partial(
                 self.get_stats, item_list=item_list, user=user, environment_ids=self.environment_ids
             )
             stats = partial_get_stats()
-            if self.has_dynamic_issue_counts:
-                filtered_stats = (
-                    partial_get_stats(conditions=self.conditions) if self.conditions else None
-                )
-            if self.include_inbox:
-                inbox_stats = self._get_inbox_details(item_list)
-
+            filtered_stats = (
+                partial_get_stats(conditions=self.conditions)
+                if self.conditions and not self._collapse("filtered")
+                else None
+            )
             for item in item_list:
-                if self.has_dynamic_issue_counts and self.conditions:
+                if filtered_stats:
                     attrs[item].update({"filtered_stats": filtered_stats[item.id]})
-                if self.include_inbox:
-                    attrs[item].update({"inbox": inbox_stats.get(item.id)})
-
                 attrs[item].update({"stats": stats[item.id]})
+
+        if self._expand("inbox"):
+            inbox_stats = get_inbox_details(item_list)
+            for item in item_list:
+                attrs[item].update({"inbox": inbox_stats.get(item.id)})
+
+        if self._expand("owners"):
+            owner_details = get_owner_details(item_list)
+            for item in item_list:
+                attrs[item].update({"owners": owner_details.get(item.id)})
 
         return attrs
 
     def serialize(self, obj, attrs, user):
-        result = super(StreamGroupSerializerSnuba, self).serialize(obj, attrs, user)
-
-        if self.stats_period:
-            result["stats"] = {self.stats_period: attrs["stats"]}
+        if not self._collapse("base"):
+            result = super().serialize(obj, attrs, user)
+        else:
+            result = {
+                "id": str(obj.id),
+            }
+            if "times_seen" in attrs:
+                result.update(self._convert_seen_stats(attrs))
 
         if self.matching_event_id:
             result["matchingEventId"] = self.matching_event_id
 
-        if self.has_dynamic_issue_counts:
-            result["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
+        if not self._collapse("stats"):
             if self.stats_period:
-                result["lifetime"].update({"stats": None})  # Not needed in current implementation
+                result["stats"] = {self.stats_period: attrs["stats"]}
 
-            if self.conditions:
-                result["filtered"] = self._convert_seen_stats(attrs["filtered"])
+            if not self._collapse("lifetime"):
+                result["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
                 if self.stats_period:
-                    result["filtered"].update(
-                        {"stats": {self.stats_period: attrs["filtered_stats"]}}
-                    )
-            else:
-                result["filtered"] = None
+                    result["lifetime"].update(
+                        {"stats": None}
+                    )  # Not needed in current implementation
 
-        if self.include_inbox:
+            if not self._collapse("filtered"):
+                if self.conditions:
+                    result["filtered"] = self._convert_seen_stats(attrs["filtered"])
+                    if self.stats_period:
+                        result["filtered"].update(
+                            {"stats": {self.stats_period: attrs["filtered_stats"]}}
+                        )
+                else:
+                    result["filtered"] = None
+
+        if self._expand("inbox"):
             result["inbox"] = attrs["inbox"]
+
+        if self._expand("owners"):
+            result["owners"] = attrs["owners"]
 
         return result

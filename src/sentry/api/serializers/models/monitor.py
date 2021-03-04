@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Monitor, Project
 
@@ -18,7 +14,7 @@ class MonitorSerializer(Serializer):
         }
 
         return {
-            item: {"project": projects[six.text_type(item.project_id)] if item.project_id else None}
+            item: {"project": projects[str(item.project_id)] if item.project_id else None}
             for item in item_list
         }
 
@@ -27,7 +23,7 @@ class MonitorSerializer(Serializer):
         if "schedule_type" in config:
             config["schedule_type"] = obj.get_schedule_type_display()
         return {
-            "id": six.text_type(obj.guid),
+            "id": str(obj.guid),
             "status": obj.get_status_display(),
             "type": obj.get_type_display(),
             "name": obj.name,

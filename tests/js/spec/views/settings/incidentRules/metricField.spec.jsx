@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {openMenu, selectByLabel} from 'sentry-test/select-new';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {openMenu, selectByLabel} from 'sentry-test/select-new';
 
 import Form from 'app/views/settings/components/forms/form';
 import MetricField from 'app/views/settings/incidentRules/metricField';
@@ -37,6 +37,12 @@ describe('MetricField', function () {
     openMenu(wrapper, {selector: 'QueryField', at: 1});
 
     expect(wrapper.find('SelectControl').at(1).find('Option')).toHaveLength(1);
+    expect(wrapper.find('SelectControl').at(1).find('input').at(1).props().value).toEqual(
+      {
+        kind: 'field',
+        meta: {dataType: 'string', name: 'tags[sentry:user]'},
+      }
+    );
   });
 
   it('has a select subset of transaction fields', function () {
@@ -53,7 +59,7 @@ describe('MetricField', function () {
     selectByLabel(wrapper, 'avg(…)', {selector: 'QueryField'});
     openMenu(wrapper, {selector: 'QueryField', at: 1});
 
-    expect(wrapper.find('SelectControl').at(1).find('Option')).toHaveLength(1);
+    expect(wrapper.find('SelectControl').at(1).find('Option')).toHaveLength(8);
   });
 
   it('maps field value to selected presets', function () {

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from datetime import datetime, timedelta
 import time
 
@@ -20,7 +19,7 @@ def timestamp_format(datetime):
     return time.mktime(datetime.utctimetuple()) + datetime.microsecond / 1e6
 
 
-class MockClock(object):
+class MockClock:
     """Returns a distinct, increasing timestamp each time it is called."""
 
     def __init__(self, initial=None):

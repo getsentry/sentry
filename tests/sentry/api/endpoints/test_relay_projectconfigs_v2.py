@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import pytest
-import six
 import re
 
 from uuid import uuid4
@@ -13,9 +10,9 @@ from sentry.constants import ObjectStatus
 from sentry.utils import safe, json
 from sentry.models.relay import Relay
 from sentry.models import ProjectKey, ProjectKeyStatus
+from sentry.testutils.helpers import Feature
 
 from sentry_relay.auth import generate_key_pair
-
 
 _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 
@@ -45,14 +42,12 @@ def private_key(key_pair):
 
 @pytest.fixture
 def relay_id():
-    return six.text_type(uuid4())
+    return str(uuid4())
 
 
 @pytest.fixture
 def relay(relay_id, public_key):
-    return Relay.objects.create(
-        relay_id=relay_id, public_key=six.text_type(public_key), is_internal=True
-    )
+    return Relay.objects.create(relay_id=relay_id, public_key=str(public_key), is_internal=True)
 
 
 @pytest.fixture(autouse=True)
@@ -66,7 +61,7 @@ def call_endpoint(client, relay, private_key, default_projectkey):
         path = reverse("sentry-api-0-relay-projectconfigs") + "?version=2"
 
         if public_keys is None:
-            public_keys = [six.text_type(default_projectkey.public_key)]
+            public_keys = [str(default_projectkey.public_key)]
 
         if full_config is None:
             raw_json, signature = private_key.pack({"publicKeys": public_keys})
@@ -105,7 +100,7 @@ def no_internal_networks(monkeypatch):
 
 @pytest.mark.django_db
 def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitly_ask_for_full_config(
-    call_endpoint, default_project
+    call_endpoint, default_project, default_projectkey
 ):
     result, status_code = call_endpoint(full_config=False)
 
@@ -113,9 +108,9 @@ def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitl
 
     # Sweeping assertion that we do not have any snake_case in that config.
     # Might need refining.
-    assert not set(x for x in _get_all_keys(result) if "-" in x or "_" in x)
+    assert not {x for x in _get_all_keys(result) if "-" in x or "_" in x}
 
-    cfg = safe.get_path(result, "configs", six.text_type(default_project.id))
+    cfg = safe.get_path(result, "configs", str(default_projectkey.public_key))
     assert safe.get_path(cfg, "config", "filterSettings") is None
     assert safe.get_path(cfg, "config", "groupingConfig") is None
 
@@ -130,13 +125,14 @@ def test_internal_relays_should_receive_full_configs(
 
     # Sweeping assertion that we do not have any snake_case in that config.
     # Might need refining.
-    assert not set(x for x in _get_all_keys(result) if "-" in x or "_" in x)
+    assert not {x for x in _get_all_keys(result) if "-" in x or "_" in x}
 
     cfg = safe.get_path(result, "configs", default_projectkey.public_key)
     assert safe.get_path(cfg, "disabled") is False
 
     (public_key,) = cfg["publicKeys"]
     assert public_key["publicKey"] == default_projectkey.public_key
+    assert public_key["numericId"] == default_projectkey.id
     assert public_key["isEnabled"]
     assert "quotas" in public_key
 
@@ -170,6 +166,28 @@ def test_internal_relays_should_receive_full_configs(
 
 
 @pytest.mark.django_db
+def test_relays_dyamic_sampling(
+    client, call_endpoint, default_project, default_projectkey, dyn_sampling_data
+):
+    """
+    Tests that dynamic sampling configuration set in project details are retrieved in relay configs
+    """
+    default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data())
+
+    with Feature({"organizations:filters-and-sampling": True}):
+        result, status_code = call_endpoint(full_config=False)
+        assert status_code < 400
+        dynamic_sampling = safe.get_path(
+            result,
+            "configs",
+            str(default_projectkey.public_key),
+            "config",
+            "dynamicSampling",
+        )
+        assert dynamic_sampling == dyn_sampling_data()
+
+
+@pytest.mark.django_db
 def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
     add_org_key, call_endpoint, no_internal_networks
 ):
@@ -179,20 +197,20 @@ def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
 
 @pytest.mark.django_db
 def test_when_not_sending_full_config_info_into_a_internal_relay_a_restricted_config_is_returned(
-    call_endpoint, default_project
+    call_endpoint, default_project, default_projectkey
 ):
     result, status_code = call_endpoint(full_config=None)
 
     assert status_code < 400
 
-    cfg = safe.get_path(result, "configs", six.text_type(default_project.id))
+    cfg = safe.get_path(result, "configs", str(default_projectkey.public_key))
     assert safe.get_path(cfg, "config", "filterSettings") is None
     assert safe.get_path(cfg, "config", "groupingConfig") is None
 
 
 @pytest.mark.django_db
 def test_when_not_sending_full_config_info_into_an_external_relay_a_restricted_config_is_returned(
-    call_endpoint, add_org_key, relay, default_project
+    call_endpoint, add_org_key, relay, default_project, default_projectkey
 ):
     relay.is_internal = False
     relay.save()
@@ -201,7 +219,7 @@ def test_when_not_sending_full_config_info_into_an_external_relay_a_restricted_c
 
     assert status_code < 400
 
-    cfg = safe.get_path(result, "configs", six.text_type(default_project.id))
+    cfg = safe.get_path(result, "configs", str(default_projectkey.public_key))
     assert safe.get_path(cfg, "config", "filterSettings") is None
     assert safe.get_path(cfg, "config", "groupingConfig") is None
 
@@ -221,6 +239,7 @@ def test_trusted_external_relays_should_receive_minimal_configs(
     assert safe.get_path(cfg, "disabled") is False
     (public_key,) = cfg["publicKeys"]
     assert public_key["publicKey"] == default_projectkey.public_key
+    assert public_key["numericId"] == default_projectkey.id
     assert public_key["isEnabled"]
     assert "quotas" not in public_key
 
@@ -293,7 +312,7 @@ def test_relay_projectconfig_cache_full_config(
     http_cfg = result["configs"][default_projectkey.public_key]
     (call,) = projectconfig_cache_set
     assert len(call) == 1
-    redis_cfg = call[six.text_type(default_projectkey.public_key)]
+    redis_cfg = call[str(default_projectkey.public_key)]
 
     del http_cfg["lastFetch"]
     del http_cfg["lastChange"]
@@ -313,9 +332,7 @@ def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_
 
     assert result == {"configs": {wrong_public_key: {"disabled": True}}}
 
-    assert projectconfig_cache_set == [
-        {six.text_type(wrong_public_key): result["configs"][wrong_public_key]}
-    ]
+    assert projectconfig_cache_set == [{str(wrong_public_key): result["configs"][wrong_public_key]}]
 
 
 @pytest.mark.django_db
@@ -332,9 +349,7 @@ def test_relay_disabled_project(
 
     assert result == {"configs": {wrong_public_key: {"disabled": True}}}
 
-    assert projectconfig_cache_set == [
-        {six.text_type(wrong_public_key): result["configs"][wrong_public_key]}
-    ]
+    assert projectconfig_cache_set == [{str(wrong_public_key): result["configs"][wrong_public_key]}]
 
 
 @pytest.mark.django_db
@@ -347,7 +362,7 @@ def test_relay_disabled_key(
         result, status_code = call_endpoint(full_config=True)
         assert status_code < 400
 
-    (http_cfg,) = six.itervalues(result["configs"])
+    (http_cfg,) = result["configs"].values()
     assert http_cfg == {"disabled": True}
 
-    assert projectconfig_cache_set == [{six.text_type(default_projectkey.public_key): http_cfg}]
+    assert projectconfig_cache_set == [{str(default_projectkey.public_key): http_cfg}]

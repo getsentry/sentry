@@ -1,14 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
-import {t, tct} from 'app/locale';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import getDynamicText from 'app/utils/getDynamicText';
 import Field from 'app/views/settings/components/forms/field';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import getDynamicText from 'app/utils/getDynamicText';
-import space from 'app/styles/space';
+import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
 
 const DEFAULT_PROPS = {
   showDsn: true,

@@ -1,15 +1,15 @@
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Query} from 'history';
+import PropTypes from 'prop-types';
 
-import {IconChevron} from 'app/icons';
-import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
+import {IconChevron} from 'app/icons';
+import {t} from 'app/locale';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 
 const defaultProps = {
   size: 'small',
@@ -31,13 +31,6 @@ type Props = {
 } & DefaultProps;
 
 class Pagination extends React.Component<Props> {
-  static propTypes = {
-    pageLinks: PropTypes.string,
-    to: PropTypes.string,
-    onCursor: PropTypes.func,
-    className: PropTypes.string,
-  };
-
   static contextTypes = {
     location: PropTypes.object,
   };
@@ -61,13 +54,7 @@ class Pagination extends React.Component<Props> {
       <div className={className}>
         <ButtonBar merged>
           <Button
-            icon={
-              <IconChevron
-                direction="left"
-                size="sm"
-                color={previousDisabled ? 'gray400' : 'gray700'}
-              />
-            }
+            icon={<IconChevron direction="left" size="sm" />}
             aria-label={t('Previous')}
             size={size}
             disabled={previousDisabled}
@@ -76,13 +63,7 @@ class Pagination extends React.Component<Props> {
             }}
           />
           <Button
-            icon={
-              <IconChevron
-                direction="right"
-                size="sm"
-                color={nextDisabled ? 'gray400' : 'gray700'}
-              />
-            }
+            icon={<IconChevron direction="right" size="sm" />}
             aria-label={t('Next')}
             size={size}
             disabled={nextDisabled}

@@ -1,7 +1,4 @@
-from __future__ import absolute_import, print_function
-
 import pytz
-import six
 
 from croniter import croniter
 from datetime import datetime, timedelta
@@ -61,7 +58,7 @@ def get_monitor_context(monitor):
         config["schedule_type"] = monitor.get_schedule_type_display()
 
     return {
-        "id": six.text_type(monitor.guid),
+        "id": str(monitor.guid),
         "name": monitor.name,
         "config": monitor.config,
         "status": monitor.get_status_display(),
@@ -76,16 +73,16 @@ class MonitorStatus(ObjectStatus):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.ACTIVE, u"active"),
-            (cls.DISABLED, u"disabled"),
-            (cls.PENDING_DELETION, u"pending_deletion"),
-            (cls.DELETION_IN_PROGRESS, u"deletion_in_progress"),
-            (cls.OK, u"ok"),
-            (cls.ERROR, u"error"),
+            (cls.ACTIVE, "active"),
+            (cls.DISABLED, "disabled"),
+            (cls.PENDING_DELETION, "pending_deletion"),
+            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
+            (cls.OK, "ok"),
+            (cls.ERROR, "error"),
         )
 
 
-class MonitorType(object):
+class MonitorType:
     UNKNOWN = 0
     HEALTH_CHECK = 1
     HEARTBEAT = 2
@@ -105,13 +102,13 @@ class MonitorType(object):
         return dict(cls.as_choices())[value]
 
 
-class MonitorFailure(object):
+class MonitorFailure:
     UNKNOWN = "unknown"
     MISSED_CHECKIN = "missed_checkin"
     DURATION = "duration"
 
 
-class ScheduleType(object):
+class ScheduleType:
     UNKNOWN = 0
     CRONTAB = 1
     INTERVAL = 2
@@ -137,7 +134,7 @@ class Monitor(Model):
     )
     type = BoundedPositiveIntegerField(
         default=MonitorType.UNKNOWN,
-        choices=[(k, six.text_type(v)) for k, v in MonitorType.as_choices()],
+        choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
     )
     config = EncryptedJsonField(default=dict)
     next_checkin = models.DateTimeField(null=True)
@@ -194,9 +191,9 @@ class Monitor(Model):
 
         event_manager = EventManager(
             {
-                "logentry": {"message": "Monitor failure: %s (%s)" % (self.name, reason)},
+                "logentry": {"message": f"Monitor failure: {self.name} ({reason})"},
                 "contexts": {"monitor": get_monitor_context(self)},
-                "fingerprint": ["monitor", six.text_type(self.guid), reason],
+                "fingerprint": ["monitor", str(self.guid), reason],
             },
             project=Project(id=self.project_id),
         )

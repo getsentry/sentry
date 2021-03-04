@@ -1,4 +1,3 @@
-@import url('components/charts.less');
 @import url('components/statuspage.less');
 
 dl.flat {
@@ -48,15 +47,15 @@ dl.flat dd {
   font-weight: 600;
   padding: 8px 16px;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
-
-  .transition(all 0.1s);
+  transition: all 0.1s;
 
   &.disabled,
-  &.btn-disabled {
-    color: #ced3d6;
-    border-color: #e3e5e6;
-    box-shadow: none;
-    cursor: default;
+  &.disabled:hover {
+    color: #ced3d6 !important;
+    border-color: #e3e5e6 !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
+    background: none !important;
   }
 }
 
@@ -82,7 +81,6 @@ dl.flat dd {
 .btn-default {
   color: @gray-dark;
   background: #fff;
-  #gradient > .vertical(#fff, @10);
   border-color: lighten(@gray-lighter, 7);
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.03);
 
@@ -147,28 +145,6 @@ dl.flat dd {
   }
 }
 
-.btn-group .btn + .btn {
-  margin-left: -1px;
-}
-
-.btn-group .btn + .dropdown {
-  .btn {
-    margin-left: -1px;
-    padding-left: 8px;
-    padding-right: 8px;
-    border-radius: 0 3px 3px 0;
-  }
-}
-
-.btn-group.open .dropdown-toggle {
-  box-shadow: none;
-}
-
-// Align the dropdown menu tip to the center of the open button
-.btn-group > .dropdown.open > .dropdown-menu {
-  left: -5px;
-}
-
 // Disabled buttons
 
 .btn-primary.disabled,
@@ -220,34 +196,6 @@ fieldset[disabled] .btn-danger.active,
     display: block;
     line-height: 18px;
     top: 0;
-  }
-}
-
-// btn-group
-
-.btn-group {
-  .btn:active {
-    position: static;
-  }
-  .btn code {
-    background: transparent;
-    color: inherit;
-    padding: 0;
-  }
-  .btn {
-    position: relative;
-    z-index: 1 !important;
-  }
-
-  .btn.active {
-    color: #fff;
-    box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.05);
-    background: @purple;
-    border-color: darken(@purple, 15);
-    z-index: 2 !important;
-    &:hover {
-      color: #fff;
-    }
   }
 }
 
@@ -308,7 +256,7 @@ pre.plain {
 }
 
 .external-icon {
-  .transition(0.1s linear color);
+  transition: 0.1s linear color;
   font-size: 11px;
   margin: 0 5px;
   color: @gray-light;
@@ -710,11 +658,7 @@ table.table.key-value {
     padding: 8px 34px 8px 37px;
     font-size: 14px;
     background: #fff;
-    .transition(none);
-
-    &:focus {
-      border-radius: 3px 3px 0 0;
-    }
+    transition: none;
   }
 
   &.disabled {
@@ -925,11 +869,6 @@ table.table.key-value {
       }
     }
 
-    .btn-group {
-      float: right;
-      position: relative;
-    }
-
     .nav-tabs {
       float: right;
       line-height: inherit;
@@ -1110,7 +1049,7 @@ header + .alert {
     top: -6px;
     right: 8px;
     box-shadow: none;
-    .transition(color 0.15s);
+    transition: color 0.15s;
     color: rgba(0, 0, 0, 0.25);
     background: 0;
     border: 0;
@@ -1373,7 +1312,8 @@ header + .alert {
   letter-spacing: 0.1px;
   .clearfix;
 
-  a.help-link {
+  a.help-link,
+  span.help-link a {
     color: inherit;
     border-bottom: 1px dotted @gray-light;
   }
@@ -1519,7 +1459,7 @@ header + .alert {
 */
 
 ul.radio-inputs {
-  .list-unstyled;
+  list-style: none;
   position: relative;
   display: inline-block;
   margin-bottom: 10px;

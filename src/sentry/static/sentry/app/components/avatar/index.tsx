@@ -4,7 +4,7 @@ import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
 import ProjectAvatar from 'app/components/avatar/projectAvatar';
 import TeamAvatar from 'app/components/avatar/teamAvatar';
 import UserAvatar from 'app/components/avatar/userAvatar';
-import {Team, OrganizationSummary, AvatarProject} from 'app/types';
+import {AvatarProject, OrganizationSummary, Team} from 'app/types';
 
 type Props = {
   team?: Team;

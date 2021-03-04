@@ -1,17 +1,17 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {RouteComponentProps} from 'react-router/lib/Router';
 
+import BarChart from 'app/components/charts/barChart';
+import LineChart from 'app/components/charts/lineChart';
+import DateTime from 'app/components/dateTime';
+import Link from 'app/components/links/link';
+import {Panel, PanelBody, PanelFooter, PanelHeader} from 'app/components/panels';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {SentryApp} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import LineChart from 'app/components/charts/lineChart';
-import {Panel, PanelBody, PanelHeader, PanelFooter} from 'app/components/panels';
-import BarChart from 'app/components/charts/barChart';
-import Link from 'app/components/links/link';
-import DateTime from 'app/components/dateTime';
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import {SentryApp} from 'app/types';
 
 import RequestLog from './requestLog';
 
@@ -34,7 +34,7 @@ type State = AsyncView['state'] & {
 };
 
 export default class SentryApplicationDashboard extends AsyncView<Props, State> {
-  getEndpoints(): Array<[string, string, any] | [string, string]> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {appSlug} = this.props.params;
 
     // Default time range for now: 90 days ago to now
@@ -249,7 +249,7 @@ const StatsHeader = styled('h6')`
   margin-bottom: ${space(1)};
   font-size: 12px;
   text-transform: uppercase;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
 `;
 
 const StyledFooter = styled('div')`

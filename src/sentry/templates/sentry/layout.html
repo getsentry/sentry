@@ -14,6 +14,7 @@
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
   <meta name="robots" content="NONE,NOARCHIVE">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
 
   <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
 
@@ -30,20 +31,38 @@
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
+  {% script %}
   <script>
     window.__initialData = {% get_react_config %};
   </script>
+  {% endscript %}
+
+  {% script %}
+    {% include "sentry/partial/preload-data.html" %}
+  {% endscript %}
 
   {% block scripts %}
   {% locale_js_include %}
-  <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
-  <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %} data-entry="true"></script>
+  {% asset_url "sentry" "dist/vendor.js" as asset_url %}
+  {% script src=asset_url %}{% endscript %}
 
+  {% asset_url "sentry" "dist/app.js" as asset_url %}
+  {% script src=asset_url data-entry="true" %}{% endscript %}
+
+  {% injected_script_assets as injected_assets %}
+  {% for asset_url in injected_assets %}
+    {% script src=asset_url %}{% endscript %}
+  {% endfor %}
+
+  {% script %}
   <script>
     // if the ads.js file loads below it will mark this variable as false
     window.adblockSuspected = true;
   </script>
-  <script src="{% asset_url 'sentry' 'js/ads.js' %}"></script>
+  {% endscript %}
+
+  {% asset_url 'sentry' 'js/ads.js' as asset_url %}
+  {% script src=asset_url %}{% endscript %}
   {% endblock %}
 </head>
 
@@ -63,20 +82,6 @@
         {% block content %}{% endblock %}
       </div>
     </div>
-    <footer>
-      <div class="container">
-        {% block footer %}
-        <div class="pull-right">
-          <a href="https://docs.sentry.io/api/">{% trans "API" %}</a>
-          <a href="https://docs.sentry.io">{% trans "Docs" %}</a>
-          <a href="https://github.com/getsentry/sentry" rel="noreferrer">{% trans "Contribute" %}</a>
-          {% if ONPREMISE %}<a href="/out/">{% trans "Migrate to SaaS" %}</a>{% endif %}
-        </div>
-        {% if ONPREMISE %}<div class="version pull-left">Sentry {{ sentry_version.current }} ({{ sentry_version.build }}) {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>{% endif %}
-        <a href="/" class="icon-sentry-logo"></a>
-        {% endblock %}
-      </div>
-    </footer>
   </div>
   {% endblock %}
 

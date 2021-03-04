@@ -1,10 +1,10 @@
-import Registry from 'app/plugins/registry';
 import BasePlugin from 'app/plugins/basePlugin';
 import DefaultIssuePlugin from 'app/plugins/defaultIssuePlugin';
+import Registry from 'app/plugins/registry';
 
-import SessionStackPlugin from './sessionstack';
 import SessionStackContextType from './sessionstack/contexts/sessionstack';
 import Jira from './jira';
+import SessionStackPlugin from './sessionstack';
 
 const contexts: Record<string, React.ElementType> = {};
 const registry = new Registry();
@@ -18,7 +18,7 @@ contexts.sessionstack = SessionStackContextType;
 // Jira
 registry.add('jira', Jira);
 
-export {BasePlugin, registry, DefaultIssuePlugin};
+export {BasePlugin, DefaultIssuePlugin, registry};
 
 const add: typeof registry.add = registry.add.bind(registry);
 const get: typeof registry.get = registry.get.bind(registry);

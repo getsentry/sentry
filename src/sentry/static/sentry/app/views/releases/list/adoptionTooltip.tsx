@@ -1,15 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Count from 'app/components/count';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import Count from 'app/components/count';
 
 type Props = {
-  totalUsers: number;
-  totalUsers24h: number | null;
-  totalSessions: number;
-  totalSessions24h: number | null;
+  totalUsers?: number;
+  totalUsers24h?: number | null;
+  totalSessions?: number;
+  totalSessions24h?: number | null;
 };
 
 const AdoptionTooltip = ({
@@ -21,29 +21,30 @@ const AdoptionTooltip = ({
   return (
     <Wrapper>
       <Row>
+        <Title>{t('Total Users')}:</Title>
+        <Value>
+          <Count value={totalUsers ?? 0} />
+        </Value>
+      </Row>
+      <Row>
         <Title>{t('Last 24h')}:</Title>
         <Value>
           <Count value={totalUsers24h ?? 0} />
         </Value>
       </Row>
-      <Row>
-        <Title>{t('Total Users')}:</Title>
-        <Value>
-          <Count value={totalUsers} />
-        </Value>
-      </Row>
+
       <Divider />
 
+      <Row>
+        <Title>{t('Total Sessions')}:</Title>
+        <Value>
+          <Count value={totalSessions ?? 0} />
+        </Value>
+      </Row>
       <Row>
         <Title>{t('Last 24h')}:</Title>
         <Value>
           <Count value={totalSessions24h ?? 0} />
-        </Value>
-      </Row>
-      <Row>
-        <Title>{t('Total Sessions')}:</Title>
-        <Value>
-          <Count value={totalSessions} />
         </Value>
       </Row>
     </Wrapper>
@@ -64,11 +65,11 @@ const Title = styled('div')`
   text-align: left;
 `;
 const Value = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   text-align: right;
 `;
 const Divider = styled('div')`
-  border-top: 1px solid ${p => p.theme.gray800};
+  border-top: 1px solid ${p => p.theme.gray500};
   margin: ${space(0.75)} -${space(2)} ${space(1)};
 `;
 

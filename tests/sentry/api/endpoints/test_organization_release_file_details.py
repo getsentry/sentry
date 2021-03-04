@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import File, Release, ReleaseFile
@@ -36,7 +32,7 @@ class ReleaseFileDetailsTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(releasefile.id)
+        assert response.data["id"] == str(releasefile.id)
 
     def test_file_download(self):
         self.login_as(user=self.user)
@@ -46,7 +42,7 @@ class ReleaseFileDetailsTest(APITestCase):
         release = Release.objects.create(organization_id=project.organization_id, version="1")
         release.add_project(project)
 
-        from six import BytesIO
+        from io import BytesIO
 
         f = File.objects.create(name="applicatiosn.js", type="release.file")
         f.putfile(BytesIO(b"File contents here"))
@@ -71,7 +67,7 @@ class ReleaseFileDetailsTest(APITestCase):
         response = self.client.get(url + "?download=1")
         assert response.status_code == 200, response.content
         assert response.get("Content-Disposition") == 'attachment; filename="appli catios n.js"'
-        assert response.get("Content-Length") == six.text_type(f.size)
+        assert response.get("Content-Length") == str(f.size)
         assert response.get("Content-Type") == "application/octet-stream"
         assert b"File contents here" == BytesIO(b"".join(response.streaming_content)).getvalue()
 
@@ -109,7 +105,7 @@ class ReleaseFileUpdateTest(APITestCase):
         response = self.client.put(url, {"name": "foobar"})
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(releasefile.id)
+        assert response.data["id"] == str(releasefile.id)
 
         releasefile = ReleaseFile.objects.get(id=releasefile.id)
         assert releasefile.name == "foobar"

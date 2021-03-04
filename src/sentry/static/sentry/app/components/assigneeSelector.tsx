@@ -1,55 +1,68 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
+import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
-import SentryTypes from 'app/sentryTypes';
-import {User} from 'app/types';
-import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
+import {assignToActor, assignToUser, clearAssignment} from 'app/actionCreators/group';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
-import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
-import UserAvatar from 'app/components/avatar/userAvatar';
+import SuggestedAvatarStack from 'app/components/avatar/suggestedAvatarStack';
 import TeamAvatar from 'app/components/avatar/teamAvatar';
-import ConfigStore from 'app/stores/configStore';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownBubble from 'app/components/dropdownBubble';
-import GroupStore from 'app/stores/groupStore';
 import Highlight from 'app/components/highlight';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import TextOverflow from 'app/components/textOverflow';
+import Tooltip from 'app/components/tooltip';
+import {IconAdd, IconChevron, IconClose, IconUser} from 'app/icons';
+import {t, tct, tn} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import ConfigStore from 'app/stores/configStore';
+import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
-import TextOverflow from 'app/components/textOverflow';
 import space from 'app/styles/space';
-import {IconAdd, IconClose, IconChevron, IconUser} from 'app/icons';
+import {
+  Actor,
+  SuggestedAssignee,
+  SuggestedOwner,
+  SuggestedOwnerReason,
+  Team,
+  User,
+} from 'app/types';
+import {buildTeamId, buildUserId, valueIsEqual} from 'app/utils';
 
 type Props = {
   id: string | null;
   size?: number;
   memberList?: User[];
+  disabled?: boolean;
+  onAssign?: (
+    type: Actor['type'],
+    assignee: User | Actor,
+    suggestedAssignee?: SuggestedAssignee
+  ) => void;
 };
 
 type State = {
   loading: boolean;
-  assignedTo?: User;
+  assignedTo?: Actor;
   memberList?: User[];
+  suggestedOwners?: SuggestedOwner[] | null;
+};
+
+type AssignableTeam = {
+  id: string;
+  display: string;
+  email: string;
+  team: Team;
 };
 
 const AssigneeSelectorComponent = createReactClass<Props, State>({
   displayName: 'AssigneeSelector',
-
-  propTypes: {
-    id: PropTypes.string.isRequired,
-    size: PropTypes.number,
-    // Either a list of users, or null. If null, members will
-    // be read from the MemberListStore. The prop is useful when the
-    // store contains more/different users than you need to show
-    // in an individual component, eg. Org Issue list
-    memberList: PropTypes.array,
-  },
 
   contextTypes: {
     organization: SentryTypes.Organization,
@@ -72,11 +85,13 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     const group = GroupStore.get(this.props.id);
     const memberList = MemberListStore.loaded ? MemberListStore.getAll() : undefined;
     const loading = GroupStore.hasStatus(this.props.id, 'assignTo');
+    const suggestedOwners = group && group.owners;
 
     return {
       assignedTo: group && group.assignedTo,
       memberList,
       loading,
+      suggestedOwners,
     };
   },
 
@@ -87,6 +102,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
       this.setState({
         loading,
         assignedTo: group && group.assignedTo,
+        suggestedOwners: group && group.owners,
       });
     }
   },
@@ -119,7 +135,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     return this.props.memberList ? this.props.memberList : this.state.memberList;
   },
 
-  assignableTeams() {
+  assignableTeams(): AssignableTeam[] {
     if (!this.props.id) {
       return [];
     }
@@ -149,6 +165,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     const group = GroupStore.get(this.props.id);
     this.setState({
       assignedTo: group && group.assignedTo,
+      suggestedOwners: group && group.owners,
       loading: this.props.id && GroupStore.hasStatus(this.props.id, 'assignTo'),
     });
   },
@@ -173,6 +190,15 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     }
 
     e.stopPropagation();
+
+    const {onAssign} = this.props as Props;
+    if (onAssign) {
+      const suggestionType = type === 'member' ? 'user' : type;
+      const suggestion = this.getSuggestedAssignees()?.find(
+        actor => actor.type === suggestionType && actor.id === assignee.id
+      );
+      onAssign?.(type, assignee, suggestion);
+    }
   },
 
   clearAssignTo(e) {
@@ -182,11 +208,10 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     e.stopPropagation();
   },
 
-  renderNewMemberNodes() {
+  renderMemberNode(member: User, suggestedReason: string) {
     const {size} = this.props;
-    const members = putSessionUserFirst(this.memberList());
 
-    return members.map(member => ({
+    return {
       value: {type: 'member', assignee: member},
       searchKey: `${member.email} ${member.name}`,
       label: ({inputValue}) => (
@@ -200,16 +225,22 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
           </IconContainer>
           <Label>
             <Highlight text={inputValue}>{member.name || member.email}</Highlight>
+            {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
           </Label>
         </MenuItemWrapper>
       ),
-    }));
+    };
   },
 
-  renderNewTeamNodes() {
-    const {size} = this.props;
+  renderNewMemberNodes() {
+    const members = putSessionUserFirst(this.memberList());
+    return members.map(member => this.renderMemberNode(member));
+  },
 
-    return this.assignableTeams().map(({id, display, team}) => ({
+  renderTeamNode(assignableTeam: AssignableTeam, suggestedReason: string) {
+    const {size} = this.props;
+    const {id, display, team} = assignableTeam;
+    return {
       value: {type: 'team', assignee: team},
       searchKey: team.slug,
       label: ({inputValue}) => (
@@ -223,34 +254,135 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
           </IconContainer>
           <Label>
             <Highlight text={inputValue}>{display}</Highlight>
+            {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
           </Label>
         </MenuItemWrapper>
       ),
-    }));
+    };
+  },
+
+  renderNewTeamNodes() {
+    return this.assignableTeams().map(team => this.renderTeamNode(team));
+  },
+
+  renderSuggestedAssigneeNodes() {
+    const {assignedTo} = this.state;
+    return (
+      // filter out suggested assignees if a suggestion is already selected
+      this.getSuggestedAssignees()
+        ?.filter(
+          ({type, id}: SuggestedAssignee) =>
+            !(assignedTo && type === assignedTo.type && id === assignedTo.id)
+        )
+        .map(({type, suggestedReason, assignee}) => {
+          const reason =
+            suggestedReason === 'suspectCommit'
+              ? t('(Suspect Commit)')
+              : t('(Issue Owner)');
+          if (type === 'user') {
+            return this.renderMemberNode(assignee, reason);
+          } else if (type === 'team') {
+            return this.renderTeamNode(assignee, reason);
+          }
+          return null;
+        })
+    );
+  },
+
+  renderDropdownGroupLabel(label: string) {
+    return <GroupHeader>{label}</GroupHeader>;
   },
 
   renderNewDropdownItems() {
     const teams = this.renderNewTeamNodes();
     const members = this.renderNewMemberNodes();
 
-    return [
-      {id: 'team-header', hideGroupLabel: true, items: teams},
-      {id: 'members-header', items: members},
+    const dropdownItems = [
+      {label: this.renderDropdownGroupLabel(t('Teams')), id: 'team-header', items: teams},
+      {
+        label: this.renderDropdownGroupLabel(t('People')),
+        id: 'members-header',
+        items: members,
+      },
     ];
+
+    const suggestedAssignees = this.renderSuggestedAssigneeNodes()?.filter(
+      assignee => !!assignee
+    );
+    if (suggestedAssignees && suggestedAssignees.length) {
+      dropdownItems.unshift({
+        label: this.renderDropdownGroupLabel(t('Suggested')),
+        id: 'suggested-header',
+        items: suggestedAssignees,
+      });
+    }
+    return dropdownItems;
+  },
+
+  getSuggestedAssignees(): SuggestedAssignee[] | null {
+    const {suggestedOwners} = this.state as State;
+    if (!suggestedOwners) {
+      return null;
+    }
+    return suggestedOwners
+      .map(owner => {
+        // converts a backend suggested owner to a suggested assignee
+        const [ownerType, id] = owner.owner.split(':');
+        if (ownerType === 'user') {
+          const member = this.memberList()?.find(user => user.id === id);
+          if (member) {
+            return {
+              type: 'user',
+              id,
+              name: member.name,
+              suggestedReason: owner.type,
+              assignee: member,
+            };
+          }
+        } else if (ownerType === 'team') {
+          const matchingTeam = this.assignableTeams().find(
+            assignableTeam => assignableTeam.id === owner.owner
+          );
+          if (matchingTeam) {
+            return {
+              type: 'team',
+              id,
+              name: matchingTeam.team.name,
+              suggestedReason: owner.type,
+              assignee: matchingTeam,
+            };
+          }
+        }
+        return null;
+      })
+      .filter((owner): owner is SuggestedAssignee => !!owner);
   },
 
   render() {
-    const {className} = this.props;
-    const {loading, assignedTo} = this.state;
+    const {disabled} = this.props as Props;
+    const {loading, assignedTo} = this.state as State;
     const memberList = this.memberList();
+    const suggestedActors: SuggestedAssignee[] = this.getSuggestedAssignees();
+    const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
+      suspectCommit: tct('Based on [commit:commit data]', {
+        commit: (
+          <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/guides/integrate-frontend/configure-scms/" />
+        ),
+      }),
+      ownershipRule: t('Matching Issue Owners Rule'),
+    };
+    const assignedToSuggestion = suggestedActors?.find(
+      actor => actor.id === assignedTo?.id
+    );
 
     return (
-      <div className={className}>
+      <AssigneeWrapper>
         {loading && (
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}
         {!loading && (
           <DropdownAutoComplete
+            disabled={disabled}
             maxHeight={400}
             onOpen={e => {
               // This can be called multiple times and does not always have `event`
@@ -297,19 +429,81 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
             menuWithArrow
             emptyHidesInput
           >
-            {({getActorProps}) => (
+            {({getActorProps, isOpen}) => (
               <DropdownButton {...getActorProps({})}>
                 {assignedTo ? (
-                  <ActorAvatar actor={assignedTo} className="avatar" size={24} />
+                  <ActorAvatar
+                    actor={assignedTo}
+                    className="avatar"
+                    size={24}
+                    tooltip={
+                      <TooltipWrapper>
+                        {tct('Assigned to [name]', {
+                          name:
+                            assignedTo.type === 'team'
+                              ? `#${assignedTo.name}`
+                              : assignedTo.name,
+                        })}
+                        {assignedToSuggestion && (
+                          <TooltipSubtext>
+                            {suggestedReasons[assignedToSuggestion.suggestedReason]}
+                          </TooltipSubtext>
+                        )}
+                      </TooltipWrapper>
+                    }
+                  />
+                ) : suggestedActors && suggestedActors.length > 0 ? (
+                  <SuggestedAvatarStack
+                    size={24}
+                    owners={suggestedActors}
+                    tooltipOptions={{isHoverable: true}}
+                    tooltip={
+                      <TooltipWrapper>
+                        <div>
+                          {tct('Suggestion: [name]', {
+                            name:
+                              suggestedActors[0].type === 'team'
+                                ? `#${suggestedActors[0].name}`
+                                : suggestedActors[0].name,
+                          })}
+                          {suggestedActors.length > 1 &&
+                            tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
+                        </div>
+                        <TooltipSubtext>
+                          {suggestedReasons[suggestedActors[0].suggestedReason]}
+                        </TooltipSubtext>
+                      </TooltipWrapper>
+                    }
+                  />
                 ) : (
-                  <StyledIconUser size="20px" color="gray600" />
+                  <Tooltip
+                    isHoverable
+                    skipWrapper
+                    title={
+                      <TooltipWrapper>
+                        <div>{t('Unassigned')}</div>
+                        <TooltipSubtext>
+                          {tct(
+                            'You can auto-assign issues by adding [issueOwners:Issue Owner rules].',
+                            {
+                              issueOwners: (
+                                <TooltipSubExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
+                              ),
+                            }
+                          )}
+                        </TooltipSubtext>
+                      </TooltipWrapper>
+                    }
+                  >
+                    <StyledIconUser size="20px" color="gray400" />
+                  </Tooltip>
                 )}
-                <StyledChevron direction="down" size="xs" />
+                <StyledChevron direction={isOpen ? 'up' : 'down'} size="xs" />
               </DropdownButton>
             )}
           </DropdownAutoComplete>
         )}
-      </div>
+      </AssigneeWrapper>
     );
   },
 });
@@ -336,7 +530,7 @@ export function putSessionUserFirst(members: User[] | undefined): User[] {
   return arrangedMembers;
 }
 
-const AssigneeSelector = styled(AssigneeSelectorComponent)`
+const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
 
@@ -346,8 +540,7 @@ const AssigneeSelector = styled(AssigneeSelectorComponent)`
   }
 `;
 
-export default AssigneeSelector;
-export {AssigneeSelectorComponent};
+export default AssigneeSelectorComponent;
 
 const StyledIconUser = styled(IconUser)`
   /* We need this to center with Avatar */
@@ -403,4 +596,35 @@ const DropdownButton = styled('div')`
   display: flex;
   align-items: center;
   font-size: 20px;
+`;
+
+const GroupHeader = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 600;
+  margin: ${space(1)} 0;
+  color: ${p => p.theme.subText};
+  line-height: ${p => p.theme.fontSizeSmall};
+  text-align: left;
+`;
+
+const SuggestedReason = styled('span')`
+  margin-left: ${space(0.5)};
+  color: ${p => p.theme.textColor};
+`;
+
+const TooltipWrapper = styled('div')`
+  text-align: left;
+`;
+
+const TooltipSubtext = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const TooltipSubExternalLink = styled(ExternalLink)`
+  color: ${p => p.theme.subText};
+  text-decoration: underline;
+
+  :hover {
+    color: ${p => p.theme.subText};
+  }
 `;

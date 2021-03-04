@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from enum import Enum
 from collections import namedtuple
 
@@ -52,10 +50,18 @@ class Columns(Enum):
     )
 
     HTTP_METHOD = Column(
-        "events.http_method", "http_method", "http_method", "http_method", "http.method",
+        "events.http_method",
+        "http_method",
+        "http_method",
+        "http_method",
+        "http.method",
     )
     HTTP_REFERER = Column(
-        "events.http_referer", "http_referer", "http_referer", "http_referer", "http.referer",
+        "events.http_referer",
+        "http_referer",
+        "http_referer",
+        "http_referer",
+        "http.referer",
     )
     HTTP_URL = Column("events.tags[url]", "tags[url]", "tags[url]", "tags[url]", "http.url")
     OS_BUILD = Column(
@@ -264,10 +270,18 @@ class Columns(Enum):
         None, None, "transaction_status", "transaction_status", "transaction.status"
     )
     MEASUREMENTS_KEYS = Column(
-        None, None, "measurements.key", "measurements.key", "measurements_key",
+        None,
+        None,
+        "measurements.key",
+        "measurements.key",
+        "measurements_key",
     )
     MEASUREMENTS_VALUES = Column(
-        None, None, "measurements.value", "measurements.value", "measurements_value",
+        None,
+        None,
+        "measurements.value",
+        "measurements.value",
+        "measurements_value",
     )
     # Tracing context fields.
     TRACE_ID = Column(
@@ -290,4 +304,13 @@ class Columns(Enum):
         "contexts[trace.parent_span_id]",
         "contexts[trace.parent_span_id]",
         "trace.parent_span",
+    )
+
+    # Reprocessing context
+    REPROCESSING_ORIGINAL_GROUP_ID = Column(
+        "events.contexts[reprocessing.original_issue_id]",
+        "contexts[reprocessing.original_issue_id]",
+        "contexts[reprocessing.original_issue_id]",
+        "contexts[reprocessing.original_issue_id]",
+        "reprocessing.original_issue_id",
     )

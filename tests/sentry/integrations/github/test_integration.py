@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 import responses
 import sentry
 
 from sentry.utils.compat.mock import MagicMock
-from six.moves.urllib.parse import urlencode, urlparse
+from urllib.parse import urlencode, urlparse
 
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.constants import ObjectStatus
@@ -20,7 +18,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     base_url = "https://api.github.com"
 
     def setUp(self):
-        super(GitHubIntegrationTest, self).setUp()
+        super().setUp()
 
         self.installation_id = "install_1"
         self.user_id = "user_1"
@@ -33,7 +31,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     def tearDown(self):
         unregister_mock_plugins()
-        super(GitHubIntegrationTest, self).tearDown()
+        super().tearDown()
 
     def _stub_github(self):
         responses.reset()
@@ -43,7 +41,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            self.base_url + "/app/installations/{}/access_tokens".format(self.installation_id),
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
             json={"token": self.access_token, "expires_at": self.expires_at},
         )
 
@@ -60,7 +58,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            self.base_url + "/app/installations/{}".format(self.installation_id),
+            self.base_url + f"/app/installations/{self.installation_id}",
             json={
                 "id": self.installation_id,
                 "app_id": self.app_id,
@@ -85,7 +83,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         # App installation ID is provided
         resp = self.client.get(
-            u"{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
+            "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
 
         auth_header = responses.calls[0].request.headers["Authorization"]
@@ -158,7 +156,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert integration.external_id == self.installation_id
 
         resp = self.client.get(
-            u"{}?{}".format(self.init_path, urlencode({"reinstall_id": integration.id}))
+            "{}?{}".format(self.init_path, urlencode({"reinstall_id": integration.id}))
         )
 
         assert resp.status_code == 302
@@ -173,7 +171,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self._stub_github()
 
         resp = self.client.get(
-            u"{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
+            "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
 
         assert resp.status_code == 200
@@ -251,15 +249,16 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         path = "README.md"
-        version = "master"
+        version = "1234567"
+        default = "master"
         responses.add(
             responses.HEAD,
-            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
         )
         installation = integration.get_installation(self.organization)
-        result = installation.get_stacktrace_link(repo, path, version)
+        result = installation.get_stacktrace_link(repo, path, default, version)
 
-        assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
+        assert result == "https://github.com/Test-Organization/foo/blob/1234567/README.md"
 
     @responses.activate
     def test_get_stacktrace_link_file_doesnt_exists(self):
@@ -277,15 +276,47 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         path = "README.md"
         version = "master"
+        default = "master"
         responses.add(
             responses.HEAD,
-            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
             status=404,
         )
         installation = integration.get_installation(self.organization)
-        result = installation.get_stacktrace_link(repo, path, version)
+        result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert not result
+
+    @responses.activate
+    def test_get_stacktrace_link_use_default_if_version_404(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            config={"name": "Test-Organization/foo"},
+            integration_id=integration.id,
+        )
+        path = "README.md"
+        version = "12345678"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
+            status=404,
+        )
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={default}",
+        )
+        installation = integration.get_installation(self.organization)
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
 
     @responses.activate
     def test_get_message_from_error(self):

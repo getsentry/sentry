@@ -1,12 +1,12 @@
 import React from 'react';
 import {Location} from 'history';
 
+import {EventQuery} from 'app/actionCreators/events';
 import {Client} from 'app/api';
 import EventView, {
   isAPIPayloadSimilar,
   LocationQuery,
 } from 'app/utils/discover/eventView';
-import {EventQuery} from 'app/actionCreators/events';
 
 export type GenericChildrenProps<T> = {
   isLoading: boolean;
@@ -32,6 +32,11 @@ export type DiscoverQueryProps = {
    * multiple paginated results on the page.
    */
   cursor?: string;
+  /**
+   * Include this whenever pagination won't be used. Limit can still be used when this is
+   * passed, but cursor will be ignored.
+   */
+  noPagination?: boolean;
 };
 
 type RequestProps<P> = DiscoverQueryProps & P;
@@ -62,6 +67,10 @@ type Props<T, P> = RequestProps<P> &
      * A hook to modify data into the correct output after data has been received
      */
     afterFetch?: (data: any, props: Props<T, P>) => T;
+    /**
+     * A callback to set an error so that the error can be rendered in parent components
+     */
+    setError?: (msg: string | undefined) => void;
   };
 
 type State<T> = {
@@ -72,10 +81,6 @@ type State<T> = {
  * Generic component for discover queries
  */
 class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> {
-  static defaultProps = {
-    keyTransactions: false,
-  };
-
   state: State<T> = {
     isLoading: true,
     tableFetchID: undefined,
@@ -125,7 +130,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     );
   };
 
-  fetchData = () => {
+  fetchData = async () => {
     const {
       api,
       beforeFetch,
@@ -135,6 +140,8 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       route,
       limit,
       cursor,
+      setError,
+      noPagination,
     } = this.props;
 
     if (!eventView.isValid()) {
@@ -147,8 +154,13 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
 
     this.setState({isLoading: true, tableFetchID});
 
+    setError?.(undefined);
+
     if (limit) {
       apiPayload.per_page = limit;
+    }
+    if (noPagination) {
+      apiPayload.noPagination = noPagination;
     }
     if (cursor) {
       apiPayload.cursor = cursor;
@@ -156,39 +168,34 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
 
     beforeFetch?.(api);
 
-    api
-      .requestPromise(url, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: {
-          // marking apiPayload as any so as to not cause typescript errors
-          ...(apiPayload as any),
-        },
-      })
-      .then(([data, _, jqXHR]) => {
-        if (this.state.tableFetchID !== tableFetchID) {
-          // invariant: a different request was initiated after this request
-          return;
-        }
+    try {
+      const [data, , jqXHR] = await doDiscoverQuery<T>(api, url, apiPayload);
+      if (this.state.tableFetchID !== tableFetchID) {
+        // invariant: a different request was initiated after this request
+        return;
+      }
 
-        const tableData = afterFetch ? afterFetch(data, this.props) : data;
+      const tableData = afterFetch ? afterFetch(data, this.props) : data;
 
-        this.setState(prevState => ({
-          isLoading: false,
-          tableFetchID: undefined,
-          error: null,
-          pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
-          tableData,
-        }));
-      })
-      .catch(err => {
-        this.setState({
-          isLoading: false,
-          tableFetchID: undefined,
-          error: err?.responseJSON?.detail ?? null,
-          tableData: null,
-        });
+      this.setState(prevState => ({
+        isLoading: false,
+        tableFetchID: undefined,
+        error: null,
+        pageLinks: jqXHR?.getResponseHeader('Link') ?? prevState.pageLinks,
+        tableData,
+      }));
+    } catch (err) {
+      const error = err?.responseJSON?.detail ?? null;
+      this.setState({
+        isLoading: false,
+        tableFetchID: undefined,
+        error,
+        tableData: null,
       });
+      if (setError) {
+        setError(error);
+      }
+    }
   };
 
   render() {
@@ -203,6 +210,23 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     const children: ReactProps<T>['children'] = this.props.children; // Explicitly setting type due to issues with generics and React's children
     return children?.(childrenProps);
   }
+}
+
+export type DiscoverQueryRequestParams = Partial<EventQuery & LocationQuery>;
+
+export async function doDiscoverQuery<T>(
+  api: Client,
+  url: string,
+  params: DiscoverQueryRequestParams
+): Promise<[T, string | undefined, JQueryXHR | undefined]> {
+  return api.requestPromise(url, {
+    method: 'GET',
+    includeAllArgs: true,
+    query: {
+      // marking params as any so as to not cause typescript errors
+      ...(params as any),
+    },
+  });
 }
 
 export default GenericDiscoverQuery;

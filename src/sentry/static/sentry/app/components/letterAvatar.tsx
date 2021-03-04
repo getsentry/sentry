@@ -1,8 +1,8 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
 import {imageStyle} from 'app/components/avatar/styles';
+import theme from 'app/utils/theme';
 
 const COLORS = [
   '#4674ca', // blue
@@ -56,6 +56,7 @@ type Props = {
   displayName?: string;
   round?: boolean;
   forwardedRef?: React.Ref<SVGSVGElement>;
+  suggested?: boolean;
 };
 
 type LetterAvatarProps = React.ComponentProps<'svg'> & Props;
@@ -70,6 +71,7 @@ const LetterAvatar = styled(
     displayName,
     round: _round,
     forwardedRef,
+    suggested,
     ...props
   }: LetterAvatarProps) => (
     <svg ref={forwardedRef} viewBox="0 0 120 120" {...props}>
@@ -80,7 +82,7 @@ const LetterAvatar = styled(
         height="120"
         rx="15"
         ry="15"
-        fill={getColor(identifier)}
+        fill={suggested ? '#FFFFFF' : getColor(identifier)}
       />
       <text
         x="50%"
@@ -88,7 +90,7 @@ const LetterAvatar = styled(
         fontSize="65"
         style={{dominantBaseline: 'central'}}
         textAnchor="middle"
-        fill="#FFFFFF"
+        fill={suggested ? theme.gray400 : '#FFFFFF'}
       >
         {getInitials(displayName)}
       </text>
@@ -97,12 +99,6 @@ const LetterAvatar = styled(
 )<Props>`
   ${imageStyle};
 `;
-
-LetterAvatar.propTypes = {
-  identifier: PropTypes.string,
-  displayName: PropTypes.string,
-  round: PropTypes.bool,
-};
 
 LetterAvatar.defaultProps = {
   round: false,

@@ -1,8 +1,8 @@
-import Reflux from 'reflux';
-import isUndefined from 'lodash/isUndefined';
 import * as Sentry from '@sentry/react';
+import isUndefined from 'lodash/isUndefined';
+import Reflux from 'reflux';
 
-import {Hooks, HookName} from 'app/types/hooks';
+import {HookName, Hooks} from 'app/types/hooks';
 
 /**
  * See types/hooks for hook usage reference.
@@ -29,7 +29,9 @@ const validHookNames = new Set<HookName>([
   'feature-disabled:events-page',
   'feature-disabled:events-sidebar-item',
   'feature-disabled:grid-editable-actions',
+  'feature-disabled:open-discover',
   'feature-disabled:incidents-sidebar-item',
+  'feature-disabled:performance-new-project',
   'feature-disabled:performance-page',
   'feature-disabled:performance-sidebar-item',
   'feature-disabled:project-selector-checkbox',
@@ -43,7 +45,6 @@ const validHookNames = new Set<HookName>([
   'member-invite-modal:customization',
   'metrics:event',
   'onboarding:extra-chrome',
-  'onboarding:invite-members',
   'onboarding-wizard:skip-help',
   'organization:header',
   'routes',
@@ -117,4 +118,6 @@ type HookStore = Reflux.Store & HookStoreInterface;
  *
  * This functionality is primarily used by the SASS sentry.io product.
  */
-export default Reflux.createStore(hookStoreConfig) as HookStore;
+const HookStore = Reflux.createStore(hookStoreConfig) as HookStore;
+
+export default HookStore;

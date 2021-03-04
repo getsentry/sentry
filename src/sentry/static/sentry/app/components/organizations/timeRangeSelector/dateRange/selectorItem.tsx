@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -14,12 +13,6 @@ type Props = {
 };
 
 class SelectorItem extends React.PureComponent<Props> {
-  static propTypes = {
-    onClick: PropTypes.func.isRequired,
-    value: PropTypes.string,
-    label: PropTypes.node,
-  };
-
   handleClick = (e: React.MouseEvent) => {
     const {onClick, value} = this.props;
     onClick(value, e);
@@ -42,12 +35,14 @@ const StyledSelectorItem = styled(SelectorItem)`
   padding: ${space(1)};
   align-items: center;
   flex: 1;
-  background-color: ${p => (p.selected ? p.theme.gray100 : 'transparent')};
+  background-color: ${p => (p.selected ? p.theme.active : 'transparent')};
+  color: ${p => (p.selected ? p.theme.white : p.theme.subText)};
   font-weight: ${p => (p.selected ? 'bold' : 'normal')};
-  border-bottom: 1px solid ${p => (p.last ? 'transparent' : p.theme.borderLight)};
+  border-bottom: 1px solid ${p => (p.last ? 'transparent' : p.theme.innerBorder)};
 
   &:hover {
-    background: ${p => p.theme.gray100};
+    color: ${p => p.theme.textColor};
+    background: ${p => p.theme.focus};
   }
 `;
 

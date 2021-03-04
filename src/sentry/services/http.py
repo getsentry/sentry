@@ -1,27 +1,24 @@
-from __future__ import absolute_import, print_function
-
 import os
-import six
 import sys
 
 from sentry.services.base import Service
 
 
 def convert_options_to_env(options):
-    for k, v in six.iteritems(options):
+    for k, v in options.items():
         if v is None:
             continue
         key = "UWSGI_" + k.upper().replace("-", "_")
-        if isinstance(v, six.string_types):
+        if isinstance(v, str):
             value = v
         elif v is True:
             value = "true"
         elif v is False:
             value = "false"
-        elif isinstance(v, six.integer_types):
-            value = six.text_type(v)
+        elif isinstance(v, int):
+            value = str(v)
         else:
-            raise TypeError("Unknown option type: %r (%s)" % (k, type(v)))
+            raise TypeError(f"Unknown option type: {k!r} ({type(v)})")
         yield key, value
 
 
@@ -43,7 +40,7 @@ class SentryHTTPServer(Service):
 
         options = (settings.SENTRY_WEB_OPTIONS or {}).copy()
         if extra_options is not None:
-            for k, v in six.iteritems(extra_options):
+            for k, v in extra_options.items():
                 options[k] = v
         options.setdefault("module", "sentry.wsgi:application")
         options.setdefault("protocol", "http")
@@ -72,7 +69,7 @@ class SentryHTTPServer(Service):
             '%(addr) - %(user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"',
         )
 
-        options.setdefault("%s-socket" % options["protocol"], "%s:%s" % (host, port))
+        options.setdefault("%s-socket" % options["protocol"], f"{host}:{port}")
 
         # We only need to set uid/gid when stepping down from root, but if
         # we are trying to run as root, then ignore it entirely.
@@ -154,7 +151,7 @@ class SentryHTTPServer(Service):
         virtualenv_path = os.path.dirname(os.path.abspath(sys.argv[0]))
         current_path = env.get("PATH", "")
         if virtualenv_path not in current_path:
-            env["PATH"] = "%s:%s" % (virtualenv_path, current_path)
+            env["PATH"] = f"{virtualenv_path}:{current_path}"
 
     def run(self):
         self.prepare_environment()

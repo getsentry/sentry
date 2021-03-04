@@ -10,6 +10,16 @@ export function InstallWizard(params) {
         isSet: true,
       },
     },
+    'mail.use-ssl': {
+      field: {
+        disabledReason: null,
+        default: false,
+        required: true,
+        disabled: false,
+        allowEmpty: true,
+        isSet: true,
+      },
+    },
     'mail.username': {
       field: {
         disabledReason: null,

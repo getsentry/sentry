@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import click
 import pytz
-import six
 
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -25,7 +22,7 @@ class DateTimeParamType(click.ParamType):
         try:
             result = parse(value)
         except Exception:
-            self.fail(u"{!r} is not a valid datetime".format(value), option, context)
+            self.fail(f"{value!r} is not a valid datetime", option, context)
 
         if result.tzinfo is None:
             # TODO: We should probably warn about this? Also note that this
@@ -39,13 +36,11 @@ class DateTimeParamType(click.ParamType):
 @click.group()
 def tsdb():
     """Tools for interacting with the time series database."""
-    pass
 
 
 @tsdb.group()
 def query():
     """Execute queries against the time series database."""
-    pass
 
 
 @query.command()
@@ -88,9 +83,9 @@ def organizations(metrics, since, until):
         since = until - timedelta(minutes=60)
 
     if until < since:
-        raise click.ClickException(u"invalid time range provided: {} to {}".format(since, until))
+        raise click.ClickException(f"invalid time range provided: {since} to {until}")
 
-    stderr.write(u"Dumping {} from {} to {}...\n".format(", ".join(metrics.keys()), since, until))
+    stderr.write("Dumping {} from {} to {}...\n".format(", ".join(metrics.keys()), since, until))
 
     objects = Organization.objects.all()
 
@@ -101,13 +96,11 @@ def organizations(metrics, since, until):
         for metric in metrics.values():
             results[metric] = tsdb.get_range(metric, list(instances.keys()), since, until)
 
-        for key, instance in six.iteritems(instances):
+        for key, instance in instances.items():
             values = []
             for metric in metrics.values():
                 values.append(aggregate(results[metric][key]))
 
             stdout.write(
-                u"{} {} {}\n".format(
-                    instance.id, instance.slug, " ".join(map(six.text_type, values))
-                )
+                "{} {} {}\n".format(instance.id, instance.slug, " ".join(map(str, values)))
             )

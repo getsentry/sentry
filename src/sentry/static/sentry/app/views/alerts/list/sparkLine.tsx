@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {IncidentStats} from 'app/views/alerts/types';
 import Placeholder from 'app/components/placeholder';
 import theme from 'app/utils/theme';
+import {IncidentStats} from 'app/views/alerts/types';
 
 // Height of sparkline
 const SPARKLINE_HEIGHT = 38;
@@ -42,7 +42,7 @@ class SparkLine extends React.Component<Props> {
         <div data-test-id="incident-sparkline" className={className}>
           <Sparklines data={data} width={100} height={32}>
             <SparklinesLine
-              style={{stroke: theme.gray500, fill: 'none', strokeWidth: 2}}
+              style={{stroke: theme.gray300, fill: 'none', strokeWidth: 2}}
             />
           </Sparklines>
         </div>

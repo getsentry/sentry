@@ -71,7 +71,7 @@ const Content = styled('div')<{multi: boolean}>`
 
   &:hover {
     text-decoration: ${p => (p.multi ? 'underline' : null)};
-    color: ${p => (p.multi ? p.theme.blue400 : null)};
+    color: ${p => (p.multi ? p.theme.blue300 : null)};
   }
 `;
 

@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import space from 'app/styles/space';
 import {EventGroupComponent} from 'app/types';
 
-import {shouldInlineComponentValue} from './utils';
-import GroupingComponentStacktrace from './groupingComponentStacktrace';
 import GroupingComponentChildren from './groupingComponentChildren';
+import GroupingComponentStacktrace from './groupingComponentStacktrace';
+import {shouldInlineComponentValue} from './utils';
 
 type Props = {
   component: EventGroupComponent;
@@ -55,7 +55,7 @@ export const GroupingComponentListItem = styled('li')<{isCollapsable?: boolean}>
   ${p =>
     p.isCollapsable &&
     `
-    border-left: 1px solid ${p.theme.borderLight};
+    border-left: 1px solid ${p.theme.innerBorder};
     margin: 0 0 -${space(0.25)} ${space(1)};
     padding-left: ${space(0.5)};
   `}
@@ -78,7 +78,7 @@ export const GroupingValue = styled('code')<{valueType: string}>`
 `;
 
 const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
-  color: ${p => (p.isContributing ? null : p.theme.gray400)};
+  color: ${p => (p.isContributing ? null : p.theme.gray200)};
 
   ${GroupingValue}, button {
     opacity: ${p => (p.isContributing ? 1 : 0.6)};

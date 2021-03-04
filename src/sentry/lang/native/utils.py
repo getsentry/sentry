@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import re
-import six
 import logging
 
 from sentry.attachments import attachment_cache
@@ -24,6 +21,7 @@ NATIVE_IMAGE_TYPES = (
     "elf",  # Linux
     "macho",  # macOS, iOS
     "pe",  # Windows
+    "wasm",  # WASM
 )
 
 # Default disables storing crash reports.
@@ -40,8 +38,6 @@ def is_native_image(image):
     return (
         bool(image)
         and image.get("type") in NATIVE_IMAGE_TYPES
-        and image.get("image_addr") is not None
-        and image.get("image_size") is not None
         and (image.get("debug_id") or image.get("id") or image.get("uuid")) is not None
     )
 
@@ -83,7 +79,7 @@ def get_sdk_from_os(data):
         return
 
     try:
-        version = six.text_type(data["version"]).split("-", 1)[0] + ".0" * 3
+        version = str(data["version"]).split("-", 1)[0] + ".0" * 3
         system_version = tuple(int(x) for x in version.split(".")[:3])
     except ValueError:
         return

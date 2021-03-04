@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.core.urlresolvers import reverse
 from exam import fixture
 
@@ -15,7 +11,7 @@ class UserListTest(APITestCase):
         return reverse("sentry-api-0-user-index")
 
     def setUp(self):
-        super(UserListTest, self).setUp()
+        super().setUp()
         self.superuser = self.create_user("bar@example.com", is_superuser=True)
         self.normal_user = self.create_user("foo@example.com", is_superuser=False)
 
@@ -32,40 +28,40 @@ class UserListTest(APITestCase):
 
     def test_generic_query(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = self.client.get(u"{}?query=@example.com".format(self.path))
+        response = self.client.get(f"{self.path}?query=@example.com")
         assert response.status_code == 200
         assert len(response.data) == 2
-        response = self.client.get(u"{}?query=bar".format(self.path))
+        response = self.client.get(f"{self.path}?query=bar")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.superuser.id)
-        response = self.client.get(u"{}?query=foobar".format(self.path))
+        assert response.data[0]["id"] == str(self.superuser.id)
+        response = self.client.get(f"{self.path}?query=foobar")
         assert response.status_code == 200
         assert len(response.data) == 0
 
     def test_superuser_query(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = self.client.get(u"{}?query=is:superuser".format(self.path))
+        response = self.client.get(f"{self.path}?query=is:superuser")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.superuser.id)
+        assert response.data[0]["id"] == str(self.superuser.id)
 
     def test_email_query(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = self.client.get(u"{}?query=email:bar@example.com".format(self.path))
+        response = self.client.get(f"{self.path}?query=email:bar@example.com")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.superuser.id)
-        response = self.client.get(u"{}?query=email:foobar".format(self.path))
+        assert response.data[0]["id"] == str(self.superuser.id)
+        response = self.client.get(f"{self.path}?query=email:foobar")
         assert response.status_code == 200
         assert len(response.data) == 0
 
     def test_basic_query(self):
         UserPermission.objects.create(user=self.superuser, permission="broadcasts.admin")
         self.login_as(user=self.superuser, superuser=True)
-        response = self.client.get(u"{}?query=permission:broadcasts.admin".format(self.path))
+        response = self.client.get(f"{self.path}?query=permission:broadcasts.admin")
         assert response.status_code == 200
         assert len(response.data) == 1
-        response = self.client.get(u"{}?query=permission:foobar".format(self.path))
+        response = self.client.get(f"{self.path}?query=permission:foobar")
         assert response.status_code == 200
         assert len(response.data) == 0

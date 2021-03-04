@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {rectOfContent, clamp} from './utils';
-import {ParsedTraceType} from './types';
 import {DragManagerChildrenProps} from './dragManager';
+import {ParsedTraceType} from './types';
+import {clamp, rectOfContent} from './utils';
 
 export type CursorGuideManagerChildrenProps = {
   showCursorGuide: boolean;

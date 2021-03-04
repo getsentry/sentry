@@ -4,31 +4,30 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {LightWeightOrganization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
 import ChartZoom from 'app/components/charts/chartZoom';
-import LineChart from 'app/components/charts/lineChart';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
-import QuestionTooltip from 'app/components/questionTooltip';
+import LineChart from 'app/components/charts/lineChart';
 import {SectionHeading} from 'app/components/charts/styles';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import TransitionChart from 'app/components/charts/transitionChart';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval} from 'app/components/charts/utils';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
-import {getTermHelp} from 'app/views/performance/data';
+import {t} from 'app/locale';
+import {LightWeightOrganization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
+import {tooltipFormatter} from 'app/utils/discover/charts';
+import EventView from 'app/utils/discover/eventView';
 import {
   formatAbbreviatedNumber,
   formatFloat,
   formatPercentage,
 } from 'app/utils/formatters';
-import {tooltipFormatter} from 'app/utils/discover/charts';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
-import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 type Props = ReactRouter.WithRouterProps & {
   api: Client;
@@ -41,7 +40,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
-  const utc = decodeScalar(router.location.query.utc);
+  const utc = decodeScalar(router.location.query.utc) !== 'false';
 
   const colors = theme.charts.getColorPalette(3);
   const axisLineConfig = {
@@ -57,22 +56,22 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
     },
   };
   const chartOptions = {
-    height: 580,
+    height: 460,
     grid: [
       {
         top: '40px',
         left: '10px',
         right: '10px',
-        height: '120px',
+        height: '100px',
       },
       {
-        top: '230px',
+        top: '190px',
         left: '10px',
         right: '10px',
-        height: '150px',
+        height: '100px',
       },
       {
-        top: '450px',
+        top: '330px',
         left: '10px',
         right: '10px',
         height: '120px',
@@ -84,34 +83,39 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
     },
     xAxes: Array.from(new Array(3)).map((_i, index) => ({
       gridIndex: index,
-      type: 'time',
+      type: 'time' as const,
       show: false,
     })),
     yAxes: [
       {
         // apdex
         gridIndex: 0,
+        interval: 0.2,
         axisLabel: {
           formatter: (value: number) => formatFloat(value, 1),
-          color: theme.gray400,
-        },
-        ...axisLineConfig,
-      },
-      {
-        // throughput
-        gridIndex: 1,
-        axisLabel: {
-          formatter: formatAbbreviatedNumber,
-          color: theme.gray400,
+          color: theme.chartLabel,
         },
         ...axisLineConfig,
       },
       {
         // failure rate
-        gridIndex: 2,
+        gridIndex: 1,
+        splitNumber: 4,
+        interval: 0.5,
+        max: 1.0,
         axisLabel: {
           formatter: (value: number) => formatPercentage(value, 0),
-          color: theme.gray400,
+          color: theme.chartLabel,
+        },
+        ...axisLineConfig,
+      },
+      {
+        // throughput
+        gridIndex: 2,
+        splitNumber: 4,
+        axisLabel: {
+          formatter: formatAbbreviatedNumber,
+          color: theme.chartLabel,
         },
         ...axisLineConfig,
       },
@@ -119,9 +123,9 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1], colors[2]],
+    colors: [colors[0], colors[1], colors[2]] as string[],
     tooltip: {
-      trigger: 'axis',
+      trigger: 'axis' as const,
       truncate: 80,
       valueFormatter: tooltipFormatter,
       nameFormatter(value: string) {
@@ -144,25 +148,25 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         {t('Apdex')}
         <QuestionTooltip
           position="top"
-          title={getTermHelp(organization, 'apdex')}
+          title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
           size="sm"
         />
       </ChartTitle>
 
-      <ChartTitle top="190px" key="throughput">
-        {t('TPM')}
-        <QuestionTooltip
-          position="top"
-          title={getTermHelp(organization, 'tpm')}
-          size="sm"
-        />
-      </ChartTitle>
-
-      <ChartTitle top="410px" key="failure-rate">
+      <ChartTitle top="150px" key="failure-rate">
         {t('Failure Rate')}
         <QuestionTooltip
           position="top"
-          title={getTermHelp(organization, 'failureRate')}
+          title={getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)}
+          size="sm"
+        />
+      </ChartTitle>
+
+      <ChartTitle top="300px" key="throughput">
+        {t('TPM')}
+        <QuestionTooltip
+          position="top"
+          title={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
           size="sm"
         />
       </ChartTitle>
@@ -170,8 +174,9 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
       <ChartZoom
         router={router}
         period={statsPeriod}
-        projects={project}
-        environments={environment}
+        start={start}
+        end={end}
+        utc={utc}
         xAxisIndex={[0, 1, 2]}
       >
         {zoomRenderProps => (
@@ -179,21 +184,21 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
             api={api}
             organization={organization}
             period={statsPeriod}
-            project={[...project]}
-            environment={[...environment]}
+            project={project}
+            environment={environment}
             start={start}
             end={end}
-            interval={getInterval(datetimeSelection, true)}
+            interval={getInterval(datetimeSelection)}
             showLoading={false}
             query={eventView.query}
             includePrevious={false}
-            yAxis={[`apdex(${organization.apdexThreshold})`, 'epm()', 'failure_rate()']}
+            yAxis={[`apdex(${organization.apdexThreshold})`, 'failure_rate()', 'epm()']}
           >
             {({results, errored, loading, reloading}) => {
               if (errored) {
                 return (
-                  <ErrorPanel>
-                    <IconWarning color="gray500" size="lg" />
+                  <ErrorPanel height="580px">
+                    <IconWarning color="gray300" size="lg" />
                   </ErrorPanel>
                 );
               }
@@ -206,7 +211,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
                 : [];
 
               return (
-                <TransitionChart loading={loading} reloading={reloading} height="550px">
+                <TransitionChart loading={loading} reloading={reloading} height="580px">
                   <TransparentLoadingMask visible={reloading} />
                   <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
                 </TransitionChart>
@@ -221,11 +226,10 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
 
 const RelativeBox = styled('div')`
   position: relative;
-  margin-bottom: ${space(1)};
 `;
 
 const ChartTitle = styled(SectionHeading)<{top: string}>`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   position: absolute;
   top: ${p => p.top};
   margin: 0;

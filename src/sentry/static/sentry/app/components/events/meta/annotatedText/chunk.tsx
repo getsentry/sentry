@@ -3,8 +3,8 @@ import React from 'react';
 import Tooltip from 'app/components/tooltip';
 import {ChunkType} from 'app/types';
 
-import {getTooltipText} from './utils';
 import Redaction from './redaction';
+import {getTooltipText} from './utils';
 
 type Props = {
   chunk: ChunkType;

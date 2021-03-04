@@ -10,7 +10,6 @@ By default username, email, token expiration time, first name and last name are
 stored in extra_data field, check OAuthBackend class for details on how to
 extend it.
 """
-from __future__ import absolute_import
 
 from social_auth.backends import BaseOAuth1, OAuthBackend
 from social_auth.utils import dsa_urlopen
@@ -61,7 +60,7 @@ class BitbucketBackend(OAuthBackend):
 
         instance must be a UserSocialAuth instance.
         """
-        token = super(BitbucketBackend, cls).tokens(instance)
+        token = super().tokens(instance)
         if token and "access_token" in token:
             token = dict(tok.split("=") for tok in token["access_token"].split("&"))
         return token

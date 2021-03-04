@@ -1,25 +1,69 @@
+import {ExceptionType, ExceptionValue} from 'app/types';
+import {Event} from 'app/types/event';
 import {Thread} from 'app/types/events';
-import {Event, EntryTypeData} from 'app/types';
+import {defined} from 'app/utils';
 
-function getThreadException(thread: Thread, event: Event): EntryTypeData | undefined {
-  if (!event || !event.entries) {
+function getException(
+  exceptionData: ExceptionType,
+  exceptionDataValues: ExceptionValue[],
+  thread: Thread
+) {
+  if (exceptionDataValues.length === 1 && !exceptionDataValues[0].stacktrace) {
+    return {
+      ...exceptionData,
+      values: [
+        {
+          ...exceptionDataValues[0],
+          stacktrace: thread.stacktrace,
+          rawStacktrace: thread.rawStacktrace,
+        },
+      ],
+    };
+  }
+
+  const exceptionHasAtLeastOneStacktrace = !!exceptionDataValues.find(
+    exceptionDataValue => exceptionDataValue.stacktrace
+  );
+
+  if (!!exceptionHasAtLeastOneStacktrace) {
+    return exceptionData as Required<ExceptionType>;
+  }
+
+  return undefined;
+}
+
+function getThreadException(
+  event: Event,
+  thread?: Thread
+): Required<ExceptionType> | undefined {
+  const exceptionEntry = event.entries.find(entry => entry.type === 'exception');
+
+  if (!exceptionEntry) {
     return undefined;
   }
 
-  for (const entry of event.entries) {
-    if (entry.type !== 'exception') {
-      continue;
-    }
+  const exceptionData = exceptionEntry.data as ExceptionType;
+  const exceptionDataValues = exceptionData.values;
 
-    if (entry.data.values.length === 1 && !entry.data.values[0].threadId) {
-      return entry.data;
-    }
+  if (!exceptionDataValues?.length || !thread) {
+    return undefined;
+  }
 
-    for (const exc of entry.data.values) {
-      if (exc.threadId === thread.id) {
-        return entry.data;
-      }
-    }
+  const matchedStacktraceAndExceptionThread = exceptionDataValues.find(
+    exceptionDataValue => exceptionDataValue.threadId === thread.id
+  );
+
+  if (matchedStacktraceAndExceptionThread) {
+    return getException(exceptionData, exceptionDataValues, thread);
+  }
+
+  if (
+    exceptionDataValues.every(
+      exceptionDataValue => !defined(exceptionDataValue.threadId)
+    ) &&
+    thread.crashed
+  ) {
+    return getException(exceptionData, exceptionDataValues, thread);
   }
 
   return undefined;

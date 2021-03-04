@@ -1,28 +1,19 @@
 import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {GroupActivity} from 'app/views/organizationGroupDetails/groupActivity';
+import NoteInput from 'app/components/activity/note/input';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
-import NoteInput from 'app/components/activity/note/input';
 import ProjectsStore from 'app/stores/projectsStore';
+import {GroupActivity} from 'app/views/organizationGroupDetails/groupActivity';
 
 describe('GroupActivity', function () {
-  const project = TestStubs.Project();
-  const group = TestStubs.Group({
-    id: '1337',
-    activity: [
-      {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: TestStubs.User()},
-    ],
-    project,
-  });
-  const {organization, routerContext} = initializeOrg({
-    group,
-  });
+  let project;
 
   beforeEach(function () {
+    project = TestStubs.Project();
     ProjectsStore.loadInitialData([project]);
     jest.spyOn(ConfigStore, 'get').mockImplementation(key => {
       if (key === 'user') {
@@ -34,18 +25,46 @@ describe('GroupActivity', function () {
     });
   });
 
-  afterEach(function () {});
-
-  it('renders a NoteInput', function () {
-    const wrapper = mountWithTheme(
+  function createWrapper({activity, organization: additionalOrg} = {}) {
+    const group = TestStubs.Group({
+      id: '1337',
+      activity: activity || [
+        {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: TestStubs.User()},
+      ],
+      project,
+    });
+    const {organization, routerContext} = initializeOrg({
+      organization: additionalOrg,
+      group,
+    });
+    return mountWithTheme(
       <GroupActivity
         api={new MockApiClient()}
+        params={{orgId: 'org-slug'}}
         group={group}
         organization={organization}
       />,
       routerContext
     );
+  }
+
+  it('renders a NoteInput', function () {
+    const wrapper = createWrapper();
     expect(wrapper.find(NoteInput)).toHaveLength(1);
+  });
+
+  it('renders a marked reviewed activity', function () {
+    const wrapper = createWrapper({
+      organization: {
+        features: ['inbox'],
+      },
+      activity: [
+        {type: 'mark_reviewed', id: 'reviewed-1', data: {}, user: TestStubs.User()},
+      ],
+    });
+    expect(wrapper.find('GroupActivityItem').text()).toContain(
+      'marked this issue as reviewed'
+    );
   });
 
   describe('Delete', function () {
@@ -57,14 +76,7 @@ describe('GroupActivity', function () {
         url: '/issues/1337/comments/note-1/',
         method: 'DELETE',
       });
-      wrapper = mountWithTheme(
-        <GroupActivity
-          api={new MockApiClient()}
-          group={group}
-          organization={organization}
-        />,
-        routerContext
-      );
+      wrapper = createWrapper();
     });
 
     it('should do nothing if not present in GroupStore', function () {

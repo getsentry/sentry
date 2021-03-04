@@ -40,12 +40,9 @@
 //== Typography
 //
 //## Font, line-height, and color for body text, headings, and more.
-
-@font-family-sans-serif: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-@font-family-serif: Georgia, 'Times New Roman', Times, serif;
 //** Default monospace fonts for `<code>`, `<kbd>`, and `<pre>`.
 @font-family-monospace: 'IBM Plex', Menlo, Monaco, Consolas, 'Courier New', monospace;
-@font-family-base: @font-family-sans-serif;
+@font-family-base: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
 
 @font-size-base: 14px;
 @font-size-large: ceil((@font-size-base * 1.25)); // ~18px
@@ -108,11 +105,6 @@
 //** Global background color for active items (e.g., navs or dropdowns).
 @component-active-bg: @brand-primary;
 
-//** Width of the `border` for generating carets that indicate dropdowns.
-@caret-width-base: 4px;
-//** Carets increase slightly in size for larger components.
-@caret-width-large: 5px;
-
 //== Tables
 //
 //## Customizes the `.table` component with basic values, each used across all table variations.
@@ -124,8 +116,6 @@
 
 //** Default background color used for all tables.
 @table-bg: transparent;
-//** Background color used for `.table-striped`.
-@table-bg-accent: #f9f9f9;
 //** Background color used for `.table-hover`.
 @table-bg-hover: #f5f5f5;
 @table-bg-active: @table-bg-hover;
@@ -216,11 +206,6 @@
 @legend-color: @gray-dark;
 @legend-border-color: #e5e5e5;
 
-//** Background color for textual input addons
-@input-group-addon-bg: @gray-lighter;
-//** Border color for textual input addons
-@input-group-addon-border-color: @input-border;
-
 //** Disabled cursor for form controls and buttons.
 @cursor-disabled: not-allowed;
 
@@ -254,9 +239,6 @@
 
 //** Text color for headers within dropdown menus.
 @dropdown-header-color: @gray-light;
-
-//** Deprecated `@dropdown-caret-color` as of v3.1.0
-@dropdown-caret-color: #000;
 
 //-- Z-index master list
 //
@@ -746,8 +728,8 @@
 @kbd-color: #fff;
 @kbd-bg: #333;
 
-@pre-bg: #f5f5f5;
-@pre-color: @gray-dark;
+@pre-bg: #f7f8f9;
+@pre-color: #1d1127;
 @pre-border-color: #ccc;
 
 //== Type

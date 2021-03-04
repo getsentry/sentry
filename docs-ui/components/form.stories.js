@@ -1,30 +1,26 @@
 import React from 'react';
-import {boolean} from '@storybook/addon-knobs';
-import {withInfo} from '@storybook/addon-info';
 
-import Form from 'app/views/settings/components/forms/form';
 import NewBooleanField from 'app/views/settings/components/forms/booleanField';
+import Form from 'app/views/settings/components/forms/form';
 import RadioField from 'app/views/settings/components/forms/radioField';
 import RangeField from 'app/views/settings/components/forms/rangeField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 
 export default {
-  title: 'Core/Forms/Form',
+  title: 'Forms/Form',
+  args: {
+    alignRight: false,
+    required: false,
+    visible: true,
+    disabled: false,
+    flexibleControlStateSize: true,
+    inline: true,
+    stacked: true,
+  },
 };
 
-export const Default = withInfo(
-  'Use the knobs to see how the different field props that can be used affect the form layout.'
-)(() => {
-  const fieldProps = {
-    alignRight: boolean('Align right', false),
-    required: boolean('Required', false),
-    visible: boolean('Visible', true),
-    disabled: boolean('Disabled', false),
-    flexibleControlStateSize: boolean('Flexible Control State Size', true),
-    inline: boolean('Inline (Label and Control on same line)', true),
-    stacked: boolean('Stacked (Fields are on top of each other without a border)', true),
-  };
+export const Default = ({...fieldProps}) => {
   return (
     <Form>
       <TextField
@@ -68,8 +64,14 @@ export const Default = withInfo(
       />
     </Form>
   );
-});
+};
 
-Default.story = {
-  name: 'default',
+Default.storyName = 'default';
+Default.parameters = {
+  docs: {
+    description: {
+      story:
+        'Use the knobs to see how the different field props that can be used affect the form layout.',
+    },
+  },
 };

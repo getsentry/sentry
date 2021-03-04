@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import logging
-import six
 
 from confluent_kafka import OFFSET_INVALID, TopicPartition
 from django.conf import settings
@@ -52,7 +49,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.producer.poll(0.0)
 
         assert isinstance(extra_data, tuple)
-        key = six.text_type(project_id)
+        key = str(project_id)
 
         try:
             self.producer.produce(
@@ -84,10 +81,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
         logger.debug("Starting post-process forwarder...")
 
         cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
-        bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"]
 
         consumer = SynchronizedConsumer(
-            bootstrap_servers=bootstrap_servers,
+            cluster_name=cluster_name,
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -102,7 +98,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
             errors = [i for i in results if i.error is not None]
             if errors:
                 raise Exception(
-                    "Failed to commit %s/%s partitions: %r" % (len(errors), len(partitions), errors)
+                    "Failed to commit {}/{} partitions: {!r}".format(
+                        len(errors), len(partitions), errors
+                    )
                 )
 
             return results
@@ -115,7 +113,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     updated_offset = None
                 elif i.offset < 0:
                     raise Exception(
-                        "Received unexpected negative offset during partition assignment: %r" % (i,)
+                        f"Received unexpected negative offset during partition assignment: {i!r}"
                     )
                 else:
                     updated_offset = i.offset

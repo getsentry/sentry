@@ -2,36 +2,37 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {Release, ReleaseProject} from 'app/types';
-import {PanelBody} from 'app/components/panels';
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
+import Button from 'app/components/button';
+import Collapsible from 'app/components/collapsible';
 import Count from 'app/components/count';
-import {defined} from 'app/utils';
-import theme from 'app/utils/theme';
-import ScoreBar from 'app/components/scoreBar';
-import Tooltip from 'app/components/tooltip';
-import TextOverflow from 'app/components/textOverflow';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
+import NotAvailable from 'app/components/notAvailable';
+import {PanelItem} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import Link from 'app/components/links/link';
+import ProgressBar from 'app/components/progressBar';
+import Tooltip from 'app/components/tooltip';
+import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {Organization, Release, ReleaseProject} from 'app/types';
+import {defined} from 'app/utils';
 
-import HealthStatsChart from '../healthStatsChart';
-import {convertAdoptionToProgress, getReleaseNewIssuesUrl} from '../../utils';
-import HealthStatsSubject, {StatsSubject} from '../healthStatsSubject';
-import HealthStatsPeriod, {StatsPeriod} from '../healthStatsPeriod';
+import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
 import AdoptionTooltip from '../adoptionTooltip';
-import NotAvailable from '../notAvailable';
-import ClippedHealthRows from '../clippedHealthRows';
 import CrashFree from '../crashFree';
+import HealthStatsChart from '../healthStatsChart';
+import HealthStatsPeriod, {StatsPeriod} from '../healthStatsPeriod';
+import {DisplayOption} from '../utils';
+
 import Header from './header';
-import Item from './item';
-import ProjectName from './projectName';
+import ProjectLink from './projectLink';
 
 type Props = {
   projects: Array<ReleaseProject>;
   releaseVersion: Release['version'];
-  orgSlug: string;
+  organization: Organization;
+  activeDisplay: DisplayOption;
   location: Location;
   showPlaceholders: boolean;
 };
@@ -40,36 +41,72 @@ const Content = ({
   projects,
   releaseVersion,
   location,
-  orgSlug,
+  organization,
+  activeDisplay,
   showPlaceholders,
 }: Props) => {
+  const supportsSessionAdoption = organization.features.includes('session-adoption');
   const activeStatsPeriod = (location.query.healthStatsPeriod || '24h') as StatsPeriod;
-  const activeStatsSubject = (location.query.healthStat || 'sessions') as StatsSubject;
+  const healthStatsPeriod = (
+    <HealthStatsPeriod location={location} activePeriod={activeStatsPeriod} />
+  );
 
   return (
     <React.Fragment>
       <Header>
-        <HeaderLayout>
-          <ProjectColumn>{t('Project name')}</ProjectColumn>
-          <AdoptionColumn>{t('Release adoption')}</AdoptionColumn>
-          <CrashFreeUsersColumn>{t('Crash free users')}</CrashFreeUsersColumn>
-          <CrashFreeSessionsColumn>{t('Crash free sessions')}</CrashFreeSessionsColumn>
-          <DailyUsersColumn>
-            <HealthStatsSubject location={location} activeSubject={activeStatsSubject} />
-            <HealthStatsPeriod location={location} activePeriod={activeStatsPeriod} />
-          </DailyUsersColumn>
+        <Layout>
+          <Column>{t('Project Name')}</Column>
+          <AdoptionColumn>
+            {supportsSessionAdoption ? t('Adoption') : t('User Adoption')}
+          </AdoptionColumn>
+          {activeDisplay === DisplayOption.CRASH_FREE_USERS ? (
+            <React.Fragment>
+              <SessionsColumn>{t('Crash Free Users')}</SessionsColumn>
+              <DailyColumn>
+                <span>{t('Users')}</span>
+                {healthStatsPeriod}
+              </DailyColumn>
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <SessionsColumn>{t('Crash Free Sessions')}</SessionsColumn>
+              <DailyColumn>
+                <span>{t('Sessions')}</span>
+                {healthStatsPeriod}
+              </DailyColumn>
+            </React.Fragment>
+          )}
           <CrashesColumn>{t('Crashes')}</CrashesColumn>
           <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
-        </HeaderLayout>
+          <ViewColumn />
+        </Layout>
       </Header>
 
-      <PanelBody>
-        <StyledClippedHealthRows>
+      <ProjectRows>
+        <Collapsible
+          expandButton={({onExpand, numberOfCollapsedItems}) => (
+            <ExpandButtonWrapper>
+              <Button priority="primary" size="xsmall" onClick={onExpand}>
+                {tct('Show [numberOfCollapsedItems] More', {
+                  numberOfCollapsedItems,
+                })}
+              </Button>
+            </ExpandButtonWrapper>
+          )}
+          collapseButton={({onCollapse}) => (
+            <CollapseButtonWrapper>
+              <Button priority="primary" size="xsmall" onClick={onCollapse}>
+                {t('Collapse')}
+              </Button>
+            </CollapseButtonWrapper>
+          )}
+        >
           {projects.map(project => {
             const {slug, healthData, newGroups} = project;
             const {
               hasHealthData,
               adoption,
+              sessions_adoption,
               stats,
               crashFreeUsers,
               crashFreeSessions,
@@ -79,72 +116,74 @@ const Content = ({
               totalSessions,
               totalSessions24h,
             } = healthData || {};
+            const selectedAdoption =
+              activeDisplay === DisplayOption.CRASH_FREE_SESSIONS &&
+              supportsSessionAdoption
+                ? sessions_adoption
+                : adoption;
+            const selected24hCount =
+              activeDisplay === DisplayOption.CRASH_FREE_SESSIONS &&
+              supportsSessionAdoption
+                ? totalSessions24h
+                : totalUsers24h;
 
             return (
-              <Item key={`${releaseVersion}-${slug}-health`}>
+              <ProjectRow key={`${releaseVersion}-${slug}-health`}>
                 <Layout>
-                  <ProjectColumn>
-                    <ProjectName
-                      orgSlug={orgSlug}
-                      project={project}
-                      releaseVersion={releaseVersion}
-                    />
-                  </ProjectColumn>
+                  <Column>
+                    <ProjectBadge project={project} avatarSize={16} />
+                  </Column>
 
                   <AdoptionColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder width="150px" />
-                    ) : defined(adoption) ? (
+                    ) : defined(selectedAdoption) ? (
                       <AdoptionWrapper>
-                        <Tooltip
-                          title={
-                            <AdoptionTooltip
-                              totalUsers={totalUsers!}
-                              totalSessions={totalSessions!}
-                              totalUsers24h={totalUsers24h!}
-                              totalSessions24h={totalSessions24h!}
-                            />
-                          }
-                        >
-                          <StyledScoreBar
-                            score={convertAdoptionToProgress(adoption)}
-                            size={20}
-                            thickness={5}
-                            radius={0}
-                            palette={Array(10).fill(theme.purple500)}
-                          />
-                        </Tooltip>
-                        <TextOverflow>
-                          <Count value={totalUsers24h ?? 0} />{' '}
-                          {tn('user', 'users', totalUsers24h)}
-                        </TextOverflow>
+                        <ProgressBarWrapper>
+                          <Tooltip
+                            containerDisplayMode="block"
+                            title={
+                              <AdoptionTooltip
+                                totalUsers={totalUsers}
+                                totalSessions={totalSessions}
+                                totalUsers24h={totalUsers24h}
+                                totalSessions24h={totalSessions24h}
+                              />
+                            }
+                          >
+                            <ProgressBar value={Math.ceil(selectedAdoption)} />
+                          </Tooltip>
+                        </ProgressBarWrapper>
+                        <Count value={selected24hCount ?? 0} />
                       </AdoptionWrapper>
                     ) : (
                       <NotAvailable />
                     )}
                   </AdoptionColumn>
 
-                  <CrashFreeUsersColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="60px" />
-                    ) : defined(crashFreeUsers) ? (
-                      <CrashFree percent={crashFreeUsers} />
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </CrashFreeUsersColumn>
+                  {activeDisplay === DisplayOption.CRASH_FREE_USERS ? (
+                    <SessionsColumn>
+                      {showPlaceholders ? (
+                        <StyledPlaceholder width="60px" />
+                      ) : defined(crashFreeUsers) ? (
+                        <CrashFree percent={crashFreeUsers} />
+                      ) : (
+                        <NotAvailable />
+                      )}
+                    </SessionsColumn>
+                  ) : (
+                    <SessionsColumn>
+                      {showPlaceholders ? (
+                        <StyledPlaceholder width="60px" />
+                      ) : defined(crashFreeSessions) ? (
+                        <CrashFree percent={crashFreeSessions} />
+                      ) : (
+                        <NotAvailable />
+                      )}
+                    </SessionsColumn>
+                  )}
 
-                  <CrashFreeSessionsColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="60px" />
-                    ) : defined(crashFreeSessions) ? (
-                      <CrashFree percent={crashFreeSessions} />
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </CrashFreeSessionsColumn>
-
-                  <DailyUsersColumn>
+                  <DailyColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder />
                     ) : hasHealthData && defined(stats) ? (
@@ -153,19 +192,29 @@ const Content = ({
                           data={stats}
                           height={20}
                           period={activeStatsPeriod}
-                          subject={activeStatsSubject}
+                          activeDisplay={activeDisplay}
                         />
                       </ChartWrapper>
                     ) : (
                       <NotAvailable />
                     )}
-                  </DailyUsersColumn>
+                  </DailyColumn>
 
                   <CrashesColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder width="30px" />
                     ) : hasHealthData && defined(sessionsCrashed) ? (
-                      <Count value={sessionsCrashed} />
+                      <Tooltip title={t('Open in Issues')}>
+                        <GlobalSelectionLink
+                          to={getReleaseUnhandledIssuesUrl(
+                            organization.slug,
+                            project.id,
+                            releaseVersion
+                          )}
+                        >
+                          <Count value={sessionsCrashed} />
+                        </GlobalSelectionLink>
+                      </Tooltip>
                     ) : (
                       <NotAvailable />
                     )}
@@ -173,132 +222,169 @@ const Content = ({
 
                   <NewIssuesColumn>
                     <Tooltip title={t('Open in Issues')}>
-                      <Link
-                        to={getReleaseNewIssuesUrl(orgSlug, project.id, releaseVersion)}
+                      <GlobalSelectionLink
+                        to={getReleaseNewIssuesUrl(
+                          organization.slug,
+                          project.id,
+                          releaseVersion
+                        )}
                       >
                         <Count value={newGroups || 0} />
-                      </Link>
+                      </GlobalSelectionLink>
                     </Tooltip>
                   </NewIssuesColumn>
+
+                  <ViewColumn>
+                    <ProjectLink
+                      orgSlug={organization.slug}
+                      project={project}
+                      releaseVersion={releaseVersion}
+                      location={location}
+                    />
+                  </ViewColumn>
                 </Layout>
-              </Item>
+              </ProjectRow>
             );
           })}
-        </StyledClippedHealthRows>
-      </PanelBody>
+        </Collapsible>
+      </ProjectRows>
     </React.Fragment>
   );
 };
 
 export default Content;
 
-const StyledClippedHealthRows = styled(ClippedHealthRows)`
-  margin-bottom: -1px;
+const ProjectRows = styled('div')`
+  position: relative;
+`;
+
+const ExpandButtonWrapper = styled('div')`
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: linear-gradient(
+    180deg,
+    hsla(0, 0%, 100%, 0.15) 0,
+    ${p => p.theme.white}
+  );
+  background-repeat: repeat-x;
+  border-bottom: ${space(1)} solid ${p => p.theme.white};
+  border-top: ${space(1)} solid transparent;
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    border-bottom-left-radius: ${p => p.theme.borderRadius};
+  }
+`;
+
+const CollapseButtonWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 41px;
+`;
+
+const ProjectRow = styled(PanelItem)`
+  padding: ${space(1)} ${space(2)};
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    font-size: ${p => p.theme.fontSizeMedium};
+  }
 `;
 
 const Layout = styled('div')`
   display: grid;
-  grid-template-areas: 'project adoption crash-free-users crash-free-sessions daily-users crashes new-issues';
-  grid-template-columns: 2fr 2fr 1.4fr 1.4fr 2.1fr 0.7fr 0.8fr;
-  grid-column-gap: ${space(1.5)};
-  width: 100%;
+  grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
+  grid-column-gap: ${space(1)};
   align-items: center;
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-areas: 'project adoption crash-free-users crash-free-sessions crashes new-issues';
-    grid-template-columns: 2fr 2fr 1.5fr 1.5fr 1fr 1fr;
-  }
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-areas: 'project crash-free-users crash-free-sessions crashes new-issues';
-    grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr;
-  }
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-areas: 'project crash-free-sessions new-issues';
-    grid-template-columns: 2fr 1.6fr 1fr;
-  }
-`;
+  width: 100%;
 
-const HeaderLayout = styled(Layout)`
-  align-items: flex-end;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: 1fr 0.8fr 1fr 0.5fr 0.5fr 0.6fr;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: 1fr 0.8fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+  }
 `;
 
 const Column = styled('div')`
   ${overflowEllipsis};
+  line-height: 20px;
 `;
 
-const RightColumn = styled(Column)`
-  text-align: right;
-`;
-
-const CenterColumn = styled(Column)`
-  text-align: center;
-`;
-
-const ProjectColumn = styled(Column)`
-  grid-area: project;
-`;
-
-const DailyUsersColumn = styled(Column)`
-  grid-area: daily-users;
-  display: flex;
-  align-items: flex-end;
-  /* Chart tooltips need overflow */
-  overflow: visible;
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    display: none;
+const NewIssuesColumn = styled(Column)`
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    text-align: right;
   }
 `;
+
 const AdoptionColumn = styled(Column)`
-  grid-area: adoption;
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    display: none;
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
+    /* Chart tooltips need overflow */
+    overflow: visible;
   }
-`;
-const CrashFreeUsersColumn = styled(CenterColumn)`
-  grid-area: crash-free-users;
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    text-align: left;
-  }
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
-  }
-`;
-const CrashFreeSessionsColumn = styled(CenterColumn)`
-  grid-area: crash-free-sessions;
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    text-align: left;
-  }
-`;
-const CrashesColumn = styled(RightColumn)`
-  grid-area: crashes;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
-  }
-`;
-const NewIssuesColumn = styled(RightColumn)`
-  grid-area: new-issues;
 `;
 
-const AdoptionWrapper = styled('div')`
-  display: flex;
+const AdoptionWrapper = styled('span')`
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
   align-items: center;
-  justify-content: flex-start;
 `;
 
-const StyledScoreBar = styled(ScoreBar)`
-  margin-right: ${space(1)};
+const SessionsColumn = styled(Column)`
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    text-align: center;
+  }
+`;
+
+const DailyColumn = styled(Column)`
+  display: none;
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    display: flex;
+    /* Chart tooltips need overflow */
+    overflow: visible;
+  }
+`;
+
+const CrashesColumn = styled(Column)`
+  display: none;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: block;
+    text-align: right;
+  }
+`;
+
+const ViewColumn = styled(Column)`
+  text-align: right;
 `;
 
 const ChartWrapper = styled('div')`
   flex: 1;
   g > .barchart-rect {
-    background: ${p => p.theme.gray400};
-    fill: ${p => p.theme.gray400};
+    background: ${p => p.theme.gray200};
+    fill: ${p => p.theme.gray200};
   }
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
-  height: 20px;
+  height: 15px;
   display: inline-block;
   position: relative;
   top: ${space(0.25)};
+`;
+
+const ProgressBarWrapper = styled('div')`
+  min-width: 70px;
+  max-width: 90px;
 `;

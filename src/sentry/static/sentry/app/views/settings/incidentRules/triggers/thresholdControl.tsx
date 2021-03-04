@@ -1,16 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {
-  ThresholdControlValue,
-  AlertRuleThresholdType,
-} from 'app/views/settings/incidentRules/types';
-import {t, tct} from 'app/locale';
-import Input from 'app/views/settings/components/forms/controls/input';
 import SelectControl from 'app/components/forms/selectControl';
-import space from 'app/styles/space';
 import NumberDragControl from 'app/components/numberDragControl';
 import Tooltip from 'app/components/tooltip';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import Input from 'app/views/settings/components/forms/controls/input';
+import {
+  AlertRuleThresholdType,
+  ThresholdControlValue,
+} from 'app/views/settings/incidentRules/types';
 
 type Props = ThresholdControlValue & {
   type: string;
@@ -110,7 +110,7 @@ class ThresholdControl extends React.Component<Props, State> {
           ]}
           onChange={this.handleTypeChange}
         />
-        <Input
+        <StyledInput
           disabled={disabled}
           name={`${type}Threshold`}
           placeholder={placeholder}
@@ -134,9 +134,14 @@ class ThresholdControl extends React.Component<Props, State> {
   }
 }
 
+const StyledInput = styled(Input)`
+  /* Match the height of the select controls */
+  height: 40px;
+`;
+
 const DragContainer = styled('div')`
   position: absolute;
-  top: 6px;
+  top: 4px;
   right: 12px;
 `;
 

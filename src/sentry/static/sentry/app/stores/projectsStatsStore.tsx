@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import {Project} from 'app/types';
 import ProjectActions from 'app/actions/projectActions';
+import {Project} from 'app/types';
 
 type ProjectsStatsStoreInterface = {
   itemsBySlug: Record<string, Project>;
@@ -103,4 +103,6 @@ const projectsStatsStore: Reflux.StoreDefinition & ProjectsStatsStoreInterface =
 
 type ProjectsStatsStore = Reflux.Store & ProjectsStatsStoreInterface;
 
-export default Reflux.createStore(projectsStatsStore) as ProjectsStatsStore;
+const ProjectsStatsStore = Reflux.createStore(projectsStatsStore) as ProjectsStatsStore;
+
+export default ProjectsStatsStore;

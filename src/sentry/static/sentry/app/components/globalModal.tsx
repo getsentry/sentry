@@ -1,11 +1,12 @@
-import {ClassNames} from '@emotion/core';
-import {browserHistory} from 'react-router';
-import Modal from 'react-bootstrap/lib/Modal';
 import React from 'react';
-import Reflux from 'reflux';
+// eslint-disable-next-line no-restricted-imports
+import {Modal} from 'react-bootstrap';
+import {browserHistory} from 'react-router';
+import {ClassNames} from '@emotion/core';
 import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
-import {closeModal, ModalRenderProps, ModalOptions} from 'app/actionCreators/modal';
+import {closeModal, ModalOptions, ModalRenderProps} from 'app/actionCreators/modal';
 import Confirm from 'app/components/confirm';
 import ModalStore from 'app/stores/modalStore';
 
@@ -50,7 +51,6 @@ class GlobalModal extends React.Component<Props> {
     // Action creator
     closeModal();
 
-    // Read description in propTypes
     if (typeof onClose === 'function') {
       onClose();
     }
@@ -61,7 +61,7 @@ class GlobalModal extends React.Component<Props> {
     const renderedChild =
       typeof children === 'function'
         ? children({
-            closeModal,
+            closeModal: this.handleCloseModal,
             Header: Modal.Header,
             Body: Modal.Body,
             Footer: Modal.Footer,
@@ -84,6 +84,7 @@ class GlobalModal extends React.Component<Props> {
             show={visible}
             animation={false}
             onHide={this.handleCloseModal}
+            backdrop={options?.backdrop}
           >
             {renderedChild}
           </Modal>

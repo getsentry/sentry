@@ -1,18 +1,19 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Group} from 'app/types';
-import {tn} from 'app/locale';
 import UserAvatar from 'app/components/avatar/userAvatar';
+import {tn} from 'app/locale';
 import space from 'app/styles/space';
+import {Group} from 'app/types';
+
+import SidebarSection from './sidebarSection';
 
 type Props = {
   participants: Group['participants'];
 };
 
 const GroupParticipants = ({participants}: Props) => (
-  <div>
-    <h6>{tn('%s Participant', '%s Participants', participants.length)}</h6>
+  <SidebarSection title={tn('%s Participant', '%s Participants', participants.length)}>
     <Faces>
       {participants.map(user => (
         <Face key={user.username}>
@@ -20,7 +21,7 @@ const GroupParticipants = ({participants}: Props) => (
         </Face>
       ))}
     </Faces>
-  </div>
+  </SidebarSection>
 );
 
 export default GroupParticipants;

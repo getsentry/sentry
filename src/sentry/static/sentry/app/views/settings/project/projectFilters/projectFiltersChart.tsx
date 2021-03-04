@@ -1,16 +1,16 @@
 import React from 'react';
 
-import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {Client} from 'app/api';
+import MiniBarChart from 'app/components/charts/miniBarChart';
 import LoadingError from 'app/components/loadingError';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import MiniBarChart from 'app/components/charts/miniBarChart';
-import {Series} from 'app/types/echarts';
+import {t} from 'app/locale';
 import {Project} from 'app/types';
-import {Client} from 'app/api';
+import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type Props = {
   api: Client;
@@ -29,16 +29,16 @@ type State = {
 type RawStats = Record<string, [timestamp: number, value: number][]>;
 
 const STAT_OPS = {
-  'browser-extensions': {title: t('Browser Extension'), color: theme.gray400},
+  'browser-extensions': {title: t('Browser Extension'), color: theme.gray200},
   cors: {title: 'CORS', color: theme.orange400},
-  'error-message': {title: t('Error Message'), color: theme.purple400},
-  'discarded-hash': {title: t('Discarded Issue'), color: theme.gray300},
+  'error-message': {title: t('Error Message'), color: theme.purple300},
+  'discarded-hash': {title: t('Discarded Issue'), color: theme.gray200},
   'invalid-csp': {title: t('Invalid CSP'), color: theme.blue300},
-  'ip-address': {title: t('IP Address'), color: theme.red300},
-  'legacy-browsers': {title: t('Legacy Browser'), color: theme.gray300},
-  localhost: {title: t('Localhost'), color: theme.blue400},
-  'release-version': {title: t('Release'), color: theme.purple300},
-  'web-crawlers': {title: t('Web Crawler'), color: theme.red400},
+  'ip-address': {title: t('IP Address'), color: theme.red200},
+  'legacy-browsers': {title: t('Legacy Browser'), color: theme.gray200},
+  localhost: {title: t('Localhost'), color: theme.blue300},
+  'release-version': {title: t('Release'), color: theme.purple200},
+  'web-crawlers': {title: t('Web Crawler'), color: theme.red300},
 };
 
 class ProjectFiltersChart extends React.Component<Props, State> {
@@ -124,7 +124,7 @@ class ProjectFiltersChart extends React.Component<Props, State> {
     const hasError = !isLoading && error;
     const hasLoaded = !isLoading && !error;
     const colors = formattedData
-      ? formattedData.map(series => series.color || theme.gray400)
+      ? formattedData.map(series => series.color || theme.gray200)
       : undefined;
 
     return (

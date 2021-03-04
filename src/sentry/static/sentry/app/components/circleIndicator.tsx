@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
 import {Theme} from 'app/utils/theme';
@@ -34,12 +33,6 @@ const CircleIndicator = styled('div')<Props>`
   ${getSize};
   ${getBackgroundColor};
 `;
-
-CircleIndicator.propTypes = {
-  enabled: PropTypes.bool.isRequired,
-  size: PropTypes.number.isRequired,
-  color: PropTypes.string,
-};
 
 CircleIndicator.defaultProps = defaultProps;
 

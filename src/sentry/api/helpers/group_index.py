@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import logging
-import six
 
 from collections import defaultdict
 from datetime import timedelta
@@ -29,7 +26,6 @@ from sentry.models import (
     Group,
     GroupAssignee,
     GroupHash,
-    GroupInbox,
     GroupInboxReason,
     GroupLink,
     GroupStatus,
@@ -49,12 +45,13 @@ from sentry.models import (
     User,
     UserOption,
 )
-from sentry.models.groupinbox import add_group_to_inbox
-from sentry.models.group import looks_like_short_id
+from sentry.models.groupinbox import add_group_to_inbox, GroupInboxRemoveAction
+from sentry.models.group import looks_like_short_id, STATUS_UPDATE_CHOICES
 from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, parse_search_query
 from sentry.signals import (
     issue_deleted,
     issue_ignored,
+    issue_mark_reviewed,
     issue_unignored,
     issue_resolved,
     issue_unresolved,
@@ -100,9 +97,7 @@ def build_query_params_from_request(request, organization, projects, environment
                 parse_search_query(query), projects, request.user, environments
             )
         except InvalidSearchQuery as e:
-            raise ValidationError(
-                u"Your search query could not be parsed: {}".format(six.text_type(e))
-            )
+            raise ValidationError(f"Your search query could not be parsed: {e}")
 
         validate_search_filter_permissions(organization, search_filters, request.user)
         query_kwargs["search_filters"] = search_filters
@@ -139,7 +134,7 @@ def validate_search_filter_permissions(organization, search_filters, user):
                     user=user, organization=organization, sender=validate_search_filter_permissions
                 )
                 raise ValidationError(
-                    u"You need access to the advanced search feature to use {}".format(feature_name)
+                    f"You need access to the advanced search feature to use {feature_name}"
                 )
 
 
@@ -149,16 +144,6 @@ def get_by_short_id(organization_id, is_short_id_lookup, query):
             return Group.objects.by_qualified_short_id(organization_id, query)
         except Group.DoesNotExist:
             pass
-
-
-STATUS_CHOICES = {
-    "resolved": GroupStatus.RESOLVED,
-    "unresolved": GroupStatus.UNRESOLVED,
-    "ignored": GroupStatus.IGNORED,
-    "resolvedInNextRelease": GroupStatus.UNRESOLVED,
-    # TODO(dcramer): remove in 9.0
-    "muted": GroupStatus.IGNORED,
-}
 
 
 class InCommitValidator(serializers.Serializer):
@@ -174,7 +159,7 @@ class InCommitValidator(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        attrs = super(InCommitValidator, self).validate(attrs)
+        attrs = super().validate(attrs)
         repository = attrs.get("repository")
         commit = attrs.get("commit")
         if not repository:
@@ -251,7 +236,9 @@ class InboxDetailsValidator(serializers.Serializer):
 class GroupValidator(serializers.Serializer):
     inbox = serializers.BooleanField()
     inboxDetails = InboxDetailsValidator()
-    status = serializers.ChoiceField(choices=zip(STATUS_CHOICES.keys(), STATUS_CHOICES.keys()))
+    status = serializers.ChoiceField(
+        choices=zip(STATUS_UPDATE_CHOICES.keys(), STATUS_UPDATE_CHOICES.keys())
+    )
     statusDetails = StatusDetailsValidator()
     hasSeen = serializers.BooleanField()
     isBookmarked = serializers.BooleanField()
@@ -298,7 +285,7 @@ class GroupValidator(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        attrs = super(GroupValidator, self).validate(attrs)
+        attrs = super().validate(attrs)
         if len(attrs) > 1 and "discard" in attrs:
             raise serializers.ValidationError("Other attributes cannot be updated when discarding")
         return attrs
@@ -318,7 +305,7 @@ def handle_discard(request, group_list, projects, user):
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
                     actor_id=user.id if user else None,
-                    **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP}
+                    **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
             except IntegrityError:
                 # in this case, a tombstone has already been created
@@ -408,7 +395,7 @@ def delete_groups(request, projects, organization_id, search_fn):
             # a bit too complicated right now
             cursor_result, _ = search_fn({"limit": 1000, "paginator_options": {"max_limit": 1000}})
         except ValidationError as exc:
-            return Response({"detail": six.text_type(exc)}, status=400)
+            return Response({"detail": str(exc)}, status=400)
 
         group_list = list(cursor_result)
 
@@ -448,10 +435,21 @@ def track_update_groups(function):
         try:
             response = function(request, projects, *args, **kwargs)
         except snuba.RateLimitExceeded:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={
+                    "status": 429,
+                    "detail": "group_index:track_update_groups:snuba.RateLimitExceeded",
+                },
+            )
             raise
         except Exception:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 500, "detail": "group_index:track_update_groups:Exception"},
+            )
             # Continue raising the error now that we've incr the metric
             raise
 
@@ -463,7 +461,7 @@ def track_update_groups(function):
         results = dict(serializer.validated_data) if serializer.is_valid() else {}
         tags = {key: True for key in results.keys()}
         tags["status"] = response.status_code
-
+        tags["detail"] = "group_index:track_update_groups:response"
         metrics.incr("group.update.http_response", sample_rate=1.0, tags=tags)
         return response
 
@@ -472,25 +470,21 @@ def track_update_groups(function):
 
 def rate_limit_endpoint(limit=1, window=1):
     def inner(function):
-        def wrapper(*args, **kwargs):
-            try:
-                if ratelimiter.is_limited(
-                    u"rate_limit_endpoint:{}".format(md5_text(function).hexdigest()),
-                    limit=limit,
-                    window=window,
-                ):
-                    return Response(
-                        {
-                            "detail": "You are attempting to use this endpoint too quickly. Limit is {}/{}s".format(
-                                limit, window
-                            )
-                        },
-                        status=429,
-                    )
-                else:
-                    return function(*args, **kwargs)
-            except Exception:
-                raise
+        def wrapper(self, request, *args, **kwargs):
+            ip = request.META["REMOTE_ADDR"]
+            if ratelimiter.is_limited(
+                f"rate_limit_endpoint:{md5_text(function).hexdigest()}:{ip}",
+                limit=limit,
+                window=window,
+            ):
+                return Response(
+                    {
+                        "detail": f"You are attempting to use this endpoint too quickly. Limit is {limit}/{window}s"
+                    },
+                    status=429,
+                )
+            else:
+                return function(self, request, *args, **kwargs)
 
         return wrapper
 
@@ -498,7 +492,7 @@ def rate_limit_endpoint(limit=1, window=1):
 
 
 @track_update_groups
-def update_groups(request, projects, organization_id, search_fn):
+def update_groups(request, projects, organization_id, search_fn, has_inbox=False):
     group_ids = request.GET.getlist("id")
     if group_ids:
         group_list = Group.objects.filter(
@@ -537,7 +531,7 @@ def update_groups(request, projects, organization_id, search_fn):
             # a bit too complicated right now
             cursor_result, _ = search_fn({"limit": 1000, "paginator_options": {"max_limit": 1000}})
         except ValidationError as exc:
-            return Response({"detail": six.text_type(exc)}, status=400)
+            return Response({"detail": str(exc)}, status=400)
 
         group_list = list(cursor_result)
         group_ids = [g.id for g in group_list]
@@ -688,6 +682,11 @@ def update_groups(request, projects, organization_id, search_fn):
 
                 group.status = GroupStatus.RESOLVED
                 group.resolved_at = now
+                remove_group_from_inbox(
+                    group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user
+                )
+                if has_inbox:
+                    result["inbox"] = None
 
                 assigned_to = self_subscribe_and_assign_issue(acting_user, group)
                 if assigned_to is not None:
@@ -723,17 +722,20 @@ def update_groups(request, projects, organization_id, search_fn):
         result.update({"status": "resolved", "statusDetails": status_details})
 
     elif status:
-        new_status = STATUS_CHOICES[result["status"]]
+        new_status = STATUS_UPDATE_CHOICES[result["status"]]
 
         with transaction.atomic():
             happened = queryset.exclude(status=new_status).update(status=new_status)
 
             GroupResolution.objects.filter(group__in=group_ids).delete()
-
             if new_status == GroupStatus.IGNORED:
                 metrics.incr("group.ignored", skip_internal=True)
                 for group in group_ids:
-                    remove_group_from_inbox(group)
+                    remove_group_from_inbox(
+                        group, action=GroupInboxRemoveAction.IGNORED, user=acting_user
+                    )
+                if has_inbox:
+                    result["inbox"] = None
 
                 ignore_duration = (
                     statusDetails.pop("ignoreDuration", None)
@@ -985,8 +987,8 @@ def update_groups(request, projects, organization_id, search_fn):
         )
 
         result["merge"] = {
-            "parent": six.text_type(primary_group.id),
-            "children": [six.text_type(g.id) for g in groups_to_merge],
+            "parent": str(primary_group.id),
+            "children": [str(g.id) for g in groups_to_merge],
         }
 
     # Support moving groups in or out of the inbox
@@ -996,7 +998,36 @@ def update_groups(request, projects, organization_id, search_fn):
             for group in group_list:
                 add_group_to_inbox(group, GroupInboxReason.MANUAL)
         elif not inbox:
-            GroupInbox.objects.filter(group__in=group_ids).delete()
+            for group in group_list:
+                remove_group_from_inbox(
+                    group,
+                    action=GroupInboxRemoveAction.MARK_REVIEWED,
+                    user=acting_user,
+                    referrer=request.META.get("HTTP_REFERER"),
+                )
+                issue_mark_reviewed.send_robust(
+                    project=project,
+                    user=acting_user,
+                    group=group,
+                    sender=update_groups,
+                )
         result["inbox"] = inbox
 
     return Response(result)
+
+
+def calculate_stats_period(stats_period, start, end):
+    if stats_period is None:
+        # default
+        stats_period = "24h"
+    elif stats_period == "":
+        # disable stats
+        stats_period = None
+
+    if stats_period == "auto":
+        stats_period_start = start
+        stats_period_end = end
+    else:
+        stats_period_start = None
+        stats_period_end = None
+    return stats_period, stats_period_start, stats_period_end

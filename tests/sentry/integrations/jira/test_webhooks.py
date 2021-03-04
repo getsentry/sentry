@@ -1,8 +1,4 @@
-from __future__ import absolute_import
-
 import responses
-
-from sentry.utils.compat.mock import patch
 
 from django.test.utils import override_settings
 from django.core.urlresolvers import reverse
@@ -10,104 +6,8 @@ from django.core.urlresolvers import reverse
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import Integration
 from sentry.testutils import APITestCase
-from sentry.utils import json
-
-
-SAMPLE_EDIT_ISSUE_PAYLOAD_NO_ASSIGNEE = """
-{
-    "changelog": {
-        "items": [{
-            "to": "admin",
-            "field": "assignee",
-            "toString": "Jess MacQueen",
-            "from": null,
-            "fromString": null,
-            "fieldtype": "jira",
-            "fieldId": "assignee"
-        }],
-        "id": "10172"
-    },
-    "issue": {
-        "fields": {
-            "assignee": null
-        },
-        "key": "APP-123"
-    }
-}
-"""
-
-SAMPLE_EDIT_ISSUE_PAYLOAD_MISSING_ASSIGNEE_FIELD = """
-{
-    "changelog": {
-        "items": [{
-            "field": "assignee",
-            "from": null,
-            "fromString": null,
-            "fieldtype": "jira",
-            "fieldId": "assignee"
-        }],
-        "id": "10172"
-    },
-    "issue": {
-        "fields": {},
-        "key": "APP-123"
-    }
-}
-"""
-
-SAMPLE_EDIT_ISSUE_PAYLOAD_ASSIGNEE = """
-{
-    "changelog": {
-        "items": [{
-            "to": "admin",
-            "field": "assignee",
-            "toString": "Jess MacQueen",
-            "from": null,
-            "fromString": null,
-            "fieldtype": "jira",
-            "fieldId": "assignee"
-        }],
-        "id": "10172"
-    },
-    "issue": {
-        "fields": {
-            "assignee": {
-                "emailAddress": "jess@sentry.io",
-                "accountId": "deadbeef123"
-            }
-        },
-        "key": "APP-123"
-    }
-}
-"""
-
-SAMPLE_EDIT_ISSUE_PAYLOAD_STATUS = """
-{
-    "changelog": {
-        "items": [{
-            "from": "10101",
-            "field": "status",
-            "fromString": "Done",
-            "to": "3",
-            "toString": "In Progress",
-            "fieldtype": "jira",
-            "fieldId": "status"
-        }],
-        "id": "10196"
-    },
-    "issue": {
-        "fields": {
-            "project": {
-                "id": "10000",
-                "key": "APP"
-            }
-        },
-        "key": "APP-123"
-    }
-}
-"""
-
-SAMPLE_MISSING_CHANGELOG = "{}"
+from sentry.utils.compat.mock import patch
+from tests.fixtures.integrations.mock_service import StubService
 
 
 class JiraWebhooksTest(APITestCase):
@@ -123,11 +23,8 @@ class JiraWebhooksTest(APITestCase):
         with patch(
             "sentry.integrations.jira.webhooks.get_integration_from_jwt", return_value=integration
         ):
-            resp = self.client.post(
-                path,
-                data=json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_ASSIGNEE.strip()),
-                HTTP_AUTHORIZATION="JWT anexampletoken",
-            )
+            data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
+            resp = self.client.post(path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
             assert resp.status_code == 200
             mock_sync_group_assignee_inbound.assert_called_with(
                 integration, "jess@sentry.io", "APP-123", assign=True
@@ -163,7 +60,7 @@ class JiraWebhooksTest(APITestCase):
         with patch(
             "sentry.integrations.jira.webhooks.get_integration_from_jwt", return_value=integration
         ):
-            data = json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_ASSIGNEE.strip())
+            data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
             data["issue"]["fields"]["assignee"]["emailAddress"] = ""
             resp = self.client.post(path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
             assert resp.status_code == 200
@@ -182,7 +79,7 @@ class JiraWebhooksTest(APITestCase):
         with patch(
             "sentry.integrations.jira.webhooks.get_integration_from_jwt", return_value=integration
         ):
-            data = json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_ASSIGNEE.strip())
+            data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
             data["issue"]["fields"]["assignee"]["emailAddress"] = ""
             resp = self.client.post(path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
             assert resp.status_code == 200
@@ -200,11 +97,8 @@ class JiraWebhooksTest(APITestCase):
         with patch(
             "sentry.integrations.jira.webhooks.get_integration_from_jwt", return_value=integration
         ):
-            resp = self.client.post(
-                path,
-                data=json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_NO_ASSIGNEE.strip()),
-                HTTP_AUTHORIZATION="JWT anexampletoken",
-            )
+            data = StubService.get_stub_data("jira", "edit_issue_no_assignee_payload.json")
+            resp = self.client.post(path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
             assert resp.status_code == 200
             mock_sync_group_assignee_inbound.assert_called_with(
                 integration, None, "APP-123", assign=False
@@ -222,11 +116,8 @@ class JiraWebhooksTest(APITestCase):
         with patch(
             "sentry.integrations.jira.webhooks.get_integration_from_jwt", return_value=integration
         ):
-            resp = self.client.post(
-                path,
-                data=json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_MISSING_ASSIGNEE_FIELD.strip()),
-                HTTP_AUTHORIZATION="JWT anexampletoken",
-            )
+            data = StubService.get_stub_data("jira", "edit_issue_assignee_missing_payload.json")
+            resp = self.client.post(path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
             assert resp.status_code == 200
             mock_sync_group_assignee_inbound.assert_called_with(
                 integration, None, "APP-123", assign=False
@@ -244,14 +135,11 @@ class JiraWebhooksTest(APITestCase):
         with patch(
             "sentry.integrations.jira.webhooks.get_integration_from_jwt", return_value=integration
         ) as mock_get_integration_from_jwt:
-            resp = self.client.post(
-                path,
-                data=json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_STATUS.strip()),
-                HTTP_AUTHORIZATION="JWT anexampletoken",
-            )
+            data = StubService.get_stub_data("jira", "edit_issue_status_payload.json")
+            resp = self.client.post(path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
             assert resp.status_code == 200
             mock_get_integration_from_jwt.assert_called_with(
-                "anexampletoken", u"/extensions/jira/issue-updated/", "jira", {}, method="POST"
+                "anexampletoken", "/extensions/jira/issue-updated/", "jira", {}, method="POST"
             )
             mock_sync_status_inbound.assert_called_with(
                 "APP-123",
@@ -267,7 +155,7 @@ class JiraWebhooksTest(APITestCase):
                     },
                     "issue": {
                         "fields": {"project": {"id": "10000", "key": "APP"}},
-                        u"key": u"APP-123",
+                        "key": "APP-123",
                     },
                 },
             )
@@ -283,9 +171,6 @@ class JiraWebhooksTest(APITestCase):
         with patch(
             "sentry.integrations.jira.webhooks.get_integration_from_jwt", return_value=integration
         ):
-            resp = self.client.post(
-                path,
-                data=json.loads(SAMPLE_MISSING_CHANGELOG.strip()),
-                HTTP_AUTHORIZATION="JWT anexampletoken",
-            )
+            data = StubService.get_stub_data("jira", "changelog_missing.json")
+            resp = self.client.post(path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
             assert resp.status_code == 200

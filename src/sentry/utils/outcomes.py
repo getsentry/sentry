@@ -1,13 +1,10 @@
-from __future__ import absolute_import
-
 from datetime import datetime
 from django.conf import settings
 from enum import IntEnum
-import six
 import time
 
 from sentry.constants import DataCategory
-from sentry.utils import json, metrics
+from sentry.utils import json, metrics, kafka_config
 from sentry.utils.dates import to_datetime
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -49,14 +46,17 @@ def track_outcome(
     """
     global outcomes_publisher
     if outcomes_publisher is None:
-        outcomes_publisher = KafkaPublisher(settings.KAFKA_CLUSTERS[outcomes["cluster"]])
+        cluster_name = outcomes["cluster"]
+        outcomes_publisher = KafkaPublisher(
+            kafka_config.get_kafka_producer_cluster_options(cluster_name)
+        )
 
     if quantity is None:
         quantity = 1
 
-    assert isinstance(org_id, six.integer_types)
-    assert isinstance(project_id, six.integer_types)
-    assert isinstance(key_id, (type(None), six.integer_types))
+    assert isinstance(org_id, int)
+    assert isinstance(project_id, int)
+    assert isinstance(key_id, (type(None), int))
     assert isinstance(outcome, Outcome)
     assert isinstance(timestamp, (type(None), datetime))
     assert isinstance(category, (type(None), DataCategory))

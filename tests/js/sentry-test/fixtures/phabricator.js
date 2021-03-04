@@ -92,4 +92,4 @@ function PhabricatorAutocomplete(type = 'project', values = null) {
   return {[type]: values};
 }
 
-export {PhabricatorPlugin, PhabricatorCreate, PhabricatorAutocomplete};
+export {PhabricatorAutocomplete, PhabricatorCreate, PhabricatorPlugin};

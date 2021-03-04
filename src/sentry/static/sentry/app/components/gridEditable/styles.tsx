@@ -30,7 +30,7 @@ export const Header = styled('div')`
 export const HeaderTitle = styled('h4')`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
 `;
 
 export const HeaderButtonContainer = styled('div')`
@@ -117,8 +117,8 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
 
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
-  background-color: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray600};
+  background-color: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.subText};
 
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
@@ -144,8 +144,8 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   }
 
   &:hover {
-    border-left-color: ${p => (p.isFirst ? 'transparent' : p.theme.borderDark)};
-    border-right-color: ${p => p.theme.borderDark};
+    border-left-color: ${p => (p.isFirst ? 'transparent' : p.theme.border)};
+    border-right-color: ${p => p.theme.border};
   }
 `;
 
@@ -158,7 +158,7 @@ export const GridHeadCellStatic = styled('th')`
   display: flex;
   align-items: center;
   padding: 0 ${space(2)};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   line-height: 1;
@@ -181,7 +181,7 @@ export const GridBody = styled('tbody')`
   display: contents;
 
   > tr:first-child td {
-    border-top: 1px solid ${p => p.theme.borderDark};
+    border-top: 1px solid ${p => p.theme.border};
   }
 `;
 export const GridBodyCell = styled('td')`
@@ -194,8 +194,8 @@ export const GridBodyCell = styled('td')`
   min-height: ${GRID_BODY_ROW_HEIGHT}px;
   padding: ${space(1)} ${space(2)};
 
-  background-color: ${p => p.theme.white};
-  border-top: 1px solid ${p => p.theme.borderLight};
+  background-color: ${p => p.theme.background};
+  border-top: 1px solid ${p => p.theme.innerBorder};
 
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -225,7 +225,7 @@ const GridStatusFloat = styled('div')`
   height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
 
   z-index: ${Z_INDEX_GRID_STATUS};
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
 `;
 export const GridBodyCellStatus = props => (
   <GridStatusWrapper>
@@ -275,7 +275,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   }
 
   &:hover::after {
-    background-color: ${p => p.theme.gray400};
+    background-color: ${p => p.theme.gray200};
   }
 
   /**
@@ -284,7 +284,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
    */
   &:active::after,
   &:focus::after {
-    background-color: ${p => p.theme.purple400};
+    background-color: ${p => p.theme.purple300};
   }
 
   /**
@@ -298,7 +298,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     display: block;
     width: 7px;
     height: ${GRID_HEAD_ROW_HEIGHT}px;
-    background-color: ${p => p.theme.purple400};
+    background-color: ${p => p.theme.purple300};
     opacity: 0.4;
   }
 `;

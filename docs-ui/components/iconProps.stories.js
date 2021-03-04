@@ -1,5 +1,4 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 import styled from '@emotion/styled';
 
 import {IconAdd, IconArrow, IconBookmark, IconGroup, IconPin} from 'app/icons';
@@ -8,7 +7,7 @@ export default {
   title: 'Core/Style/Icons',
 };
 
-export const IconProps = withInfo('Props you can assign to the icon components')(() => {
+export const IconProps = () => {
   return (
     <SwatchWrapper>
       <ColorSwatches>
@@ -108,10 +107,17 @@ export const IconProps = withInfo('Props you can assign to the icon components')
       </SolidSwatches>
     </SwatchWrapper>
   );
-});
+};
+IconProps.parameters = {
+  docs: {
+    description: {
+      story: 'Props you can assign to the icon components',
+    },
+  },
+};
 
 const Highlight = styled('span')`
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.purple300};
   font-weight: 600;
 `;
 
@@ -132,7 +138,7 @@ const SwatchWrapper = styled('div')`
 `;
 
 const Swatches = styled('div')`
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   padding: 24px;
 `;
 

@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from sentry.utils.compat import mock
 import zlib
 import pytest
@@ -10,7 +6,10 @@ from sentry.cache.redis import RedisClusterCache, RbCache
 from sentry.utils.imports import import_string
 
 
-class FakeClient(object):
+KEY_FMT = "c:1:%s"
+
+
+class FakeClient:
     def __init__(self):
         self.data = {}
 
@@ -25,7 +24,7 @@ def mock_client():
 
 @pytest.fixture(params=["rb", "rediscluster"])
 def mocked_attachment_cache(request, mock_client):
-    class RbCluster(object):
+    class RbCluster:
         def get_routing_client(self):
             return mock_client
 
@@ -55,8 +54,8 @@ def mocked_attachment_cache(request, mock_client):
 
 
 def test_process_pending_one_batch(mocked_attachment_cache, mock_client):
-    mock_client.data["c:1:foo:a"] = '[{"name":"foo.txt","content_type":"text/plain"}]'
-    mock_client.data["c:1:foo:a:0"] = zlib.compress(b"Hello World!")
+    mock_client.data[KEY_FMT % "foo:a"] = '[{"name":"foo.txt","content_type":"text/plain"}]'
+    mock_client.data[KEY_FMT % "foo:a:0"] = zlib.compress(b"Hello World!")
 
     (attachment,) = mocked_attachment_cache.get("foo")
     assert attachment.meta() == {
@@ -69,10 +68,12 @@ def test_process_pending_one_batch(mocked_attachment_cache, mock_client):
 
 
 def test_chunked(mocked_attachment_cache, mock_client):
-    mock_client.data["c:1:foo:a"] = '[{"name":"foo.txt","content_type":"text/plain","chunks":3}]'
-    mock_client.data["c:1:foo:a:0:0"] = zlib.compress(b"Hello World!")
-    mock_client.data["c:1:foo:a:0:1"] = zlib.compress(b" This attachment is ")
-    mock_client.data["c:1:foo:a:0:2"] = zlib.compress(b"chunked up.")
+    mock_client.data[
+        KEY_FMT % "foo:a"
+    ] = '[{"name":"foo.txt","content_type":"text/plain","chunks":3}]'
+    mock_client.data[KEY_FMT % "foo:a:0:0"] = zlib.compress(b"Hello World!")
+    mock_client.data[KEY_FMT % "foo:a:0:1"] = zlib.compress(b" This attachment is ")
+    mock_client.data[KEY_FMT % "foo:a:0:2"] = zlib.compress(b"chunked up.")
 
     (attachment,) = mocked_attachment_cache.get("foo")
     assert attachment.meta() == {

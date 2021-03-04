@@ -1,31 +1,35 @@
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import PlatformIcon from 'platformicons';
+import {PlatformIcon} from 'platformicons';
+import PropTypes from 'prop-types';
 
-import {Organization, Project, Team} from 'app/types';
-import {inputStyles} from 'app/styles/input';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
+import ProjectActions from 'app/actions/projectActions';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import SelectControl from 'app/components/forms/selectControl';
 import PageHeading from 'app/components/pageHeading';
 import PlatformPicker from 'app/components/platformPicker';
-import ProjectActions from 'app/actions/projectActions';
-import SelectControl from 'app/components/forms/selectControl';
 import Tooltip from 'app/components/tooltip';
-import getPlatformName from 'app/utils/getPlatformName';
+import categoryList from 'app/data/platformCategories';
+import {IconAdd} from 'app/icons';
+import {t} from 'app/locale';
+import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
+import {Organization, Project, Team} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import getPlatformName from 'app/utils/getPlatformName';
+import slugify from 'app/utils/slugify';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import slugify from 'app/utils/slugify';
-import {IconAdd} from 'app/icons';
+
+const getCategoryName = (category?: string) =>
+  categoryList.find(({id}) => id === category)?.id;
 
 type RuleEventData = {
   eventKey: string;
@@ -51,7 +55,7 @@ type State = {
   error: boolean;
   projectName: string;
   team: string;
-  platform: PlatformName;
+  platform: PlatformName | null;
   inFlight: boolean;
   dataFragment: IssueAlertFragment | undefined;
 };
@@ -81,6 +85,11 @@ class CreateProject extends React.Component<Props, State> {
     };
   }
 
+  get defaultCategory() {
+    const {query} = this.context.location;
+    return getCategoryName(query.category);
+  }
+
   renderProjectForm() {
     const {organization} = this.props;
     const {projectName, platform, team} = this.state;
@@ -92,7 +101,7 @@ class CreateProject extends React.Component<Props, State> {
         <div>
           <FormLabel>{t('Project name')}</FormLabel>
           <ProjectNameInput theme={theme}>
-            <StyledPlatformIcon platform={platform} />
+            <StyledPlatformIcon platform={platform ?? ''} />
             <input
               type="text"
               name="name"
@@ -107,7 +116,6 @@ class CreateProject extends React.Component<Props, State> {
           <FormLabel>{t('Team')}</FormLabel>
           <TeamSelectInput>
             <SelectControl
-              deprecatedSelectControl
               name="select-team"
               clearable={false}
               value={team}
@@ -276,7 +284,7 @@ class CreateProject extends React.Component<Props, State> {
     trackAnalyticsEvent(data);
   }
 
-  setPlatform = (platformId: PlatformName) =>
+  setPlatform = (platformId: PlatformName | null) =>
     this.setState(({projectName, platform}: State) => ({
       platform: platformId,
       projectName:
@@ -296,13 +304,18 @@ class CreateProject extends React.Component<Props, State> {
           <PageHeading withMargins>{t('Create a new Project')}</PageHeading>
           <HelpText>
             {t(
-              `Projects allow you to scope events to a specific application in
-               your organization. For example, you might have separate projects
-               for your API server and frontend client.`
+              `Projects allow you to scope error and transaction events to a specific
+               application in your organization. For example, you might have separate
+               projects for your API server and frontend client.`
             )}
           </HelpText>
           <PageHeading withMargins>{t('Choose a platform')}</PageHeading>
-          <PlatformPicker platform={platform} setPlatform={this.setPlatform} showOther />
+          <PlatformPicker
+            platform={platform}
+            defaultCategory={this.defaultCategory}
+            setPlatform={this.setPlatform}
+            showOther
+          />
           <IssueAlertOptions
             onChange={updatedData => {
               this.setState({dataFragment: updatedData});
@@ -325,7 +338,7 @@ const CreateProjectForm = styled('form')`
   align-items: end;
   padding: ${space(3)} 0;
   box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);
-  background: #fff;
+  background: ${p => p.theme.background};
 `;
 
 const FormLabel = styled('div')`
@@ -357,6 +370,6 @@ const TeamSelectInput = styled('div')`
 `;
 
 const HelpText = styled('p')`
-  color: ${p => p.theme.gray600};
-  max-width: 700px;
+  color: ${p => p.theme.subText};
+  max-width: 760px;
 `;

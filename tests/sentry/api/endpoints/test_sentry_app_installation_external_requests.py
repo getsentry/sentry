@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 
 from django.core.urlresolvers import reverse
@@ -32,17 +30,13 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         options = [{"label": "Project Name", "value": "1234"}]
         responses.add(
             method=responses.GET,
-            url=u"https://example.com/get-projects?projectSlug={}&installationId={}&query=proj".format(
-                self.project.slug, self.install.uuid
-            ),
+            url=f"https://example.com/get-projects?projectSlug={self.project.slug}&installationId={self.install.uuid}&query=proj",
             json=options,
             status=200,
             content_type="application/json",
             match_querystring=True,
         )
-        url = self.url + u"?projectId={}&uri={}&query={}".format(
-            self.project.id, "/get-projects", "proj"
-        )
+        url = self.url + f"?projectId={self.project.id}&uri=/get-projects&query=proj"
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data == {"choices": [["1234", "Project Name"]]}
@@ -59,7 +53,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         }
         responses.add(
             method=responses.GET,
-            url=u"https://example.com/get-projects?%s" % urlencode(query),
+            url="https://example.com/get-projects?%s" % urlencode(query),
             json=options,
             status=200,
             content_type="application/json",
@@ -71,7 +65,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
             "query": "proj",
             "dependentData": json.dumps({"org_id": "A"}),
         }
-        url = u"%s?%s" % (self.url, urlencode(query))
+        url = f"{self.url}?{urlencode(query)}"
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data == {"choices": [["1234", "Project Name"]]}
@@ -81,12 +75,10 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         self.login_as(user=self.user)
         responses.add(
             method=responses.GET,
-            url=u"https://example.com/get-projects?installationId={}".format(
-                self.project.slug, self.install.uuid
-            ),
+            url=f"https://example.com/get-projects?installationId={self.project.slug}",
             status=500,
             content_type="application/json",
         )
-        url = self.url + u"?uri={}".format(self.project.id, "/get-projects")
+        url = self.url + f"?uri={self.project.id}"
         response = self.client.get(url, format="json")
         assert response.status_code == 400

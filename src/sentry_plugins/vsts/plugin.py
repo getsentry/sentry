@@ -1,7 +1,6 @@
 """ A plugin to incorporate work-item creation in VSTS
 easily out of issues detected from Sentry.io """
 
-from __future__ import absolute_import
 
 from mistune import markdown
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
@@ -77,7 +76,7 @@ class VstsPlugin(VisualStudioMixin, IssueTrackingPlugin2):
         return issue["url"]
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(VstsPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
         client = self.get_client(request.user)
         instance = self.get_option("instance", group.project)
 

@@ -1,15 +1,14 @@
 import React from 'react';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 
-import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
-import {t} from 'app/locale';
+import {disablePlugin, enablePlugin, fetchPlugins} from 'app/actionCreators/plugins';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import SentryTypes from 'app/sentryTypes';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import withPlugins from 'app/utils/withPlugins';
+import {t} from 'app/locale';
+import {Organization, Plugin, Project} from 'app/types';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
-import {Plugin, Organization, Project} from 'app/types';
+import withPlugins from 'app/utils/withPlugins';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 import ProjectPlugins from './projectPlugins';
 
@@ -24,12 +23,6 @@ type Props = WithRouterProps<{orgId: string; projectId: string}> & {
 };
 
 class ProjectPluginsContainer extends React.Component<Props> {
-  static propTypes: any = {
-    plugins: SentryTypes.PluginsStore,
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-  };
-
   componentDidMount() {
     this.fetchData();
   }
@@ -40,12 +33,10 @@ class ProjectPluginsContainer extends React.Component<Props> {
       plugin => plugin.hasConfiguration && plugin.enabled
     ).length;
     trackIntegrationEvent(
+      'integrations.index_viewed',
       {
-        eventKey: 'integrations.index_viewed',
-        eventName: 'Integrations: Index Page Viewed',
         integrations_installed: installCount,
         view: 'legacy_integrations',
-        project_id: this.props.project.id,
       },
       this.props.organization,
       {startSession: true}
@@ -72,7 +63,6 @@ class ProjectPluginsContainer extends React.Component<Props> {
 
         <ProjectPlugins
           {...this.props}
-          onError={this.fetchData}
           onChange={this.handleChange}
           loading={loading}
           error={error}

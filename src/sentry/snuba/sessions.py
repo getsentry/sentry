@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytz
 from datetime import datetime, timedelta
 
@@ -21,7 +19,7 @@ def _get_conditions_and_filter_keys(project_releases, environments):
     conditions = [["release", "IN", list(x[1] for x in project_releases)]]
     if environments is not None:
         conditions.append(["environment", "IN", environments])
-    filter_keys = {"project_id": list(set(x[0] for x in project_releases))}
+    filter_keys = {"project_id": list({x[0] for x in project_releases})}
     return conditions, filter_keys
 
 
@@ -67,8 +65,8 @@ def get_oldest_health_data_for_releases(project_releases):
 
 def check_has_health_data(project_releases):
     conditions = [["release", "IN", list(x[1] for x in project_releases)]]
-    filter_keys = {"project_id": list(set(x[0] for x in project_releases))}
-    return set(
+    filter_keys = {"project_id": list({x[0] for x in project_releases})}
+    return {
         (x["project_id"], x["release"])
         for x in raw_query(
             dataset=Dataset.Sessions,
@@ -79,7 +77,7 @@ def check_has_health_data(project_releases):
             referrer="sessions.health-data-check",
             filter_keys=filter_keys,
         )["data"]
-    )
+    }
 
 
 def get_project_releases_by_stability(
@@ -171,17 +169,22 @@ def get_release_adoption(project_releases, environments=None, now=None):
     if environments is not None:
         total_conditions.append(["environment", "IN", environments])
 
+    # Users Adoption
     total_users = {}
+    # Session Adoption
+    total_sessions = {}
+
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["project_id", "users"],
+        selected_columns=["project_id", "users", "sessions"],
         groupby=["project_id"],
         start=start,
         conditions=total_conditions,
         filter_keys=filter_keys,
-        referrer="sessions.release-adoption-total-users",
+        referrer="sessions.release-adoption-total-users-and-sessions",
     )["data"]:
         total_users[x["project_id"]] = x["users"]
+        total_sessions[x["project_id"]] = x["sessions"]
 
     rv = {}
     for x in raw_query(
@@ -193,18 +196,42 @@ def get_release_adoption(project_releases, environments=None, now=None):
         filter_keys=filter_keys,
         referrer="sessions.release-adoption-list",
     )["data"]:
-        total = total_users.get(x["project_id"])
-        if not total:
-            adoption = None
-        else:
-            adoption = float(x["users"]) / total * 100
+        # Users Adoption
+        total_users_count = total_users.get(x["project_id"])
+
+        users_adoption = None
+        if total_users_count:
+            users_adoption = float(x["users"]) / total_users_count * 100
+
+        # Sessions Adoption
+        total_sessions_count = total_sessions.get(x["project_id"])
+
+        sessions_adoption = None
+        if total_sessions_count:
+            sessions_adoption = float(x["sessions"] / total_sessions_count * 100)
+
         rv[x["project_id"], x["release"]] = {
-            "adoption": adoption,
+            "adoption": users_adoption,
+            "sessions_adoption": sessions_adoption,
             "users_24h": x["users"],
             "sessions_24h": x["sessions"],
         }
 
     return rv
+
+
+def extract_duration_quantiles(raw_stats):
+    if len(raw_stats["duration_quantiles"]) == 2:
+        return {
+            "duration_p50": _convert_duration(raw_stats["duration_quantiles"][0]),
+            "duration_p90": _convert_duration(raw_stats["duration_quantiles"][1]),
+        }
+
+    else:
+        return {
+            "duration_p50": _convert_duration(raw_stats["duration_quantiles"][0]),
+            "duration_p90": _convert_duration(raw_stats["duration_quantiles"][2]),
+        }
 
 
 def get_release_health_data_overview(
@@ -236,11 +263,11 @@ def get_release_health_data_overview(
             "release",
             "project_id",
             "duration_quantiles",
-            "users",
             "sessions",
             "sessions_errored",
             "sessions_crashed",
             "sessions_abnormal",
+            "users",
             "users_crashed",
         ],
         groupby=["release", "project_id"],
@@ -250,8 +277,6 @@ def get_release_health_data_overview(
         referrer="sessions.release-overview",
     )["data"]:
         rp = {
-            "duration_p50": _convert_duration(x["duration_quantiles"][0]),
-            "duration_p90": _convert_duration(x["duration_quantiles"][1]),
             "crash_free_users": (
                 100 - x["users_crashed"] / float(x["users"]) * 100 if x["users"] else None
             ),
@@ -266,6 +291,7 @@ def get_release_health_data_overview(
             ),
             "has_health_data": True,
         }
+        rp.update(extract_duration_quantiles(x))
         if health_stats_period:
             rp["stats"] = {
                 health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)
@@ -303,6 +329,7 @@ def get_release_health_data_overview(
     for key in rv:
         adoption_info = release_adoption.get(key) or {}
         rv[key]["adoption"] = adoption_info.get("adoption")
+        rv[key]["sessions_adoption"] = adoption_info.get("sessions_adoption")
         rv[key]["total_users_24h"] = adoption_info.get("users_24h")
         rv[key]["total_sessions_24h"] = adoption_info.get("sessions_24h")
 
@@ -442,9 +469,8 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
             + "_errored": max(
                 0, rv[stat + "_errored"] - rv[stat + "_crashed"] - rv[stat + "_abnormal"]
             ),
-            "duration_p50": _convert_duration(rv["duration_quantiles"][0]),
-            "duration_p90": _convert_duration(rv["duration_quantiles"][1]),
         }
+        stats[bucket][1].update(extract_duration_quantiles(rv))
 
         # Session stats we can sum up directly without another query
         # as the data becomes available.

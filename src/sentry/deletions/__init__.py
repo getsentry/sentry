@@ -21,7 +21,6 @@ take a more efficient approach of batch deleting its indirect descendants, such
 as Event, so it can more efficiently bulk delete rows.
 """
 
-from __future__ import absolute_import
 
 from .base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation  # NOQA
 from .manager import DeletionTaskManager
@@ -40,7 +39,6 @@ def load_defaults():
     default_manager.register(models.ApiToken, BulkModelDeletionTask)
     default_manager.register(models.CommitAuthor, BulkModelDeletionTask)
     default_manager.register(models.CommitFileChange, BulkModelDeletionTask)
-    default_manager.register(models.Dashboard, ModelDeletionTask)
     default_manager.register(models.EnvironmentProject, BulkModelDeletionTask)
     default_manager.register(models.EventUser, BulkModelDeletionTask)
     default_manager.register(models.Group, defaults.GroupDeletionTask)

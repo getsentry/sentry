@@ -1,7 +1,5 @@
-from __future__ import absolute_import
-
 from django.conf import settings
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 import os
 import socket
 import pytest
@@ -16,7 +14,7 @@ def snuba_is_available():
     try:
         parsed = urlparse(settings.SENTRY_SNUBA)
         socket.create_connection((parsed.hostname, parsed.port), 1.0)
-    except socket.error:
+    except OSError:
         _service_status["snuba"] = False
     else:
         _service_status["snuba"] = True
@@ -58,7 +56,7 @@ def relay_is_available():
         return _service_status["relay"]
     try:
         socket.create_connection(("127.0.0.1", settings.SENTRY_RELAY_PORT), 1.0)
-    except socket.error:
+    except OSError:
         _service_status["relay"] = False
     else:
         _service_status["relay"] = True

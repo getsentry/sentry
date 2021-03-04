@@ -1,12 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {EventGroupingConfig} from 'app/types';
 import AsyncComponent from 'app/components/asyncComponent';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
+import {EventGroupingConfig} from 'app/types';
 
 import {GroupingConfigItem} from '.';
 

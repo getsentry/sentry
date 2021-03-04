@@ -1,14 +1,13 @@
-import {css} from '@emotion/core';
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 
 import space from 'app/styles/space';
+import {Theme} from 'app/utils/theme';
 
-// exporting it down with alertStyles caused error  'Props' is not defined  no-undef
-export type Props = {
-  type?: 'muted' | 'info' | 'warning' | 'success' | 'error' | 'beta';
+type Props = {
+  type?: keyof Theme['alert'];
   icon?: React.ReactNode;
   system?: boolean;
 };
@@ -49,15 +48,15 @@ const getSystemAlertColorStyles = ({
   }
 `;
 
-const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: any}) => css`
+const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: Theme}) => css`
   display: flex;
   margin: 0 0 ${space(3)};
   padding: ${space(1.5)} ${space(2)};
   font-size: 15px;
   box-shadow: ${theme.dropShadowLight};
   border-radius: ${theme.borderRadius};
-  background: ${theme.gray100};
-  border: 1px solid ${theme.borderDark};
+  background: ${theme.backgroundSecondary};
+  border: 1px solid ${theme.border};
 
   a:not([role='button']) {
     color: ${theme.textColor};
@@ -104,12 +103,6 @@ const Alert = styled(
 )<AlertProps>`
   ${alertStyles}
 `;
-
-Alert.propTypes = {
-  type: PropTypes.oneOf(['muted', 'info', 'warning', 'success', 'error', 'beta']),
-  icon: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
-  system: PropTypes.bool,
-};
 
 Alert.defaultProps = {
   type: DEFAULT_TYPE,

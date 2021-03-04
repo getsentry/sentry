@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.http import HttpRequest
 
 from sentry.api.invite_helper import ApiInviteHelper
@@ -10,12 +8,15 @@ from sentry.utils.compat.mock import patch
 
 class ApiInviteHelperTest(TestCase):
     def setUp(self):
-        super(ApiInviteHelperTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.user = self.create_user("foo@example.com")
         self.member = self.create_member(
-            user=None, email="bar@example.com", organization=self.org, teams=[self.team],
+            user=None,
+            email="bar@example.com",
+            organization=self.org,
+            teams=[self.team],
         )
         self.auth_provider = AuthProvider(provider="Friendly IdP", organization=self.organization)
 

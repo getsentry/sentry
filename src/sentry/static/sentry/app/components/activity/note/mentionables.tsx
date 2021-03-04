@@ -1,12 +1,12 @@
-import uniqBy from 'lodash/uniqBy';
 import React from 'react';
+import uniqBy from 'lodash/uniqBy';
 
 import MemberListStore from 'app/stores/memberListStore';
-import Projects from 'app/utils/projects';
+import {Organization, Project, User} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
+import Projects from 'app/utils/projects';
 import withOrganization from 'app/utils/withOrganization';
-import {User, Project, Organization} from 'app/types';
 
 import {Mentionable} from './types';
 

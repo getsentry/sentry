@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 import logging
 from itertools import chain
 from uuid import uuid4
@@ -56,6 +53,81 @@ def clean_newline_inputs(value, case_insensitive=True):
     return result
 
 
+class DynamicSamplingConditionSerializer(serializers.Serializer):
+    def to_representation(self, instance):
+        return instance
+
+    def to_internal_value(self, data):
+        return data
+
+    def validate(self, data):
+        """
+        Conditions are quite heterogeneous so we validate manually
+        This validation needs to evolve with the new types of conditions supported in
+        the dynamic-sampling conditions
+        """
+        if data is None:
+            raise serializers.ValidationError("Invalid dynamic rule condition")
+
+        op = data.get("op")
+
+        if op in ["and", "or", "not"]:
+            inner = data.get("inner")
+            if inner is None:
+                raise serializers.ValidationError(
+                    f"Missing inner field from  rule condition '{op}' "
+                )
+            if op == "not":
+                self.validate(inner)
+            else:
+                for child in inner:
+                    self.validate(child)
+        elif op == "eq":
+            for key in data.keys():
+                if key not in ["op", "name", "value", "ignoreCase"]:
+                    raise serializers.ValidationError(f"Invalid filed {key} for eq condition")
+            name = data.get("name")
+            if type(name) not in (str,):
+                raise serializers.ValidationError(
+                    "Invalid field value {} for name, expected string", format(name)
+                )
+            ignore_case = data.get("ignoreCase", False)
+            if type(ignore_case) != bool:
+                raise serializers.ValidationError(
+                    "Invalid field value {} for ignoreCase, expected bool", format(name)
+                )
+            if data.get("value") is None:
+                raise serializers.ValidationError("Missing field 'value'")
+        elif op == "glob":
+            for key in data.keys():
+                if key not in ["op", "name", "value", "ignoreCase"]:
+                    raise serializers.ValidationError(f"Invalid filed {key} for eq condition")
+            name = data.get("name")
+            if type(name) not in (str,):
+                raise serializers.ValidationError(
+                    "Invalid field value {} for name, expected string", format(name)
+                )
+            if data.get("value") is None:
+                raise serializers.ValidationError("Missing field 'value'")
+        else:
+            raise serializers.ValidationError(f"Invalid dynamic rule condition operator:'{op}'")
+
+        return data
+
+
+class DynamicSamplingRuleSerializer(serializers.Serializer):
+    sampleRate = serializers.FloatField(min_value=0, max_value=1, required=True)
+    type = serializers.ChoiceField(
+        choices=(("trace", "trace"), ("transaction", "transaction"), ("error", "error")),
+        required=True,
+    )
+    condition = DynamicSamplingConditionSerializer()
+
+
+class DynamicSamplingSerializer(serializers.Serializer):
+    rules = serializers.ListSerializer(child=DynamicSamplingRuleSerializer())
+
+
 class ProjectMemberSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
     isSubscribed = serializers.BooleanField()
@@ -100,6 +172,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     resolveAge = EmptyIntegerField(required=False, allow_null=True)
     platform = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     copy_from_project = serializers.IntegerField(required=False)
+    dynamicSampling = DynamicSamplingSerializer(required=False)
 
     def validate(self, data):
         max_delay = (
@@ -130,9 +203,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
     def validate_slug(self, slug):
         if slug in RESERVED_PROJECT_SLUGS:
-            raise serializers.ValidationError(
-                'The slug "%s" is reserved and not allowed.' % (slug,)
-            )
+            raise serializers.ValidationError(f'The slug "{slug}" is reserved and not allowed.')
         project = self.context["project"]
         other = (
             Project.objects.filter(slug=slug, organization=project.organization)
@@ -185,7 +256,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             sources = parse_sources(sources_json.strip())
             sources_json = json.dumps(sources) if sources else ""
         except InvalidSourcesError as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return sources_json
 
@@ -196,7 +267,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             Enhancements.from_config_string(value)
         except InvalidEnhancerConfig as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return value
 
@@ -207,7 +278,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             FingerprintingRules.from_config_string(value)
         except InvalidFingerprintingConfig as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return value
 
@@ -325,9 +396,20 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
+        allow_dynamic_sampling = features.has(
+            "organizations:filters-and-sampling", project.organization, actor=request.user
+        )
+
+        if not allow_dynamic_sampling and result.get("dynamicSampling"):
+            # trying to set dynamic sampling with feature disabled
+            return Response(
+                {"detail": ["You do not have permission to set dynamic sampling."]},
+                status=403,
+            )
+
         if not has_project_write:
             # options isn't part of the serializer, but should not be editable by members
-            for key in chain(six.iterkeys(ProjectAdminSerializer().fields), ["options"]):
+            for key in chain(ProjectAdminSerializer().fields.keys(), ["options"]):
                 if request.data.get(key) and not result.get(key):
                     return Response(
                         {"detail": ["You do not have permission to perform this action."]},
@@ -481,6 +563,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 user=request.user, key="mail:alert", value=0, project=project
             )
 
+        if "dynamicSampling" in result:
+            project.update_option("sentry:dynamic_sampling", result["dynamicSampling"])
+
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
             options = request.data.get("options", {})
@@ -560,22 +645,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:blacklisted_ips",
                     clean_newline_inputs(options["filters:blacklisted_ips"]),
                 )
-            if u"filters:{}".format(FilterTypes.RELEASES) in options:
+            if f"filters:{FilterTypes.RELEASES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(
-                        u"sentry:{}".format(FilterTypes.RELEASES),
-                        clean_newline_inputs(options[u"filters:{}".format(FilterTypes.RELEASES)]),
+                        f"sentry:{FilterTypes.RELEASES}",
+                        clean_newline_inputs(options[f"filters:{FilterTypes.RELEASES}"]),
                     )
                 else:
                     return Response(
                         {"detail": ["You do not have that feature enabled"]}, status=400
                     )
-            if u"filters:{}".format(FilterTypes.ERROR_MESSAGES) in options:
+            if f"filters:{FilterTypes.ERROR_MESSAGES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(
-                        u"sentry:{}".format(FilterTypes.ERROR_MESSAGES),
+                        f"sentry:{FilterTypes.ERROR_MESSAGES}",
                         clean_newline_inputs(
-                            options[u"filters:{}".format(FilterTypes.ERROR_MESSAGES)],
+                            options[f"filters:{FilterTypes.ERROR_MESSAGES}"],
                             case_insensitive=False,
                         ),
                     )

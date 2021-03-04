@@ -1,20 +1,19 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 
+import {removeSentryApp} from 'app/actionCreators/sentryApps';
 import AlertLink from 'app/components/alertLink';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {IconAdd} from 'app/icons';
-import {removeSentryApp} from 'app/actionCreators/sentryApps';
-import SentryTypes from 'app/sentryTypes';
+import {t} from 'app/locale';
+import {Organization, SentryApp} from 'app/types';
+import routeTitleGen from 'app/utils/routeTitle';
+import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
-import withOrganization from 'app/utils/withOrganization';
-import {t} from 'app/locale';
-import routeTitleGen from 'app/utils/routeTitle';
-import {Organization, SentryApp} from 'app/types';
 
 type Props = Omit<AsyncView['props'], 'params'> & {
   organization: Organization;
@@ -25,16 +24,12 @@ type State = AsyncView['state'] & {
 };
 
 class OrganizationDeveloperSettings extends AsyncView<Props, State> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-  };
-
   getTitle() {
     const {orgId} = this.props.params;
     return routeTitleGen(t('Developer Settings'), orgId, false);
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
 
     return [['applications', `/organizations/${orgId}/sentry-apps/`]];

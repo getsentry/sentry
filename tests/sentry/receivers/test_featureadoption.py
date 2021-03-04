@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils import timezone
 
 from sentry.models import FeatureAdoption, GroupAssignee, GroupTombstone, Rule
@@ -26,7 +24,7 @@ from sentry.testutils import SnubaTestCase, TestCase
 
 class FeatureAdoptionTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(FeatureAdoptionTest, self).setUp()
+        super().setUp()
         self.now = timezone.now()
         self.owner = self.create_user()
         self.organization = self.create_organization(owner=self.owner)
@@ -531,6 +529,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
             rule=rule,
             rule_type="issue",
             sender=type(self.project),
+            is_api_token=False,
         )
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="alert_rules"

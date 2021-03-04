@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils import json
 from sentry.utils.redis import get_cluster_from_options, redis_clusters
 
@@ -22,7 +20,7 @@ class CommonRedisCache(BaseCache):
         key = self.make_key(key, version=version)
         v = json.dumps(value) if not raw else value
         if len(v) > self.max_size:
-            raise ValueTooLarge("Cache key too large: %r %r" % (key, len(v)))
+            raise ValueTooLarge(f"Cache key too large: {key!r} {len(v)!r}")
         if timeout:
             self.client.setex(key, int(timeout), v)
         else:

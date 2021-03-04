@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 from collections import namedtuple
 
@@ -23,7 +21,7 @@ class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])
         return force_text(self.id)
 
 
-class Provider(object):
+class Provider:
     """
     A provider indicates how authenticate should happen for a given service,
     including its configuration and basic identity management.
@@ -37,7 +35,7 @@ class Provider(object):
     def __init__(self, key, **config):
         self.key = key
         self.config = config
-        self.logger = logging.getLogger("sentry.auth.%s" % (key,))
+        self.logger = logging.getLogger(f"sentry.auth.{key}")
 
     def get_configure_view(self):
         """

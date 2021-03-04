@@ -1,14 +1,12 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Member, AvatarUser} from 'app/types';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import SentryTypes from 'app/sentryTypes';
+import {AvatarUser, Member} from 'app/types';
 
 type Props = {
   member: Member;
@@ -73,19 +71,6 @@ const MemberBadge = ({
   );
 };
 
-MemberBadge.propTypes = {
-  displayName: PropTypes.node,
-  displayEmail: PropTypes.node,
-  avatarSize: PropTypes.number,
-  /**
-   * This is a Sentry member (not the user object that is a child of the member object)
-   */
-  member: SentryTypes.Member,
-  orgId: PropTypes.string,
-  useLink: PropTypes.bool,
-  hideEmail: PropTypes.bool,
-};
-
 const StyledUserBadge = styled('div')`
   display: flex;
   align-items: center;
@@ -100,7 +85,7 @@ const StyledNameAndEmail = styled('div')`
 const StyledEmail = styled('div')`
   font-size: 0.875em;
   margin-top: ${space(0.25)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   ${overflowEllipsis};
 `;
 

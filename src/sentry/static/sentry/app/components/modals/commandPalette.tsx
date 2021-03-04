@@ -1,20 +1,16 @@
-import {ClassNames, css} from '@emotion/core';
 import React from 'react';
+import {ClassNames, css} from '@emotion/core';
 import styled from '@emotion/styled';
-import {ModalBody} from 'react-bootstrap';
 
-import Input from 'app/views/settings/components/forms/controls/input';
-import {analytics} from 'app/utils/analytics';
-import {t} from 'app/locale';
+import {ModalRenderProps} from 'app/actionCreators/modal';
 import Search from 'app/components/search';
-import theme from 'app/utils/theme';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {analytics} from 'app/utils/analytics';
+import theme from 'app/utils/theme';
+import Input from 'app/views/settings/components/forms/controls/input';
 
-type Props = {
-  Body: typeof ModalBody;
-};
-
-class CommandPalette extends React.Component<Props> {
+class CommandPalette extends React.Component<ModalRenderProps> {
   componentDidMount() {
     analytics('omnisearch.open', {});
   }
@@ -27,7 +23,6 @@ class CommandPalette extends React.Component<Props> {
         <ClassNames>
           {({css: injectedCss}) => (
             <Search
-              isOpen
               entryPoint="command_palette"
               minSearch={1}
               maxResults={10}
@@ -38,7 +33,7 @@ class CommandPalette extends React.Component<Props> {
                 border-top-right-radius: 0;
                 position: initial;
                 box-shadow: none;
-                border-top: 1px solid ${theme.borderLight};
+                border-top: 1px solid ${theme.border};
               `}
               renderInput={({getInputProps}) => (
                 <InputWrapper>

@@ -1,12 +1,32 @@
 import React from 'react';
 import {action} from '@storybook/addon-actions';
-import {text} from '@storybook/addon-knobs';
-import {withInfo} from '@storybook/addon-info';
 
-import ShareIssue from 'app/components/shareIssue';
+import ShareIssue from 'app/views/organizationGroupDetails/actions/shareIssue';
 
 export default {
-  title: 'Features/Issues/Share Issue',
+  title: 'Features/Issues/ShareIssue',
+  component: ShareIssue,
+  args: {
+    shareUrl: 'https://sentry.io/share/issue/thisisanexampleshareurl/',
+  },
+  argTypes: {
+    onReshare: {action: 'onReshare'},
+    loading: {
+      table: {
+        disable: true,
+      },
+    },
+    onToggle: {
+      table: {
+        disable: true,
+      },
+    },
+    isShared: {
+      table: {
+        disable: true,
+      },
+    },
+  },
 };
 
 class ShareSimulator extends React.Component {
@@ -28,25 +48,19 @@ class ShareSimulator extends React.Component {
   }
 }
 
-export const Default = withInfo('todo')(() => {
+export const Default = ({...args}) => {
   return (
     <ShareSimulator>
       {({isShared, loading, toggleShare}) => (
         <ShareIssue
           loading={loading}
           isShared={isShared}
-          shareUrl={text(
-            'shareUrl',
-            'https://sentry.io/share/issue/thisisanexampleshareurl/'
-          )}
           onToggle={toggleShare}
-          onReshare={action('Reshare')}
+          {...args}
         />
       )}
     </ShareSimulator>
   );
-});
-
-Default.story = {
-  name: 'default',
 };
+
+Default.storyName = 'ShareIssue';

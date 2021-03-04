@@ -1,5 +1,5 @@
-import {Group} from './group';
 import {Event} from './event';
+import {Group} from './group';
 import {User} from './user';
 
 export function UserFeedback(params = {}) {

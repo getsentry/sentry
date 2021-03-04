@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment-timezone';
 
@@ -19,17 +18,6 @@ type Props = DefaultProps & {
 };
 
 class DateTime extends React.Component<Props> {
-  static propTypes = {
-    date: PropTypes.any.isRequired,
-    dateOnly: PropTypes.bool,
-    timeOnly: PropTypes.bool,
-    shortDate: PropTypes.bool,
-    seconds: PropTypes.bool,
-    timeAndDate: PropTypes.bool,
-    utc: PropTypes.bool,
-    format: PropTypes.string,
-  };
-
   static defaultProps: DefaultProps = {
     seconds: true,
   };
@@ -64,8 +52,9 @@ class DateTime extends React.Component<Props> {
       return 'MM/DD/YYYY';
     }
 
+    // Oct 26, 2017 11:30
     if (clock24Hours) {
-      return 'MMMM D YYYY HH:mm:ss z';
+      return 'MMM D, YYYY HH:mm';
     }
 
     // Oct 26, 2017 11:30:30 AM

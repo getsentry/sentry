@@ -1,19 +1,19 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Organization, Project} from 'app/types';
-import {PageContent, PageHeader} from 'app/styles/organization';
-import {t} from 'app/locale';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {uniqueId} from 'app/utils/guid';
-import space from 'app/styles/space';
-import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
-import EventView from 'app/utils/discover/eventView';
-import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
-import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import PageHeading from 'app/components/pageHeading';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {t} from 'app/locale';
+import {PageContent, PageHeader} from 'app/styles/organization';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView from 'app/utils/discover/eventView';
+import {uniqueId} from 'app/utils/guid';
+import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
+import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
+import IssueRuleEditor from 'app/views/settings/projectAlerts/issueRuleEditor';
 
 import AlertTypeChooser from './alertTypeChooser';
 
@@ -104,7 +104,7 @@ class Create extends React.Component<Props, State> {
           )}
 
           {(!hasMetricAlerts || alertType === 'issue') && (
-            <IssueEditor {...this.props} project={project} />
+            <IssueRuleEditor {...this.props} project={project} />
           )}
 
           {hasMetricAlerts && alertType === 'metric' && (

@@ -2,17 +2,21 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
+import {loadIncidents} from 'app/actionCreators/serviceIncidents';
 import Button from 'app/components/button';
 import {IconWarning} from 'app/icons';
-import {loadIncidents} from 'app/actionCreators/serviceIncidents';
-import {SentryServiceStatus} from 'app/types';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {SentryServiceStatus} from 'app/types';
 
-import {CommonSidebarProps} from './types';
-import SidebarPanelEmpty from './sidebarPanelEmpty';
+import List from '../list';
+import ListItem from '../list/listItem';
+
 import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';
+import SidebarPanelEmpty from './sidebarPanelEmpty';
+import SidebarPanelItem from './sidebarPanelItem';
+import {CommonSidebarProps} from './types';
 
 type Props = CommonSidebarProps;
 
@@ -43,14 +47,7 @@ class ServiceIncidents extends React.Component<Props, State> {
   }
 
   render() {
-    const {
-      currentPanel,
-      showPanel,
-      onShowPanel,
-      hidePanel,
-      collapsed,
-      orientation,
-    } = this.props;
+    const {currentPanel, onShowPanel, hidePanel, collapsed, orientation} = this.props;
     const {status} = this.state;
 
     if (!status) {
@@ -75,10 +72,10 @@ class ServiceIncidents extends React.Component<Props, State> {
           label={t('Service status')}
           onClick={onShowPanel}
         />
-        {showPanel && active && status && (
+        {active && status && (
           <SidebarPanel
             orientation={orientation}
-            title={t('Recent status updates')}
+            title={t('Recent service updates')}
             hidePanel={hidePanel}
             collapsed={collapsed}
           >
@@ -89,24 +86,24 @@ class ServiceIncidents extends React.Component<Props, State> {
             )}
             <IncidentList className="incident-list">
               {status.incidents.map(incident => (
-                <IncidentItem key={incident.id}>
-                  <IncidentTitle>{incident.name}</IncidentTitle>
+                <SidebarPanelItem
+                  title={incident.name}
+                  message={t('Latest updates')}
+                  key={incident.id}
+                >
                   {incident.updates ? (
-                    <div>
-                      <StatusHeader>{t('Latest updates:')}</StatusHeader>
-                      <StatusList>
-                        {incident.updates.map((update, key) => (
-                          <StatusItem key={key}>{update}</StatusItem>
-                        ))}
-                      </StatusList>
-                    </div>
+                    <List>
+                      {incident.updates.map((update, key) => (
+                        <ListItem key={key}>{update}</ListItem>
+                      ))}
+                    </List>
                   ) : null}
-                  <div>
+                  <ActionBar>
                     <Button href={incident.url} size="small" external>
                       {t('Learn more')}
                     </Button>
-                  </div>
-                </IncidentItem>
+                  </ActionBar>
+                </SidebarPanelItem>
               ))}
             </IncidentList>
           </SidebarPanel>
@@ -118,36 +115,8 @@ class ServiceIncidents extends React.Component<Props, State> {
 
 export default ServiceIncidents;
 
-const IncidentList = styled('ul')`
-  font-size: 13px;
-  list-style: none;
-  padding: ${space(3)} ${space(3)} 0;
-`;
+const IncidentList = styled('div')``;
 
-const IncidentItem = styled('li')`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  margin-bottom: ${space(3)};
-  padding-bottom: ${space(0.75)};
-`;
-
-const IncidentTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: 600;
-  line-height: 1.2;
-  margin-bottom: ${space(2)};
-`;
-const StatusHeader = styled('div')`
-  color: #7c6a8e;
-  margin-bottom: ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 600;
-  line-height: 1;
-`;
-const StatusList = styled('ul')`
-  list-style: none;
-  padding: 0;
-`;
-const StatusItem = styled('li')`
-  margin-bottom: ${space(2)};
-  line-height: 1.5;
+const ActionBar = styled('div')`
+  margin-top: ${space(2)};
 `;

@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 from sentry.testutils import TestCase
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 
 
 class DiscoverSavedQueryTest(TestCase):
     def setUp(self):
-        super(DiscoverSavedQueryTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization()
         self.project_ids = [
             self.create_project(organization=self.org).id,

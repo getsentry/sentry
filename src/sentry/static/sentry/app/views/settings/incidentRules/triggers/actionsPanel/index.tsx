@@ -341,7 +341,7 @@ class ActionsPanel extends React.PureComponent<Props> {
               type="button"
               disabled={disabled || loading}
               size="small"
-              icon={<IconAdd isCircled color="gray500" />}
+              icon={<IconAdd isCircled color="gray300" />}
               onClick={this.handleAddAction}
             >
               {t('Add New Action')}
@@ -388,7 +388,7 @@ const StyledPanelItem = styled(PanelItem)`
 const RuleRowContainer = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px ${p => p.theme.borderLight} solid;
+  border: 1px ${p => p.theme.border} solid;
 `;
 
 export default withOrganization(ActionsPanelWithSpace);

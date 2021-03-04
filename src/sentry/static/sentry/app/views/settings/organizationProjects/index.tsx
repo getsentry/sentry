@@ -1,25 +1,25 @@
 import React from 'react';
-import {Location} from 'history';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
-import {Organization, Project} from 'app/types';
-import {sortProjects} from 'app/utils';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import routeTitleGen from 'app/utils/routeTitle';
-import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
 import {IconAdd} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
+import {sortProjects} from 'app/utils';
 import {decodeScalar} from 'app/utils/queryString';
+import routeTitleGen from 'app/utils/routeTitle';
+import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
 
 import ProjectStatsGraph from './projectStatsGraph';
 
@@ -103,16 +103,15 @@ class OrganizationProjects extends AsyncView<Props, State> {
     return (
       <React.Fragment>
         <SettingsPageHeader title="Projects" action={action} />
+        <SearchWrapper>
+          {this.renderSearchInput({
+            updateRoute: true,
+            placeholder: t('Search Projects'),
+            className: 'search',
+          })}
+        </SearchWrapper>
         <Panel>
-          <PanelHeader hasButtons>
-            {t('Projects')}
-
-            {this.renderSearchInput({
-              updateRoute: true,
-              placeholder: t('Search Projects'),
-              className: 'search',
-            })}
-          </PanelHeader>
+          <PanelHeader>{t('Projects')}</PanelHeader>
           <PanelBody>
             {projectList ? (
               sortProjects(projectList).map(project => (
@@ -150,6 +149,10 @@ class OrganizationProjects extends AsyncView<Props, State> {
 }
 
 export default withOrganization(OrganizationProjects);
+
+const SearchWrapper = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 const GridPanelItem = styled(PanelItem)`
   display: flex;

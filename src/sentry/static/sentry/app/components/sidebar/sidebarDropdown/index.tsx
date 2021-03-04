@@ -2,10 +2,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'app/actionCreators/account';
-import {t} from 'app/locale';
-import {IconChevron, IconSentry} from 'app/icons';
+import {Client} from 'app/api';
+import DemoModeGate from 'app/components/acl/demoModeGate';
+import Feature from 'app/components/acl/feature';
 import Avatar from 'app/components/avatar';
-import ConfigStore from 'app/stores/configStore';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Hook from 'app/components/hook';
 import IdBadge from 'app/components/idBadge';
@@ -14,14 +14,17 @@ import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styl
 import SidebarMenuItem, {menuItemStyles} from 'app/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
 import TextOverflow from 'app/components/textOverflow';
-import withApi from 'app/utils/withApi';
-import {Organization, User, Config} from 'app/types';
-import {Client} from 'app/api';
+import {IconChevron, IconSentry} from 'app/icons';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
+import {Config, Organization, User} from 'app/types';
+import withApi from 'app/utils/withApi';
 
 import {CommonSidebarProps} from '../types';
-import SwitchOrganization from './switchOrganization';
+
 import Divider from './divider.styled';
+import SwitchOrganization from './switchOrganization';
 
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
@@ -114,33 +117,42 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                       <SwitchOrganization canCreateOrganization={canCreateOrg} />
                     </SidebarMenuItem>
                   )}
-
-                  <Divider />
                 </React.Fragment>
               )}
 
-              {!!user && (
-                <React.Fragment>
-                  <UserSummary to="/settings/account/details/">
-                    <UserBadgeNoOverflow user={user} avatarSize={32} />
-                  </UserSummary>
+              <DemoModeGate>
+                {!!user && (
+                  <React.Fragment>
+                    <Divider />
+                    <UserSummary to="/settings/account/details/">
+                      <UserBadgeNoOverflow user={user} avatarSize={32} />
+                    </UserSummary>
 
-                  <div>
-                    <SidebarMenuItem to="/settings/account/">
-                      {t('User settings')}
-                    </SidebarMenuItem>
-                    <SidebarMenuItem to="/settings/account/api/">
-                      {t('API keys')}
-                    </SidebarMenuItem>
-                    {user.isSuperuser && (
-                      <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
-                    )}
-                    <SidebarMenuItem data-test-id="sidebarSignout" onClick={handleLogout}>
-                      {t('Sign out')}
-                    </SidebarMenuItem>
-                  </div>
-                </React.Fragment>
-              )}
+                    <div>
+                      <SidebarMenuItem to="/settings/account/">
+                        {t('User settings')}
+                      </SidebarMenuItem>
+                      <SidebarMenuItem to="/settings/account/api/">
+                        {t('API keys')}
+                      </SidebarMenuItem>
+                      <Feature features={['mobile-app']} organization={org}>
+                        <SidebarMenuItem to="/settings/account/api/mobile-app/">
+                          {t('Mobile app')}
+                        </SidebarMenuItem>
+                      </Feature>
+                      {user.isSuperuser && (
+                        <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
+                      )}
+                      <SidebarMenuItem
+                        data-test-id="sidebarSignout"
+                        onClick={handleLogout}
+                      >
+                        {t('Sign out')}
+                      </SidebarMenuItem>
+                    </div>
+                  </React.Fragment>
+                )}
+              </DemoModeGate>
             </OrgAndUserMenu>
           )}
         </SidebarDropdownRoot>
@@ -205,7 +217,7 @@ const SidebarDropdownActor = styled('button')`
       text-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
     }
     ${UserNameOrEmail} {
-      color: ${p => p.theme.gray400};
+      color: ${p => p.theme.gray200};
     }
   }
 `;

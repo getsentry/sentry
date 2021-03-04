@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import logging
 import requests
 import sentry_sdk
-import six
 
 from collections import OrderedDict
 
@@ -15,11 +12,12 @@ from sentry.http import build_session
 from sentry.utils import metrics, json
 from sentry.utils.hashlib import md5_text
 from sentry.utils.decorators import classproperty
+from sentry.api.client import ApiClient
 
 from .exceptions import ApiHostError, ApiTimeoutError, ApiError, UnsupportedResponseType
 
 
-class BaseApiResponse(object):
+class BaseApiResponse:
     text = ""
 
     def __init__(self, headers=None, status_code=None):
@@ -27,7 +25,7 @@ class BaseApiResponse(object):
         self.status_code = status_code
 
     def __repr__(self):
-        return u"<%s: code=%s, content_type=%s>" % (
+        return "<{}: code={}, content_type={}>".format(
             type(self).__name__,
             self.status_code,
             self.headers.get("Content-Type", "") if self.headers else "",
@@ -48,16 +46,14 @@ class BaseApiResponse(object):
             return BaseApiResponse(response.headers, response.status_code)
         # XXX(dcramer): this doesnt handle leading spaces, but they're not common
         # paths so its ok
-        if response.text.startswith(u"<?xml"):
+        if response.text.startswith("<?xml"):
             return XmlApiResponse(response.text, response.headers, response.status_code)
         elif response.text.startswith("<"):
             if not allow_text:
-                raise ValueError(u"Not a valid response type: {}".format(response.text[:128]))
+                raise ValueError(f"Not a valid response type: {response.text[:128]}")
             elif response.status_code < 200 or response.status_code >= 300:
                 raise ValueError(
-                    u"Received unexpected plaintext response for code {}".format(
-                        response.status_code
-                    )
+                    f"Received unexpected plaintext response for code {response.status_code}"
                 )
             return TextApiResponse(response.text, response.headers, response.status_code)
 
@@ -86,13 +82,13 @@ class BaseApiResponse(object):
 class TextApiResponse(BaseApiResponse):
     def __init__(self, text, *args, **kwargs):
         self.text = text
-        super(TextApiResponse, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class XmlApiResponse(BaseApiResponse):
     def __init__(self, text, *args, **kwargs):
         self.xml = BeautifulSoup(text, "xml")
-        super(XmlApiResponse, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class MappingApiResponse(dict, BaseApiResponse):
@@ -115,7 +111,43 @@ class SequenceApiResponse(list, BaseApiResponse):
         return self
 
 
-class BaseApiClient(object):
+class TrackResponseMixin:
+    @cached_property
+    def logger(self):
+        return logging.getLogger(self.log_path)
+
+    @classproperty
+    def name_field(cls):
+        return "%s_name" % cls.integration_type
+
+    @classproperty
+    def name(cls):
+        return getattr(cls, cls.name_field)
+
+    def track_response_data(self, code, span, error=None, resp=None):
+        metrics.incr(
+            "%s.http_response" % (self.datadog_prefix),
+            sample_rate=1.0,
+            tags={self.integration_type: self.name, "status": code},
+        )
+
+        try:
+            span.set_http_status(int(code))
+        except ValueError:
+            span.set_status(code)
+
+        span.set_tag(self.integration_type, self.name)
+
+        extra = {
+            self.integration_type: self.name,
+            "status_string": str(code),
+            "error": str(error)[:256] if error else None,
+        }
+        extra.update(getattr(self, "logging_context", None) or {})
+        self.logger.info("%s.http_response" % (self.integration_type), extra=extra)
+
+
+class BaseApiClient(TrackResponseMixin):
     base_url = None
 
     allow_text = False
@@ -130,52 +162,22 @@ class BaseApiClient(object):
 
     cache_time = 900
 
+    page_size = 100
+
+    page_number_limit = 10
+
     def __init__(self, verify_ssl=True, logging_context=None):
         self.verify_ssl = verify_ssl
         self.logging_context = logging_context
 
-    @cached_property
-    def logger(self):
-        return logging.getLogger(self.log_path)
-
-    @classproperty
-    def name_field(cls):
-        return u"%s_name" % cls.integration_type
-
-    @classproperty
-    def name(cls):
-        return getattr(cls, cls.name_field)
-
     def get_cache_prefix(self):
-        return u"%s.%s.client:" % (self.integration_type, self.name)
-
-    def track_response_data(self, code, span, error=None, resp=None):
-        metrics.incr(
-            u"%s.http_response" % (self.datadog_prefix),
-            sample_rate=1.0,
-            tags={self.integration_type: self.name, "status": code},
-        )
-
-        try:
-            span.set_http_status(int(code))
-        except ValueError:
-            span.set_status(code)
-
-        span.set_tag(self.integration_type, self.name)
-
-        extra = {
-            self.integration_type: self.name,
-            "status_string": six.text_type(code),
-            "error": six.text_type(error)[:256] if error else None,
-        }
-        extra.update(getattr(self, "logging_context", None) or {})
-        self.logger.info(u"%s.http_response" % (self.integration_type), extra=extra)
+        return f"{self.integration_type}.{self.name}.client:"
 
     def build_url(self, path):
         if path.startswith("/"):
             if not self.base_url:
-                raise ValueError(u"Invalid URL: {}".format(path))
-            return u"{}{}".format(self.base_url, path)
+                raise ValueError(f"Invalid URL: {path}")
+            return f"{self.base_url}{path}"
         return path
 
     def _request(
@@ -205,10 +207,9 @@ class BaseApiClient(object):
             timeout = 30
 
         full_url = self.build_url(path)
-        session = build_session()
 
         metrics.incr(
-            u"%s.http_request" % self.datadog_prefix,
+            "%s.http_request" % self.datadog_prefix,
             sample_rate=1.0,
             tags={self.integration_type: self.name},
         )
@@ -222,25 +223,26 @@ class BaseApiClient(object):
             trace_id = None
 
         with sentry_sdk.start_transaction(
-            op=u"{}.http".format(self.integration_type),
-            name=u"{}.http_response.{}".format(self.integration_type, self.name),
+            op=f"{self.integration_type}.http",
+            name=f"{self.integration_type}.http_response.{self.name}",
             parent_span_id=parent_span_id,
             trace_id=trace_id,
             sampled=True,
         ) as span:
             try:
-                resp = getattr(session, method.lower())(
-                    url=full_url,
-                    headers=headers,
-                    json=data if json else None,
-                    data=data if not json else None,
-                    params=params,
-                    auth=auth,
-                    verify=self.verify_ssl,
-                    allow_redirects=allow_redirects,
-                    timeout=timeout,
-                )
-                resp.raise_for_status()
+                with build_session() as session:
+                    resp = getattr(session, method.lower())(
+                        url=full_url,
+                        headers=headers,
+                        json=data if json else None,
+                        data=data if not json else None,
+                        params=params,
+                        auth=auth,
+                        verify=self.verify_ssl,
+                        allow_redirects=allow_redirects,
+                        timeout=timeout,
+                    )
+                    resp.raise_for_status()
             except ConnectionError as e:
                 self.track_response_data("connection_error", span, e)
                 raise ApiHostError.from_exception(e)
@@ -300,10 +302,65 @@ class BaseApiClient(object):
         return self.request("HEAD", *args, **kwargs)
 
     def head_cached(self, path, *args, **kwargs):
-        key = self.get_cache_prefix() + md5_text(self.build_url(path)).hexdigest()
+        query = ""
+        if kwargs.get("params", None):
+            query = json.dumps(kwargs.get("params"), sort_keys=True)
+        key = self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
 
         result = cache.get(key)
         if result is None:
             result = self.head(path, *args, **kwargs)
             cache.set(key, result, self.cache_time)
         return result
+
+    def get_with_pagination(self, path, gen_params, get_results, *args, **kwargs):
+        page_size = self.page_size
+        offset = 0
+        output = []
+
+        for i in range(self.page_number_limit):
+            resp = self.get(path, params=gen_params(i, page_size))
+            results = get_results(resp)
+            num_results = len(results)
+
+            output += results
+            offset += num_results
+            # if the number is lower than our page_size, we can quit
+            if num_results < page_size:
+                return output
+        return output
+
+
+class BaseInternalApiClient(ApiClient, TrackResponseMixin):
+    integration_type = None
+
+    log_path = None
+
+    datadog_prefix = None
+
+    def request(self, *args, **kwargs):
+
+        metrics.incr(
+            "%s.http_request" % self.datadog_prefix,
+            sample_rate=1.0,
+            tags={self.integration_type: self.name},
+        )
+
+        try:
+            with sentry_sdk.configure_scope() as scope:
+                parent_span_id = scope.span.span_id
+                trace_id = scope.span.trace_id
+        except AttributeError:
+            parent_span_id = None
+            trace_id = None
+
+        with sentry_sdk.start_transaction(
+            op=f"{self.integration_type}.http",
+            name=f"{self.integration_type}.http_response.{self.name}",
+            parent_span_id=parent_span_id,
+            trace_id=trace_id,
+            sampled=True,
+        ) as span:
+            resp = ApiClient.request(self, *args, **kwargs)
+            self.track_response_data(resp.status_code, span, None, resp)
+            return resp

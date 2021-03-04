@@ -1,34 +1,22 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
+import {
+  getSortLabel,
+  isForReviewQuery,
+  IssueSortOptions,
+} from 'app/views/issueList/utils';
 
 type Props = {
   sort: string;
+  query: string;
   onSelect: (sort: string) => void;
 };
 
-const IssueListSortOptions = ({onSelect, sort}: Props) => {
-  const sortKey = sort || 'date';
-
-  const getSortLabel = (key: string) => {
-    switch (key) {
-      case 'new':
-        return t('First Seen');
-      case 'priority':
-        return t('Priority');
-      case 'freq':
-        return t('Events');
-      case 'user':
-        return t('Users');
-      case 'date':
-      default:
-        return t('Last Seen');
-    }
-  };
+const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
+  const sortKey = sort || IssueSortOptions.DATE;
 
   const getMenuItem = (key: string): React.ReactNode => (
     <DropdownItem onSelect={onSelect} eventKey={key} isActive={sortKey === key}>
@@ -37,25 +25,22 @@ const IssueListSortOptions = ({onSelect, sort}: Props) => {
   );
 
   return (
-    <Container>
-      <DropdownControl buttonProps={{prefix: t('Sort by')}} label={getSortLabel(sortKey)}>
-        {getMenuItem('priority')}
-        {getMenuItem('date')}
-        {getMenuItem('new')}
-        {getMenuItem('freq')}
-        {getMenuItem('user')}
-      </DropdownControl>
-    </Container>
+    <DropdownControl buttonProps={{prefix: t('Sort by')}} label={getSortLabel(sortKey)}>
+      <React.Fragment>
+        {getMenuItem(IssueSortOptions.PRIORITY)}
+        {getMenuItem(IssueSortOptions.DATE)}
+        {getMenuItem(IssueSortOptions.NEW)}
+        {getMenuItem(IssueSortOptions.FREQ)}
+        {getMenuItem(IssueSortOptions.USER)}
+        <Feature features={['issue-list-trend-sort']}>
+          {getMenuItem(IssueSortOptions.TREND)}
+        </Feature>
+        <Feature features={['inbox']}>
+          {isForReviewQuery(query) && getMenuItem(IssueSortOptions.INBOX)}
+        </Feature>
+      </React.Fragment>
+    </DropdownControl>
   );
 };
-
-IssueListSortOptions.propTypes = {
-  sort: PropTypes.string.isRequired,
-  onSelect: PropTypes.func.isRequired,
-};
-
-const Container = styled('div')`
-  margin-right: ${space(0.5)};
-`;
 
 export default IssueListSortOptions;

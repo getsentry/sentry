@@ -1,10 +1,10 @@
 import React from 'react';
-import sortBy from 'lodash/sortBy';
 import styled from '@emotion/styled';
+import sortBy from 'lodash/sortBy';
 
-import {defined} from 'app/utils';
 import ContextData from 'app/components/contextData';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
+import {defined} from 'app/utils';
 import theme from 'app/utils/theme';
 
 import {KeyValueListData} from './types';

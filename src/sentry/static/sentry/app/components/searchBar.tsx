@@ -2,11 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {t} from 'app/locale';
-import {IconClose} from 'app/icons/iconClose';
-import {callIfFunction} from 'app/utils/callIfFunction';
 import Button from 'app/components/button';
 import {IconSearch} from 'app/icons';
+import {IconClose} from 'app/icons/iconClose';
+import {t} from 'app/locale';
+import {callIfFunction} from 'app/utils/callIfFunction';
+import Input from 'app/views/settings/components/forms/controls/input';
 
 type DefaultProps = {
   query: string;
@@ -91,9 +92,9 @@ class SearchBar extends React.PureComponent<Props, State> {
       <div className={classNames('search', className)}>
         <form className="form-horizontal" onSubmit={this.onSubmit}>
           <div>
-            <Input
+            <StyledInput
               type="text"
-              className="search-input form-control"
+              className="search-input"
               placeholder={this.props.placeholder}
               name="query"
               ref={this.searchInputRef}
@@ -103,7 +104,7 @@ class SearchBar extends React.PureComponent<Props, State> {
               onChange={this.onQueryChange}
               width={width}
             />
-            <StyledIconSearch className="search-input-icon" size="sm" color="gray500" />
+            <StyledIconSearch className="search-input-icon" size="sm" color="gray300" />
             {this.state.query !== this.props.defaultQuery && (
               <SearchClearButton
                 type="button"
@@ -122,8 +123,13 @@ class SearchBar extends React.PureComponent<Props, State> {
   }
 }
 
-const Input = styled('input')`
+const StyledInput = styled(Input)`
   width: ${p => (p.width ? p.width : undefined)};
+  &.focus-visible {
+    box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.04), 0 0 6px rgba(177, 171, 225, 0.3);
+    border-color: #a598b2;
+    outline: none;
+  }
 `;
 
 const StyledIconSearch = styled(IconSearch)`
@@ -140,10 +146,10 @@ const SearchClearButton = styled(Button)`
   transform: translateY(-50%);
   right: 10px;
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
 
   &:hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
 

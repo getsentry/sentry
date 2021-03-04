@@ -1,8 +1,8 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
-import {Client} from 'app/api';
 import OrganizationApiKeys from 'app/views/settings/organizationApiKeys';
 
 const routes = [
@@ -14,20 +14,21 @@ const routes = [
 
 describe('OrganizationApiKeys', function () {
   const routerContext = TestStubs.routerContext();
+  let getMock, deleteMock;
 
   beforeEach(function () {
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    getMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/',
       method: 'GET',
       body: [TestStubs.ApiKey()],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/1/',
       method: 'GET',
       body: TestStubs.ApiKey(),
     });
-    Client.addMockResponse({
+    deleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/1/',
       method: 'DELETE',
     });
@@ -43,10 +44,11 @@ describe('OrganizationApiKeys', function () {
       routerContext
     );
 
-    expect(wrapper.state('keys')).toEqual([TestStubs.ApiKey()]);
+    expect(wrapper.find('AutoSelectText')).toHaveLength(1);
+    expect(getMock).toHaveBeenCalledTimes(1);
   });
 
-  it('can delete a key', function () {
+  it('can delete a key', async function () {
     const wrapper = mountWithTheme(
       <OrganizationApiKeys
         location={TestStubs.location()}
@@ -55,11 +57,16 @@ describe('OrganizationApiKeys', function () {
       />,
       routerContext
     );
-    // OrganizationApiKeys.handleRemove = jest.fn();
-    // expect(OrganizationApiKeys.handleRemove).not.toHaveBeenCalled();
 
-    wrapper.instance().handleRemove(1);
+    expect(deleteMock).toHaveBeenCalledTimes(0);
+    wrapper.find('Confirm[aria-label="Remove API Key"]').simulate('click');
 
-    expect(wrapper.state('keys')).toEqual([]);
+    const modal = await mountGlobalModal();
+    modal.find('button[aria-label="Confirm"]').simulate('click');
+
+    wrapper.update();
+
+    expect(deleteMock).toHaveBeenCalledTimes(1);
+    expect(wrapper.find('AutoSelectText')).toHaveLength(0);
   });
 });

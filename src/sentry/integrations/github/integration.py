@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import re
 from django.utils.text import slugify
 from django.utils.translation import ugettext_lazy as _
@@ -58,7 +56,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=GitHub%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=GitHub%Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/github",
     aspects={},
 )
@@ -73,7 +71,7 @@ API_ERRORS = {
 
 def build_repository_query(metadata, name, query):
     account_type = "user" if metadata["account_type"] == "User" else "org"
-    return (u"%s:%s %s" % (account_type, name, query)).encode("utf-8")
+    return (f"{account_type}:{name} {query}").encode("utf-8")
 
 
 class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):
@@ -98,19 +96,10 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def search_issues(self, query):
         return self.get_client().search_issues(query)
 
-    def get_stacktrace_link(self, repo, filepath, version):
-        try:
-            self.get_client().check_file(repo.name, filepath, version)
-        except ApiError as e:
-            if e.code != 404:
-                raise
-            return None
-
+    def format_source_url(self, repo, filepath, branch):
         # Must format the url ourselves since `check_file` is a head request
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
-        web_url = u"https://github.com/{}/blob/{}/{}".format(repo.name, version, filepath)
-
-        return web_url
+        return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
 
     def get_unmigratable_repositories(self):
         accessible_repos = self.get_repositories()
@@ -136,7 +125,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
             if message is None:
                 message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
-            return "Error Communicating with GitHub (HTTP %s): %s" % (exc.code, message)
+            return f"Error Communicating with GitHub (HTTP {exc.code}): {message}"
         else:
             return ERR_INTERNAL
 

@@ -3,10 +3,8 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
-import App from 'app/views/app';
 import ConfigStore from 'app/stores/configStore';
-
-jest.mock('jquery');
+import App from 'app/views/app';
 
 describe('Sudo Modal', function () {
   beforeEach(function () {

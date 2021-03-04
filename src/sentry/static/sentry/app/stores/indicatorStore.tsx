@@ -1,8 +1,8 @@
 import Reflux from 'reflux';
 
-import {t} from 'app/locale';
 import {Indicator} from 'app/actionCreators/indicator';
 import IndicatorActions from 'app/actions/indicatorActions';
+import {t} from 'app/locale';
 
 type IndicatorStoreInterface = {
   init: () => void;
@@ -135,4 +135,6 @@ const storeConfig: Reflux.StoreDefinition & IndicatorStoreInterface & Internals 
 
 type IndicatorStore = Reflux.Store & IndicatorStoreInterface;
 
-export default Reflux.createStore(storeConfig) as IndicatorStore;
+const IndicatorStore = Reflux.createStore(storeConfig) as IndicatorStore;
+
+export default IndicatorStore;

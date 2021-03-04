@@ -1,24 +1,25 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {motion, AnimatePresence} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import {Client} from 'app/api';
-import {Organization, OnboardingTask, OnboardingTaskKey} from 'app/types';
+import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
+
 import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import {IconLightning, IconLock, IconCheckmark} from 'app/icons';
-import Tooltip from 'app/components/tooltip';
+import {Client} from 'app/api';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import {CommonSidebarProps} from 'app/components/sidebar/types';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {OnboardingTask, OnboardingTaskKey, Organization} from 'app/types';
 import testableTransition from 'app/utils/testableTransition';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
-import {findUpcomingTasks, findCompleteTasks, findActiveTasks, taskIsDone} from './utils';
-import {getMergedTasks} from './taskConfig';
-import Task from './task';
 import ProgressHeader from './progressHeader';
+import Task from './task';
+import {getMergedTasks} from './taskConfig';
+import {findActiveTasks, findCompleteTasks, findUpcomingTasks, taskIsDone} from './utils';
 
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
@@ -40,46 +41,32 @@ const doTimeout = (timeout: number) =>
   new Promise(resolve => setTimeout(resolve, timeout));
 
 const Heading = styled(motion.div)`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-gap: ${space(0.75)};
-  align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: 0;
-  font-weight: normal;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  color: ${p => p.theme.gray600};
-  padding-bottom: ${space(1)};
+  display: flex;
+  color: ${p => p.theme.purple300};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  text-transform: uppercase;
+  font-weight: 600;
+  line-height: 1;
+  margin-top: ${space(3)};
 `;
 
 Heading.defaultProps = {
-  positionTransition: true,
+  layout: true,
   transition: testableTransition(),
 };
 
-const completeNowHeading = (
-  <Heading key="now">
-    <IconLightning size="xs" />
-    {t('Complete now')}
-  </Heading>
-);
+const completeNowHeading = <Heading key="now">{t('The Basics')}</Heading>;
 const upcomingTasksHeading = (
   <Heading key="upcoming">
     <Tooltip
       containerDisplayMode="block"
       title={t('Some tasks should be completed before completing these tasks')}
     >
-      <IconLock size="xs" />
+      {t('Level Up')}
     </Tooltip>
-    {t('Upcoming tasks')}
   </Heading>
 );
-const completedTasksHeading = (
-  <Heading key="complete">
-    <IconCheckmark size="xs" />
-    {t('Completed tasks')}
-  </Heading>
-);
+const completedTasksHeading = <Heading key="complete">{t('Completed')}</Heading>;
 
 class OnboardingWizardSidebar extends React.Component<Props> {
   async componentDidMount() {
@@ -157,6 +144,7 @@ class OnboardingWizardSidebar extends React.Component<Props> {
         hidePanel={onClose}
         orientation={orientation}
       >
+        <TopRight src={HighlightTopRight} />
         <ProgressHeader allTasks={all} completedTasks={complete} />
         <TaskList>
           <AnimatePresence initial={false}>{items}</AnimatePresence>
@@ -175,7 +163,7 @@ AnimatedTaskItem.defaultProps = {
   initial: 'initial',
   animate: 'animate',
   exit: 'exit',
-  positionTransition: true,
+  layout: true,
   variants: {
     initial: {
       opacity: 0,
@@ -202,9 +190,8 @@ AnimatedTaskItem.defaultProps = {
 const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
-  grid-gap: ${space(2)};
-  margin: 0 ${space(4)};
-  margin-bottom: ${space(4)};
+  grid-gap: ${space(1)};
+  margin: ${space(1)} ${space(4)} ${space(4)} ${space(4)};
 `;
 
 const CompleteList = styled('div')`
@@ -225,6 +212,12 @@ const CompleteList = styled('div')`
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
   }
+`;
+
+const TopRight = styled('img')`
+  position: absolute;
+  top: 0;
+  right: 0;
 `;
 
 export default withApi(withOrganization(OnboardingWizardSidebar));

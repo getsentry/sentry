@@ -1,14 +1,39 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {select, text} from '@storybook/addon-knobs';
 
-import theme from 'app/utils/theme';
 import Tag from 'app/components/tag';
-import {IconFire} from 'app/icons';
+import {IconClock, IconDelete, IconFire, IconIssues, IconWarning} from 'app/icons';
 import {toTitleCase} from 'app/utils';
+import theme from 'app/utils/theme';
 
 export default {
-  title: 'Core/Badges+Tags/Tag',
+  title: 'Core/Tags/Tag',
+  component: Tag,
+  argTypes: {
+    tooltipText: {
+      type: 'string',
+    },
+    to: {
+      table: {
+        disable: true,
+      },
+    },
+    icon: {
+      table: {
+        disable: true,
+      },
+    },
+    onDismiss: {
+      table: {
+        disable: true,
+      },
+    },
+    href: {
+      table: {
+        disable: true,
+      },
+    },
+  },
 };
 
 const types = Object.keys(theme.tag);
@@ -22,43 +47,60 @@ export const Basic = () => (
     ))}
   </Wrapper>
 );
-Basic.story = {name: 'basic'};
+Basic.storyName = 'basic';
 
-export const WithIcon = () => (
-  <Tag icon={<IconFire />} type={select('type', types, 'error')}>
-    {text('children', 'Error')}
+export const WithIcon = ({...args}) => (
+  <div>
+    <Tag icon={<IconFire />} {...args}>
+      Error
+    </Tag>{' '}
+    <Tag icon={<IconWarning />} {...args}>
+      Error
+    </Tag>{' '}
+    <Tag icon={<IconClock />} {...args}>
+      Error
+    </Tag>{' '}
+    <Tag icon={<IconDelete />} {...args}>
+      Error
+    </Tag>{' '}
+    <Tag icon={<IconIssues />} {...args}>
+      Error
+    </Tag>
+  </div>
+);
+WithIcon.storyName = 'with icon';
+
+export const WithTooltip = ({type}) => (
+  <Tag type={type} tooltipText="lorem ipsum">
+    children
   </Tag>
 );
-WithIcon.story = {name: 'with icon'};
+WithTooltip.storyName = 'with tooltip';
+WithTooltip.args = {
+  type: 'highlight',
+};
+WithTooltip.argTypes = {
+  type: {
+    control: {
+      type: 'select',
+      options: types,
+    },
+  },
+};
 
-export const WithTooltip = () => (
-  <Tag type={select('type', types, 'highlight')} tooltipText="lorem ipsum">
-    {text('children', 'Tooltip')}
-  </Tag>
-);
-WithTooltip.story = {name: 'with tooltip'};
-
-export const WithDismiss = () => (
-  // eslint-disable-next-line no-alert
-  <Tag type={select('type', types, 'highlight')} onDismiss={() => alert('dismissed')}>
-    {text('children', 'Dismissable')}
-  </Tag>
-);
-WithDismiss.story = {name: 'with dismiss'};
+export const WithDismiss = ({...args}) => <Tag {...args}>Dismissable</Tag>;
+WithDismiss.storyName = 'with dismiss';
+WithDismiss.argTypes = {
+  onDismiss: {action: 'dismissed'},
+};
 
 export const WithInternalLink = () => (
-  <Tag type={select('type', types, 'highlight')} to="/organizations/sentry/issues/">
-    {text('children', 'Internal link')}
-  </Tag>
+  <Tag to="/organizations/sentry/issues/">Internal link</Tag>
 );
-WithInternalLink.story = {name: 'with internal link'};
+WithInternalLink.storyName = 'with internal link';
 
-export const WithExternalLink = () => (
-  <Tag type={select('type', types, 'highlight')} href="https://sentry.io/">
-    {text('children', 'External link')}
-  </Tag>
-);
-WithExternalLink.story = {name: 'with external link'};
+export const WithExternalLink = () => <Tag href="https://sentry.io/">External link</Tag>;
+WithExternalLink.storyName = 'with external link';
 
 const Wrapper = styled('div')`
   display: grid;

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from sentry.integrations.issues import IssueBasicMixin
 from sentry.shared_integrations.exceptions import ApiError, IntegrationFormError
@@ -23,14 +22,14 @@ PRIORITIES = (
 class BitbucketIssueBasicMixin(IssueBasicMixin):
     def get_issue_url(self, key):
         repo, issue_id = key.split("#")
-        return u"https://bitbucket.org/{}/issues/{}".format(repo, issue_id)
+        return f"https://bitbucket.org/{repo}/issues/{issue_id}"
 
     def get_persisted_default_config_fields(self):
         return ["repo"]
 
-    def get_create_issue_config(self, group, **kwargs):
+    def get_create_issue_config(self, group, user, **kwargs):
         kwargs["link_referrer"] = "bitbucket_integration"
-        fields = super(BitbucketIssueBasicMixin, self).get_create_issue_config(group, **kwargs)
+        fields = super().get_create_issue_config(group, user, **kwargs)
         default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
         org = group.organization
@@ -141,7 +140,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         }
 
     def make_external_key(self, data):
-        return u"{}#{}".format(data["repo"], data["key"])
+        return "{}#{}".format(data["repo"], data["key"])
 
     def after_link_issue(self, external_issue, **kwargs):
         data = kwargs["data"]

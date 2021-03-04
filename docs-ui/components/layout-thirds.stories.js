@@ -1,12 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {withInfo} from '@storybook/addon-info';
 
+import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import Breadcrumbs from 'app/components/breadcrumbs';
-import Link from 'app/components/links/link';
 import * as Layout from 'app/components/layouts/thirds';
+import Link from 'app/components/links/link';
 import space from 'app/styles/space';
 
 const crumbs = [
@@ -28,7 +27,7 @@ export default {
   title: 'Layouts/Thirds',
 };
 
-export const _6633Layout = withInfo('Two column layout with header & sidebar')(() => (
+export const _6633Layout = () => (
   <Container>
     <Layout.Header>
       <Layout.HeaderContent>
@@ -45,48 +44,54 @@ export const _6633Layout = withInfo('Two column layout with header & sidebar')((
       </Layout.Side>
     </Layout.Body>
   </Container>
-));
-
-_6633Layout.story = {
-  name: '66/33 layout',
-};
-
-export const _6633WithHeaderControls = withInfo('Two column layout with header actions')(
-  () => (
-    <Container>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs crumbs={crumbs} />
-          <Layout.Title>Some heading content</Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <Button>Save</Button>
-            <Button>Delete</Button>
-            <Button>Update</Button>
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
-      <Layout.Body>
-        <Layout.Main>
-          <h1>Content Region</h1>
-          <p>Some text here</p>
-        </Layout.Main>
-        <Layout.Side>
-          <h3>Sidebar content</h3>
-        </Layout.Side>
-      </Layout.Body>
-    </Container>
-  )
 );
 
-_6633WithHeaderControls.story = {
-  name: '66/33 with header controls',
+_6633Layout.storyName = '66/33 layout';
+_6633Layout.parameters = {
+  docs: {
+    description: {
+      story: 'Two column layout with header & sidebar',
+    },
+  },
 };
 
-export const _6633WithManyHeaderControls = withInfo(
-  'Two column layout with header controls'
-)(() => (
+export const _6633WithHeaderControls = () => (
+  <Container>
+    <Layout.Header>
+      <Layout.HeaderContent>
+        <Breadcrumbs crumbs={crumbs} />
+        <Layout.Title>Some heading content</Layout.Title>
+      </Layout.HeaderContent>
+      <Layout.HeaderActions>
+        <ButtonBar gap={1}>
+          <Button>Save</Button>
+          <Button>Delete</Button>
+          <Button>Update</Button>
+        </ButtonBar>
+      </Layout.HeaderActions>
+    </Layout.Header>
+    <Layout.Body>
+      <Layout.Main>
+        <h1>Content Region</h1>
+        <p>Some text here</p>
+      </Layout.Main>
+      <Layout.Side>
+        <h3>Sidebar content</h3>
+      </Layout.Side>
+    </Layout.Body>
+  </Container>
+);
+
+_6633WithHeaderControls.storyName = '66/33 with header controls';
+_6633WithHeaderControls.parameters = {
+  docs: {
+    description: {
+      story: 'Two column layout with header actions',
+    },
+  },
+};
+
+export const _6633WithManyHeaderControls = () => (
   <Container>
     <Layout.Header>
       <Layout.HeaderContent>
@@ -117,89 +122,100 @@ export const _6633WithManyHeaderControls = withInfo(
       </Layout.Side>
     </Layout.Body>
   </Container>
-));
-
-_6633WithManyHeaderControls.story = {
-  name: '66/33 with many header controls',
-};
-
-export const SingleColumnMode = withInfo('Single column mode so we can hide the sidebar')(
-  () => (
-    <Container>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs crumbs={crumbs} />
-          <Layout.Title>Some heading content</Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <Button size="small">clicker</Button>
-            <Button size="small">clicker</Button>
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <h1>Content Region</h1>
-          <p>
-            Some text here, that goes on and on. It should strecth the full width of the
-            container, and have no space on the right.
-          </p>
-        </Layout.Main>
-      </Layout.Body>
-    </Container>
-  )
 );
 
-SingleColumnMode.story = {
-  name: 'single column mode',
+_6633WithManyHeaderControls.storyName = '66/33 with many header controls';
+_6633WithManyHeaderControls.parameters = {
+  docs: {
+    description: {
+      story: 'Two column layout with header controls',
+    },
+  },
 };
 
-export const _6633WithTabNavigation = withInfo('Two column layout with tab navigation')(
-  () => (
-    <Container>
-      <BorderlessHeader>
-        <Layout.HeaderContent>
-          <StyledLayoutTitle>Alerts</StyledLayoutTitle>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <Button size="small">clicker</Button>
-            <Button size="small">clicker</Button>
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </BorderlessHeader>
-      <TabLayoutHeader>
-        <Layout.HeaderNavTabs underlined>
-          <li className="active">
-            <Link to="#">Active</Link>
-          </li>
-          <li>
-            <Link to="#">Inactive</Link>
-          </li>
-        </Layout.HeaderNavTabs>
-      </TabLayoutHeader>
-      <Layout.Body>
-        <Layout.Main>
-          <h1>Content Region</h1>
-          <p>Some text here</p>
-        </Layout.Main>
-        <Layout.Side>
-          <h3>Sidebar content</h3>
-        </Layout.Side>
-      </Layout.Body>
-    </Container>
-  )
+export const SingleColumnMode = () => (
+  <Container>
+    <Layout.Header>
+      <Layout.HeaderContent>
+        <Breadcrumbs crumbs={crumbs} />
+        <Layout.Title>Some heading content</Layout.Title>
+      </Layout.HeaderContent>
+      <Layout.HeaderActions>
+        <ButtonBar gap={1}>
+          <Button size="small">clicker</Button>
+          <Button size="small">clicker</Button>
+        </ButtonBar>
+      </Layout.HeaderActions>
+    </Layout.Header>
+    <Layout.Body>
+      <Layout.Main fullWidth>
+        <h1>Content Region</h1>
+        <p>
+          Some text here, that goes on and on. It should strecth the full width of the
+          container, and have no space on the right.
+        </p>
+      </Layout.Main>
+    </Layout.Body>
+  </Container>
 );
 
-_6633WithTabNavigation.story = {
-  name: '66/33 with tab based nav',
+SingleColumnMode.storyName = 'single column mode';
+SingleColumnMode.parameters = {
+  docs: {
+    description: {
+      story: 'Single column mode so we can hide the sidebar',
+    },
+  },
+};
+
+export const _6633WithTabNavigation = () => (
+  <Container>
+    <BorderlessHeader>
+      <Layout.HeaderContent>
+        <StyledLayoutTitle>Alerts</StyledLayoutTitle>
+      </Layout.HeaderContent>
+      <Layout.HeaderActions>
+        <ButtonBar gap={1}>
+          <Button size="small">clicker</Button>
+          <Button size="small">clicker</Button>
+        </ButtonBar>
+      </Layout.HeaderActions>
+    </BorderlessHeader>
+    <TabLayoutHeader>
+      <Layout.HeaderNavTabs underlined>
+        <li className="active">
+          <Link to="#">Active</Link>
+        </li>
+        <li>
+          <Link to="#">Inactive</Link>
+        </li>
+      </Layout.HeaderNavTabs>
+    </TabLayoutHeader>
+    <Layout.Body>
+      <Layout.Main>
+        <h1>Content Region</h1>
+        <p>Some text here</p>
+      </Layout.Main>
+      <Layout.Side>
+        <h3>Sidebar content</h3>
+      </Layout.Side>
+    </Layout.Body>
+  </Container>
+);
+
+_6633WithTabNavigation.storyName = '66/33 with tab based nav';
+_6633WithTabNavigation.parameters = {
+  docs: {
+    description: {
+      story: 'Two column layout with tab navigation',
+    },
+  },
 };
 
 const Container = styled('div')`
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.backgroundSecondary};
   margin: ${space(2)};
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 const MarginedButtonBar = styled(ButtonBar)`

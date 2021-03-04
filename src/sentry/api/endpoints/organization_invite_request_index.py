@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db import transaction
 from django.db.models import Q
 from rest_framework.response import Response
@@ -80,7 +78,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             )
 
             if result["teams"]:
-                lock = locks.get(u"org:member:{}".format(om.id), duration=5)
+                lock = locks.get(f"org:member:{om.id}", duration=5)
                 with TimedRetryPolicy(10)(lock.acquire):
                     save_team_assignments(om, result["teams"])
 

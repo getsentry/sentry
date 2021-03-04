@@ -2,9 +2,9 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProjectEnvironments from 'app/views/settings/project/projectEnvironments';
-import recreateRoute from 'app/utils/recreateRoute';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
+import recreateRoute from 'app/utils/recreateRoute';
+import ProjectEnvironments from 'app/views/settings/project/projectEnvironments';
 
 jest.mock('app/utils/recreateRoute');
 recreateRoute.mockReturnValue('/org-slug/project-slug/settings/environments/');

@@ -1,12 +1,12 @@
-from __future__ import absolute_import
-
 import logging
 from collections import defaultdict, OrderedDict
+from functools import reduce
 
 from django.db import transaction
 
 from sentry import eventstore, eventstream
 from sentry.app import tsdb
+from sentry.utils.query import celery_run_batch_query
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
 from sentry.models import (
@@ -24,7 +24,6 @@ from sentry.models import (
 )
 from sentry import similarity
 from sentry.tasks.base import instrumented_task
-from six.moves import reduce
 
 
 logger = logging.getLogger(__name__)
@@ -179,7 +178,7 @@ def migrate_events(
         destination = Group.objects.create(
             project_id=project.id,
             short_id=project.next_short_id(),
-            **get_group_creation_attributes(caches, events)
+            **get_group_creation_attributes(caches, events),
         )
 
         destination_id = destination.id
@@ -214,15 +213,15 @@ def migrate_events(
         destination = Group.objects.get(id=destination_id)
         destination.update(**get_group_backfill_attributes(caches, destination, events))
 
-    event_id_set = set(event.event_id for event in events)
+    event_id_set = {event.event_id for event in events}
 
     for event in events:
         event.group = destination
 
-    event_id_set = set(event.event_id for event in events)
+    event_id_set = {event.event_id for event in events}
 
     UserReport.objects.filter(project_id=project.id, event_id__in=event_id_set).update(
-        group=destination_id
+        group_id=destination_id
     )
     EventAttachment.objects.filter(project_id=project.id, event_id__in=event_id_set).update(
         group_id=destination_id
@@ -456,11 +455,6 @@ def unmerge(
     source_fields_reset=False,
     eventstream_state=None,
 ):
-    # XXX: The queryset chunking logic below is awfully similar to
-    # ``RangeQuerySetWrapper``. Ideally that could be refactored to be able to
-    # be run without iteration by passing around a state object and we could
-    # just use that here instead.
-
     source = Group.objects.get(project_id=project_id, id=source_id)
 
     caches = get_caches()
@@ -474,39 +468,11 @@ def unmerge(
         fingerprints = lock_hashes(project_id, source_id, fingerprints)
         truncate_denormalizations(project, source)
 
-    # We process events sorted in descending order by -timestamp, -event_id. We need
-    # to include event_id as well as timestamp in the ordering criteria since:
-    #
-    # - Event timestamps are rounded to the second so multiple events are likely
-    # to have the same timestamp.
-    #
-    # - When sorting by timestamp alone, Snuba may not give us a deterministic
-    # order for events with the same timestamp.
-    #
-    # - We need to ensure that we do not skip any events between batches. If we
-    # only sorted by timestamp < last_event.timestamp it would be possible to
-    # have missed an event with the same timestamp as the last item in the
-    # previous batch.
-
-    conditions = []
-    if last_event is not None:
-        conditions.extend(
-            [
-                ["timestamp", "<=", last_event["timestamp"]],
-                [
-                    ["timestamp", "<", last_event["timestamp"]],
-                    ["event_id", "<", last_event["event_id"]],
-                ],
-            ]
-        )
-
-    events = eventstore.get_events(
-        filter=eventstore.Filter(
-            project_ids=[project_id], group_ids=[source.id], conditions=conditions
-        ),
-        limit=batch_size,
+    last_event, events = celery_run_batch_query(
+        filter=eventstore.Filter(project_ids=[project_id], group_ids=[source.id]),
+        batch_size=batch_size,
+        state=last_event,
         referrer="unmerge",
-        orderby=["-timestamp", "-event_id"],
     )
 
     # If there are no more events to process, we're done with the migration.
@@ -552,7 +518,7 @@ def unmerge(
         destination_id,
         fingerprints,
         actor_id,
-        last_event={"timestamp": events[-1].timestamp, "event_id": events[-1].event_id},
+        last_event=last_event,
         batch_size=batch_size,
         source_fields_reset=source_fields_reset,
         eventstream_state=eventstream_state,

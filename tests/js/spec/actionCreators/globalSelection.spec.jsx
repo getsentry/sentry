@@ -1,10 +1,10 @@
 import {
   initializeUrlState,
-  updateProjects,
-  updateEnvironments,
   updateDateTime,
+  updateEnvironments,
   updateParams,
   updateParamsWithoutHistory,
+  updateProjects,
 } from 'app/actionCreators/globalSelection';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
 import localStorage from 'app/utils/localStorage';

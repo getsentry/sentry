@@ -2,22 +2,64 @@
 
 # TODO: There are some meta files that we potentially could ignore for both front/backend,
 # as well as some configuration files that should trigger both
-frontend:
+frontend_components_lintable: &frontend_components_lintable
   - '**/*.[tj]{s,sx}'
-  - '**/*.less'
+
+frontend_lintable: &frontend_lintable
+  - *frontend_components_lintable
   - '**/tsconfig*.json'
-  - 'yarn.lock'
   - '{package,now,vercel}.json'
+
+frontend: &frontend
+  - *frontend_lintable
+  - '**/*.less'
+  - 'yarn.lock'
   - '.eslint*'
   - 'docs-ui/**'
   - 'src/sentry/static/sentry/**'
   - 'tests/js/**'
   - '.github/workflows/js-*.yml'
 
-backend:
+frontend_modified_lintable:
+  - added|modified: *frontend_lintable
+
+frontend_components_modified_lintable:
+  - added|modified: *frontend_components_lintable
+
+backend_lintable: &backend_lintable
   - '**/*.py'
-  - 'src/sentry/!(static)/**'
+
+# Currently used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
+backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
-  - 'migrations_lockfile.txt'
+
+backend_build_changes: &backend_build_changes
+  - 'Makefile'
+  - '.pre-commit-config.yaml'
   - '.python-version'
   - '.github/workflows/!(js-*)'
+
+backend: &backend
+  - *backend_build_changes
+  - *backend_dependencies
+  - *backend_lintable
+  - '**/*.sh'
+  - '**/*.pysnap'
+  - 'src/sentry/!(static)/**'
+  - 'migrations_lockfile.txt'
+  - 'config/**/*'
+
+plugins:
+  - *backend
+  - 'src/sentry_plugins/**/*.html'
+
+api_docs:
+  - *backend
+  - 'api-docs/**'
+  - 'tests/apidocs/**'
+
+migrations_added:
+  - added: 'src/sentry/migrations/*'
+
+migrations_modified:
+  - modified: 'src/sentry/migrations/*'

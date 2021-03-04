@@ -2,12 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
-import {Relay, RelayActivity} from 'app/types';
 import space from 'app/styles/space';
+import {Relay, RelayActivity} from 'app/types';
 
-import {getRelaysByPublicKey} from './utils';
-import CardHeader from './cardHeader';
 import ActivityList from './activityList';
+import CardHeader from './cardHeader';
+import {getRelaysByPublicKey} from './utils';
 import WaitingActivity from './waitingActivity';
 
 type CardHeaderProps = React.ComponentProps<typeof CardHeader>;
@@ -16,17 +16,25 @@ type WaitingActivityProps = React.ComponentProps<typeof WaitingActivity>;
 type Props = {
   relays: Array<Relay>;
   relayActivities: Array<RelayActivity>;
+  disabled: boolean;
 } & Pick<CardHeaderProps, 'onDelete' | 'onEdit'> &
   Pick<WaitingActivityProps, 'onRefresh'>;
 
-const List = ({relays, relayActivities, onRefresh, onDelete, onEdit}: Props) => {
+const List = ({
+  relays,
+  relayActivities,
+  onRefresh,
+  onDelete,
+  onEdit,
+  disabled,
+}: Props) => {
   const orderedRelays = orderBy(relays, relay => relay.created, ['desc']);
 
   const relaysByPublicKey = getRelaysByPublicKey(orderedRelays, relayActivities);
 
   const renderCardContent = (activities: Array<RelayActivity>) => {
     if (!activities.length) {
-      return <WaitingActivity onRefresh={onRefresh} />;
+      return <WaitingActivity onRefresh={onRefresh} disabled={disabled} />;
     }
 
     return <ActivityList activities={activities} />;
@@ -47,6 +55,7 @@ const List = ({relays, relayActivities, onRefresh, onDelete, onEdit}: Props) => 
               created={created}
               onEdit={onEdit}
               onDelete={onDelete}
+              disabled={disabled}
             />
             {renderCardContent(activities)}
           </Card>

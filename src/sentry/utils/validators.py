@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import ipaddress
-import six
 import uuid
 
 from django.utils.encoding import force_text
@@ -12,7 +9,7 @@ def validate_ip(value, required=True):
         return
 
     # will raise a ValueError
-    ipaddress.ip_network(six.text_type(value), strict=False)
+    ipaddress.ip_network(str(value), strict=False)
     return value
 
 

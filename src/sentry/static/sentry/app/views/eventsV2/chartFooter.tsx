@@ -1,14 +1,14 @@
 import React from 'react';
 
-import {t} from 'app/locale';
-import {SelectValue} from 'app/types';
+import OptionSelector from 'app/components/charts/optionSelector';
 import {
   ChartControls,
   InlineContainer,
   SectionHeading,
   SectionValue,
 } from 'app/components/charts/styles';
-import OptionSelector from 'app/components/charts/optionSelector';
+import {t} from 'app/locale';
+import {SelectValue} from 'app/types';
 
 type Props = {
   total: number | null;

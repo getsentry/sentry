@@ -3,21 +3,17 @@
 * ============================================================================
 */
 
-.similar-list,
 .event-list {
   background: #fff;
   border: 1px solid @trim;
   border-top: 1px solid @trim;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
   border-radius: 0 0 3px 3px;
-  // position: relative;
 }
 
-// .similar-list is used in a tab in an Issue
 .events,
-.similar-list,
 .event-list {
-  .list-unstyled;
+  list-style: none;
 
   .group {
     color: @gray-dark;
@@ -26,11 +22,11 @@
     border-bottom: 1px solid @trim;
     padding-right: 10px;
     background: #fff;
-    .transition(all 0.4s ease-in-out);
+    transition: all 0.4s ease-in-out;
 
     &.hoverable {
       cursor: pointer;
-      .transition(all 0s ease-in-out);
+      transition: all 0s ease-in-out;
 
       &:hover {
         background-color: @white-dark;
@@ -78,7 +74,7 @@
         left: -1px;
         width: 3px;
         z-index: 100;
-        .transition(all 0.2s ease-in-out);
+        transition: all 0.2s ease-in-out;
         background: @yellow;
       }
     }
@@ -134,7 +130,7 @@
 
     .event-extra {
       ul {
-        .list-unstyled;
+        list-style: none;
         margin-left: -9px;
         .clearfix;
 
@@ -201,28 +197,17 @@
     line-height: 24px;
   }
 
-  .event-graph {
-    .barchart {
-      height: 24px;
-    }
-  }
-
   .event-users,
   .event-count {
     span {
       .stream-count;
-      .transition(all linear 0.3s);
+      transition: all linear 0.3s;
     }
   }
 
   .severity {
     padding-top: 35px;
   }
-}
-
-// stop from accidentally clicking event title
-.similar-list .event-details h3 a {
-  display: inline-block;
 }
 
 /**
@@ -371,17 +356,6 @@
         .more-menu-toggle {
           color: @gray-dark;
         }
-      }
-    }
-
-    .event-graph {
-      width: 125px;
-      position: absolute;
-      right: 40px;
-      top: 20px;
-
-      .barchart {
-        height: 24px;
       }
     }
 

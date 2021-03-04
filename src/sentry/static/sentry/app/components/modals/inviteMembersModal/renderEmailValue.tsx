@@ -1,16 +1,18 @@
 import React from 'react';
+import {components as selectComponents, MultiValueProps} from 'react-select';
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
-import {Value} from 'react-select-legacy';
 
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconWarning} from 'app/icons';
 import space from 'app/styles/space';
-import Tooltip from 'app/components/tooltip';
-import LoadingIndicator from 'app/components/loadingIndicator';
 
 import {InviteStatus} from './types';
 
-function renderEmailValue(status: InviteStatus[string], valueProps) {
+function renderEmailValue<Option>(
+  status: InviteStatus[string],
+  valueProps: MultiValueProps<Option>
+) {
   const {children, ...props} = valueProps;
   const error = status && status.error;
 
@@ -23,36 +25,15 @@ function renderEmailValue(status: InviteStatus[string], valueProps) {
           {children}
           {!status.sent && !status.error && <SendingIndicator />}
           {status.error && <IconWarning size="10px" />}
-          {status.sent && <IconCheckmark size="10px" />}
+          {status.sent && <IconCheckmark size="10px" color="success" />}
         </EmailLabel>
       </Tooltip>
     );
 
   return (
-    <EmailValue status={status}>
-      <Value {...props}>{emailLabel}</Value>
-    </EmailValue>
+    <selectComponents.MultiValue {...props}>{emailLabel}</selectComponents.MultiValue>
   );
 }
-
-const EmailValue = styled('div')<{status: InviteStatus[string]}>`
-  display: initial;
-
-  .Select--multi.is-disabled & .Select-value {
-    ${p =>
-      p.status &&
-      p.status.error &&
-      css`
-        color: ${p.theme.red400};
-        border-color: ${p.theme.red400};
-        background-color: ${p.theme.red100};
-      `};
-  }
-
-  .Select-value svg {
-    color: ${p => (p.status && p.status.sent ? p.theme.green400 : 'inherit')};
-  }
-`;
 
 const EmailLabel = styled('div')`
   display: inline-grid;

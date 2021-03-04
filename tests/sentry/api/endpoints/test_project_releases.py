@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import datetime, timedelta
 
 import pytz
@@ -602,7 +600,7 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
 
 class ReleaseSerializerTest(TestCase):
     def setUp(self):
-        super(ReleaseSerializerTest, self).setUp()
+        super().setUp()
         self.version = "1234567890"
         self.repo_name = "repo/name"
         self.repo2_name = "repo2/name"
@@ -625,7 +623,7 @@ class ReleaseSerializerTest(TestCase):
 
         assert serializer.is_valid()
         assert sorted(serializer.fields.keys()) == sorted(
-            ["version", "owner", "ref", "url", "dateReleased", "commits"]
+            ["version", "owner", "ref", "url", "dateReleased", "commits", "status"]
         )
 
         result = serializer.validated_data

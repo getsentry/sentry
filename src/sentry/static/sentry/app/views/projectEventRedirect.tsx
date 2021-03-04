@@ -1,10 +1,9 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 
-import {PageContent} from 'app/styles/organization';
-import {t} from 'app/locale';
 import DetailedError from 'app/components/errors/detailedError';
+import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
 
 type Props = RouteComponentProps<{}, {}>;
 
@@ -23,10 +22,6 @@ type State = {
  * https://github.com/getsentry/sentry/blob/824c03089907ad22a9282303a5eaca33989ce481/src/sentry/web/urls.py#L578
  */
 class ProjectEventRedirect extends React.Component<Props, State> {
-  static propTypes = {
-    router: PropTypes.object,
-  };
-
   state: State = {
     error: null,
   };

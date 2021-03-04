@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import signal
 import sys
 from multiprocessing import cpu_count
@@ -160,7 +158,7 @@ def run_worker(**options):
             without_gossip=True,
             without_heartbeat=True,
             pool_cls="processes",
-            **options
+            **options,
         )
         worker.start()
         try:
@@ -211,10 +209,38 @@ def run_worker(**options):
 @click.option("--without-mingle", is_flag=True, default=False)
 @click.option("--without-heartbeat", is_flag=True, default=False)
 @click.option("--max-tasks-per-child", default=10000)
+@click.option("--ignore-unknown-queues", is_flag=True, default=False)
 @log_options()
 @configuration
-def worker(**options):
+def worker(ignore_unknown_queues, **options):
     """Run background worker instance and autoreload if necessary."""
+
+    from sentry.celery import app
+
+    known_queues = frozenset(c_queue.name for c_queue in app.conf.CELERY_QUEUES)
+
+    if options["queues"] is not None:
+        if not options["queues"].issubset(known_queues):
+            unknown_queues = options["queues"] - known_queues
+            message = "Following queues are not found: %s" % ",".join(sorted(unknown_queues))
+            if ignore_unknown_queues:
+                options["queues"] -= unknown_queues
+                click.echo(message)
+            else:
+                raise click.ClickException(message)
+
+    if options["exclude_queues"] is not None:
+        if not options["exclude_queues"].issubset(known_queues):
+            unknown_queues = options["exclude_queues"] - known_queues
+            message = "Following queues cannot be excluded as they don't exist: %s" % ",".join(
+                sorted(unknown_queues)
+            )
+            if ignore_unknown_queues:
+                options["exclude_queues"] -= unknown_queues
+                click.echo(message)
+            else:
+                raise click.ClickException(message)
+
     if options["autoreload"]:
         from django.utils import autoreload
 
@@ -333,6 +359,12 @@ def post_process_forwarder(**options):
     type=click.Choice(["earliest", "latest"]),
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
+@click.option(
+    "--force-offset-reset",
+    default=None,
+    type=click.Choice(["earliest", "latest"]),
+    help="Force subscriptions to start from a particular offset",
+)
 @log_options()
 @configuration
 def query_subscription_consumer(**options):
@@ -343,6 +375,7 @@ def query_subscription_consumer(**options):
         topic=options["topic"],
         commit_batch_size=options["commit_batch_size"],
         initial_offset_reset=options["initial_offset_reset"],
+        force_offset_reset=options["force_offset_reset"],
     )
 
     def handler(signum, frame):

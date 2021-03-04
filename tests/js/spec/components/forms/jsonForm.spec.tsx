@@ -2,9 +2,9 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import accountDetailsFields from 'app/data/forms/accountDetails';
 import {fields} from 'app/data/forms/projectGeneralSettings';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
 
 // @ts-expect-error
 const user = TestStubs.User({});
@@ -130,7 +130,7 @@ describe('JsonForm', function () {
       // slug and platform have no visible prop, that means they will be always visible
       const wrapper = mountWithTheme(<JsonForm fields={jsonFormFields} />);
       expect(wrapper.find('FormPanel')).toHaveLength(1);
-      expect(wrapper.find('input')).toHaveLength(2);
+      expect(wrapper.find('input[type="text"]')).toHaveLength(2);
     });
 
     it('should NOT hide panel, if at least one field has visible set to true -  visible prop is of type boolean', function () {
@@ -139,7 +139,7 @@ describe('JsonForm', function () {
         <JsonForm fields={jsonFormFields.map(field => ({...field, visible: true}))} />
       );
       expect(wrapper.find('FormPanel')).toHaveLength(1);
-      expect(wrapper.find('input')).toHaveLength(2);
+      expect(wrapper.find('input[type="text"]')).toHaveLength(2);
     });
 
     it('should NOT hide panel, if at least one field has visible set to true -  visible prop is of type func', function () {
@@ -150,7 +150,7 @@ describe('JsonForm', function () {
         />
       );
       expect(wrapper.find('FormPanel')).toHaveLength(1);
-      expect(wrapper.find('input')).toHaveLength(2);
+      expect(wrapper.find('input[type="text"]')).toHaveLength(2);
     });
 
     it('should ALWAYS hide panel, if all fields have visible set to false -  visible prop is of type boolean', function () {

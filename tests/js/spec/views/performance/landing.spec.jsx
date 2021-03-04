@@ -1,13 +1,14 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import * as globalSelection from 'app/actionCreators/globalSelection';
 import ProjectsStore from 'app/stores/projectsStore';
 import PerformanceLanding, {FilterViews} from 'app/views/performance/landing';
-import * as globalSelection from 'app/actionCreators/globalSelection';
 import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
+import {vitalAbbreviations} from 'app/views/performance/vitalDetail/utils';
 
 const FEATURES = ['transaction-event', 'performance-view'];
 
@@ -29,19 +30,18 @@ function initializeData(projects, query, features = FEATURES) {
 }
 
 function initializeTrendsData(query, addDefaultQuery = true) {
-  const features = [...FEATURES, 'trends'];
   const projects = [
     TestStubs.Project({id: '1', firstTransactionEvent: false}),
     TestStubs.Project({id: '2', firstTransactionEvent: true}),
   ];
   const organization = TestStubs.Organization({
-    features,
+    FEATURES,
     projects,
   });
 
   const otherTrendsQuery = addDefaultQuery
     ? {
-        query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+        query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
       }
     : {};
 
@@ -61,8 +61,6 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 }
 
 describe('Performance > Landing', function () {
-  let eventsMock;
-  let keyTransactionsMock;
   beforeEach(function () {
     browserHistory.push = jest.fn();
     jest.spyOn(globalSelection, 'updateDateTime');
@@ -92,7 +90,15 @@ describe('Performance > Landing', function () {
       method: 'POST',
       body: [],
     });
-    eventsMock = MockApiClient.addMockResponse(
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {},
+    });
+    MockApiClient.addMockResponse(
       {
         url: '/organizations/org-slug/eventsv2/',
         body: {
@@ -100,7 +106,7 @@ describe('Performance > Landing', function () {
             user: 'string',
             transaction: 'string',
             'project.id': 'integer',
-            epm: 'number',
+            tpm: 'number',
             p50: 'number',
             p95: 'number',
             failure_rate: 'number',
@@ -113,7 +119,7 @@ describe('Performance > Landing', function () {
               transaction: '/apple/cart',
               'project.id': 1,
               user: 'uhoh@example.com',
-              epm: 30,
+              tpm: 30,
               p50: 100,
               p95: 500,
               failure_rate: 0.1,
@@ -143,7 +149,7 @@ describe('Performance > Landing', function () {
             user: 'string',
             transaction: 'string',
             'project.id': 'integer',
-            epm: 'number',
+            tpm: 'number',
             p50: 'number',
             p95: 'number',
             failure_rate: 'number',
@@ -157,7 +163,7 @@ describe('Performance > Landing', function () {
               transaction: '/apple/cart',
               'project.id': 1,
               user: 'uhoh@example.com',
-              epm: 30,
+              tpm: 30,
               p50: 100,
               p95: 500,
               failure_rate: 0.1,
@@ -170,7 +176,7 @@ describe('Performance > Landing', function () {
               transaction: '/apple/checkout',
               'project.id': 1,
               user: 'uhoh@example.com',
-              epm: 30,
+              tpm: 30,
               p50: 100,
               p95: 500,
               failure_rate: 0.1,
@@ -192,19 +198,6 @@ describe('Performance > Landing', function () {
         },
       }
     );
-    keyTransactionsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/key-transactions/',
-      body: {
-        meta: {},
-        data: [],
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/key-transactions-stats/',
-      body: {
-        data: [],
-      },
-    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-meta/',
       body: {
@@ -223,6 +216,18 @@ describe('Performance > Landing', function () {
       body: {
         stats: {},
         events: {meta: {}, data: []},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-vitals/',
+      body: {
+        'measurements.lcp': {
+          poor: 1,
+          meh: 2,
+          good: 3,
+          total: 6,
+          p75: 4500,
+        },
       },
     });
   });
@@ -248,7 +253,7 @@ describe('Performance > Landing', function () {
     wrapper.update();
 
     // Check number of rendered tab buttons
-    expect(wrapper.find('ButtonBar Button')).toHaveLength(2);
+    expect(wrapper.find('PageHeader ButtonBar Button')).toHaveLength(2);
 
     // No onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(0);
@@ -346,7 +351,7 @@ describe('Performance > Landing', function () {
 
   it('Navigating to trends does not modify statsPeriod when already set', async function () {
     const data = initializeTrendsData({
-      query: `epm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+      query: `tpm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION}`,
       statsPeriod: '24h',
     });
 
@@ -368,7 +373,7 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: `epm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+          query: `tpm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION}`,
           statsPeriod: '24h',
           view: 'TRENDS',
         },
@@ -429,40 +434,11 @@ describe('Performance > Landing', function () {
       1,
       expect.objectContaining({
         query: {
-          query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+          query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
           view: 'TRENDS',
         },
       })
     );
-  });
-
-  it('Changing views from all transactions to key transactions fires discover query', async function () {
-    const data = initializeTrendsData({view: FilterViews.ALL_TRANSACTIONS}, false);
-
-    const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
-      data.routerContext
-    );
-    await tick();
-    wrapper.update();
-
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(keyTransactionsMock).toHaveBeenCalledTimes(0);
-
-    const changedViewData = initializeTrendsData(
-      {view: FilterViews.KEY_TRANSACTIONS},
-      false
-    );
-
-    wrapper.setProps({location: changedViewData.router.location});
-    await tick();
-    wrapper.update();
-
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(keyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
   it('Tags are replaced with trends default query if navigating to trends', async function () {
@@ -487,18 +463,78 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: `epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+          query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
           view: 'TRENDS',
         },
       })
     );
   });
 
+  it('Vitals cards are not shown with overview feature without frontend platform', async function () {
+    const projects = [TestStubs.Project({id: '1', firstTransactionEvent: true})];
+    const data = initializeData(
+      projects,
+      {project: ['1'], query: 'sentry:yes', view: FilterViews.ALL_TRANSACTIONS},
+      [...FEATURES, 'performance-vitals-overview']
+    );
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const vitalsContainer = wrapper.find('VitalsContainer');
+    expect(vitalsContainer).toHaveLength(0);
+  });
+
+  it('Vitals cards are shown with overview feature with frontend platform project', async function () {
+    const projects = [
+      TestStubs.Project({
+        id: '1',
+        firstTransactionEvent: true,
+        platform: 'javascript-react',
+      }),
+    ];
+    const data = initializeData(
+      projects,
+      {project: ['1'], query: 'sentry:yes', view: FilterViews.ALL_TRANSACTIONS},
+      [...FEATURES, 'performance-vitals-overview']
+    );
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const vitalsContainer = wrapper.find('VitalsContainer');
+    expect(vitalsContainer).toHaveLength(1);
+
+    const vitalTestIds = Object.values(vitalAbbreviations).map(
+      abbr => `vitals-linked-card-${abbr}`
+    );
+
+    for (const testId of vitalTestIds) {
+      const selector = `a[data-test-id="${testId}"]`;
+      const link = wrapper.find(selector);
+      expect(link).toHaveLength(1);
+    }
+  });
+
   it('Navigating away from trends will remove extra tags from query', async function () {
     const data = initializeTrendsData(
       {
         view: FilterViews.TRENDS,
-        query: `device.family:Mac epm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+        query: `device.family:Mac tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
       },
       false
     );
@@ -529,62 +565,5 @@ describe('Performance > Landing', function () {
         },
       })
     );
-  });
-
-  it('should render correctly if key transaction feature is off', async function () {
-    const projects = [TestStubs.Project({firstTransactionEvent: true})];
-    const data = initializeData(projects, {});
-
-    const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
-      data.routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    // Check number of rendered tab buttons
-    expect(wrapper.find('ButtonBar Button')).toHaveLength(2);
-
-    // Check to see if the key transaction column is not there
-    expect(wrapper.find('IconStar[data-test-id="key-transaction-header"]')).toHaveLength(
-      0
-    );
-    expect(wrapper.find('IconStar[data-test-id="key-transaction-column"]')).toHaveLength(
-      0
-    );
-  });
-
-  it('should render correctly if key transaction feature is on', async function () {
-    const projects = [TestStubs.Project({firstTransactionEvent: true})];
-    const data = initializeData(projects, {}, [...FEATURES, 'key-transactions']);
-
-    const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
-      data.routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    // Check number of rendered tab buttons
-    expect(wrapper.find('ButtonBar Button')).toHaveLength(1);
-
-    // Check to see if the key transaction column is there
-    expect(wrapper.find('IconStar[data-test-id="key-transaction-header"]')).toHaveLength(
-      1
-    );
-    const keyTransactionColumns = wrapper.find(
-      'IconStar[data-test-id="key-transaction-column"]'
-    );
-    expect(keyTransactionColumns).toHaveLength(2);
-    expect(keyTransactionColumns.first().props().isSolid).toEqual(true);
-    expect(keyTransactionColumns.last().props().isSolid).toEqual(false);
   });
 });

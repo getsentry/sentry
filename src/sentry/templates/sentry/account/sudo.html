@@ -3,6 +3,7 @@
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
+{% load sentry_assets %}
 
 {% block title %}{% trans "Confirm Password" %} | {{ block.super }}{% endblock %}
 
@@ -12,13 +13,15 @@
 
   {{ block.super }}
 
-  <script type="text/javascript">
+  {% script type="text/javascript" %}
+  <script>
     $(function() {
       setTimeout(function(){
           $("#id_password").focus();
       }, 0);
     });
   </script>
+  {% endscript %}
 {% endblock %}
 
 {% block auth_main %}
@@ -44,12 +47,14 @@
 
                 {% if u2f_challenge %}
                     <div id="u2f-challenge"></div>
+                    {% script %}
                     <script>
                       ReactDOM.render(React.createElement(SentryApp.U2fSign, {
                         challengeData: {{ u2f_challenge|to_json|safe }},
                         displayMode: 'sudo'
                       }), document.getElementById('u2f-challenge'));
                     </script>
+                    {% endscript %}
                 {% endif %}
 
                 <div class="auth-footer">

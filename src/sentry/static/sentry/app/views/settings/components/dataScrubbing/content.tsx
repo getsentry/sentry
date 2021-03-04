@@ -1,8 +1,8 @@
 import React from 'react';
 
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import {IconWarning} from 'app/icons';
 
 import Rules from './rules';
 import {Rule} from './types';

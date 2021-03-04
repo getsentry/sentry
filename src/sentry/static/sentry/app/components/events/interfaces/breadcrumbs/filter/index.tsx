@@ -6,7 +6,7 @@ import DropdownControl from 'app/components/dropdownControl';
 
 import DropDownButton from './dropdownButton';
 import OptionsGroup from './optionsGroup';
-import {OptionType, OptionLevel, Option} from './types';
+import {Option, OptionLevel, OptionType} from './types';
 
 type OnClick = React.ComponentProps<typeof OptionsGroup>['onClick'];
 type Options = [Array<OptionType>, Array<OptionLevel>];
@@ -104,6 +104,7 @@ class Filter extends React.Component<Props, State> {
     return (
       <Wrapper>
         <DropdownControl
+          priority="form"
           menuWidth="240px"
           blendWithActor
           button={({isOpen, getActorProps}) => (
@@ -114,13 +115,19 @@ class Filter extends React.Component<Props, State> {
             />
           )}
         >
-          {hasTypeOption && (
-            <OptionsGroup type="type" onClick={this.handleClick} options={options[0]} />
-          )}
+          <Content>
+            {hasTypeOption && (
+              <OptionsGroup type="type" onClick={this.handleClick} options={options[0]} />
+            )}
 
-          {hasLevelOption && (
-            <OptionsGroup type="level" onClick={this.handleClick} options={options[1]} />
-          )}
+            {hasLevelOption && (
+              <OptionsGroup
+                type="level"
+                onClick={this.handleClick}
+                options={options[1]}
+              />
+            )}
+          </Content>
         </DropdownControl>
       </Wrapper>
     );
@@ -132,4 +139,10 @@ export default Filter;
 const Wrapper = styled('div')`
   position: relative;
   display: flex;
+`;
+
+const Content = styled('div')`
+  > * :last-child {
+    margin-bottom: -1px;
+  }
 `;

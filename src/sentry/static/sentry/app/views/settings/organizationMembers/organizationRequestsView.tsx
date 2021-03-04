@@ -1,17 +1,16 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 
-import {MEMBER_ROLES} from 'app/constants';
-import {AccessRequest, Member, Organization, Team} from 'app/types';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {MEMBER_ROLES} from 'app/constants';
 import {t, tct} from 'app/locale';
+import {AccessRequest, Member, Organization, Team} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import AsyncView from 'app/views/asyncView';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import InviteRequestRow from './inviteRequestRow';
 import OrganizationAccessRequests from './organizationAccessRequests';
@@ -36,14 +35,6 @@ type State = AsyncView['state'] & {
 };
 
 class OrganizationRequestsView extends AsyncView<Props, State> {
-  static propTypes = {
-    requestList: PropTypes.array.isRequired,
-    inviteRequests: PropTypes.array.isRequired,
-    onRemoveInviteRequest: PropTypes.func.isRequired,
-    onRemoveAccessRequest: PropTypes.func.isRequired,
-    showInviteRequests: PropTypes.bool.isRequired,
-  };
-
   static defaultProps: DefaultProps = {
     inviteRequests: [],
   };
@@ -65,7 +56,7 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
     this.handleRedirect();
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const orgId = this.props.organization.slug;
 
     return [['member', `/organizations/${orgId}/members/me/`]];

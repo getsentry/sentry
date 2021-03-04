@@ -1,5 +1,5 @@
-import PluginsStore from 'app/stores/pluginsStore';
 import PluginActions from 'app/actions/pluginActions';
+import PluginsStore from 'app/stores/pluginsStore';
 
 describe('PluginsStore', function () {
   beforeAll(function () {

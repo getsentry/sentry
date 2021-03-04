@@ -1,8 +1,10 @@
+import 'echarts/lib/component/tooltip';
+
 import {EChartOption} from 'echarts';
 import moment from 'moment';
 
-import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 import BaseChart from 'app/components/charts/baseChart';
+import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 
 import {truncationFormatter} from '../utils';
 
@@ -205,6 +207,7 @@ export default function Tooltip({
   formatAxisLabel,
   valueFormatter,
   nameFormatter,
+  hideDelay,
   ...props
 }: Props = {}): EChartOption.Tooltip {
   formatter =
@@ -227,6 +230,8 @@ export default function Tooltip({
     backgroundColor: 'transparent',
     transitionDuration: 0,
     padding: 0,
+    // Default hideDelay in echarts docs is 100ms
+    hideDelay: hideDelay || 100,
     position(pos, _params, dom, _rec, _size) {
       // Center the tooltip slightly above the cursor.
       const tipWidth = dom.clientWidth;

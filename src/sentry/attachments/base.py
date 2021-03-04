@@ -1,15 +1,12 @@
-from __future__ import absolute_import
-
-from six import string_types
 import zlib
 
 from sentry.utils import metrics
 from sentry.utils.json import prune_empty_keys
 
 
-ATTACHMENT_META_KEY = u"{key}:a"
-ATTACHMENT_UNCHUNKED_DATA_KEY = u"{key}:a:{id}"
-ATTACHMENT_DATA_CHUNK_KEY = u"{key}:a:{id}:{chunk_index}"
+ATTACHMENT_META_KEY = "{key}:a"
+ATTACHMENT_UNCHUNKED_DATA_KEY = "{key}:a:{id}"
+ATTACHMENT_DATA_CHUNK_KEY = "{key}:a:{id}:{chunk_index}"
 
 UNINITIALIZED_DATA = object()
 
@@ -18,7 +15,7 @@ class MissingAttachmentChunks(Exception):
     pass
 
 
-class CachedAttachment(object):
+class CachedAttachment:
     def __init__(
         self,
         key=None,
@@ -31,7 +28,7 @@ class CachedAttachment(object):
         cache=None,
         rate_limited=None,
         size=None,
-        **kwargs
+        **kwargs,
     ):
         self.key = key
         self.id = id
@@ -39,7 +36,7 @@ class CachedAttachment(object):
         self.name = name
         self.content_type = content_type
         self.type = type or "event.attachment"
-        assert isinstance(self.type, string_types), self.type
+        assert isinstance(self.type, str), self.type
         self.rate_limited = rate_limited
 
         if size is not None:
@@ -99,7 +96,7 @@ class CachedAttachment(object):
         )
 
 
-class BaseAttachmentCache(object):
+class BaseAttachmentCache:
     def __init__(self, inner):
         self.inner = inner
 

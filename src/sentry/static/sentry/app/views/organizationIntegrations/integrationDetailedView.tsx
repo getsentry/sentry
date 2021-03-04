@@ -1,19 +1,13 @@
-import keyBy from 'lodash/keyBy';
 import React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {RequestOptions} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import {IconFlag, IconOpen, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {IntegrationWithConfig, IntegrationProvider} from 'app/types';
-import {ProjectMapperType} from 'app/views/settings/components/forms/type';
-import {sortArray} from 'app/utils';
-import {isSlackWorkspaceApp, getReauthAlertText} from 'app/utils/integrationUtil';
+import {Integration, IntegrationProvider} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
@@ -21,7 +15,7 @@ import AddIntegrationButton from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
 
 type State = {
-  configurations: IntegrationWithConfig[];
+  configurations: Integration[];
   information: {providers: IntegrationProvider[]};
 };
 
@@ -38,7 +32,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       ],
       [
         'configurations',
-        `/organizations/${orgId}/integrations/?provider_key=${integrationSlug}`,
+        `/organizations/${orgId}/integrations/?provider_key=${integrationSlug}&includeConfig=0`,
       ],
     ];
 
@@ -115,19 +109,15 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     return this.metadata.features;
   }
 
-  onInstall = (integration: IntegrationWithConfig) => {
-    // Merge the new integration into the list. If we're updating an
-    // integration overwrite the old integration.
-    const keyedItems = keyBy(this.state.configurations, i => i.id);
-
-    const configurations = sortArray(
-      Object.values({...keyedItems, [integration.id]: integration}),
-      i => i.name
+  onInstall = (integration: Integration) => {
+    // send the user to the configure integration view for that integration
+    const {orgId} = this.props.params;
+    this.props.router.push(
+      `/settings/${orgId}/integrations/${integration.provider.key}/${integration.id}/`
     );
-    this.setState({configurations});
   };
 
-  onRemove = (integration: IntegrationWithConfig) => {
+  onRemove = (integration: Integration) => {
     const {orgId} = this.props.params;
 
     const origIntegrations = [...this.state.configurations];
@@ -146,41 +136,28 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
   };
 
-  onDisable = (integration: IntegrationWithConfig) => {
+  onDisable = (integration: Integration) => {
     let url: string;
 
-    //TODO: Clean up hack for Vercel
-    if (integration.provider.key === 'vercel') {
-      // kind of a hack since this isn't what the url was stored for
-      // but it's exactly what we need and contains the configuration id
-      // e.g. https://vercel.com/dashboard/<team>/integrations/icfg_ySlF4UDnHcIPrAAXjGEiwtxo
-      const field = integration.configOrganization.find(
-        config => config.type === 'project_mapper'
-      );
-
-      if (field) {
-        const mappingField = field as ProjectMapperType;
-        url = mappingField.manageUrl || '';
-        window.open(url, '_blank');
-      }
-      return;
-    }
-
-    const [domainName, orgName] = integration.domainName.split('/');
-    if (integration.accountType === 'User') {
-      url = `https://${domainName}/settings/installations/`;
+    // some integrations have a custom uninstalltion URL we show
+    const uninstallationUrl =
+      integration.dynamicDisplayInformation?.integration_detail?.uninstallationUrl;
+    if (uninstallationUrl) {
+      url = uninstallationUrl;
     } else {
-      url = `https://${domainName}/organizations/${orgName}/settings/installations/`;
+      const [domainName, orgName] = integration.domainName.split('/');
+      if (integration.accountType === 'User') {
+        url = `https://${domainName}/settings/installations/`;
+      } else {
+        url = `https://${domainName}/organizations/${orgName}/settings/installations/`;
+      }
     }
 
     window.open(url, '_blank');
   };
 
   handleExternalInstall = () => {
-    this.trackIntegrationEvent({
-      eventKey: 'integrations.installation_start',
-      eventName: 'Integrations: Installation Start',
-    });
+    this.trackIntegrationEvent('integrations.installation_start');
   };
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
@@ -239,51 +216,37 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     const {configurations} = this.state;
     const {organization} = this.props;
     const provider = this.provider;
-    if (configurations.length) {
-      // check if we have a workspace app to render the alert
-      const hasWorkspaceApp = configurations.some(isSlackWorkspaceApp);
 
-      return (
-        <Feature organization={organization} features={['slack-migration']}>
-          {({hasFeature}) => (
-            <div>
-              {hasFeature && hasWorkspaceApp && (
-                <Alert type="warning" icon={<IconWarning size="sm" />}>
-                  {getReauthAlertText(provider)}
-                </Alert>
-              )}
-              {configurations.map(integration => (
-                <InstallWrapper key={integration.id}>
-                  <InstalledIntegration
-                    organization={organization}
-                    provider={provider}
-                    integration={integration}
-                    onRemove={this.onRemove}
-                    onDisable={this.onDisable}
-                    onReAuthIntegration={this.onInstall}
-                    data-test-id={integration.id}
-                    trackIntegrationEvent={this.trackIntegrationEvent}
-                    showReauthMessage={hasFeature && isSlackWorkspaceApp(integration)}
-                  />
-                </InstallWrapper>
-              ))}
-            </div>
-          )}
-        </Feature>
-      );
+    if (configurations.length) {
+      return configurations.map(integration => {
+        return (
+          <InstallWrapper key={integration.id}>
+            <InstalledIntegration
+              organization={organization}
+              provider={provider}
+              integration={integration}
+              onRemove={this.onRemove}
+              onDisable={this.onDisable}
+              data-test-id={integration.id}
+              trackIntegrationEvent={this.trackIntegrationEvent}
+            />
+          </InstallWrapper>
+        );
+      });
     }
+
     return this.renderEmptyConfigurations();
   }
 }
 
 const InstallWrapper = styled('div')`
   padding: ${space(2)};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   border-bottom: none;
-  background-color: white;
+  background-color: ${p => p.theme.background};
 
   &:last-child {
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+    border-bottom: 1px solid ${p => p.theme.border};
   }
 `;
 

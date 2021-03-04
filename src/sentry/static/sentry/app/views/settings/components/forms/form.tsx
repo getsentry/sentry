@@ -1,15 +1,15 @@
-import {Observer} from 'mobx-react';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {Observer} from 'mobx-react';
+import PropTypes from 'prop-types';
 
 import {APIRequestMethod} from 'app/api';
-import {t} from 'app/locale';
 import Button from 'app/components/button';
-import FormModel, {FormOptions} from 'app/views/settings/components/forms/model';
 import Panel from 'app/components/panels/panel';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
+import FormModel, {FormOptions} from 'app/views/settings/components/forms/model';
 
 type Data = Record<string, any>;
 
@@ -41,6 +41,9 @@ type Props = {
   // Save field on control blur
   saveOnBlur?: boolean;
   model?: FormModel;
+  // if set to true, preventDefault is not called
+  skipPreventDefault?: boolean;
+  additionalFieldProps?: {[key: string]: any};
   'data-test-id'?: string;
 
   onCancel?: (e: React.MouseEvent) => void;
@@ -60,48 +63,9 @@ type Context = {
 };
 
 export default class Form extends React.Component<Props> {
-  static propTypes: any = {
-    cancelLabel: PropTypes.string,
-    onCancel: PropTypes.func,
-    onSubmit: PropTypes.func,
-    onSubmitSuccess: PropTypes.func,
-    onSubmitError: PropTypes.func,
-    onFieldChange: PropTypes.func,
-    submitDisabled: PropTypes.bool,
-    submitLabel: PropTypes.string,
-    submitPriority: PropTypes.string,
-    footerClass: PropTypes.string,
-    footerStyle: PropTypes.object,
-    extraButton: PropTypes.element,
-    initialData: PropTypes.object,
-    // Require changes before able to submit form
-    requireChanges: PropTypes.bool,
-    // Reset form when there are errors, after submit
-    resetOnError: PropTypes.bool,
-    hideFooter: PropTypes.bool,
-    allowUndo: PropTypes.bool,
-    // Save field on control blur
-    saveOnBlur: PropTypes.bool,
-    model: PropTypes.object,
-    apiMethod: PropTypes.string,
-    apiEndpoint: PropTypes.string,
-    'data-test-id': PropTypes.string,
-  };
-
   static childContextTypes = {
-    saveOnBlur: PropTypes.bool.isRequired,
-    form: PropTypes.object.isRequired,
-  };
-
-  static defaultProps = {
-    cancelLabel: t('Cancel'),
-    submitLabel: t('Save Changes'),
-    submitDisabled: false,
-    submitPriority: 'primary' as 'primary',
-    className: 'form-stacked',
-    requireChanges: false,
-    allowUndo: false,
-    saveOnBlur: false,
+    saveOnBlur: PropTypes.bool,
+    form: PropTypes.object,
   };
 
   constructor(props: Props, context: Context) {
@@ -145,7 +109,7 @@ export default class Form extends React.Component<Props> {
   model: FormModel = this.props.model || new FormModel();
 
   onSubmit = e => {
-    e.preventDefault();
+    !this.props.skipPreventDefault && e.preventDefault();
     if (this.model.isSaving) {
       return;
     }
@@ -205,7 +169,7 @@ export default class Form extends React.Component<Props> {
     return (
       <form
         onSubmit={this.onSubmit}
-        className={className}
+        className={className ?? 'form-stacked'}
         data-test-id={this.props['data-test-id']}
       >
         <div>
@@ -229,7 +193,7 @@ export default class Form extends React.Component<Props> {
                       onClick={onCancel}
                       style={{marginLeft: 5}}
                     >
-                      {cancelLabel}
+                      {cancelLabel ?? t('Cancel')}
                     </Button>
                   )}
                 </Observer>
@@ -239,7 +203,7 @@ export default class Form extends React.Component<Props> {
                 {() => (
                   <Button
                     data-test-id="form-submit"
-                    priority={submitPriority}
+                    priority={submitPriority ?? 'primary'}
                     disabled={
                       this.model.isError ||
                       this.model.isSaving ||
@@ -248,7 +212,7 @@ export default class Form extends React.Component<Props> {
                     }
                     type="submit"
                   >
-                    {submitLabel}
+                    {submitLabel ?? t('Save Changes')}
                   </Button>
                 )}
               </Observer>

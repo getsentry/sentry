@@ -1,22 +1,21 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import debounce from 'lodash/debounce';
 import {createFilter} from 'react-select';
+import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
-import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
-import Form from 'app/views/settings/components/forms/form';
-import SentryTypes from 'app/sentryTypes';
+import {Client} from 'app/api';
 import {t} from 'app/locale';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
+import {Group, PlatformExternalIssue, SentryAppInstallation} from 'app/types';
+import {Event} from 'app/types/event';
 import getStacktraceBody from 'app/utils/getStacktraceBody';
-import withApi from 'app/utils/withApi';
-import {Client} from 'app/api';
-import {Group, PlatformExternalIssue, Event, SentryAppInstallation} from 'app/types';
-import {Field, FieldValue} from 'app/views/settings/components/forms/type';
-import FormModel from 'app/views/settings/components/forms/model';
+import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
+import withApi from 'app/utils/withApi';
+import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
+import Form from 'app/views/settings/components/forms/form';
+import FormModel from 'app/views/settings/components/forms/model';
+import {Field, FieldValue} from 'app/views/settings/components/forms/type';
 
 //0 is a valid choice but empty string, undefined, and null are not
 const hasValue = value => !!value || value === 0;
@@ -53,16 +52,6 @@ type Props = {
 };
 
 export class SentryAppExternalIssueForm extends React.Component<Props, State> {
-  static propTypes: any = {
-    api: PropTypes.object.isRequired,
-    group: SentryTypes.Group.isRequired,
-    sentryAppInstallation: PropTypes.object,
-    appName: PropTypes.string,
-    config: PropTypes.object.isRequired,
-    action: PropTypes.oneOf(['link', 'create']),
-    event: SentryTypes.Event,
-    onSubmitSuccess: PropTypes.func,
-  };
   state: State = {optionsByField: new Map()};
 
   componentDidMount() {
@@ -270,6 +259,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         label,
       }));
       const options = this.state.optionsByField.get(field.name) || defaultOptions;
+      const allowClear = !required;
       //filter by what the user is typing
       const filterOption = createFilter({});
       fieldToPass = {
@@ -277,6 +267,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         options,
         defaultOptions,
         filterOption,
+        allowClear,
       };
       //default message for async select fields
       if (isAsync) {
@@ -333,7 +324,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     return (
       <Form
         key={action}
-        apiEndpoint={`/sentry-app-installations/${sentryAppInstallation.uuid}/external-issues/`}
+        apiEndpoint={`/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`}
         apiMethod="POST"
         onSubmitSuccess={this.onSubmitSuccess}
         onSubmitError={this.onSubmitError}

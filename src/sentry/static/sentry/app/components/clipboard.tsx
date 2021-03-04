@@ -1,7 +1,6 @@
-import Clip from 'clipboard';
-import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import Clip from 'clipboard';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 
@@ -19,20 +18,6 @@ type Props = {
 } & DefaultProps;
 
 class Clipboard extends React.Component<Props> {
-  static propTypes = {
-    value: PropTypes.string,
-    successMessage: PropTypes.string,
-    errorMessage: PropTypes.string,
-    hideMessages: PropTypes.bool,
-
-    /**
-     * Hide component if browser does not support "execCommand"
-     */
-    hideUnsupported: PropTypes.bool,
-    onSuccess: PropTypes.func,
-    onError: PropTypes.func,
-  };
-
   static defaultProps: DefaultProps = {
     hideMessages: false,
     successMessage: 'Copied to clipboard',

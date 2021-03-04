@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 from django.core.urlresolvers import reverse
 from sentry.utils.compat.mock import patch
 from exam import fixture
@@ -21,7 +18,7 @@ class AuthLoginEndpointTest(APITestCase):
         resp = self.client.post(self.path, {"username": self.user.username, "password": "bizbar"})
         assert resp.status_code == 400
         assert resp.data["errors"]["__all__"] == [
-            u"Please enter a correct username and password. Note that both fields may be case-sensitive."
+            "Please enter a correct username and password. Note that both fields may be case-sensitive."
         ]
 
     def test_login_valid_credentials(self):
@@ -45,6 +42,6 @@ class AuthLoginEndpointTest(APITestCase):
         resp = self.client.post(self.path, {"username": self.user.username, "password": "admin"})
 
         assert resp.status_code == 400
-        assert [six.text_type(s) for s in resp.data["errors"]["__all__"]] == [
-            u"You have made too many failed authentication attempts. Please try again later."
+        assert [str(s) for s in resp.data["errors"]["__all__"]] == [
+            "You have made too many failed authentication attempts. Please try again later."
         ]

@@ -8,16 +8,16 @@ import {
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import {disablePlugin, enablePlugin} from 'app/actionCreators/plugins';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import PluginConfig from 'app/components/pluginConfig';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import withPlugins from 'app/utils/withPlugins';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Plugin, Organization, Project} from 'app/types';
+import {Organization, Plugin, Project} from 'app/types';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import withPlugins from 'app/utils/withPlugins';
+import AsyncView from 'app/views/asyncView';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 type Props = {
   organization: Organization;
@@ -55,13 +55,11 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
     const {pluginId} = this.props.params;
 
     trackIntegrationEvent(
+      'integrations.details_viewed',
       {
-        eventKey: 'integrations.details_viewed',
-        eventName: 'Integrations: Details Viewed',
         integration: pluginId,
         integration_type: 'plugin',
         view: 'plugin_details',
-        project_id: this.props.project.id,
       },
       this.props.organization
     );
@@ -90,13 +88,11 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
 
     addLoadingMessage(t('Saving changes\u2026'));
     trackIntegrationEvent(
+      'integrations.uninstall_clicked',
       {
-        eventKey: 'integrations.uninstall_clicked',
-        eventName: 'Integrations: Uninstall Clicked',
         integration: pluginId,
         integration_type: 'plugin',
         view: 'plugin_details',
-        project_id: this.props.project.id,
       },
       this.props.organization
     );
@@ -108,13 +104,11 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
         this.setState({pluginDetails});
         addSuccessMessage(t('Plugin was reset'));
         trackIntegrationEvent(
+          'integrations.uninstall_completed',
           {
-            eventKey: 'integrations.uninstall_completed',
-            eventName: 'Integrations: Uninstall Completed',
             integration: pluginId,
             integration_type: 'plugin',
             view: 'plugin_details',
-            project_id: this.props.project.id,
           },
           this.props.organization
         );
@@ -138,15 +132,12 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
   analyticsChangeEnableStatus = (enabled: boolean) => {
     const {pluginId} = this.props.params;
     const eventKey = enabled ? 'integrations.enabled' : 'integrations.disabled';
-    const eventName = enabled ? 'Integrations: Enabled' : 'Integrations: Disabled';
     trackIntegrationEvent(
+      eventKey,
       {
-        eventKey,
-        eventName,
         integration: pluginId,
         integration_type: 'plugin',
         view: 'plugin_details',
-        project_id: this.props.project.id,
       },
       this.props.organization
     );

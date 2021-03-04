@@ -1,14 +1,14 @@
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 
-import {Calendar} from 'react-date-range';
 import React from 'react';
-import moment from 'moment';
+import {Calendar, OnChangeProps} from 'react-date-range';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
-import {inputStyles} from 'app/styles/input';
 import DropdownMenu from 'app/components/dropdownMenu';
 import {IconCalendar} from 'app/icons';
+import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
 
 import InputField, {onEvent} from './inputField';
@@ -18,7 +18,7 @@ type Props = Omit<InputField['props'], 'field'>;
 function handleChangeDate(
   onChange: onEvent,
   onBlur: onEvent,
-  date: Date,
+  date: OnChangeProps,
   close: Function
 ) {
   onChange(date);
@@ -32,7 +32,7 @@ export default function DatePickerField(props: Props) {
   return (
     <InputField
       {...props}
-      field={({onChange, onBlur, value, disabled, id}) => {
+      field={({onChange, onBlur, value, id}) => {
         const dateObj = new Date(value);
         const inputValue = !isNaN(dateObj.getTime()) ? dateObj : new Date();
         const dateString = moment(inputValue).format('LL');
@@ -51,7 +51,6 @@ export default function DatePickerField(props: Props) {
                 {isOpen && (
                   <CalendarMenu {...getMenuProps()}>
                     <Calendar
-                      disabled={disabled}
                       date={inputValue}
                       onChange={date =>
                         handleChangeDate(onChange, onBlur, date, actions.close)
@@ -88,10 +87,10 @@ const StyledInput = styled('input')`
 
 const CalendarMenu = styled('div')`
   display: flex;
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   position: absolute;
   left: 0;
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.border};
   border-top: none;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
   margin-top: -1px;

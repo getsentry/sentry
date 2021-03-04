@@ -1,13 +1,13 @@
-import debounce from 'lodash/debounce';
 import React from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
-import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t, tct} from 'app/locale';
+import {Client} from 'app/api';
 import SelectControl from 'app/components/forms/selectControl';
-import {Tag, TagValue} from 'app/types';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import {Tag, TagValue} from 'app/types';
 
 import {TagValueLoader} from './types';
 
@@ -166,17 +166,16 @@ class IssueListTagFilter extends React.Component<Props, State> {
 
         {!tag.isInput && (
           <SelectControl
-            deprecatedSelectControl
             clearable
-            filterOptions={options => options}
             placeholder="--"
             value={this.state.value}
             onChange={this.handleChangeSelect}
             isLoading={this.state.isLoading}
             onInputChange={this.handleChangeSelectInput}
-            onOpen={this.handleOpenMenu}
-            autoload={false}
-            noResultsText={this.state.isLoading ? t('Loading...') : t('No results found')}
+            onFocus={this.handleOpenMenu}
+            noResultsText={
+              this.state.isLoading ? t('Loading\u2026') : t('No results found')
+            }
             options={
               tag.predefined
                 ? tag.values &&
@@ -200,6 +199,6 @@ const StreamTagFilter = styled('div')`
 `;
 
 const StyledHeader = styled('h6')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   margin-bottom: ${space(1)};
 `;

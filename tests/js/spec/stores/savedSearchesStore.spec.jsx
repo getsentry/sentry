@@ -1,11 +1,11 @@
-import SavedSearchesStore from 'app/stores/savedSearchesStore';
 import {
-  fetchSavedSearches,
   deleteSavedSearch,
+  fetchSavedSearches,
   pinSearch,
   unpinSearch,
 } from 'app/actionCreators/savedSearches';
 import {Client} from 'app/api';
+import SavedSearchesStore from 'app/stores/savedSearchesStore';
 
 describe('SavedSearchesStore', function () {
   let api;

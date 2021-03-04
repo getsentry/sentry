@@ -1,42 +1,56 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import isEqual from 'lodash/isEqual';
 import {InjectedRouter} from 'react-router/lib/Router';
+import {EChartOption} from 'echarts/lib/echarts';
+import {Query} from 'history';
+import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
-import {DateString, OrganizationSummary} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {t} from 'app/locale';
-import {getInterval} from 'app/components/charts/utils';
-import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
-import LineChart from 'app/components/charts/lineChart';
-import TransitionChart from 'app/components/charts/transitionChart';
-import ReleaseSeries from 'app/components/charts/releaseSeries';
-import {IconWarning} from 'app/icons';
-import theme from 'app/utils/theme';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import ChartZoom, {ZoomRenderProps} from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
-import {tooltipFormatter, axisLabelFormatter} from 'app/utils/discover/charts';
+import LineChart from 'app/components/charts/lineChart';
+import ReleaseSeries from 'app/components/charts/releaseSeries';
+import TransitionChart from 'app/components/charts/transitionChart';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import {getInterval, RELEASE_LINES_THRESHOLD} from 'app/components/charts/utils';
+import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
+import {DateString, OrganizationSummary} from 'app/types';
+import {Series} from 'app/types/echarts';
+import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {aggregateMultiPlotType} from 'app/utils/discover/fields';
+import theme from 'app/utils/theme';
 
 import EventsRequest from './eventsRequest';
 
 type ChartProps = {
   loading: boolean;
   reloading: boolean;
-  // TODO(mark) Update this when components/charts/chartZoom is updated.
-  zoomRenderProps: any;
+  zoomRenderProps: ZoomRenderProps;
   timeseriesData: Series[];
   showLegend?: boolean;
+  legendOptions?: EChartOption.Legend;
+  chartOptions?: EChartOption;
   currentSeriesName?: string;
-  releaseSeries?: Series | null;
+  releaseSeries?: Series[];
   previousTimeseriesData?: Series | null;
   previousSeriesName?: string;
+  /**
+   * A callback to allow for post-processing of the series data.
+   * Can be used to rename series or even insert a new series.
+   */
+  seriesTransformer?: (series: Series[]) => Series[];
   showDaily?: boolean;
   interval?: string;
   yAxis: string;
+  stacked: boolean;
+  colors?: string[];
+  /**
+   * By default, only the release series is disableable. This adds
+   * a list of series names that are also disableable.
+   */
+  disableableSeries?: string[];
 };
 
 type State = {
@@ -45,20 +59,6 @@ type State = {
 };
 
 class Chart extends React.Component<ChartProps, State> {
-  static propTypes = {
-    loading: PropTypes.bool,
-    reloading: PropTypes.bool,
-    releaseSeries: PropTypes.array,
-    zoomRenderProps: PropTypes.object,
-    timeseriesData: PropTypes.array,
-    showLegend: PropTypes.bool,
-    previousTimeseriesData: PropTypes.object,
-    currentSeriesName: PropTypes.string,
-    previousSeriesName: PropTypes.string,
-    showDaily: PropTypes.bool,
-    yAxis: PropTypes.string,
-  };
-
   state: State = {
     seriesSelection: {},
     forceUpdate: false,
@@ -88,7 +88,10 @@ class Chart extends React.Component<ChartProps, State> {
     return true;
   }
 
-  getChartComponent() {
+  getChartComponent():
+    | React.ComponentType<BarChart['props']>
+    | React.ComponentType<AreaChart['props']>
+    | React.ComponentType<LineChart['props']> {
     const {showDaily, timeseriesData, yAxis} = this.props;
     if (showDaily) {
       return BarChart;
@@ -107,11 +110,13 @@ class Chart extends React.Component<ChartProps, State> {
   }
 
   handleLegendSelectChanged = legendChange => {
+    const {disableableSeries = []} = this.props;
     const {selected} = legendChange;
     const seriesSelection = Object.keys(selected).reduce((state, key) => {
       // we only want them to be able to disable the Releases series,
       // and not any of the other possible series here
-      state[key] = key === 'Releases' ? selected[key] : true;
+      const disableable = key === 'Releases' || disableableSeries.includes(key);
+      state[key] = disableable ? selected[key] : true;
       return state;
     }, {});
 
@@ -132,36 +137,60 @@ class Chart extends React.Component<ChartProps, State> {
       timeseriesData,
       previousTimeseriesData,
       showLegend,
+      legendOptions,
+      chartOptions: chartOptionsProp,
       currentSeriesName,
       previousSeriesName,
+      seriesTransformer,
+      colors,
       ...props
     } = this.props;
     const {seriesSelection} = this.state;
 
     const data = [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous')];
+
+    const releasesLegend = t('Releases');
     if (Array.isArray(releaseSeries)) {
-      data.push(t('Releases'));
+      data.push(releasesLegend);
     }
 
-    const legend = showLegend && {
-      right: 16,
-      top: 12,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left',
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
-      data,
-      selected: seriesSelection,
-    };
+    // Temporary fix to improve performance on pages with a high number of releases.
+    const releases = releaseSeries && releaseSeries[0];
+    const hideReleasesByDefault =
+      Array.isArray(releaseSeries) &&
+      (releases as any)?.markLine?.data &&
+      (releases as any).markLine.data.length >= RELEASE_LINES_THRESHOLD;
+
+    const selected = !Array.isArray(releaseSeries)
+      ? seriesSelection
+      : Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
+      ? {[releasesLegend]: false}
+      : seriesSelection;
+
+    const legend = showLegend
+      ? {
+          right: 16,
+          top: 12,
+          data,
+          selected,
+          ...(legendOptions ?? {}),
+        }
+      : undefined;
+
+    let series = Array.isArray(releaseSeries)
+      ? [...timeseriesData, ...releaseSeries]
+      : timeseriesData;
+
+    if (seriesTransformer) {
+      series = seriesTransformer(series);
+    }
 
     const chartOptions = {
-      colors: theme.charts.getColorPalette(timeseriesData.length - 2),
+      colors: timeseriesData.length
+        ? colors?.slice(0, series.length) ?? [
+            ...theme.charts.getColorPalette(timeseriesData.length - 2),
+          ]
+        : undefined,
       grid: {
         left: '24px',
         right: '24px',
@@ -172,22 +201,20 @@ class Chart extends React.Component<ChartProps, State> {
         showSymbol: false,
       },
       tooltip: {
-        trigger: 'axis',
+        trigger: 'axis' as const,
         truncate: 80,
         valueFormatter: (value: number) => tooltipFormatter(value, yAxis),
       },
       yAxis: {
         axisLabel: {
-          color: theme.gray400,
+          color: theme.chartLabel,
           formatter: (value: number) => axisLabelFormatter(value, yAxis),
         },
       },
+      ...(chartOptionsProp ?? {}),
     };
 
     const Component = this.getChartComponent();
-    const series = Array.isArray(releaseSeries)
-      ? [...timeseriesData, ...releaseSeries]
-      : timeseriesData;
 
     return (
       <Component
@@ -197,7 +224,7 @@ class Chart extends React.Component<ChartProps, State> {
         legend={legend}
         onLegendSelectChanged={this.handleLegendSelectChanged}
         series={series}
-        previousPeriod={previousTimeseriesData ? [previousTimeseriesData] : null}
+        previousPeriod={previousTimeseriesData ? [previousTimeseriesData] : undefined}
       />
     );
   }
@@ -249,6 +276,10 @@ type Props = {
    */
   disableReleases?: boolean;
   /**
+   * A list of release names to visually emphasize. Can only be used when `disableReleases` is false.
+   */
+  emphasizeReleases?: string[];
+  /**
    * Fetch n top events as dictated by the field and orderby props.
    */
   topEvents?: number;
@@ -265,48 +296,43 @@ type Props = {
    */
   orderby?: string;
   /**
-   * Overide the interval calculation and show daily results.
+   * Override the interval calculation and show daily results.
    */
   showDaily?: boolean;
   confirmedQuery?: boolean;
-} & Pick<ChartProps, 'currentSeriesName' | 'previousSeriesName' | 'showLegend'>;
+  /**
+   * Override the default color palette.
+   */
+  colors?: string[];
+  /**
+   * Markup for optional chart header
+   */
+  chartHeader?: React.ReactNode;
+  releaseQueryExtra?: Query;
+  preserveReleaseQueryParams?: boolean;
+} & Pick<
+  ChartProps,
+  | 'currentSeriesName'
+  | 'previousSeriesName'
+  | 'seriesTransformer'
+  | 'showLegend'
+  | 'disableableSeries'
+  | 'legendOptions'
+  | 'chartOptions'
+>;
 
 type ChartDataProps = {
-  // TODO(mark) Update this when components/charts/chartZoom is updated.
-  zoomRenderProps: any;
+  zoomRenderProps: ZoomRenderProps;
   errored: boolean;
   loading: boolean;
   reloading: boolean;
   results?: Series[];
   timeseriesData?: Series[];
   previousTimeseriesData?: Series | null;
-  releaseSeries?: Series;
+  releaseSeries?: Series[];
 };
 
 class EventsChart extends React.Component<Props> {
-  static propTypes = {
-    api: PropTypes.object,
-    projects: PropTypes.arrayOf(PropTypes.number),
-    environments: PropTypes.arrayOf(PropTypes.string),
-    period: PropTypes.string,
-    query: PropTypes.string,
-    start: PropTypes.instanceOf(Date),
-    end: PropTypes.instanceOf(Date),
-    utc: PropTypes.bool,
-    router: PropTypes.object,
-    showLegend: PropTypes.bool,
-    yAxis: PropTypes.string,
-    disablePrevious: PropTypes.bool,
-    disableReleases: PropTypes.bool,
-    currentSeriesName: PropTypes.string,
-    previousSeriesName: PropTypes.string,
-    topEvents: PropTypes.number,
-    field: PropTypes.arrayOf(PropTypes.string),
-    showDaily: PropTypes.bool,
-    orderby: PropTypes.string,
-    confirmedQuery: PropTypes.bool,
-  };
-
   render() {
     const {
       api,
@@ -322,21 +348,30 @@ class EventsChart extends React.Component<Props> {
       yAxis,
       disablePrevious,
       disableReleases,
+      emphasizeReleases,
       currentSeriesName: currentName,
       previousSeriesName: previousName,
+      seriesTransformer,
       field,
       interval,
       showDaily,
       topEvents,
       orderby,
       confirmedQuery,
+      colors,
+      chartHeader,
+      legendOptions,
+      chartOptions,
+      preserveReleaseQueryParams,
+      releaseQueryExtra,
+      disableableSeries,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !disablePrevious && !start && !end;
 
     const previousSeriesName =
-      previousName ?? yAxis ? t('previous %s', yAxis) : undefined;
+      previousName ?? (yAxis ? t('previous %s', yAxis) : undefined);
     const currentSeriesName = currentName ?? yAxis;
 
     const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, true);
@@ -354,7 +389,7 @@ class EventsChart extends React.Component<Props> {
       if (errored) {
         return (
           <ErrorPanel>
-            <IconWarning color="gray500" size="lg" />
+            <IconWarning color="gray300" size="lg" />
           </ErrorPanel>
         );
       }
@@ -363,20 +398,27 @@ class EventsChart extends React.Component<Props> {
       return (
         <TransitionChart loading={loading} reloading={reloading}>
           <TransparentLoadingMask visible={reloading} />
+
+          {React.isValidElement(chartHeader) && chartHeader}
+
           <Chart
-            {...zoomRenderProps}
+            zoomRenderProps={zoomRenderProps}
             loading={loading}
             reloading={reloading}
-            utc={utc}
             showLegend={showLegend}
             releaseSeries={releaseSeries || []}
-            timeseriesData={seriesData}
+            timeseriesData={seriesData ?? []}
             previousTimeseriesData={previousTimeseriesData}
             currentSeriesName={currentSeriesName}
             previousSeriesName={previousSeriesName}
+            seriesTransformer={seriesTransformer}
             stacked={typeof topEvents === 'number' && topEvents > 0}
             yAxis={yAxis}
             showDaily={showDaily}
+            colors={colors}
+            legendOptions={legendOptions}
+            chartOptions={chartOptions}
+            disableableSeries={disableableSeries}
           />
         </TransitionChart>
       );
@@ -392,6 +434,9 @@ class EventsChart extends React.Component<Props> {
           end={end}
           projects={projects}
           environments={environments}
+          emphasizeReleases={emphasizeReleases}
+          preserveQueryParams={preserveReleaseQueryParams}
+          queryExtra={releaseQueryExtra}
         >
           {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
         </ReleaseSeries>
@@ -402,9 +447,9 @@ class EventsChart extends React.Component<Props> {
       <ChartZoom
         router={router}
         period={period}
+        start={start}
+        end={end}
         utc={utc}
-        projects={projects}
-        environments={environments}
         {...props}
       >
         {zoomRenderProps => (

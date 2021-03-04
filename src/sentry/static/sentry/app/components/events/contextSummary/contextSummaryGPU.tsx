@@ -1,16 +1,16 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {Meta} from 'app/types';
-import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
+import {getMeta} from 'app/components/events/meta/metaProxy';
+import TextOverflow from 'app/components/textOverflow';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {ParagraphOverflow} from 'app/components/textOverflow';
+import {Meta} from 'app/types';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';
+import Item from './item';
 
 type Props = {
   data: Data;
@@ -59,19 +59,14 @@ const ContextSummaryGPU = ({data}: Props) => {
   const versionElement = getVersionElement();
 
   return (
-    <div className={`context-item ${className}`}>
-      <span className="context-item-icon" />
+    <Item className={className} icon={<span className="context-item-icon" />}>
       <h3>{renderName()}</h3>
-      <ParagraphOverflow>
+      <TextOverflow isParagraph>
         <Subject>{versionElement.subject}</Subject>
         <AnnotatedText value={versionElement.value} meta={versionElement.meta} />
-      </ParagraphOverflow>
-    </div>
+      </TextOverflow>
+    </Item>
   );
-};
-
-ContextSummaryGPU.propTypes = {
-  data: PropTypes.object.isRequired,
 };
 
 export default ContextSummaryGPU;

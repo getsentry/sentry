@@ -1,11 +1,11 @@
 import React from 'react';
 
-import {callIfFunction} from 'app/utils/callIfFunction';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
+import {callIfFunction} from 'app/utils/callIfFunction';
+import slugify from 'app/utils/slugify';
 import Form from 'app/views/settings/components/forms/form';
 import TextField from 'app/views/settings/components/forms/textField';
-import slugify from 'app/utils/slugify';
 
 type Payload = {
   slug: string;

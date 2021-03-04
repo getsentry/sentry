@@ -1,18 +1,19 @@
 import React from 'react';
 import {components} from 'react-select';
 
-import {t} from 'app/locale';
-import InputField from 'app/views/settings/components/forms/inputField';
-import IdBadge from 'app/components/idBadge';
 import SelectControl from 'app/components/forms/selectControl';
+import IdBadge from 'app/components/idBadge';
+import {t} from 'app/locale';
 import {Project} from 'app/types';
+import InputField from 'app/views/settings/components/forms/inputField';
 
 const defaultProps = {
   avatarSize: 20,
   placeholder: t('Choose Sentry project'),
 };
 
-type Props = InputField['props'];
+//projects can be passed as a direct prop as well
+type Props = {projects?: Project[]} & InputField['props'];
 
 type RenderProps = {
   projects: Project[]; //can't use AvatarProject since we need the ID

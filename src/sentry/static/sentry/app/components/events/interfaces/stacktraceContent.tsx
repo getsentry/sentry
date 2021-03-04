@@ -1,12 +1,17 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PlatformIcon from 'platformicons';
+import {PlatformIcon} from 'platformicons';
 
 import Line from 'app/components/events/interfaces/frame/line';
+import {
+  getImageRange,
+  parseAddress,
+  stackTracePlatformIcon,
+} from 'app/components/events/interfaces/utils';
 import {t} from 'app/locale';
-import {parseAddress, getImageRange} from 'app/components/events/interfaces/utils';
+import {Frame, PlatformType} from 'app/types';
+import {Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
-import {PlatformType, Event, Frame} from 'app/types';
 
 const defaultProps = {
   includeSystemFrames: true,
@@ -19,6 +24,7 @@ type Props = {
   event: Event;
   newestFirst?: boolean;
   className?: string;
+  isHoverPreviewed?: boolean;
 } & typeof defaultProps;
 
 type State = {
@@ -53,7 +59,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
   isFrameAfterLastNonApp(): boolean {
     const {data} = this.props;
 
-    const frames = data.frames;
+    const frames = data.frames ?? [];
 
     if (!frames.length || frames.length < 2) {
       return false;
@@ -77,14 +83,18 @@ export default class StacktraceContent extends React.Component<Props, State> {
     );
   };
 
-  findImageForAddress(address: Frame['instructionAddr']) {
+  findImageForAddress(address: Frame['instructionAddr'], addrMode: Frame['addrMode']) {
     const images = this.props.event.entries.find(entry => entry.type === 'debugmeta')
       ?.data?.images;
 
     return images && address
-      ? images.find(img => {
-          const [startAddress, endAddress] = getImageRange(img);
-          return address >= startAddress && address < endAddress;
+      ? images.find((img, idx) => {
+          if (!addrMode || addrMode === 'abs') {
+            const [startAddress, endAddress] = getImageRange(img);
+            return address >= (startAddress as any) && address < (endAddress as any);
+          }
+
+          return addrMode === `rel:${idx}`;
         })
       : null;
   }
@@ -117,10 +127,12 @@ export default class StacktraceContent extends React.Component<Props, State> {
   render() {
     const {
       data,
+      event,
       newestFirst,
       expandFirstFrame,
       platform,
       includeSystemFrames,
+      isHoverPreviewed,
     } = this.props;
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
 
@@ -134,22 +146,25 @@ export default class StacktraceContent extends React.Component<Props, State> {
 
     let lastFrameIdx: number | null = null;
 
-    data.frames.forEach((frame, frameIdx) => {
+    (data.frames ?? []).forEach((frame, frameIdx) => {
       if (frame.inApp) {
         lastFrameIdx = frameIdx;
       }
     });
 
     if (lastFrameIdx === null) {
-      lastFrameIdx = data.frames.length - 1;
+      lastFrameIdx = (data.frames ?? []).length - 1;
     }
 
     const frames: React.ReactElement[] = [];
     let nRepeats = 0;
 
-    const maxLengthOfAllRelativeAddresses = data.frames.reduce(
+    const maxLengthOfAllRelativeAddresses = (data.frames ?? []).reduce(
       (maxLengthUntilThisPoint, frame) => {
-        const correspondingImage = this.findImageForAddress(frame.instructionAddr);
+        const correspondingImage = this.findImageForAddress(
+          frame.instructionAddr,
+          frame.addrMode
+        );
 
         try {
           const relativeAddress = (
@@ -169,9 +184,9 @@ export default class StacktraceContent extends React.Component<Props, State> {
 
     const isFrameAfterLastNonApp = this.isFrameAfterLastNonApp();
 
-    data.frames.forEach((frame, frameIdx) => {
-      const prevFrame = data.frames[frameIdx - 1];
-      const nextFrame = data.frames[frameIdx + 1];
+    (data.frames ?? []).forEach((frame, frameIdx) => {
+      const prevFrame = (data.frames ?? [])[frameIdx - 1];
+      const nextFrame = (data.frames ?? [])[frameIdx + 1];
       const repeatedFrame =
         nextFrame &&
         frame.lineNo === nextFrame.lineNo &&
@@ -185,15 +200,16 @@ export default class StacktraceContent extends React.Component<Props, State> {
       }
 
       if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame) {
-        const image = this.findImageForAddress(frame.instructionAddr);
+        const image = this.findImageForAddress(frame.instructionAddr, frame.addrMode);
 
         frames.push(
           <Line
             key={frameIdx}
+            event={event}
             data={frame}
             isExpanded={expandFirstFrame && lastFrameIdx === frameIdx}
             emptySourceNotation={lastFrameIdx === frameIdx && frameIdx === 0}
-            isOnlyFrame={data.frames.length === 1}
+            isOnlyFrame={(data.frames ?? []).length === 1}
             nextFrame={nextFrame}
             prevFrame={prevFrame}
             platform={platform}
@@ -207,6 +223,8 @@ export default class StacktraceContent extends React.Component<Props, State> {
             includeSystemFrames={includeSystemFrames}
             onFunctionNameToggle={this.handleToggleFunctionName}
             showCompleteFunctionName={showCompleteFunctionName}
+            isHoverPreviewed={isHoverPreviewed}
+            isFirst={newestFirst ? frameIdx === lastFrameIdx : frameIdx === 0}
           />
         );
       }
@@ -236,7 +254,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
     return (
       <Wrapper className={className}>
         <StyledPlatformIcon
-          platform={platform}
+          platform={stackTracePlatformIcon(platform, data.frames ?? [])}
           size="20px"
           style={{borderRadius: '3px 0 0 3px'}}
         />

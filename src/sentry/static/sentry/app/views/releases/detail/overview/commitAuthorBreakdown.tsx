@@ -1,15 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import UserAvatar from 'app/components/avatar/userAvatar';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import AsyncComponent from 'app/components/asyncComponent';
+import UserAvatar from 'app/components/avatar/userAvatar';
+import Button from 'app/components/button';
+import Collapsible from 'app/components/collapsible';
+import {t, tn} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {Commit, User} from 'app/types';
 import {percent} from 'app/utils';
 import {userDisplayName} from 'app/utils/formatters';
-import {Commit, User} from 'app/types';
-import Button from 'app/components/button';
 
 import {SectionHeading, Wrapper} from './styles';
 
@@ -25,19 +26,9 @@ type Props = {
 
 type State = {
   commits: Commit[];
-  collapsed: boolean;
 } & AsyncComponent['state'];
 
 class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
-  static MAX_WHEN_COLLAPSED = 5;
-
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      collapsed: true,
-    };
-  }
-
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, projectSlug, version} = this.props;
 
@@ -56,15 +47,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
     return `${calculatedPercent < 1 ? '<1' : calculatedPercent}%`;
   }
 
-  onCollapseToggle = () => {
-    this.setState(state => ({
-      collapsed: !state.collapsed,
-    }));
-  };
-
   renderBody() {
-    const {collapsed} = this.state;
-
     // group commits by author
     const groupedAuthorCommits = this.state.commits?.reduce(
       (authorCommitsAccumulator, commit) => {
@@ -85,7 +68,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
     );
 
     // sort authors by number of commits
-    let sortedAuthorsByNumberOfCommits = Object.values(groupedAuthorCommits).sort(
+    const sortedAuthorsByNumberOfCommits = Object.values(groupedAuthorCommits).sort(
       (a, b) => b.commitCount - a.commitCount
     );
 
@@ -93,95 +76,55 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
       return null;
     }
 
-    // collapse them
-    const MAX = CommitAuthorBreakdown.MAX_WHEN_COLLAPSED;
-    const initialNumberOfAuthors = sortedAuthorsByNumberOfCommits.length;
-    const canExpand = initialNumberOfAuthors > MAX;
-    if (collapsed && canExpand) {
-      sortedAuthorsByNumberOfCommits = sortedAuthorsByNumberOfCommits.slice(0, MAX);
-    }
-    const collapsedNumberOfAuthors =
-      initialNumberOfAuthors - sortedAuthorsByNumberOfCommits.length;
-
     return (
       <Wrapper>
         <SectionHeading>{t('Commit Author Breakdown')}</SectionHeading>
-        {sortedAuthorsByNumberOfCommits.map(({commitCount, author}) => (
-          <AuthorLine key={author?.email}>
-            <Author>
-              <StyledUserAvatar user={author} size={20} hasTooltip />
+        <Collapsible
+          expandButton={({onExpand, numberOfCollapsedItems}) => (
+            <Button priority="link" onClick={onExpand}>
+              {tn(
+                'Show %s collapsed author',
+                'Show %s collapsed authors',
+                numberOfCollapsedItems
+              )}
+            </Button>
+          )}
+        >
+          {sortedAuthorsByNumberOfCommits.map(({commitCount, author}, index) => (
+            <AuthorLine key={author?.email ?? index}>
+              <UserAvatar user={author} size={20} hasTooltip />
               <AuthorName>{userDisplayName(author || {}, false)}</AuthorName>
-            </Author>
-
-            <Stats>
               <Commits>{tn('%s commit', '%s commits', commitCount)}</Commits>
               <Percent>{this.getDisplayPercent(commitCount)}</Percent>
-            </Stats>
-          </AuthorLine>
-        ))}
-        {collapsedNumberOfAuthors > 0 && (
-          <StyledButton priority="link" onClick={this.onCollapseToggle}>
-            {tn(
-              'Show %s collapsed author',
-              'Show %s collapsed authors',
-              collapsedNumberOfAuthors
-            )}
-          </StyledButton>
-        )}
-        {collapsedNumberOfAuthors === 0 && canExpand && (
-          <StyledButton priority="link" onClick={this.onCollapseToggle}>
-            {t('Collapse')}
-          </StyledButton>
-        )}
+            </AuthorLine>
+          ))}
+        </Collapsible>
       </Wrapper>
     );
   }
 }
 
 const AuthorLine = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const Author = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  overflow: hidden;
-`;
-
-const StyledUserAvatar = styled(UserAvatar)`
-  margin-right: ${space(1)};
+  display: inline-grid;
+  grid-template-columns: 30px 2fr 1fr 40px;
+  width: 100%;
+  margin-bottom: ${space(1)};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const AuthorName = styled('div')`
-  font-weight: 600;
-  color: ${p => p.theme.gray700};
-  padding-right: ${space(0.5)};
+  color: ${p => p.theme.textColor};
   ${overflowEllipsis};
 `;
 
-const Stats = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 115px;
-`;
-
 const Commits = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.subText};
+  text-align: right;
 `;
 
 const Percent = styled('div')`
   min-width: 40px;
   text-align: right;
-  color: ${p => p.theme.gray600};
-`;
-
-const StyledButton = styled(Button)`
-  width: 100%;
 `;
 
 export default CommitAuthorBreakdown;

@@ -1,13 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import DateTime from 'app/components/dateTime';
+import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
+import FileSize from 'app/components/fileSize';
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
-import DateTime from 'app/components/dateTime';
-import FileSize from 'app/components/fileSize';
 import {EventAttachment} from 'app/types';
 import AttachmentUrl from 'app/utils/attachmentUrl';
-import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
 import {types} from 'app/views/organizationGroupDetails/groupEventAttachments/types';
 
 type Props = {
@@ -50,21 +50,23 @@ const GroupEventAttachmentsTableRow = ({
     </td>
 
     <td>
-      <AttachmentUrl
-        projectId={projectId}
-        eventId={attachment.event_id}
-        attachment={attachment}
-      >
-        {url =>
-          !isDeleted && (
-            <EventAttachmentActions
-              url={url}
-              onDelete={onDelete}
-              attachmentId={attachment.id}
-            />
-          )
-        }
-      </AttachmentUrl>
+      <ActionsWrapper>
+        <AttachmentUrl
+          projectId={projectId}
+          eventId={attachment.event_id}
+          attachment={attachment}
+        >
+          {url =>
+            !isDeleted && (
+              <EventAttachmentActions
+                url={url}
+                onDelete={onDelete}
+                attachmentId={attachment.id}
+              />
+            )
+          }
+        </AttachmentUrl>
+      </ActionsWrapper>
     </td>
   </TableRow>
 );
@@ -74,6 +76,10 @@ const TableRow = styled('tr')<{isDeleted: boolean}>`
   td {
     text-decoration: ${p => (p.isDeleted ? 'line-through' : 'normal')};
   }
+`;
+
+const ActionsWrapper = styled('div')`
+  display: inline-block;
 `;
 
 export default GroupEventAttachmentsTableRow;

@@ -1,12 +1,12 @@
+import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
 import EventView, {
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
 } from 'app/utils/discover/eventView';
-import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
 import {
   CHART_AXIS_OPTIONS,
-  DisplayModes,
   DISPLAY_MODE_OPTIONS,
+  DisplayModes,
 } from 'app/utils/discover/types';
 
 const generateFields = fields =>
@@ -2337,7 +2337,7 @@ describe('EventView.getYAxisOptions()', function () {
         'ignored-field',
         'count_unique(issue)',
         'last_seen()',
-        'latest_event()',
+        'max(timestamp)',
       ]),
     });
 
@@ -2367,12 +2367,7 @@ describe('EventView.getYAxis()', function () {
   it('should return valid yAxis', function () {
     const thisEventView = new EventView({
       ...state,
-      fields: generateFields([
-        'ignored-field',
-        'count_unique(user)',
-        'last_seen',
-        'latest_event',
-      ]),
+      fields: generateFields(['ignored-field', 'count_unique(user)', 'last_seen']),
       yAxis: 'count_unique(user)',
     });
 

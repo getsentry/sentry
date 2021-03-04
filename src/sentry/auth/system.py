@@ -1,7 +1,4 @@
-from __future__ import absolute_import, print_function
-
 import ipaddress
-import six
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -13,12 +10,12 @@ from sentry.utils.cache import memoize
 
 
 INTERNAL_NETWORKS = [
-    ipaddress.ip_network(six.text_type(net), strict=False) for net in settings.INTERNAL_SYSTEM_IPS
+    ipaddress.ip_network(str(net), strict=False) for net in settings.INTERNAL_SYSTEM_IPS
 ]
 
 
 def is_internal_ip(request):
-    ip = ipaddress.ip_address(six.text_type(request.META["REMOTE_ADDR"]))
+    ip = ipaddress.ip_address(str(request.META["REMOTE_ADDR"]))
     return any(ip in net for net in INTERNAL_NETWORKS)
 
 
@@ -30,7 +27,7 @@ def get_system_token():
     return token
 
 
-class SystemToken(object):
+class SystemToken:
     """
     API token authenticating the system user.
 

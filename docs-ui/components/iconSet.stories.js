@@ -1,5 +1,4 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 import styled from '@emotion/styled';
 
 import * as newIconset from 'app/icons';
@@ -8,7 +7,7 @@ export default {
   title: 'Core/Style/Icons',
 };
 
-export const IconSet = withInfo('Replace `InlineSvg` with icon components')(() => {
+export const IconSet = () => {
   return (
     <SwatchWrapper>
       <Header>Icon Set</Header>
@@ -22,7 +21,7 @@ export const IconSet = withInfo('Replace `InlineSvg` with icon components')(() =
       </Swatches>
     </SwatchWrapper>
   );
-});
+};
 
 const Header = styled('h5')`
   margin-bottom: 16px;
@@ -34,7 +33,7 @@ const LabelWrapper = styled('div')`
 `;
 
 const SwatchWrapper = styled('div')`
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   padding: 24px;
 `;
 
@@ -53,3 +52,5 @@ const Swatch = styled('div')`
     min-width: 32px;
   }
 `;
+
+IconSet.storyName = 'IconSet';

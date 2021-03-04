@@ -1,11 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import * as Sentry from '@sentry/react';
+import classNames from 'classnames';
 
-import {t} from 'app/locale';
-import {IconFlag} from 'app/icons';
 import Button from 'app/components/button';
+import {IconFlag} from 'app/icons';
+import {t} from 'app/locale';
 
 type DefaultProps = {
   /**
@@ -36,14 +35,6 @@ function openFeedback(e: React.MouseEvent) {
 }
 
 class DetailedError extends React.Component<Props> {
-  static propTypes = {
-    className: PropTypes.string,
-    onRetry: PropTypes.func,
-    heading: PropTypes.string.isRequired,
-    message: PropTypes.node,
-    hideSupportLinks: PropTypes.bool,
-  };
-
   static defaultProps: DefaultProps = {
     hideSupportLinks: false,
   };

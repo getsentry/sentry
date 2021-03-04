@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
 import posixpath
 
 from sentry.constants import NATIVE_UNKNOWN_STRING
 from sentry.interfaces.exception import upgrade_legacy_mechanism
 from sentry.lang.native.utils import image_name
-from sentry.utils.compat import implements_to_string
 from sentry.utils.safe import get_path
 
 from symbolic import parse_addr
@@ -14,8 +11,7 @@ from sentry.utils.compat import map
 REPORT_VERSION = "104"
 
 
-@implements_to_string
-class AppleCrashReport(object):
+class AppleCrashReport:
     def __init__(
         self, threads=None, context=None, debug_images=None, symbolicated=False, exceptions=None
     ):
@@ -34,7 +30,7 @@ class AppleCrashReport(object):
         return "\n\n".join(rv) + "\n\nEOF"
 
     def _get_meta_header(self):
-        return "OS Version: %s %s (%s)\nReport Version: %s" % (
+        return "OS Version: {} {} ({})\nReport Version: {}".format(
             get_path(self.context, "os", "name"),
             get_path(self.context, "os", "version"),
             get_path(self.context, "os", "build"),
@@ -57,7 +53,9 @@ class AppleCrashReport(object):
 
         if name or signal:
             rv.append(
-                "Exception Type: %s%s" % (name or "Unknown", signal and (" (%s)" % signal) or "")
+                "Exception Type: {}{}".format(
+                    name or "Unknown", signal and (" (%s)" % signal) or ""
+                )
             )
 
         exc_name = get_path(mechanism_meta, "signal", "code_name")
@@ -113,7 +111,7 @@ class AppleCrashReport(object):
         thread_name_string = " name: %s" % (thread_name) if thread_name else ""
         thread_crashed = thread_info.get("crashed") or is_exception
         thread_crashed_thread = " Crashed:" if thread_crashed else ""
-        thread_string = "Thread %s%s%s\n" % (thread_id, thread_name_string, thread_crashed_thread)
+        thread_string = f"Thread {thread_id}{thread_name_string}{thread_crashed_thread}\n"
         return thread_string + "\n".join(rv)
 
     def _convert_frame_to_apple_string(self, frame, next=None, number=0):
@@ -134,16 +132,16 @@ class AppleCrashReport(object):
         if self.symbolicated:
             file = ""
             if frame.get("filename") and frame.get("lineno"):
-                file = " (%s:%s)" % (
+                file = " ({}:{})".format(
                     posixpath.basename(frame.get("filename") or NATIVE_UNKNOWN_STRING),
                     frame["lineno"],
                 )
-            symbol = "%s%s" % (frame.get("function") or NATIVE_UNKNOWN_STRING, file)
+            symbol = "{}{}".format(frame.get("function") or NATIVE_UNKNOWN_STRING, file)
             if next and parse_addr(frame.get("instruction_addr")) == parse_addr(
                 next.get("instruction_addr")
             ):
                 symbol = "[inlined] " + symbol
-        return "%s%s%s%s%s" % (
+        return "{}{}{}{}{}".format(
             str(number).ljust(4, " "),
             image_name(frame.get("package") or NATIVE_UNKNOWN_STRING).ljust(32, " "),
             hex(instruction_addr).ljust(20, " "),
@@ -171,11 +169,11 @@ class AppleCrashReport(object):
     def _convert_debug_meta_to_binary_image_row(self, debug_image):
         slide_value = parse_addr(debug_image.get("image_vmaddr", 0))
         image_addr = parse_addr(debug_image["image_addr"]) + slide_value
-        return "%s - %s %s %s  <%s> %s" % (
+        return "{} - {} {} {}  <{}> {}".format(
             hex(image_addr),
             hex(image_addr + debug_image["image_size"] - 1),
             image_name(debug_image.get("code_file") or NATIVE_UNKNOWN_STRING),
-            self.context["device"]["arch"],
+            get_path(self.context, "device", "arch") or NATIVE_UNKNOWN_STRING,
             debug_image.get("debug_id").replace("-", "").lower(),
             debug_image.get("code_file") or NATIVE_UNKNOWN_STRING,
         )

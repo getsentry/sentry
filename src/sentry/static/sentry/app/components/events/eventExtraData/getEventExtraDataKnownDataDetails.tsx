@@ -2,7 +2,7 @@ import React from 'react';
 
 import {t} from 'app/locale';
 
-import {EventExtraDataType, EventExtraData} from './types';
+import {EventExtraData, EventExtraDataType} from './types';
 
 type Output = {
   subject: string;

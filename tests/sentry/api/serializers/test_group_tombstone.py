@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from sentry.api.serializers import serialize
 from sentry.models import GroupHash, GroupTombstone
 from sentry.testutils import TestCase

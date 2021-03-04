@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
-import six
-
 from django.conf.urls import url
 from rest_framework.response import Response
+from requests.exceptions import HTTPError
 
 from sentry.exceptions import PluginError, PluginIdentityRequired
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
@@ -15,6 +12,7 @@ from .client import AsanaClient
 
 
 ERR_AUTH_NOT_CONFIGURED = "You still need to associate an Asana identity with this account."
+ERR_BEARER_EXPIRED = "Authorization failed. Disconnect identity and reconfigure."
 
 DESCRIPTION = """
 Improve your productivity by creating tasks in Asana directly
@@ -48,7 +46,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
     ]
 
     def get_group_urls(self):
-        return super(AsanaPlugin, self).get_group_urls() + [
+        return super().get_group_urls() + [
             url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
@@ -68,7 +66,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
         return [(w["gid"], w["name"]) for w in workspaces["data"]]
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(AsanaPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
         client = self.get_client(request.user)
         workspaces = client.get_workspaces()
         workspace_choices = self.get_workspace_choices(workspaces)
@@ -194,7 +192,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
         try:
             int(config["workspace"])
         except ValueError as exc:
-            self.logger.exception(six.text_type(exc))
+            self.logger.exception(str(exc))
             raise PluginError("Non-numeric workspace value")
         return config
 
@@ -204,7 +202,15 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
             client = self.get_client(user)
         except PluginIdentityRequired as e:
             self.raise_error(e)
-        workspaces = client.get_workspaces()
+        try:
+            workspaces = client.get_workspaces()
+        except HTTPError as e:
+            if (
+                e.response.status_code == 400
+                and e.response.url == "https://app.asana.com/-/oauth_token"
+            ):
+                raise PluginIdentityRequired(ERR_BEARER_EXPIRED)
+            raise
         workspace_choices = self.get_workspace_choices(workspaces)
         workspace = self.get_option("workspace", kwargs["project"])
         # check to make sure the current user has access to the workspace
@@ -250,7 +256,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
             )
         else:
             results = [
-                {"text": "(#%s) %s" % (i["gid"], i["name"]), "id": i["gid"]}
+                {"text": "(#{}) {}".format(i["gid"], i["name"]), "id": i["gid"]}
                 for i in response.get("data", [])
             ]
 

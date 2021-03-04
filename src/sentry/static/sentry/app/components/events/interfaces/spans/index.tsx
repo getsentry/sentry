@@ -1,35 +1,33 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 
-import {IconWarning} from 'app/icons';
-import {Panel} from 'app/components/panels';
-import {SentryTransactionEvent, Organization} from 'app/types';
-import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
-import {t, tn} from 'app/locale';
 import Alert from 'app/components/alert';
+import {Panel} from 'app/components/panels';
+import SearchBar from 'app/components/searchBar';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import {IconWarning} from 'app/icons';
+import {t, tn} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import SearchBar from 'app/components/searchBar';
-import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
+import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import withOrganization from 'app/utils/withOrganization';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 
-import {ParsedTraceType} from './types';
-import {parseTrace, getTraceDateTimeRange} from './utils';
-import TraceView from './traceView';
 import Filter, {
   ActiveOperationFilter,
   noFilter,
-  toggleFilter,
   toggleAllFilters,
+  toggleFilter,
 } from './filter';
+import TraceView from './traceView';
+import {ParsedTraceType} from './types';
+import {getTraceDateTimeRange, parseTrace} from './utils';
 
 type Props = {
-  orgId: string;
-  event: SentryTransactionEvent;
+  event: EventTransaction;
   organization: Organization;
 } & ReactRouter.WithRouterProps;
 
@@ -40,18 +38,13 @@ type State = {
 };
 
 class SpansInterface extends React.Component<Props, State> {
-  static propTypes = {
-    event: SentryTypes.Event.isRequired,
-    orgId: PropTypes.string.isRequired,
-  };
-
   state: State = {
     searchQuery: undefined,
     parsedTrace: parseTrace(this.props.event),
     operationNameFilters: noFilter,
   };
 
-  static getDerivedStateFromProps(props: Props, state: State): State {
+  static getDerivedStateFromProps(props: Readonly<Props>, state: State): State {
     return {
       ...state,
       parsedTrace: parseTrace(props.event),
@@ -112,8 +105,10 @@ class SpansInterface extends React.Component<Props, State> {
   };
 
   render() {
-    const {event, orgId, location, organization} = this.props;
+    const {event, location, organization} = this.props;
     const {parsedTrace} = this.state;
+
+    const orgSlug = organization.slug;
 
     // construct discover query to fetch error events associated with this transaction
 
@@ -161,7 +156,7 @@ class SpansInterface extends React.Component<Props, State> {
         <DiscoverQuery
           location={location}
           eventView={traceErrorsEventView}
-          orgSlug={orgId}
+          orgSlug={orgSlug}
         >
           {({isLoading, tableData}) => {
             const spansWithErrors = filterSpansWithErrors(parsedTrace, tableData);
@@ -192,7 +187,7 @@ class SpansInterface extends React.Component<Props, State> {
                   <TraceView
                     event={event}
                     searchQuery={this.state.searchQuery}
-                    orgId={orgId}
+                    orgId={orgSlug}
                     organization={organization}
                     parsedTrace={parsedTrace}
                     spansWithErrors={spansWithErrors}

@@ -1,19 +1,18 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Commit} from 'app/types';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
-import {PanelItem} from 'app/components/panels';
-import {t, tct} from 'app/locale';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import CommitLink from 'app/components/commitLink';
 import Hovercard from 'app/components/hovercard';
-import {IconWarning} from 'app/icons';
 import Link from 'app/components/links/link';
+import {PanelItem} from 'app/components/panels';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
+import {IconWarning} from 'app/icons';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import {Commit} from 'app/types';
 
 type Props = {
   commit: Commit;
@@ -21,11 +20,6 @@ type Props = {
 };
 
 class CommitRow extends React.Component<Props> {
-  static propTypes = {
-    commit: PropTypes.object,
-    customAvatar: PropTypes.node,
-  };
-
   renderMessage(message: Commit['message']): string {
     if (!message) {
       return t('No message provided');
@@ -135,7 +129,7 @@ const EmailWarningIcon = styled('span')`
   line-height: 12px;
   border-radius: 50%;
   border: 1px solid ${p => p.theme.white};
-  background: ${p => p.theme.yellow300};
+  background: ${p => p.theme.yellow200};
   padding: 1px 2px 3px 2px;
 `;
 
@@ -156,7 +150,7 @@ const Meta = styled(TextOverflow)`
   font-size: 13px;
   line-height: 1.5;
   margin: 0;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
 `;
 
 export default styled(CommitRow)`

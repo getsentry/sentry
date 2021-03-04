@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from sentry.logging import LoggingFormat
 from sentry.options import (
     FLAG_IMMUTABLE,
@@ -61,6 +59,7 @@ register("mail.port", default=25, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("mail.username", flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("mail.password", flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("mail.use-tls", default=False, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
+register("mail.use-ssl", default=False, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("mail.subject-prefix", default="[Sentry] ", flags=FLAG_PRIORITIZE_DISK)
 register("mail.from", default="root@localhost", flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("mail.list-namespace", type=String, default="localhost", flags=FLAG_NOSTORE)
@@ -120,14 +119,9 @@ register("cloudflare.secret-key", default="")
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("slack.client-secret", flags=FLAG_PRIORITIZE_DISK)
+# signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_PRIORITIZE_DISK)
-register("slack.legacy-app", flags=FLAG_PRIORITIZE_DISK, type=Bool, default=True)
-
-# Slack V2 Integration
-register("slack-v2.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("slack-v2.client-secret", flags=FLAG_PRIORITIZE_DISK)
-register("slack-v2.signing-secret", flags=FLAG_PRIORITIZE_DISK)
 
 # GitHub Integration
 register("github-app.id", default=0)
@@ -165,6 +159,18 @@ register("vercel.integration-slug", default="sentry")
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("msteams.client-secret", flags=FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
+
+# AWS Lambda Integration
+register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK)
+register("aws-lambda.secret-access-key", flags=FLAG_PRIORITIZE_DISK)
+register("aws-lambda.cloudformation-url")
+register("aws-lambda.account-number", default="943013980633")
+register("aws-lambda.node.layer-name", default="SentryNodeServerlessSDK")
+register("aws-lambda.node.layer-version")
+register("aws-lambda.python.layer-name", default="SentryPythonServerlessSDK")
+register("aws-lambda.python.layer-version")
+# the region of the host account we use for assuming the role
+register("aws-lambda.host-region", default="us-east-2")
 
 # Snuba
 register("snuba.search.pre-snuba-candidates-optimizer", type=Bool, default=False)
@@ -265,3 +271,14 @@ register("processing.can-use-scrubbers", default=True)
 #
 # Note: A value that is neither 0 nor 1 is regarded as 0
 register("store.use-relay-dsn-sample-rate", default=1)
+
+# Mock out integrations and services for tests
+register("mocks.jira", default=False)
+
+# Record statistics about event payloads and their compressability
+register("store.nodestore-stats-sample-rate", default=0.0)  # unused
+
+# Killswitch to stop storing any reprocessing payloads.
+register("store.reprocessing-force-disable", default=False)
+
+register("store.race-free-group-creation-force-disable", default=False)

@@ -1,12 +1,8 @@
 import React from 'react';
 
-import {
-  rectOfContent,
-  clamp,
-  toPercent,
-  UserSelectValues,
-  setBodyUserSelect,
-} from './utils';
+import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
+
+import {clamp, rectOfContent, toPercent} from './utils';
 
 // divider handle is positioned at 50% width from the left-hand side
 const DEFAULT_DIVIDER_POSITION = 0.4;

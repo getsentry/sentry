@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 import re
 import posixpath
 
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.strategies.base import strategy
+from sentry.grouping.strategies.base import strategy, produces_variants
 from sentry.grouping.strategies.utils import remove_non_stacktrace_variants, has_url_origin
 from sentry.grouping.strategies.similarity_encoders import text_shingle_encoder, ident_encoder
 
@@ -152,8 +150,8 @@ def remove_function_outliers_legacy(function):
     return new_function, None
 
 
-@strategy(id="single-exception:legacy", interfaces=["singleexception"], variants=["!system", "app"])
-def single_exception_legacy(exception, config, **meta):
+@strategy(id="single-exception:legacy", interfaces=["singleexception"])
+def single_exception_legacy(exception, context, **meta):
     type_component = GroupingComponent(
         id="type",
         values=[exception.type] if exception.type else [],
@@ -169,7 +167,7 @@ def single_exception_legacy(exception, config, **meta):
     stacktrace_component = GroupingComponent(id="stacktrace")
 
     if exception.stacktrace is not None:
-        stacktrace_component = config.get_grouping_component(exception.stacktrace, **meta)
+        stacktrace_component = context.get_grouping_component(exception.stacktrace, **meta)
         if stacktrace_component.contributes:
             if exception.type:
                 type_component.update(contributes=True)
@@ -184,20 +182,21 @@ def single_exception_legacy(exception, config, **meta):
         if exception.value:
             value_component.update(contributes=True)
 
-    return GroupingComponent(
-        id="exception", values=[stacktrace_component, type_component, value_component]
-    )
+    return {
+        context["variant"]: GroupingComponent(
+            id="exception", values=[stacktrace_component, type_component, value_component]
+        )
+    }
 
 
-@strategy(
-    id="chained-exception:legacy", interfaces=["exception"], variants=["!system", "app"], score=2000
-)
-def chained_exception_legacy(chained_exception, config, **meta):
+@strategy(id="chained-exception:legacy", interfaces=["exception"], score=2000)
+@produces_variants(["!system", "app"])
+def chained_exception_legacy(chained_exception, context, **meta):
     # Case 1: we have a single exception, use the single exception
     # component directly
     exceptions = chained_exception.exceptions()
     if len(exceptions) == 1:
-        return config.get_grouping_component(exceptions[0], **meta)
+        return {context["variant"]: context.get_grouping_component(exceptions[0], **meta)}
 
     # Case 2: try to build a new component out of the individual
     # errors however with a trick.  In case any exception has a
@@ -205,7 +204,7 @@ def chained_exception_legacy(chained_exception, config, **meta):
     any_stacktraces = False
     values = []
     for exception in exceptions:
-        exception_component = config.get_grouping_component(exception, **meta)
+        exception_component = context.get_grouping_component(exception, **meta)
         stacktrace_component = exception_component.get_subcomponent("stacktrace")
         if stacktrace_component is not None and stacktrace_component.contributes:
             any_stacktraces = True
@@ -217,16 +216,16 @@ def chained_exception_legacy(chained_exception, config, **meta):
             if stacktrace_component is None or not stacktrace_component.contributes:
                 value.update(contributes=False, hint="exception has no stacktrace")
 
-    return GroupingComponent(id="chained-exception", values=values)
+    return {context["variant"]: GroupingComponent(id="chained-exception", values=values)}
 
 
 @chained_exception_legacy.variant_processor
-def chained_exception_legacy_variant_processor(variants, config, **meta):
+def chained_exception_legacy_variant_processor(variants, context, **meta):
     return remove_non_stacktrace_variants(variants)
 
 
-@strategy(id="frame:legacy", interfaces=["frame"], variants=["!system", "app"])
-def frame_legacy(frame, event, **meta):
+@strategy(id="frame:legacy", interfaces=["frame"])
+def frame_legacy(frame, event, context, **meta):
     platform = frame.platform or event.platform
 
     # In certain situations we want to disregard the entire frame.
@@ -366,25 +365,27 @@ def frame_legacy(frame, event, **meta):
                 contributes=False, values=[frame.lineno], hint="line number " + fallback_hint
             )
 
-    return GroupingComponent(
-        id="frame",
-        values=[
-            module_component,
-            filename_component,
-            context_line_component,
-            symbol_component,
-            function_component,
-            lineno_component,
-        ],
-        contributes=contributes,
-        hint=hint,
-    )
+    return {
+        context["variant"]: GroupingComponent(
+            id="frame",
+            values=[
+                module_component,
+                filename_component,
+                context_line_component,
+                symbol_component,
+                function_component,
+                lineno_component,
+            ],
+            contributes=contributes,
+            hint=hint,
+        )
+    }
 
 
-@strategy(
-    id="stacktrace:legacy", interfaces=["stacktrace"], variants=["!system", "app"], score=1800
-)
-def stacktrace_legacy(stacktrace, config, variant, **meta):
+@strategy(id="stacktrace:legacy", interfaces=["stacktrace"], score=1800)
+@produces_variants(["!system", "app"])
+def stacktrace_legacy(stacktrace, context, **meta):
+    variant = context["variant"]
     frames = stacktrace.frames
     contributes = None
     hint = None
@@ -416,7 +417,7 @@ def stacktrace_legacy(stacktrace, config, variant, **meta):
     prev_frame = None
     frames_for_filtering = []
     for frame in frames:
-        frame_component = config.get_grouping_component(frame, variant=variant, **meta)
+        frame_component = context.get_grouping_component(frame, variant=variant, **meta)
         if variant == "app" and not frame.in_app and not all_frames_considered_in_app:
             frame_component.update(contributes=False, hint="non app frame")
         elif prev_frame is not None and is_recursion_legacy(frame, prev_frame):
@@ -427,27 +428,36 @@ def stacktrace_legacy(stacktrace, config, variant, **meta):
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
 
-    rv = config.enhancements.assemble_stacktrace_component(
+    rv = context.config.enhancements.assemble_stacktrace_component(
         values, frames_for_filtering, meta["event"].platform
     )
     rv.update(contributes=contributes, hint=hint)
-    return rv
+    return {variant: rv}
 
 
-@strategy(id="threads:legacy", interfaces=["threads"], variants=["!system", "app"], score=1900)
-def threads_legacy(threads_interface, config, **meta):
+@strategy(id="threads:legacy", interfaces=["threads"], score=1900)
+@produces_variants(["!system", "app"])
+def threads_legacy(threads_interface, context, **meta):
     thread_count = len(threads_interface.values)
     if thread_count != 1:
-        return GroupingComponent(
-            id="threads",
-            contributes=False,
-            hint="ignored because contains %d threads" % thread_count,
-        )
+        return {
+            context["variant"]: GroupingComponent(
+                id="threads",
+                contributes=False,
+                hint="ignored because contains %d threads" % thread_count,
+            )
+        }
 
     stacktrace = threads_interface.values[0].get("stacktrace")
     if not stacktrace:
-        return GroupingComponent(id="threads", contributes=False, hint="thread has no stacktrace")
+        return {
+            context["variant"]: GroupingComponent(
+                id="threads", contributes=False, hint="thread has no stacktrace"
+            )
+        }
 
-    return GroupingComponent(
-        id="threads", values=[config.get_grouping_component(stacktrace, **meta)]
-    )
+    return {
+        context["variant"]: GroupingComponent(
+            id="threads", values=[context.get_grouping_component(stacktrace, **meta)]
+        )
+    }

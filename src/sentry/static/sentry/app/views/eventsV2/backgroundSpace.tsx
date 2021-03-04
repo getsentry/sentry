@@ -1,5 +1,5 @@
-import {css, keyframes} from '@emotion/core';
 import React from 'react';
+import {css, keyframes} from '@emotion/core';
 import styled from '@emotion/styled';
 
 const gradient1 = css`

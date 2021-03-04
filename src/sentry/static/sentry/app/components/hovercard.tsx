@@ -1,10 +1,9 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import classNames from 'classnames';
-import {Manager, Reference, Popper, PopperProps} from 'react-popper';
-import styled from '@emotion/styled';
+import {Manager, Popper, PopperProps, Reference} from 'react-popper';
 import {keyframes} from '@emotion/core';
+import styled from '@emotion/styled';
+import classNames from 'classnames';
 
 import {fadeIn} from 'app/styles/animations';
 import space from 'app/styles/space';
@@ -58,6 +57,10 @@ type Props = DefaultProps & {
    * Offset for the arrow
    */
   offset?: string;
+  /**
+   * Popper Modifiers
+   */
+  modifiers?: PopperProps['modifiers'];
 };
 
 type State = {
@@ -65,19 +68,6 @@ type State = {
 };
 
 class Hovercard extends React.Component<Props, State> {
-  static propTypes = {
-    displayTimeout: PropTypes.number,
-    className: PropTypes.string,
-    containerClassName: PropTypes.string,
-    header: PropTypes.node,
-    body: PropTypes.node,
-    bodyClassName: PropTypes.string,
-    position: PropTypes.oneOf(VALID_DIRECTIONS),
-    show: PropTypes.bool,
-    tipColor: PropTypes.string,
-    offset: PropTypes.string,
-  };
-
   static defaultProps: DefaultProps = {
     displayTimeout: 100,
     position: 'top',
@@ -94,26 +84,34 @@ class Hovercard extends React.Component<Props, State> {
     }
     this.portalEl = portal;
     this.tooltipId = domId('hovercard-');
+    this.scheduleUpdate = null;
   }
 
   state = {
     visible: false,
   };
 
+  componentDidUpdate(prevProps: Props) {
+    const {body, header} = this.props;
+
+    if (body !== prevProps.body || header !== prevProps.header) {
+      // We had a problem with popper not recalculating position when body/header changed while hovercard still opened.
+      // This can happen for example when showing a loading spinner in a hovercard and then changing it to the actual content once fetch finishes.
+      this.scheduleUpdate?.();
+    }
+  }
+
   portalEl: HTMLElement;
   tooltipId: string;
   hoverWait: number | null = null;
+  scheduleUpdate: (() => void) | null;
 
   handleToggleOn = () => this.toggleHovercard(true);
   handleToggleOff = () => this.toggleHovercard(false);
 
   toggleHovercard = (visible: boolean) => {
-    const {header, body, displayTimeout} = this.props;
+    const {displayTimeout} = this.props;
 
-    // Don't toggle hovercard if both of these are null
-    if (!header && !body) {
-      return;
-    }
     if (this.hoverWait) {
       clearTimeout(this.hoverWait);
     }
@@ -132,11 +130,12 @@ class Hovercard extends React.Component<Props, State> {
       show,
       tipColor,
       offset,
+      modifiers,
     } = this.props;
 
     // Maintain the hovercard class name for BC with less styles
     const cx = classNames('hovercard', className);
-    const modifiers: PopperProps['modifiers'] = {
+    const popperModifiers: PopperProps['modifiers'] = {
       hide: {
         enabled: false,
       },
@@ -145,6 +144,7 @@ class Hovercard extends React.Component<Props, State> {
         enabled: true,
         boundariesElement: 'viewport',
       },
+      ...(modifiers || {}),
     };
 
     const visible = show !== undefined ? show : this.state.visible;
@@ -168,29 +168,33 @@ class Hovercard extends React.Component<Props, State> {
           )}
         </Reference>
         {visible &&
+          (header || body) &&
           ReactDOM.createPortal(
-            <Popper placement={position} modifiers={modifiers}>
-              {({ref, style, placement, arrowProps}) => (
-                <StyledHovercard
-                  id={this.tooltipId}
-                  visible={visible}
-                  ref={ref}
-                  style={style}
-                  placement={placement as Direction}
-                  offset={offset}
-                  className={cx}
-                  {...hoverProps}
-                >
-                  {header && <Header>{header}</Header>}
-                  {body && <Body className={bodyClassName}>{body}</Body>}
-                  <HovercardArrow
-                    ref={arrowProps.ref}
-                    style={arrowProps.style}
+            <Popper placement={position} modifiers={popperModifiers}>
+              {({ref, style, placement, arrowProps, scheduleUpdate}) => {
+                this.scheduleUpdate = scheduleUpdate;
+                return (
+                  <StyledHovercard
+                    id={this.tooltipId}
+                    visible={visible}
+                    ref={ref}
+                    style={style}
                     placement={placement as Direction}
-                    tipColor={tipColor}
-                  />
-                </StyledHovercard>
-              )}
+                    offset={offset}
+                    className={cx}
+                    {...hoverProps}
+                  >
+                    {header && <Header>{header}</Header>}
+                    {body && <Body className={bodyClassName}>{body}</Body>}
+                    <HovercardArrow
+                      ref={arrowProps.ref}
+                      style={arrowProps.style}
+                      placement={placement as Direction}
+                      tipColor={tipColor}
+                    />
+                  </StyledHovercard>
+                );
+              }}
             </Popper>,
             this.portalEl
           )}
@@ -235,9 +239,9 @@ const StyledHovercard = styled('div')<StyledHovercardProps>`
   /* Some hovercards overlap the toplevel header and sidebar, and we need to appear on top */
   z-index: ${p => p.theme.zIndex.hovercard};
   white-space: initial;
-  color: ${p => p.theme.gray800};
-  border: 1px solid ${p => p.theme.borderLight};
-  background: ${p => p.theme.white};
+  color: ${p => p.theme.textColor};
+  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.background};
   background-clip: padding-box;
   box-shadow: 0 0 35px 0 rgba(67, 62, 75, 0.2);
   width: 295px;
@@ -260,8 +264,8 @@ const StyledHovercard = styled('div')<StyledHovercardProps>`
 
 const Header = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  background: ${p => p.theme.gray100};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  background: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadiusTop};
   font-weight: 600;
   word-wrap: break-word;
@@ -302,7 +306,7 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
   &::before {
     top: 1px;
     border: 10px solid transparent;
-    border-${getTipDirection}-color: ${p => p.tipColor || p.theme.borderLight};
+    border-${getTipDirection}-color: ${p => p.tipColor || p.theme.border};
 
     ${p => (p.placement === 'bottom' ? 'top: -1px' : '')};
     ${p => (p.placement === 'left' ? 'top: 0; left: 1px;' : '')};
@@ -311,9 +315,9 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
   &::after {
     border: 10px solid transparent;
     border-${getTipDirection}-color: ${p =>
-  p.tipColor || (p.placement === 'bottom' ? p.theme.gray100 : p.theme.white)};
+  p.tipColor || (p.placement === 'bottom' ? p.theme.backgroundSecondary : p.theme.white)};
   }
 `;
 
-export {Hovercard, Body};
+export {Body, Header, Hovercard};
 export default Hovercard;

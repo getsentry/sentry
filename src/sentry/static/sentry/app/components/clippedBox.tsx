@@ -1,9 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
+import color from 'color';
 
-import {t} from 'app/locale';
 import Button from 'app/components/button';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 type DefaultProps = {
@@ -142,7 +143,7 @@ const ClipWrapper = styled('div', {
   margin-left: -${space(3)};
   margin-right: -${space(3)};
   padding: ${space(2)} ${space(3)} 0;
-  border-top: 1px solid ${p => p.theme.borderLighter};
+  border-top: 1px solid ${p => p.theme.backgroundSecondary};
   transition: all 5s ease-in-out;
 
   /* For "Show More" animation */
@@ -173,9 +174,9 @@ const ClipFade = styled('div')`
   padding: 40px 0 0;
   background-image: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.15),
-    rgba(255, 255, 255, 1)
+    ${p => color(p.theme.background).alpha(0.15).string()},
+    ${p => p.theme.background}
   );
   text-align: center;
-  border-bottom: ${space(1.5)} solid ${p => p.theme.white};
+  border-bottom: ${space(1.5)} solid ${p => p.theme.background};
 `;

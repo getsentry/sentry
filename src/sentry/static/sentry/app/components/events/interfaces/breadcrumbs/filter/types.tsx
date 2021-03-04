@@ -1,4 +1,4 @@
-import {BreadcrumbType, BreadcrumbLevelType} from '../types';
+import {BreadcrumbLevelType, BreadcrumbType} from 'app/types/breadcrumbs';
 
 type OptionBase = {
   symbol: React.ReactElement;

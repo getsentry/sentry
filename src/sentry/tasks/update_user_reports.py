@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 import logging
-import six
 
 from django.utils import timezone
 
@@ -17,7 +14,7 @@ logger = logging.getLogger(__name__)
 def update_user_reports(**kwargs):
     now = timezone.now()
     user_reports = UserReport.objects.filter(
-        group__isnull=True, environment__isnull=True, date_added__gte=now - timedelta(days=1)
+        group_id__isnull=True, environment_id__isnull=True, date_added__gte=now - timedelta(days=1)
     )
 
     # We do one query per project, just to avoid the small case that two projects have the same event ID
@@ -31,7 +28,7 @@ def update_user_reports(**kwargs):
     updated_reports = 0
     samples = None
 
-    for project_id, reports in six.iteritems(project_map):
+    for project_id, reports in project_map.items():
         event_ids = [r.event_id for r in reports]
         report_by_event = {r.event_id: r for r in reports}
         snuba_filter = eventstore.Filter(
@@ -46,7 +43,7 @@ def update_user_reports(**kwargs):
             report = report_by_event.get(event.event_id)
             if report:
                 reports_with_event += 1
-                report.update(group_id=event.group_id, environment=event.get_environment())
+                report.update(group_id=event.group_id, environment_id=event.get_environment().id)
                 updated_reports += 1
 
         if not samples and len(reports) <= 10:

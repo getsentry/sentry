@@ -1,7 +1,7 @@
 import moment from 'moment';
 
-import ConfigStore from 'app/stores/configStore';
 import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
+import ConfigStore from 'app/stores/configStore';
 import {DateString} from 'app/types';
 
 // TODO(billy): Move to TimeRangeSelector specific utils
@@ -139,8 +139,8 @@ export function getEndOfDay(date: moment.MomentInput): Date {
 
 export function getPeriodAgo(
   period: moment.unitOfTime.DurationConstructor,
-  unit: string
-): object {
+  unit: number
+): moment.Moment {
   return moment().local().subtract(period, unit);
 }
 
@@ -149,7 +149,7 @@ export function getPeriodAgo(
 // e.g. 2 weeks ago at midnight
 export function getStartOfPeriodAgo(
   period: moment.unitOfTime.DurationConstructor,
-  unit: string
+  unit: number
 ): Date {
   return getStartOfDay(getPeriodAgo(period, unit));
 }

@@ -1,12 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {AvatarUser} from 'app/types';
 import UserAvatar from 'app/components/avatar/userAvatar';
-import {IconSentry} from 'app/icons';
 import Placeholder from 'app/components/placeholder';
-import SentryTypes from 'app/sentryTypes';
+import {IconSentry} from 'app/icons';
+import {AvatarUser} from 'app/types';
 
 type Props = {
   type: 'system' | 'user';
@@ -39,12 +37,6 @@ function ActivityAvatar({className, type, user, size = 38}: Props) {
   );
 }
 
-ActivityAvatar.propTypes = {
-  user: SentryTypes.User,
-  type: PropTypes.oneOf(['system', 'user']),
-  size: PropTypes.number,
-};
-
 export default ActivityAvatar;
 
 type SystemAvatarProps = {
@@ -57,8 +49,8 @@ const SystemAvatar = styled('span')<SystemAvatarProps>`
   align-items: center;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
-  background-color: ${p => p.theme.gray800};
-  color: ${p => p.theme.white};
+  background-color: ${p => p.theme.textColor};
+  color: ${p => p.theme.background};
   border-radius: 50%;
 `;
 

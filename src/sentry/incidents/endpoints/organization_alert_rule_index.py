@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 from rest_framework import status
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationAlertRulePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import (
     OffsetPaginator,
@@ -24,7 +22,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         Fetches alert rules and legacy rules for an organization
         """
         project_ids = self.get_requested_project_ids(request) or None
-        if project_ids == set([-1]):  # All projects for org:
+        if project_ids == {-1}:  # All projects for org:
             project_ids = Project.objects.filter(organization=organization).values_list(
                 "id", flat=True
             )
@@ -66,6 +64,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
 
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationAlertRulePermission,)
+
     def get(self, request, organization):
         """
         Fetches alert rules for an organization

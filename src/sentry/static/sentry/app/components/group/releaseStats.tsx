@@ -1,13 +1,17 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import LoadingIndicator from 'app/components/loadingIndicator';
 import GroupReleaseChart from 'app/components/group/releaseChart';
 import SeenInfo from 'app/components/group/seenInfo';
-import getDynamicText from 'app/utils/getDynamicText';
-import space from 'app/styles/space';
+import Placeholder from 'app/components/placeholder';
+import Tooltip from 'app/components/tooltip';
+import {IconQuestion} from 'app/icons';
 import {t} from 'app/locale';
-import {Environment, Group, Organization, Project} from 'app/types';
+import space from 'app/styles/space';
+import {CurrentRelease, Environment, Group, Organization, Project} from 'app/types';
+import getDynamicText from 'app/utils/getDynamicText';
+
+import SidebarSection from './sidebarSection';
 
 type Props = {
   organization: Organization;
@@ -15,14 +19,16 @@ type Props = {
   environments: Environment[];
   allEnvironments: Group | undefined;
   group: Group | undefined;
+  currentRelease: CurrentRelease | undefined;
 };
 
 const GroupReleaseStats = ({
-  group,
   organization,
   project,
   environments,
   allEnvironments,
+  group,
+  currentRelease,
 }: Props) => {
   const environmentLabel =
     environments.length > 0
@@ -38,50 +44,57 @@ const GroupReleaseStats = ({
 
   const projectId = project.id;
   const projectSlug = project.slug;
-  const orgSlug = organization.slug;
   const hasRelease = new Set(project.features).has('releases');
+  const releaseTrackingUrl = `/settings/${organization.slug}/projects/${project.slug}/release-tracking/`;
 
   return (
-    <div className="env-stats">
-      <h6>
-        <span data-test-id="env-label">{environmentLabel}</span>
-      </h6>
+    <SidebarSection title={<span data-test-id="env-label">{environmentLabel}</span>}>
+      {!group || !allEnvironments ? (
+        <Placeholder height="288px" />
+      ) : (
+        <React.Fragment>
+          <GroupReleaseChart
+            group={allEnvironments}
+            environment={environmentLabel}
+            environmentStats={group.stats}
+            release={currentRelease?.release}
+            releaseStats={currentRelease?.stats}
+            statsPeriod="24h"
+            title={t('Last 24 Hours')}
+            firstSeen={group.firstSeen}
+            lastSeen={group.lastSeen}
+          />
+          <GroupReleaseChart
+            group={allEnvironments}
+            environment={environmentLabel}
+            environmentStats={group.stats}
+            release={currentRelease?.release}
+            releaseStats={currentRelease?.stats}
+            statsPeriod="30d"
+            title={t('Last 30 Days')}
+            className="bar-chart-small"
+            firstSeen={group.firstSeen}
+            lastSeen={group.lastSeen}
+          />
 
-      <div className="env-content">
-        {!group || !allEnvironments ? (
-          <LoadingIndicator />
-        ) : (
-          <React.Fragment>
-            <GroupReleaseChart
-              group={allEnvironments}
-              environment={environmentLabel}
-              environmentStats={group.stats}
-              release={group.currentRelease ? group.currentRelease.release : null}
-              releaseStats={group.currentRelease ? group.currentRelease.stats : null}
-              statsPeriod="24h"
-              title={t('Last 24 Hours')}
-              firstSeen={group.firstSeen}
-              lastSeen={group.lastSeen}
-            />
-            <GroupReleaseChart
-              group={allEnvironments}
-              environment={environmentLabel}
-              environmentStats={group.stats}
-              release={group.currentRelease ? group.currentRelease.release : null}
-              releaseStats={group.currentRelease ? group.currentRelease.stats : null}
-              statsPeriod="30d"
-              title={t('Last 30 Days')}
-              className="bar-chart-small"
-              firstSeen={group.firstSeen}
-              lastSeen={group.lastSeen}
-            />
-
-            <Subheading>
-              <span>{t('Last seen')}</span>
-              {environments.length > 0 && <small>({environmentLabel})</small>}
-            </Subheading>
+          <SidebarSection
+            secondary
+            title={
+              <span>
+                {t('Last seen')}
+                <TooltipWrapper>
+                  <Tooltip
+                    title={t('When the most recent event in this issue was captured.')}
+                    disableForVisualTest
+                  >
+                    <StyledIconQuest size="xs" color="gray200" />
+                  </Tooltip>
+                </TooltipWrapper>
+              </span>
+            }
+          >
             <SeenInfo
-              orgSlug={orgSlug}
+              organization={organization}
               projectId={projectId}
               projectSlug={projectSlug}
               date={getDynamicText({
@@ -94,14 +107,26 @@ const GroupReleaseStats = ({
               release={group.lastRelease || null}
               title={t('Last seen')}
             />
+          </SidebarSection>
 
-            <Subheading>
-              <span>{t('First seen')}</span>
-              {environments.length > 0 && <small>({environmentLabel})</small>}
-            </Subheading>
-
+          <SidebarSection
+            secondary
+            title={
+              <span>
+                {t('First seen')}
+                <TooltipWrapper>
+                  <Tooltip
+                    title={t('When the first event in this issue was captured.')}
+                    disableForVisualTest
+                  >
+                    <StyledIconQuest size="xs" color="gray200" />
+                  </Tooltip>
+                </TooltipWrapper>
+              </span>
+            }
+          >
             <SeenInfo
-              orgSlug={orgSlug}
+              organization={organization}
               projectId={projectId}
               projectSlug={projectSlug}
               date={getDynamicText({
@@ -114,16 +139,26 @@ const GroupReleaseStats = ({
               release={group.firstRelease || null}
               title={t('First seen')}
             />
-          </React.Fragment>
-        )}
-      </div>
-    </div>
+          </SidebarSection>
+          {!hasRelease ? (
+            <SidebarSection secondary title={t('Releases not configured')}>
+              <a href={releaseTrackingUrl}>{t('Setup Releases')}</a>{' '}
+              {t(' to make issues easier to fix.')}
+            </SidebarSection>
+          ) : null}
+        </React.Fragment>
+      )}
+    </SidebarSection>
   );
 };
 
-const Subheading = styled('h6')`
-  margin-bottom: ${space(0.25)} !important;
-  margin-top: ${space(4)};
+export default React.memo(GroupReleaseStats);
+
+const TooltipWrapper = styled('span')`
+  margin-left: ${space(0.5)};
 `;
 
-export default React.memo(GroupReleaseStats);
+const StyledIconQuest = styled(IconQuestion)`
+  position: relative;
+  top: 2px;
+`;

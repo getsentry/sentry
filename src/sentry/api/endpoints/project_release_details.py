@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
-import six
-
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
+from sentry.api.base import ReleaseAnalyticsMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -18,13 +15,11 @@ from sentry.snuba.sessions import STATS_PERIODS
 from sentry.api.endpoints.organization_releases import get_stats_period_detail
 
 from sentry.utils.sdk import configure_scope, bind_organization_context
-from sentry.web.decorators import transaction_start
 
 
-class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
+class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
     permission_classes = (ProjectReleasePermission,)
 
-    @transaction_start("ProjectReleaseDetailsEndpoint.get")
     def get(self, request, project, version):
         """
         Retrieve a Project's Release
@@ -68,7 +63,6 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
             )
         )
 
-    @transaction_start("ProjectReleaseDetailsEndpoint.put")
     def put(self, request, project, version):
         """
         Update a Project's Release
@@ -120,6 +114,8 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
                 kwargs["ref"] = result["ref"]
             if result.get("url"):
                 kwargs["url"] = result["url"]
+            if result.get("status"):
+                kwargs["status"] = result["status"]
 
             if kwargs:
                 release.update(**kwargs)
@@ -129,6 +125,9 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
                 hook = ReleaseHook(project)
                 # TODO(dcramer): handle errors with release payloads
                 hook.set_commits(release.version, commit_list)
+                self.track_set_commits_local(
+                    request, organization_id=project.organization_id, project_ids=[project.id]
+                )
 
             if not was_released and release.date_released:
                 Activity.objects.create(
@@ -141,7 +140,6 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
 
             return Response(serialize(release, request.user))
 
-    @transaction_start("ProjectReleaseDetailsEndpoint.delete")
     def delete(self, request, project, version):
         """
         Delete a Project's Release
@@ -166,6 +164,6 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         try:
             release.safe_delete()
         except UnsafeReleaseDeletion as e:
-            return Response({"detail": six.text_type(e)}, status=400)
+            return Response({"detail": str(e)}, status=400)
 
         return Response(status=204)

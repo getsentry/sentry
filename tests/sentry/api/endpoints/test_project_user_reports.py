@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-import six
 from datetime import timedelta
 from django.utils import timezone
 from uuid import uuid4
@@ -12,7 +10,7 @@ from sentry.utils.compat import map
 
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(ProjectUserReportListTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.environment = self.create_environment(project=self.project, name="production")
         self.event = self.store_event(
@@ -33,21 +31,21 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         self.report = UserReport.objects.create(
-            project=self.project,
-            environment=self.environment,
+            project_id=self.project.id,
+            environment_id=self.environment.id,
             event_id="a" * 32,
             name="Foo",
             email="foo@example.com",
             comments="Hello world",
-            group=self.event.group,
+            group_id=self.event.group.id,
         )
         self.report2 = UserReport.objects.create(
-            project=self.project,
+            project_id=self.project.id,
             event_id="b" * 32,
             name="Foo",
             email="foo@example.com",
             comments="Hello world",
-            group=self.event.group,
+            group_id=self.event.group.id,
         )
 
     def test_simple(self):
@@ -57,17 +55,17 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         group = self.create_group(project=project)
         group2 = self.create_group(project=project, status=GroupStatus.RESOLVED)
         report_1 = UserReport.objects.create(
-            project=project,
+            project_id=project.id,
             event_id="a" * 32,
             name="Foo",
             email="foo@example.com",
             comments="Hello world",
-            group=group,
+            group_id=group.id,
         )
 
         # should not be included due to missing link
         UserReport.objects.create(
-            project=project,
+            project_id=project.id,
             event_id="b" * 32,
             name="Bar",
             email="bar@example.com",
@@ -76,33 +74,29 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
         # should not be included due to resolution
         UserReport.objects.create(
-            project=project,
+            project_id=project.id,
             event_id="c" * 32,
             name="Baz",
             email="baz@example.com",
             comments="Hello world",
-            group=group2,
+            group_id=group2.id,
         )
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
-            project.organization.slug, project.slug
-        )
+        url = f"/api/0/projects/{project.organization.slug}/{project.slug}/user-feedback/"
 
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x["id"], response.data)) == sorted([six.text_type(report_1.id)])
+        assert sorted(map(lambda x: x["id"], response.data)) == sorted([str(report_1.id)])
 
     def test_cannot_access_with_dsn_auth(self):
         project = self.create_project()
         project_key = self.create_project_key(project=project)
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
-            project.organization.slug, project.slug
-        )
+        url = f"/api/0/projects/{project.organization.slug}/{project.slug}/user-feedback/"
 
-        response = self.client.get(url, HTTP_AUTHORIZATION=u"DSN {}".format(project_key.dsn_public))
+        response = self.client.get(url, HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}")
 
         assert response.status_code == 401, response.content
 
@@ -112,29 +106,27 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         group = self.create_group(project=project, status=GroupStatus.RESOLVED)
         report_1 = UserReport.objects.create(
-            project=project,
+            project_id=project.id,
             event_id="a" * 32,
             name="Foo",
             email="foo@example.com",
             comments="Hello world",
-            group=group,
+            group_id=group.id,
         )
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
-            project.organization.slug, project.slug
-        )
+        url = f"/api/0/projects/{project.organization.slug}/{project.slug}/user-feedback/"
 
-        response = self.client.get(u"{}?status=".format(url), format="json")
+        response = self.client.get(f"{url}?status=", format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x["id"], response.data)) == sorted([six.text_type(report_1.id)])
+        assert sorted(map(lambda x: x["id"], response.data)) == sorted([str(report_1.id)])
 
     def test_environments(self):
         self.login_as(user=self.user)
 
-        base_url = u"/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
+        base_url = (
+            f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
         )
 
         # Specify environment
@@ -154,7 +146,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert set([report["eventID"] for report in response.data]) == set(["a" * 32, "b" * 32])
+        assert {report["eventID"] for report in response.data} == {"a" * 32, "b" * 32}
 
         # Invalid environment
         response = self.client.get(base_url + "?environment=invalid_env")
@@ -164,7 +156,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
 class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(CreateProjectUserReportTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.hour_ago = iso_format(before_now(minutes=60))
 
@@ -186,9 +178,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
 
         response = self.client.post(
             url,
@@ -203,21 +193,19 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
 
         report = UserReport.objects.get(id=response.data["id"])
-        assert report.project == self.project
-        assert report.group == self.event.group
+        assert report.project_id == self.project.id
+        assert report.group_id == self.event.group.id
         assert report.email == "foo@example.com"
         assert report.name == "Foo Bar"
         assert report.comments == "It broke!"
 
     def test_with_dsn_auth(self):
         project_key = self.create_project_key(project=self.project)
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
 
         response = self.client.post(
             url,
-            HTTP_AUTHORIZATION=u"DSN {}".format(project_key.dsn_public),
+            HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}",
             data={
                 "event_id": self.event.event_id,
                 "email": "foo@example.com",
@@ -227,18 +215,18 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 200, response.content
+        # DSN auth shouldn't return any data
+        assert not response.data
 
     def test_with_dsn_auth_invalid_project(self):
         project2 = self.create_project()
         project_key = self.create_project_key(project=self.project)
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
-            project2.organization.slug, project2.slug
-        )
+        url = f"/api/0/projects/{project2.organization.slug}/{project2.slug}/user-feedback/"
 
         response = self.client.post(
             url,
-            HTTP_AUTHORIZATION=u"DSN {}".format(project_key.dsn_public),
+            HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}",
             data={
                 "event_id": uuid4().hex,
                 "email": "foo@example.com",
@@ -253,17 +241,15 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         UserReport.objects.create(
-            group=self.event.group,
-            project=self.project,
+            group_id=self.event.group.id,
+            project_id=self.project.id,
             event_id=self.event.event_id,
             name="foo",
             email="bar@example.com",
             comments="",
         )
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
 
         response = self.client.post(
             url,
@@ -278,8 +264,8 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
 
         report = UserReport.objects.get(id=response.data["id"])
-        assert report.project == self.project
-        assert report.group == self.event.group
+        assert report.project_id == self.project.id
+        assert report.group_id == self.event.group.id
         assert report.email == "foo@example.com"
         assert report.name == "Foo Bar"
         assert report.comments == "It broke!"
@@ -290,17 +276,15 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         euser = EventUser.objects.get(project_id=self.project.id, email="foo@example.com")
 
         UserReport.objects.create(
-            group=self.event.group,
-            project=self.project,
+            group_id=self.event.group.id,
+            project_id=self.project.id,
             event_id=self.event.event_id,
             name="foo",
             email="bar@example.com",
             comments="",
         )
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
 
         response = self.client.post(
             url,
@@ -315,8 +299,8 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
 
         report = UserReport.objects.get(id=response.data["id"])
-        assert report.project == self.project
-        assert report.group == self.event.group
+        assert report.project_id == self.project.id
+        assert report.group_id == self.event.group.id
         assert report.email == "foo@example.com"
         assert report.name == "Foo Bar"
         assert report.comments == "It broke!"
@@ -329,8 +313,8 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         UserReport.objects.create(
-            group=self.old_event.group,
-            project=self.project,
+            group_id=self.old_event.group.id,
+            project_id=self.project.id,
             event_id=self.old_event.event_id,
             name="foo",
             email="bar@example.com",
@@ -338,9 +322,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             date_added=timezone.now() - timedelta(minutes=10),
         )
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
 
         response = self.client.post(
             url,
@@ -357,9 +339,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def test_after_event_deadline(self):
         self.login_as(user=self.user)
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
 
         response = self.client.post(
             url,
@@ -376,9 +356,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def test_environments(self):
         self.login_as(user=self.user)
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
 
         response = self.client.post(
             url,
@@ -391,4 +369,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert UserReport.objects.get(event_id=self.event.event_id).environment == self.environment
+        assert (
+            UserReport.objects.get(event_id=self.event.event_id).environment_id
+            == self.environment.id
+        )

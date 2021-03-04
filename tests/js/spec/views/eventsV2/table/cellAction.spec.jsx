@@ -2,9 +2,9 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import EventView from 'app/utils/discover/eventView';
 import {QueryResults} from 'app/utils/tokenizeSearch';
+import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 
 const defaultData = {
   transaction: 'best-transaction',
@@ -15,6 +15,12 @@ const defaultData = {
   'measurements.fcp': 1234,
   percentile_measurements_fcp_0_5: 1234,
   'error.handled': [null],
+  'error.type': [
+    'ServerException',
+    'ClickhouseError',
+    'QueryException',
+    'QueryException',
+  ],
 };
 
 function makeWrapper(eventView, handleCellAction, columnIndex = 0, data = defaultData) {
@@ -44,6 +50,7 @@ describe('Discover -> CellAction', function () {
         'measurements.fcp',
         'percentile(measurements.fcp, 0.5)',
         'error.handled',
+        'error.type',
       ],
       widths: ['437', '647', '416', '905'],
       sort: ['title'],
@@ -184,6 +191,23 @@ describe('Discover -> CellAction', function () {
       expect(handleCellAction).toHaveBeenCalledWith('add', 1);
     });
 
+    it('error.type with array values adds condition', function () {
+      wrapper = makeWrapper(view, handleCellAction, 8, defaultData);
+
+      // Show button and menu.
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+
+      wrapper.find('button[data-test-id="add-to-filter"]').simulate('click');
+
+      expect(handleCellAction).toHaveBeenCalledWith('add', [
+        'ServerException',
+        'ClickhouseError',
+        'QueryException',
+        'QueryException',
+      ]);
+    });
+
     it('error.handled with 0 adds condition', function () {
       wrapper = makeWrapper(view, handleCellAction, 7, {
         ...defaultData,
@@ -196,7 +220,7 @@ describe('Discover -> CellAction', function () {
 
       wrapper.find('button[data-test-id="add-to-filter"]').simulate('click');
 
-      expect(handleCellAction).toHaveBeenCalledWith('add', 0);
+      expect(handleCellAction).toHaveBeenCalledWith('add', [0]);
     });
 
     it('show appropriate actions for string cells', function () {
@@ -328,12 +352,16 @@ describe('Discover -> CellAction', function () {
 
 describe('updateQuery()', function () {
   it('modifies the query with has/!has', function () {
-    const results = new QueryResults([]);
+    let results = new QueryResults([]);
     updateQuery(results, Actions.ADD, 'a', null);
     expect(results.formatString()).toEqual('!has:a');
     updateQuery(results, Actions.EXCLUDE, 'a', null);
     expect(results.formatString()).toEqual('has:a');
     updateQuery(results, Actions.ADD, 'a', null);
+    expect(results.formatString()).toEqual('!has:a');
+
+    results = new QueryResults([]);
+    updateQuery(results, Actions.ADD, 'a', [null]);
     expect(results.formatString()).toEqual('!has:a');
   });
 
@@ -345,6 +373,8 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toEqual('a:1 b:1');
     updateQuery(results, Actions.ADD, 'a', '2');
     expect(results.formatString()).toEqual('b:1 a:2');
+    updateQuery(results, Actions.ADD, 'a', ['1', '2', '3']);
+    expect(results.formatString()).toEqual('b:1 a:2 a:1 a:3');
   });
 
   it('modifies the query with exclusions', function () {
@@ -354,7 +384,9 @@ describe('updateQuery()', function () {
     updateQuery(results, Actions.EXCLUDE, 'b', '1');
     expect(results.formatString()).toEqual('!a:1 !b:1');
     updateQuery(results, Actions.EXCLUDE, 'a', '2');
-    expect(results.formatString()).toEqual('!a:1 !b:1 !a:2');
+    expect(results.formatString()).toEqual('!b:1 !a:1 !a:2');
+    updateQuery(results, Actions.EXCLUDE, 'a', ['1', '2', '3']);
+    expect(results.formatString()).toEqual('!b:1 !a:1 !a:2 !a:3');
   });
 
   it('modifies the query with a mix of additions and exclusions', function () {

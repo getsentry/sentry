@@ -1,23 +1,27 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
 
-import {Frame, SentryAppComponent} from 'app/types';
-import {t} from 'app/locale';
-import {defined} from 'app/utils';
 import ClippedBox from 'app/components/clippedBox';
-import ContextLine from 'app/components/events/interfaces/contextLine';
-import FrameRegisters from 'app/components/events/interfaces/frameRegisters/frameRegisters';
-import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import ErrorBoundary from 'app/components/errorBoundary';
-import {IconFlag} from 'app/icons';
 import {Assembly} from 'app/components/events/interfaces/assembly';
-import {parseAssembly} from 'app/components/events/interfaces/utils';
+import ContextLine from 'app/components/events/interfaces/contextLine';
+import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
+import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import {OpenInContextLine} from 'app/components/events/interfaces/openInContextLine';
+import StacktraceLink from 'app/components/events/interfaces/stacktraceLink';
+import {parseAssembly} from 'app/components/events/interfaces/utils';
+import {IconFlag} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Frame, Organization, SentryAppComponent} from 'app/types';
+import {Event} from 'app/types/event';
+import {defined} from 'app/utils';
+import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
   frame: Frame;
+  event: Event;
+  organization?: Organization;
   registers: {[key: string]: string};
   components: Array<SentryAppComponent>;
   isExpanded?: boolean;
@@ -27,6 +31,7 @@ type Props = {
   emptySourceNotation?: boolean;
   hasAssembly?: boolean;
   expandable?: boolean;
+  isHoverPreviewed?: boolean;
 };
 
 const Context = ({
@@ -37,9 +42,12 @@ const Context = ({
   hasAssembly = false,
   expandable = false,
   emptySourceNotation = false,
+  isHoverPreviewed = false,
   registers,
   components,
   frame,
+  event,
+  organization,
 }: Props) => {
   if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
@@ -74,25 +82,8 @@ const Context = ({
           const isActive = frame.lineNo === line[0];
           const hasComponents = isActive && components.length > 0;
           return (
-            <ContextLine
-              key={index}
-              line={line}
-              isActive={isActive}
-              css={
-                hasComponents
-                  ? css`
-                      background: inherit;
-                      padding: 0;
-                      text-indent: 20px;
-                      z-index: 1000;
-                    `
-                  : css`
-                      background: inherit;
-                      padding: 0 20px;
-                    `
-              }
-            >
-              {hasComponents && (
+            <StyledContextLine key={index} line={line} isActive={isActive}>
+              {!isHoverPreviewed && hasComponents && (
                 <ErrorBoundary mini>
                   <OpenInContextLine
                     key={index}
@@ -102,14 +93,33 @@ const Context = ({
                   />
                 </ErrorBoundary>
               )}
-            </ContextLine>
+              {organization?.features.includes('integrations-stacktrace-link') &&
+                !isHoverPreviewed &&
+                isActive &&
+                isExpanded &&
+                frame.filename && (
+                  <ErrorBoundary customComponent={null}>
+                    <StacktraceLink
+                      key={index}
+                      lineNo={line[0]}
+                      frame={frame}
+                      event={event}
+                    />
+                  </ErrorBoundary>
+                )}
+            </StyledContextLine>
           );
         })}
 
       {(hasContextRegisters || hasContextVars) && (
         <StyledClippedBox clipHeight={100}>
-          {hasContextRegisters && <FrameRegisters data={registers} key="registers" />}
-          {hasContextVars && <FrameVariables data={frame.vars || {}} key="vars" />}
+          {hasContextRegisters && (
+            <FrameRegisters
+              registers={registers}
+              deviceArch={event.contexts?.device?.arch}
+            />
+          )}
+          {hasContextVars && <FrameVariables data={frame.vars || {}} />}
         </StyledClippedBox>
       )}
 
@@ -120,7 +130,7 @@ const Context = ({
   );
 };
 
-export default Context;
+export default withOrganization(Context);
 
 const StyledClippedBox = styled(ClippedBox)`
   margin-left: 0;
@@ -142,4 +152,11 @@ const StyledClippedBox = styled(ClippedBox)`
 
 const StyledIconFlag = styled(IconFlag)`
   margin-right: ${space(1)};
+`;
+
+const StyledContextLine = styled(ContextLine)`
+  background: inherit;
+  padding: 0;
+  text-indent: 20px;
+  z-index: 1000;
 `;

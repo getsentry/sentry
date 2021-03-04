@@ -1,21 +1,20 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {PanelTable} from 'app/components/panels';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
+import ExternalLink from 'app/components/links/externalLink';
 import Pagination from 'app/components/pagination';
+import {PanelTable} from 'app/components/panels';
+import SearchBar from 'app/components/searchBar';
+import {t, tct} from 'app/locale';
+import {Organization, Project} from 'app/types';
+import {DebugFile} from 'app/types/debugFiles';
+import routeTitleGen from 'app/utils/routeTitle';
+import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import {Organization, Project} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import Checkbox from 'app/components/checkbox';
-import SearchBar from 'app/components/searchBar';
-// TODO(android-mappings): use own components once we decide how this should look like
-import DebugFileRow from 'app/views/settings/projectDebugFiles/debugFileRow';
-import {DebugFile} from 'app/views/settings/projectDebugFiles/types';
+
+import ProjectProguardRow from './projectProguardRow';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -24,7 +23,6 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 
 type State = AsyncView['state'] & {
   mappings: DebugFile[];
-  showDetails: boolean;
 };
 
 class ProjectProguard extends AsyncView<Props, State> {
@@ -38,11 +36,10 @@ class ProjectProguard extends AsyncView<Props, State> {
     return {
       ...super.getDefaultState(),
       mappings: [],
-      showDetails: false,
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params, location} = this.props;
     const {orgId, projectId} = params;
 
@@ -101,7 +98,7 @@ class ProjectProguard extends AsyncView<Props, State> {
   }
 
   renderMappings() {
-    const {mappings, showDetails} = this.state;
+    const {mappings} = this.state;
     const {organization, params} = this.props;
     const {orgId, projectId} = params;
 
@@ -115,12 +112,11 @@ class ProjectProguard extends AsyncView<Props, State> {
       }/projects/${orgId}/${projectId}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`;
 
       return (
-        <DebugFileRow
-          debugFile={mapping}
-          showDetails={showDetails}
+        <ProjectProguardRow
+          mapping={mapping}
           downloadUrl={downloadUrl}
-          downloadRole={organization.debugFilesRole}
           onDelete={this.handleDelete}
+          downloadRole={organization.debugFilesRole}
           key={mapping.id}
         />
       );
@@ -128,45 +124,38 @@ class ProjectProguard extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {loading, showDetails, mappings, mappingsPageLinks} = this.state;
+    const {loading, mappings, mappingsPageLinks} = this.state;
 
     return (
       <React.Fragment>
-        <SettingsPageHeader title={t('ProGuard Mappings')} />
+        <SettingsPageHeader
+          title={t('ProGuard Mappings')}
+          action={
+            <SearchBar
+              placeholder={t('Filter mappings')}
+              onSearch={this.handleSearch}
+              query={this.getQuery()}
+              width="280px"
+            />
+          }
+        />
 
         <TextBlock>
-          {t(
-            `ProGuard mapping files are used to convert minified classes, methods and field names into a human readable format.`
+          {tct(
+            `ProGuard mapping files are used to convert minified classes, methods and field names into a human readable format. To learn more about proguard mapping files, [link: read the docs].`,
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/android/proguard/" />
+              ),
+            }
           )}
         </TextBlock>
 
-        <Wrapper>
-          <TextBlock noMargin>{t('Uploaded mappings')}:</TextBlock>
-
-          <Filters>
-            <Label>
-              <Checkbox
-                checked={showDetails}
-                onChange={e => {
-                  this.setState({showDetails: (e.target as HTMLInputElement).checked});
-                }}
-              />
-              {t('show details')}
-            </Label>
-
-            <SearchBar
-              placeholder={t('Search mappings')}
-              onSearch={this.handleSearch}
-              query={this.getQuery()}
-            />
-          </Filters>
-        </Wrapper>
-
         <StyledPanelTable
           headers={[
-            t('Debug ID'),
-            t('Information'),
-            <Actions key="actions">{t('Actions')}</Actions>,
+            t('Mapping'),
+            <SizeColumn key="size">{t('File Size')}</SizeColumn>,
+            '',
           ]}
           emptyMessage={this.getEmptyMessage()}
           isEmpty={mappings?.length === 0}
@@ -181,45 +170,11 @@ class ProjectProguard extends AsyncView<Props, State> {
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 37% 1fr auto;
+  grid-template-columns: minmax(220px, 1fr) max-content 120px;
 `;
 
-const Actions = styled('div')`
+const SizeColumn = styled('div')`
   text-align: right;
-`;
-
-const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-gap: ${space(4)};
-  align-items: center;
-  margin-top: ${space(4)};
-  margin-bottom: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: block;
-  }
-`;
-
-const Filters = styled('div')`
-  display: grid;
-  grid-template-columns: min-content minmax(200px, 400px);
-  align-items: center;
-  justify-content: flex-end;
-  grid-gap: ${space(2)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: min-content 1fr;
-  }
-`;
-
-const Label = styled('label')`
-  font-weight: normal;
-  display: flex;
-  margin-bottom: 0;
-  white-space: nowrap;
-  input {
-    margin-top: 0;
-    margin-right: ${space(1)};
-  }
 `;
 
 export default ProjectProguard;

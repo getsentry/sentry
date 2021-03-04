@@ -2,8 +2,8 @@ import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
 
-import EventsRequest from 'app/components/charts/eventsRequest';
 import {doEventsRequest} from 'app/actionCreators/events';
+import EventsRequest from 'app/components/charts/eventsRequest';
 
 const COUNT_OBJ = {
   count: 123,
@@ -486,6 +486,35 @@ describe('EventsRequest', function () {
             generateExpected('project1,error'),
             generateExpected('project1,warning'),
           ],
+        })
+      );
+    });
+  });
+
+  describe('out of retention', function () {
+    beforeEach(function () {
+      doEventsRequest.mockClear();
+    });
+
+    it('does not make request', async function () {
+      wrapper = mount(
+        <EventsRequest {...DEFAULTS} expired>
+          {mock}
+        </EventsRequest>
+      );
+      expect(doEventsRequest).not.toHaveBeenCalled();
+    });
+
+    it('errors', async function () {
+      wrapper = mount(
+        <EventsRequest {...DEFAULTS} expired>
+          {mock}
+        </EventsRequest>
+      );
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          expired: true,
+          errored: true,
         })
       );
     });

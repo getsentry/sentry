@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import os
 import click
 import sys
@@ -16,10 +14,10 @@ datetime.datetime.strptime("", "")
 if sentry.__build__ is None:
     version_string = sentry.VERSION
 else:
-    version_string = "%s (%s)" % (sentry.VERSION, sentry.__build__[:12])
+    version_string = f"{sentry.VERSION} ({sentry.__build__[:12]})"
 
 
-@click.group()
+@click.group(context_settings={"max_content_width": 150})
 @click.option(
     "--config",
     default="",

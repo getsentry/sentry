@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
@@ -76,6 +75,7 @@ describe('DropdownLink', function () {
         const evt = document.createEvent('HTMLEvents');
         evt.initEvent('click', false, true);
         document.body.dispatchEvent(evt);
+
         jest.runAllTimers();
         await Promise.resolve();
         wrapper.update();
@@ -131,7 +131,10 @@ describe('DropdownLink', function () {
       });
 
       it('does not close when document is clicked', function () {
-        $(document).click();
+        const evt = document.createEvent('HTMLEvents');
+        evt.initEvent('click', false, true);
+        document.body.dispatchEvent(evt);
+
         // State does not change
         expect(wrapper.find('.dropdown-menu')).toHaveLength(1);
       });

@@ -1,11 +1,11 @@
 import React from 'react';
 
-import {Client} from 'app/api';
+import {ModalRenderProps} from 'app/actionCreators/modal';
 import {createTeam} from 'app/actionCreators/teams';
+import {Client} from 'app/api';
+import CreateTeamForm from 'app/components/teams/createTeamForm';
 import {t} from 'app/locale';
 import {Organization, Team} from 'app/types';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import CreateTeamForm from 'app/components/teams/createTeamForm';
 import withApi from 'app/utils/withApi';
 
 type Props = {

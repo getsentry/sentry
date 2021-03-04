@@ -1,16 +1,16 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
-import {Organization, SavedQuery} from 'app/types';
 import {fetchSavedQuery} from 'app/actionCreators/discoverSavedQueries';
 import {Client} from 'app/api';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import * as Layout from 'app/components/layouts/thirds';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
+import {Organization, SavedQuery} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import * as Layout from 'app/components/layouts/thirds';
-import CreateAlertButton from 'app/components/createAlertButton';
+import withApi from 'app/utils/withApi';
 
 import DiscoverBreadcrumb from './breadcrumb';
 import EventInputName from './eventInputName';
@@ -23,7 +23,7 @@ type Props = {
   errorCode: number;
   eventView: EventView;
   onIncompatibleAlertQuery: React.ComponentProps<
-    typeof CreateAlertButton
+    typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
 };
 
@@ -79,7 +79,7 @@ class ResultsHeader extends React.Component<Props, State> {
     }
     return (
       <Subtitle>
-        {t('Created by:')} {createdBy} | {t('Last Edited:')} {lastEdit}
+        {t('Created by:')} {createdBy} | {t('Last edited:')} {lastEdit}
       </Subtitle>
     );
   }
@@ -130,7 +130,7 @@ const Subtitle = styled('h4')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: normal;
   line-height: 1.4;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin: 0;
 `;
 

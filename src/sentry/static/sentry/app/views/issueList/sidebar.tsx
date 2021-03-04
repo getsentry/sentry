@@ -1,19 +1,17 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import map from 'lodash/map';
-import styled from '@emotion/styled';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconClose} from 'app/icons/iconClose';
-import {queryToObj, objToQuery, QueryObj} from 'app/utils/stream';
 import {t} from 'app/locale';
-import {Tag, TagCollection} from 'app/types';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {Tag, TagCollection} from 'app/types';
+import {objToQuery, QueryObj, queryToObj} from 'app/utils/stream';
 
-import {TagValueLoader} from './types';
 import IssueListTagFilter from './tagFilter';
+import {TagValueLoader} from './types';
 
 type DefaultProps = {
   tags: TagCollection;
@@ -32,14 +30,6 @@ type State = {
 };
 
 class IssueListSidebar extends React.Component<Props, State> {
-  static propTypes: any = {
-    tags: PropTypes.objectOf(SentryTypes.Tag).isRequired,
-    query: PropTypes.string,
-    onQueryChange: PropTypes.func.isRequired,
-    loading: PropTypes.bool,
-    tagValueLoader: PropTypes.func.isRequired,
-  };
-
   static defaultProps: DefaultProps = {
     tags: {},
     query: '',
@@ -168,15 +158,15 @@ const StyledIconClose = styled(IconClose)`
   position: absolute;
   top: 13px;
   right: 10px;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
 
   &:hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
 
 const StyledHeader = styled('h6')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   margin-bottom: ${space(1)};
 `;
 

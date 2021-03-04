@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from sentry.api.base import Endpoint
@@ -27,7 +25,7 @@ class GroupPermission(ProjectPermission):
     }
 
     def has_object_permission(self, request, view, group):
-        return super(GroupPermission, self).has_object_permission(request, view, group.project)
+        return super().has_object_permission(request, view, group.project)
 
 
 class GroupEndpoint(Endpoint):

@@ -1,15 +1,16 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 
 import {defined} from 'app/utils';
+
+import Tag from './tag';
 
 type Props = {
   count?: number;
   max?: number;
   hideIfEmpty?: boolean;
-  inline?: boolean;
-  className?: string;
+  hideParens?: boolean;
+  isTag?: boolean;
+  tagProps?: React.ComponentProps<typeof Tag>;
 };
 
 /**
@@ -20,35 +21,30 @@ type Props = {
  */
 
 const QueryCount = ({
-  className,
   count,
   max,
   hideIfEmpty = true,
-  inline = true,
+  hideParens = false,
+  isTag = false,
+  tagProps = {},
 }: Props) => {
   const countOrMax = defined(count) && defined(max) && count >= max ? `${max}+` : count;
-  const cx = classNames('query-count', className, {
-    inline,
-  });
 
   if (hideIfEmpty && !count) {
     return null;
   }
 
+  if (isTag) {
+    return <Tag {...tagProps}>{countOrMax}</Tag>;
+  }
+
   return (
-    <div className={cx}>
-      <span>(</span>
-      <span className="query-count-value">{countOrMax}</span>
-      <span>)</span>
-    </div>
+    <span>
+      {!hideParens && <span>(</span>}
+      <span>{countOrMax}</span>
+      {!hideParens && <span>)</span>}
+    </span>
   );
-};
-QueryCount.propTypes = {
-  className: PropTypes.string,
-  count: PropTypes.number,
-  max: PropTypes.number,
-  hideIfEmpty: PropTypes.bool,
-  inline: PropTypes.bool,
 };
 
 export default QueryCount;

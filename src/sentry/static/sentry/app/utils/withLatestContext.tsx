@@ -1,14 +1,12 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
 import ConfigStore from 'app/stores/configStore';
 import LatestContextStore from 'app/stores/latestContextStore';
-import SentryTypes from 'app/sentryTypes';
+import {Organization, OrganizationSummary, Project} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
 import withOrganizations from 'app/utils/withOrganizations';
-import {Project, Organization, OrganizationSummary} from 'app/types';
 
 type InjectedLatestContextProps = {
   organizations?: OrganizationSummary[];
@@ -37,10 +35,6 @@ const withLatestContext = <P extends InjectedLatestContextProps>(
       State
     >({
       displayName: `withLatestContext(${getDisplayName(WrappedComponent)})`,
-      propTypes: {
-        organization: SentryTypes.Organization,
-        organizations: PropTypes.arrayOf(SentryTypes.Organization).isRequired,
-      },
       mixins: [Reflux.connect(LatestContextStore, 'latestContext') as any],
 
       render() {

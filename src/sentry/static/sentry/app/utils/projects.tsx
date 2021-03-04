@@ -1,17 +1,15 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
 
-import {Client} from 'app/api';
-import {Project, AvatarProject} from 'app/types';
-import {defined} from 'app/utils';
 import ProjectActions from 'app/actions/projectActions';
+import {Client} from 'app/api';
 import ProjectsStore from 'app/stores/projectsStore';
-import RequestError from 'app/utils/requestError/requestError';
-import SentryTypes from 'app/sentryTypes';
+import {AvatarProject, Project} from 'app/types';
+import {defined} from 'app/utils';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
+import RequestError from 'app/utils/requestError/requestError';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 
@@ -125,16 +123,6 @@ type Props = {
  * `Organization` as well as being saved to `ProjectsStore`.
  */
 class Projects extends React.Component<Props, State> {
-  static propTypes: any = {
-    api: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
-    slugs: PropTypes.arrayOf(PropTypes.string),
-    limit: PropTypes.number,
-    allProjects: PropTypes.bool,
-    passthroughPlaceholderProject: PropTypes.bool,
-  };
-
   static defaultProps: DefaultProps = {
     passthroughPlaceholderProject: true,
   };
@@ -411,7 +399,11 @@ async function fetchProjects(
     cursor?: typeof cursor;
     per_page?: number;
     all_projects?: number;
-  } = {};
+    collapse: string[];
+  } = {
+    // Never return latestDeploys project property from api
+    collapse: ['latestDeploys'],
+  };
 
   if (slugs && slugs.length) {
     query.query = slugs.map(slug => `slug:${slug}`).join(' ');

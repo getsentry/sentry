@@ -1,14 +1,13 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Context} from 'app/components/forms/form';
 import InputField from 'app/components/forms/inputField';
 import FormState from 'app/components/forms/state';
-import {Context} from 'app/components/forms/form';
 
 type Props = InputField['props'] & {
   hasSavedValue?: boolean;
   prefix: string;
-  formState: typeof FormState[keyof typeof FormState];
+  formState?: typeof FormState[keyof typeof FormState];
 };
 
 type State = InputField['state'] & {
@@ -18,12 +17,6 @@ type State = InputField['state'] & {
 // TODO(dcramer): im not entirely sure this is working correctly with
 // value propagation in all scenarios
 export default class PasswordField extends InputField<Props, State> {
-  static propTypes = {
-    ...InputField.propTypes,
-    hasSavedValue: PropTypes.bool,
-    prefix: PropTypes.string.isRequired,
-  };
-
   static defaultProps = {
     ...InputField.defaultProps,
     hasSavedValue: false,

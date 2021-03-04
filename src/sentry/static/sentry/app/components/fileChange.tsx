@@ -1,13 +1,12 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {ListGroupItem} from 'app/components/listGroup';
-import space from 'app/styles/space';
-import {CommitAuthor, AvatarUser} from 'app/types';
 import AvatarList from 'app/components/avatar/avatarList';
 import FileIcon from 'app/components/fileIcon';
+import {ListGroupItem} from 'app/components/listGroup';
 import TextOverflow from 'app/components/textOverflow';
+import space from 'app/styles/space';
+import {AvatarUser, CommitAuthor} from 'app/types';
 
 type Props = {
   filename: string;
@@ -27,11 +26,6 @@ const FileChange = ({filename, authors, className}: Props) => (
   </FileItem>
 );
 
-FileChange.propTypes = {
-  filename: PropTypes.string.isRequired,
-  authors: PropTypes.array.isRequired,
-};
-
 const FileItem = styled(ListGroupItem)`
   display: flex;
   align-items: center;
@@ -48,7 +42,7 @@ const Filename = styled('div')`
 `;
 
 const StyledFileIcon = styled(FileIcon)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   border-radius: 3px;
 `;
 

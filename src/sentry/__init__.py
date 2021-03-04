@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 import os.path
 
@@ -19,7 +17,7 @@ def _get_git_revision(path):
     except Exception:
         # binary didn't exist, wasn't on path, etc
         return None
-    return revision.strip()
+    return revision.strip().decode("utf-8")
 
 
 def get_revision():
@@ -39,7 +37,7 @@ def get_revision():
 
 def get_version():
     if __build__:
-        return "%s.%s" % (__version__, __build__)
+        return f"{__version__}.{__build__}"
     return __version__
 
 

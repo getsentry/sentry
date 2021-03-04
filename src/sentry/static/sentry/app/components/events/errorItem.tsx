@@ -1,24 +1,28 @@
-import mapKeys from 'lodash/mapKeys';
-import moment from 'moment';
-import startCase from 'lodash/startCase';
-import isEmpty from 'lodash/isEmpty';
 import React from 'react';
+import styled from '@emotion/styled';
+import isEmpty from 'lodash/isEmpty';
+import mapKeys from 'lodash/mapKeys';
+import startCase from 'lodash/startCase';
+import moment from 'moment';
 
+import Button from 'app/components/button';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
+import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
-import {EventError} from 'app/sentryTypes';
+import space from 'app/styles/space';
 
 type Error = {
   type: string;
-  message: string;
-  data: {
+  message: React.ReactNode;
+  data?: {
     name?: string;
     message?: string;
     image_path?: string;
     image_name?: string;
     server_time?: string;
     sdk_time?: string;
-  };
+    url?: string;
+  } & Record<string, any>;
 };
 
 const keyMapping = {
@@ -35,25 +39,21 @@ type State = {
   isOpen: boolean;
 };
 
-class EventErrorItem extends React.Component<Props, State> {
-  static propTypes = {
-    error: EventError.isRequired,
-  };
-
+class ErrorItem extends React.Component<Props, State> {
   state: State = {
     isOpen: false,
   };
 
-  shouldComponentUpdate(_nextProps, nextState) {
+  shouldComponentUpdate(_nextProps: Props, nextState: State) {
     return this.state.isOpen !== nextState.isOpen;
   }
 
-  toggle = () => {
+  handleToggle = () => {
     this.setState({isOpen: !this.state.isOpen});
   };
 
-  cleanedData() {
-    const data = {...this.props.error.data};
+  cleanedData(errorData: NonNullable<Error['data']>) {
+    const data = {...errorData};
 
     // The name is rendered as path in front of the message
     if (typeof data.name === 'string') {
@@ -85,8 +85,8 @@ class EventErrorItem extends React.Component<Props, State> {
     return mapKeys(data, (_value, key) => t(keyMapping[key] || startCase(key)));
   }
 
-  renderPath() {
-    const {name} = this.props.error.data || {};
+  renderPath(data: NonNullable<Error['data']>) {
+    const {name} = data;
 
     if (!name || typeof name !== 'string') {
       return null;
@@ -101,25 +101,49 @@ class EventErrorItem extends React.Component<Props, State> {
   }
 
   render() {
-    const error = this.props.error;
-    const isOpen = this.state.isOpen;
-    const data = this.cleanedData();
+    const {error} = this.props;
+    const {isOpen} = this.state;
+
+    const data = error?.data ?? {};
+    const cleanedData = this.cleanedData(data);
+
     return (
-      <li>
-        {this.renderPath()}
-        {error.message}
-        {!isEmpty(data) && (
-          <small>
-            {' '}
-            <a style={{marginLeft: 10}} onClick={this.toggle}>
+      <StyledListItem>
+        <OverallInfo>
+          <div>
+            {this.renderPath(data)}
+            {error.message}
+          </div>
+          {!isEmpty(cleanedData) && (
+            <ToggleButton onClick={this.handleToggle} priority="link">
               {isOpen ? t('Collapse') : t('Expand')}
-            </a>
-          </small>
-        )}
-        {isOpen && <KeyValueList data={data} isContextData />}
-      </li>
+            </ToggleButton>
+          )}
+        </OverallInfo>
+        {isOpen && <KeyValueList data={cleanedData} isContextData />}
+      </StyledListItem>
     );
   }
 }
 
-export default EventErrorItem;
+export default ErrorItem;
+
+const ToggleButton = styled(Button)`
+  margin-left: ${space(1.5)};
+  font-weight: 700;
+  color: ${p => p.theme.subText};
+  :hover,
+  :focus {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const StyledListItem = styled(ListItem)`
+  margin-bottom: ${space(0.75)};
+`;
+
+const OverallInfo = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(auto, max-content));
+  word-break: break-all;
+`;

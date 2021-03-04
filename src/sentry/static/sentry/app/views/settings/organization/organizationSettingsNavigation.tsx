@@ -1,14 +1,13 @@
-import Reflux from 'reflux';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
-import SentryTypes from 'app/sentryTypes';
 import HookStore from 'app/stores/hookStore';
-import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
-import navigationConfiguration from 'app/views/settings/organization/navigationConfiguration';
-import withOrganization from 'app/utils/withOrganization';
 import {Organization} from 'app/types';
 import {HookName, Hooks} from 'app/types/hooks';
+import withOrganization from 'app/utils/withOrganization';
+import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
+import navigationConfiguration from 'app/views/settings/organization/navigationConfiguration';
 import {NavigationSection} from 'app/views/settings/types';
 
 type Props = {
@@ -22,9 +21,6 @@ type State = {
 
 const OrganizationSettingsNavigation = createReactClass<Props, State>({
   displayName: 'OrganizationSettingsNavigation',
-  propTypes: {
-    organization: SentryTypes.Organization,
-  },
 
   /**
    * TODO(epurkhiser): Becase the settings organization navigation hooks

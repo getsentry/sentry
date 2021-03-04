@@ -1,13 +1,13 @@
 import {browserHistory} from 'react-router';
 
+import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import EventView from 'app/utils/discover/eventView';
 import {
   decodeColumnOrder,
-  pushEventViewToLocation,
-  getExpandedResults,
   downloadAsCsv,
+  getExpandedResults,
+  pushEventViewToLocation,
 } from 'app/views/eventsV2/utils';
-import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
 describe('decodeColumnOrder', function () {
   it('can decode 0 elements', function () {
@@ -245,6 +245,17 @@ describe('getExpandedResults()', function () {
     environment: ['staging'],
   };
 
+  it('id should be default column when drilldown results in no columns', () => {
+    const view = new EventView({
+      ...state,
+      fields: [{field: 'count()'}, {field: 'epm()'}, {field: 'eps()'}],
+    });
+
+    const result = getExpandedResults(view, {}, {});
+
+    expect(result.fields).toEqual([{field: 'id', width: -1}]);
+  });
+
   it('preserves aggregated fields', () => {
     let view = new EventView(state);
 
@@ -282,7 +293,6 @@ describe('getExpandedResults()', function () {
       ...state,
       fields: [
         {field: 'last_seen()'}, // expect this to be transformed to timestamp
-        {field: 'latest_event()'},
         {field: 'title'},
         {field: 'avg(transaction.duration)'}, // expect this to be dropped
         {field: 'p50()'},
@@ -293,10 +303,12 @@ describe('getExpandedResults()', function () {
         {field: 'p9001()'}, // it's over 9000
         {field: 'foobar()'}, // unknown function with no parameter
         {field: 'custom_tag'},
-        {field: 'title'}, // not expected to be dropped
+        {field: 'transaction.duration'}, // should be dropped
+        {field: 'title'}, // should be dropped
         {field: 'unique_count(id)'},
         {field: 'apdex(300)'}, // should be dropped
         {field: 'user_misery(300)'}, // should be dropped
+        {field: 'failure_count()'}, // expect this to be transformed to transaction.status
       ],
     });
 
@@ -306,12 +318,36 @@ describe('getExpandedResults()', function () {
       {field: 'title'},
       {field: 'transaction.duration', width: -1},
       {field: 'custom_tag'},
-      {field: 'title'},
+      {field: 'transaction.status', width: -1},
+    ]);
+
+    // transforms pXX functions with optional arguments properly
+    view = new EventView({
+      ...state,
+      fields: [
+        {field: 'p50(transaction.duration)'},
+        {field: 'p75(measurements.foo)'},
+        {field: 'p95(measurements.bar)'},
+        {field: 'p99(measurements.fcp)'},
+        {field: 'p100(measurements.lcp)'},
+      ],
+    });
+
+    result = getExpandedResults(view, {}, {});
+    expect(result.fields).toEqual([
+      {field: 'transaction.duration', width: -1},
+      {field: 'measurements.foo', width: -1},
+      {field: 'measurements.bar', width: -1},
+      {field: 'measurements.fcp', width: -1},
+      {field: 'measurements.lcp', width: -1},
     ]);
   });
 
   it('applies provided additional conditions', () => {
-    const view = new EventView(state);
+    const view = new EventView({
+      ...state,
+      fields: [...state.fields, {field: 'measurements.lcp'}, {field: 'measurements.fcp'}],
+    });
     let result = getExpandedResults(view, {extra: 'condition'}, {});
     expect(result.query).toEqual('event.type:error extra:condition');
 
@@ -340,6 +376,14 @@ describe('getExpandedResults()', function () {
     // Includes null
     result = getExpandedResults(view, {}, {custom_tag: null});
     expect(result.query).toEqual('event.type:error custom_tag:""');
+
+    // Handles measurements while ignoring null values
+    result = getExpandedResults(
+      view,
+      {},
+      {'measurements.lcp': 2, 'measurements.fcp': null}
+    );
+    expect(result.query).toEqual('event.type:error measurements.lcp:2');
   });
 
   it('removes any aggregates in either search conditions or extra conditions', () => {
@@ -365,6 +409,32 @@ describe('getExpandedResults()', function () {
     };
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('event.type:error custom_tag:tag_value');
+  });
+
+  it('generate eventview from an empty eventview', () => {
+    const view = EventView.fromLocation({query: {}});
+    const result = getExpandedResults(view, {some_tag: 'value'}, {});
+    expect(result.fields).toEqual([]);
+    expect(result.query).toEqual('some_tag:value');
+  });
+
+  it('applies array value conditions from event data', () => {
+    const view = new EventView({
+      ...state,
+      fields: [...state.fields, {field: 'error.type'}],
+    });
+    const event = {
+      type: 'error',
+      tags: [
+        {key: 'nope', value: 'nope'},
+        {key: 'custom_tag', value: 'tag_value'},
+      ],
+      'error.type': ['DeadSystem Exception', 'RuntimeException', 'RuntimeException'],
+    };
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual(
+      'event.type:error custom_tag:tag_value error.type:"DeadSystem Exception" error.type:RuntimeException error.type:RuntimeException'
+    );
   });
 
   it('applies project condition to project property', () => {

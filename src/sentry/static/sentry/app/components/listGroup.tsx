@@ -14,7 +14,7 @@ const ListGroupItem = styled('li')<ListGroupItemProps>`
   position: relative;
   display: block;
   min-height: 36px;
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
 
   padding: ${space(0.5)} ${space(1.5)};
 
@@ -33,7 +33,7 @@ const ListGroupItem = styled('li')<ListGroupItemProps>`
 
 const ListGroup = styled('ul')<ListGroupProps>`
   box-shadow: 0 1px 0px rgba(0, 0, 0, 0.03);
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   padding: 0;
   margin: 0;
 
@@ -41,7 +41,7 @@ const ListGroup = styled('ul')<ListGroupProps>`
     p.striped
       ? `
     & > li:nth-child(odd) {
-      background: ${p.theme.gray100};
+      background: ${p.theme.backgroundSecondary};
     }
   `
       : ''}

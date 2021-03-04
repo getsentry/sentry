@@ -1,21 +1,21 @@
 import React from 'react';
-import {Location, LocationDescriptorObject} from 'history';
 import * as ReactRouter from 'react-router';
+import {Location, LocationDescriptorObject} from 'history';
 
-import {IconStar} from 'app/icons';
-import {Organization, Project} from 'app/types';
-import Pagination from 'app/components/pagination';
-import Link from 'app/components/links/link';
-import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
-import {TableColumn} from 'app/views/eventsV2/table/types';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
-import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
+import Link from 'app/components/links/link';
+import Pagination from 'app/components/pagination';
+import {IconStar} from 'app/icons';
+import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
+import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
+import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {fieldAlignment} from 'app/utils/discover/fields';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
+import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
@@ -44,16 +44,15 @@ type Props = {
   organization: Organization;
   location: Location;
   setError: (msg: string | undefined) => void;
-  keyTransactions: boolean;
   summaryConditions: string;
 
   projects: Project[];
+  columnTitles?: string[];
 };
 
 type State = {
   widths: number[];
 };
-
 class Table extends React.Component<Props, State> {
   state = {
     widths: [],
@@ -168,44 +167,40 @@ class Table extends React.Component<Props, State> {
   ): React.ReactNode {
     const {eventView, location} = this.props;
 
+    const align = fieldAlignment(column.name, column.type, tableMeta);
+    const field = {field: column.name, width: column.width};
+
+    function generateSortLink(): LocationDescriptorObject | undefined {
+      if (!tableMeta) {
+        return undefined;
+      }
+
+      const nextEventView = eventView.sortOnField(field, tableMeta);
+      const queryStringObject = nextEventView.generateQueryStringObject();
+
+      return {
+        ...location,
+        query: {...location.query, sort: queryStringObject.sort},
+      };
+    }
+    const currentSort = eventView.sortForField(field, tableMeta);
+    const canSort =
+      isFieldSortable(field, tableMeta) && field.field !== 'key_transaction';
     return (
-      <HeaderCell column={column} tableMeta={tableMeta}>
-        {({align}) => {
-          const field = {field: column.name, width: column.width};
-
-          function generateSortLink(): LocationDescriptorObject | undefined {
-            if (!tableMeta) {
-              return undefined;
-            }
-
-            const nextEventView = eventView.sortOnField(field, tableMeta);
-            const queryStringObject = nextEventView.generateQueryStringObject();
-
-            return {
-              ...location,
-              query: {...location.query, sort: queryStringObject.sort},
-            };
-          }
-          const currentSort = eventView.sortForField(field, tableMeta);
-          const canSort = isFieldSortable(field, tableMeta);
-
-          return (
-            <SortLink
-              align={align}
-              title={title || field.field}
-              direction={currentSort ? currentSort.kind : undefined}
-              canSort={canSort}
-              generateSortLink={generateSortLink}
-            />
-          );
-        }}
-      </HeaderCell>
+      <SortLink
+        align={align}
+        title={title || field.field}
+        direction={currentSort ? currentSort.kind : undefined}
+        canSort={canSort}
+        generateSortLink={generateSortLink}
+      />
     );
   }
 
   renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
+    const columnTitles = this.props.columnTitles ?? COLUMN_TITLES;
     return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
-      this.renderHeadCell(tableMeta, column, COLUMN_TITLES[index]);
+      this.renderHeadCell(tableMeta, column, columnTitles[index]);
   };
 
   renderPrependCellWithData = (tableData: TableData | null) => {
@@ -222,7 +217,7 @@ class Table extends React.Component<Props, State> {
         const star = (
           <IconStar
             key="keyTransaction"
-            color="yellow500"
+            color="yellow300"
             isSolid
             data-test-id="key-transaction-header"
           />
@@ -254,24 +249,18 @@ class Table extends React.Component<Props, State> {
   getSortedEventView() {
     const {eventView} = this.props;
 
-    // We special case sort by key transactions here to include
-    // the transaction name and project as the secondary sorts.
-    const keyTransactionSort = eventView.sorts.find(
-      sort => sort.field === 'key_transaction'
-    );
-    if (keyTransactionSort) {
-      const sorts = ['key_transaction', 'transaction', 'project'].map(field => ({
-        field,
-        kind: keyTransactionSort.kind,
-      }));
-      return eventView.withSorts(sorts);
-    }
-
-    return eventView;
+    return eventView.withSorts([
+      {
+        field: 'key_transaction',
+        kind: 'desc',
+      },
+      ...eventView.sorts,
+    ]);
   }
 
   render() {
-    const {eventView, organization, location, keyTransactions} = this.props;
+    const {eventView, organization, location} = this.props;
+
     const {widths} = this.state;
     const columnOrder = eventView
       .getColumns()
@@ -288,9 +277,7 @@ class Table extends React.Component<Props, State> {
     const sortedEventView = this.getSortedEventView();
     const columnSortBy = sortedEventView.getSorts();
 
-    const prependColumnWidths = organization.features.includes('key-transactions')
-      ? ['max-content']
-      : [];
+    const prependColumnWidths = ['max-content'];
 
     return (
       <div>
@@ -298,7 +285,6 @@ class Table extends React.Component<Props, State> {
           eventView={sortedEventView}
           orgSlug={organization.slug}
           location={location}
-          keyTransactions={keyTransactions}
         >
           {({pageLinks, isLoading, tableData}) => (
             <React.Fragment>

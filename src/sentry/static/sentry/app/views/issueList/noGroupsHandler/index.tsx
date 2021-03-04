@@ -1,12 +1,12 @@
 import React from 'react';
 
 import {Client} from 'app/api';
-import {DEFAULT_QUERY} from 'app/constants';
-import {LightWeightOrganization, Project} from 'app/types';
-import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Placeholder from 'app/components/placeholder';
+import {DEFAULT_QUERY} from 'app/constants';
+import {t} from 'app/locale';
+import {LightWeightOrganization, Project} from 'app/types';
 
 import NoUnresolvedIssues from './noUnresolvedIssues';
 

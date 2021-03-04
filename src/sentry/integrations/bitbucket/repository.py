@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import logging
-import six
 
 from sentry.app import locks
 from sentry.models import OrganizationOption
@@ -36,13 +33,13 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
         except Exception as e:
             installation.raise_error(e)
         else:
-            config["external_id"] = six.text_type(repo["uuid"])
+            config["external_id"] = str(repo["uuid"])
             config["name"] = repo["full_name"]
         return config
 
     def get_webhook_secret(self, organization):
         # TODO(LB): Revisit whether Integrations V3 should be using OrganizationOption for storage
-        lock = locks.get(u"bitbucket:webhook-secret:{}".format(organization.id), duration=60)
+        lock = locks.get(f"bitbucket:webhook-secret:{organization.id}", duration=60)
         with lock.acquire():
             secret = OrganizationOption.objects.get_value(
                 organization=organization, key="bitbucket:webhook_secret"
@@ -63,7 +60,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 {
                     "description": "sentry-bitbucket-repo-hook",
                     "url": absolute_uri(
-                        u"/extensions/bitbucket/organizations/{}/webhook/".format(organization.id)
+                        f"/extensions/bitbucket/organizations/{organization.id}/webhook/"
                     ),
                     "active": True,
                     "events": ["repo:push", "pullrequest:fulfilled"],
@@ -75,7 +72,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
             return {
                 "name": data["identifier"],
                 "external_id": data["external_id"],
-                "url": u"https://bitbucket.org/{}".format(data["name"]),
+                "url": "https://bitbucket.org/{}".format(data["name"]),
                 "config": {"name": data["name"], "webhook_id": resp["uuid"]},
                 "integration_id": data["installation"],
             }

@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import ReleaseActions from 'app/actions/releaseActions';
 import OrganizationActions from 'app/actions/organizationActions';
+import ReleaseActions from 'app/actions/releaseActions';
 import {Deploy, Organization, Release} from 'app/types';
 
 type StoreRelease = Map<string, Release>;
@@ -223,4 +223,7 @@ const ReleaseStoreConfig: Reflux.StoreDefinition & ReleaseStoreInterface = {
 };
 
 type ReleaseStore = Reflux.Store & ReleaseStoreInterface;
-export default Reflux.createStore(ReleaseStoreConfig) as ReleaseStore;
+
+const ReleaseStore = Reflux.createStore(ReleaseStoreConfig) as ReleaseStore;
+
+export default ReleaseStore;

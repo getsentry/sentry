@@ -4,43 +4,38 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import {SectionHeading} from 'app/components/charts/styles';
-import {
-  UserSelectValues,
-  setBodyUserSelect,
-} from 'app/components/events/interfaces/spans/utils';
 import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
-import {SelectValue, LightWeightOrganization} from 'app/types';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
 import {Column} from 'app/utils/discover/fields';
+import theme from 'app/utils/theme';
+import {getPointerPosition} from 'app/utils/touch';
+import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
 
-import {FieldValue} from './types';
-import {QueryField} from './queryField';
 import {generateFieldOptions} from '../utils';
+
+import {QueryField} from './queryField';
 
 type Props = {
   // Input columns
   columns: Column[];
-  organization: LightWeightOrganization;
-  tagKeys: null | string[];
-  measurementKeys: null | string[];
+  fieldOptions: ReturnType<typeof generateFieldOptions>;
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
+  className?: string;
 };
 
 type State = {
   isDragging: boolean;
   draggingIndex: undefined | number;
   draggingTargetIndex: undefined | number;
+  draggingGrabbedOffset: undefined | {x: number; y: number};
   left: undefined | number;
   top: undefined | number;
-  // Stored as a object so we can find elements later.
-  fieldOptions: Record<string, SelectValue<FieldValue>>;
 };
 
 const DRAG_CLASS = 'draggable-item';
-const GRAB_HANDLE_FUDGE = 25;
+const GHOST_PADDING = 4;
 const MAX_COL_COUNT = 20;
 
 enum PlaceholderPosition {
@@ -49,13 +44,13 @@ enum PlaceholderPosition {
 }
 
 class ColumnEditCollection extends React.Component<Props, State> {
-  state = {
+  state: State = {
     isDragging: false,
     draggingIndex: void 0,
     draggingTargetIndex: void 0,
+    draggingGrabbedOffset: void 0,
     left: void 0,
     top: void 0,
-    fieldOptions: this.fieldOptions,
   };
 
   componentDidMount() {
@@ -73,15 +68,6 @@ class ColumnEditCollection extends React.Component<Props, State> {
     }
   }
 
-  componentDidUpdate(prevProps: Props) {
-    if (
-      this.props.tagKeys !== prevProps.tagKeys ||
-      this.props.measurementKeys !== prevProps.measurementKeys
-    ) {
-      this.syncFields();
-    }
-  }
-
   componentWillUnmount() {
     if (this.portal) {
       document.body.removeChild(this.portal);
@@ -93,21 +79,6 @@ class ColumnEditCollection extends React.Component<Props, State> {
   portal: HTMLElement | null = null;
   dragGhostRef = React.createRef<HTMLDivElement>();
 
-  get fieldOptions() {
-    const {organization, measurementKeys} = this.props;
-    return generateFieldOptions({
-      organization: this.props.organization,
-      tagKeys: this.props.tagKeys,
-      measurementKeys: organization.features.includes('measurements')
-        ? measurementKeys
-        : undefined,
-    });
-  }
-
-  syncFields() {
-    this.setState({fieldOptions: this.fieldOptions});
-  }
-
   keyForColumn(column: Column, isGhost: boolean): string {
     if (column.kind === 'function') {
       return [...column.function, isGhost].join(':');
@@ -118,7 +89,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
   cleanUpListeners() {
     if (this.state.isDragging) {
       window.removeEventListener('mousemove', this.onDragMove);
+      window.removeEventListener('touchmove', this.onDragMove);
       window.removeEventListener('mouseup', this.onDragEnd);
+      window.removeEventListener('touchend', this.onDragEnd);
     }
   }
 
@@ -140,11 +113,30 @@ class ColumnEditCollection extends React.Component<Props, State> {
     this.props.onChange(newColumns);
   }
 
-  startDrag(event: React.MouseEvent<HTMLButtonElement>, index: number) {
+  startDrag(
+    event: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>,
+    index: number
+  ) {
     const isDragging = this.state.isDragging;
-    if (isDragging || event.type !== 'mousedown') {
+    if (isDragging || !['mousedown', 'touchstart'].includes(event.type)) {
       return;
     }
+    event.preventDefault();
+    event.stopPropagation();
+
+    const top = getPointerPosition(event, 'pageY');
+    const left = getPointerPosition(event, 'pageX');
+
+    // Compute where the user clicked on the drag handle. Avoids the element
+    // jumping from the cursor on mousedown.
+    const {x, y} = Array.from(document.querySelectorAll(`.${DRAG_CLASS}`))
+      .find(n => n.contains(event.currentTarget))!
+      .getBoundingClientRect();
+
+    const draggingGrabbedOffset = {
+      x: left - x + GHOST_PADDING,
+      y: top - y + GHOST_PADDING,
+    };
 
     // prevent the user from selecting things when dragging a column.
     this.previousUserSelect = setBodyUserSelect({
@@ -156,49 +148,62 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
     // attach event listeners so that the mouse cursor can drag anywhere
     window.addEventListener('mousemove', this.onDragMove);
+    window.addEventListener('touchmove', this.onDragMove);
     window.addEventListener('mouseup', this.onDragEnd);
+    window.addEventListener('touchend', this.onDragEnd);
 
     this.setState({
       isDragging: true,
       draggingIndex: index,
       draggingTargetIndex: index,
-      top: event.pageY,
-      left: event.pageX,
+      draggingGrabbedOffset,
+      top,
+      left,
     });
   }
 
-  onDragMove = (event: MouseEvent) => {
-    if (!this.state.isDragging || event.type !== 'mousemove') {
+  onDragMove = (event: MouseEvent | TouchEvent) => {
+    const {isDragging, draggingTargetIndex, draggingGrabbedOffset} = this.state;
+
+    if (!isDragging || !['mousemove', 'touchmove'].includes(event.type)) {
       return;
     }
+    event.preventDefault();
+    event.stopPropagation();
+
+    const pointerX = getPointerPosition(event, 'pageX');
+    const pointerY = getPointerPosition(event, 'pageY');
+
+    const dragOffsetX = draggingGrabbedOffset?.x ?? 0;
+    const dragOffsetY = draggingGrabbedOffset?.y ?? 0;
 
     if (this.dragGhostRef.current) {
       // move the ghost box
       const ghostDOM = this.dragGhostRef.current;
       // Adjust so cursor is over the grab handle.
-      ghostDOM.style.left = `${event.pageX - GRAB_HANDLE_FUDGE}px`;
-      ghostDOM.style.top = `${event.pageY - GRAB_HANDLE_FUDGE}px`;
+      ghostDOM.style.left = `${pointerX - dragOffsetX}px`;
+      ghostDOM.style.top = `${pointerY - dragOffsetY}px`;
     }
 
     const dragItems = document.querySelectorAll(`.${DRAG_CLASS}`);
     // Find the item that the ghost is currently over.
     const targetIndex = Array.from(dragItems).findIndex(dragItem => {
       const rects = dragItem.getBoundingClientRect();
-      const top = event.clientY;
+      const top = pointerY;
 
-      const thresholdStart = rects.top;
-      const thresholdEnd = rects.top + rects.height;
+      const thresholdStart = window.scrollY + rects.top;
+      const thresholdEnd = window.scrollY + rects.top + rects.height;
 
       return top >= thresholdStart && top <= thresholdEnd;
     });
 
-    if (targetIndex >= 0 && targetIndex !== this.state.draggingTargetIndex) {
+    if (targetIndex >= 0 && targetIndex !== draggingTargetIndex) {
       this.setState({draggingTargetIndex: targetIndex});
     }
   };
 
-  onDragEnd = (event: MouseEvent) => {
-    if (!this.state.isDragging || event.type !== 'mouseup') {
+  onDragEnd = (event: MouseEvent | TouchEvent) => {
+    if (!this.state.isDragging || !['mouseup', 'touchend'].includes(event.type)) {
       return;
     }
 
@@ -229,16 +234,22 @@ class ColumnEditCollection extends React.Component<Props, State> {
       top: undefined,
       draggingIndex: undefined,
       draggingTargetIndex: undefined,
+      draggingGrabbedOffset: undefined,
     });
   };
 
   renderGhost(gridColumns: number) {
-    const index = this.state.draggingIndex;
-    if (typeof index !== 'number' || !this.state.isDragging || !this.portal) {
+    const {isDragging, draggingIndex, draggingGrabbedOffset} = this.state;
+
+    const index = draggingIndex;
+    if (typeof index !== 'number' || !isDragging || !this.portal) {
       return null;
     }
-    const top = Number(this.state.top) - GRAB_HANDLE_FUDGE;
-    const left = Number(this.state.left) - GRAB_HANDLE_FUDGE;
+    const dragOffsetX = draggingGrabbedOffset?.x ?? 0;
+    const dragOffsetY = draggingGrabbedOffset?.y ?? 0;
+
+    const top = Number(this.state.top) - dragOffsetY;
+    const left = Number(this.state.left) - dragOffsetX;
     const col = this.props.columns[index];
 
     const style = {
@@ -263,7 +274,8 @@ class ColumnEditCollection extends React.Component<Props, State> {
       gridColumns = 2,
     }: {canDelete?: boolean; isGhost?: boolean; gridColumns: number}
   ) {
-    const {isDragging, draggingTargetIndex, draggingIndex, fieldOptions} = this.state;
+    const {fieldOptions} = this.props;
+    const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
     // Add a placeholder above the target row.
@@ -295,7 +307,8 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
-              icon={<IconGrabbable size="xs" color="gray700" />}
+              onTouchStart={event => this.startDrag(event, i)}
+              icon={<IconGrabbable size="xs" />}
               size="zero"
               borderless
             />
@@ -313,7 +326,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Remove column')}
               onClick={() => this.removeColumn(i)}
-              icon={<IconDelete color="gray500" />}
+              icon={<IconDelete />}
               borderless
             />
           ) : (
@@ -326,7 +339,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 
   render() {
-    const {columns} = this.props;
+    const {className, columns} = this.props;
     const canDelete = columns.length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
     const title = canAdd
@@ -342,7 +355,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     );
 
     return (
-      <div>
+      <div className={className}>
         {this.renderGhost(gridColumns)}
         <RowContainer>
           <Heading gridColumns={gridColumns}>
@@ -374,22 +387,25 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
 const RowContainer = styled('div')`
   display: grid;
-  grid-template-columns: 24px auto 24px;
+  grid-template-columns: ${space(3)} 1fr ${space(3)};
+  justify-content: center;
   align-items: center;
   width: 100%;
+  touch-action: none;
   padding-bottom: ${space(1)};
 `;
 
 const Ghost = styled('div')`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   display: block;
   position: absolute;
-  padding: ${space(0.5)};
+  padding: ${GHOST_PADDING}px;
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.borderLight};
-  width: 600px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
+  width: 710px;
   opacity: 0.8;
   cursor: grabbing;
+  padding-right: ${space(2)};
 
   & > ${RowContainer} {
     padding-bottom: 0;
@@ -401,10 +417,10 @@ const Ghost = styled('div')`
 `;
 
 const DragPlaceholder = styled('div')`
-  margin: 0 ${space(4)} ${space(1)} ${space(4)};
-  border: 2px dashed ${p => p.theme.borderLight};
+  margin: 0 ${space(3)} ${space(1)} ${space(3)};
+  border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  height: 40px;
+  height: 41px;
 `;
 
 const Actions = styled('div')`

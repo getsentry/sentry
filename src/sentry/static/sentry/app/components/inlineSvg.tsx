@@ -1,8 +1,7 @@
-import pickBy from 'lodash/pickBy';
-import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
+import styled from '@emotion/styled';
+import pickBy from 'lodash/pickBy';
 
 type Props = {
   src: string;
@@ -35,12 +34,5 @@ const InlineSvg = styled(
 )`
   vertical-align: middle;
 `;
-
-InlineSvg.propTypes = {
-  src: PropTypes.string.isRequired,
-  size: PropTypes.string,
-  width: PropTypes.string,
-  height: PropTypes.string,
-};
 
 export default InlineSvg;

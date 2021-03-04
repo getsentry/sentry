@@ -1,37 +1,38 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 import omit from 'lodash/omit';
-import styled from '@emotion/styled';
 
-import {IconCheckmark} from 'app/icons';
-import {Organization, Project} from 'app/types';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t, tct} from 'app/locale';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import AsyncComponent from 'app/components/asyncComponent';
+import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
+import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import CreateAlertButton from 'app/components/createAlertButton';
+import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import Pagination from 'app/components/pagination';
-import * as Layout from 'app/components/layouts/thirds';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import Projects from 'app/utils/projects';
-import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {promptsUpdate} from 'app/actionCreators/prompts';
-import Alert from 'app/components/alert';
+import Pagination from 'app/components/pagination';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {IconCheckmark} from 'app/icons';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import Projects from 'app/utils/projects';
+import withOrganization from 'app/utils/withOrganization';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import {Incident} from '../types';
+
 import AlertHeader from './header';
-import {TableLayout, TitleAndSparkLine} from './styles';
-import AlertListRow from './row';
-import CreateRuleButton from './createRuleButton';
 import Onboarding from './onboarding';
+import AlertListRow from './row';
+import {TableLayout, TitleAndSparkLine} from './styles';
 
 const DEFAULT_QUERY_STATUS = 'open';
 
@@ -61,7 +62,7 @@ type State = {
 };
 
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
-  getEndpoints(): [string, string, any][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {params, location} = this.props;
     const {query} = location;
     const status = getQueryStatus(query.status);
@@ -110,14 +111,12 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     }
 
     // Check if they have already seen the prompt for the alert stream
-    const prompt = await this.api.requestPromise('/promptsactivity/', {
-      query: {
-        organization_id: organization.id,
-        feature: 'alert_stream',
-      },
+    const prompt = await promptsCheck(this.api, {
+      organizationId: organization.id,
+      feature: 'alert_stream',
     });
 
-    const firstVisitShown = !prompt?.data?.dismissed_ts;
+    const firstVisitShown = !prompt?.dismissedTime;
 
     if (firstVisitShown) {
       // Prompt has not been seen, mark the prompt as seen immediately so they
@@ -134,6 +133,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
   tryRenderOnboarding() {
     const {firstVisitShown} = this.state;
+    const {organization} = this.props;
 
     if (!firstVisitShown) {
       return null;
@@ -144,11 +144,15 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         <Button size="small" external href={DOCS_URL}>
           {t('View Features')}
         </Button>
-        <CreateRuleButton
-          {...this.props}
+        <CreateAlertButton
+          organization={organization}
           iconProps={{size: 'xs'}}
-          buttonProps={{size: 'small'}}
-        />
+          size="small"
+          priority="primary"
+          referrer="alert_stream"
+        >
+          {t('Create Alert Rule')}
+        </CreateAlertButton>
       </React.Fragment>
     );
 
@@ -169,10 +173,10 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         icon={<IconCheckmark isCircled size="48" />}
         title={
           !hasAlertRule
-            ? t('No metric alert rules exist for these projects.')
+            ? t('No metric alert rules exist for the selected projects.')
             : status === 'open'
-            ? t('No unresolved metric alerts in these projects.')
-            : t('No resolved metric alerts in these projects.')
+            ? t('No unresolved metric alerts in the selected projects.')
+            : t('No resolved metric alerts in the selected projects.')
         }
         description={tct('Learn more about [link:Metric Alerts]', {
           link: <ExternalLink href={DOCS_URL} />,
@@ -187,8 +191,11 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
   renderList() {
     const {loading, incidentList, incidentListPageLinks, hasAlertRule} = this.state;
+    const {
+      params: {orgId},
+      organization,
+    } = this.props;
 
-    const {orgId} = this.props.params;
     const allProjectsFromIncidents = new Set(
       flatten(incidentList?.map(({projects}) => projects))
     );
@@ -232,6 +239,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                           incident={incident}
                           orgId={orgId}
                           filteredStatus={status}
+                          organization={organization}
                         />
                       ))
                     }

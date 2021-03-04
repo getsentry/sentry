@@ -1,16 +1,14 @@
-from __future__ import absolute_import
-
 import pytest
 import zipfile
 from sentry.utils.compat.mock import patch
 
-from six import BytesIO
+from io import BytesIO
 
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry.testutils import TransactionTestCase, RelayStoreHelper
-from sentry.models import EventAttachment
+from sentry.models import EventAttachment, File
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 
 from tests.symbolicator import get_fixture_path
@@ -89,6 +87,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
                 "stacktrace": event.data.get("stacktrace"),
                 "threads": event.data.get("threads"),
                 "extra": event.data.get("extra"),
+                "sdk": event.data.get("sdk"),
             }
         )
 
@@ -100,20 +99,24 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         context, config, minidump, log = attachments
 
         assert context.name == "CrashContext.runtime-xml"
-        assert context.file.type == "unreal.context"
-        assert context.file.checksum == "835d3e10db5d1799dc625132c819c047261ddcfb"
+        context_file = File.objects.get(id=context.file_id)
+        assert context_file.type == "unreal.context"
+        assert context_file.checksum == "835d3e10db5d1799dc625132c819c047261ddcfb"
 
         assert config.name == "CrashReportClient.ini"
-        assert config.file.type == "event.attachment"
-        assert config.file.checksum == "5839c750bdde8cba4d2a979ea857b8154cffdab5"
+        config_file = File.objects.get(id=config.file_id)
+        assert config_file.type == "event.attachment"
+        assert config_file.checksum == "5839c750bdde8cba4d2a979ea857b8154cffdab5"
 
         assert minidump.name == "UE4Minidump.dmp"
-        assert minidump.file.type == "event.minidump"
-        assert minidump.file.checksum == "089d9fd3b5c0cc4426339ab46ec3835e4be83c0f"
+        minidump_file = File.objects.get(id=minidump.file_id)
+        assert minidump_file.type == "event.minidump"
+        assert minidump_file.checksum == "089d9fd3b5c0cc4426339ab46ec3835e4be83c0f"
 
         assert log.name == "YetAnother.log"  # Log file is named after the project
-        assert log.file.type == "unreal.logs"
-        assert log.file.checksum == "24d1c5f75334cd0912cc2670168d593d5fe6c081"
+        log_file = File.objects.get(id=log.file_id)
+        assert log_file.type == "unreal.logs"
+        assert log_file.checksum == "24d1c5f75334cd0912cc2670168d593d5fe6c081"
 
     def test_unreal_apple_crash_with_attachments(self):
         attachments = self.unreal_crash_test_impl(get_unreal_crash_apple_file())
@@ -122,25 +125,31 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         context, config, diagnostics, log, info, minidump = attachments
 
         assert context.name == "CrashContext.runtime-xml"
-        assert context.file.type == "unreal.context"
-        assert context.file.checksum == "5d2723a7d25111645702fcbbcb8e1d038db56c6e"
+        context_file = File.objects.get(id=context.file_id)
+        assert context_file.type == "unreal.context"
+        assert context_file.checksum == "5d2723a7d25111645702fcbbcb8e1d038db56c6e"
 
         assert config.name == "CrashReportClient.ini"
-        assert config.file.type == "event.attachment"
-        assert config.file.checksum == "4d6a2736e3e4969a68b7adbe197b05c171c29ea0"
+        config_file = File.objects.get(id=config.file_id)
+        assert config_file.type == "event.attachment"
+        assert config_file.checksum == "4d6a2736e3e4969a68b7adbe197b05c171c29ea0"
 
         assert diagnostics.name == "Diagnostics.txt"
-        assert diagnostics.file.type == "event.attachment"
-        assert diagnostics.file.checksum == "aa271bf4e307a78005410234081945352e8fb236"
+        diagnostics_file = File.objects.get(id=diagnostics.file_id)
+        assert diagnostics_file.type == "event.attachment"
+        assert diagnostics_file.checksum == "aa271bf4e307a78005410234081945352e8fb236"
 
         assert log.name == "YetAnotherMac.log"  # Log file is named after the project
-        assert log.file.type == "unreal.logs"
-        assert log.file.checksum == "735e751a8b6b943dbc0abce0e6d096f4d48a0c1e"
+        log_file = File.objects.get(id=log.file_id)
+        assert log_file.type == "unreal.logs"
+        assert log_file.checksum == "735e751a8b6b943dbc0abce0e6d096f4d48a0c1e"
 
         assert info.name == "info.txt"
-        assert info.file.type == "event.attachment"
-        assert info.file.checksum == "279b27ac5d0e6792d088e0662ce1a18413b772bc"
+        info_file = File.objects.get(id=info.file_id)
+        assert info_file.type == "event.attachment"
+        assert info_file.checksum == "279b27ac5d0e6792d088e0662ce1a18413b772bc"
 
         assert minidump.name == "minidump.dmp"
-        assert minidump.file.type == "event.applecrashreport"
-        assert minidump.file.checksum == "728d0f4b09cf5a7942da3893b6db79ac842b701a"
+        minidump_file = File.objects.get(id=minidump.file_id)
+        assert minidump_file.type == "event.applecrashreport"
+        assert minidump_file.checksum == "728d0f4b09cf5a7942da3893b6db79ac842b701a"

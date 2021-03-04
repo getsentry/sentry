@@ -1,20 +1,20 @@
 import React from 'react';
-import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
-import {Client} from 'app/api';
-import {IconAdd} from 'app/icons';
-import {Member, Organization, Project, Team, User} from 'app/types';
 import {addTeamToProject} from 'app/actionCreators/projects';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {t} from 'app/locale';
+import {Client} from 'app/api';
 import Button from 'app/components/button';
+import SelectControl from 'app/components/forms/selectControl';
 import IdBadge from 'app/components/idBadge';
+import Tooltip from 'app/components/tooltip';
+import {IconAdd} from 'app/icons';
+import {t} from 'app/locale';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
-import SelectControl from 'app/components/forms/selectControl';
 import TeamStore from 'app/stores/teamStore';
-import Tooltip from 'app/components/tooltip';
+import {Member, Organization, Project, Team, User} from 'app/types';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import withApi from 'app/utils/withApi';
 
 const getSearchKeyForUser = (user: User) =>
@@ -86,7 +86,8 @@ class SelectMembers extends React.Component<Props, State> {
     this.unlisteners.forEach(callIfFunction);
   }
 
-  selectRef = React.createRef<typeof SelectControl>();
+  // TODO(ts) This type could be improved when react-select types are better.
+  selectRef = React.createRef<any>();
 
   unlisteners = [
     MemberListStore.listen(() => {
@@ -213,6 +214,8 @@ class SelectMembers extends React.Component<Props, State> {
       return;
     }
 
+    // @ts-ignore The types for react-select don't cover this property
+    // or the type of selectRef is incorrect.
     const select = this.selectRef.current.select.select;
     const input: HTMLInputElement = select.inputRef;
     if (input) {

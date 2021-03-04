@@ -1,26 +1,27 @@
 import React, {CSSProperties} from 'react';
+import {components, OptionProps, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
-// eslint import checks can't find types in the flow code.
-// eslint-disable-next-line import/named
-import {components, SingleValueProps, OptionProps} from 'react-select';
 
-import Input from 'app/views/settings/components/forms/controls/input';
-import SelectControl from 'app/components/forms/selectControl';
-import {SelectValue} from 'app/types';
+import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
+import Tag from 'app/components/tag';
 import {t} from 'app/locale';
-import Badge from 'app/components/badge';
 import space from 'app/styles/space';
+import {SelectValue} from 'app/types';
 import {
-  ColumnType,
   AggregateParameter,
+  AggregationKey,
+  ColumnType,
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'app/utils/discover/fields';
+import Input from 'app/views/settings/components/forms/controls/input';
 
-import {FieldValueKind, FieldValue, FieldValueColumns} from './types';
+import {FieldValue, FieldValueColumns, FieldValueKind} from './types';
 
-type FieldOptions = Record<string, SelectValue<FieldValue>>;
+type FieldValueOption = SelectValue<FieldValue>;
+
+type FieldOptions = Record<string, FieldValueOption>;
 
 // Intermediate type that combines the current column
 // data with the AggregateParameter type.
@@ -34,7 +35,7 @@ type ParameterDescription =
   | {
       kind: 'column';
       value: FieldValue | null;
-      options: SelectValue<FieldValue>[];
+      options: FieldValueOption[];
       required: boolean;
     };
 
@@ -55,8 +56,18 @@ type Props = {
    * NOTE: This is different from passing an already filtered fieldOptions
    * list, as tag items in the list may be used as parameters to functions.
    */
-  filterPrimaryOptions?: (option: SelectValue<FieldValue>) => boolean;
+  filterPrimaryOptions?: (option: FieldValueOption) => boolean;
+  /**
+   * Whether or not to add labels inside of the input fields, currently only
+   * used for the metric alert builder.
+   */
+  inFieldLabels?: boolean;
+  /**
+   * Whether or not to add the tag explaining the FieldValueKind of each field
+   */
+  shouldRenderTag?: boolean;
   onChange: (fieldValue: QueryFieldValue) => void;
+  disabled?: boolean;
 };
 
 // Type for completing generics in react-select
@@ -66,7 +77,11 @@ type OptionType = {
 };
 
 class QueryField extends React.Component<Props> {
-  handleFieldChange = ({value}) => {
+  handleFieldChange = (selected?: FieldValueOption | null) => {
+    if (!selected) {
+      return;
+    }
+    const {value} = selected;
     const current = this.props.fieldValue;
     let fieldValue: QueryFieldValue = cloneDeep(this.props.fieldValue);
 
@@ -78,11 +93,18 @@ class QueryField extends React.Component<Props> {
         break;
       case FieldValueKind.FUNCTION:
         if (current.kind === 'field') {
-          fieldValue = {kind: 'function', function: [value.meta.name, '', undefined]};
+          fieldValue = {
+            kind: 'function',
+            function: [value.meta.name as AggregationKey, '', undefined],
+          };
         } else if (current.kind === 'function') {
           fieldValue = {
             kind: 'function',
-            function: [value.meta.name, current.function[1], current.function[2]],
+            function: [
+              value.meta.name as AggregationKey,
+              current.function[1],
+              current.function[2],
+            ],
           };
         }
         break;
@@ -100,7 +122,9 @@ class QueryField extends React.Component<Props> {
           if (field === null) {
             fieldValue.function[i + 1] = param.defaultValue || '';
           } else if (
-            (field.kind === FieldValueKind.FIELD || field.kind === FieldValueKind.TAG) &&
+            (field.kind === FieldValueKind.FIELD ||
+              field.kind === FieldValueKind.TAG ||
+              field.kind === FieldValueKind.MEASUREMENT) &&
             validateColumnTypes(param.columnTypes as ValidateColumnTypes, field)
           ) {
             // New function accepts current field.
@@ -110,8 +134,7 @@ class QueryField extends React.Component<Props> {
             fieldValue.function[i + 1] = param.defaultValue || '';
             fieldValue.function[i + 2] = undefined;
           }
-        }
-        if (param.kind === 'value') {
+        } else if (param.kind === 'value') {
           fieldValue.function[i + 1] = param.defaultValue || '';
         }
       });
@@ -276,6 +299,7 @@ class QueryField extends React.Component<Props> {
   }
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
+    const {disabled, inFieldLabels} = this.props;
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
         return (
@@ -287,6 +311,8 @@ class QueryField extends React.Component<Props> {
             value={descriptor.value}
             required={descriptor.required}
             onChange={this.handleFieldParameterChange}
+            inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
+            disabled={disabled}
           />
         );
       }
@@ -298,6 +324,7 @@ class QueryField extends React.Component<Props> {
           required: descriptor.required,
           value: descriptor.value,
           onUpdate: handler,
+          disabled,
         };
         switch (descriptor.dataType) {
           case 'number':
@@ -349,20 +376,57 @@ class QueryField extends React.Component<Props> {
     return inputs;
   }
 
+  renderTag(kind) {
+    const {shouldRenderTag} = this.props;
+    if (shouldRenderTag === false) {
+      return null;
+    }
+    let text, tagType;
+    switch (kind) {
+      case FieldValueKind.FUNCTION:
+        text = 'f(x)';
+        tagType = 'success';
+        break;
+      case FieldValueKind.MEASUREMENT:
+        text = 'measure';
+        tagType = 'info';
+        break;
+      case FieldValueKind.TAG:
+        text = kind;
+        tagType = 'warning';
+        break;
+      case FieldValueKind.FIELD:
+        text = kind;
+        tagType = 'highlight';
+        break;
+      default:
+        text = kind;
+    }
+    return <Tag type={tagType}>{text}</Tag>;
+  }
+
   render() {
-    const {className, takeFocus, filterPrimaryOptions} = this.props;
+    const {
+      className,
+      takeFocus,
+      filterPrimaryOptions,
+      inFieldLabels,
+      disabled,
+    } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
     const allFieldOptions = filterPrimaryOptions
       ? Object.values(fieldOptions).filter(filterPrimaryOptions)
       : Object.values(fieldOptions);
 
-    const selectProps: React.ComponentProps<SelectControl> = {
+    const selectProps: ControlProps<FieldValueOption> = {
       name: 'field',
       options: Object.values(allFieldOptions),
       placeholder: t('(Required)'),
       value: field,
       onChange: this.handleFieldChange,
+      inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
+      disabled,
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;
@@ -395,18 +459,18 @@ class QueryField extends React.Component<Props> {
       <Container className={className} gridColumns={parameters.length + 1}>
         <SelectControl
           {...selectProps}
-          styles={styles}
+          styles={!inFieldLabels ? styles : undefined}
           components={{
             Option: ({label, data, ...props}: OptionProps<OptionType>) => (
-              <components.Option label={label} {...(props as any)}>
+              <components.Option label={label} data={data} {...props}>
                 <span data-test-id="label">{label}</span>
-                {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+                {this.renderTag(data.value.kind)}
               </components.Option>
             ),
             SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
-              <components.SingleValue data={data} {...(props as any)}>
+              <components.SingleValue data={data} {...props}>
                 <span data-test-id="label">{data.label}</span>
-                {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+                {this.renderTag(data.value.kind)}
               </components.SingleValue>
             ),
           }}
@@ -502,23 +566,24 @@ class BufferedInput extends React.Component<InputProps, InputState> {
 // Set a min-width to allow shrinkage in grid.
 const StyledInput = styled(Input)`
   /* Match the height of the select boxes */
-  height: 37px;
+  height: 41px;
   min-width: 50px;
 `;
 
 const BlankSpace = styled('div')`
   /* Match the height of the select boxes */
-  height: 37px;
+  height: 41px;
   min-width: 50px;
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;
   align-items: center;
   justify-content: center;
 
   &:after {
+    font-size: ${p => p.theme.fontSizeMedium};
     content: '${t('No parameter')}';
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
 

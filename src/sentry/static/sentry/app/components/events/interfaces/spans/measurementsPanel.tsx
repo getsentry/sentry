@@ -1,25 +1,21 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {SentryTransactionEvent} from 'app/types';
-import {defined} from 'app/utils';
-import {
-  WEB_VITAL_ACRONYMS,
-  LONG_WEB_VITAL_NAMES,
-} from 'app/views/performance/transactionVitals/constants';
 import Tooltip from 'app/components/tooltip';
+import {EventTransaction} from 'app/types/event';
+import {defined} from 'app/utils';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 
 import {
-  getMeasurements,
-  toPercent,
   getMeasurementBounds,
+  getMeasurements,
   SpanBoundsType,
   SpanGeneratedBoundsType,
+  toPercent,
 } from './utils';
-import * as MeasurementsManager from './measurementsManager';
 
 type Props = {
-  event: SentryTransactionEvent;
+  event: EventTransaction;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   dividerPosition: number;
 };
@@ -36,7 +32,7 @@ class MeasurementsPanel extends React.PureComponent<Props> {
           width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
         }}
       >
-        {Array.from(measurements).map(([timestamp, names]) => {
+        {Array.from(measurements).map(([timestamp, verticalMark]) => {
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
@@ -45,41 +41,35 @@ class MeasurementsPanel extends React.PureComponent<Props> {
             return null;
           }
 
-          const hoverMeasurementName = names.join('');
+          // Measurements are referred to by their full name `measurements.<name>`
+          // here but are stored using their abbreviated name `<name>`. Make sure
+          // to convert it appropriately.
+          const vitals = Object.keys(verticalMark.marks).map(
+            name => WEB_VITAL_DETAILS[`measurements.${name}`]
+          );
 
           // generate vertical marker label
-          const acronyms = names.map(name => WEB_VITAL_ACRONYMS[name]);
+          const acronyms = vitals.map(vital => vital.acronym);
           const lastAcronym = acronyms.pop() as string;
           const label = acronyms.length
             ? `${acronyms.join(', ')} & ${lastAcronym}`
             : lastAcronym;
 
           // generate tooltip labe;l
-          const longNames = names.map(name => LONG_WEB_VITAL_NAMES[name]);
+          const longNames = vitals.map(vital => vital.name);
           const lastName = longNames.pop() as string;
           const tooltipLabel = longNames.length
             ? `${longNames.join(', ')} & ${lastName}`
             : lastName;
 
           return (
-            <MeasurementsManager.Consumer key={String(timestamp)}>
-              {({hoveringMeasurement, notHovering}) => {
-                return (
-                  <LabelContainer
-                    key={label}
-                    label={label}
-                    tooltipLabel={tooltipLabel}
-                    left={toPercent(bounds.left || 0)}
-                    onMouseLeave={() => {
-                      notHovering();
-                    }}
-                    onMouseOver={() => {
-                      hoveringMeasurement(hoverMeasurementName);
-                    }}
-                  />
-                );
-              }}
-            </MeasurementsManager.Consumer>
+            <LabelContainer
+              key={String(timestamp)}
+              failedThreshold={verticalMark.failedThreshold}
+              label={label}
+              tooltipLabel={tooltipLabel}
+              left={toPercent(bounds.left || 0)}
+            />
           );
         })}
       </Container>
@@ -102,10 +92,11 @@ const StyledLabelContainer = styled('div')`
   white-space: nowrap;
 `;
 
-const Label = styled('div')`
+const Label = styled('div')<{failedThreshold: boolean}>`
   transform: translateX(-50%);
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-weight: 600;
+  ${p => (p.failedThreshold ? `color: ${p.theme.red300};` : null)}
 `;
 
 export default MeasurementsPanel;
@@ -114,8 +105,7 @@ type LabelContainerProps = {
   left: string;
   label: string;
   tooltipLabel: string;
-  onMouseLeave: () => void;
-  onMouseOver: () => void;
+  failedThreshold: boolean;
 };
 
 type LabelContainerState = {
@@ -140,7 +130,7 @@ class LabelContainer extends React.Component<LabelContainerProps> {
   elementDOMRef = React.createRef<HTMLDivElement>();
 
   render() {
-    const {left, onMouseLeave, onMouseOver, label, tooltipLabel} = this.props;
+    const {left, label, tooltipLabel, failedThreshold} = this.props;
 
     return (
       <StyledLabelContainer
@@ -148,14 +138,8 @@ class LabelContainer extends React.Component<LabelContainerProps> {
         style={{
           left: `clamp(calc(0.5 * ${this.state.width}px), ${left}, calc(100% - 0.5 * ${this.state.width}px))`,
         }}
-        onMouseLeave={() => {
-          onMouseLeave();
-        }}
-        onMouseOver={() => {
-          onMouseOver();
-        }}
       >
-        <Label>
+        <Label failedThreshold={failedThreshold}>
           <Tooltip
             title={tooltipLabel}
             position="top"

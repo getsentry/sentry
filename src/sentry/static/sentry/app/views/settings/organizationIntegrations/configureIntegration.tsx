@@ -1,28 +1,29 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
-import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
-import BreadcrumbTitle from 'app/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import Button from 'app/components/button';
-import {IconAdd, IconArrow} from 'app/icons';
-import Form from 'app/views/settings/components/forms/form';
-import IntegrationAlertRules from 'app/views/organizationIntegrations/integrationAlertRules';
-import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
-import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepos';
-import IntegrationCodeMappings from 'app/views/organizationIntegrations/integrationCodeMappings';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import withOrganization from 'app/utils/withOrganization';
-import {Organization, IntegrationWithConfig, IntegrationProvider} from 'app/types';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
-import {singleLineRenderer} from 'app/utils/marked';
 import Alert from 'app/components/alert';
-import NavTabs from 'app/components/navTabs';
+import Button from 'app/components/button';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
+import NavTabs from 'app/components/navTabs';
+import {IconAdd, IconArrow} from 'app/icons';
+import {t} from 'app/locale';
+import {IntegrationProvider, IntegrationWithConfig, Organization} from 'app/types';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {singleLineRenderer} from 'app/utils/marked';
+import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
+import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
+import IntegrationAlertRules from 'app/views/organizationIntegrations/integrationAlertRules';
+import IntegrationCodeMappings from 'app/views/organizationIntegrations/integrationCodeMappings';
+import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
+import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepos';
+import IntegrationServerlessFunctions from 'app/views/organizationIntegrations/integrationServerlessFunctions';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import BreadcrumbTitle from 'app/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 type RouteParams = {
   orgId: string;
@@ -40,7 +41,7 @@ type State = AsyncView['state'] & {
   tab?: Tab;
 };
 class ConfigureIntegration extends AsyncView<Props, State> {
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, integrationId} = this.props.params;
 
     return [
@@ -49,14 +50,20 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     ];
   }
 
+  componentDidMount() {
+    const {location} = this.props;
+    const value = location.query.tab === 'codeMappings' ? 'codeMappings' : 'repos';
+    // eslint-disable-next-line react/no-did-mount-set-state
+    this.setState({tab: value});
+  }
+
   onRequestSuccess({stateKey, data}) {
     if (stateKey !== 'integration') {
       return;
     }
     trackIntegrationEvent(
+      'integrations.details_viewed',
       {
-        eventKey: 'integrations.details_viewed',
-        eventName: 'Integrations: Details Viewed',
         integration: data.provider.key,
         integration_type: 'first_party',
       },
@@ -129,7 +136,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
             saveOnBlur
             allowUndo
             apiMethod="POST"
-            initialData={integration.configData}
+            initialData={integration.configData || {}}
             apiEndpoint={`/organizations/${orgId}/integrations/${integration.id}/`}
           >
             <JsonForm
@@ -162,12 +169,14 @@ class ConfigureIntegration extends AsyncView<Props, State> {
           </Alert>
         )}
 
-        {provider.features.includes('alert-rule') && (
-          <IntegrationAlertRules integration={integration} />
-        )}
+        {provider.features.includes('alert-rule') && <IntegrationAlertRules />}
 
         {provider.features.includes('commits') && (
           <IntegrationRepos {...this.props} integration={integration} />
+        )}
+
+        {provider.features.includes('serverless') && (
+          <IntegrationServerlessFunctions integration={integration} />
         )}
       </React.Fragment>
     );

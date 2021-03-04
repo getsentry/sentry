@@ -33,7 +33,7 @@
   background-color: @panel-bg;
   border: 1px solid transparent;
   border-radius: @panel-border-radius;
-  .box-shadow(0 1px 1px rgba(0, 0, 0, 0.05));
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
 }
 
 // Panel contents
@@ -46,7 +46,8 @@
 .panel-heading {
   padding: @panel-heading-padding;
   border-bottom: 1px solid transparent;
-  .border-top-radius((@panel-border-radius - 1));
+  border-top-left-radius: (@panel-border-radius - 1);
+  border-top-right-radius: (@panel-border-radius - 1);
 
   > .dropdown .dropdown-toggle {
     color: inherit;
@@ -74,7 +75,8 @@
   padding: @panel-footer-padding;
   background-color: @panel-footer-bg;
   border-top: 1px solid @panel-inner-border;
-  .border-bottom-radius((@panel-border-radius - 1));
+  border-bottom-right-radius: (@panel-border-radius - 1);
+  border-bottom-left-radius: (@panel-border-radius - 1);
 }
 
 // List groups in panels
@@ -96,7 +98,8 @@
     &:first-child {
       .list-group-item:first-child {
         border-top: 0;
-        .border-top-radius((@panel-border-radius - 1));
+        border-top-left-radius: (@panel-border-radius - 1);
+        border-top-right-radius: (@panel-border-radius - 1);
       }
     }
 
@@ -104,13 +107,15 @@
     &:last-child {
       .list-group-item:last-child {
         border-bottom: 0;
-        .border-bottom-radius((@panel-border-radius - 1));
+        border-bottom-right-radius: (@panel-border-radius - 1);
+        border-bottom-left-radius: (@panel-border-radius - 1);
       }
     }
   }
   > .panel-heading + .panel-collapse > .list-group {
     .list-group-item:first-child {
-      .border-top-radius(0);
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
     }
   }
 }
@@ -131,7 +136,6 @@
 
 .panel {
   > .table,
-  > .table-responsive > .table,
   > .panel-collapse > .table {
     margin-bottom: 0;
 
@@ -141,9 +145,9 @@
     }
   }
   // Add border top radius for first one
-  > .table:first-child,
-  > .table-responsive:first-child > .table:first-child {
-    .border-top-radius((@panel-border-radius - 1));
+  > .table:first-child {
+    border-top-left-radius: (@panel-border-radius - 1);
+    border-top-right-radius: (@panel-border-radius - 1);
 
     > thead:first-child,
     > tbody:first-child {
@@ -163,9 +167,9 @@
     }
   }
   // Add border bottom radius for last one
-  > .table:last-child,
-  > .table-responsive:last-child > .table:last-child {
-    .border-bottom-radius((@panel-border-radius - 1));
+  > .table:last-child {
+    border-bottom-right-radius: (@panel-border-radius - 1);
+    border-bottom-left-radius: (@panel-border-radius - 1);
 
     > tbody:last-child,
     > tfoot:last-child {
@@ -185,54 +189,12 @@
     }
   }
   > .panel-body + .table,
-  > .panel-body + .table-responsive,
-  > .table + .panel-body,
-  > .table-responsive + .panel-body {
+  > .table + .panel-body {
     border-top: 1px solid @table-border-color;
   }
   > .table > tbody:first-child > tr:first-child th,
   > .table > tbody:first-child > tr:first-child td {
     border-top: 0;
-  }
-  > .table-bordered,
-  > .table-responsive > .table-bordered {
-    border: 0;
-    > thead,
-    > tbody,
-    > tfoot {
-      > tr {
-        > th:first-child,
-        > td:first-child {
-          border-left: 0;
-        }
-        > th:last-child,
-        > td:last-child {
-          border-right: 0;
-        }
-      }
-    }
-    > thead,
-    > tbody {
-      > tr:first-child {
-        > td,
-        > th {
-          border-bottom: 0;
-        }
-      }
-    }
-    > tbody,
-    > tfoot {
-      > tr:last-child {
-        > td,
-        > th {
-          border-bottom: 0;
-        }
-      }
-    }
-  }
-  > .table-responsive {
-    margin-bottom: 0;
-    border: 0;
   }
 }
 

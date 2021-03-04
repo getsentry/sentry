@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import {Team} from 'app/types';
 import TeamActions from 'app/actions/teamActions';
+import {Team} from 'app/types';
 
 type TeamStoreInterface = {
   initialized: boolean;
@@ -102,4 +102,6 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
 
 type TeamStore = Reflux.Store & TeamStoreInterface;
 
-export default Reflux.createStore(teamStoreConfig) as TeamStore;
+const TeamStore = Reflux.createStore(teamStoreConfig) as TeamStore;
+
+export default TeamStore;

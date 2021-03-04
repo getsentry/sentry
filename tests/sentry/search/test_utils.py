@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 from sentry.utils.compat import mock
 from datetime import datetime, timedelta
@@ -289,8 +287,12 @@ class ParseQueryTest(TestCase):
         result = self.parse_query("assigned:me")
         assert result == {"assigned_to": self.user, "tags": {}, "query": ""}
 
+    def test_assigned_me_or_none(self):
+        result = self.parse_query("assigned:me_or_none")
+        assert result == {"assigned_to": ["me_or_none", self.user], "tags": {}, "query": ""}
+
     def test_assigned_email(self):
-        result = self.parse_query("assigned:%s" % (self.user.email,))
+        result = self.parse_query(f"assigned:{self.user.email}")
         assert result == {"assigned_to": self.user, "tags": {}, "query": ""}
 
     def test_assigned_unknown_user(self):
@@ -299,12 +301,12 @@ class ParseQueryTest(TestCase):
         assert result["assigned_to"].id == 0
 
     def test_assigned_valid_team(self):
-        result = self.parse_query(u"assigned:#{}".format(self.team.slug))
+        result = self.parse_query(f"assigned:#{self.team.slug}")
         assert result["assigned_to"] == self.team
 
     def test_assigned_unassociated_team(self):
         team2 = self.create_team(organization=self.organization)
-        result = self.parse_query(u"assigned:#{}".format(team2.slug))
+        result = self.parse_query(f"assigned:#{team2.slug}")
         assert isinstance(result["assigned_to"], Team)
         assert result["assigned_to"].id == 0
 
@@ -318,7 +320,7 @@ class ParseQueryTest(TestCase):
         assert result == {"bookmarked_by": self.user, "tags": {}, "query": ""}
 
     def test_bookmarks_email(self):
-        result = self.parse_query("bookmarks:%s" % (self.user.email,))
+        result = self.parse_query(f"bookmarks:{self.user.email}")
         assert result == {"bookmarked_by": self.user, "tags": {}, "query": ""}
 
     def test_bookmarks_unknown_user(self):
@@ -403,6 +405,18 @@ class ParseQueryTest(TestCase):
     def test_is_assigned(self):
         result = self.parse_query("is:assigned")
         assert result == {"unassigned": False, "tags": {}, "query": ""}
+
+    def test_is_inbox(self):
+        result = self.parse_query("is:for_review")
+        assert result == {"for_review": True, "tags": {}, "query": ""}
+
+    def test_is_unlinked(self):
+        result = self.parse_query("is:unlinked")
+        assert result == {"linked": False, "tags": {}, "query": ""}
+
+    def test_is_linked(self):
+        result = self.parse_query("is:linked")
+        assert result == {"linked": True, "tags": {}, "query": ""}
 
     def test_age_from(self):
         result = self.parse_query("age:-24h")
@@ -503,6 +517,42 @@ class ParseQueryTest(TestCase):
         result = self.parse_query("country:canada :unresolved")
         assert result["query"] == ":unresolved"
         assert result["tags"]["country"] == "canada"
+
+    def test_assigned_or_suggested_me(self):
+        result = self.parse_query("assigned_or_suggested:me")
+        assert result == {"assigned_or_suggested": self.user, "tags": {}, "query": ""}
+
+    def test_assigned_or_suggested_me_or_none(self):
+        result = self.parse_query("assigned_or_suggested:me_or_none")
+        assert result == {
+            "assigned_or_suggested": ["me_or_none", self.user],
+            "tags": {},
+            "query": "",
+        }
+
+    def test_owner_email(self):
+        result = self.parse_query(f"assigned_or_suggested:{self.user.email}")
+        assert result == {"assigned_or_suggested": self.user, "tags": {}, "query": ""}
+
+    def test_assigned_or_suggested_unknown_user(self):
+        result = self.parse_query("assigned_or_suggested:fake@example.com")
+        assert isinstance(result["assigned_or_suggested"], User)
+        assert result["assigned_or_suggested"].id == 0
+
+    def test_owner_valid_team(self):
+        result = self.parse_query(f"assigned_or_suggested:#{self.team.slug}")
+        assert result["assigned_or_suggested"] == self.team
+
+    def test_assigned_or_suggested_unassociated_team(self):
+        team2 = self.create_team(organization=self.organization)
+        result = self.parse_query(f"assigned_or_suggested:#{team2.slug}")
+        assert isinstance(result["assigned_or_suggested"], Team)
+        assert result["assigned_or_suggested"].id == 0
+
+    def test_owner_invalid_team(self):
+        result = self.parse_query("assigned_or_suggested:#invalid")
+        assert isinstance(result["assigned_or_suggested"], Team)
+        assert result["assigned_or_suggested"].id == 0
 
 
 class GetLatestReleaseTest(TestCase):

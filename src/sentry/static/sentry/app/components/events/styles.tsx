@@ -1,23 +1,11 @@
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
-
-const COLORS = {
-  default: {
-    background: theme.gray100,
-    border: theme.borderLight,
-  },
-  danger: {
-    background: theme.red100,
-    // TODO(theme) This pink is non-standard
-    border: '#e7c0bc',
-  },
-} as const;
+import {Theme} from 'app/utils/theme';
 
 export const DataSection = styled('div')`
   padding: ${space(2)} 0;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.innerBorder};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding: ${space(3)} ${space(4)} 0 40px;
@@ -25,15 +13,34 @@ export const DataSection = styled('div')`
 `;
 
 type BannerProps = {
-  priority: 'default' | 'danger';
+  priority: 'default' | 'danger' | 'success';
 };
+
+function getColors({priority, theme}: BannerProps & {theme: Theme}) {
+  const COLORS = {
+    default: {
+      background: theme.backgroundSecondary,
+      border: theme.border,
+    },
+    danger: {
+      background: theme.alert.error.backgroundLight,
+      border: theme.alert.error.border,
+    },
+    success: {
+      background: theme.alert.success.backgroundLight,
+      border: theme.alert.success.border,
+    },
+  } as const;
+
+  return COLORS[priority];
+}
 
 export const BannerContainer = styled('div')<BannerProps>`
   font-size: ${p => p.theme.fontSizeMedium};
 
-  background: ${p => COLORS[p.priority].background};
-  border-top: 1px solid ${p => COLORS[p.priority].border};
-  border-bottom: 1px solid ${p => COLORS[p.priority].border};
+  background: ${p => getColors(p).background};
+  border-top: 1px solid ${p => getColors(p).border};
+  border-bottom: 1px solid ${p => getColors(p).border};
 
   /* Muted box & processing errors are in different parts of the DOM */
   &
@@ -77,7 +84,7 @@ export const CauseHeader = styled('div')`
 
   & button,
   & h3 {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
     font-size: 14px;
     font-weight: 600;
     line-height: 1.2;

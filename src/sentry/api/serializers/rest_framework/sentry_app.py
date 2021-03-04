@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
@@ -24,7 +22,7 @@ class ApiScopesField(serializers.Field):
 
         for scope in data:
             if scope not in valid_scopes:
-                raise ValidationError(u"{} not a valid scope".format(scope))
+                raise ValidationError(f"{scope} not a valid scope")
         return data
 
 
@@ -35,7 +33,7 @@ class EventListField(serializers.Field):
 
         if not set(data).issubset(VALID_EVENT_RESOURCES):
             raise ValidationError(
-                u"Invalid event subscription: {}".format(
+                "Invalid event subscription: {}".format(
                     ", ".join(set(data).difference(VALID_EVENT_RESOURCES))
                 )
             )
@@ -141,11 +139,7 @@ class SentryAppSerializer(Serializer):
                 needed_scope = REQUIRED_EVENT_PERMISSIONS[resource]
                 if needed_scope not in attrs["scopes"]:
                     raise ValidationError(
-                        {
-                            "events": u"{} webhooks require the {} permission.".format(
-                                resource, needed_scope
-                            )
-                        }
+                        {"events": f"{resource} webhooks require the {needed_scope} permission."}
                     )
 
         get_current_value = self.get_current_value_wrapper(attrs)

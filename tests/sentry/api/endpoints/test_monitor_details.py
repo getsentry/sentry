@@ -1,7 +1,3 @@
-from __future__ import absolute_import, print_function
-
-import six
-
 from datetime import timedelta
 from django.utils import timezone
 
@@ -26,10 +22,10 @@ class MonitorDetailsTest(APITestCase):
 
         self.login_as(user=user)
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.get("/api/0/monitors/{}/".format(monitor.guid))
+            resp = self.client.get(f"/api/0/monitors/{monitor.guid}/")
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(monitor.guid)
+        assert resp.data["id"] == str(monitor.guid)
 
 
 class UpdateMonitorTest(APITestCase):
@@ -47,7 +43,7 @@ class UpdateMonitorTest(APITestCase):
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
 
-        self.path = "/api/0/monitors/{}/".format(self.monitor.guid)
+        self.path = f"/api/0/monitors/{self.monitor.guid}/"
 
         self.login_as(user=self.user)
 
@@ -56,7 +52,7 @@ class UpdateMonitorTest(APITestCase):
             resp = self.client.put(self.path, data={"name": "Monitor Name"})
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(self.monitor.guid)
+        assert resp.data["id"] == str(self.monitor.guid)
 
         monitor = Monitor.objects.get(id=self.monitor.id)
         assert monitor.name == "Monitor Name"
@@ -66,7 +62,7 @@ class UpdateMonitorTest(APITestCase):
             resp = self.client.put(self.path, data={"status": "disabled"})
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(self.monitor.guid)
+        assert resp.data["id"] == str(self.monitor.guid)
 
         monitor = Monitor.objects.get(id=self.monitor.id)
         assert monitor.status == MonitorStatus.DISABLED
@@ -77,7 +73,7 @@ class UpdateMonitorTest(APITestCase):
             resp = self.client.put(self.path, data={"status": "active"})
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(self.monitor.guid)
+        assert resp.data["id"] == str(self.monitor.guid)
 
         monitor = Monitor.objects.get(id=self.monitor.id)
         assert monitor.status == MonitorStatus.ACTIVE
@@ -88,7 +84,7 @@ class UpdateMonitorTest(APITestCase):
             resp = self.client.put(self.path, data={"status": "active"})
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(self.monitor.guid)
+        assert resp.data["id"] == str(self.monitor.guid)
 
         monitor = Monitor.objects.get(id=self.monitor.id)
         assert monitor.status == MonitorStatus.OK
@@ -98,7 +94,7 @@ class UpdateMonitorTest(APITestCase):
             resp = self.client.put(self.path, data={"config": {"checkin_margin": 30}})
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(self.monitor.guid)
+        assert resp.data["id"] == str(self.monitor.guid)
 
         monitor = Monitor.objects.get(id=self.monitor.id)
         assert monitor.config["checkin_margin"] == 30
@@ -108,7 +104,7 @@ class UpdateMonitorTest(APITestCase):
             resp = self.client.put(self.path, data={"config": {"max_runtime": 30}})
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(self.monitor.guid)
+        assert resp.data["id"] == str(self.monitor.guid)
 
         monitor = Monitor.objects.get(id=self.monitor.id)
         assert monitor.config["max_runtime"] == 30
@@ -118,7 +114,7 @@ class UpdateMonitorTest(APITestCase):
             resp = self.client.put(self.path, data={"config": {"invalid": True}})
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(self.monitor.guid)
+        assert resp.data["id"] == str(self.monitor.guid)
 
         monitor = Monitor.objects.get(id=self.monitor.id)
         assert "invalid" not in monitor.config
@@ -128,7 +124,7 @@ class UpdateMonitorTest(APITestCase):
             resp = self.client.put(self.path, data={"config": {"schedule": "*/5 * * * *"}})
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(self.monitor.guid)
+        assert resp.data["id"] == str(self.monitor.guid)
 
         monitor = Monitor.objects.get(id=self.monitor.id)
         assert monitor.config["schedule_type"] == ScheduleType.CRONTAB
@@ -149,7 +145,7 @@ class UpdateMonitorTest(APITestCase):
             resp = self.client.put(self.path, data={"config": {"schedule": "@monthly"}})
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(self.monitor.guid)
+        assert resp.data["id"] == str(self.monitor.guid)
 
         monitor = Monitor.objects.get(id=self.monitor.id)
         assert monitor.config["schedule_type"] == ScheduleType.CRONTAB
@@ -172,7 +168,7 @@ class UpdateMonitorTest(APITestCase):
             )
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(self.monitor.guid)
+        assert resp.data["id"] == str(self.monitor.guid)
 
         monitor = Monitor.objects.get(id=self.monitor.id)
         assert monitor.config["schedule_type"] == ScheduleType.INTERVAL
@@ -217,7 +213,7 @@ class DeleteMonitorTest(APITestCase):
 
         self.login_as(user=user)
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.delete("/api/0/monitors/{}/".format(monitor.guid))
+            resp = self.client.delete(f"/api/0/monitors/{monitor.guid}/")
 
         assert resp.status_code == 202, resp.content
 

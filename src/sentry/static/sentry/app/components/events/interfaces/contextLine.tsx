@@ -1,7 +1,6 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 
 import {defined} from 'app/utils';
 
@@ -32,11 +31,6 @@ const ContextLine = function (props: Props) {
       {props.children}
     </li>
   );
-};
-
-ContextLine.propTypes = {
-  line: PropTypes.array.isRequired,
-  isActive: PropTypes.bool,
 };
 
 export default ContextLine;

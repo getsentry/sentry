@@ -1,8 +1,8 @@
-import {extractMultilineFields, convertMultilineFieldValue} from 'app/utils';
 import {t} from 'app/locale';
+import {convertMultilineFieldValue, extractMultilineFields} from 'app/utils';
 import {
-  getStoreCrashReportsValues,
   formatStoreCrashReports,
+  getStoreCrashReportsValues,
   SettingScope,
 } from 'app/utils/crashReports';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
@@ -66,7 +66,8 @@ export default [
       },
       {
         name: 'storeCrashReports',
-        type: 'array',
+        type: 'select',
+        deprecatedSelectControl: false,
         label: t('Store Native Crash Reports'),
         help: t(
           'Store native crash reports such as Minidumps for improved processing and download in issue details'

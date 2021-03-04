@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.testutils import AcceptanceTestCase
 from sentry.models import Project
 from sentry.utils.compat.mock import patch
@@ -7,12 +5,12 @@ from sentry.utils.compat.mock import patch
 
 class CreateProjectTest(AcceptanceTestCase):
     def setUp(self):
-        super(CreateProjectTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger")
         self.login_as(self.user)
 
-        self.path = u"/organizations/{}/projects/new/".format(self.org.slug)
+        self.path = f"/organizations/{self.org.slug}/projects/new/"
 
     @patch("django.db.models.signals.ModelSignal.send")
     def test_simple(self, mock_signal):

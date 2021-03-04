@@ -1,29 +1,46 @@
 import React from 'react';
-import isEqual from 'lodash/isEqual';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 
-import LineChart from 'app/components/charts/lineChart';
 import AreaChart from 'app/components/charts/areaChart';
+import {ZoomRenderProps} from 'app/components/charts/chartZoom';
+import LineChart from 'app/components/charts/lineChart';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
+import {getSeriesSelection} from 'app/components/charts/utils';
+import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
+import QuestionTooltip from 'app/components/questionTooltip';
+import {PlatformKey} from 'app/data/platformCategories';
 import {Series} from 'app/types/echarts';
-import theme from 'app/utils/theme';
 import {defined} from 'app/utils';
-import {getExactDuration} from 'app/utils/formatters';
+import {getUtcDateString} from 'app/utils/dates';
 import {axisDuration} from 'app/utils/discover/charts';
-import {decodeList} from 'app/utils/queryString';
+import {getExactDuration} from 'app/utils/formatters';
+import {decodeScalar} from 'app/utils/queryString';
+import theme from 'app/utils/theme';
+import {displayCrashFreePercent} from 'app/views/releases/utils';
+
+import {
+  getSessionTermDescription,
+  SessionTerm,
+  sessionTerm,
+} from '../../../utils/sessionTerm';
 
 import {YAxis} from './releaseChartControls';
+import {isOtherSeries, sortSessionSeries} from './utils';
 
 type Props = {
   reloading: boolean;
-  utc: boolean | null;
   timeseriesData: Series[];
-  zoomRenderProps: any;
+  zoomRenderProps: ZoomRenderProps;
   yAxis: YAxis;
   location: Location;
+  platform: PlatformKey;
   shouldRecalculateVisibleSeries: boolean;
   onVisibleSeriesRecalculated: () => void;
+  title: string;
+  help?: string;
 };
 
 class HealthChart extends React.Component<Props> {
@@ -57,9 +74,9 @@ class HealthChart extends React.Component<Props> {
     const {timeseriesData, location, shouldRecalculateVisibleSeries} = this.props;
 
     const otherAreasThanHealthyArePositive = timeseriesData
-      .filter(s => s.seriesName !== 'Healthy')
+      .filter(s => s.seriesName !== sessionTerm.healthy)
       .some(s => s.data.some(d => d.value > 0));
-    const alreadySomethingUnselected = !!decodeList(location.query.unselectedSeries);
+    const alreadySomethingUnselected = !!decodeScalar(location.query.unselectedSeries);
 
     return (
       shouldRecalculateVisibleSeries &&
@@ -97,7 +114,7 @@ class HealthChart extends React.Component<Props> {
     }
   };
 
-  configureYAxis = () => {
+  configureYAxis() {
     const {yAxis} = this.props;
     switch (yAxis) {
       case YAxis.CRASH_FREE:
@@ -105,8 +122,8 @@ class HealthChart extends React.Component<Props> {
           max: 100,
           scale: true,
           axisLabel: {
-            formatter: '{value}%',
-            color: theme.gray400,
+            formatter: (value: number) => displayCrashFreePercent(value),
+            color: theme.chartLabel,
           },
         };
       case YAxis.SESSION_DURATION:
@@ -114,7 +131,7 @@ class HealthChart extends React.Component<Props> {
           scale: true,
           axisLabel: {
             formatter: value => axisDuration(value * 1000),
-            color: theme.gray400,
+            color: theme.chartLabel,
           },
         };
       case YAxis.SESSIONS:
@@ -122,9 +139,31 @@ class HealthChart extends React.Component<Props> {
       default:
         return undefined;
     }
-  };
+  }
 
-  getChart = () => {
+  configureXAxis() {
+    const {timeseriesData, zoomRenderProps} = this.props;
+
+    if (timeseriesData.every(s => s.data.length === 1)) {
+      if (zoomRenderProps.period) {
+        const {start, end} = parseStatsPeriod(zoomRenderProps.period, null);
+
+        return {min: start, max: end};
+      }
+
+      return {
+        min: getUtcDateString(zoomRenderProps.start),
+        max: getUtcDateString(zoomRenderProps.end),
+      };
+    }
+
+    return undefined;
+  }
+
+  getChart():
+    | React.ComponentType<StackedAreaChart['props']>
+    | React.ComponentType<AreaChart['props']>
+    | React.ComponentType<LineChart['props']> {
     const {yAxis} = this.props;
     switch (yAxis) {
       case YAxis.SESSION_DURATION:
@@ -136,58 +175,123 @@ class HealthChart extends React.Component<Props> {
       default:
         return LineChart;
     }
-  };
+  }
+
+  getLegendTooltipDescription(serieName: string) {
+    const {platform} = this.props;
+
+    switch (serieName) {
+      case sessionTerm.crashed:
+        return getSessionTermDescription(SessionTerm.CRASHED, platform);
+      case sessionTerm.abnormal:
+        return getSessionTermDescription(SessionTerm.ABNORMAL, platform);
+      case sessionTerm.errored:
+        return getSessionTermDescription(SessionTerm.ERRORED, platform);
+      case sessionTerm.healthy:
+        return getSessionTermDescription(SessionTerm.HEALTHY, platform);
+      case sessionTerm['crash-free-users']:
+        return getSessionTermDescription(SessionTerm.CRASH_FREE_USERS, platform);
+      case sessionTerm['crash-free-sessions']:
+        return getSessionTermDescription(SessionTerm.CRASH_FREE_SESSIONS, platform);
+      default:
+        return '';
+    }
+  }
+
+  getLegendSeries() {
+    const {timeseriesData} = this.props;
+    return (
+      timeseriesData
+        .filter(d => !isOtherSeries(d))
+        // we don't want Other Healthy, Other Crashed, etc. to show up in the legend
+        .sort(sortSessionSeries)
+        .map(d => d.seriesName)
+    );
+  }
+
+  getLegendSelectedSeries() {
+    const {location, yAxis} = this.props;
+
+    const selection = getSeriesSelection(location) ?? {};
+    // otherReleases toggles all "other" series (other healthy, other crashed, etc.) at once
+    const otherReleasesVisible = !(selection[sessionTerm.otherReleases] === false);
+
+    if (yAxis === YAxis.SESSIONS || yAxis === YAxis.USERS) {
+      selection[sessionTerm.otherErrored] =
+        !selection?.hasOwnProperty(sessionTerm.errored) && otherReleasesVisible;
+      selection[sessionTerm.otherCrashed] =
+        !selection?.hasOwnProperty(sessionTerm.crashed) && otherReleasesVisible;
+      selection[sessionTerm.otherAbnormal] =
+        !selection?.hasOwnProperty(sessionTerm.abnormal) && otherReleasesVisible;
+      selection[sessionTerm.otherHealthy] =
+        !selection?.hasOwnProperty(sessionTerm.healthy) && otherReleasesVisible;
+    }
+
+    if (yAxis === YAxis.CRASH_FREE) {
+      selection[sessionTerm.otherCrashFreeSessions] =
+        !selection?.hasOwnProperty(sessionTerm['crash-free-sessions']) &&
+        otherReleasesVisible;
+      selection[sessionTerm.otherCrashFreeUsers] =
+        !selection?.hasOwnProperty(sessionTerm['crash-free-users']) &&
+        otherReleasesVisible;
+    }
+
+    return selection;
+  }
 
   render() {
-    const {utc, timeseriesData, zoomRenderProps, location} = this.props;
+    const {timeseriesData, zoomRenderProps, title, help} = this.props;
 
     const Chart = this.getChart();
 
-    const seriesSelection = (decodeList(location.query.unselectedSeries) ?? []).reduce(
-      (selection, metric) => {
-        selection[metric] = false;
-        return selection;
-      },
-      {}
-    );
-
     const legend = {
-      right: 22,
-      top: 12,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left',
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
+      right: 10,
+      top: 0,
+      data: this.getLegendSeries(),
+      selected: this.getLegendSelectedSeries(),
+      tooltip: {
+        show: true,
+        // TODO(ts) tooltip.formatter has incorrect types in echarts 4
+        formatter: (params: any): string => {
+          const seriesNameDesc = this.getLegendTooltipDescription(params.name ?? '');
+
+          if (!seriesNameDesc) {
+            return '';
+          }
+
+          return ['<div class="tooltip-description">', seriesNameDesc, '</div>'].join('');
+        },
       },
-      data: timeseriesData.map(d => d.seriesName).reverse(),
-      selected: seriesSelection,
     };
 
     return (
-      <Chart
-        legend={legend}
-        utc={utc}
-        {...zoomRenderProps}
-        series={timeseriesData}
-        isGroupedByDate
-        seriesOptions={{
-          showSymbol: false,
-        }}
-        grid={{
-          left: '24px',
-          right: '24px',
-          top: '32px',
-          bottom: '12px',
-        }}
-        yAxis={this.configureYAxis()}
-        tooltip={{valueFormatter: this.formatTooltipValue}}
-        onLegendSelectChanged={this.handleLegendSelectChanged}
-      />
+      <React.Fragment>
+        <HeaderTitleLegend>
+          {title}
+          {help && <QuestionTooltip size="sm" position="top" title={help} />}
+        </HeaderTitleLegend>
+
+        <Chart
+          legend={legend}
+          {...zoomRenderProps}
+          series={timeseriesData}
+          isGroupedByDate
+          seriesOptions={{
+            showSymbol: false,
+          }}
+          grid={{
+            left: '10px',
+            right: '10px',
+            top: '40px',
+            bottom: '0px',
+          }}
+          yAxis={this.configureYAxis()}
+          xAxis={this.configureXAxis()}
+          tooltip={{valueFormatter: this.formatTooltipValue}}
+          onLegendSelectChanged={this.handleLegendSelectChanged}
+          transformSinglePointToBar
+        />
+      </React.Fragment>
     );
   }
 }

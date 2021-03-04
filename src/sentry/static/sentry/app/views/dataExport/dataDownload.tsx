@@ -1,16 +1,15 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {RouteComponentProps} from 'react-router/lib/Router';
 
 import Button from 'app/components/button';
-import {IconDownload} from 'app/icons';
 import {ExportQueryType} from 'app/components/dataExport';
 import DateTime from 'app/components/dateTime';
+import {IconDownload} from 'app/icons';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 import AsyncView from 'app/views/asyncView';
 import Layout from 'app/views/auth/layout';
-import space from 'app/styles/space';
-import {t, tct} from 'app/locale';
 
 export enum DownloadStatus {
   Early = 'EARLY',
@@ -61,7 +60,7 @@ class DataDownload extends AsyncView<Props, State> {
     return t('Download Center');
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, dataExportId} = this.props.params;
     return [['download', `/organizations/${orgId}/data-export/${dataExportId}/`]];
   }
@@ -273,7 +272,7 @@ class DataDownload extends AsyncView<Props, State> {
 }
 
 const Header = styled('header')`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(3)} 40px 0;
   h3 {
     font-size: 24px;

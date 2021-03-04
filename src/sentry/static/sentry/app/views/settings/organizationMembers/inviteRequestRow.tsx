@@ -1,18 +1,17 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Member, Organization, Team, MemberRole} from 'app/types';
-import {PanelItem} from 'app/components/panels';
-import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import HookOrDefault from 'app/components/hookOrDefault';
-import Tag from 'app/components/tagDeprecated';
-import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
 import SelectControl from 'app/components/forms/selectControl';
+import HookOrDefault from 'app/components/hookOrDefault';
+import {PanelItem} from 'app/components/panels';
 import RoleSelectControl from 'app/components/roleSelectControl';
+import Tag from 'app/components/tag';
+import Tooltip from 'app/components/tooltip';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Member, MemberRole, Organization, Team} from 'app/types';
 
 type Props = {
   inviteRequest: Member;
@@ -50,7 +49,7 @@ const InviteRequestRow = ({
   const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
     <StyledPanelItem>
       <div>
-        <h5 style={{marginBottom: '3px'}}>
+        <h5 style={{marginBottom: space(0.5)}}>
           <UserName>{inviteRequest.email}</UserName>
         </h5>
         {inviteRequest.inviteStatus === 'requested_to_be_invited' ? (
@@ -68,9 +67,11 @@ const InviteRequestRow = ({
             </Description>
           )
         ) : (
-          <Tooltip title={t('This user has asked to join your organization.')}>
-            <JoinRequestIndicator size="small">{t('Join request')}</JoinRequestIndicator>
-          </Tooltip>
+          <JoinRequestIndicator
+            tooltipText={t('This user has asked to join your organization.')}
+          >
+            {t('Join request')}
+          </JoinRequestIndicator>
         )}
       </div>
 
@@ -83,9 +84,8 @@ const InviteRequestRow = ({
       />
 
       <TeamSelectControl
-        deprecatedSelectControl
         name="teams"
-        placeholder={t('Add to teams...')}
+        placeholder={t('Add to teams\u2026')}
         onChange={teams => onUpdate({teams: teams.map(team => team.value)})}
         value={inviteRequest.teams}
         options={allTeams.map(({slug}) => ({
@@ -148,25 +148,7 @@ const InviteRequestRow = ({
   );
 };
 
-InviteRequestRow.propTypes = {
-  inviteRequest: PropTypes.shape({
-    email: PropTypes.string,
-    id: PropTypes.string,
-    inviterName: PropTypes.string,
-    inviteStatus: PropTypes.string,
-    role: PropTypes.string,
-    teams: PropTypes.arrayOf(PropTypes.string),
-  }),
-  onApprove: PropTypes.func,
-  onDeny: PropTypes.func,
-  inviteRequestBusy: PropTypes.object,
-  allRoles: PropTypes.arrayOf(PropTypes.object),
-  allTeams: PropTypes.arrayOf(PropTypes.object),
-};
-
 const JoinRequestIndicator = styled(Tag)`
-  padding: ${space(0.5)} ${space(0.75)};
-  font-size: 10px;
   text-transform: uppercase;
 `;
 
@@ -185,7 +167,7 @@ const UserName = styled('div')`
 
 const Description = styled('div')`
   display: block;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;

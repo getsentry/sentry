@@ -1,14 +1,12 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Project, Organization, Config} from 'app/types';
-import {FeatureDisabledHooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
-import SentryTypes from 'app/sentryTypes';
+import {Config, Organization, Project} from 'app/types';
+import {FeatureDisabledHooks} from 'app/types/hooks';
+import {isRenderFunc} from 'app/utils/isRenderFunc';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
-import {isRenderFunc} from 'app/utils/isRenderFunc';
 
 import ComingSoon from './comingSoon';
 
@@ -18,7 +16,6 @@ type Props = {
    */
 
   organization: Organization;
-  project: Project;
   config: Config;
   /**
    * List of required feature tags. Note we do not enforce uniqueness of tags anywhere.
@@ -46,9 +43,7 @@ type Props = {
    * passed to `children` if a func is provided there, will be used here,
    * additionally `children` will also be passed.
    */
-  renderDisabled?:
-    | ((props: FeatureRenderProps & Pick<Props, 'children'>) => React.ReactNode)
-    | boolean;
+  renderDisabled?: boolean | RenderDisabledFn;
   /**
    * Specify the key to use for hookstore functionality.
    *
@@ -67,18 +62,37 @@ type Props = {
    * all the required feature.
    */
   children: React.ReactNode | ChildrenRenderFn;
+  project?: Project;
 };
 
-type ChildrenRenderFn = (
-  props: FeatureRenderProps & Pick<Props, 'renderDisabled'>
-) => React.ReactNode;
-
+/**
+ * Common props passed to children and disabled render handlers.
+ */
 type FeatureRenderProps = {
   organization: Organization;
-  project: Project;
   features: string[];
   hasFeature: boolean;
+  project?: Project;
 };
+
+/**
+ * When a feature is disabled the caller of Feature may provide a `renderDisabled`
+ * prop. This prop can be overriden by getsentry via hooks. Often getsentry will
+ * call the original children function  but override the `renderDisabled`
+ * with another function/component.
+ */
+type RenderDisabledProps = FeatureRenderProps & {
+  children: React.ReactNode | ChildrenRenderFn;
+  renderDisabled?: (props: FeatureRenderProps) => React.ReactNode;
+};
+
+export type RenderDisabledFn = (props: RenderDisabledProps) => React.ReactNode;
+
+type ChildRenderProps = FeatureRenderProps & {
+  renderDisabled?: undefined | boolean | RenderDisabledFn;
+};
+
+export type ChildrenRenderFn = (props: ChildRenderProps) => React.ReactNode;
 
 type AllFeatures = {
   configFeatures: string[];
@@ -90,17 +104,6 @@ type AllFeatures = {
  * Component to handle feature flags.
  */
 class Feature extends React.Component<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-    config: SentryTypes.Config.isRequired,
-    features: PropTypes.arrayOf(PropTypes.string.isRequired).isRequired,
-    requireAll: PropTypes.bool,
-    renderDisabled: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
-    hookName: PropTypes.string as any,
-    children: PropTypes.oneOfType([PropTypes.func, PropTypes.node]),
-  };
-
   static defaultProps = {
     renderDisabled: false,
     requireAll: true,

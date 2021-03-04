@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {LightWeightOrganization, Organization, Project} from 'app/types';
 import NoProjectMessage from 'app/components/noProjectMessage';
+import {LightWeightOrganization, Organization, Project} from 'app/types';
 import withProjects from 'app/utils/withProjects';
 
 type Props = {

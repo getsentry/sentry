@@ -1,10 +1,10 @@
 import React from 'react';
 import LazyLoad from 'react-lazyload';
 
+import MiniBarChart from 'app/components/charts/miniBarChart';
 import {t} from 'app/locale';
 import {Project} from 'app/types';
 import {Series} from 'app/types/echarts';
-import MiniBarChart from 'app/components/charts/miniBarChart';
 
 type Props = {
   project: Project;

@@ -1,15 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 import * as Sentry from '@sentry/react';
 
-import {Organization, Project} from 'app/types';
-import {t} from 'app/locale';
-import {trackAnalyticsEvent, trackAdhocEvent} from 'app/utils/analytics';
 import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import SentryTypes from 'app/sentryTypes';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
+import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
@@ -23,11 +21,6 @@ type Props = {
 };
 
 class UserFeedbackEmpty extends React.Component<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    projectIds: PropTypes.arrayOf(PropTypes.string.isRequired),
-  };
-
   componentDidMount() {
     const {organization, projectIds} = this.props;
 
@@ -57,15 +50,16 @@ class UserFeedbackEmpty extends React.Component<Props> {
     window.sentryEmbedCallback = null;
   }
 
-  get hasAnyFeedback() {
+  get selectedProjects() {
     const {projects, projectIds} = this.props;
 
-    const selectedProjects =
-      projectIds && projectIds.length
-        ? projects.filter(({id}) => projectIds.includes(id))
-        : projects;
+    return projectIds && projectIds.length
+      ? projects.filter(({id}) => projectIds.includes(id))
+      : projects;
+  }
 
-    return selectedProjects.some(({hasUserReports}) => hasUserReports);
+  get hasAnyFeedback() {
+    return this.selectedProjects.some(({hasUserReports}) => hasUserReports);
   }
 
   trackAnalytics({eventKey, eventName}: {eventKey: string; eventName: string}) {
@@ -115,7 +109,9 @@ class UserFeedbackEmpty extends React.Component<Props> {
                   eventName: 'User Feedback Docs Clicked',
                 })
               }
-              href="https://docs.sentry.io/enriching-error-data/user-feedback/"
+              href={`https://docs.sentry.io/platforms/${
+                this.selectedProjects[0]?.platform || 'javascript'
+              }/enriching-events/user-feedback/`}
             >
               {t('Read the docs')}
             </Button>

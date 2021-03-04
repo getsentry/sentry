@@ -2,32 +2,30 @@ import 'bootstrap/js/alert';
 import 'bootstrap/js/tab';
 import 'bootstrap/js/dropdown';
 import 'focus-visible';
-
 import 'app/utils/statics-setup';
 
-import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Reflux from 'reflux';
 import * as Router from 'react-router';
+import {ExtraErrorData} from '@sentry/integrations';
+import * as Sentry from '@sentry/react';
 import SentryRRWeb from '@sentry/rrweb';
+import {Integrations} from '@sentry/tracing';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
-import {Integrations} from '@sentry/tracing';
-import {ExtraErrorData} from '@sentry/integrations';
-import * as Sentry from '@sentry/react';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
-import {NODE_ENV, DISABLE_RR_WEB, SPA_DSN} from 'app/constants';
-import {metric} from 'app/utils/analytics';
-import {init as initApiSentryClient} from 'app/utils/apiSentryClient';
-import ConfigStore from 'app/stores/configStore';
+import {DISABLE_RR_WEB, NODE_ENV, SPA_DSN} from 'app/constants';
 import Main from 'app/main';
-import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import plugins from 'app/plugins';
 import routes from 'app/routes';
-
-import {setupFavicon} from './favicon';
+import ConfigStore from 'app/stores/configStore';
+import {metric} from 'app/utils/analytics';
+import {init as initApiSentryClient} from 'app/utils/apiSentryClient';
+import {setupColorScheme} from 'app/utils/matchMedia';
+import PipelineView from 'app/views/integrationPipeline/pipelineView';
 
 if (NODE_ENV === 'development') {
   import(
@@ -59,7 +57,7 @@ function getSentryIntegrations(hasReplays: boolean = false) {
       routingInstrumentation: Sentry.reactRouterV3Instrumentation(
         Router.browserHistory as any,
         Router.createRoutes(routes()),
-        Router.match as any
+        Router.match
       ),
       idleTimeout: 5000,
     }),
@@ -95,7 +93,6 @@ Sentry.init({
     : window.__SENTRY__OPTIONS.whitelistUrls,
   integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
-  autoSessionTracking: true,
 });
 
 if (window.__SENTRY__USER) {
@@ -110,14 +107,10 @@ Sentry.setTag('rrweb.active', hasReplays ? 'yes' : 'no');
 // bundle was loaded by browser.
 metric.mark({name: 'sentry-app-init'});
 
-// setup jquery for CSRF tokens
-jQuery.ajaxSetup({
-  //jQuery won't allow using the ajaxCsrfSetup function directly
-  beforeSend: ajaxCsrfSetup,
-});
+const ROOT_ELEMENT = 'blk_router';
 
 const render = (Component: React.ComponentType) => {
-  const rootEl = document.getElementById('blk_router');
+  const rootEl = document.getElementById(ROOT_ELEMENT);
 
   try {
     ReactDOM.render(<Component />, rootEl);
@@ -134,9 +127,13 @@ const render = (Component: React.ComponentType) => {
   }
 };
 
-if (NODE_ENV === 'production') {
-  setupFavicon();
-}
+const RenderPipelineView = (pipelineName: string, props: Object) => {
+  const rootEl = document.getElementById(ROOT_ELEMENT);
+  ReactDOM.render(<PipelineView pipelineName={pipelineName} {...props} />, rootEl);
+};
+
+// setup darkmode + favicon
+setupColorScheme();
 
 // The password strength component is very heavyweight as it includes the
 // zxcvbn, a relatively byte-heavy password strength estimation library. Load
@@ -155,6 +152,9 @@ async function loadPasswordStrength(callback: Function) {
 const globals = {
   // This is the primary entrypoint for rendering the sentry app.
   SentryRenderApp: () => render(Main),
+
+  // This is used to render pipeline views (such as the integration popup)
+  RenderPipelineView,
 
   // The following globals are used in sentry-plugins webpack externals
   // configuration.
@@ -200,6 +200,8 @@ globals.SentryApp = {
   SystemAlerts: require('app/views/app/systemAlerts').default,
   Indicators: require('app/components/indicators').default,
   SetupWizard: require('app/components/setupWizard').default,
+  HookStore: require('app/stores/hookStore').default,
+  Modal: require('app/actionCreators/modal'),
 };
 
 // Make globals available on the window object

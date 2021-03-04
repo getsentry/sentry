@@ -1,16 +1,18 @@
-import PropTypes from 'prop-types';
+import React from 'react';
 
-import {APIRequestMethod, Client} from 'app/api';
 import {
+  addErrorMessage,
   addLoadingMessage,
   clearIndicators,
-  addErrorMessage,
 } from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
+import {APIRequestMethod, Client} from 'app/api';
 import Form from 'app/components/forms/form';
+import FormField from 'app/components/forms/formField';
 import FormState from 'app/components/forms/state';
+import {t} from 'app/locale';
 
 type Props = Form['props'] & {
+  omitDisabled?: boolean;
   onSubmit?: (data: object) => void;
   apiEndpoint: string;
   apiMethod: APIRequestMethod;
@@ -21,23 +23,37 @@ type Props = Form['props'] & {
 export default class ApiForm extends Form<Props> {
   api = new Client();
 
-  static propTypes = {
-    ...Form.propTypes,
-    onSubmit: PropTypes.func,
-    apiMethod: PropTypes.string.isRequired,
-    apiEndpoint: PropTypes.string.isRequired,
-    submitLoadingMessage: PropTypes.string,
-    submitErrorMessage: PropTypes.string,
-  };
-
   static defaultProps = {
     ...Form.defaultProps,
+    omitDisabled: false, // TODO(chadwhitacre) Upstream, flip to true, deprecate.
     submitErrorMessage: t('There was an error saving your changes.'),
     submitLoadingMessage: t('Saving changes\u2026'),
   };
 
   componentWillUnmount() {
     this.api.clear();
+  }
+
+  getEnabledData() {
+    // Return a hash of data from non-disabled fields.
+
+    // Start with this.state.data and remove rather than starting from scratch
+    // and adding, because a) this.state.data is our source of truth, and b)
+    // we'd have to do more work to loop over the state.data Object and lookup
+    // against the props.children Array (looping over the Array and looking up
+    // in the Object is more natural). Maybe the consequent use of delete
+    // carries a slight performance hit. Why is yer form so big? 🤔
+
+    const data = {...this.state.data}; // Copy to avoid mutating state.data itself.
+    React.Children.forEach(this.props.children, (child: any) => {
+      if (!FormField.isPrototypeOf(child.type)) {
+        return; // Form children include h4's, etc.
+      }
+      if (child.key && child.props?.disabled) {
+        delete data[child.key]; // Assume a link between child.key and data. 🐭
+      }
+    });
+    return data;
   }
 
   onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -47,7 +63,12 @@ export default class ApiForm extends Form<Props> {
       return;
     }
 
-    const {data} = this.state;
+    // Actual HTML forms do not submit data for disabled fields, and because of
+    // the way some of our APIs are implemented, we need to start doing the
+    // same. But, since some other parts of the app very probably depend on
+    // sending disabled fields, keep that the default for now.
+    // TODO(chadwhitacre): Expand and upstream this.
+    const data = this.props.omitDisabled ? this.getEnabledData() : this.state.data;
 
     this.props.onSubmit && this.props.onSubmit(data);
     this.setState(

@@ -1,19 +1,18 @@
 import React from 'react';
 import sortBy from 'lodash/sortBy';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
-import GlobalModal from 'app/components/globalModal';
 import {openModal} from 'app/actionCreators/modal';
-import Edit from 'app/views/settings/components/dataScrubbing/modals/edit';
 import convertRelayPiiConfig from 'app/views/settings/components/dataScrubbing/convertRelayPiiConfig';
+import Edit from 'app/views/settings/components/dataScrubbing/modals/edit';
+import submitRules from 'app/views/settings/components/dataScrubbing/submitRules';
 import {MethodType, RuleType} from 'app/views/settings/components/dataScrubbing/types';
 import {
   getMethodLabel,
   getRuleLabel,
   valueSuggestions,
 } from 'app/views/settings/components/dataScrubbing/utils';
-import submitRules from 'app/views/settings/components/dataScrubbing/submitRules';
 
 // @ts-expect-error
 const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();
@@ -31,7 +30,7 @@ const api = new MockApiClient();
 jest.mock('app/views/settings/components/dataScrubbing/submitRules');
 
 async function renderComponent() {
-  const wrapper = mountWithTheme(<GlobalModal />);
+  const modal = await mountGlobalModal();
 
   openModal(modalProps => (
     <Edit
@@ -48,9 +47,9 @@ async function renderComponent() {
 
   // @ts-expect-error
   await tick();
-  wrapper.update();
+  modal.update();
 
-  return wrapper;
+  return modal;
 }
 
 describe('Edit Modal', () => {

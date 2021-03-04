@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
 type Props = {
@@ -12,8 +11,8 @@ type Props = {
  */
 const ActivityBubble = styled('div')<Props>`
   flex: 1;
-  background-color: ${p => p.backgroundColor};
-  border: 1px solid ${p => p.borderColor || p.theme.borderLight};
+  background-color: ${p => p.backgroundColor || p.theme.background};
+  border: 1px solid ${p => p.borderColor || p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   position: relative;
   width: 100%; /* this is used in Incidents Details - a chart can cause overflow and won't resize properly */
@@ -25,7 +24,7 @@ const ActivityBubble = styled('div')<Props>`
     height: 0;
     border-top: 7px solid transparent;
     border-bottom: 7px solid transparent;
-    border-right: 7px solid ${p => p.borderColor || p.theme.borderLight};
+    border-right: 7px solid ${p => p.borderColor || p.theme.border};
     position: absolute;
     left: -7px;
     top: 12px;
@@ -38,20 +37,11 @@ const ActivityBubble = styled('div')<Props>`
     height: 0;
     border-top: 6px solid transparent;
     border-bottom: 6px solid transparent;
-    border-right: 6px solid ${p => p.backgroundColor};
+    border-right: 6px solid ${p => p.backgroundColor || p.theme.background};
     position: absolute;
     left: -6px;
     top: 13px;
   }
 `;
-
-ActivityBubble.propTypes = {
-  backgroundColor: PropTypes.string,
-  borderColor: PropTypes.string,
-};
-
-ActivityBubble.defaultProps = {
-  backgroundColor: '#fff',
-};
 
 export default ActivityBubble;

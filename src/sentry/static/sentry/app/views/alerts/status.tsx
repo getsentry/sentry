@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {IconCheckmark, IconWarning, IconFire} from 'app/icons';
 
 import {Incident, IncidentStatus} from './types';
 
@@ -22,11 +22,11 @@ const Status = ({className, incident, disableIconColor}: Props) => {
   const isWarning = status === IncidentStatus.WARNING;
 
   const icon = isResolved ? (
-    <IconCheckmark color={disableIconColor ? undefined : 'green400'} />
+    <IconCheckmark color={disableIconColor ? undefined : 'green300'} />
   ) : isWarning ? (
     <IconWarning color={disableIconColor ? undefined : 'orange400'} />
   ) : (
-    <IconFire color={disableIconColor ? undefined : 'red400'} />
+    <IconFire color={disableIconColor ? undefined : 'red300'} />
   );
 
   const text = isResolved ? t('Resolved') : isWarning ? t('Warning') : t('Critical');

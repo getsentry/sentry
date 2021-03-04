@@ -1,16 +1,16 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
+import PropTypes from 'prop-types';
 
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {getInterval} from 'app/components/charts/utils';
-import {getPeriod} from 'app/utils/getPeriod';
-import {parsePeriodToHours} from 'app/utils/dates';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import SentryTypes from 'app/sentryTypes';
-import createQueryBuilder from 'app/views/discover/queryBuilder';
+import {parsePeriodToHours} from 'app/utils/dates';
+import {getPeriod} from 'app/utils/getPeriod';
 import withProjects from 'app/utils/withProjects';
+import createQueryBuilder from 'app/views/discover/queryBuilder';
 
 // Note: Limit max releases so that chart is still a bit readable
 const MAX_RECENT_RELEASES = 20;

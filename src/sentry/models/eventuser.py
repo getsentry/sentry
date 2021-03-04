@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from collections import OrderedDict
 from functools import reduce
 from operator import or_
@@ -71,7 +69,7 @@ class EventUser(Model):
         ), "No identifying value found for user"
         if not self.hash:
             self.set_hash()
-        super(EventUser, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def set_hash(self):
         self.hash = self.build_hash()
@@ -88,7 +86,7 @@ class EventUser(Model):
         """
         for key, value in self.iter_attributes():
             if value:
-                return u"{}:{}".format(KEYWORD_MAP[key], value)
+                return f"{KEYWORD_MAP[key]}:{value}"
 
     def iter_attributes(self):
         """

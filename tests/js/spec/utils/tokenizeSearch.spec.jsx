@@ -1,7 +1,7 @@
 import {
-  tokenizeSearch,
-  stringifyQueryObject,
   QueryResults,
+  stringifyQueryObject,
+  tokenizeSearch,
   TokenType,
 } from 'app/utils/tokenizeSearch';
 
@@ -271,6 +271,27 @@ describe('utils/tokenizeSearch', function () {
       expect(results.formatString()).toEqual('transaction:def');
     });
 
+    it('does not remove boolean operators after setting tag values', function () {
+      const results = new QueryResults([
+        '(',
+        'start:xyz',
+        'AND',
+        'end:abc',
+        ')',
+        'OR',
+        '(',
+        'start:abc',
+        'AND',
+        'end:xyz',
+        ')',
+      ]);
+
+      results.setTagValues('transaction', ['def']);
+      expect(results.formatString()).toEqual(
+        '( start:xyz AND end:abc ) OR ( start:abc AND end:xyz ) transaction:def'
+      );
+    });
+
     it('removes tags from query object', function () {
       let results = new QueryResults(['x', 'a:a', 'b:b']);
       results.removeTag('a');
@@ -307,6 +328,24 @@ describe('utils/tokenizeSearch', function () {
       results = new QueryResults(['(((a:a', 'OR', 'b:b1)', 'OR', 'c:c)', 'OR', 'b:b2)']);
       results.removeTag('b');
       expect(results.formatString()).toEqual('( ( a:a OR c:c ) )');
+    });
+
+    it('can return the tag keys', function () {
+      const results = new QueryResults(['tag:value', 'other:value', 'additional text']);
+
+      expect(results.getTagKeys()).toEqual(['tag', 'other']);
+    });
+
+    it('getTagValues', () => {
+      const results = new QueryResults([
+        'tag:value',
+        'other:value',
+        'tag:value2',
+        'additional text',
+      ]);
+      expect(results.getTagValues('tag')).toEqual(['value', 'value2']);
+
+      expect(results.getTagValues('nonexistent')).toEqual([]);
     });
   });
 

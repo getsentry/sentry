@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry import analytics
 
 from sentry.api import client
@@ -44,9 +40,9 @@ class SlackActionEndpoint(Endpoint):
 
     def api_error(self, error, action_type, logging_data, error_text):
         logging_data = logging_data.copy()
-        logging_data["response"] = six.text_type(error.body)
+        logging_data["response"] = str(error.body)
         logging_data["action_type"] = action_type
-        logger.info("slack.action.api-error-pre-message: %s" % six.text_type(logging_data))
+        logger.info("slack.action.api-error-pre-message: %s" % str(logging_data))
         logger.info("slack.action.api-error", extra=logging_data)
 
         return self.respond(
@@ -90,9 +86,7 @@ class SlackActionEndpoint(Endpoint):
         )
 
         return client.put(
-            path=u"/projects/{}/{}/issues/".format(
-                group.project.organization.slug, group.project.slug
-            ),
+            path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
             params={"id": group.id},
             data=data,
             user=identity.user,
@@ -115,7 +109,7 @@ class SlackActionEndpoint(Endpoint):
 
         dialog = {
             "callback_id": callback_id,
-            "title": u"Resolve Issue",
+            "title": "Resolve Issue",
             "submit_label": "Resolve",
             "elements": [RESOLVE_SELECTOR],
         }
@@ -130,7 +124,7 @@ class SlackActionEndpoint(Endpoint):
         try:
             slack_client.post("/dialog.open", data=payload)
         except ApiError as e:
-            logger.error("slack.action.response-error", extra={"error": six.text_type(e)})
+            logger.error("slack.action.response-error", extra={"error": str(e)})
 
     def construct_reply(self, attachment, is_message=False):
         # XXX(epurkhiser): Slack is inconsistent about it's expected responses
@@ -261,7 +255,7 @@ class SlackActionEndpoint(Endpoint):
                     slack_request.callback_data["orig_response_url"], data=body, json=True
                 )
             except ApiError as e:
-                logger.error("slack.action.response-error", extra={"error": six.text_type(e)})
+                logger.error("slack.action.response-error", extra={"error": str(e)})
 
             return self.respond()
 

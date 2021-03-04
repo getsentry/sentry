@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
-
-class ConsumerType(object):
+class ConsumerType:
     """
     Defines the types of ingestion consumers
     """

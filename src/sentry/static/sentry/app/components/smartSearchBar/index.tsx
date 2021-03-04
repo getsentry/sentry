@@ -1,50 +1,50 @@
-import {ClassNames} from '@emotion/core';
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
-import debounce from 'lodash/debounce';
+import {browserHistory} from 'react-router';
+import {ClassNames} from '@emotion/core';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import createReactClass from 'create-react-class';
+import debounce from 'lodash/debounce';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {defined} from 'app/utils';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {t} from 'app/locale';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
-import DropdownLink from 'app/components/dropdownLink';
-import {IconEllipsis, IconSearch, IconSliders, IconClose, IconPin} from 'app/icons';
-import MemberListStore from 'app/stores/memberListStore';
-import space from 'app/styles/space';
-import theme from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import {Client} from 'app/api';
-import {LightWeightOrganization, SavedSearch, Tag, SavedSearchType} from 'app/types';
 import {
   fetchRecentSearches,
   pinSearch,
   saveRecentSearch,
   unpinSearch,
 } from 'app/actionCreators/savedSearches';
+import {Client} from 'app/api';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import DropdownLink from 'app/components/dropdownLink';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {
   DEFAULT_DEBOUNCE_DURATION,
   MAX_AUTOCOMPLETE_RELEASES,
   NEGATION_OPERATOR,
 } from 'app/constants';
+import {IconClose, IconEllipsis, IconPin, IconSearch, IconSliders} from 'app/icons';
+import {t} from 'app/locale';
+import MemberListStore from 'app/stores/memberListStore';
+import space from 'app/styles/space';
+import {LightWeightOrganization, SavedSearch, SavedSearchType, Tag} from 'app/types';
+import {defined} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {callIfFunction} from 'app/utils/callIfFunction';
+import theme from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
+import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
 
 import SearchDropdown from './searchDropdown';
-import {SearchItem, SearchGroup, ItemType} from './types';
+import {ItemType, SearchGroup, SearchItem} from './types';
 import {
   addSpace,
-  removeSpace,
   createSearchGroups,
   filterSearchGroupsByIndex,
+  removeSpace,
 } from './utils';
 
 const DROPDOWN_BLUR_DURATION = 200;
@@ -61,8 +61,7 @@ const getInputButtonStyles = (p: {
   isActive?: boolean;
   collapseIntoEllipsisMenu?: number;
 }) => `
-  color: ${p.isActive ? theme.blue300 : theme.gray500};
-  margin-left: ${space(0.5)};
+  color: ${p.isActive ? theme.blue300 : theme.gray300};
   width: 18px;
 
   &,
@@ -72,7 +71,7 @@ const getInputButtonStyles = (p: {
   }
 
   &:hover {
-    color: ${theme.gray600};
+    color: ${theme.gray400};
   }
 
   ${
@@ -85,7 +84,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   padding: 0 ${space(1)} ${p.last ? null : space(0.5)};
   margin-bottom: ${p.last ? null : space(0.5)};
   display: none;
-  color: ${theme.gray700};
+  color: ${theme.textColor};
   align-items: center;
   min-width: 190px;
   height: 38px;
@@ -95,12 +94,12 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   &,
   &:hover,
   &:focus {
-    border-bottom: ${p.last ? null : `1px solid ${theme.borderDark}`};
+    border-bottom: ${p.last ? null : `1px solid ${theme.border}`};
     border-radius: 0;
   }
 
   &:hover {
-    color: ${theme.blue500};
+    color: ${theme.blue300};
   }
   & > svg {
     margin-right: ${space(1)};
@@ -120,6 +119,7 @@ type Props = {
 
   defaultQuery?: string;
   query?: string | null;
+  sort?: string;
   /**
    * Prepare query value before filtering dropdown items
    */
@@ -226,6 +226,7 @@ type State = {
    * The current search query in the input
    */
   query: string;
+  sort?: string;
   /**
    * The query in the input since we last updated our autocomplete list.
    */
@@ -603,7 +604,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         return [];
       }
       if (tag.key === 'release' && !values.includes('latest')) {
-        values.push('latest');
+        values.unshift('latest');
       }
 
       const noValueQuery = values.length === 0 && query.length > 0 ? query : undefined;
@@ -630,10 +631,11 @@ class SmartSearchBar extends React.Component<Props, State> {
   getPredefinedTagValues = (tag: Tag, query: string): SearchItem[] =>
     (tag.values ?? [])
       .filter(value => value.indexOf(query) > -1)
-      .map(value => ({
+      .map((value, i) => ({
         value,
         desc: value,
         type: 'tag-value',
+        ignoreMaxSearchItems: tag.maxSuggestedValues ? i < tag.maxSuggestedValues : false,
       }));
 
   /**
@@ -1034,6 +1036,7 @@ class SmartSearchBar extends React.Component<Props, State> {
 
       // then update the autocomplete box with new contextTypes
       this.updateAutoCompleteItems();
+      this.props.onChange?.(newQuery, new MouseEvent('click') as any);
     });
   };
 
@@ -1051,6 +1054,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       useFormWrapper,
       onSidebarToggle,
       inlineLabel,
+      sort,
     } = this.props;
 
     const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
@@ -1105,7 +1109,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         ) : (
           input
         )}
-        <StyledButtonBar>
+        <StyledButtonBar gap={0.5}>
           {this.state.query !== '' && (
             <InputButton
               type="button"
@@ -1122,27 +1126,35 @@ class SmartSearchBar extends React.Component<Props, State> {
             </InputButton>
           )}
           {hasPinnedSearch && (
-            <InputButton
-              type="button"
-              title={pinTooltip}
-              borderless
-              disabled={!hasQuery}
-              aria-label={pinTooltip}
-              size="zero"
-              tooltipProps={{
-                containerDisplayMode: 'inline-flex',
-              }}
-              onClick={this.onTogglePinnedSearch}
-              collapseIntoEllipsisMenu={1}
-              isActive={!!pinnedSearch}
-              icon={pinIcon}
-            />
+            <ClassNames>
+              {({css}) => (
+                <InputButton
+                  type="button"
+                  title={pinTooltip}
+                  borderless
+                  disabled={!hasQuery}
+                  aria-label={pinTooltip}
+                  size="zero"
+                  tooltipProps={{
+                    containerDisplayMode: 'inline-flex',
+                    className: css`
+                      ${getMediaQuery(theme.breakpoints[1], 'none')}
+                    `,
+                  }}
+                  onClick={this.onTogglePinnedSearch}
+                  collapseIntoEllipsisMenu={1}
+                  isActive={!!pinnedSearch}
+                  icon={pinIcon}
+                />
+              )}
+            </ClassNames>
           )}
           {canCreateSavedSearch && (
             <ClassNames>
               {({css}) => (
                 <CreateSavedSearchButton
                   query={this.state.query}
+                  sort={sort}
                   organization={organization}
                   withTooltip
                   iconOnly
@@ -1151,23 +1163,33 @@ class SmartSearchBar extends React.Component<Props, State> {
                       collapseIntoEllipsisMenu: 2,
                     })}
                   `}
+                  tooltipClassName={css`
+                    ${getMediaQuery(theme.breakpoints[2], 'none')}
+                  `}
                 />
               )}
             </ClassNames>
           )}
           {hasSearchBuilder && (
-            <SearchBuilderButton
-              title={t('Toggle search builder')}
-              borderless
-              size="zero"
-              tooltipProps={{
-                containerDisplayMode: 'inline-flex',
-              }}
-              collapseIntoEllipsisMenu={2}
-              aria-label={t('Toggle search builder')}
-              onClick={onSidebarToggle}
-              icon={<IconSliders size="xs" />}
-            />
+            <ClassNames>
+              {({css}) => (
+                <InputButton
+                  title={t('Toggle search builder')}
+                  borderless
+                  size="zero"
+                  tooltipProps={{
+                    containerDisplayMode: 'inline-flex',
+                    className: css`
+                      ${getMediaQuery(theme.breakpoints[2], 'none')}
+                    `,
+                  }}
+                  collapseIntoEllipsisMenu={2}
+                  aria-label={t('Toggle search builder')}
+                  onClick={onSidebarToggle}
+                  icon={<IconSliders size="xs" />}
+                />
+              )}
+            </ClassNames>
           )}
 
           {(hasPinnedSearch || canCreateSavedSearch || hasSearchBuilder) && (
@@ -1202,12 +1224,16 @@ class SmartSearchBar extends React.Component<Props, State> {
                   {({css}) => (
                     <CreateSavedSearchButton
                       query={this.state.query}
+                      sort={sort}
                       organization={organization}
                       buttonClassName={css`
                         ${getDropdownElementStyles({
                           showBelowMediaQuery: 2,
                           last: false,
                         })}
+                      `}
+                      tooltipClassName={css`
+                        ${getMediaQuery(theme.breakpoints[2], 'none')}
                       `}
                     />
                   )}
@@ -1252,7 +1278,7 @@ export default withApi(withOrganization(SmartSearchBarContainer));
 export {SmartSearchBar};
 
 const Container = styled('div')<{isOpen: boolean}>`
-  border: 1px solid ${p => (p.isOpen ? p.theme.borderDark : p.theme.borderLight)};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p =>
     p.isOpen
       ? `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`
@@ -1260,14 +1286,14 @@ const Container = styled('div')<{isOpen: boolean}>`
   /* match button height */
   height: 40px;
   box-shadow: inset ${p => p.theme.dropShadowLight};
-  background: #fff;
+  background: ${p => p.theme.background};
 
   position: relative;
 
   display: flex;
 
   .show-sidebar & {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
 `;
 
@@ -1280,11 +1306,10 @@ const StyledForm = styled('form')`
 `;
 
 const StyledInput = styled('input')`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   background: transparent;
   border: 0;
   outline: none;
-
   font-size: ${p => p.theme.fontSizeMedium};
   width: 100%;
   height: 40px;
@@ -1292,10 +1317,10 @@ const StyledInput = styled('input')`
   padding: 0 0 0 ${space(1)};
 
   &::placeholder {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.formPlaceholder};
   }
   &:focus {
-    border-color: ${p => p.theme.borderDark};
+    border-color: ${p => p.theme.border};
     border-bottom-right-radius: 0;
   }
 
@@ -1306,11 +1331,6 @@ const StyledInput = styled('input')`
 
 const InputButton = styled(Button)`
   ${getInputButtonStyles}
-`;
-
-const SearchBuilderButton = styled(InputButton)`
-  margin-left: ${space(0.25)};
-  margin-right: ${space(0.5)};
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`
@@ -1346,5 +1366,5 @@ const SearchLabel = styled('label')`
   align-items: center;
   margin: 0;
   padding-left: ${space(1)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;

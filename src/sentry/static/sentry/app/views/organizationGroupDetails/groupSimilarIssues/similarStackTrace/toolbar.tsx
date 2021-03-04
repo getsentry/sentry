@@ -1,19 +1,18 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
+import {PanelHeader} from 'app/components/panels';
+import ToolbarHeader from 'app/components/toolbarHeader';
 import {t} from 'app/locale';
 import GroupingStore from 'app/stores/groupingStore';
-import SpreadLayout from 'app/components/spreadLayout';
-import FlowLayout from 'app/components/flowLayout';
-import Confirm from 'app/components/confirm';
-import Button from 'app/components/button';
-import Toolbar from 'app/components/toolbar';
-import ToolbarHeader from 'app/components/toolbarHeader';
-import {callIfFunction} from 'app/utils/callIfFunction';
 import space from 'app/styles/space';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 type Props = {
   onMerge: () => void;
+  v2: boolean;
 };
 
 const inititalState = {
@@ -42,55 +41,39 @@ class SimilarToolbar extends React.Component<Props, State> {
   listener = GroupingStore.listen(this.onGroupChange, undefined);
 
   render() {
-    const {onMerge} = this.props;
+    const {onMerge, v2} = this.props;
     const {mergeCount} = this.state;
 
     return (
-      <Toolbar>
-        <SpreadLayout responsive>
-          <StyledFlowLayout>
-            <FlowLayout>
-              <Actions>
-                <Confirm
-                  data-test-id="merge"
-                  disabled={mergeCount === 0}
-                  message={t('Are you sure you want to merge these issues?')}
-                  onConfirm={onMerge}
-                >
-                  <Button size="small" title={t('Merging %s issues', mergeCount)}>
-                    {t('Merge %s', `(${mergeCount || 0})`)}
-                  </Button>
-                </Confirm>
-              </Actions>
-            </FlowLayout>
-          </StyledFlowLayout>
+      <PanelHeader hasButtons>
+        <Confirm
+          data-test-id="merge"
+          disabled={mergeCount === 0}
+          message={t('Are you sure you want to merge these issues?')}
+          onConfirm={onMerge}
+        >
+          <Button size="small" title={t('Merging %s issues', mergeCount)}>
+            {t('Merge %s', `(${mergeCount || 0})`)}
+          </Button>
+        </Confirm>
 
-          <Columns>
-            <StyledToolbarHeader className="event-count-header">
-              {t('Events')}
-            </StyledToolbarHeader>
-            <StyledToolbarHeader className="event-similar-header">
-              {t('Exception')}
-            </StyledToolbarHeader>
-            <StyledToolbarHeader className="event-similar-header">
-              {t('Message')}
-            </StyledToolbarHeader>
-          </Columns>
-        </SpreadLayout>
-      </Toolbar>
+        <Columns>
+          <StyledToolbarHeader>{t('Events')}</StyledToolbarHeader>
+
+          {v2 ? (
+            <StyledToolbarHeader>{t('Score')}</StyledToolbarHeader>
+          ) : (
+            <React.Fragment>
+              <StyledToolbarHeader>{t('Exception')}</StyledToolbarHeader>
+              <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
+            </React.Fragment>
+          )}
+        </Columns>
+      </PanelHeader>
     );
   }
 }
 export default SimilarToolbar;
-
-const Actions = styled('div')`
-  margin-left: ${space(3)};
-  padding: ${space(0.5)} 0;
-`;
-
-const StyledFlowLayout = styled(FlowLayout)`
-  flex: 1;
-`;
 
 const Columns = styled('div')`
   display: flex;

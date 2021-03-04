@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from collections import defaultdict
 
 from rest_framework.response import Response
@@ -61,7 +59,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
         )
 
         platforms = ProjectPlatform.objects.filter(
-            project_id__in=set(x["project__id"] for x in project_releases)
+            project_id__in={x["project__id"] for x in project_releases}
         ).values_list("project_id", "platform")
         platforms_by_project = defaultdict(list)
         for project_id, platform in platforms:
@@ -90,6 +88,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
                 "newGroups": release.new_groups,
                 "deployCount": release.total_deploys,
                 "commitCount": release.commit_count,
+                "released": release.date_released or release.date_added,
                 "commitFilesChanged": commit_files_changed,
                 "releaseFileCount": release_file_count,
             }

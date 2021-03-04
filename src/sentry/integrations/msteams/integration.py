@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from django.utils.translation import ugettext_lazy as _
@@ -47,7 +45,7 @@ INSTALL_NOTICE_TEXT = (
 )
 
 external_install = {
-    "url": u"https://teams.microsoft.com/l/app/{}".format(options.get("msteams.app-id")),
+    "url": "https://teams.microsoft.com/l/app/{}".format(options.get("msteams.app-id")),
     "buttonText": _("Teams Marketplace"),
     "noticeText": _(INSTALL_NOTICE_TEXT),
 }
@@ -58,7 +56,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=Microsoft%20Teams%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Microsoft%20Teams%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/msteams",
     aspects={"externalInstall": external_install},
 )
@@ -96,6 +94,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
                 "expires_at": token_data["expires_at"],
                 "service_url": service_url,
             },
+            # TODO: Use user id for external_id in user_identity
             "user_identity": {"type": "msteams", "external_id": team_id, "scopes": [], "data": {}},
         }
         return integration

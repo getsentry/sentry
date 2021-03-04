@@ -1,11 +1,9 @@
-from __future__ import absolute_import, print_function
-
 from django.conf import settings
 from django.utils.functional import cached_property
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
-class RedisBackend(object):
+class RedisBackend:
     def __init__(self, broker_url):
         self.broker_url = broker_url
 
@@ -29,7 +27,7 @@ class RedisBackend(object):
         return size
 
 
-class AmqpBackend(object):
+class AmqpBackend:
     def __init__(self, broker_url):
         dsn = urlparse(broker_url)
         host, port = dsn.hostname, dsn.port

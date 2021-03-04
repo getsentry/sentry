@@ -1,20 +1,20 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Link from 'app/components/links/link';
-import {ApiApplication} from 'app/types';
-import {Client} from 'app/api';
-import {PanelItem} from 'app/components/panels';
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
+import {Client} from 'app/api';
 import Button from 'app/components/button';
+import Link from 'app/components/links/link';
+import {PanelItem} from 'app/components/panels';
 import {IconDelete} from 'app/icons';
-import getDynamicText from 'app/utils/getDynamicText';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {ApiApplication} from 'app/types';
+import getDynamicText from 'app/utils/getDynamicText';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
@@ -105,7 +105,7 @@ const ApplicationName = styled(Link)`
 `;
 
 const ClientId = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

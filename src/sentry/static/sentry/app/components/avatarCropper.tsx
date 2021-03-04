@@ -1,11 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import Well from 'app/components/well';
 import {AVATAR_URL_MAP} from 'app/constants';
 import {t, tct} from 'app/locale';
-import Well from 'app/components/well';
 import {AvatarUser} from 'app/types';
 
 const resizerPositions = {
@@ -35,13 +34,6 @@ type State = {
 };
 
 class AvatarCropper extends React.Component<Props, State> {
-  static propTypes = {
-    model: PropTypes.object.isRequired,
-    updateDataUrlState: PropTypes.func.isRequired,
-    type: PropTypes.oneOf(['user', 'team', 'organization', 'project']),
-    savedDataUrl: PropTypes.string,
-  };
-
   state: State = {
     file: null,
     objectURL: null,
@@ -428,11 +420,15 @@ const ImageCropper = styled('div')<{resizeDirection: Position | null}>`
   margin-bottom: 20px;
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-  background-color: #fff;
-  background-image: linear-gradient(45deg, #eee 25%, rgba(0, 0, 0, 0) 25%),
-    linear-gradient(-45deg, #eee 25%, rgba(0, 0, 0, 0) 25%),
-    linear-gradient(45deg, rgba(0, 0, 0, 0) 75%, #eee 75%),
-    linear-gradient(-45deg, rgba(0, 0, 0, 0) 75%, #eee 75%);
+  background-color: ${p => p.theme.background};
+  background-image: linear-gradient(
+      45deg,
+      ${p => p.theme.backgroundSecondary} 25%,
+      rgba(0, 0, 0, 0) 25%
+    ),
+    linear-gradient(-45deg, ${p => p.theme.backgroundSecondary} 25%, rgba(0, 0, 0, 0) 25%),
+    linear-gradient(45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%),
+    linear-gradient(-45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%);
 `;
 
 const CropContainer = styled('div')`
@@ -443,7 +439,7 @@ const CropContainer = styled('div')`
 
 const Cropper = styled('div')`
   position: absolute;
-  border: 2px dashed ${p => p.theme.gray500};
+  border: 2px dashed ${p => p.theme.gray300};
 `;
 
 const Resizer = styled('div')<{position: Position}>`
@@ -451,7 +447,7 @@ const Resizer = styled('div')<{position: Position}>`
   width: 10px;
   height: 10px;
   position: absolute;
-  background-color: ${p => p.theme.gray500};
+  background-color: ${p => p.theme.gray300};
   cursor: ${p => `${p.position}-resize`};
   ${p => resizerPositions[p.position].map(pos => `${pos}: -5px;`)}
 `;

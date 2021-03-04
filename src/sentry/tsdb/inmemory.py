@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 from collections import Counter, defaultdict
 
-import six
 from django.utils import timezone
 
 from sentry.tsdb.base import BaseTSDB
@@ -18,18 +15,18 @@ class InMemoryTSDB(BaseTSDB):
     """
 
     def __init__(self, *args, **kwargs):
-        super(InMemoryTSDB, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.flush()
 
     def incr(self, model, key, timestamp=None, count=1, environment_id=None):
         self.validate_arguments([model], [environment_id])
 
-        environment_ids = set([environment_id, None])
+        environment_ids = {environment_id, None}
 
         if timestamp is None:
             timestamp = timezone.now()
 
-        for rollup, max_values in six.iteritems(self.rollups):
+        for rollup, max_values in self.rollups.items():
             norm_epoch = self.normalize_to_rollup(timestamp, rollup)
             for environment_id in environment_ids:
                 self.data[model][(key, environment_id)][norm_epoch] += count
@@ -87,19 +84,19 @@ class InMemoryTSDB(BaseTSDB):
         for epoch, key, count in results:
             results_by_key[key][epoch] = int(count or 0)
 
-        for key, points in six.iteritems(results_by_key):
+        for key, points in results_by_key.items():
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
     def record(self, model, key, values, timestamp=None, environment_id=None):
         self.validate_arguments([model], [environment_id])
 
-        environment_ids = set([environment_id, None])
+        environment_ids = {environment_id, None}
 
         if timestamp is None:
             timestamp = timezone.now()
 
-        for rollup, max_values in six.iteritems(self.rollups):
+        for rollup, max_values in self.rollups.items():
             r = self.normalize_to_rollup(timestamp, rollup)
             for environment_id in environment_ids:
                 self.sets[model][(key, environment_id)][r].update(values)
@@ -200,7 +197,7 @@ class InMemoryTSDB(BaseTSDB):
         self.frequencies = defaultdict(lambda: defaultdict(lambda: defaultdict(Counter)))
 
     def record_frequency_multi(self, requests, timestamp=None, environment_id=None):
-        environment_ids = set([environment_id, None])
+        environment_ids = {environment_id, None}
 
         self.validate_arguments([model for model, request in requests], [environment_id])
 
@@ -271,9 +268,9 @@ class InMemoryTSDB(BaseTSDB):
 
         results = {}
 
-        for key, series in six.iteritems(
-            self.get_frequency_series(model, items, start, end, rollup, environment_id)
-        ):
+        for key, series in self.get_frequency_series(
+            model, items, start, end, rollup, environment_id
+        ).items():
             result = results[key] = {}
             for timestamp, scores in series:
                 for member, score in scores.items():

@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
-import six
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
+from sentry.api.base import ReleaseAnalyticsMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.exceptions import InvalidRepository, ResourceDoesNotExist
+from sentry.api.exceptions import InvalidRepository, ConflictError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ListField,
@@ -13,12 +11,11 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
     ReleaseHeadCommitSerializerDeprecated,
 )
-from sentry.models import Activity, Release, Project
+from sentry.models import Activity, Release, ReleaseCommitError, Project
 from sentry.models.release import UnsafeReleaseDeletion
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.api.endpoints.organization_releases import get_stats_period_detail
 from sentry.utils.sdk import configure_scope, bind_organization_context
-from sentry.web.decorators import transaction_start
 
 
 class OrganizationReleaseSerializer(ReleaseSerializer):
@@ -28,8 +25,7 @@ class OrganizationReleaseSerializer(ReleaseSerializer):
     refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
 
 
-class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
-    @transaction_start("OrganizationReleaseDetailsEndpoint.get")
+class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
     def get(self, request, organization, version):
         """
         Retrieve an Organization's Release
@@ -76,7 +72,6 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             )
         )
 
-    @transaction_start("OrganizationReleaseDetailsEndpoint.put")
     def put(self, request, organization, version):
         """
         Update an Organization's Release
@@ -97,6 +92,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                                       the release went live.  If not provided
                                       the current time is assumed.
         :param array commits: an optional list of commit data to be associated
+
                               with the release. Commits must include parameters
                               ``id`` (the sha of the commit), and can optionally
                               include ``repository``, ``message``, ``author_name``,
@@ -115,6 +111,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             scope.set_tag("version", version)
             try:
                 release = Release.objects.get(organization_id=organization, version=version)
+                projects = release.projects.all()
             except Release.DoesNotExist:
                 scope.set_tag("failure_reason", "Release.DoesNotExist")
                 raise ResourceDoesNotExist
@@ -140,6 +137,8 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                 kwargs["ref"] = result["ref"]
             if result.get("url"):
                 kwargs["url"] = result["url"]
+            if result.get("status"):
+                kwargs["status"] = result["status"]
 
             if kwargs:
                 release.update(**kwargs)
@@ -147,7 +146,15 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             commit_list = result.get("commits")
             if commit_list:
                 # TODO(dcramer): handle errors with release payloads
-                release.set_commits(commit_list)
+                try:
+                    release.set_commits(commit_list)
+                    self.track_set_commits_local(
+                        request,
+                        organization_id=organization.id,
+                        project_ids=[project.id for project in projects],
+                    )
+                except ReleaseCommitError:
+                    raise ConflictError("Release commits are currently being processed")
 
             refs = result.get("refs")
             if not refs:
@@ -172,10 +179,10 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                     release.set_refs(refs, request.user, fetch=fetch_commits)
                 except InvalidRepository as e:
                     scope.set_tag("failure_reason", "InvalidRepository")
-                    return Response({"refs": [six.text_type(e)]}, status=400)
+                    return Response({"refs": [str(e)]}, status=400)
 
             if not was_released and release.date_released:
-                for project in release.projects.all():
+                for project in projects:
                     Activity.objects.create(
                         type=Activity.RELEASE,
                         project=project,
@@ -186,7 +193,6 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
 
             return Response(serialize(release, request.user))
 
-    @transaction_start("OrganizationReleaseDetailsEndpoint.delete")
     def delete(self, request, organization, version):
         """
         Delete an Organization's Release
@@ -210,6 +216,6 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         try:
             release.safe_delete()
         except UnsafeReleaseDeletion as e:
-            return Response({"detail": six.text_type(e)}, status=400)
+            return Response({"detail": str(e)}, status=400)
 
         return Response(status=204)

@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Breadcrumbs from 'app/components/breadcrumbs';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import Breadcrumbs from 'app/components/breadcrumbs';
 
 type Props = {
   hasMetricAlerts: boolean;

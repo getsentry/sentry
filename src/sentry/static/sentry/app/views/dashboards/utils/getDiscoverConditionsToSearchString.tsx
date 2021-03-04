@@ -1,9 +1,9 @@
+import {defined} from 'app/utils';
 import {
   NEGATION_OPERATORS,
   NULL_OPERATORS,
   WILDCARD_OPERATORS,
 } from 'app/views/discover/data';
-import {defined} from 'app/utils';
 import {Condition} from 'app/views/discover/types';
 
 const checkIsNegation = operator => NEGATION_OPERATORS.includes(operator);

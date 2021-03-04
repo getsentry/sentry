@@ -13,6 +13,6 @@ function GettingStarted({className, children}: Props) {
   return <PageContent className={className}>{children}</PageContent>;
 }
 export default styled(GettingStarted)`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   padding-top: ${space(3)};
 `;

@@ -1,22 +1,22 @@
-import ReactSelect, {components} from 'react-select';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
+import {components, StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
+import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
-import {Organization, Project} from 'app/types';
-import {t, tct} from 'app/locale';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import OrganizationStore from 'app/stores/organizationStore';
-import OrganizationsStore from 'app/stores/organizationsStore';
-import Projects from 'app/utils/projects';
-import SelectControl from 'app/components/forms/selectControl';
-import replaceRouterParams from 'app/utils/replaceRouterParams';
-import space from 'app/styles/space';
-import Link from 'app/components/links/link';
-import IdBadge from 'app/components/idBadge';
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import SelectControl from 'app/components/forms/selectControl';
+import IdBadge from 'app/components/idBadge';
+import Link from 'app/components/links/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {t, tct} from 'app/locale';
+import OrganizationsStore from 'app/stores/organizationsStore';
+import OrganizationStore from 'app/stores/organizationStore';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
+import Projects from 'app/utils/projects';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 type Props = ModalRenderProps & {
   /**
@@ -65,6 +65,15 @@ type Props = ModalRenderProps & {
   comingFromProjectId?: string;
 };
 
+const selectStyles = {
+  menu: (provided: StylesConfig) => ({
+    ...provided,
+    position: 'auto',
+    boxShadow: 'none',
+    marginBottom: 0,
+  }),
+};
+
 class ContextPickerModal extends React.Component<Props> {
   componentDidMount() {
     const {organization, projects, organizations} = this.props;
@@ -91,8 +100,10 @@ class ContextPickerModal extends React.Component<Props> {
     }
   }
 
-  orgSelect: ReactSelect | null = null;
-  projectSelect: ReactSelect | null = null;
+  // TODO(ts) The various generics in react-select types make getting this
+  // right hard.
+  orgSelect: any | null = null;
+  projectSelect: any | null = null;
 
   // Performs checks to see if we need to prompt user
   // i.e. When there is only 1 org and no project is needed or
@@ -139,7 +150,7 @@ class ContextPickerModal extends React.Component<Props> {
     );
   };
 
-  doFocus = (ref: ReactSelect | null) => {
+  doFocus = (ref: any | null) => {
     if (!ref || this.props.loading) {
       return;
     }
@@ -255,17 +266,18 @@ class ContextPickerModal extends React.Component<Props> {
     }
     return (
       <StyledSelectControl
-        ref={(ref: ReactSelect) => {
+        ref={(ref: any) => {
           this.projectSelect = ref;
           this.focusProjectSelector();
         }}
-        placeholder={t('Select a Project')}
+        placeholder={t('Select a Project to continue')}
         name="project"
-        openMenuOnFocus
         options={projects.map(({slug}) => ({label: slug, value: slug}))}
         onChange={this.handleSelectProject}
         onMenuOpen={this.onProjectMenuOpen}
-        components={{Option: this.customOptionProject}}
+        components={{Option: this.customOptionProject, DropdownIndicator: null}}
+        styles={selectStyles}
+        menuIsOpen
       />
     );
   }
@@ -300,7 +312,7 @@ class ContextPickerModal extends React.Component<Props> {
           {loading && <StyledLoadingIndicator overlay />}
           {needOrg && (
             <StyledSelectControl
-              ref={(ref: ReactSelect) => {
+              ref={(ref: any) => {
                 this.orgSelect = ref;
                 if (shouldShowProjectSelector) {
                   return;
@@ -310,9 +322,11 @@ class ContextPickerModal extends React.Component<Props> {
               placeholder={t('Select an Organization')}
               name="organization"
               options={orgChoices}
-              openMenuOnFocus
               value={organization}
               onChange={this.handleSelectOrganization}
+              components={{DropdownIndicator: null}}
+              styles={selectStyles}
+              menuIsOpen
             />
           )}
 

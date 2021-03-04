@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django import forms
 
 
@@ -36,7 +32,7 @@ def field_to_config(name, field):
 
 def form_to_config(form):
     config = []
-    for name, field in six.iteritems(form.base_fields):
+    for name, field in form.base_fields.items():
         row = field_to_config(name, field)
         row["default"] = field.initial
         config.append(row)

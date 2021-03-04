@@ -1,22 +1,29 @@
 import React from 'react';
-import maxBy from 'lodash/maxBy';
-import chunk from 'lodash/chunk';
 import styled from '@emotion/styled';
+import chunk from 'lodash/chunk';
+import maxBy from 'lodash/maxBy';
 
+import {fetchTotalCount} from 'app/actionCreators/events';
 import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {SeriesDataUnit} from 'app/types/echarts';
-import {Panel, PanelBody} from 'app/components/panels';
 import Feature from 'app/components/acl/feature';
 import EventsRequest from 'app/components/charts/eventsRequest';
+import {
+  ChartControls,
+  InlineContainer,
+  SectionHeading,
+  SectionValue,
+} from 'app/components/charts/styles';
+import SelectControl from 'app/components/forms/selectControl';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
-import SelectControl from 'app/components/forms/selectControl';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
+import {SeriesDataUnit} from 'app/types/echarts';
 import withApi from 'app/utils/withApi';
 
-import {IncidentRule, TimeWindow, TimePeriod, Trigger} from '../../types';
+import {IncidentRule, TimePeriod, TimeWindow, Trigger} from '../../types';
+
 import ThresholdsChart from './thresholdsChart';
 
 type Props = {
@@ -112,6 +119,7 @@ const getBucketSize = (timeWindow: TimeWindow, dataPoints: number): number => {
 
 type State = {
   statsPeriod: TimePeriod;
+  totalEvents: number | null;
 };
 
 /**
@@ -121,11 +129,56 @@ type State = {
 class TriggersChart extends React.PureComponent<Props, State> {
   state: State = {
     statsPeriod: TimePeriod.ONE_DAY,
+    totalEvents: null,
   };
+
+  componentDidMount() {
+    this.fetchTotalCount();
+  }
+
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    const {query, environment, timeWindow} = this.props;
+    const {statsPeriod} = this.state;
+    if (
+      prevProps.environment !== environment ||
+      prevProps.query !== query ||
+      prevProps.timeWindow !== timeWindow ||
+      prevState.statsPeriod !== statsPeriod
+    ) {
+      this.fetchTotalCount();
+    }
+  }
 
   handleStatsPeriodChange = (statsPeriod: {value: TimePeriod; label: string}) => {
     this.setState({statsPeriod: statsPeriod.value});
   };
+
+  getStatsPeriod = () => {
+    const {statsPeriod} = this.state;
+    const {timeWindow} = this.props;
+    const statsPeriodOptions = AVAILABLE_TIME_PERIODS[timeWindow];
+    const period = statsPeriodOptions.includes(statsPeriod)
+      ? statsPeriod
+      : statsPeriodOptions[0];
+    return period;
+  };
+
+  async fetchTotalCount() {
+    const {api, organization, environment, projects, query} = this.props;
+    const statsPeriod = this.getStatsPeriod();
+    try {
+      const totalEvents = await fetchTotalCount(api, organization.slug, {
+        field: [],
+        project: projects.map(({id}) => id),
+        query,
+        statsPeriod,
+        environment: environment ? [environment] : [],
+      });
+      this.setState({totalEvents});
+    } catch (e) {
+      this.setState({totalEvents: null});
+    }
+  }
 
   render() {
     const {
@@ -140,12 +193,10 @@ class TriggersChart extends React.PureComponent<Props, State> {
       thresholdType,
       environment,
     } = this.props;
-    const {statsPeriod} = this.state;
+    const {statsPeriod, totalEvents} = this.state;
 
     const statsPeriodOptions = AVAILABLE_TIME_PERIODS[timeWindow];
-    const period = statsPeriodOptions.includes(statsPeriod)
-      ? statsPeriod
-      : statsPeriodOptions[0];
+    const period = this.getStatsPeriod();
 
     return (
       <Feature features={['metric-alert-builder-aggregate']} organization={organization}>
@@ -202,29 +253,6 @@ class TriggersChart extends React.PureComponent<Props, State> {
 
                 const chart = (
                   <React.Fragment>
-                    <ControlsContainer>
-                      <PeriodSelectControl
-                        inline={false}
-                        styles={{
-                          control: provided => ({
-                            ...provided,
-                            minHeight: '25px',
-                            height: '25px',
-                          }),
-                        }}
-                        isSearchable={false}
-                        isClearable={false}
-                        disabled={loading || reloading}
-                        name="statsPeriod"
-                        value={period}
-                        choices={statsPeriodOptions.map(timePeriod => [
-                          timePeriod,
-                          TIME_PERIOD_MAP[timePeriod],
-                        ])}
-                        onChange={this.handleStatsPeriodChange}
-                      />
-                    </ControlsContainer>
-
                     {loading || reloading ? (
                       <ChartPlaceholder />
                     ) : (
@@ -240,27 +268,43 @@ class TriggersChart extends React.PureComponent<Props, State> {
                         />
                       </React.Fragment>
                     )}
+                    <ChartControls>
+                      <InlineContainer>
+                        <SectionHeading>{t('Total Events')}</SectionHeading>
+                        {totalEvents !== null ? (
+                          <SectionValue>{totalEvents.toLocaleString()}</SectionValue>
+                        ) : (
+                          <SectionValue>&mdash;</SectionValue>
+                        )}
+                      </InlineContainer>
+                      <InlineContainer>
+                        <SectionHeading>{t('Display')}</SectionHeading>
+                        <PeriodSelectControl
+                          inline={false}
+                          styles={{
+                            control: provided => ({
+                              ...provided,
+                              minHeight: '25px',
+                              height: '25px',
+                            }),
+                          }}
+                          isSearchable={false}
+                          isClearable={false}
+                          disabled={loading || reloading}
+                          name="statsPeriod"
+                          value={period}
+                          choices={statsPeriodOptions.map(timePeriod => [
+                            timePeriod,
+                            TIME_PERIOD_MAP[timePeriod],
+                          ])}
+                          onChange={this.handleStatsPeriodChange}
+                        />
+                      </InlineContainer>
+                    </ChartControls>
                   </React.Fragment>
                 );
 
-                return (
-                  <Feature
-                    organization={organization}
-                    features={['metric-alert-gui-filters']}
-                  >
-                    {({hasFeature: hasGuiFilters}) =>
-                      hasGuiFilters ? (
-                        <ChartWrapper>{chart}</ChartWrapper>
-                      ) : (
-                        <StickyWrapper>
-                          <StyledPanel>
-                            <PanelBody withPadding>{chart}</PanelBody>
-                          </StyledPanel>
-                        </StickyWrapper>
-                      )
-                    }
-                  </Feature>
-                );
+                return chart;
               }}
             </EventsRequest>
           );
@@ -284,31 +328,10 @@ const ChartPlaceholder = styled(Placeholder)`
   height: 184px;
 `;
 
-const StickyWrapper = styled('div')`
-  position: sticky;
-  top: ${space(1)};
-  z-index: ${p => p.theme.zIndex.dropdown - 1};
-`;
-
-const StyledPanel = styled(Panel)`
-  /* Remove margin for the sticky window */
-  margin-bottom: 0;
-`;
-
-const ControlsContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: ${space(1)};
-`;
-
 const PeriodSelectControl = styled(SelectControl)`
   display: inline-block;
   width: 180px;
   font-weight: normal;
   text-transform: none;
   border: 0;
-`;
-
-const ChartWrapper = styled('div')`
-  padding: ${space(2)};
 `;

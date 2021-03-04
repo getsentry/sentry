@@ -1,4 +1,5 @@
 export default class RequestError extends Error {
+  responseText?: string;
   responseJSON?: any;
   status?: number;
   statusText?: string;
@@ -19,6 +20,10 @@ export default class RequestError extends Error {
       );
 
       // Some callback handlers expect these properties on the error object
+      if (resp.responseText) {
+        this.responseText = resp.responseText;
+      }
+
       if (resp.responseJSON) {
         this.responseJSON = resp.responseJSON;
       }
@@ -41,11 +46,11 @@ export default class RequestError extends Error {
   }
 
   removeFrames(numLinesToRemove) {
-    // Drop some frames so stacktrace starts at callsite
+    // Drop some frames so stack trace starts at callsite
     //
     // Note that babel will add a call to support extending Error object
 
-    // Old browsers may not have stacktrace
+    // Old browsers may not have stack trace
     if (!this.stack) {
       return;
     }

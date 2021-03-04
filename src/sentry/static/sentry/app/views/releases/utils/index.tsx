@@ -1,6 +1,7 @@
 import round from 'lodash/round';
 
-import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
+import {Release, ReleaseStatus} from 'app/types';
+import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 export const roundDuration = (seconds: number) => {
   return round(seconds, seconds > 60 ? 0 : 3);
@@ -27,15 +28,14 @@ export const displayCrashFreePercent = (
     return `<1\u0025`;
   }
 
-  const rounded = getCrashFreePercent(percent, decimalThreshold, decimalPlaces);
+  const rounded = getCrashFreePercent(
+    percent,
+    decimalThreshold,
+    decimalPlaces
+  ).toLocaleString();
 
   return `${rounded}\u0025`;
 };
-
-export const convertAdoptionToProgress = (
-  percent: number,
-  numberOfProgressUnits = 10
-): number => Math.ceil((percent * numberOfProgressUnits) / 100);
 
 export const getReleaseNewIssuesUrl = (
   orgSlug: string,
@@ -46,7 +46,30 @@ export const getReleaseNewIssuesUrl = (
     pathname: `/organizations/${orgSlug}/issues/`,
     query: {
       project: projectId,
+      // we are resetting time selector because releases' new issues count doesn't take time selector into account
+      statsPeriod: undefined,
+      start: undefined,
+      end: undefined,
       query: stringifyQueryObject(new QueryResults([`firstRelease:${version}`])),
     },
   };
 };
+
+export const getReleaseUnhandledIssuesUrl = (
+  orgSlug: string,
+  projectId: string | number | null,
+  version: string
+) => {
+  return {
+    pathname: `/organizations/${orgSlug}/issues/`,
+    query: {
+      project: projectId,
+      query: stringifyQueryObject(
+        new QueryResults([`release:${version}`, 'error.unhandled:true'])
+      ),
+    },
+  };
+};
+
+export const isReleaseArchived = (release: Release) =>
+  release.status === ReleaseStatus.Archived;

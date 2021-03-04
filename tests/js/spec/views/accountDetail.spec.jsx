@@ -4,7 +4,6 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import AccountDetails from 'app/views/settings/account/accountDetails';
 
-jest.mock('jquery');
 jest.mock('scroll-to-element', () => 'scroll-to-element');
 
 const mockUserDetails = params => {
@@ -30,8 +29,8 @@ describe('AccountDetails', function () {
 
     expect(wrapper.find('input[name="name"]')).toHaveLength(1);
 
-    // Stacktrace order, language, timezone
-    expect(wrapper.find('SelectControl')).toHaveLength(3);
+    // Stacktrace order, language, timezone, theme
+    expect(wrapper.find('SelectControl')).toHaveLength(4);
 
     expect(wrapper.find('BooleanField')).toHaveLength(1);
     expect(wrapper.find('RadioGroup')).toHaveLength(1);

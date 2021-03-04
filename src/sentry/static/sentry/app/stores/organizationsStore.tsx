@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import {Organization} from 'app/types';
 import OrganizationsActions from 'app/actions/organizationsActions';
+import {Organization} from 'app/types';
 
 type OrganizationsStoreInterface = {
   state: Organization[];
@@ -87,4 +87,8 @@ const organizationsStoreConfig: Reflux.StoreDefinition & OrganizationsStoreInter
   },
 };
 
-export default Reflux.createStore(organizationsStoreConfig) as OrganizationsStore;
+const OrganizationsStore = Reflux.createStore(
+  organizationsStoreConfig
+) as OrganizationsStore;
+
+export default OrganizationsStore;

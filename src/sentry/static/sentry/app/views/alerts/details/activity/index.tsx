@@ -1,19 +1,19 @@
-import {Params} from 'react-router/lib/Router';
 import React from 'react';
+import {Params} from 'react-router/lib/Router';
 
-import {Client} from 'app/api';
 import {
   createIncidentNote,
   deleteIncidentNote,
   fetchIncidentActivities,
   updateIncidentNote,
 } from 'app/actionCreators/incident';
-import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
-import {NoteType} from 'app/types/alerts';
+import {Client} from 'app/api';
 import {CreateError} from 'app/components/activity/note/types';
-import {t} from 'app/locale';
-import {uniqueId} from 'app/utils/guid';
+import {DEFAULT_ERROR_JSON} from 'app/constants';
 import ConfigStore from 'app/stores/configStore';
+import {NoteType} from 'app/types/alerts';
+import {uniqueId} from 'app/utils/guid';
+import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import withApi from 'app/utils/withApi';
 
 import {
@@ -23,11 +23,8 @@ import {
   IncidentActivityType,
   IncidentStatus,
 } from '../../types';
-import Activity from './activity';
 
-function makeDefaultErrorJson() {
-  return {detail: t('Unknown error. Please try again.')};
-}
+import Activity from './activity';
 
 type Activities = Array<ActivityType | ActivityType>;
 
@@ -146,7 +143,7 @@ class ActivityContainer extends React.PureComponent<Props, State> {
           activities,
           createBusy: false,
           createError: true,
-          createErrorJSON: error.responseJSON || makeDefaultErrorJson(),
+          createErrorJSON: error.responseJSON || DEFAULT_ERROR_JSON,
         };
       });
     }

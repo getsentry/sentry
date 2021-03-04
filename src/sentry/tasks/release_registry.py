@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from django.conf import settings
@@ -12,8 +10,9 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-SDK_INDEX_CACHE_KEY = u"sentry:release-registry-sdk-versions"
-APP_INDEX_CACHE_KEY = u"sentry:release-registry-app-versions"
+SDK_INDEX_CACHE_KEY = "sentry:release-registry-sdk-versions"
+APP_INDEX_CACHE_KEY = "sentry:release-registry-app-versions"
+LAYER_INDEX_CACHE_KEY = "sentry:release-registry-layer-versions"
 
 REQUEST_TIMEOUT = 10
 
@@ -27,7 +26,7 @@ def _fetch_registry_url(relative_url):
     base_url = settings.SENTRY_RELEASE_REGISTRY_BASEURL.rstrip("/")
     relative_url = relative_url.lstrip("/")
 
-    full_url = "%s/%s" % (base_url, relative_url)
+    full_url = f"{base_url}/{relative_url}"
 
     with metrics.timer(
         "release_registry.fetch.duration", tags={"url": relative_url}, sample_rate=1.0
@@ -60,3 +59,7 @@ def fetch_release_registry_data(**kwargs):
     # Apps (e.g. sentry-cli)
     app_data = _fetch_registry_url("/apps")
     cache.set(APP_INDEX_CACHE_KEY, app_data, CACHE_TTL)
+
+    # AWS Layers
+    layer_data = _fetch_registry_url("/aws-lambda-layers")
+    cache.set(LAYER_INDEX_CACHE_KEY, layer_data, CACHE_TTL)

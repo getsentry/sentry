@@ -1,26 +1,25 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
-import DocumentTitle from 'react-document-title';
-import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
+import DocumentTitle from 'react-document-title';
+import {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {t} from 'app/locale';
+import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
+import DemoModeGate from 'app/components/acl/demoModeGate';
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
 import UserAvatar from 'app/components/avatar/userAvatar';
-import ConfigStore from 'app/stores/configStore';
 import ExternalLink from 'app/components/links/externalLink';
-import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {IconDocs, IconLock, IconStack, IconSupport} from 'app/icons';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import SentryTypes from 'app/sentryTypes';
-import SettingsLayout from 'app/views/settings/components/settingsLayout';
-import withLatestContext from 'app/utils/withLatestContext';
 import {Organization} from 'app/types';
+import withLatestContext from 'app/utils/withLatestContext';
+import SettingsLayout from 'app/views/settings/components/settingsLayout';
 
 const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',
@@ -48,10 +47,6 @@ type Props = {
 } & RouteComponentProps<{}, {}>;
 
 class SettingsIndex extends React.Component<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-  };
-
   componentDidUpdate(prevProps: Props) {
     const {organization} = this.props;
     if (prevProps.organization === organization) {
@@ -88,35 +83,37 @@ class SettingsIndex extends React.Component<Props> {
       <DocumentTitle title={organization ? `${organization.slug} Settings` : 'Settings'}>
         <SettingsLayout {...this.props}>
           <GridLayout>
-            <GridPanel>
-              <HomePanelHeader>
-                <HomeLinkIcon to="/settings/account/">
-                  <AvatarContainer>
-                    <UserAvatar user={user} size={HOME_ICON_SIZE} />
-                  </AvatarContainer>
-                  {t('My Account')}
-                </HomeLinkIcon>
-              </HomePanelHeader>
+            <DemoModeGate>
+              <GridPanel>
+                <HomePanelHeader>
+                  <HomeLinkIcon to="/settings/account/">
+                    <AvatarContainer>
+                      <UserAvatar user={user} size={HOME_ICON_SIZE} />
+                    </AvatarContainer>
+                    {t('My Account')}
+                  </HomeLinkIcon>
+                </HomePanelHeader>
 
-              <HomePanelBody>
-                <h3>{t('Quick links')}:</h3>
-                <ul>
-                  <li>
-                    <HomeLink to="/settings/account/security/">
-                      {t('Change my password')}
-                    </HomeLink>
-                  </li>
-                  <li>
-                    <HomeLink to="/settings/account/notifications/">
-                      {t('Notification Preferences')}
-                    </HomeLink>
-                  </li>
-                  <li>
-                    <HomeLink to="/settings/account/">{t('Change my avatar')}</HomeLink>
-                  </li>
-                </ul>
-              </HomePanelBody>
-            </GridPanel>
+                <HomePanelBody>
+                  <h3>{t('Quick links')}:</h3>
+                  <ul>
+                    <li>
+                      <HomeLink to="/settings/account/security/">
+                        {t('Change my password')}
+                      </HomeLink>
+                    </li>
+                    <li>
+                      <HomeLink to="/settings/account/notifications/">
+                        {t('Notification Preferences')}
+                      </HomeLink>
+                    </li>
+                    <li>
+                      <HomeLink to="/settings/account/">{t('Change my avatar')}</HomeLink>
+                    </li>
+                  </ul>
+                </HomePanelBody>
+              </GridPanel>
+            </DemoModeGate>
 
             {/* if admin */}
             <GridPanel>
@@ -131,7 +128,7 @@ class SettingsIndex extends React.Component<Props> {
                       />
                     </AvatarContainer>
                   ) : (
-                    <HomeIcon color="green400">
+                    <HomeIcon color="green300">
                       <IconStack size="lg" />
                     </HomeIcon>
                   )}
@@ -199,7 +196,7 @@ class SettingsIndex extends React.Component<Props> {
             <GridPanel>
               <HomePanelHeader>
                 <SupportLinkComponent isCentered {...supportLinkProps}>
-                  <HomeIcon color="purple400">
+                  <HomeIcon color="purple300">
                     <IconSupport size="lg" />
                   </HomeIcon>
                   {t('Support')}
@@ -228,35 +225,37 @@ class SettingsIndex extends React.Component<Props> {
               </HomePanelBody>
             </GridPanel>
 
-            <GridPanel>
-              <HomePanelHeader>
-                <HomeLinkIcon to={LINKS.API}>
-                  <HomeIcon>
-                    <IconLock size="lg" />
-                  </HomeIcon>
-                  {t('API Keys')}
-                </HomeLinkIcon>
-              </HomePanelHeader>
+            <DemoModeGate>
+              <GridPanel>
+                <HomePanelHeader>
+                  <HomeLinkIcon to={LINKS.API}>
+                    <HomeIcon>
+                      <IconLock size="lg" />
+                    </HomeIcon>
+                    {t('API Keys')}
+                  </HomeLinkIcon>
+                </HomePanelHeader>
 
-              <HomePanelBody>
-                <h3>{t('Quick links')}:</h3>
-                <ul>
-                  <li>
-                    <HomeLink to={LINKS.API}>{t('Auth Tokens')}</HomeLink>
-                  </li>
-                  <li>
-                    <HomeLink to={`${organizationSettingsUrl}developer-settings/`}>
-                      {t('Your Integrations')}
-                    </HomeLink>
-                  </li>
-                  <li>
-                    <ExternalHomeLink href={LINKS.DOCUMENTATION_API}>
-                      {t('Documentation')}
-                    </ExternalHomeLink>
-                  </li>
-                </ul>
-              </HomePanelBody>
-            </GridPanel>
+                <HomePanelBody>
+                  <h3>{t('Quick links')}:</h3>
+                  <ul>
+                    <li>
+                      <HomeLink to={LINKS.API}>{t('Auth Tokens')}</HomeLink>
+                    </li>
+                    <li>
+                      <HomeLink to={`${organizationSettingsUrl}developer-settings/`}>
+                        {t('Your Integrations')}
+                      </HomeLink>
+                    </li>
+                    <li>
+                      <ExternalHomeLink href={LINKS.DOCUMENTATION_API}>
+                        {t('Documentation')}
+                      </ExternalHomeLink>
+                    </li>
+                  </ul>
+                </HomePanelBody>
+              </GridPanel>
+            </DemoModeGate>
           </GridLayout>
         </SettingsLayout>
       </DocumentTitle>
@@ -268,7 +267,7 @@ export {SettingsIndex};
 export default withLatestContext(SettingsIndex);
 
 const HomePanelHeader = styled(PanelHeader)`
-  background: #fff;
+  background: ${p => p.theme.background};
   flex-direction: column;
   text-align: center;
   justify-content: center;
@@ -289,13 +288,13 @@ const HomePanelBody = styled(PanelBody)`
     li {
       line-height: 1.6;
       /* Bullet color */
-      color: ${p => p.theme.gray400};
+      color: ${p => p.theme.gray200};
     }
   }
 `;
 
 const HomeIcon = styled('div')<{color?: string}>`
-  background: ${p => p.theme[p.color || 'gray500']};
+  background: ${p => p.theme[p.color || 'gray300']};
   color: ${p => p.theme.white};
   width: ${HOME_ICON_SIZE}px;
   height: ${HOME_ICON_SIZE}px;
@@ -311,10 +310,10 @@ type CenterableProps = {
 };
 
 const HomeLink = styled(Link)`
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.purple300};
 
   &:hover {
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.purple300};
   }
 `;
 
@@ -329,10 +328,10 @@ const ExternalHomeLink = styled(
     <ExternalLink {...omit(props, 'isCentered')} />
   )
 )<CenterableProps>`
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.purple300};
 
   &:hover {
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.purple300};
   }
 
   ${p => p.isCentered && flexCenter};
@@ -356,14 +355,6 @@ const SupportLinkComponent = <T extends boolean>({
     return <ExternalHomeLink isCentered={isCentered} href={href} {...props} />;
   }
   return <HomeLink to={to} {...props} />;
-};
-
-SupportLinkComponent.propTypes = {
-  isOnPremise: PropTypes.bool,
-  href: PropTypes.string,
-  to: PropTypes.string,
-  isCentered: PropTypes.bool,
-  children: PropTypes.node,
 };
 
 const AvatarContainer = styled('div')`

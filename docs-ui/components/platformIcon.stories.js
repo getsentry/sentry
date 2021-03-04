@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PlatformIcon from 'platformicons';
-import {withInfo} from '@storybook/addon-info';
+import {PlatformIcon} from 'platformicons';
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: 0 15px 15px 0;
@@ -9,9 +8,10 @@ const StyledPlatformIcon = styled(PlatformIcon)`
 
 export default {
   title: 'Core/Style/Icons',
+  component: PlatformIcon,
 };
 
-export const _PlatformIcon = withInfo('Scalable platform and framework icons')(() => (
+export const _PlatformIcon = () => (
   <div>
     <StyledPlatformIcon platform="generic" size="24" />
     <StyledPlatformIcon platform="javascript-angular" size="24" />
@@ -38,8 +38,13 @@ export const _PlatformIcon = withInfo('Scalable platform and framework icons')((
     <StyledPlatformIcon platform="swift" size="24" />
     <StyledPlatformIcon platform="javascript-vue" size="24" />
   </div>
-));
+);
 
-_PlatformIcon.story = {
-  name: 'PlatformIcon',
+_PlatformIcon.storyName = 'PlatformIcon';
+_PlatformIcon.parameters = {
+  docs: {
+    description: {
+      story: 'Scalable platform and framework icons',
+    },
+  },
 };

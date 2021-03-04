@@ -1,14 +1,10 @@
-from __future__ import absolute_import
-
-import six
-
 from django.core.cache import cache
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.utils.otp import generate_secret_key, TOTP
 
 
-class ActivationResult(object):
+class ActivationResult:
     type = None
 
 
@@ -26,7 +22,7 @@ class ActivationChallengeResult(ActivationResult):
         self.challenge = challenge
 
 
-class AuthenticatorInterface(object):
+class AuthenticatorInterface:
     type = -1
     interface_id = None
     name = None
@@ -55,18 +51,14 @@ class AuthenticatorInterface(object):
         """If the interface has an activation method that needs to be
         called this returns `True`.
         """
-        return self.activate.__func__ is not six.get_unbound_function(
-            AuthenticatorInterface.activate
-        )
+        return self.activate.__func__ is not AuthenticatorInterface.activate
 
     @property
     def can_validate_otp(self):
         """If the interface is able to validate OTP codes then this returns
         `True`.
         """
-        return self.validate_otp.__func__ is not six.get_unbound_function(
-            AuthenticatorInterface.validate_otp
-        )
+        return self.validate_otp.__func__ is not AuthenticatorInterface.validate_otp
 
     @property
     def config(self):
@@ -96,7 +88,6 @@ class AuthenticatorInterface(object):
         """
         # This method needs to be empty for the default
         # `requires_activation` property to make sense.
-        pass
 
     def enroll(self, user):
         """Invoked to enroll a user for this interface.  If already enrolled
@@ -130,7 +121,7 @@ class AuthenticatorInterface(object):
         return False
 
 
-class OtpMixin(object):
+class OtpMixin:
     def generate_new_config(self):
         return {"secret": generate_secret_key()}
 
@@ -148,7 +139,7 @@ class OtpMixin(object):
 
     def _get_otp_counter_cache_key(self, counter):
         if self.authenticator is not None:
-            return "used-otp-counters:%s:%s" % (self.authenticator.user_id, counter)
+            return f"used-otp-counters:{self.authenticator.user_id}:{counter}"
 
     def check_otp_counter(self, counter):
         # OTP uses an internal counter that increments every 30 seconds.

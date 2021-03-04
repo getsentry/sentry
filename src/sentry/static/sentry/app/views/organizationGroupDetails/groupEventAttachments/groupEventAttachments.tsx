@@ -1,16 +1,16 @@
 import React from 'react';
-import pick from 'lodash/pick';
 import * as ReactRouter from 'react-router';
+import pick from 'lodash/pick';
 
-import {Panel, PanelBody} from 'app/components/panels';
-import {t} from 'app/locale';
+import AsyncComponent from 'app/components/asyncComponent';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
-import AsyncComponent from 'app/components/asyncComponent';
+import {Panel, PanelBody} from 'app/components/panels';
+import {t} from 'app/locale';
 
-import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
 import GroupEventAttachmentsFilter from './groupEventAttachmentsFilter';
+import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
 
 type Props = {
   projectSlug: string;
@@ -29,7 +29,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): [string, string, {}][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {params, location} = this.props;
 
     return [

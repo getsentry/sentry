@@ -2,15 +2,15 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {openHelpSearchModal} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
 import DropdownMenu from 'app/components/dropdownMenu';
-import SidebarItem from 'app/components/sidebar/sidebarItem';
 import Hook from 'app/components/hook';
+import SidebarItem from 'app/components/sidebar/sidebarItem';
 import {IconQuestion} from 'app/icons';
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
 
-import SidebarMenuItem from './sidebarMenuItem';
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
+import SidebarMenuItem from './sidebarMenuItem';
 import {CommonSidebarProps} from './types';
 
 type Props = Pick<CommonSidebarProps, 'collapsed' | 'hidePanel' | 'orientation'> & {
@@ -40,6 +40,9 @@ const SidebarHelp = ({orientation, collapsed, hidePanel, organization}: Props) =
             </SidebarMenuItem>
             <SidebarMenuItem href="https://forum.sentry.io/">
               {t('Community Discussions')}
+            </SidebarMenuItem>
+            <SidebarMenuItem href="https://discord.com/invite/sentry/">
+              {t('Join the Sentry Discord')}
             </SidebarMenuItem>
             <SidebarMenuItem href="https://status.sentry.io/">
               {t('Service Status')}

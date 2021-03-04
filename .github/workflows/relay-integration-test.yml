@@ -9,10 +9,15 @@ on:
 jobs:
   test:
     name: relay test
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
+
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
 
       - name: Check for python file changes
         uses: getsentry/paths-filter@v2
@@ -21,11 +26,16 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
+      - name: Set python version output
+        id: python-version
+        run: |
+          echo "::set-output name=python-version::$(cat .python-version)"
+
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
         if: steps.changes.outputs.backend == 'true'
         with:
-          python-version: 2.7.17
+          python-version: ${{ steps.python-version.outputs.python-version }}
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
@@ -46,7 +56,6 @@ jobs:
         id: setup
         if: steps.changes.outputs.backend == 'true'
         with:
-          python: 2
           snuba: true
           kafka: true
 
@@ -54,10 +63,13 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         run: |
           # pull relay we'll run and kill it for each test
-          docker pull us.gcr.io/sentryio/relay:latest
+          docker pull us.gcr.io/sentryio/relay:nightly
           docker ps -a
 
       - name: Run test
         if: steps.changes.outputs.backend == 'true'
         run: |
           make test-relay-integration
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts

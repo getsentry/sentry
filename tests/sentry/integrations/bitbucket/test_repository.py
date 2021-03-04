@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import datetime
 import responses
 import pytest
-import six
 
 from django.utils import timezone
 from exam import fixture
@@ -16,7 +13,7 @@ from .testutils import COMPARE_COMMITS_EXAMPLE, COMMIT_DIFF_PATCH, REPO
 
 class BitbucketRepositoryProviderTest(TestCase):
     def setUp(self):
-        super(BitbucketRepositoryProviderTest, self).setUp()
+        super().setUp()
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
@@ -74,7 +71,7 @@ class BitbucketRepositoryProviderTest(TestCase):
                 "message": "README.md edited online with Bitbucket",
                 "id": "e18e4e72de0d824edfbe0d73efe34cbd0d01d301",
                 "repository": "sentryuser/newsdiffs",
-                "patch_set": [{"path": u"README.md", "type": "M"}],
+                "patch_set": [{"path": "README.md", "type": "M"}],
                 "timestamp": datetime.datetime(2017, 5, 16, 23, 21, 40, tzinfo=timezone.utc),
             }
         ]
@@ -133,14 +130,14 @@ class BitbucketRepositoryProviderTest(TestCase):
     def test_get_repository_data_no_installation_id(self):
         with pytest.raises(IntegrationError) as e:
             self.provider.get_repository_data(self.organization, {})
-            assert "requires an integration id" in six.text_type(e)
+            assert "requires an integration id" in str(e)
 
 
 class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
     provider_name = "integrations:bitbucket"
 
     def setUp(self):
-        super(BitbucketCreateRepositoryTestCase, self).setUp()
+        super().setUp()
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
@@ -168,12 +165,12 @@ class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
     def add_create_repository_responses(self, repository_config):
         responses.add(
             responses.GET,
-            "%s/2.0/repositories/%s" % (self.base_url, self.repo.name),
+            f"{self.base_url}/2.0/repositories/{self.repo.name}",
             json=repository_config,
         )
         responses.add(
             responses.POST,
-            u"%s/2.0/repositories/%s/hooks" % (self.base_url, self.repo.name),
+            f"{self.base_url}/2.0/repositories/{self.repo.name}/hooks",
             json={"uuid": "99"},
         )
 

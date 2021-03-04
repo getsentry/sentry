@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 import pytest
 
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
@@ -46,7 +42,7 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {},
             },
-            {"matchers": [["message", u"\\x\xff"]], "fingerprint": ["stuff"], "attributes": {}},
+            {"matchers": [["message", "\\x\xff"]], "fingerprint": ["stuff"], "attributes": {}},
             {
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
@@ -67,6 +63,19 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
         )._to_config_structure()
         == rules._to_config_structure()
     )
+
+
+def test_rule_export():
+    rules = FingerprintingRules.from_config_string(
+        """
+logger:sentry.*                                 -> logger, {{ logger }}, title="Message from {{ logger }}"
+"""
+    )
+    assert rules.rules[0].to_json() == {
+        "attributes": {"title": "Message from {{ logger }}"},
+        "fingerprint": ["logger", "{{ logger }}"],
+        "matchers": [["logger", "sentry.*"]],
+    }
 
 
 def test_parsing_errors():

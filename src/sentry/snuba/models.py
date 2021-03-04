@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 from enum import Enum
 
@@ -7,6 +5,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.manager import BaseManager
 
 
@@ -67,7 +66,7 @@ class SnubaQueryEventType(Model):
         return self.EventType(self.type)
 
 
-class QuerySubscription(Model):
+class QuerySubscription(DefaultFieldsModel):
     __core__ = True
 
     class Status(Enum):
@@ -80,9 +79,10 @@ class QuerySubscription(Model):
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, related_name="subscriptions")
     type = models.TextField()
-    status = models.SmallIntegerField(default=Status.ACTIVE.value)
+    status = models.SmallIntegerField(default=Status.ACTIVE.value, db_index=True)
     subscription_id = models.TextField(unique=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
+    date_updated = models.DateTimeField(default=timezone.now, null=True)
 
     objects = BaseManager(
         cache_fields=("pk", "subscription_id"), cache_ttl=int(timedelta(hours=1).total_seconds())

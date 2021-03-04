@@ -1,8 +1,8 @@
-import Reflux from 'reflux';
-import isArray from 'lodash/isArray';
 import extend from 'lodash/extend';
+import isArray from 'lodash/isArray';
+import Reflux from 'reflux';
 
-import {Event} from 'app/types';
+import {Event} from 'app/types/event';
 
 type Internals = {
   itemsById: Record<string, Event>;
@@ -100,4 +100,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & EventStoreInterface = {
 
 type EventStore = Reflux.Store & EventStoreInterface;
 
-export default Reflux.createStore(storeConfig) as EventStore;
+const EventStore = Reflux.createStore(storeConfig) as EventStore;
+
+export default EventStore;

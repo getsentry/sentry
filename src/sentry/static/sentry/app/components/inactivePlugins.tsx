@@ -1,12 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Plugin} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import TextOverflow from 'app/components/textOverflow';
 import {t} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import TextOverflow from 'app/components/textOverflow';
 import space from 'app/styles/space';
+import {Plugin} from 'app/types';
 
 type Props = {
   plugins: Plugin[];

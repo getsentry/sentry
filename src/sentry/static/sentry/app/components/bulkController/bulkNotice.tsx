@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {tn, tct, t} from 'app/locale';
+import {t, tct, tn} from 'app/locale';
 import {defined} from 'app/utils';
 
-import {PanelAlert} from '../panels';
 import Button from '../button';
+import {PanelAlert} from '../panels';
 
 function getSelectAllText(allRowsCount?: number, bulkLimit?: number) {
   if (!defined(allRowsCount)) {

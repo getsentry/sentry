@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import os
 
 import pytest
-import six
 from confluent_kafka.admin import AdminClient
 from confluent_kafka import Producer
 import time
@@ -18,7 +15,7 @@ MAX_SECONDS_WAITING_FOR_EVENT = 16
 def kafka_producer():
     def inner(settings):
         producer = Producer(
-            {"bootstrap.servers": settings.KAFKA_CLUSTERS["default"]["bootstrap.servers"]}
+            {"bootstrap.servers": settings.KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"]}
         )
         return producer
 
@@ -30,7 +27,7 @@ class _KafkaAdminWrapper:
         self.test_name = request.node.name
 
         kafka_config = {}
-        for key, val in six.iteritems(settings.KAFKA_CLUSTERS["default"]):
+        for key, val in settings.KAFKA_CLUSTERS["default"]["common"].items():
             kafka_config[key] = val
 
         self.admin_client = AdminClient(kafka_config)
@@ -113,8 +110,8 @@ def requires_kafka():
 @pytest.fixture(scope="session")
 def scope_consumers():
     """
-      Sets up an object to keep track of the scope consumers ( consumers that will only
-      be created once per test session).
+    Sets up an object to keep track of the scope consumers ( consumers that will only
+    be created once per test session).
 
     """
     all_consumers = {
@@ -126,7 +123,7 @@ def scope_consumers():
 
     yield all_consumers
 
-    for consumer_name, consumer in six.iteritems(all_consumers):
+    for consumer_name, consumer in all_consumers.items():
         if consumer is not None:
             try:
                 # stop the consumer

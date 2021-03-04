@@ -3,9 +3,9 @@ import Reflux from 'reflux';
 import OrganizationActions from 'app/actions/organizationActions';
 import ProjectActions from 'app/actions/projectActions';
 import TeamActions from 'app/actions/teamActions';
-import RequestError from 'app/utils/requestError/requestError';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
 import {Organization, Project, Team} from 'app/types';
+import RequestError from 'app/utils/requestError/requestError';
 
 type UpdateOptions = {
   replace?: boolean;
@@ -123,4 +123,6 @@ const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
 
 type OrganizationStore = Reflux.Store & OrganizationStoreInterface;
 
-export default Reflux.createStore(storeConfig) as OrganizationStore;
+const OrganizationStore = Reflux.createStore(storeConfig) as OrganizationStore;
+
+export default OrganizationStore;

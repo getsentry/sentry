@@ -1,14 +1,10 @@
-from __future__ import absolute_import
-
-import six
-
 from collections import defaultdict
 from django.utils import timezone
 
 from .base import Newsletter
 
 
-class NewsletterSubscription(object):
+class NewsletterSubscription:
     def __init__(
         self,
         user,
@@ -20,7 +16,7 @@ class NewsletterSubscription(object):
         subscribed=False,
         subscribed_date=None,
         unsubscribed_date=None,
-        **kwargs
+        **kwargs,
     ):
         from sentry.models import UserEmail
 
@@ -87,7 +83,7 @@ class DummyNewsletter(Newsletter):
         return self._enabled
 
     def get_subscriptions(self, user):
-        return {"subscriptions": list(six.itervalues(self._subscriptions.get(user) or {}))}
+        return {"subscriptions": list((self._subscriptions.get(user) or {}).values())}
 
     def update_subscription(self, user, list_id=None, create=False, **kwargs):
         if not list_id:

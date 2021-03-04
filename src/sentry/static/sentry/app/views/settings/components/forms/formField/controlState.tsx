@@ -1,8 +1,8 @@
-import {Observer} from 'mobx-react';
 import React from 'react';
+import {Observer} from 'mobx-react';
 
-import ControlState from 'app/views/settings/components/forms/field/controlState';
 import FormState from 'app/components/forms/state';
+import ControlState from 'app/views/settings/components/forms/field/controlState';
 import FormModel from 'app/views/settings/components/forms/model';
 
 type Props = {
@@ -13,22 +13,16 @@ type Props = {
 /**
  * ControlState (i.e. loading/error icons) for connected form components
  */
-class FormFieldControlState extends React.Component<Props> {
-  render() {
-    const {model, name} = this.props;
+const FormFieldControlState = ({model, name}: Props) => (
+  <Observer>
+    {() => {
+      const isSaving = model.getFieldState(name, FormState.SAVING);
+      const isSaved = model.getFieldState(name, FormState.READY);
+      const error = model.getError(name);
 
-    return (
-      <Observer>
-        {() => {
-          const isSaving = model.getFieldState(name, FormState.SAVING);
-          const isSaved = model.getFieldState(name, FormState.READY);
-          const error = model.getError(name);
-
-          return <ControlState isSaving={isSaving} isSaved={isSaved} error={error} />;
-        }}
-      </Observer>
-    );
-  }
-}
+      return <ControlState isSaving={isSaving} isSaved={isSaved} error={error} />;
+    }}
+  </Observer>
+);
 
 export default FormFieldControlState;

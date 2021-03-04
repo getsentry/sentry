@@ -1,29 +1,29 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {Organization, SavedQuery, Project} from 'app/types';
-import withApi from 'app/utils/withApi';
-import Button from 'app/components/button';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownControl from 'app/components/dropdownControl';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import DropdownControl from 'app/components/dropdownControl';
 import Hovercard from 'app/components/hovercard';
-import Input from 'app/components/forms/input';
-import space from 'app/styles/space';
 import {IconDelete} from 'app/icons';
-import EventView from 'app/utils/discover/eventView';
-import withProjects from 'app/utils/withProjects';
-import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
-import CreateAlertButton from 'app/components/createAlertButton';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, Project, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView from 'app/utils/discover/eventView';
+import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
+import withApi from 'app/utils/withApi';
+import withProjects from 'app/utils/withProjects';
 import {setBannerHidden} from 'app/views/eventsV2/utils';
+import InputControl from 'app/views/settings/components/forms/controls/input';
 
-import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
+import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
 
 type DefaultProps = {
   disabled: boolean;
@@ -47,7 +47,7 @@ type Props = DefaultProps & {
   projects: Project[];
   updateCallback: () => void;
   onIncompatibleAlertQuery: React.ComponentProps<
-    typeof CreateAlertButton
+    typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
 };
 
@@ -59,7 +59,7 @@ type State = {
 };
 
 class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
-  static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     const {eventView: nextEventView, savedQuery, savedQueryLoading} = nextProps;
 
     // For a new unsaved query
@@ -217,17 +217,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       <DropdownControl
         alignRight
         menuWidth="220px"
-        button={({isOpen, getActorProps}) => (
-          <ButtonSaveAs
-            data-test-id="button-save-as"
-            {...getActorProps()}
-            isOpen={isOpen}
-            showChevron={false}
-            disabled={disabled}
-          >
-            {t('Save as\u{2026}')}
-          </ButtonSaveAs>
-        )}
+        priority="default"
+        buttonProps={{
+          'aria-label': t('Save as'),
+          showChevron: false,
+          disabled,
+        }}
+        label={`${t('Save as')}\u{2026}`}
       >
         <ButtonSaveDropDown onClick={SavedQueryButtonGroup.stopEventPropagation}>
           <ButtonSaveInput
@@ -240,7 +236,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             disabled={disabled}
           />
           <Button
-            data-test-id="button-save-query"
             onClick={this.handleCreateQuery}
             priority="primary"
             disabled={disabled || !this.state.queryName}
@@ -306,7 +301,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {eventView, organization, projects, onIncompatibleAlertQuery} = this.props;
 
     return (
-      <CreateAlertButton
+      <CreateAlertFromViewButton
         eventView={eventView}
         organization={organization}
         projects={projects}
@@ -350,41 +345,32 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     };
 
     return (
-      <ButtonGroup>
+      <ResponsiveButtonBar gap={1}>
         {renderQueryButton(disabled => this.renderButtonSave(disabled))}
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
         {renderQueryButton(disabled => this.renderButtonDelete(disabled))}
-      </ButtonGroup>
+      </ResponsiveButtonBar>
     );
   }
 }
 
-const ButtonGroup = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-top: ${space(1)};
-
-  > * + * {
-    margin-left: ${space(1)};
-  }
-
+const ResponsiveButtonBar = styled(ButtonBar)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     margin-top: 0;
   }
 `;
 
-const ButtonSaveAs = styled(DropdownButton)`
-  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
-  white-space: nowrap;
-`;
 const ButtonSaveDropDown = styled('div')`
+  display: flex;
+  flex-direction: column;
   padding: ${space(1)};
+  gap: ${space(1)};
 `;
-const ButtonSaveInput = styled(Input)`
-  width: 100%;
-  margin-bottom: ${space(1)};
+
+const ButtonSaveInput = styled(InputControl)`
+  height: 40px;
 `;
 
 const IconUpdate = styled('div')`
@@ -394,7 +380,7 @@ const IconUpdate = styled('div')`
 
   margin-right: ${space(0.75)};
   border-radius: 5px;
-  background-color: ${p => p.theme.yellow400};
+  background-color: ${p => p.theme.yellow300};
 `;
 
 export default withProjects(withApi(SavedQueryButtonGroup));

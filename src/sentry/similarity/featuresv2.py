@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 import copy
 import logging
 
@@ -79,7 +76,8 @@ class GroupingBasedFeatureSet(FeatureSet):
 
         for configuration in self.configurations:
             variants = event.get_grouping_variants(
-                force_config=configuration, normalize_stacktraces=True,
+                force_config=configuration,
+                normalize_stacktraces=True,
             )
             event._data = data_bak
 
@@ -90,4 +88,4 @@ class GroupingBasedFeatureSet(FeatureSet):
 
                     results.setdefault(label, set()).update(features)
 
-        return {label: sorted(features) for label, features in six.iteritems(results)}
+        return {label: sorted(features) for label, features in results.items()}

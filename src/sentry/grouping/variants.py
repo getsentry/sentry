@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 
 
-class BaseVariant(object):
+class BaseVariant:
     # The type of the variant that is reported to the UI.
     type = None
 
@@ -29,7 +27,7 @@ class BaseVariant(object):
         raise NotImplementedError()
 
     def __repr__(self):
-        return "<%s %r (%s)>" % (self.__class__.__name__, self.get_hash(), self.type)
+        return f"<{self.__class__.__name__} {self.get_hash()!r} ({self.type})>"
 
 
 class ChecksumVariant(BaseVariant):
@@ -94,13 +92,36 @@ class ComponentVariant(BaseVariant):
         return {"component": self.component.as_dict(), "config": self.config.as_dict()}
 
 
+def expose_fingerprint_dict(values, info=None):
+    rv = {
+        "values": values,
+    }
+    if not info:
+        return rv
+
+    from sentry.grouping.fingerprinting import Rule
+
+    client_values = info.get("client_fingerprint")
+    if client_values and (
+        len(client_values) != 1 or not is_default_fingerprint_var(client_values[0])
+    ):
+        rv["client_values"] = client_values
+    matched_rule = info.get("matched_rule")
+    if matched_rule:
+        rule = Rule.from_json(matched_rule)
+        rv["matched_rule"] = rule.text
+
+    return rv
+
+
 class CustomFingerprintVariant(BaseVariant):
     """A completely custom fingerprint."""
 
     type = "custom-fingerprint"
 
-    def __init__(self, values):
+    def __init__(self, values, fingerprint_info=None):
         self.values = values
+        self.info = fingerprint_info
 
     @property
     def description(self):
@@ -114,7 +135,7 @@ class CustomFingerprintVariant(BaseVariant):
             yield ("fingerprint", "ident-shingle"), [value]
 
     def _get_metadata_as_dict(self):
-        return {"values": self.values}
+        return expose_fingerprint_dict(self.values, self.info)
 
 
 class SaltedComponentVariant(ComponentVariant):
@@ -122,9 +143,10 @@ class SaltedComponentVariant(ComponentVariant):
 
     type = "salted-component"
 
-    def __init__(self, values, component, config):
+    def __init__(self, values, component, config, fingerprint_info=None):
         ComponentVariant.__init__(self, component, config)
         self.values = values
+        self.info = fingerprint_info
 
     @property
     def description(self):
@@ -142,8 +164,7 @@ class SaltedComponentVariant(ComponentVariant):
         return hash_from_values(final_values)
 
     def encode_for_similarity(self):
-        for x in ComponentVariant.encode_for_similarity(self):
-            yield x
+        yield from ComponentVariant.encode_for_similarity(self)
 
         for value in self.values:
             if not is_default_fingerprint_var(value):
@@ -151,5 +172,25 @@ class SaltedComponentVariant(ComponentVariant):
 
     def _get_metadata_as_dict(self):
         rv = ComponentVariant._get_metadata_as_dict(self)
-        rv["values"] = self.values
+        rv.update(expose_fingerprint_dict(self.values, self.info))
         return rv
+
+
+# defines the order of hierarchical grouping hashes, globally. variant names
+# defined in this list
+#
+# 1) will be persisted in snuba for split/unsplit operations
+# 2) in save_event, will be traversed bottom-to-top, and the first GroupHash
+#    found is used to find/create group
+#
+# variants outside of this list are assumed to not contribute to any sort of
+# hierarchy, their hashes are always persisted as GroupHash (and used to find
+# existing groups)
+HIERARCHICAL_VARIANTS = [
+    "app-depth-1",  # hashing by 1 level of stacktrace (eg just crashing frame)
+    "app-depth-2",
+    "app-depth-3",
+    "app-depth-4",
+    "app-depth-5",
+    "app-depth-max",  # hashing by full stacktrace
+]

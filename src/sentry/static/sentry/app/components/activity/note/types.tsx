@@ -1,5 +1,7 @@
 import {OnChangeHandlerFunc} from 'react-mentions';
 
+import {DEFAULT_ERROR_JSON} from 'app/constants';
+
 /**
  * Represents a mentionable user or team.
  */
@@ -20,10 +22,12 @@ export type Mentioned = [string, string];
  */
 export type MentionChangeEvent = Parameters<OnChangeHandlerFunc>[0];
 
-export type CreateError = {
-  detail: {
-    message: string;
-    code: number;
-    extra: any;
-  };
-};
+export type CreateError =
+  | {
+      detail: {
+        message: string;
+        code: number;
+        extra: any;
+      };
+    }
+  | typeof DEFAULT_ERROR_JSON;

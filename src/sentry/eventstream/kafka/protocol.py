@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytz
 import logging
 from datetime import datetime
@@ -55,7 +53,7 @@ def basic_protocol_handler(unsupported_operations):
             logger.debug("Skipping unsupported operation: %s", operation)
             return None
         else:
-            raise UnexpectedOperation(u"Received unexpected operation type: {!r}".format(operation))
+            raise UnexpectedOperation(f"Received unexpected operation type: {operation!r}")
 
     return handle_message
 
@@ -75,6 +73,9 @@ version_handlers = {
                 "end_unmerge",
                 "start_delete_tag",
                 "end_delete_tag",
+                "exclude_groups",
+                "tombstone_events",
+                "replace_group",
             ]
         )
     ),
@@ -108,7 +109,7 @@ def get_task_kwargs_for_message(value):
         handler = version_handlers[int(version)]
     except (ValueError, KeyError):
         raise InvalidVersion(
-            "Received event payload with unexpected version identifier: {}".format(version)
+            f"Received event payload with unexpected version identifier: {version}"
         )
 
     return handler(*payload[1:])

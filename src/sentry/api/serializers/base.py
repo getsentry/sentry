@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.contrib.auth.models import AnonymousUser
 
 import sentry_sdk
@@ -38,7 +36,7 @@ def serialize(objects, user=None, serializer=None, **kwargs):
                 # filtered out of serialize()
                 item_list=[o for o in objects if o is not None],
                 user=user,
-                **kwargs
+                **kwargs,
             )
 
         with sentry_sdk.start_span(op="serialize.iterate", description=type(serializer).__name__):
@@ -53,7 +51,7 @@ def register(type):
     return wrapped
 
 
-class Serializer(object):
+class Serializer:
     def __call__(self, obj, attrs, user, **kwargs):
         if obj is None:
             return

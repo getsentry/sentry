@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
@@ -8,10 +7,6 @@ type Props = {
 };
 
 class CSPContent extends React.Component<Props> {
-  static propTypes = {
-    data: PropTypes.object.isRequired,
-  };
-
   render() {
     const {data} = this.props;
     return (

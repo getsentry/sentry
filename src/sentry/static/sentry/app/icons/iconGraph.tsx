@@ -1,9 +1,9 @@
 import React from 'react';
 
-import SvgIcon from './svgIcon';
-import {IconGraphLine} from './iconGraphLine';
-import {IconGraphCircle} from './iconGraphCircle';
 import {IconGraphBar} from './iconGraphBar';
+import {IconGraphCircle} from './iconGraphCircle';
+import {IconGraphLine} from './iconGraphLine';
+import SvgIcon from './svgIcon';
 
 type Props = React.ComponentProps<typeof SvgIcon> & {
   type?: 'line' | 'circle' | 'bar';

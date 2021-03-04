@@ -1,12 +1,12 @@
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Dashboard from 'app/views/dashboards/dashboard';
-import OrganizationDashboardContainer from 'app/views/dashboards';
 import ProjectsStore from 'app/stores/projectsStore';
+import OrganizationDashboardContainer from 'app/views/dashboards';
+import Dashboard from 'app/views/dashboards/dashboard';
 
 jest.mock('app/utils/withLatestContext');
 
@@ -91,7 +91,7 @@ describe('OrganizationDashboard', function () {
           limit: 1000,
           orderby: '-time',
           groupby: ['time'],
-          rollup: 86400,
+          rollup: 3600,
         }),
       })
     );
@@ -109,7 +109,7 @@ describe('OrganizationDashboard', function () {
           limit: 1000,
           orderby: '-time',
           groupby: ['time'],
-          rollup: 86400,
+          rollup: 3600,
         }),
       })
     );

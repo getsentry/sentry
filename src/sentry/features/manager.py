@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = ["FeatureManager"]
 
 from collections import defaultdict
@@ -11,13 +9,13 @@ from .base import Feature
 from .exceptions import FeatureNotRegistered
 
 
-class RegisteredFeatureManager(object):
+class RegisteredFeatureManager:
     """
-        Feature functions that are built around the need to register feature
-        handlers
+    Feature functions that are built around the need to register feature
+    handlers
 
-        TODO: Once features have been audited and migrated to the entity
-        handler, remove this class entirely
+    TODO: Once features have been audited and migrated to the entity
+    handler, remove this class entirely
     """
 
     def __init__(self):
@@ -73,7 +71,7 @@ class RegisteredFeatureManager(object):
 
             with sentry_sdk.start_span(
                 op="feature.has_for_batch.handler",
-                description="{0} ({1})".format(type(handler).__name__, name),
+                description=f"{type(handler).__name__} ({name})",
             ) as span:
                 batch_size = len(remaining)
                 span.set_data("Batch Size", batch_size)
@@ -98,7 +96,7 @@ class RegisteredFeatureManager(object):
 # TODO: Change RegisteredFeatureManager back to object once it can be removed
 class FeatureManager(RegisteredFeatureManager):
     def __init__(self):
-        super(FeatureManager, self).__init__()
+        super().__init__()
         self._feature_registry = {}
         self._entity_handler = None
 
@@ -208,7 +206,7 @@ class FeatureManager(RegisteredFeatureManager):
             return None
 
 
-class FeatureCheckBatch(object):
+class FeatureCheckBatch:
     """
     A batch of objects to be checked for a feature flag.
 

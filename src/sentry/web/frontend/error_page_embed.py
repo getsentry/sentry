@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django import forms
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
@@ -12,7 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry import eventstore
-from sentry.models import ProjectKey, ProjectOption, UserReport
+from sentry.models import Project, ProjectKey, ProjectOption, UserReport
 from sentry.web.helpers import render_to_response, render_to_string
 from sentry.signals import user_feedback_received
 from sentry.utils import json
@@ -134,9 +130,9 @@ class ErrorPageEmbedView(View):
 
         # customization options
         options = DEFAULT_OPTIONS.copy()
-        for name in six.iterkeys(options):
+        for name in options.keys():
             if name in request.GET:
-                options[name] = six.text_type(request.GET[name])
+                options[name] = str(request.GET[name])
 
         # TODO(dcramer): since we cant use a csrf cookie we should at the very
         # least sign the request / add some kind of nonce
@@ -146,14 +142,14 @@ class ErrorPageEmbedView(View):
         if form.is_valid():
             # TODO(dcramer): move this to post to the internal API
             report = form.save(commit=False)
-            report.project = key.project
+            report.project_id = key.project_id
             report.event_id = event_id
 
-            event = eventstore.get_event_by_id(report.project.id, report.event_id)
+            event = eventstore.get_event_by_id(report.project_id, report.event_id)
 
             if event is not None:
-                report.environment = event.get_environment()
-                report.group = event.group
+                report.environment_id = event.get_environment().id
+                report.group_id = event.group_id
 
             try:
                 with transaction.atomic():
@@ -165,7 +161,9 @@ class ErrorPageEmbedView(View):
                 # something wrong with the SDK, but this behavior is
                 # more reasonable than just hard erroring and is more
                 # expected.
-                UserReport.objects.filter(project=report.project, event_id=report.event_id).update(
+                UserReport.objects.filter(
+                    project_id=report.project_id, event_id=report.event_id
+                ).update(
                     name=report.name,
                     email=report.email,
                     comments=report.comments,
@@ -173,10 +171,13 @@ class ErrorPageEmbedView(View):
                 )
 
             else:
-                if report.group:
+                if report.group_id:
                     report.notify()
 
-            user_feedback_received.send(project=report.project, group=report.group, sender=self)
+            user_feedback_received.send(
+                project=Project.objects.get(id=report.project_id),
+                sender=self,
+            )
 
             return self._smart_response(request)
         elif request.method == "POST":
@@ -208,12 +209,16 @@ class ErrorPageEmbedView(View):
         context = {
             "endpoint": mark_safe("*/" + json.dumps(absolute_uri(request.get_full_path())) + ";/*"),
             "template": mark_safe("*/" + json.dumps(template) + ";/*"),
-            "strings": json.dumps_htmlsafe(
-                {
-                    "generic_error": six.text_type(options["errorGeneric"]),
-                    "form_error": six.text_type(options["errorFormEntry"]),
-                    "sent_message": six.text_type(options["successMessage"]),
-                }
+            "strings": mark_safe(
+                "*/"
+                + json.dumps_htmlsafe(
+                    {
+                        "generic_error": str(options["errorGeneric"]),
+                        "form_error": str(options["errorFormEntry"]),
+                        "sent_message": str(options["successMessage"]),
+                    }
+                )
+                + ";/*"
             ),
         }
 

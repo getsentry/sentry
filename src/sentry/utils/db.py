@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.db import connections, DEFAULT_DB_ALIAS
 
 from django.db.models.fields.related_descriptors import ReverseOneToOneDescriptor
@@ -46,7 +42,7 @@ def attach_foreignkey(objects, field, related=(), database=None):
 
     # Ensure values are unique, do not contain already present values, and are not missing
     # values specified in select_related
-    values = set([_f for _f in (getattr(o, column) for o in objects) if _f])
+    values = {_f for _f in (getattr(o, column) for o in objects) if _f}
     if values:
         qs = model._default_manager
         if database:
@@ -57,9 +53,9 @@ def attach_foreignkey(objects, field, related=(), database=None):
         if len(values) > 1:
             qs = qs.filter(**{"%s__in" % lookup: values})
         else:
-            qs = [qs.get(**{lookup: six.next(iter(values))})]
+            qs = [qs.get(**{lookup: next(iter(values))})]
 
-        queryset = dict((getattr(o, key), o) for o in qs)
+        queryset = {getattr(o, key): o for o in qs}
     else:
         queryset = {}
 

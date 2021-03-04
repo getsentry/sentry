@@ -1,15 +1,15 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Params} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import NarrowLayout from 'app/components/narrowLayout';
+import {IconMegaphone} from 'app/icons';
 import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 import {trackAdhocEvent} from 'app/utils/analytics';
 import EmailField from 'app/views/settings/components/forms/emailField';
 import Form from 'app/views/settings/components/forms/form';
-import {IconMegaphone} from 'app/icons';
-import NarrowLayout from 'app/components/narrowLayout';
-import space from 'app/styles/space';
 
 type Props = {
   params: Params;

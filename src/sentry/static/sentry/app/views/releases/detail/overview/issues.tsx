@@ -1,25 +1,27 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import pick from 'lodash/pick';
 import {Location} from 'history';
+import pick from 'lodash/pick';
 
-import {t, tct} from 'app/locale';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import DropdownButton from 'app/components/dropdownButton';
+import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import DiscoverButton from 'app/components/discoverButton';
+import DropdownButton from 'app/components/dropdownButton';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import GroupList from 'app/components/issues/groupList';
-import space from 'app/styles/space';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import {GlobalSelection} from 'app/types';
-import Feature from 'app/components/acl/feature';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import ButtonBar from 'app/components/buttonBar';
-import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {GlobalSelection} from 'app/types';
+import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+
+import EmptyState from '../emptyState';
 
 import {getReleaseEventView} from './chart/utils';
-import EmptyState from '../emptyState';
 
 enum IssuesType {
   NEW = 'new',
@@ -39,6 +41,7 @@ type Props = {
   version: string;
   selection: GlobalSelection;
   location: Location;
+  defaultStatsPeriod: string;
 };
 
 type State = {
@@ -81,17 +84,21 @@ class Issues extends React.Component<Props, State> {
       pathname: `/organizations/${orgId}/issues/`,
       query: {
         ...queryParams,
+        limit: undefined,
+        cursor: undefined,
         query: stringifyQueryObject(query),
       },
     };
   }
 
   getIssuesEndpoint(): {path: string; queryParams: IssuesQueryParams} {
-    const {version, orgId, location} = this.props;
+    const {version, orgId, location, defaultStatsPeriod} = this.props;
     const {issuesType} = this.state;
     const queryParams = {
-      ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
-      limit: 50,
+      ...getParams(pick(location.query, [...Object.values(URL_PARAM), 'cursor']), {
+        defaultStatsPeriod,
+      }),
+      limit: 10,
       sort: 'new',
     };
 
@@ -145,19 +152,19 @@ class Issues extends React.Component<Props, State> {
       : t('given timeframe');
 
     return (
-      <EmptyState withIcon={false}>
+      <EmptyState>
         <React.Fragment>
           {issuesType === IssuesType.NEW &&
-            tct('No new issues in this release for the [timePeriod].', {
+            tct('No new issues for the [timePeriod].', {
               timePeriod: displayedPeriod,
             })}
           {issuesType === IssuesType.UNHANDLED &&
-            tct('No unhandled issues in this release for the [timePeriod].', {
+            tct('No unhandled issues for the [timePeriod].', {
               timePeriod: displayedPeriod,
             })}
-          {issuesType === IssuesType.RESOLVED && t('No resolved issues in this release.')}
+          {issuesType === IssuesType.RESOLVED && t('No resolved issues.')}
           {issuesType === IssuesType.ALL &&
-            tct('No issues in this release for the [timePeriod].', {
+            tct('No issues for the [timePeriod].', {
               timePeriod: displayedPeriod,
             })}
         </React.Fragment>
@@ -205,6 +212,10 @@ class Issues extends React.Component<Props, State> {
           </DropdownControl>
 
           <OpenInButtonBar gap={1}>
+            <Button to={this.getIssuesUrl()} size="small" data-test-id="issues-button">
+              {t('Open in Issues')}
+            </Button>
+
             <Feature features={['discover-basic']}>
               <DiscoverButton
                 to={this.getDiscoverUrl()}
@@ -214,10 +225,6 @@ class Issues extends React.Component<Props, State> {
                 {t('Open in Discover')}
               </DiscoverButton>
             </Feature>
-
-            <Button to={this.getIssuesUrl()} size="small" data-test-id="issues-button">
-              {t('Open in Issues')}
-            </Button>
           </OpenInButtonBar>
         </ControlsWrapper>
         <TableWrapper data-test-id="release-wrapper">

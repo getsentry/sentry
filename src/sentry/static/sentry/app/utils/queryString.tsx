@@ -1,6 +1,6 @@
-import * as queryString from 'query-string';
-import parseurl from 'parseurl';
 import isString from 'lodash/isString';
+import parseurl from 'parseurl';
+import * as queryString from 'query-string';
 
 import {escapeDoubleQuotes} from 'app/utils';
 
@@ -51,26 +51,26 @@ export function appendTagCondition(
   return currentQuery;
 }
 
-export function decodeScalar(
-  value: string[] | string | undefined | null
-): string | undefined {
+// This function has multiple signatures to help with typing in callers.
+export function decodeScalar(value: QueryValue): string | undefined;
+export function decodeScalar(value: QueryValue, fallback: string): string;
+
+export function decodeScalar(value: QueryValue, fallback?: string): string | undefined {
   if (!value) {
-    return undefined;
+    return fallback;
   }
   const unwrapped =
     Array.isArray(value) && value.length > 0
       ? value[0]
       : isString(value)
       ? value
-      : undefined;
-  return isString(unwrapped) ? unwrapped : undefined;
+      : fallback;
+  return isString(unwrapped) ? unwrapped : fallback;
 }
 
-export function decodeList(
-  value: string[] | string | undefined | null
-): string[] | undefined {
+export function decodeList(value: string[] | string | undefined | null): string[] {
   if (!value) {
-    return undefined;
+    return [];
   }
   return Array.isArray(value) ? value : isString(value) ? [value] : [];
 }

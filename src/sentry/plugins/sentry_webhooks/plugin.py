@@ -1,7 +1,5 @@
-from __future__ import absolute_import
-
 import logging
-import six
+from requests.exceptions import ReadTimeout, ConnectionError
 import sentry
 
 from django import forms
@@ -96,7 +94,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
 
     def get_group_data(self, group, event, triggering_rules):
         data = {
-            "id": six.text_type(group.id),
+            "id": str(group.id),
             "project": group.project.slug,
             "project_name": group.project.name,
             "project_slug": group.project.slug,
@@ -123,4 +121,10 @@ class WebHooksPlugin(notify.NotificationPlugin):
         payload = self.get_group_data(group, event, triggering_rules)
         for url in self.get_webhook_urls(group.project):
             # TODO: Use API client with raise_error
-            safe_execute(self.send_webhook, url, payload, _with_transaction=False)
+            safe_execute(
+                self.send_webhook,
+                url,
+                payload,
+                _with_transaction=False,
+                expected_errors=(ReadTimeout, ConnectionError),
+            )

@@ -4,8 +4,8 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
 import {Client} from 'app/api';
+import {t} from 'app/locale';
 import {SentryApp} from 'app/types';
 
 /**

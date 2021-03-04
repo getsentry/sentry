@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import {updateMember} from 'app/actionCreators/members';
 import OrganizationMemberDetail from 'app/views/settings/organizationMembers/organizationMemberDetail';
@@ -351,7 +352,7 @@ describe('OrganizationMemberDetail', function () {
       expectButtonDisabled('Not enrolled in two-factor authentication');
     });
 
-    it('can reset member 2FA', function () {
+    it('can reset member 2FA', async function () {
       const deleteMocks = has2fa.user.authenticators.map(auth =>
         MockApiClient.addMockResponse({
           url: `/users/${has2fa.user.id}/authenticators/${auth.id}/`,
@@ -366,7 +367,10 @@ describe('OrganizationMemberDetail', function () {
 
       expectButtonEnabled();
       wrapper.find(button).simulate('click');
-      wrapper.find('Button[data-test-id="confirm-button"]').simulate('click');
+
+      const modal = await mountGlobalModal();
+      modal.find('Button[data-test-id="confirm-button"]').simulate('click');
+
       deleteMocks.map(deleteMock => {
         expect(deleteMock).toHaveBeenCalled();
       });

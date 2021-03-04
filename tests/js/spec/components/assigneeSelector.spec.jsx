@@ -2,17 +2,16 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {
-  AssigneeSelectorComponent,
+import {openInviteMembersModal} from 'app/actionCreators/modal';
+import {Client} from 'app/api';
+import AssigneeSelectorComponent, {
   putSessionUserFirst,
 } from 'app/components/assigneeSelector';
-import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
-import {openInviteMembersModal} from 'app/actionCreators/modal';
 
 jest.mock('app/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
@@ -21,11 +20,13 @@ jest.mock('app/actionCreators/modal', () => ({
 describe('AssigneeSelector', function () {
   let assigneeSelector;
   let assignMock;
+  let assignGroup2Mock;
   let openMenu;
   let USER_1, USER_2, USER_3;
   let TEAM_1;
   let PROJECT_1;
   let GROUP_1;
+  let GROUP_2;
 
   beforeEach(function () {
     USER_1 = TestStubs.User({
@@ -62,6 +63,21 @@ describe('AssigneeSelector', function () {
       },
     });
 
+    GROUP_2 = TestStubs.Group({
+      id: '1338',
+      project: {
+        id: PROJECT_1.id,
+        slug: PROJECT_1.slug,
+      },
+      owners: [
+        {
+          type: 'suspectCommit',
+          owner: 'user:1',
+          date_added: '',
+        },
+      ],
+    });
+
     jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => null);
     jest.spyOn(TeamStore, 'getAll').mockImplementation(() => [TEAM_1]);
     jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => [PROJECT_1]);
@@ -72,6 +88,15 @@ describe('AssigneeSelector', function () {
       url: `/issues/${GROUP_1.id}/`,
       body: {
         ...GROUP_1,
+        assignedTo: USER_1,
+      },
+    });
+
+    assignGroup2Mock = Client.addMockResponse({
+      method: 'PUT',
+      url: `/issues/${GROUP_2.id}/`,
+      body: {
+        ...GROUP_2,
         assignedTo: USER_1,
       },
     });
@@ -297,5 +322,58 @@ describe('AssigneeSelector', function () {
     assigneeSelector.update();
     expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(0);
     expect(assigneeSelector.find('ActorAvatar')).toHaveLength(1);
+  });
+
+  it('successfully shows suggested assignees', async function () {
+    jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
+    const onAssign = jest.fn();
+    assigneeSelector = mountWithTheme(
+      <AssigneeSelectorComponent id={GROUP_2.id} onAssign={onAssign} />,
+      TestStubs.routerContext()
+    );
+    MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
+
+    await tick();
+    assigneeSelector.update();
+
+    const avatarTooltip = mountWithTheme(assigneeSelector.find('Tooltip').prop('title'));
+    expect(avatarTooltip.text()).toContain('Suggestion: Jane Bloggs');
+    expect(avatarTooltip.text()).toContain('Based on commit data');
+
+    openMenu();
+    expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
+    expect(assigneeSelector.find('SuggestedAvatarStack').exists()).toBe(true);
+
+    expect(assigneeSelector.find('GroupHeader').first().text()).toEqual('Suggested');
+
+    assigneeSelector.find('UserAvatar').at(1).simulate('click');
+
+    assigneeSelector.update();
+
+    expect(assignGroup2Mock).toHaveBeenCalledWith(
+      '/issues/1338/',
+      expect.objectContaining({
+        data: {assignedTo: 'user:1'},
+      })
+    );
+
+    // Suggested assignees shouldn't show anymore because we assigned to the suggested actor
+    assigneeSelector.update();
+    expect(assigneeSelector.find('SuggestedAvatarStack').exists()).toBe(false);
+    expect(onAssign).toHaveBeenCalledWith(
+      'member',
+      expect.objectContaining({id: '1'}),
+      expect.objectContaining({id: '1'})
+    );
+  });
+
+  it('renders unassigned', async function () {
+    jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
+    assigneeSelector = mountWithTheme(
+      <AssigneeSelectorComponent id={GROUP_2.id} />,
+      TestStubs.routerContext()
+    );
+    const avatarTooltip = mountWithTheme(assigneeSelector.find('Tooltip').prop('title'));
+    expect(avatarTooltip.text()).toContain('Unassigned');
   });
 });

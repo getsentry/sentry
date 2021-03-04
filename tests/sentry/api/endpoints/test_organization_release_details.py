@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import unittest
 from sentry.utils.compat.mock import patch
 from datetime import datetime
@@ -6,12 +5,14 @@ from datetime import datetime
 import pytz
 from django.core.urlresolvers import reverse
 
+from sentry.app import locks
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.models import (
     Activity,
     Environment,
     File,
     Release,
+    ReleaseStatus,
     ReleaseCommit,
     ReleaseFile,
     ReleaseProject,
@@ -315,13 +316,9 @@ class UpdateReleaseDetailsTest(APITestCase):
         org.save()
 
         team = self.create_team(organization=org)
-
         project = self.create_project(teams=[team], organization=org)
-
         release = Release.objects.create(organization_id=org.id, version="abcabcabc")
-
         release.add_project(project)
-
         self.create_member(teams=[team], user=user, organization=org)
 
         self.login_as(user=user)
@@ -342,6 +339,62 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert len(rc_list) == 2
         for rc in rc_list:
             assert rc.organization_id == org.id
+
+    def test_commits_lock_conflict(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name="foo", organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        release = self.create_release(project, self.user, version="1.2.1")
+        release.add_project(project)
+
+        # Simulate a concurrent request by using an existing release
+        # that has its commit lock taken out.
+        lock = locks.get(Release.get_lock_key(org.id, release.id), duration=10)
+        lock.acquire()
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+        response = self.client.put(url, data={"commits": [{"id": "a" * 40}, {"id": "b" * 40}]})
+        assert response.status_code == 409, (response.status_code, response.content)
+        assert "Release commits" in response.data["detail"]
+
+    def test_release_archiving(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+
+        project = self.create_project(teams=[team], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+
+        release.add_project(project)
+
+        self.create_member(teams=[team], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+        response = self.client.put(url, data={"status": "archived"})
+
+        assert response.status_code == 200, (response.status_code, response.content)
+
+        assert Release.objects.get(id=release.id).status == ReleaseStatus.ARCHIVED
 
     def test_activity_generation(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -505,7 +558,7 @@ class ReleaseDeleteTest(APITestCase):
             },
         )
         assert response.status_code == 400
-        assert response.data == {"refs": [u"Invalid repository names: not_a_repo"]}
+        assert response.data == {"refs": ["Invalid repository names: not_a_repo"]}
 
     def test_bad_commit_list(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -541,7 +594,7 @@ class ReleaseDeleteTest(APITestCase):
 
 class ReleaseSerializerTest(unittest.TestCase):
     def setUp(self):
-        super(ReleaseSerializerTest, self).setUp()
+        super().setUp()
         self.repo_name = "repo/name"
         self.repo2_name = "repo2/name"
         self.commits = [{"id": "a" * 40}, {"id": "b" * 40}]
@@ -570,9 +623,15 @@ class ReleaseSerializerTest(unittest.TestCase):
         )
 
         assert serializer.is_valid()
-        assert sorted(serializer.fields.keys()) == sorted(
-            ["ref", "url", "dateReleased", "commits", "headCommits", "refs"]
-        )
+        assert set(serializer.fields.keys()) == {
+            "ref",
+            "url",
+            "dateReleased",
+            "commits",
+            "headCommits",
+            "refs",
+            "status",
+        }
 
         result = serializer.validated_data
         assert result["ref"] == self.ref
@@ -603,3 +662,9 @@ class ReleaseSerializerTest(unittest.TestCase):
         assert serializer.is_valid()
         serializer = OrganizationReleaseSerializer(data={"ref": "a" * (MAX_VERSION_LENGTH + 1)})
         assert not serializer.is_valid()
+
+    def test_author_email_patch(self):
+        serializer = OrganizationReleaseSerializer(
+            data={"commits": [{"id": "a", "author_email": "email[test]@example.org"}]}
+        )
+        assert serializer.is_valid()

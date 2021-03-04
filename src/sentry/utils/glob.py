@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import sentry_relay
 
 
@@ -8,7 +6,7 @@ def glob_match(
 ):
     """A beefed up version of fnmatch.fnmatch"""
     return sentry_relay.is_glob_match(
-        value,
+        value if value is not None else "",
         pat,
         double_star=doublestar,
         case_insensitive=ignorecase,

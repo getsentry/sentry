@@ -1,19 +1,18 @@
 import React from 'react';
-import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
-import {defined} from 'app/utils';
-import {Organization, Project, Plugin} from 'app/types';
 import {fetchPlugins} from 'app/actionCreators/plugins';
-import getDisplayName from 'app/utils/getDisplayName';
 import PluginsStore from 'app/stores/pluginsStore';
-import SentryTypes from 'app/sentryTypes';
+import {Organization, Plugin, Project} from 'app/types';
+import {defined} from 'app/utils';
+import getDisplayName from 'app/utils/getDisplayName';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
 
 type WithPluginProps = {
   organization: Organization;
-  project: Project;
+  project?: Project;
 };
 
 type InjectedPluginProps = {
@@ -31,10 +30,6 @@ const withPlugins = <P extends WithPluginProps>(
     withProject(
       createReactClass<Omit<P, keyof InjectedPluginProps> & WithPluginProps, {}>({
         displayName: `withPlugins(${getDisplayName(WrappedComponent)})`,
-        propTypes: {
-          organization: SentryTypes.Organization.isRequired,
-          project: SentryTypes.Project.isRequired,
-        },
         mixins: [Reflux.connect(PluginsStore, 'store') as any],
 
         componentDidMount() {
@@ -60,7 +55,7 @@ const withPlugins = <P extends WithPluginProps>(
           }
 
           const isOrgSame = prevOrg.slug === organization.slug;
-          const isProjectSame = prevProject.slug === project.slug;
+          const isProjectSame = prevProject.slug === project?.slug;
 
           // Don't do anything if org and project are the same
           if (isOrgSame && isProjectSame) {

@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import copy
 import responses
-import six
 
 from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
 from sentry.models import ExternalIssue, Integration
@@ -53,9 +50,7 @@ class BitbucketIssueTest(APITestCase):
         repo = "myaccount/myrepo"
         responses.add(
             responses.GET,
-            u"https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}".format(
-                repo=repo, issue_id=issue_id
-            ),
+            f"https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}",
             json={"id": issue_id, "title": "hello", "content": {"html": "This is the description"}},
         )
 
@@ -75,9 +70,7 @@ class BitbucketIssueTest(APITestCase):
         comment = {"comment": "hello I'm a comment"}
         responses.add(
             responses.POST,
-            u"https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}/comments".format(
-                repo=repo, issue_id=issue_id
-            ),
+            f"https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}/comments",
             status=201,
             json={"content": {"raw": comment}},
         )
@@ -111,9 +104,7 @@ class BitbucketIssueTest(APITestCase):
             content_type="application/json",
         )
         self.org_integration.config = {
-            "project_issue_defaults": {
-                six.text_type(self.group.project_id): {"repo": "myaccount/repo1"}
-            }
+            "project_issue_defaults": {str(self.group.project_id): {"repo": "myaccount/repo1"}}
         }
         self.org_integration.save()
         installation = self.integration.get_installation(self.organization.id)
@@ -135,13 +126,11 @@ class BitbucketIssueTest(APITestCase):
             content_type="application/json",
         )
         self.org_integration.config = {
-            "project_issue_defaults": {
-                six.text_type(self.group.project_id): {"repo": "myaccount/repo1"}
-            }
+            "project_issue_defaults": {str(self.group.project_id): {"repo": "myaccount/repo1"}}
         }
         self.org_integration.save()
         installation = self.integration.get_installation(self.organization.id)
-        fields = installation.get_create_issue_config(self.group)
+        fields = installation.get_create_issue_config(self.group, self.user)
         for field in fields:
             if field["name"] == "repo":
                 repo_field = field
@@ -177,7 +166,7 @@ class BitbucketIssueTest(APITestCase):
         )
 
         installation = self.integration.get_installation(self.organization.id)
-        fields = installation.get_create_issue_config(self.group)
+        fields = installation.get_create_issue_config(self.group, self.user)
         repo_field = [field for field in fields if field["name"] == "repo"][0]
         assert repo_field["default"] == ""
         assert repo_field["choices"] == []
@@ -191,7 +180,7 @@ class BitbucketIssueTest(APITestCase):
         )
 
         installation = self.integration.get_installation(self.organization.id)
-        assert installation.get_create_issue_config(self.group) == [
+        assert installation.get_create_issue_config(self.group, self.user) == [
             {
                 "name": "repo",
                 "required": True,
@@ -205,14 +194,14 @@ class BitbucketIssueTest(APITestCase):
             {
                 "name": "title",
                 "label": "Title",
-                "default": u"message",
+                "default": "message",
                 "type": "string",
                 "required": True,
             },
             {
                 "name": "description",
                 "label": "Description",
-                "default": u'Sentry Issue: [BAR-1](http://testserver/organizations/baz/issues/%d/?referrer=bitbucket_integration)\n\n```\nStacktrace (most recent call first):\n\n  File "sentry/models/foo.py", line 29, in build_msg\n    string_max_length=self.string_max_length)\n\nmessage\n```'
+                "default": 'Sentry Issue: [BAR-1](http://testserver/organizations/baz/issues/%d/?referrer=bitbucket_integration)\n\n```\nStacktrace (most recent call first):\n\n  File "sentry/models/foo.py", line 29, in build_msg\n    string_max_length=self.string_max_length)\n\nmessage\n```'
                 % self.group.id,
                 "type": "textarea",
                 "autosize": True,
@@ -282,7 +271,7 @@ class BitbucketIssueTest(APITestCase):
 
         responses.add(
             responses.POST,
-            u"https://api.bitbucket.org/2.0/repositories/{repo}/issues".format(repo=repo),
+            f"https://api.bitbucket.org/2.0/repositories/{repo}/issues",
             json={"id": id, "title": title, "content": {"html": content}},
         )
         installation = self.integration.get_installation(self.organization.id)

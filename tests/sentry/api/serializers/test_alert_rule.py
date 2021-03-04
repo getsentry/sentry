@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
-import six
-
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import (
     DetailedAlertRuleSerializer,
@@ -12,18 +6,19 @@ from sentry.api.serializers.models.alert_rule import (
 from sentry.models import Rule
 from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models import AlertRuleThresholdType, AlertRule
+from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils import TestCase, APITestCase
 
 
-class BaseAlertRuleSerializerTest(object):
+class BaseAlertRuleSerializerTest:
     def assert_alert_rule_serialized(self, alert_rule, result, skip_dates=False):
         alert_rule_projects = sorted(
             AlertRule.objects.filter(id=alert_rule.id).values_list(
                 "snuba_query__subscriptions__project__slug", flat=True
             )
         )
-        assert result["id"] == six.text_type(alert_rule.id)
-        assert result["organizationId"] == six.text_type(alert_rule.organization_id)
+        assert result["id"] == str(alert_rule.id)
+        assert result["organizationId"] == str(alert_rule.organization_id)
         assert result["name"] == alert_rule.name
         assert result["dataset"] == alert_rule.snuba_query.dataset
         assert result["query"] == alert_rule.snuba_query.query
@@ -126,6 +121,7 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         self.assert_alert_rule_serialized(alert_rule, result)
         assert sorted(result["projects"]) == sorted([p.slug for p in projects])
         assert result["excludedProjects"] == []
+        assert result["eventTypes"] == [SnubaQueryEventType.EventType.ERROR.name.lower()]
 
     def test_excluded_projects(self):
         projects = [self.project]
@@ -137,12 +133,14 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         self.assert_alert_rule_serialized(alert_rule, result)
         assert result["projects"] == [p.slug for p in projects]
         assert result["excludedProjects"] == [p.slug for p in excluded]
+        assert result["eventTypes"] == [SnubaQueryEventType.EventType.ERROR.name.lower()]
 
         alert_rule = self.create_alert_rule(projects=projects, include_all_projects=False)
         result = serialize(alert_rule, serializer=DetailedAlertRuleSerializer())
         self.assert_alert_rule_serialized(alert_rule, result)
         assert result["projects"] == [p.slug for p in projects]
         assert result["excludedProjects"] == []
+        assert result["eventTypes"] == [SnubaQueryEventType.EventType.ERROR.name.lower()]
 
     def test_triggers(self):
         alert_rule = self.create_alert_rule()
@@ -173,5 +171,5 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         )
 
         self.assert_alert_rule_serialized(alert_rule, result[0])
-        assert result[1]["id"] == six.text_type(issue_rule.id)
+        assert result[1]["id"] == str(issue_rule.id)
         self.assert_alert_rule_serialized(other_alert_rule, result[2])

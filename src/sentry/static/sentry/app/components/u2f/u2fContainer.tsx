@@ -1,15 +1,15 @@
 import React from 'react';
 
-import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import {Authenticator} from 'app/types';
+import withApi from 'app/utils/withApi';
 
 import U2fSign from './u2fsign';
 
 type Props = {
   api: Client;
-  displayMode?: string;
-  onTap?: ({response, challenge}: {response: string; challenge: string}) => void;
+  onTap: U2fSign['props']['onTap'];
+  displayMode?: U2fSign['props']['displayMode'];
   className?: string;
 };
 type State = {
@@ -45,12 +45,11 @@ class U2fContainer extends React.Component<Props, State> {
 
     return (
       <div className={className}>
-        {authenticators.map(({id, ...other}) => {
-          if (id === 'u2f' && other.challenge) {
-            return <U2fSign key={id} {...this.props} challengeData={other.challenge} />;
-          }
-          return null;
-        })}
+        {authenticators.map(auth =>
+          auth.id === 'u2f' && auth.challenge ? (
+            <U2fSign key={auth.id} {...this.props} challengeData={auth.challenge} />
+          ) : null
+        )}
       </div>
     );
   }

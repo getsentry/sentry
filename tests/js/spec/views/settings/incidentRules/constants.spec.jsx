@@ -1,6 +1,6 @@
-import {Dataset} from 'app/views/settings/incidentRules/types';
 import EventView from 'app/utils/discover/eventView';
 import {createRuleFromEventView} from 'app/views/settings/incidentRules/constants';
+import {Dataset, EventTypes} from 'app/views/settings/incidentRules/types';
 
 describe('createRuleFromEventView()', () => {
   it('sets transaction dataset from event.type:transaction', () => {
@@ -18,6 +18,7 @@ describe('createRuleFromEventView()', () => {
 
     const rule = createRuleFromEventView(eventView);
     expect(rule.dataset).toBe(Dataset.ERRORS);
+    expect(rule.eventTypes).toEqual([EventTypes.ERROR]);
   });
   it('removes event.type from query', () => {
     const eventView = new EventView({
@@ -42,5 +43,14 @@ describe('createRuleFromEventView()', () => {
 
     const rule = createRuleFromEventView(eventView);
     expect(rule.aggregate).toBe(eventView.yAxis);
+  });
+  it('gets dataset and eventtypes from query', () => {
+    const eventView = new EventView({
+      query: 'event.type:error or event.type:default something',
+    });
+
+    const rule = createRuleFromEventView(eventView);
+    expect(rule.dataset).toBe(Dataset.ERRORS);
+    expect(rule.eventTypes).toEqual([EventTypes.ERROR, EventTypes.DEFAULT]);
   });
 });

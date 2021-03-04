@@ -15,10 +15,5 @@
       "headers": [{"key": "Referer", "value": "https://sentry.io/"}]
     }
   ],
-  "build": {
-    "env": {
-      "SENTRY_EXPERIMENTAL_SPA": "1"
-    }
-  },
   "github": {"silent": true}
 }

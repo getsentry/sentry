@@ -3,6 +3,7 @@ import {Widget} from 'app/types';
 import {SnubaResult} from 'app/views/discover/types';
 
 import {WIDGET_DISPLAY} from '../constants';
+
 import {getChartDataFunc} from './getChartDataFunc';
 import {isTimeSeries} from './isTimeSeries';
 

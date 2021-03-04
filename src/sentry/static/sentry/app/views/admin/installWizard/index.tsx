@@ -3,16 +3,17 @@ import DocumentTitle from 'react-document-title';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import AsyncView from 'app/views/asyncView';
+import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
+
+import Alert from 'app/components/alert';
+import {ApiForm} from 'app/components/forms';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-import {ApiForm} from 'app/components/forms';
-import sentryPattern from 'app/../images/pattern/sentry-pattern.png';
 import space from 'app/styles/space';
-import Alert from 'app/components/alert';
-import {IconWarning} from 'app/icons';
+import AsyncView from 'app/views/asyncView';
 
-import {getOptionDefault, getOptionField, getForm} from '../options';
+import {getForm, getOptionDefault, getOptionField} from '../options';
 
 type Props = {
   onConfigured: () => void;
@@ -154,8 +155,8 @@ const Pattern = styled('div')`
     content: '';
     background-image: linear-gradient(
       to right,
-      ${p => p.theme.purple300} 0%,
-      ${p => p.theme.purple400} 100%
+      ${p => p.theme.purple200} 0%,
+      ${p => p.theme.purple300} 100%
     );
     background-repeat: repeat-y;
   }
@@ -183,7 +184,7 @@ const Version = styled('small')`
 `;
 
 const SetupWizard = styled('div')`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   margin-top: 40px;

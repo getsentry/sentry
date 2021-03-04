@@ -28,7 +28,7 @@ const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
 // This is used to stop rendering dynamic content for tests/snapshots
 // We want it in the case where we are running tests and it is in CI,
 // this should not happen in local
-const IS_CI = !!env.CI || !!env.TRAVIS;
+const IS_CI = !!env.CI;
 const IS_ACCEPTANCE_TEST = IS_CI && !!env.VISUAL_SNAPSHOT_ENABLE;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
@@ -345,6 +345,8 @@ let appConfig = {
   resolve: {
     alias: {
       app: path.join(staticPrefix, 'app'),
+      'sentry-images': path.join(staticPrefix, 'images'),
+      'sentry-fonts': path.join(staticPrefix, 'fonts'),
       '@emotion/styled': path.join(staticPrefix, 'app', 'styled'),
       '@original-emotion/styled': path.join(
         __dirname,
@@ -358,6 +360,13 @@ let appConfig = {
       less: path.join(staticPrefix, 'less'),
       'sentry-test': path.join(__dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
+      'ios-device-list': path.join(
+        __dirname,
+        'node_modules',
+        'ios-device-list',
+        'dist',
+        'ios-device-list.min.js'
+      ),
     },
 
     modules: ['node_modules'],

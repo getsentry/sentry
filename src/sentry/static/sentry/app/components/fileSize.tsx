@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {formatBytes} from 'app/utils';
@@ -18,10 +17,5 @@ function FileSize(props: Props) {
     </span>
   );
 }
-
-FileSize.propTypes = {
-  className: PropTypes.string,
-  bytes: PropTypes.number.isRequired,
-};
 
 export default FileSize;

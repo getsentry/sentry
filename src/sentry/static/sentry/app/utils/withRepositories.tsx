@@ -1,23 +1,23 @@
 import React from 'react';
-import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
-import {Client} from 'app/api';
-import {Repository} from 'app/types';
-import RepositoryActions from 'app/actions/repositoryActions';
 import {getRepositories} from 'app/actionCreators/repositories';
+import RepositoryActions from 'app/actions/repositoryActions';
+import {Client} from 'app/api';
 import RepositoryStore from 'app/stores/repositoryStore';
+import {Organization, Repository} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
 
 type DependentProps = {
   api: Client;
-  orgSlug: string;
+  organization: Organization;
 };
 
 type InjectedProps = {
-  repositories: Repository[] | undefined;
-  repositoriesLoading: boolean | undefined;
-  repositoriesError: Error | undefined;
+  repositories?: Repository[];
+  repositoriesLoading?: boolean;
+  repositoriesError?: Error;
 };
 
 const INITIAL_STATE: InjectedProps = {
@@ -37,7 +37,8 @@ const withRepositories = <P extends DependentProps>(
     mixins: [Reflux.listenTo(RepositoryStore, 'onStoreUpdate') as any],
 
     getInitialState() {
-      const {orgSlug} = this.props as P & DependentProps;
+      const {organization} = this.props as P & DependentProps;
+      const orgSlug = organization.slug;
       const repoData = RepositoryStore.get();
 
       if (repoData.orgSlug !== orgSlug) {
@@ -56,7 +57,8 @@ const withRepositories = <P extends DependentProps>(
     },
 
     fetchRepositories() {
-      const {api, orgSlug} = this.props as P & DependentProps;
+      const {api, organization} = this.props as P & DependentProps;
+      const orgSlug = organization.slug;
       const repoData = RepositoryStore.get();
 
       // XXX(leedongwei): Do not check the orgSlug here. It would have been

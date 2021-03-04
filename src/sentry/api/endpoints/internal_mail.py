@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 from rest_framework.response import Response
 
 from sentry import options
@@ -19,6 +16,7 @@ class InternalMailEndpoint(Endpoint):
             "mailUsername": options.get("mail.username"),
             "mailPort": options.get("mail.port"),
             "mailUseTls": options.get("mail.use-tls"),
+            "mailUseSsl": options.get("mail.use-ssl"),
             "mailFrom": options.get("mail.from"),
             "mailListNamespace": options.get("mail.list-namespace"),
             "testMailEmail": request.user.email,
@@ -34,13 +32,13 @@ class InternalMailEndpoint(Endpoint):
         )
         try:
             send_mail(
-                "%s Test Email" % (options.get("mail.subject-prefix"),),
+                "{} Test Email".format(options.get("mail.subject-prefix")),
                 body,
                 options.get("mail.from"),
                 [request.user.email],
                 fail_silently=False,
             )
         except Exception as e:
-            error = six.text_type(e)
+            error = str(e)
 
         return Response({"error": error}, status=500 if error else 200)

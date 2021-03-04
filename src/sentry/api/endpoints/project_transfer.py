@@ -1,8 +1,6 @@
-from __future__ import absolute_import
-
 import logging
 from uuid import uuid4
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from django.utils import timezone
 from rest_framework import status
@@ -82,7 +80,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             "requester": request.user,
         }
         MessageBuilder(
-            subject="%sRequest for Project Transfer" % (options.get("mail.subject-prefix"),),
+            subject="{}Request for Project Transfer".format(options.get("mail.subject-prefix")),
             template="sentry/emails/transfer_project.txt",
             html_template="sentry/emails/transfer_project.html",
             type="org.confirm_project_transfer_request",

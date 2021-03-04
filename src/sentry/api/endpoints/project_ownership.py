@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from rest_framework import serializers
 from rest_framework.response import Response
 from django.utils import timezone
@@ -27,7 +23,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         except ParseError as e:
             raise serializers.ValidationError(
                 {
-                    "raw": u"Parse error: %r (line %d, column %d)"
+                    "raw": "Parse error: %r (line %d, column %d)"
                     % (e.expr.name, e.line(), e.column())
                 }
             )
@@ -38,17 +34,17 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         actors = resolve_actors(owners, self.context["ownership"].project_id)
 
         bad_actors = []
-        for owner, actor in six.iteritems(actors):
+        for owner, actor in actors.items():
             if actor is None:
                 if owner.type == "user":
                     bad_actors.append(owner.identifier)
                 elif owner.type == "team":
-                    bad_actors.append(u"#{}".format(owner.identifier))
+                    bad_actors.append(f"#{owner.identifier}")
 
         if bad_actors:
             bad_actors.sort()
             raise serializers.ValidationError(
-                {"raw": u"Invalid rule owners: {}".format(", ".join(bad_actors))}
+                {"raw": "Invalid rule owners: {}".format(", ".join(bad_actors))}
             )
 
         attrs["schema"] = schema
@@ -99,13 +95,19 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         return changed
 
 
-class ProjectOwnershipEndpoint(ProjectEndpoint):
+class ProjectOwnershipMixin:
     def get_ownership(self, project):
         try:
             return ProjectOwnership.objects.get(project=project)
         except ProjectOwnership.DoesNotExist:
-            return ProjectOwnership(project=project, date_created=None, last_updated=None)
+            return ProjectOwnership(
+                project=project,
+                date_created=None,
+                last_updated=None,
+            )
 
+
+class ProjectOwnershipEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
     def get(self, request, project):
         """
         Retrieve a Project's Ownership configuration

@@ -2,10 +2,10 @@ import React from 'react';
 
 import BaseBadge from 'app/components/idBadge/baseBadge';
 import MemberBadge from 'app/components/idBadge/memberBadge';
-import UserBadge from 'app/components/idBadge/userBadge';
-import TeamBadge from 'app/components/idBadge/teamBadge/badge';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
 import OrganizationBadge from 'app/components/idBadge/organizationBadge';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
+import TeamBadge from 'app/components/idBadge/teamBadge/badge';
+import UserBadge from 'app/components/idBadge/userBadge';
 import {Member, User} from 'app/types';
 
 type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;

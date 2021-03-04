@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import hmac
 from hashlib import sha256
 
@@ -22,7 +20,7 @@ class SlackRequestError(Exception):
         self.status = status
 
 
-class SlackRequest(object):
+class SlackRequest:
     """
     Encapsulation of a request from Slack.
 
@@ -86,7 +84,7 @@ class SlackRequest(object):
         if self.integration:
             data["integration_id"] = self.integration.id
 
-        return dict((k, v) for k, v in data.items() if v)
+        return {k: v for k, v in data.items() if v}
 
     def _validate_data(self):
         try:
@@ -95,19 +93,18 @@ class SlackRequest(object):
             raise SlackRequestError(status=400)
 
     def _authorize(self):
-        # check v1 then v2
+        # XXX(meredith): Signing secrets are the prefered way
+        # but self-hosted could still have an older slack bot
+        # app that just has the verification token.
         signing_secret = options.get("slack.signing-secret")
         verification_token = options.get("slack.verification-token")
-        # for v1, only check the verification_token if we don't have a signing_secret
+
         if signing_secret:
             if self._check_signing_secret(signing_secret):
                 return
         elif verification_token and self._check_verification_token(verification_token):
             return
-        # for v2, only check signing secret
-        signing_secret = options.get("slack-v2.signing-secret")
-        if signing_secret and self._check_signing_secret(signing_secret):
-            return
+
         # unfortunately, we can't know which auth was supposed to succeed
         self._error("slack.action.auth")
         raise SlackRequestError(status=401)
@@ -166,7 +163,7 @@ class SlackEventRequest(SlackRequest):
         else:
             # Non-Challenge requests need to validate everything plus the data
             # about the event.
-            super(SlackEventRequest, self).validate()
+            super().validate()
             self._validate_event()
 
     def is_challenge(self):
@@ -186,7 +183,7 @@ class SlackEventRequest(SlackRequest):
             raise SlackRequestError(status=400)
 
     def _log_request(self):
-        self._info(u"slack.event.{}".format(self.type))
+        self._info(f"slack.event.{self.type}")
 
 
 class SlackActionRequest(SlackRequest):
@@ -199,7 +196,7 @@ class SlackActionRequest(SlackRequest):
     """
 
     def __init__(self, request):
-        super(SlackActionRequest, self).__init__(request)
+        super().__init__(request)
         self._callback_data = None
 
     @property
@@ -226,7 +223,7 @@ class SlackActionRequest(SlackRequest):
         requests (nested in a ``payload`` attribute), so there's extra
         validation needed.
         """
-        super(SlackActionRequest, self)._validate_data()
+        super()._validate_data()
 
         if "payload" not in self.request.data:
             raise SlackRequestError(status=400)

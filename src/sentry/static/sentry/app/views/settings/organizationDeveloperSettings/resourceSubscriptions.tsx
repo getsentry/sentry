@@ -1,14 +1,14 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import SubscriptionBox from 'app/views/settings/organizationDeveloperSettings/subscriptionBox';
+import {Context} from 'app/components/forms/form';
+import {Permissions, WebhookEvent} from 'app/types';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,
 } from 'app/views/settings/organizationDeveloperSettings/constants';
-import {WebhookEvent, Permissions} from 'app/types';
-import {Context} from 'app/components/forms/form';
+import SubscriptionBox from 'app/views/settings/organizationDeveloperSettings/subscriptionBox';
 
 type Resource = typeof EVENT_CHOICES[number];
 
@@ -23,13 +23,6 @@ type Props = DefaultProps & {
 };
 
 export default class Subscriptions extends React.Component<Props> {
-  static propTypes = {
-    permissions: PropTypes.object.isRequired,
-    events: PropTypes.array.isRequired,
-    onChange: PropTypes.func.isRequired,
-    webhookDisabled: PropTypes.bool.isRequired,
-  };
-
   static contextTypes = {
     router: PropTypes.object.isRequired,
     form: PropTypes.object,

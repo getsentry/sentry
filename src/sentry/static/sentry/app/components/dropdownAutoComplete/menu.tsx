@@ -1,60 +1,34 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import AutoComplete from 'app/components/autoComplete';
 import DropdownBubble from 'app/components/dropdownBubble';
-import Input from 'app/views/settings/components/forms/controls/input';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import Input from 'app/views/settings/components/forms/controls/input';
 
-import List from './list';
-import {ItemsBeforeFilter, Item} from './types';
 import autoCompleteFilter from './autoCompleteFilter';
+import List from './list';
+import {Item, ItemsBeforeFilter} from './types';
 
-type MenuFooterChildProps = {
+type AutoCompleteChildrenArgs = Parameters<AutoComplete<Item>['props']['children']>[0];
+type Actions = AutoCompleteChildrenArgs['actions'];
+
+export type MenuFooterChildProps = {
   actions: Actions;
 };
-
-type EventHandles = {
-  onClick?: (event: React.MouseEvent<Element>) => void;
-  onMouseEnter?: (event: React.MouseEvent<Element>) => void;
-  onMouseLeave?: (event: React.MouseEvent<Element>) => void;
-  onKeyDown?: (event: React.KeyboardEvent<Element>) => void;
-};
-
-type MenuProps = Omit<EventHandles, 'onKeyDown'> & {
-  className?: string;
-};
-
-// Props for the "actor" element of `<DropdownMenu>`
-// This is the element that handles visibility of the dropdown menu
-type ActorProps = Required<EventHandles>;
-
-type GetActorArgs = EventHandles & {
-  style?: React.CSSProperties;
-  className?: string;
-};
-
-type Actions = {
-  open: () => void;
-  close: () => void;
-};
-
-type ChildrenArgs = {
-  getInputProps: () => void;
-  getActorProps: (args?: GetActorArgs) => ActorProps;
-  actions: Actions;
-  isOpen: boolean;
-  selectedItem?: Item;
-  selectedItemIndex?: number;
-} & Record<string, any>; //Record is needed here because of the projectSelector component as it passes the selectedProjects prop
 
 type ListProps = React.ComponentProps<typeof List>;
 
 type Props = {
   items: ItemsBeforeFilter;
-  children: (args: ChildrenArgs) => React.ReactNode;
+  children: (
+    args: Pick<
+      AutoCompleteChildrenArgs,
+      'getInputProps' | 'getActorProps' | 'actions' | 'isOpen' | 'selectedItem'
+    >
+  ) => React.ReactNode;
 
   menuHeader?: React.ReactElement;
   menuFooter?:
@@ -109,7 +83,7 @@ type Props = {
   /**
    * Props to pass to menu component
    */
-  menuProps?: MenuProps;
+  menuProps?: Parameters<AutoCompleteChildrenArgs['getMenuProps']>[0];
 
   /**
    * Show loading indicator next to input but don't hide list items
@@ -154,7 +128,11 @@ type Props = {
   /**
    * When an item is selected (via clicking dropdown, or keyboard navigation)
    */
-  onSelect?: (item: Item) => void;
+  onSelect?: (
+    item: Item,
+    state?: AutoComplete<Item>['state'],
+    e?: React.MouseEvent | React.KeyboardEvent
+  ) => void;
 
   /**
    * AutoComplete prop
@@ -234,7 +212,6 @@ const Menu = ({
   ...props
 }: Props) => (
   <AutoComplete
-    itemToString={() => ''}
     onSelect={onSelect}
     inputIsActor={false}
     onOpen={onOpen}
@@ -285,14 +262,19 @@ const Menu = ({
 
       // When virtualization is turned on, we need to pass in the number of
       // selecteable items for arrow-key limits
-      const itemCount =
-        virtualizedHeight && autoCompleteResults.filter(i => !i.groupLabel).length;
+      const itemCount = virtualizedHeight
+        ? autoCompleteResults.filter(i => !i.groupLabel).length
+        : undefined;
 
       const renderedFooter =
         typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
 
       return (
-        <AutoCompleteRoot {...getRootProps()} className={rootClassName}>
+        <AutoCompleteRoot
+          {...getRootProps()}
+          className={rootClassName}
+          disabled={disabled}
+        >
           {children({
             getInputProps,
             getActorProps,
@@ -305,13 +287,13 @@ const Menu = ({
               className={className}
               {...getMenuProps({
                 ...menuProps,
-                style,
-                css,
                 itemCount,
-                blendCorner,
-                alignMenu,
-                menuWithArrow,
               })}
+              style={style}
+              css={css}
+              blendCorner={blendCorner}
+              alignMenu={alignMenu}
+              menuWithArrow={menuWithArrow}
             >
               {itemsLoading && <LoadingIndicator mini />}
               {showInput && (
@@ -381,13 +363,13 @@ const StyledInput = styled(Input)`
     font-size: 13px;
     padding: ${space(1)};
     font-weight: normal;
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
 
 const InputLoadingWrapper = styled('div')`
   display: flex;
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   align-items: center;
   flex-shrink: 0;
   width: 30px;
@@ -398,7 +380,7 @@ const InputLoadingWrapper = styled('div')`
 `;
 
 const EmptyMessage = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   padding: ${space(2)};
   text-align: center;
   text-transform: none;
@@ -409,6 +391,7 @@ export const AutoCompleteRoot = styled(({isOpen: _isOpen, ...props}) => (
 ))`
   position: relative;
   display: inline-block;
+  ${p => p.disabled && 'pointer-events: none;'}
 `;
 
 const BubbleWithMinWidth = styled(DropdownBubble)`
@@ -417,16 +400,16 @@ const BubbleWithMinWidth = styled(DropdownBubble)`
 
 const InputWrapper = styled('div')`
   display: flex;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
   align-items: center;
 `;
 
 const LabelWithPadding = styled('div')`
-  background-color: ${p => p.theme.gray100};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   &:first-child {
     border-top: none;

@@ -1,11 +1,13 @@
 import {
+  aggregateMultiPlotType,
+  aggregateOutputType,
+  explodeField,
+  fieldAlignment,
+  generateAggregateFields,
   getAggregateAlias,
   isAggregateField,
   isMeasurement,
   measurementType,
-  explodeField,
-  aggregateOutputType,
-  aggregateMultiPlotType,
 } from 'app/utils/discover/fields';
 
 describe('getAggregateAlias', function () {
@@ -27,7 +29,7 @@ describe('getAggregateAlias', function () {
     expect(getAggregateAlias('count_unique(user)')).toEqual('count_unique_user');
     expect(getAggregateAlias('count_unique(issue.id)')).toEqual('count_unique_issue_id');
     expect(getAggregateAlias('count(foo.bar.is-Enterprise_42)')).toEqual(
-      'count_foo_bar_is-Enterprise_42'
+      'count_foo_bar_is_Enterprise_42'
     );
   });
 
@@ -38,6 +40,12 @@ describe('getAggregateAlias', function () {
     expect(getAggregateAlias('percentile(transaction.duration,  0.11)')).toEqual(
       'percentile_transaction_duration_0_11'
     );
+  });
+
+  it('handles to_other with symbols', function () {
+    expect(
+      getAggregateAlias('to_other(release,"release:beta@1.1.1 (2)",others,current)')
+    ).toEqual('to_other_release__release_beta_1_1_1__2___others_current');
   });
 });
 
@@ -129,6 +137,11 @@ describe('aggregateOutputType', function () {
     expect(aggregateOutputType('p95()')).toEqual('duration');
     expect(aggregateOutputType('p99()')).toEqual('duration');
     expect(aggregateOutputType('p100()')).toEqual('duration');
+    expect(aggregateOutputType('p50(transaction.duration)')).toEqual('duration');
+    expect(aggregateOutputType('p75(transaction.duration)')).toEqual('duration');
+    expect(aggregateOutputType('p95(transaction.duration)')).toEqual('duration');
+    expect(aggregateOutputType('p99(transaction.duration)')).toEqual('duration');
+    expect(aggregateOutputType('p100(transaction.duration)')).toEqual('duration');
     expect(aggregateOutputType('percentile(transaction.duration, 0.51)')).toEqual(
       'duration'
     );
@@ -171,6 +184,11 @@ describe('aggregateOutputType', function () {
     expect(aggregateOutputType('max(measurements.bar)')).toEqual('number');
     expect(aggregateOutputType('avg(measurements.bar)')).toEqual('number');
     expect(aggregateOutputType('percentile(measurements.bar, 0.5)')).toEqual('number');
+    expect(aggregateOutputType('p50(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('p75(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('p95(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('p99(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('p100(measurements.bar)')).toEqual('number');
   });
 });
 
@@ -182,5 +200,50 @@ describe('aggregateMultiPlotType', function () {
   it('handles known functions', function () {
     expect(aggregateMultiPlotType('sum(transaction.duration)')).toBe('area');
     expect(aggregateMultiPlotType('p95()')).toBe('line');
+  });
+});
+
+describe('generateAggregateFields', function () {
+  const organization = TestStubs.Organization();
+  it('gets default aggregates', function () {
+    expect(generateAggregateFields(organization, [])).toContainEqual({field: 'count()'});
+  });
+
+  it('includes fields from eventFields', function () {
+    expect(
+      generateAggregateFields(organization, [{field: 'not_real_aggregate()'}])
+    ).toContainEqual({field: 'not_real_aggregate()'});
+  });
+
+  it('excludes fields from aggregates', function () {
+    expect(generateAggregateFields(organization, [], ['count()'])).not.toContainEqual({
+      field: 'count()',
+    });
+  });
+});
+
+describe('fieldAlignment()', function () {
+  it('works with only field name', function () {
+    expect(fieldAlignment('event.type')).toEqual('left');
+
+    // Should be right, but we don't have any type data.
+    expect(fieldAlignment('transaction.duration')).toEqual('left');
+  });
+
+  it('works with type parameter', function () {
+    expect(fieldAlignment('transaction.duration', 'duration')).toEqual('right');
+    expect(fieldAlignment('device.battery_level', 'number')).toEqual('right');
+    expect(fieldAlignment('min(timestamp)', 'datetime')).toEqual('left');
+  });
+
+  it('can use table metadata', function () {
+    const meta = {
+      'transaction.duration': 'duration',
+      title: 'string',
+    };
+    expect(fieldAlignment('transaction.duration', 'never', meta)).toEqual('right');
+    expect(fieldAlignment('transaction.duration', undefined, meta)).toEqual('right');
+
+    expect(fieldAlignment('title', undefined, meta)).toEqual('left');
   });
 });

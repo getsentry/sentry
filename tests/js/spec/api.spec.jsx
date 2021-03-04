@@ -1,7 +1,4 @@
-import $ from 'jquery';
-
-import {Client, Request, paramsToQueryArgs} from 'app/api';
-import GroupActions from 'app/actions/groupActions';
+import {Client, Request} from 'app/api';
 import {PROJECT_MOVED} from 'app/constants/apiErrorCodes';
 
 jest.unmock('app/api');
@@ -13,89 +10,14 @@ describe('api', function () {
     api = new Client();
   });
 
-  describe('paramsToQueryArgs()', function () {
-    it('should convert itemIds properties to id array', function () {
-      expect(
-        paramsToQueryArgs({
-          itemIds: [1, 2, 3],
-          query: 'is:unresolved', // itemIds takes precedence
-        })
-      ).toEqual({id: [1, 2, 3]});
-    });
-
-    it('should extract query property if no itemIds', function () {
-      expect(
-        paramsToQueryArgs({
-          query: 'is:unresolved',
-          foo: 'bar',
-        })
-      ).toEqual({query: 'is:unresolved'});
-    });
-
-    it('should convert params w/o itemIds or query to empty object', function () {
-      expect(
-        paramsToQueryArgs({
-          foo: 'bar',
-          bar: 'baz', // paramsToQueryArgs ignores these
-        })
-      ).toEqual({});
-    });
-
-    it('should keep environment when query is provided', function () {
-      expect(
-        paramsToQueryArgs({
-          query: 'is:unresolved',
-          environment: 'production',
-        })
-      ).toEqual({query: 'is:unresolved', environment: 'production'});
-    });
-
-    it('should exclude environment when it is null/undefined', function () {
-      expect(
-        paramsToQueryArgs({
-          query: 'is:unresolved',
-          environment: null,
-        })
-      ).toEqual({query: 'is:unresolved'});
-    });
-
-    it('should handle non-empty projects', function () {
-      expect(
-        paramsToQueryArgs({
-          itemIds: [1, 2, 3],
-          project: [1],
-        })
-      ).toEqual({id: [1, 2, 3], project: [1]});
-
-      expect(
-        paramsToQueryArgs({
-          itemIds: [1, 2, 3],
-          project: [],
-        })
-      ).toEqual({id: [1, 2, 3]});
-
-      expect(
-        paramsToQueryArgs({
-          itemIds: [1, 2, 3],
-          project: null,
-        })
-      ).toEqual({id: [1, 2, 3]});
-    });
-  });
-
   describe('Client', function () {
-    beforeEach(function () {
-      jest.spyOn($, 'ajax');
-    });
-
     describe('cancel()', function () {
       it('should abort any open XHR requests', function () {
-        const req1 = new Request({
-          abort: jest.fn(),
-        });
-        const req2 = new Request({
-          abort: jest.fn(),
-        });
+        const abort1 = jest.fn();
+        const abort2 = jest.fn();
+
+        const req1 = new Request(new Promise(() => null), {abort: abort1});
+        const req2 = new Request(new Promise(() => null), {abort: abort2});
 
         api.activeRequests = {
           1: req1,
@@ -104,8 +26,8 @@ describe('api', function () {
 
         api.clear();
 
-        expect(req1.xhr.abort).toHaveBeenCalledTimes(1);
-        expect(req2.xhr.abort).toHaveBeenCalledTimes(1);
+        expect(req1.aborter.abort).toHaveBeenCalledTimes(1);
+        expect(req2.aborter.abort).toHaveBeenCalledTimes(1);
       });
     });
   });
@@ -158,105 +80,5 @@ describe('api', function () {
         {}
       )
     ).not.toThrow();
-  });
-
-  describe('bulkUpdate()', function () {
-    beforeEach(function () {
-      jest.spyOn(api, '_wrapRequest');
-      jest.spyOn(GroupActions, 'update'); // stub GroupActions.update call from api.update
-    });
-
-    it('should use itemIds as query if provided', function () {
-      api.bulkUpdate({
-        orgId: '1337',
-        projectId: '1337',
-        itemIds: [1, 2, 3],
-        data: {status: 'unresolved'},
-        query: 'is:resolved',
-      });
-
-      expect(api._wrapRequest).toHaveBeenCalledTimes(1);
-      expect(api._wrapRequest).toHaveBeenCalledWith(
-        '/projects/1337/1337/issues/',
-        expect.objectContaining({query: {id: [1, 2, 3]}}),
-        undefined
-      );
-    });
-
-    it('should use query as query if itemIds are absent', function () {
-      api.bulkUpdate({
-        orgId: '1337',
-        projectId: '1337',
-        itemIds: null,
-        data: {status: 'unresolved'},
-        query: 'is:resolved',
-      });
-
-      expect(api._wrapRequest).toHaveBeenCalledTimes(1);
-      expect(api._wrapRequest).toHaveBeenCalledWith(
-        '/projects/1337/1337/issues/',
-        expect.objectContaining({query: {query: 'is:resolved'}}),
-        undefined
-      );
-    });
-
-    it('should apply project option', function () {
-      api.bulkUpdate({
-        orgId: '1337',
-        project: [99],
-        itemIds: [1, 2, 3],
-        data: {status: 'unresolved'},
-      });
-
-      expect(api._wrapRequest).toHaveBeenCalledTimes(1);
-      expect(api._wrapRequest).toHaveBeenCalledWith(
-        '/organizations/1337/issues/',
-        expect.objectContaining({query: {id: [1, 2, 3], project: [99]}}),
-        undefined
-      );
-    });
-  });
-
-  describe('merge()', function () {
-    // TODO: this is totally copypasta from the test above. We need to refactor
-    //       these API methods/tests.
-    beforeEach(function () {
-      jest.spyOn(api, '_wrapRequest');
-      jest.spyOn(GroupActions, 'merge'); // stub GroupActions.merge call from api.merge
-    });
-
-    it('should use itemIds as query if provided', function () {
-      api.merge({
-        orgId: '1337',
-        projectId: '1337',
-        itemIds: [1, 2, 3],
-        data: {status: 'unresolved'},
-        query: 'is:resolved',
-      });
-
-      expect(api._wrapRequest).toHaveBeenCalledTimes(1);
-      expect(api._wrapRequest).toHaveBeenCalledWith(
-        '/projects/1337/1337/issues/',
-        expect.objectContaining({query: {id: [1, 2, 3]}}),
-        undefined
-      );
-    });
-
-    it('should use query as query if itemIds are absent', function () {
-      api.merge({
-        orgId: '1337',
-        projectId: '1337',
-        itemIds: null,
-        data: {status: 'unresolved'},
-        query: 'is:resolved',
-      });
-
-      expect(api._wrapRequest).toHaveBeenCalledTimes(1);
-      expect(api._wrapRequest).toHaveBeenCalledWith(
-        '/projects/1337/1337/issues/',
-        expect.objectContaining({query: {query: 'is:resolved'}}),
-        undefined
-      );
-    });
   });
 });

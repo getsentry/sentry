@@ -1,8 +1,5 @@
-from __future__ import absolute_import, print_function
-
 import logging
 import re
-import six
 import sentry_sdk
 import itertools
 
@@ -10,11 +7,13 @@ from django.db import models, IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
 from django.utils.functional import cached_property
+from django.utils.translation import ugettext_lazy as _
 from time import time
 
 from sentry.app import locks
 from sentry.db.models import (
     ArrayField,
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
@@ -24,7 +23,7 @@ from sentry.db.models import (
 
 from sentry_relay import parse_release, RelayError
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
-from sentry.models import CommitFileChange, remove_group_from_inbox
+from sentry.models import CommitFileChange, remove_group_from_inbox, GroupInboxRemoveAction
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -47,6 +46,10 @@ class UnsafeReleaseDeletion(Exception):
     pass
 
 
+class ReleaseCommitError(Exception):
+    pass
+
+
 class ReleaseProject(Model):
     __core__ = False
 
@@ -58,6 +61,38 @@ class ReleaseProject(Model):
         app_label = "sentry"
         db_table = "sentry_release_project"
         unique_together = (("project", "release"),)
+
+
+class ReleaseStatus:
+    OPEN = 0
+    ARCHIVED = 1
+
+    @classmethod
+    def from_string(cls, value):
+        if value == "open":
+            return cls.OPEN
+        elif value == "archived":
+            return cls.ARCHIVED
+        else:
+            raise ValueError(repr(value))
+
+    @classmethod
+    def to_string(cls, value):
+        # XXX(markus): Since the column is nullable we need to handle `null` here.
+        # However `null | undefined` in request payloads means "don't change
+        # status of release". This is why `from_string` does not consider
+        # `null` valid.
+        #
+        # We could remove `0` as valid state and only have `null` but I think
+        # that would make things worse.
+        #
+        # Eventually we should backfill releasestatus to 0
+        if value is None or value == ReleaseStatus.OPEN:
+            return "open"
+        elif value == ReleaseStatus.ARCHIVED:
+            return "archived"
+        else:
+            raise ValueError(repr(value))
 
 
 class Release(Model):
@@ -74,6 +109,15 @@ class Release(Model):
     projects = models.ManyToManyField(
         "sentry.Project", related_name="releases", through=ReleaseProject
     )
+    status = BoundedPositiveIntegerField(
+        default=ReleaseStatus.OPEN,
+        null=True,
+        choices=(
+            (ReleaseStatus.OPEN, _("Open")),
+            (ReleaseStatus.ARCHIVED, _("Archived")),
+        ),
+    )
+
     # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
     version = models.CharField(max_length=DB_VERSION_LENGTH)
@@ -93,7 +137,7 @@ class Release(Model):
 
     # materialized stats
     commit_count = BoundedPositiveIntegerField(null=True, default=0)
-    last_commit_id = BoundedPositiveIntegerField(null=True)
+    last_commit_id = BoundedBigIntegerField(null=True)
     authors = ArrayField(null=True)
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
@@ -130,11 +174,11 @@ class Release(Model):
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
-        return "release:3:%s:%s" % (organization_id, md5_text(version).hexdigest())
+        return f"release:3:{organization_id}:{md5_text(version).hexdigest()}"
 
     @classmethod
     def get_lock_key(cls, organization_id, release_id):
-        return u"releasecommits:{}:{}".format(organization_id, release_id)
+        return f"releasecommits:{organization_id}:{release_id}"
 
     @classmethod
     def get(cls, project, version):
@@ -174,7 +218,7 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            project_version = ("%s-%s" % (project.slug, version))[:DB_VERSION_LENGTH]
+            project_version = (f"{project.slug}-{version}")[:DB_VERSION_LENGTH]
             releases = list(
                 cls.objects.filter(
                     organization_id=project.organization_id,
@@ -421,6 +465,11 @@ class Release(Model):
         ]
         lock_key = type(self).get_lock_key(self.organization_id, self.id)
         lock = locks.get(lock_key, duration=10)
+        if lock.locked():
+            # Signal failure to the consumer rapidly. This aims to prevent the number
+            # of timeouts and prevent web worker exhaustion when customers create
+            # the same release rapidly for different projects.
+            raise ReleaseCommitError
         with TimedRetryPolicy(10)(lock.acquire):
             start = time()
             with transaction.atomic():
@@ -434,9 +483,7 @@ class Release(Model):
                 head_commit_by_repo = {}
                 latest_commit = None
                 for idx, data in enumerate(commit_list):
-                    repo_name = data.get("repository") or u"organization-{}".format(
-                        self.organization_id
-                    )
+                    repo_name = data.get("repository") or f"organization-{self.organization_id}"
                     if repo_name not in repos:
                         repos[repo_name] = repo = Repository.objects.get_or_create(
                             organization_id=self.organization_id, name=repo_name
@@ -487,7 +534,7 @@ class Release(Model):
                     if not created:
                         commit_data = {
                             key: value
-                            for key, value in six.iteritems(commit_data)
+                            for key, value in commit_data.items()
                             if getattr(commit, key) != value
                         }
                         if commit_data:
@@ -531,7 +578,7 @@ class Release(Model):
                 self.update(
                     commit_count=len(commit_list),
                     authors=[
-                        six.text_type(a_id)
+                        str(a_id)
                         for a_id in ReleaseCommit.objects.filter(
                             release=self, commit__author_id__isnull=False
                         )
@@ -543,7 +590,7 @@ class Release(Model):
                 metrics.timing("release.set_commits.duration", time() - start)
 
         # fill any missing ReleaseHeadCommit entries
-        for repo_id, commit_id in six.iteritems(head_commit_by_repo):
+        for repo_id, commit_id in head_commit_by_repo.items():
             try:
                 with transaction.atomic():
                     ReleaseHeadCommit.objects.create(
@@ -629,7 +676,7 @@ class Release(Model):
                 )
                 group = Group.objects.get(id=group_id)
                 group.update(status=GroupStatus.RESOLVED)
-                remove_group_from_inbox(group)
+                remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
                 metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
 
             issue_resolved.send_robust(

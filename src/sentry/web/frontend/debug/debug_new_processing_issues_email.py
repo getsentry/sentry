@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.views.generic import View
 
 from sentry.models import GroupSubscriptionReason, Organization, Project
@@ -50,7 +48,7 @@ class DebugNewProcessingIssuesEmailView(View):
                 ),
                 "reprocessing_active": self.reprocessing_active,
                 "info_url": absolute_uri(
-                    "/settings/{}/projects/{}/processing-issues/".format(org.slug, project.slug)
+                    f"/settings/{org.slug}/projects/{project.slug}/processing-issues/"
                 ),
             },
         ).render(request)

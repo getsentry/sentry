@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.conf import settings
 
 from sentry.testutils import AcceptanceTestCase
@@ -7,7 +5,7 @@ from sentry.testutils import AcceptanceTestCase
 
 class CreateOrganizationTest(AcceptanceTestCase):
     def setUp(self):
-        super(CreateOrganizationTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
 

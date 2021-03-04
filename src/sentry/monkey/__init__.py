@@ -1,13 +1,9 @@
-from __future__ import absolute_import
-
 from .pickle import patch_pickle_loaders
 
 
 def register_scheme(name):
-    try:
-        import urlparse  # NOQA
-    except ImportError:
-        from urllib import parse as urlparse  # NOQA
+    from urllib import parse as urlparse  # NOQA
+
     uses = urlparse.uses_netloc, urlparse.uses_query, urlparse.uses_relative, urlparse.uses_fragment
     for use in uses:
         if name not in use:
@@ -31,7 +27,7 @@ def patch_httprequest_repr():
     # logged. This was yanked out of Django master anyhow.
     # https://code.djangoproject.com/ticket/12098
     def safe_httprequest_repr(self):
-        return "<%s: %s %r>" % (self.__class__.__name__, self.method, self.get_full_path())
+        return f"<{self.__class__.__name__}: {self.method} {self.get_full_path()!r}>"
 
     HttpRequest.__repr__ = safe_httprequest_repr
 

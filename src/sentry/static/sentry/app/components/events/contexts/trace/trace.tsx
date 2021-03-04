@@ -1,13 +1,15 @@
 import React from 'react';
 
-import {Event, Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
 import ErrorBoundary from 'app/components/errorBoundary';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueListV2';
+import {Organization} from 'app/types';
+import {Event} from 'app/types/event';
+import withOrganization from 'app/utils/withOrganization';
 
-import {TraceKnownData, TraceKnownDataType} from './types';
-import getTraceKnownData from './getTraceKnownData';
 import getUnknownData from '../getUnknownData';
+
+import getTraceKnownData from './getTraceKnownData';
+import {TraceKnownData, TraceKnownDataType} from './types';
 
 const traceKnownDataValues = [
   TraceKnownDataType.STATUS,

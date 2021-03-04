@@ -1,9 +1,9 @@
+import React from 'react';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
-import React from 'react';
 
-import {Client} from 'app/api';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import {t} from 'app/locale';

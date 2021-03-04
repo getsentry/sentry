@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {callIfFunction} from 'app/utils/callIfFunction';
 import {IconEdit} from 'app/icons';
 import space from 'app/styles/space';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 type Props = {
   name: string;
@@ -51,11 +51,12 @@ class InputInline extends React.Component<Props, State> {
   static setValueOnEvent(
     event: React.FormEvent<HTMLDivElement>
   ): React.FormEvent<HTMLInputElement> {
-    const text =
-      (event.target as any).innerText || (event.currentTarget as any).innerText;
+    const text: string =
+      (event.target as HTMLDivElement).innerText ||
+      (event.currentTarget as HTMLDivElement).innerText;
 
-    (event.target as any).value = text;
-    (event.currentTarget as any).value = text;
+    (event.target as HTMLInputElement).value = text;
+    (event.currentTarget as HTMLInputElement).value = text;
     return event as React.FormEvent<HTMLInputElement>;
   }
 
@@ -80,6 +81,7 @@ class InputInline extends React.Component<Props, State> {
   focus = () => {
     if (this.refInput.current) {
       this.refInput.current.focus();
+      document.execCommand('selectAll', false, undefined);
     }
   };
 
@@ -91,9 +93,12 @@ class InputInline extends React.Component<Props, State> {
 
     callIfFunction(this.props.onBlur, InputInline.setValueOnEvent(event));
   };
+
   onFocus = (event: React.FocusEvent<HTMLDivElement>) => {
     this.setState({isFocused: true});
     callIfFunction(this.props.onFocus, InputInline.setValueOnEvent(event));
+    // Wait for the next event loop so that the content region has focus.
+    window.setTimeout(() => document.execCommand('selectAll', false, undefined), 1);
   };
 
   /**
@@ -142,6 +147,7 @@ class InputInline extends React.Component<Props, State> {
 
     if (this.refInput.current) {
       this.refInput.current.focus();
+      document.execCommand('selectAll', false, undefined);
     }
 
     callIfFunction(this.props.onClick, InputInline.setValueOnEvent(event));
@@ -199,21 +205,22 @@ const Input = styled('div')<{
 }>`
   min-width: 40px;
   margin: 0;
-  border: 1px solid ${p => (p.isHovering ? p.theme.borderDark : 'transparent')};
+  border: 1px solid ${p => (p.isHovering ? p.theme.border : 'transparent')};
   outline: none;
 
   line-height: inherit;
   border-radius: ${space(0.5)};
   background: transparent;
+  padding: 1px;
 
   &:focus,
   &:active {
-    border: 1px solid ${p => (p.isDisabled ? 'transparent' : p.theme.borderLight)};
-    background-color: ${p => (p.isDisabled ? 'transparent' : p.theme.gray300)};
+    border: 1px solid ${p => (p.isDisabled ? 'transparent' : p.theme.border)};
+    background-color: ${p => (p.isDisabled ? 'transparent' : p.theme.gray200)};
   }
 `;
 const StyledIconEdit = styled(IconEdit)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin-left: ${space(0.5)};
 
   &:hover {

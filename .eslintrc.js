@@ -9,7 +9,9 @@ module.exports = {
     tick: true,
     jest: true,
   },
+
   rules: {},
+
   overrides: [
     {
       files: ['*.ts', '*.tsx'],

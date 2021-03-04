@@ -1,32 +1,28 @@
-from __future__ import absolute_import
-
-import six
-
 from datetime import datetime
 from django.utils import timezone
 from sentry_relay import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.eventstore.models import Event
 from sentry.models import EventAttachment, EventError, Release, UserReport
+from sentry.sdk_updates import get_suggested_updates, SdkSetupState
 from sentry.search.utils import convert_user_tag_to_query
+from sentry.utils.compat import zip
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
-from sentry.sdk_updates import get_suggested_updates, SdkSetupState
-from sentry.eventstore.models import Event
 
-
-CRASH_FILE_TYPES = set(["event.minidump"])
+CRASH_FILE_TYPES = {"event.minidump"}
 
 
 def get_crash_files(events):
     event_ids = [x.event_id for x in events if x.platform == "native"]
-    rv = {}
     if event_ids:
-        attachments = EventAttachment.objects.filter(event_id__in=event_ids).select_related("file")
-        for attachment in attachments:
-            if attachment.type in CRASH_FILE_TYPES:
-                rv[attachment.event_id] = attachment
-    return rv
+        return [
+            ea
+            for ea in EventAttachment.objects.filter(event_id__in=event_ids)
+            if ea.type in CRASH_FILE_TYPES
+        ]
+    return []
 
 
 @register(Event)
@@ -40,7 +36,7 @@ class EventSerializer(Serializer):
         meta = event.data.get("_meta") or {}
         interface_list = []
 
-        for key, interface in six.iteritems(event.interfaces):
+        for key, interface in event.interfaces.items():
             # we treat user as a special contextual item
             if key in self._reserved_keys:
                 continue
@@ -103,8 +99,8 @@ class EventSerializer(Serializer):
                     "value": kv[1],
                     "_meta": prune_empty_keys(
                         {
-                            "key": get_path(meta, six.text_type(i), "0"),
-                            "value": get_path(meta, six.text_type(i), "1"),
+                            "key": get_path(meta, str(i), "0"),
+                            "value": get_path(meta, str(i), "1"),
                         }
                     )
                     or None,
@@ -112,7 +108,7 @@ class EventSerializer(Serializer):
                 for i, kv in enumerate(raw_tags)
                 if kv is not None
             ],
-            key=lambda x: x["key"],
+            key=lambda x: x["key"] if x["key"] is not None else "",
         )
 
         # Add 'query' for each tag to tell the UI what to use as query
@@ -122,7 +118,7 @@ class EventSerializer(Serializer):
             if query:
                 tag["query"] = query
 
-        tags_meta = prune_empty_keys({six.text_type(i): e.pop("_meta") for i, e in enumerate(tags)})
+        tags_meta = prune_empty_keys({str(i): e.pop("_meta") for i, e in enumerate(tags)})
 
         return (tags, meta_with_chunks(tags, tags_meta))
 
@@ -163,13 +159,19 @@ class EventSerializer(Serializer):
 
     def _get_user_report(self, user, event):
         try:
-            user_report = UserReport.objects.get(event_id=event.event_id, project=event.project)
+            user_report = UserReport.objects.get(
+                event_id=event.event_id, project_id=event.project_id
+            )
         except UserReport.DoesNotExist:
             user_report = None
         return serialize(user_report, user)
 
     def get_attrs(self, item_list, user, is_public=False):
         crash_files = get_crash_files(item_list)
+        serialized_files = {
+            file.event_id: serialized
+            for file, serialized in zip(crash_files, serialize(crash_files, user=user))
+        }
         results = {}
         for item in item_list:
             # TODO(dcramer): convert to get_api_context
@@ -181,14 +183,12 @@ class EventSerializer(Serializer):
 
             (entries, entries_meta) = self._get_entries(item, user, is_public=is_public)
 
-            crash_file = crash_files.get(item.event_id)
-
             results[item] = {
                 "entries": entries,
                 "user": user_data,
                 "contexts": contexts_data or {},
                 "sdk": sdk_data,
-                "crash_file": serialize(crash_file, user=user),
+                "crash_file": serialized_files.get(item.event_id),
                 "_meta": {
                     "entries": entries_meta,
                     "user": user_meta,
@@ -200,7 +200,7 @@ class EventSerializer(Serializer):
 
     def should_display_error(self, error):
         name = error.get("name")
-        if not isinstance(name, six.string_types):
+        if not isinstance(name, str):
             return True
 
         return (
@@ -235,9 +235,9 @@ class EventSerializer(Serializer):
 
         d = {
             "id": obj.event_id,
-            "groupID": six.text_type(obj.group_id) if obj.group_id else None,
+            "groupID": str(obj.group_id) if obj.group_id else None,
             "eventID": obj.event_id,
-            "projectID": six.text_type(obj.project_id),
+            "projectID": str(obj.project_id),
             "size": obj.size,
             "entries": attrs["entries"],
             "dist": obj.dist,
@@ -293,7 +293,7 @@ class EventSerializer(Serializer):
             "crashFile": attrs["crash_file"],
             "culprit": obj.culprit,
             "dateCreated": obj.datetime,
-            "fingerprints": obj.get_hashes(),
+            "fingerprints": obj.get_hashes()[0],
             "groupingConfig": obj.get_grouping_config(),
         }
 
@@ -307,7 +307,7 @@ class DetailedEventSerializer(EventSerializer):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
     def serialize(self, obj, attrs, user):
-        result = super(DetailedEventSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
         result["release"] = self._get_release_info(user, obj)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
@@ -316,10 +316,10 @@ class DetailedEventSerializer(EventSerializer):
 
 class SharedEventSerializer(EventSerializer):
     def get_attrs(self, item_list, user):
-        return super(SharedEventSerializer, self).get_attrs(item_list, user, is_public=True)
+        return super().get_attrs(item_list, user, is_public=True)
 
     def serialize(self, obj, attrs, user):
-        result = super(SharedEventSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
         del result["context"]
         del result["contexts"]
         del result["user"]
@@ -346,10 +346,11 @@ class SimpleEventSerializer(EventSerializer):
 
     def get_attrs(self, item_list, user):
         crash_files = get_crash_files(item_list)
-        return {
-            event: {"crash_file": serialize(crash_files.get(event.event_id), user=user)}
-            for event in item_list
+        serialized_files = {
+            file.event_id: serialized
+            for file, serialized in zip(crash_files, serialize(crash_files, user=user))
         }
+        return {event: {"crash_file": serialized_files.get(event.event_id)} for event in item_list}
 
     def serialize(self, obj, attrs, user):
         tags = [{"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags]
@@ -361,11 +362,11 @@ class SimpleEventSerializer(EventSerializer):
         user = obj.get_minimal_user()
 
         return {
-            "id": six.text_type(obj.event_id),
-            "event.type": six.text_type(obj.get_event_type()),
-            "groupID": six.text_type(obj.group_id) if obj.group_id else None,
-            "eventID": six.text_type(obj.event_id),
-            "projectID": six.text_type(obj.project_id),
+            "id": str(obj.event_id),
+            "event.type": str(obj.get_event_type()),
+            "groupID": str(obj.group_id) if obj.group_id else None,
+            "eventID": str(obj.event_id),
+            "projectID": str(obj.project_id),
             # XXX for 'message' this doesn't do the proper resolution of logentry
             # etc. that _get_legacy_message_with_meta does.
             "message": obj.message,
@@ -397,9 +398,9 @@ class ExternalEventSerializer(EventSerializer):
         user = obj.get_minimal_user()
 
         return {
-            "groupID": six.text_type(obj.group_id) if obj.group_id else None,
-            "eventID": six.text_type(obj.event_id),
-            "project": six.text_type(obj.project_id),
+            "groupID": str(obj.group_id) if obj.group_id else None,
+            "eventID": str(obj.event_id),
+            "project": str(obj.project_id),
             # XXX for 'message' this doesn't do the proper resolution of logentry
             # etc. that _get_legacy_message_with_meta does.
             "message": obj.message,

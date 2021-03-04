@@ -1,18 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
-
-import {t} from 'app/locale';
-import {LightWeightOrganization, Organization, Project} from 'app/types';
-import Button from 'app/components/button';
-import PageHeading from 'app/components/pageHeading';
-import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
-import ConfigStore from 'app/stores/configStore';
-import ButtonBar from 'app/components/buttonBar';
 
 /* TODO: replace with I/O when finished */
-import img from '../../images/spot/hair-on-fire.svg';
+import img from 'sentry-images/spot/hair-on-fire.svg';
+
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import PageHeading from 'app/components/pageHeading';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import space from 'app/styles/space';
+import {LightWeightOrganization, Organization, Project} from 'app/types';
 
 type Props = {
   organization: LightWeightOrganization | Organization;
@@ -21,15 +19,6 @@ type Props = {
 };
 
 export default class NoProjectMessage extends React.Component<Props> {
-  static propTypes = {
-    /* if the user has access to any projects, we show whatever
-    children are included. Otherwise we show the message */
-    children: PropTypes.node,
-    organization: SentryTypes.Organization,
-    projects: PropTypes.arrayOf(SentryTypes.Project),
-    loadingProjects: PropTypes.bool,
-  };
-
   render() {
     const {children, organization, projects, loadingProjects} = this.props;
     const orgId = organization.slug;

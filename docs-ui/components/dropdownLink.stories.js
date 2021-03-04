@@ -1,38 +1,34 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 
 export default {
-  title: 'Core/Dropdowns/DropdownLink',
+  title: 'Core/Buttons/Dropdowns/DropdownLink',
+  component: DropdownLink,
 };
 
-export const AnchorLeftDefault = withInfo('Anchors to left side')(() => (
+export const AnchorLeftDefault = () => (
   <div className="clearfix">
     <DropdownLink title="Test">
       <MenuItem href="">Item</MenuItem>
     </DropdownLink>
   </div>
-));
+);
 
-AnchorLeftDefault.story = {
-  name: 'anchor left (default)',
-};
+AnchorLeftDefault.storyName = 'anchor left (default)';
 
-export const AnchorRight = withInfo('Anchors to right side')(() => (
+export const AnchorRight = () => (
   <div className="clearfix">
     <DropdownLink anchorRight title="Test">
       <MenuItem href="">Item</MenuItem>
     </DropdownLink>
   </div>
-));
+);
 
-AnchorRight.story = {
-  name: 'anchor right',
-};
+AnchorRight.storyName = 'anchor right';
 
-export const NestedDropdown = withInfo('Nested dropdowns')(() => (
+export const NestedDropdown = () => (
   <div className="clearfix">
     <DropdownLink title="Nested Menu">
       <li className="dropdown-submenu">
@@ -44,8 +40,6 @@ export const NestedDropdown = withInfo('Nested dropdowns')(() => (
       <MenuItem href="">Item 2</MenuItem>
     </DropdownLink>
   </div>
-));
+);
 
-NestedDropdown.story = {
-  name: 'nested dropdowns',
-};
+NestedDropdown.storyName = 'nested dropdowns';

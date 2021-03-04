@@ -1,13 +1,12 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {MemberRole} from 'app/types';
-import space from 'app/styles/space';
 import Checkbox from 'app/components/checkbox';
-import Switch from 'app/components/switch';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import Switch from 'app/components/switchButton';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {MemberRole} from 'app/types';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 type Props = {
   className?: string;
@@ -30,7 +29,9 @@ type Filters = {
 };
 
 const getBoolean = (list: string[]) =>
-  Array.isArray(list) ? list && list.map(v => v.toLowerCase()).includes('true') : null;
+  Array.isArray(list) && list.length
+    ? list && list.map(v => v.toLowerCase()).includes('true')
+    : null;
 
 const MembersFilter = ({className, roles, query, onChange}: Props) => {
   const search = tokenizeSearch(query);
@@ -131,30 +132,19 @@ const BooleanFilter = ({onChange, value, children}: BooleanFilterProps) => (
   </label>
 );
 
-MembersFilter.propTypes = {
-  roles: PropTypes.arrayOf(PropTypes.object).isRequired as any,
-  query: PropTypes.string.isRequired,
-  onChange: PropTypes.func.isRequired,
-};
-
-BooleanFilter.propTypes = {
-  onChange: PropTypes.func.isRequired,
-  value: PropTypes.oneOf([null, true, false]),
-};
-
 const FilterContainer = styled('div')`
   border-radius: 4px;
-  background: #fff;
+  background: ${p => p.theme.background};
   box-shadow: ${p => p.theme.dropShadowLight};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 const FilterHeader = styled('h2')`
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  background: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray600};
+  border-bottom: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.subText};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(1)};
