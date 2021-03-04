@@ -7,7 +7,8 @@ import uniqWith from 'lodash/uniqWith';
 
 import {Client} from 'app/api';
 import Button from 'app/components/button';
-import EventErrorItem from 'app/components/events/errorItem';
+import ErrorItem from 'app/components/events/errorItem';
+import List from 'app/components/list';
 import {IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
@@ -19,6 +20,8 @@ import withApi from 'app/utils/withApi';
 import {BannerContainer, BannerSummary} from './styles';
 
 const MAX_ERRORS = 100;
+
+type Error = ErrorItem['props']['error'];
 
 type Props = {
   api: Client;
@@ -32,7 +35,7 @@ type State = {
   releaseArtifacts?: Array<Artifact>;
 };
 
-class EventErrors extends React.Component<Props, State> {
+class Errors extends React.Component<Props, State> {
   state: State = {
     isOpen: false,
   };
@@ -51,6 +54,32 @@ class EventErrors extends React.Component<Props, State> {
   componentDidUpdate(prevProps: Props) {
     if (this.props.event.id !== prevProps.event.id) {
       this.checkSourceCodeErrors();
+    }
+  }
+
+  async fetchReleaseArtifacts(query: string) {
+    const {api, orgSlug, event, projectSlug} = this.props;
+    const {release} = event;
+    const releaseVersion = release?.version;
+
+    if (!releaseVersion || !query) {
+      return;
+    }
+
+    try {
+      const releaseArtifacts = await api.requestPromise(
+        `/projects/${orgSlug}/${projectSlug}/releases/${encodeURIComponent(
+          releaseVersion
+        )}/files/?query=${query}`,
+        {
+          method: 'GET',
+        }
+      );
+
+      this.setState({releaseArtifacts});
+    } catch (error) {
+      Sentry.captureException(error);
+      // do nothing, the UI will not display extra error details
     }
   }
 
@@ -90,46 +119,18 @@ class EventErrors extends React.Component<Props, State> {
     }
   }
 
-  async fetchReleaseArtifacts(query: string) {
-    const {api, orgSlug, event, projectSlug} = this.props;
-    const {release} = event;
-    const releaseVersion = release?.version;
-
-    if (!releaseVersion || !query) {
-      return;
-    }
-
-    try {
-      const releaseArtifacts = await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/releases/${encodeURIComponent(
-          releaseVersion
-        )}/files/?query=${query}`,
-        {
-          method: 'GET',
-        }
-      );
-
-      this.setState({releaseArtifacts});
-    } catch (error) {
-      Sentry.captureException(error);
-      // do nothing, the UI will not display extra error details
-    }
-  }
-
   toggle = () => {
     this.setState(state => ({isOpen: !state.isOpen}));
   };
-
-  uniqueErrors = (errors: any[]) => uniqWith(errors, isEqual);
 
   render() {
     const {event} = this.props;
     const {isOpen, releaseArtifacts} = this.state;
     const {dist} = event;
 
-    // XXX: uniqueErrors is not performant with large datasets
-    const errors =
-      event.errors.length > MAX_ERRORS ? event.errors : this.uniqueErrors(event.errors);
+    // XXX: uniqWith returns unique errors and is not performant with large datasets
+    const errors: Array<Error> =
+      event.errors.length > MAX_ERRORS ? event.errors : uniqWith(event.errors, isEqual);
 
     return (
       <StyledBanner priority="danger">
@@ -151,15 +152,17 @@ class EventErrors extends React.Component<Props, State> {
           </StyledButton>
         </BannerSummary>
         {isOpen && (
-          <ErrorList data-test-id="event-error-details">
+          <ErrorList data-test-id="event-error-details" symbol="bullet">
             {errors.map((error, errorIdx) => {
+              const data = error.data ?? {};
               if (
                 error.type === 'js_no_source' &&
-                error.data.url &&
+                data.url &&
                 !!releaseArtifacts?.length
               ) {
                 const releaseArtifact = releaseArtifacts.find(releaseArt => {
-                  const pathname = this.getURLPathname(error.data.url);
+                  const pathname = data.url ? this.getURLPathname(data.url) : undefined;
+
                   if (pathname) {
                     return releaseArt.name.includes(pathname);
                   }
@@ -170,11 +173,11 @@ class EventErrors extends React.Component<Props, State> {
                   error.message = t(
                     'Source code was not found because the distribution did not match'
                   );
-                  error.data['expected-distribution'] = dist;
-                  error.data['current-distribution'] = t('none');
+                  data['expected-distribution'] = dist;
+                  data['current-distribution'] = t('none');
                 }
               }
-              return <EventErrorItem key={errorIdx} error={error} />;
+              return <ErrorItem key={errorIdx} error={{...error, data}} />;
             })}
           </ErrorList>
         )}
@@ -209,14 +212,12 @@ const StyledIconWarning = styled(IconWarning)`
 // TODO(theme) don't use a custom pink
 const customPink = '#e7c0bc';
 
-const ErrorList = styled('ul')`
+const ErrorList = styled(List)`
   border-top: 1px solid ${customPink};
-  margin: 0 ${space(3)} 0 ${space(4)};
-  padding: ${space(1)} 0 ${space(0.5)} ${space(4)};
+  padding: ${space(1)} ${space(4)} ${space(0.5)} 40px;
 
-  li {
-    margin-bottom: ${space(0.75)};
-    word-break: break-word;
+  > li:before {
+    top: 8px;
   }
 
   pre {
@@ -226,4 +227,4 @@ const ErrorList = styled('ul')`
   }
 `;
 
-export default withApi(EventErrors);
+export default withApi(Errors);
