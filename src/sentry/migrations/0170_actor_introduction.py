@@ -4,7 +4,6 @@ from django.db import migrations, models
 import django.db.models.deletion
 import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
-import sentry.models.actor
 
 
 class Migration(migrations.Migration):
@@ -46,8 +45,8 @@ class Migration(migrations.Migration):
                     "type",
                     models.PositiveSmallIntegerField(
                         choices=[
-                            (sentry.models.actor.ActorType(0), "team"),
-                            (sentry.models.actor.ActorType(1), "user"),
+                            (0, "team"),
+                            (1, "user"),
                         ]
                     ),
                 ),
