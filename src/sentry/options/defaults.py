@@ -280,3 +280,5 @@ register("store.nodestore-stats-sample-rate", default=0.0)  # unused
 
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False)
+
+register("store.race-free-group-creation-force-disable", default=False)
