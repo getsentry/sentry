@@ -84,10 +84,10 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             """
-            CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_user_actor_idx ON sentry_user (actor_id)
+            CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS auth_user_actor_idx ON auth_user (actor_id)
             """,
             reverse_sql="""
-            DROP INDEX CONCURRENTLY IF EXISTS sentry_user_actor_idx;
+            DROP INDEX CONCURRENTLY IF EXISTS auth_user_actor_idx;
             """,
         ),
     ]
