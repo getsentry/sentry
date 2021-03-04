@@ -18,7 +18,7 @@ def backfill_file_type(apps, schema_editor):
     all_event_attachments = EventAttachment.objects.all()
     for event_attachment in RangeQuerySetWrapper(all_event_attachments, step=1000):
         if event_attachment.type is None:
-            file = File.objects.get(event_attachment.file_id)
+            file = File.objects.get(id=event_attachment.file_id)
             event_attachment.type = file.type
             event_attachment.save(update_fields=["type"])
 
