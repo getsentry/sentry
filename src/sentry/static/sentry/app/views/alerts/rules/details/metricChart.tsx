@@ -69,8 +69,6 @@ export default class MetricChart extends React.PureComponent<Props, State> {
   };
 
   handleRef = (ref: ReactEchartsRef): void => {
-    // When chart initially renders, we want to update state with its width, as well as initialize starting
-    // locations (on y axis) for the draggable lines
     if (ref && !this.ref) {
       this.ref = ref;
       this.updateDimensions();
