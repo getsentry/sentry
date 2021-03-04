@@ -227,6 +227,9 @@ def get_function_component(
                 hint="ignored because sourcemap used and context line available",
             )
 
+    if function_component.values:
+        function_component.tree_label = function_component.values[0]
+
     return function_component
 
 
@@ -328,7 +331,6 @@ def get_contextline_component(frame, platform, function, context):
         id="context-line",
         values=[line],
         similarity_encoder=ident_encoder,
-        tree_label=line,
     )
     if line:
         if len(frame.context_line) > 120:

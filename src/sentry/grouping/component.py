@@ -98,6 +98,10 @@ class GroupingComponent:
                 if label is not None:
                     return label
 
+    @tree_label.setter
+    def tree_label(self, value):
+        self._tree_label = value
+
     def get_subcomponent(self, id, only_contributing=False):
         """Looks up a subcomponent by the id and returns the first or `None`."""
         return next(self.iter_subcomponents(id=id, only_contributing=only_contributing), None)
