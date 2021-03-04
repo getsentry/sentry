@@ -1,12 +1,7 @@
-from enum import Enum
-
 from django.db import models
 from sentry.db.models import Model
 
-
-class ActorType(Enum):
-    TEAM = 0
-    USER = 1
+ACTOR_TYPES = {"team": 0, "user": 1}
 
 
 class Actor(Model):
@@ -14,8 +9,8 @@ class Actor(Model):
 
     type = models.PositiveSmallIntegerField(
         choices=(
-            (ActorType.TEAM, "team"),
-            (ActorType.USER, "user"),
+            (ACTOR_TYPES["team"], "team"),
+            (ACTOR_TYPES["user"], "user"),
         )
     )
 

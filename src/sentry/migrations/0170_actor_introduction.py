@@ -45,8 +45,8 @@ class Migration(migrations.Migration):
                     "type",
                     models.PositiveSmallIntegerField(
                         choices=[
-                            (sentry.models.actor.ActorType(0), "team"),
-                            (sentry.models.actor.ActorType(1), "user"),
+                            (0, "team"),
+                            (1, "user"),
                         ]
                     ),
                 ),
