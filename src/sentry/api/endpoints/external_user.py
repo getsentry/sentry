@@ -4,10 +4,11 @@ from django.db import IntegrityError
 
 from rest_framework import serializers, status
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
+
+from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-
 from sentry.api.bases.organization import OrganizationEndpoint
-
 from sentry.api.serializers import serialize
 from sentry.models import ExternalUser, EXTERNAL_PROVIDERS, OrganizationMember
 
@@ -58,7 +59,14 @@ class ExternalUserSerializer(CamelSnakeModelSerializer):
             )
 
 
-class ExternalUserEndpoint(OrganizationEndpoint):
+class ExternalUserMixin:
+    def has_feature(self, request, organization):
+        return features.has(
+            "organizations:external-user-associations", organization, actor=request.user
+        )
+
+
+class ExternalUserEndpoint(OrganizationEndpoint, ExternalUserMixin):
     def post(self, request, organization):
         """
         Create an External User
@@ -71,6 +79,9 @@ class ExternalUserEndpoint(OrganizationEndpoint):
         :param required int member_id: the organization_member id.
         :auth: required
         """
+        if not self.has_feature(request, organization):
+            raise PermissionDenied
+
         serializer = ExternalUserSerializer(
             context={"organization": organization}, data={**request.data}
         )
