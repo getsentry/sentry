@@ -22,13 +22,7 @@ import {IconArrow} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {
-  Environment,
-  GlobalSelection,
-  MinimalProject,
-  Organization,
-  Project,
-} from 'app/types';
+import {GlobalSelection, MinimalProject, Organization, Project} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import Projects from 'app/utils/projects';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -38,11 +32,6 @@ import Header from './header';
 const PROJECTS_PER_PAGE = 50;
 
 const defaultProps = {
-  /**
-   * Disable automatic routing
-   */
-  hasCustomRouting: false,
-
   /**
    * Display Environment selector?
    */
@@ -66,7 +55,7 @@ const defaultProps = {
 };
 
 type Props = {
-  children?: React.ReactNode; // TODO(discoverv1): This should be required when discoverv1 is removed
+  children: React.ReactNode;
   organization: Organization;
 
   memberProjects: Project[];
@@ -136,8 +125,8 @@ type Props = {
   // Callbacks //
   onChangeProjects?: (val: number[]) => void;
   onUpdateProjects?: (selectedProjects: number[]) => void;
-  onChangeEnvironments?: (environments: Environment[]) => void;
-  onUpdateEnvironments?: (environments: Environment[]) => void;
+  onChangeEnvironments?: (environments: string[]) => void;
+  onUpdateEnvironments?: (environments: string[]) => void;
   onChangeTime?: (datetime: any) => void;
   onUpdateTime?: (datetime: any) => void;
 
@@ -169,14 +158,14 @@ type Props = {
 
 type State = {
   projects: number[] | null;
-  environments: Environment[] | null;
+  environments: string[] | null;
   searchQuery: string;
 };
 
 class GlobalSelectionHeader extends React.Component<Props, State> {
   static defaultProps = defaultProps;
 
-  state = {
+  state: State = {
     projects: null,
     environments: null,
     searchQuery: '',
@@ -185,26 +174,20 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
   hasMultipleProjectSelection = () =>
     new Set(this.props.organization.features).has('global-views');
 
-  // Returns `router` from props if `hasCustomRouting` property is false
-  getRouter = () => (!this.props.hasCustomRouting ? this.props.router : null);
-
   // Returns an options object for `update*` actions
-  getUpdateOptions = () =>
-    !this.props.hasCustomRouting
-      ? {
-          save: true,
-          resetParams: this.props.resetParamsOnChange,
-        }
-      : {};
+  getUpdateOptions = () => ({
+    save: true,
+    resetParams: this.props.resetParamsOnChange,
+  });
 
-  handleChangeProjects = projects => {
+  handleChangeProjects = (projects: State['projects']) => {
     this.setState({
       projects,
     });
     callIfFunction(this.props.onChangeProjects, projects);
   };
 
-  handleChangeEnvironments = environments => {
+  handleChangeEnvironments = (environments: State['environments']) => {
     this.setState({
       environments,
     });
@@ -228,13 +211,13 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
       utc,
     };
 
-    updateDateTime(newValueObj, this.getRouter(), this.getUpdateOptions());
+    updateDateTime(newValueObj, this.props.router, this.getUpdateOptions());
     callIfFunction(this.props.onUpdateTime, newValueObj);
   };
 
   handleUpdateEnvironmments = () => {
     const {environments} = this.state;
-    updateEnvironments(environments, this.getRouter(), this.getUpdateOptions());
+    updateEnvironments(environments, this.props.router, this.getUpdateOptions());
     this.setState({environments: null});
     callIfFunction(this.props.onUpdateEnvironments, environments);
   };
@@ -243,7 +226,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     const {projects} = this.state;
 
     // Clear environments when switching projects
-    updateProjects(projects || [], this.getRouter(), {
+    updateProjects(projects || [], this.props.router, {
       ...this.getUpdateOptions(),
       environments: [],
     });
