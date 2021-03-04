@@ -6,6 +6,7 @@ from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.dates import to_timestamp
 from sentry.utils.outcomes import Outcome
+from sentry_relay import DataCategory
 
 
 def floor_to_hour_epoch(value):
@@ -37,32 +38,98 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
             self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.start_time, 1, 3
-            )
-            self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.one_day_later, 1, 4
-            )
-
-            # Also create some outcomes we shouldn't be querying
-            self.store_outcomes(
-                other_organization.id, self.project.id, outcome.value, self.one_day_later, 1, 5
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ERROR,
+                self.start_time,
+                1,
+                3,
             )
             self.store_outcomes(
                 self.organization.id,
                 self.project.id,
                 outcome.value,
+                DataCategory.ERROR,
+                self.one_day_later,
+                1,
+                4,
+            )
+            # security and default should be included in these queries
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.SECURITY,
+                self.start_time,
+                1,
+                1,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.DEFAULT,
+                self.one_day_later,
+                1,
+                1,
+            )
+
+            # Also create some outcomes we shouldn't be querying
+            self.store_outcomes(
+                other_organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ERROR,
+                self.one_day_later,
+                1,
+                5,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ERROR,
                 self.day_before_start_time,
                 1,
                 6,
             )
+            # we also shouldn't see any other datacategories in these queries
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.TRANSACTION,
+                self.one_day_later,
+                1,
+                1,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ATTACHMENT,
+                self.one_day_later,
+                1,
+                1,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.SESSION,
+                self.one_day_later,
+                1,
+                1,
+            )
 
         for tsdb_model, granularity, floor_func, start_time_count, day_later_count in [
-            (TSDBModel.organization_total_received, 3600, floor_to_hour_epoch, 3 * 3, 4 * 3),
-            (TSDBModel.organization_total_rejected, 3600, floor_to_hour_epoch, 3, 4),
-            (TSDBModel.organization_total_blacklisted, 3600, floor_to_hour_epoch, 3, 4),
-            (TSDBModel.organization_total_received, 10, floor_to_10s_epoch, 3 * 3, 4 * 3),
-            (TSDBModel.organization_total_rejected, 10, floor_to_10s_epoch, 3, 4),
-            (TSDBModel.organization_total_blacklisted, 10, floor_to_10s_epoch, 3, 4),
+            (TSDBModel.organization_total_received, 3600, floor_to_hour_epoch, 4 * 3, 5 * 3),
+            (TSDBModel.organization_total_rejected, 3600, floor_to_hour_epoch, 4, 5),
+            (TSDBModel.organization_total_blacklisted, 3600, floor_to_hour_epoch, 4, 5),
+            (TSDBModel.organization_total_received, 10, floor_to_10s_epoch, 4 * 3, 5 * 3),
+            (TSDBModel.organization_total_rejected, 10, floor_to_10s_epoch, 4, 5),
+            (TSDBModel.organization_total_blacklisted, 10, floor_to_10s_epoch, 4, 5),
         ]:
             # Query SnubaTSDB
             response = self.db.get_range(
@@ -85,32 +152,98 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
             self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.start_time, 1, 3
-            )
-            self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.one_day_later, 1, 4
-            )
-
-            # Also create some outcomes we shouldn't be querying
-            self.store_outcomes(
-                self.organization.id, other_project.id, outcome.value, self.one_day_later, 1, 5
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ERROR,
+                self.start_time,
+                1,
+                3,
             )
             self.store_outcomes(
                 self.organization.id,
                 self.project.id,
                 outcome.value,
+                DataCategory.ERROR,
+                self.one_day_later,
+                1,
+                4,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.SECURITY,
+                self.start_time,
+                1,
+                1,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.DEFAULT,
+                self.one_day_later,
+                1,
+                1,
+            )
+
+            # Also create some outcomes we shouldn't be querying
+            self.store_outcomes(
+                self.organization.id,
+                other_project.id,
+                outcome.value,
+                DataCategory.ERROR,
+                self.one_day_later,
+                1,
+                5,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ERROR,
                 self.day_before_start_time,
                 1,
                 6,
             )
 
+            # we also shouldn't see any other datacategories in these queries
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.TRANSACTION,
+                self.one_day_later,
+                1,
+                1,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ATTACHMENT,
+                self.one_day_later,
+                1,
+                1,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.SESSION,
+                self.one_day_later,
+                1,
+                1,
+            )
+
         for tsdb_model, granularity, floor_func, start_time_count, day_later_count in [
-            (TSDBModel.project_total_received, 3600, floor_to_hour_epoch, 3 * 3, 4 * 3),
-            (TSDBModel.project_total_rejected, 3600, floor_to_hour_epoch, 3, 4),
-            (TSDBModel.project_total_blacklisted, 3600, floor_to_hour_epoch, 3, 4),
-            (TSDBModel.project_total_received, 10, floor_to_10s_epoch, 3 * 3, 4 * 3),
-            (TSDBModel.project_total_rejected, 10, floor_to_10s_epoch, 3, 4),
-            (TSDBModel.project_total_blacklisted, 10, floor_to_10s_epoch, 3, 4),
+            (TSDBModel.project_total_received, 3600, floor_to_hour_epoch, 4 * 3, 5 * 3),
+            (TSDBModel.project_total_rejected, 3600, floor_to_hour_epoch, 4, 5),
+            (TSDBModel.project_total_blacklisted, 3600, floor_to_hour_epoch, 4, 5),
+            (TSDBModel.project_total_received, 10, floor_to_10s_epoch, 4 * 3, 5 * 3),
+            (TSDBModel.project_total_rejected, 10, floor_to_10s_epoch, 4, 5),
+            (TSDBModel.project_total_blacklisted, 10, floor_to_10s_epoch, 4, 5),
         ]:
             response = self.db.get_range(
                 tsdb_model, [self.project.id], self.start_time, self.now, granularity, None
@@ -137,6 +270,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 self.organization.id,
                 self.project.id,
                 outcome.value,
+                DataCategory.ERROR,
                 self.start_time,
                 project_key.id,
                 3,
@@ -145,9 +279,28 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 self.organization.id,
                 self.project.id,
                 outcome.value,
+                DataCategory.ERROR,
                 self.one_day_later,
                 project_key.id,
                 4,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.SECURITY,
+                self.start_time,
+                project_key.id,
+                1,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.DEFAULT,
+                self.one_day_later,
+                project_key.id,
+                1,
             )
 
             # Also create some outcomes we shouldn't be querying
@@ -155,6 +308,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 self.organization.id,
                 self.project.id,
                 outcome.value,
+                DataCategory.ERROR,
                 self.one_day_later,
                 other_project_key.id,
                 5,
@@ -163,18 +317,47 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 self.organization.id,
                 self.project.id,
                 outcome.value,
+                DataCategory.ERROR,
                 self.day_before_start_time,
                 project_key.id,
                 6,
             )
+            # we also shouldn't see any other datacategories in these queries
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.TRANSACTION,
+                self.one_day_later,
+                project_key.id,
+                1,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.ATTACHMENT,
+                self.one_day_later,
+                project_key.id,
+                1,
+            )
+            self.store_outcomes(
+                self.organization.id,
+                self.project.id,
+                outcome.value,
+                DataCategory.SESSION,
+                self.one_day_later,
+                project_key.id,
+                1,
+            )
 
         for tsdb_model, granularity, floor_func, start_time_count, day_later_count in [
-            (TSDBModel.key_total_received, 3600, floor_to_hour_epoch, 3 * 3, 4 * 3),
-            (TSDBModel.key_total_rejected, 3600, floor_to_hour_epoch, 3, 4),
-            (TSDBModel.key_total_blacklisted, 3600, floor_to_hour_epoch, 3, 4),
-            (TSDBModel.key_total_received, 10, floor_to_10s_epoch, 3 * 3, 4 * 3),
-            (TSDBModel.key_total_rejected, 10, floor_to_10s_epoch, 3, 4),
-            (TSDBModel.key_total_blacklisted, 10, floor_to_10s_epoch, 3, 4),
+            (TSDBModel.key_total_received, 3600, floor_to_hour_epoch, 4 * 3, 5 * 3),
+            (TSDBModel.key_total_rejected, 3600, floor_to_hour_epoch, 4, 5),
+            (TSDBModel.key_total_blacklisted, 3600, floor_to_hour_epoch, 4, 5),
+            (TSDBModel.key_total_received, 10, floor_to_10s_epoch, 4 * 3, 5 * 3),
+            (TSDBModel.key_total_rejected, 10, floor_to_10s_epoch, 4, 5),
+            (TSDBModel.key_total_blacklisted, 10, floor_to_10s_epoch, 4, 5),
         ]:
             response = self.db.get_range(
                 # with [project_key.id, str(project_key.id), we are imitating the hack in
