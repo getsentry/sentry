@@ -2,6 +2,24 @@
 
 from django.db import migrations
 
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+
+
+def delete_duplicate_useroption_rows(apps, schema_editor):
+    """
+    Delete the rows in UserOption that have already been copied over
+    to the NotificationSetting table
+    """
+    UserOption = apps.get_model("sentry", "UserOption")
+
+    for user_option in RangeQuerySetWrapperWithProgressBar(UserOption.objects.all()):
+        if (
+            user_option.key == "workflow:notifications"
+            or user_option.key == "mail:alert"
+            or user_option.key == "deploy-emails"
+        ):
+            user_option.delete()
+
 
 class Migration(migrations.Migration):
     # This flag is used to mark that a migration shouldn"t be automatically run in
@@ -13,7 +31,7 @@ class Migration(migrations.Migration):
     #   they can be monitored. Since data migrations will now hold a transaction open
     #   this is even more important.
     # - Adding columns to highly active tables, even ones that are NULL.
-    is_dangerous = False
+    is_dangerous = True
 
     # This flag is used to decide whether to run this migration in a transaction or not.
     # By default we prefer to run in a transaction, but for migrations where you want
@@ -22,22 +40,14 @@ class Migration(migrations.Migration):
     # You'll also usually want to set this to `False` if you're writing a data
     # migration, since we don't want the entire migration to run in one long-running
     # transaction.
-    atomic = True
+    atomic = False
 
     dependencies = [
         ("sentry", "0166_create_notificationsetting_table"),
     ]
 
     operations = [
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    """
-                        DELETE FROM "sentry_useroptions" WHERE "key" IN ("workflow:notifications", "mail:alert", "deploy-emails");
-                        """,
-                    reverse_sql="",
-                )
-            ],
-            state_operations=[],
+        migrations.RunPython(
+            code=delete_duplicate_useroption_rows, reverse_code=migrations.RunPython.noop
         )
     ]
