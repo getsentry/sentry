@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
@@ -426,6 +427,17 @@ const DoubleFieldWrapper = styled('div')`
   grid-template-columns: repeat(2, 1fr);
   grid-column-gap: ${space(1)};
   width: 100%;
+`;
+
+export const modalCss = css`
+  padding: 50px;
+
+  .modal-dialog {
+    position: unset;
+    width: 100%;
+    max-width: 875px;
+    margin: 50px auto;
+  }
 `;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));
