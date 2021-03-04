@@ -32,7 +32,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
 
     def _post_data(self):
         return {
-            "groupId": self.group.id,
+            "issueId": self.group.id,
             "webUrl": "https://somerandom.io/project/issue-id",
             "project": "ExternalProj",
             "identifier": "issue-1",
@@ -51,7 +51,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {
             "id": str(external_issue.id),
-            "groupId": str(self.group.id),
+            "issueId": str(self.group.id),
             "serviceType": self.sentry_app.slug,
             "displayName": "ExternalProj#issue-1",
             "webUrl": "https://somerandom.io/project/issue-id",
@@ -60,7 +60,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
     def test_invalid_group_id(self):
         self._set_up_sentry_app("Testin", ["event:write"])
         data = self._post_data()
-        data["groupId"] = self.create_group(project=self.create_project()).id
+        data["issueId"] = self.create_group(project=self.create_project()).id
 
         response = self.client.post(
             self.url, data=data, HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
