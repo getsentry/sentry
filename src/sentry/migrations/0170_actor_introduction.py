@@ -45,8 +45,8 @@ class Migration(migrations.Migration):
                     "type",
                     models.PositiveSmallIntegerField(
                         choices=[
-                            (0, "team"),
-                            (1, "user"),
+                            (sentry.models.actor.ActorType(0), "team"),
+                            (sentry.models.actor.ActorType(1), "user"),
                         ]
                     ),
                 ),
@@ -55,38 +55,72 @@ class Migration(migrations.Migration):
                 "db_table": "sentry_actor",
             },
         ),
-        migrations.AddField(
-            model_name="team",
-            name="actor",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                null=True,
-                on_delete=django.db.models.deletion.PROTECT,
-                to="sentry.Actor",
-            ),
-        ),
-        migrations.AddField(
-            model_name="user",
-            name="actor",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                null=True,
-                on_delete=django.db.models.deletion.PROTECT,
-                to="sentry.Actor",
-            ),
-        ),
-        migrations.RunSQL(
-            """
-            CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_team_actor_idx ON sentry_team (actor_id)
-            """,
-            reverse_sql="""
-            DROP INDEX CONCURRENTLY IF EXISTS sentry_team_actor_idx;
-            """,
-        ),
-        migrations.RunSQL(
-            """
-            CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS auth_user_actor_idx ON auth_user (actor_id)
-            """,
-            reverse_sql="""
-            DROP INDEX CONCURRENTLY IF EXISTS auth_user_actor_idx;
-            """,
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE sentry_team ADD COLUMN "actor_id" bigint NULL;
+                    ALTER TABLE auth_user ADD COLUMN "actor_id" bigint NULL;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE sentry_team DROP COLUMN "actor_id";
+                    ALTER TABLE auth_user DROP COLUMN "actor_id";
+                    """,
+                ),
+                migrations.RunSQL(
+                    """
+                    CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_team_actor_idx ON sentry_team (actor_id);
+                    """,
+                    reverse_sql="""
+                    DROP INDEX CONCURRENTLY IF EXISTS sentry_team_actor_idx;
+                    """,
+                ),
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE sentry_team ADD CONSTRAINT "sentry_team_actor_idx_fk_sentry_actor_id" FOREIGN KEY ("actor_id") REFERENCES "sentry_actor" ("id") DEFERRABLE INITIALLY DEFERRED;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE sentry_team DROP CONSTRAINT IF EXISTS sentry_team_actor_idx_fk_sentry_actor_id;
+                    """,
+                ),
+                migrations.RunSQL(
+                    """
+                    CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS auth_user_actor_idx ON auth_user (actor_id);
+                    """,
+                    reverse_sql="""
+                    DROP INDEX CONCURRENTLY IF EXISTS auth_user_actor_idx;
+                    """,
+                ),
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE auth_user ADD CONSTRAINT "auth_user_actor_idx_fk_sentry_actor_id" FOREIGN KEY ("actor_id") REFERENCES "sentry_actor" ("id") DEFERRABLE INITIALLY DEFERRED;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE sentry_team DROP CONSTRAINT IF EXISTS auth_user_actor_idx_fk_sentry_actor_id;
+                    """,
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="team",
+                    name="actor",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="sentry.Actor",
+                        unique=True,
+                    ),
+                ),
+                migrations.AddField(
+                    model_name="user",
+                    name="actor",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="sentry.Actor",
+                        unique=True,
+                    ),
+                ),
+            ],
         ),
     ]
