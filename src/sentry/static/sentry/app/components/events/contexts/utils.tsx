@@ -65,5 +65,5 @@ export function getRelativeTimeFromEventDateCreated(
 
 const RelativeTime = styled('span')`
   color: ${p => p.theme.subText};
-  margin-left: ${space(0.25)};
+  margin-left: ${space(0.5)};
 `;
