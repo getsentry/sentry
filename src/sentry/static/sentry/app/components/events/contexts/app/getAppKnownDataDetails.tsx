@@ -1,4 +1,9 @@
+import React from 'react';
+
 import {t} from 'app/locale';
+import {Event} from 'app/types/event';
+
+import {getRelativeTimeFromEventDateCreated} from '../utils';
 
 import {AppData, AppKnownDataType} from './types';
 
@@ -7,7 +12,11 @@ type Output = {
   value?: React.ReactNode;
 };
 
-function getAppKnownDataDetails(data: AppData, type: AppKnownDataType): Output {
+function getAppKnownDataDetails(
+  event: Event,
+  data: AppData,
+  type: AppKnownDataType
+): Output {
   switch (type) {
     case AppKnownDataType.ID:
       return {
@@ -17,7 +26,10 @@ function getAppKnownDataDetails(data: AppData, type: AppKnownDataType): Output {
     case AppKnownDataType.START_TIME:
       return {
         subject: t('Start Time'),
-        value: data.app_start_time,
+        value: getRelativeTimeFromEventDateCreated(
+          event.dateCreated,
+          data.app_start_time
+        ),
       };
     case AppKnownDataType.DEVICE_HASH:
       return {

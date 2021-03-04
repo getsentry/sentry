@@ -1,4 +1,11 @@
+import React from 'react';
+import styled from '@emotion/styled';
+import moment from 'moment-timezone';
+
+import {t} from 'app/locale';
 import plugins from 'app/plugins';
+import space from 'app/styles/space';
+import {defined} from 'app/utils';
 
 const CONTEXT_TYPES = {
   default: require('app/components/events/contexts/default').default,
@@ -29,3 +36,34 @@ export function getSourcePlugin(pluginContexts: Array<any>, contextType: string)
   }
   return null;
 }
+
+export function getRelativeTimeFromEventDateCreated(
+  eventDateCreated: string,
+  timestamp?: string
+) {
+  if (!defined(timestamp)) {
+    return timestamp;
+  }
+
+  const dateTime = moment(timestamp);
+
+  if (!dateTime.isValid()) {
+    return timestamp;
+  }
+
+  const relativeTime = `(${dateTime.from(eventDateCreated, true)} ${t(
+    'before this event'
+  )})`;
+
+  return (
+    <React.Fragment>
+      {timestamp}
+      <RelativeTime>{relativeTime}</RelativeTime>
+    </React.Fragment>
+  );
+}
+
+const RelativeTime = styled('span')`
+  color: ${p => p.theme.subText};
+  margin-left: ${space(0.25)};
+`;
