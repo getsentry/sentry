@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
     # You'll also usually want to set this to `False` if you're writing a data
     # migration, since we don't want the entire migration to run in one long-running
     # transaction.
-    atomic = True
+    atomic = False
 
     dependencies = [
         ("sentry", "0169_delete_organization_integration_from_projectcodeowners"),
@@ -63,7 +63,6 @@ class Migration(migrations.Migration):
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 to="sentry.Actor",
-                unique=True,
             ),
         ),
         migrations.AddField(
@@ -73,7 +72,22 @@ class Migration(migrations.Migration):
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 to="sentry.Actor",
-                unique=True,
             ),
+        ),
+        migrations.RunSQL(
+            """
+            CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_team_actor_idx ON sentry_team (actor_id)
+            """,
+            reverse_sql="""
+            DROP INDEX CONCURRENTLY IF EXISTS sentry_team_actor_idx;
+            """,
+        ),
+        migrations.RunSQL(
+            """
+            CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_user_actor_idx ON sentry_user (actor_id)
+            """,
+            reverse_sql="""
+            DROP INDEX CONCURRENTLY IF EXISTS sentry_user_actor_idx;
+            """,
         ),
     ]
