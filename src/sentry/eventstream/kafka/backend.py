@@ -108,7 +108,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             return results
 
         def on_assign(consumer, partitions):
-            logger.debug("Received partition assignment: %r", partitions)
+            logger.info("Received partition assignment: %r", partitions)
 
             for i in partitions:
                 if i.offset == OFFSET_INVALID:
@@ -133,7 +133,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 owned_partition_offsets[key] = updated_offset
 
         def on_revoke(consumer, partitions):
-            logger.debug("Revoked partition assignment: %r", partitions)
+            logger.info("Revoked partition assignment: %r", partitions)
 
             offsets_to_commit = []
 
