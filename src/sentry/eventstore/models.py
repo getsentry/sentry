@@ -366,23 +366,26 @@ class Event:
                 return hashes, hierarchical_hashes
 
         # Create fresh hashes
-        variants = self.get_grouping_variants(force_config)
-        flat_variants, hierarchical_variants = self.sort_grouping_variants(variants)
-
-        flat_hashes = self.hashes_from_sorted_variants(flat_variants)
-        hierarchical_hashes = self.hashes_from_sorted_variants(hierarchical_variants)
+        flat_variants, hierarchical_variants = self.get_sorted_grouping_variants(force_config)
+        flat_hashes = self._hashes_from_sorted_grouping_variants(flat_variants)
+        hierarchical_hashes = self._hashes_from_sorted_grouping_variants(hierarchical_variants)
 
         return flat_hashes, hierarchical_hashes
 
+    def get_sorted_grouping_variants(self, force_config=None):
+        """ Get grouping variants sorted into flat and hierarchical variants """
+        variants = self.get_grouping_variants(force_config)
+        return self._sort_grouping_variants(variants)
+
     @staticmethod
-    def hashes_from_sorted_variants(variants):
+    def _hashes_from_sorted_grouping_variants(variants):
         """ Create hashes from variants and filter out None values """
         hashes = (variant.get_hash() for variant in variants)
         return [hash_ for hash_ in hashes if hash_ is not None]
 
     @staticmethod
-    def sort_grouping_variants(variants):
-        """ Sort the output of `get_grouping_variants` into flat and hierarchical categories """
+    def _sort_grouping_variants(variants):
+        """ Sort the output of `get_grouping_variants` into flat and hierarchical variants """
 
         from sentry.grouping.variants import HIERARCHICAL_VARIANTS
 
