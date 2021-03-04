@@ -20,7 +20,7 @@
     "@emotion/babel-preset-css-prop": "^10.0.27",
     "@emotion/core": "^10.0.27",
     "@emotion/styled": "^10.0.27",
-    "@sentry-internal/global-search": "^0.0.31",
+    "@sentry-internal/global-search": "^0.0.37",
     "@sentry/integrations": "6.3.0-beta.0",
     "@sentry/react": "6.3.0-beta.0",
     "@sentry/release-parser": "^0.6.0",

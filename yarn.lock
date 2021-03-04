@@ -1731,10 +1731,10 @@
     prop-types "^15.6.1"
     react-lifecycles-compat "^3.0.4"
 
-"@sentry-internal/global-search@^0.0.31":
-  version "0.0.31"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.0.31.tgz#b0e5b0d40b43a93a8d1a1b5f2fb1636db5c360f4"
-  integrity sha512-UhNJmjiJVuZmW4PCeYDTk+UULnaFWb0qUjT7SUwnYSLhXAe1zLN1pvXaLdwgCkdbDnmJh5H49pGnECbwRzBkVw==
+"@sentry-internal/global-search@^0.0.37":
+  version "0.0.37"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.0.37.tgz#3051fa993eb43703863e826be3ceefdf72b7c664"
+  integrity sha512-lcYXGicKaPC2pClbMFQlQhPNnpvzGFegE44BTlyjYie5h7DC75dom2y7dYq7LKRlVToeTgdPNhHryUiCLZ18qQ==
   dependencies:
     "@types/dompurify" "^2.0.4"
     "@types/react" "^16.9.49"
