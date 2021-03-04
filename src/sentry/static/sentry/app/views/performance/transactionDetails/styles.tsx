@@ -94,12 +94,13 @@ const MenuItemContent = styled('div')`
 type DropdownItemProps = {
   children: React.ReactNode;
   to?: string | LocationDescriptor;
+  onSelect?: (eventKey: any) => void;
   first?: boolean;
 };
 
-export function DropdownItem({children, first, to}: DropdownItemProps) {
+export function DropdownItem({children, first, onSelect, to}: DropdownItemProps) {
   return (
-    <StyledMenuItem to={to} first={first}>
+    <StyledMenuItem to={to} onSelect={onSelect} first={first}>
       <MenuItemContent>{children}</MenuItemContent>
     </StyledMenuItem>
   );
