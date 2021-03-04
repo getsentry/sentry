@@ -769,7 +769,7 @@ def get_performance_facets(
     sample = len(snuba_filter.filter_keys["project_id"]) > 2
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
-        # Get the most frequent tag keys
+        # Get the tag keys with the highest deviation
         key_names = raw_query(
             aggregations=[["stddevSamp", aggregate_column, "stddev"]],
             start=snuba_filter.start,
@@ -778,6 +778,7 @@ def get_performance_facets(
             filter_keys=snuba_filter.filter_keys,
             orderby=["-stddev", "tags_key"],
             groupby="tags_key",
+            # TODO(Kevan): Check using having vs where before mainlining
             having=[excluded_tags],
             dataset=Dataset.Discover,
             limit=limit,
