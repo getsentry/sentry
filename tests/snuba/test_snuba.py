@@ -137,12 +137,9 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
                 ),
             ]
         )
-        assert [
-            {"issue": r["data"][0]["group_id"], "event_id": r["data"][0]["event_id"]}
-            for r in results
-        ] == [
-            {"issue": event_1.group.id, "event_id": event_1.event_id},
-            {"issue": event_2.group.id, "event_id": event_2.event_id},
+        assert [{(item["group_id"], item["event_id"]) for item in r["data"]} for r in results] == [
+            {(event_1.group.id, event_1.event_id)},
+            {(event_2.group.id, event_2.event_id)},
         ]
 
     @mock.patch("sentry.utils.snuba._bulk_snuba_query", side_effect=snuba._bulk_snuba_query)
@@ -175,25 +172,25 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
             copy.deepcopy(params),
             use_cache=True,
         )
-        assert [
-            {"issue": r["data"][0]["group_id"], "event_id": r["data"][0]["event_id"]}
-            for r in results
-        ] == [
-            {"issue": event_1.group.id, "event_id": event_1.event_id},
-            {"issue": event_2.group.id, "event_id": event_2.event_id},
+        assert [{(item["group_id"], item["event_id"]) for item in r["data"]} for r in results] == [
+            {(event_1.group.id, event_1.event_id)},
+            {(event_2.group.id, event_2.event_id)},
         ]
         assert _bulk_snuba_query.call_count == 1
         _bulk_snuba_query.reset_mock()
+
+        # # Make sure this doesn't appear in the cached results
+        self.store_event(
+            data={"fingerprint": ["group-2"], "message": "hello there", "timestamp": one_min_ago},
+            project_id=self.project.id,
+        )
 
         results = snuba.bulk_raw_query(
             copy.deepcopy(params),
             use_cache=True,
         )
-        assert [
-            {"issue": r["data"][0]["group_id"], "event_id": r["data"][0]["event_id"]}
-            for r in results
-        ] == [
-            {"issue": event_1.group.id, "event_id": event_1.event_id},
-            {"issue": event_2.group.id, "event_id": event_2.event_id},
+        assert [{(item["group_id"], item["event_id"]) for item in r["data"]} for r in results] == [
+            {(event_1.group.id, event_1.event_id)},
+            {(event_2.group.id, event_2.event_id)},
         ]
         assert _bulk_snuba_query.call_count == 0
