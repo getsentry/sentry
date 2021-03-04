@@ -39,7 +39,7 @@ python3-saml==1.4.1
 PyYAML==5.3
 rb==1.8
 redis-py-cluster==2.1.0
-redis==3.3.11
+redis==3.4.1
 requests-oauthlib==1.2.0
 requests[security]==2.20.1
 # [start] jsonschema format validators
