@@ -2551,7 +2551,9 @@ class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
         self.two_mins_ago = before_now(minutes=2)
         self._transaction_count = 0
 
-    def store_transaction(self, name="exampleTransaction", duration=100, tags={}):
+    def store_transaction(self, name="exampleTransaction", duration=100, tags=None):
+        if tags is None:
+            tags = {}
         event = load_data("transaction")
         event.update(
             {
