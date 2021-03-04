@@ -22,7 +22,7 @@ SnubaModelQuerySettings = collections.namedtuple(
 
 # combine DEFAULT, ERROR, and SECURITY as errors. We are now recording outcome by
 # category, and these TSDB models and where they're used assume only errors.
-# see relay: py/sentry_relay/consts.py
+# see relay: py/sentry_relay/consts.py and relay-cabi/include/relay.h
 OUTCOMES_CATEGORY_CONDITION = [
     "category",
     "IN",
