@@ -102,7 +102,7 @@ class WidgetQueryForm extends React.Component<Props> {
                   onBlur={this.handleFieldChange(queryIndex, 'conditions')}
                   useFormWrapper={false}
                 />
-                <Input
+                <LegendAliasInput
                   type="text"
                   name="name"
                   required
@@ -199,7 +199,11 @@ export const SearchConditionsWrapper = styled('div')`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  width: 100%;
+  width: 67%;
+`;
+
+const LegendAliasInput = styled(Input)`
+  width: 33%;
 `;
 
 export default WidgetQueryForm;
