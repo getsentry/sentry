@@ -22,7 +22,7 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
 
         try:
             group = Group.objects.get(
-                id=data.get("groupId"),
+                id=data.get("issueId"),
                 project_id__in=Project.objects.filter(organization_id=installation.organization_id),
             )
         except Group.DoesNotExist:
