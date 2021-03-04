@@ -68,7 +68,6 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
-from sentry.utils.compat import map
 from sentry.reprocessing2 import save_unprocessed_event, is_reprocessed_event
 
 logger = logging.getLogger("sentry.events")
@@ -789,7 +788,7 @@ def _eventstream_insert_many(jobs):
             is_new=job["is_new"],
             is_regression=job["is_regression"],
             is_new_group_environment=job["is_new_group_environment"],
-            primary_hash=job["data"]["hashes"][0] if "hashes" in job["data"] else "",
+            primary_hash=job["event"].get_primary_hash(),
             received_timestamp=job["received_timestamp"],
             # We are choosing to skip consuming the event back
             # in the eventstream if it's flagged as raw.
@@ -931,6 +930,8 @@ def _save_aggregate2(event, flat_hashes, hierarchical_hashes, release, **kwargs)
     A rewrite of _save_aggregate that is supposed to eliminate races using DB transactions.
     """
 
+    # TODO(markus): Port over hierarchical grouping changes from _save_aggregate
+
     project = event.project
 
     all_hashes = [
@@ -1032,19 +1033,60 @@ def _save_aggregate2(event, flat_hashes, hierarchical_hashes, release, **kwargs)
     return group, is_new, is_regression
 
 
+def _find_existing_group_id(
+    project,
+    flat_grouphashes,
+    hierarchical_hashes,
+):
+    all_grouphashes = []
+
+    if hierarchical_hashes:
+        hierarchical_grouphashes = {
+            h.hash: h
+            for h in GroupHash.objects.filter(project=project, hash__in=hierarchical_hashes)
+        }
+
+        for hash in reversed(hierarchical_hashes):
+            group_hash = hierarchical_grouphashes.get(hash)
+            if group_hash is None:
+                continue
+
+            all_grouphashes.append(group_hash)
+
+    all_grouphashes.extend(flat_grouphashes)
+
+    for group_hash in all_grouphashes:
+        if group_hash.group_id is not None:
+            return group_hash.group_id
+
+        # When refactoring for hierarchical grouping, we noticed that a
+        # tombstone may get ignored entirely if there is another hash *before*
+        # that happens to have a group_id. This bug may not have been noticed
+        # for a long time because most events only ever have 1-2 hashes. It
+        # will definetly get more noticeable with hierarchical grouping and
+        # it's not clear what good behavior would look like. Do people want to
+        # be able to tombstone `hierarchical_hashes[4]` while still having a
+        # group attached to `hierarchical_hashes[0]`? Maybe.
+        if group_hash.group_tombstone_id is not None:
+            raise HashDiscarded("Matches group tombstone %s" % group_hash.group_tombstone_id)
+
+
 def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
     project = event.project
 
     # attempt to find a matching hash
-    all_hashes = _find_hashes(project, flat_hashes)
+    flat_grouphashes = [
+        GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in flat_hashes
+    ]
 
-    existing_group_id = None
-    for h in all_hashes:
-        if h.group_id is not None:
-            existing_group_id = h.group_id
-            break
-        if h.group_tombstone_id is not None:
-            raise HashDiscarded("Matches group tombstone %s" % h.group_tombstone_id)
+    if hierarchical_hashes:
+        root_hierarchical_hash = GroupHash.objects.get_or_create(
+            project=project, hash=hierarchical_hashes[0]
+        )[0]
+    else:
+        root_hierarchical_hash = None
+
+    existing_group_id = _find_existing_group_id(project, flat_grouphashes, hierarchical_hashes)
 
     # XXX(dcramer): this has the opportunity to create duplicate groups
     # it should be resolved by the hash merging function later but this
@@ -1083,9 +1125,16 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
 
     group._project_cache = project
 
+    if root_hierarchical_hash is None or root_hierarchical_hash.group_id == existing_group_id:
+        to_update = list(flat_grouphashes)
+        if group_is_new and root_hierarchical_hash is not None:
+            to_update.append(root_hierarchical_hash)
+        new_hashes = [h for h in to_update if h.group_id is None]
+    else:
+        new_hashes = []
+
     # If all hashes are brand new we treat this event as new
     is_new = False
-    new_hashes = [h for h in all_hashes if h.group_id is None]
     if new_hashes:
         # XXX: There is a race condition here wherein another process could
         # create a new group that is associated with one of the new hashes,
@@ -1100,7 +1149,7 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
             state=GroupHash.State.LOCKED_IN_MIGRATION
         ).update(group=group)
 
-        if group_is_new and len(new_hashes) == len(all_hashes):
+        if group_is_new and len(new_hashes) == len(to_update):
             is_new = True
 
     if not is_new:
@@ -1506,12 +1555,6 @@ def save_attachments(cache_key, attachments, job):
             group_id=event.group_id,
             start_time=job["start_time"],
         )
-
-
-def _find_hashes(project, hash_list):
-    return map(
-        lambda hash: GroupHash.objects.get_or_create(project=project, hash=hash)[0], hash_list
-    )
 
 
 @metrics.wraps("event_manager.save_transactions.materialize_event_metrics")

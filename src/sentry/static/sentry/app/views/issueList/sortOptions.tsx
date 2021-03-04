@@ -26,17 +26,19 @@ const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
 
   return (
     <DropdownControl buttonProps={{prefix: t('Sort by')}} label={getSortLabel(sortKey)}>
-      {getMenuItem(IssueSortOptions.PRIORITY)}
-      {getMenuItem(IssueSortOptions.DATE)}
-      {getMenuItem(IssueSortOptions.NEW)}
-      {getMenuItem(IssueSortOptions.FREQ)}
-      {getMenuItem(IssueSortOptions.USER)}
-      <Feature features={['issue-list-trend-sort']}>
-        {getMenuItem(IssueSortOptions.TREND)}
-      </Feature>
-      <Feature features={['inbox']}>
-        {isForReviewQuery(query) && getMenuItem(IssueSortOptions.INBOX)}
-      </Feature>
+      <React.Fragment>
+        {getMenuItem(IssueSortOptions.PRIORITY)}
+        {getMenuItem(IssueSortOptions.DATE)}
+        {getMenuItem(IssueSortOptions.NEW)}
+        {getMenuItem(IssueSortOptions.FREQ)}
+        {getMenuItem(IssueSortOptions.USER)}
+        <Feature features={['issue-list-trend-sort']}>
+          {getMenuItem(IssueSortOptions.TREND)}
+        </Feature>
+        <Feature features={['inbox']}>
+          {isForReviewQuery(query) && getMenuItem(IssueSortOptions.INBOX)}
+        </Feature>
+      </React.Fragment>
     </DropdownControl>
   );
 };
