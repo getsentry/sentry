@@ -1,7 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import {assignToActor, assignToUser, clearAssignment} from 'app/actionCreators/group';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
@@ -25,18 +23,25 @@ import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import space from 'app/styles/space';
-import {
-  Actor,
-  SuggestedAssignee,
-  SuggestedOwner,
-  SuggestedOwnerReason,
-  Team,
-  User,
-} from 'app/types';
+import {Actor, SuggestedOwner, SuggestedOwnerReason, Team, User} from 'app/types';
 import {buildTeamId, buildUserId, valueIsEqual} from 'app/utils';
 
+type DropdownItems = React.ComponentProps<typeof DropdownAutoComplete>['items'];
+
+type SuggestedAssignee = Actor & {
+  suggestedReason: SuggestedOwnerReason;
+  assignee: AssignableTeam | User;
+};
+
+type AssignableTeam = {
+  id: string;
+  display: string;
+  email: string;
+  team: Team;
+};
+
 type Props = {
-  id: string | null;
+  id: string;
   size?: number;
   memberList?: User[];
   disabled?: boolean;
@@ -54,32 +59,18 @@ type State = {
   suggestedOwners?: SuggestedOwner[] | null;
 };
 
-type AssignableTeam = {
-  id: string;
-  display: string;
-  email: string;
-  team: Team;
-};
-
-const AssigneeSelectorComponent = createReactClass<Props, State>({
-  displayName: 'AssigneeSelector',
-
-  contextTypes: {
+class AssigneeSelector extends React.Component<Props, State> {
+  static contextTypes = {
     organization: SentryTypes.Organization,
-  },
+  };
 
-  mixins: [
-    Reflux.listenTo(GroupStore, 'onGroupChange') as any,
-    Reflux.connect(MemberListStore, 'memberList') as any,
-  ],
+  static defaultProps = {
+    id: null,
+    size: 20,
+    memberList: undefined,
+  };
 
-  getDefaultProps() {
-    return {
-      id: null,
-      size: 20,
-      memberList: undefined,
-    };
-  },
+  state = this.getInitialState();
 
   getInitialState() {
     const group = GroupStore.get(this.props.id);
@@ -93,10 +84,10 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
       loading,
       suggestedOwners,
     };
-  },
+  }
 
   componentWillReceiveProps(nextProps: Props) {
-    const loading = nextProps.id && GroupStore.hasStatus(nextProps.id, 'assignTo');
+    const loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
     if (nextProps.id !== this.props.id || loading !== this.state.loading) {
       const group = GroupStore.get(this.props.id);
       this.setState({
@@ -105,9 +96,9 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
         suggestedOwners: group && group.owners,
       });
     }
-  },
+  }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
     if (nextState.loading !== this.state.loading) {
       return true;
     }
@@ -129,36 +120,32 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
       return true;
     }
     return !valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
-  },
+  }
 
-  memberList(): User[] | undefined {
-    return this.props.memberList ? this.props.memberList : this.state.memberList;
-  },
+  componentWillUnmount() {
+    this.unlisteners.forEach(unlistener => unlistener?.());
+  }
 
-  assignableTeams(): AssignableTeam[] {
-    if (!this.props.id) {
-      return [];
+  unlisteners = [
+    GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined),
+    MemberListStore.listen((users: User[]) => {
+      this.handleMemberListUpdate(users);
+    }, undefined),
+  ];
+
+  handleMemberListUpdate = (members: User[]) => {
+    if (members === this.state.memberList) {
+      return;
     }
-    const group = GroupStore.get(this.props.id);
-    if (!group) {
-      return [];
-    }
 
-    return (
-      (group && ProjectsStore.getBySlug(group.project.slug)) || {
-        teams: [],
-      }
-    ).teams
-      .sort((a, b) => a.slug.localeCompare(b.slug))
-      .map(team => ({
-        id: buildTeamId(team.id),
-        display: `#${team.slug}`,
-        email: team.id,
-        team,
-      }));
-  },
+    this.setState({memberList: members});
+  };
 
-  onGroupChange(itemIds) {
+  memberList(): User[] {
+    return this.props.memberList ?? this.state.memberList ?? [];
+  }
+
+  onGroupChange(itemIds: Set<string>) {
     if (!itemIds.has(this.props.id)) {
       return;
     }
@@ -166,21 +153,42 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     this.setState({
       assignedTo: group && group.assignedTo,
       suggestedOwners: group && group.owners,
-      loading: this.props.id && GroupStore.hasStatus(this.props.id, 'assignTo'),
+      loading: GroupStore.hasStatus(this.props.id, 'assignTo'),
     });
-  },
+  }
 
-  assignToUser(user) {
+  assignableTeams(): AssignableTeam[] {
+    const group = GroupStore.get(this.props.id);
+    if (!group) {
+      return [];
+    }
+
+    const teams = ProjectsStore.getBySlug(group.project.slug)?.teams ?? [];
+    return teams
+      .sort((a, b) => a.slug.localeCompare(b.slug))
+      .map(team => ({
+        id: buildTeamId(team.id),
+        display: `#${team.slug}`,
+        email: team.id,
+        team,
+      }));
+  }
+
+  assignToUser(user: User | Actor) {
     assignToUser({id: this.props.id, user});
     this.setState({loading: true});
-  },
+  }
 
-  assignToTeam(team) {
+  assignToTeam(team: Team) {
     assignToActor({actor: {id: team.id, type: 'team'}, id: this.props.id});
     this.setState({loading: true});
-  },
+  }
 
-  handleAssign({value: {type, assignee}}, _state, e) {
+  handleAssign: React.ComponentProps<typeof DropdownAutoComplete>['onSelect'] = (
+    {value: {type, assignee}},
+    _state,
+    e
+  ) => {
     if (type === 'member') {
       this.assignToUser(assignee);
     }
@@ -189,9 +197,9 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
       this.assignToTeam(assignee);
     }
 
-    e.stopPropagation();
+    e?.stopPropagation();
 
-    const {onAssign} = this.props as Props;
+    const {onAssign} = this.props;
     if (onAssign) {
       const suggestionType = type === 'member' ? 'user' : type;
       const suggestion = this.getSuggestedAssignees()?.find(
@@ -199,16 +207,16 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
       );
       onAssign?.(type, assignee, suggestion);
     }
-  },
+  };
 
-  clearAssignTo(e) {
+  clearAssignTo = (e: React.MouseEvent<HTMLDivElement>) => {
     // clears assignment
     clearAssignment(this.props.id);
     this.setState({loading: true});
     e.stopPropagation();
-  },
+  };
 
-  renderMemberNode(member: User, suggestedReason: string) {
+  renderMemberNode(member: User, suggestedReason?: string): DropdownItems[0] {
     const {size} = this.props;
 
     return {
@@ -230,14 +238,17 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
         </MenuItemWrapper>
       ),
     };
-  },
+  }
 
-  renderNewMemberNodes() {
+  renderNewMemberNodes(): DropdownItems {
     const members = putSessionUserFirst(this.memberList());
     return members.map(member => this.renderMemberNode(member));
-  },
+  }
 
-  renderTeamNode(assignableTeam: AssignableTeam, suggestedReason: string) {
+  renderTeamNode(
+    assignableTeam: AssignableTeam,
+    suggestedReason?: string
+  ): DropdownItems[0] {
     const {size} = this.props;
     const {id, display, team} = assignableTeam;
     return {
@@ -259,45 +270,44 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
         </MenuItemWrapper>
       ),
     };
-  },
+  }
 
-  renderNewTeamNodes() {
+  renderNewTeamNodes(): DropdownItems {
     return this.assignableTeams().map(team => this.renderTeamNode(team));
-  },
+  }
 
-  renderSuggestedAssigneeNodes() {
+  renderSuggestedAssigneeNodes(): React.ComponentProps<
+    typeof DropdownAutoComplete
+  >['items'] {
     const {assignedTo} = this.state;
-    return (
-      // filter out suggested assignees if a suggestion is already selected
-      this.getSuggestedAssignees()
-        ?.filter(
-          ({type, id}: SuggestedAssignee) =>
-            !(assignedTo && type === assignedTo.type && id === assignedTo.id)
-        )
-        .map(({type, suggestedReason, assignee}) => {
-          const reason =
-            suggestedReason === 'suspectCommit'
-              ? t('(Suspect Commit)')
-              : t('(Issue Owner)');
-          if (type === 'user') {
-            return this.renderMemberNode(assignee, reason);
-          } else if (type === 'team') {
-            return this.renderTeamNode(assignee, reason);
-          }
-          return null;
-        })
-    );
-  },
+    // filter out suggested assignees if a suggestion is already selected
+    return this.getSuggestedAssignees()
+      .filter(
+        ({type, id}) => !(assignedTo && type === assignedTo.type && id === assignedTo.id)
+      )
+      .filter(({type}) => type === 'user' || type === 'team')
+      .map(({type, suggestedReason, assignee}) => {
+        const reason =
+          suggestedReason === 'suspectCommit'
+            ? t('(Suspect Commit)')
+            : t('(Issue Owner)');
+        if (type === 'user') {
+          return this.renderMemberNode(assignee as User, reason);
+        }
+
+        return this.renderTeamNode(assignee as AssignableTeam, reason);
+      });
+  }
 
   renderDropdownGroupLabel(label: string) {
     return <GroupHeader>{label}</GroupHeader>;
-  },
+  }
 
-  renderNewDropdownItems() {
+  renderNewDropdownItems(): DropdownItems {
     const teams = this.renderNewTeamNodes();
     const members = this.renderNewMemberNodes();
 
-    const dropdownItems = [
+    const dropdownItems: DropdownItems = [
       {label: this.renderDropdownGroupLabel(t('Teams')), id: 'team-header', items: teams},
       {
         label: this.renderDropdownGroupLabel(t('People')),
@@ -306,30 +316,32 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
       },
     ];
 
-    const suggestedAssignees = this.renderSuggestedAssigneeNodes()?.filter(
-      assignee => !!assignee
-    );
-    if (suggestedAssignees && suggestedAssignees.length) {
+    const suggestedAssignees = this.renderSuggestedAssigneeNodes();
+    if (suggestedAssignees.length) {
       dropdownItems.unshift({
         label: this.renderDropdownGroupLabel(t('Suggested')),
         id: 'suggested-header',
         items: suggestedAssignees,
       });
     }
-    return dropdownItems;
-  },
 
-  getSuggestedAssignees(): SuggestedAssignee[] | null {
-    const {suggestedOwners} = this.state as State;
+    return dropdownItems;
+  }
+
+  getSuggestedAssignees(): SuggestedAssignee[] {
+    const {suggestedOwners} = this.state;
     if (!suggestedOwners) {
-      return null;
+      return [];
     }
-    return suggestedOwners
-      .map(owner => {
+
+    const assignableTeams = this.assignableTeams();
+    const memberList = this.memberList();
+    const suggestedAssignees: Array<SuggestedAssignee | null> = suggestedOwners.map(
+      owner => {
         // converts a backend suggested owner to a suggested assignee
         const [ownerType, id] = owner.owner.split(':');
         if (ownerType === 'user') {
-          const member = this.memberList()?.find(user => user.id === id);
+          const member = memberList.find(user => user.id === id);
           if (member) {
             return {
               type: 'user',
@@ -340,7 +352,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
             };
           }
         } else if (ownerType === 'team') {
-          const matchingTeam = this.assignableTeams().find(
+          const matchingTeam = assignableTeams.find(
             assignableTeam => assignableTeam.id === owner.owner
           );
           if (matchingTeam) {
@@ -353,16 +365,19 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
             };
           }
         }
+
         return null;
-      })
-      .filter((owner): owner is SuggestedAssignee => !!owner);
-  },
+      }
+    );
+
+    return suggestedAssignees.filter(owner => !!owner) as SuggestedAssignee[];
+  }
 
   render() {
-    const {disabled} = this.props as Props;
-    const {loading, assignedTo} = this.state as State;
+    const {disabled} = this.props;
+    const {loading, assignedTo} = this.state;
     const memberList = this.memberList();
-    const suggestedActors: SuggestedAssignee[] = this.getSuggestedAssignees();
+    const suggestedActors = this.getSuggestedAssignees();
     const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
       suspectCommit: tct('Based on [commit:commit data]', {
         commit: (
@@ -371,7 +386,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
       }),
       ownershipRule: t('Matching Issue Owners Rule'),
     };
-    const assignedToSuggestion = suggestedActors?.find(
+    const assignedToSuggestion = suggestedActors.find(
       actor => actor.id === assignedTo?.id
     );
 
@@ -386,13 +401,10 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
             maxHeight={400}
             onOpen={e => {
               // This can be called multiple times and does not always have `event`
-              if (!e) {
-                return;
-              }
-              e.stopPropagation();
+              e?.stopPropagation();
             }}
             busy={memberList === undefined}
-            items={memberList !== undefined ? this.renderNewDropdownItems() : null}
+            items={memberList !== undefined ? this.renderNewDropdownItems() : []}
             alignMenu="right"
             onSelect={this.handleAssign}
             itemSize="small"
@@ -505,8 +517,8 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
         )}
       </AssigneeWrapper>
     );
-  },
-});
+  }
+}
 
 export function putSessionUserFirst(members: User[] | undefined): User[] {
   // If session user is in the filtered list of members, put them at the top
@@ -540,7 +552,7 @@ const AssigneeWrapper = styled('div')`
   }
 `;
 
-export default AssigneeSelectorComponent;
+export default AssigneeSelector;
 
 const StyledIconUser = styled(IconUser)`
   /* We need this to center with Avatar */
