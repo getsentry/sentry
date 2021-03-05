@@ -44,7 +44,7 @@ const getVariantStyle = ({
   return `
     height: 6px;
     border-radius: 100px;
-    background: ${theme.gray100};
+    background: ${theme.progressBackground};
     :before {
       top: 0;
       left: 0;
