@@ -693,14 +693,19 @@ class SnubaTestCase(BaseTestCase):
         # While snuba is synchronous, clickhouse isn't entirely synchronous.
         attempt = 0
         snuba_filter = eventstore.Filter(project_ids=[project_id])
+        last_events_seen = 0
+
         while attempt < attempts:
             events = eventstore.get_events(snuba_filter)
+            last_events_seen = len(events)
             if len(events) >= total:
                 break
             attempt += 1
             time.sleep(0.05)
         if attempt == attempts:
-            assert False, f"Could not ensure event was persisted within {attempt} attempt(s)"
+            assert (
+                False
+            ), f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
 
     def store_session(self, session):
         assert (
