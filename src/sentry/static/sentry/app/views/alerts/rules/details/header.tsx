@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 import PageHeading from 'app/components/pageHeading';
-import {IconSettings} from 'app/icons';
+import {IconEdit} from 'app/icons';
 import {t} from 'app/locale';
 import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -43,8 +43,8 @@ export default class DetailsHeader extends React.Component<Props> {
             ]}
           />
           <Controls>
-            <Button icon={<IconSettings />} label={t('Settings')} to={settingsLink}>
-              Settings
+            <Button icon={<IconEdit />} label={t('Settings')} to={settingsLink}>
+              Edit
             </Button>
           </Controls>
         </BreadCrumbBar>
