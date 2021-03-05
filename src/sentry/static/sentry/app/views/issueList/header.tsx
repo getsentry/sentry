@@ -82,9 +82,7 @@ function IssueListHeader({
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
             <Button
-              title={t(
-                'You’re seeing the new issues experience because you’ve opted to be an early adopter of new features. Send us feedback via email'
-              )}
+              title={t('Send us feedback via email')}
               size="small"
               href="mailto:workflow-feedback@sentry.io?subject=Issues Feedback"
             >

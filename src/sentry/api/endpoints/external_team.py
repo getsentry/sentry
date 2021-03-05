@@ -4,8 +4,10 @@ from django.db import IntegrityError
 
 from rest_framework import serializers, status
 from rest_framework.response import Response
-from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from rest_framework.exceptions import PermissionDenied
 
+from sentry import features
+from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ExternalTeam, EXTERNAL_PROVIDERS
@@ -25,7 +27,7 @@ class ExternalTeamSerializer(CamelSnakeModelSerializer):
     def validate_provider(self, provider):
         if provider not in EXTERNAL_PROVIDERS.values():
             raise serializers.ValidationError(
-                f'The provider "{provider}" is not supported. We currently accept Github and Gitlab team identities.'
+                f'The provider "{provider}" is not supported. We currently accept GitHub and GitLab team identities.'
             )
         return ExternalTeam.get_provider_enum(provider)
 
@@ -46,7 +48,14 @@ class ExternalTeamSerializer(CamelSnakeModelSerializer):
             )
 
 
-class ExternalTeamEndpoint(TeamEndpoint):
+class ExternalTeamMixin:
+    def has_feature(self, request, team):
+        return features.has(
+            "organizations:external-team-associations", team.organization, actor=request.user
+        )
+
+
+class ExternalTeamEndpoint(TeamEndpoint, ExternalTeamMixin):
     def post(self, request, team):
         """
         Create an External Team
@@ -59,6 +68,9 @@ class ExternalTeamEndpoint(TeamEndpoint):
         :param required string external_name: the associated Github/Gitlab team name.
         :auth: required
         """
+        if not self.has_feature(request, team):
+            raise PermissionDenied
+
         serializer = ExternalTeamSerializer(data={**request.data, "team_id": team.id})
         if serializer.is_valid():
             external_team, created = serializer.save()

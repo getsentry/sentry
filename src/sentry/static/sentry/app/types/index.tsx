@@ -1257,7 +1257,7 @@ export type GroupIntegration = Integration & {
 
 export type PlatformExternalIssue = {
   id: string;
-  groupId: string;
+  issueId: string;
   serviceType: string;
   displayName: string;
   webUrl: string;
@@ -1494,6 +1494,7 @@ export type NewQuery = {
   fields: Readonly<string[]>;
   widths?: Readonly<string[]>;
   orderby?: string;
+  expired?: boolean;
 
   // GlobalSelectionHeader
   projects: Readonly<number[]>;
