@@ -74,17 +74,12 @@ grpcio==1.35.0
 # not directly used, but provides a speedup for redis
 hiredis==0.3.1
 
-
-
 # not directly used, but pinned for at least semaphore/symbolic
 cffi==1.12.2
 
 # not directly used, but pinned for toronado because it doesn't pin these
 cssutils==1.0.2
 cssselect==1.0.3
-
-# not directly used, but needed
-setproctitle==1.1.10
 
 # sentry-plugins specific dependencies
 phabricator==0.7.0
