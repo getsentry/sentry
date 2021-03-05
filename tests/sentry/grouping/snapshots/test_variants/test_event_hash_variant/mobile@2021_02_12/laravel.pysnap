@@ -1,10 +1,11 @@
 ---
-created: '2021-02-15T18:55:35.178173Z'
+created: '2021-03-05T12:14:37.039806Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "085111c76fa557709d40f7410014247a"
+  tree_label: "Illuminate\Routing\RouteFileRegistrar::{closure}"
   component:
     app-depth-1*
       exception*
@@ -23,6 +24,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "568a519d81057ebff6cdb40a7c48da18"
+  tree_label: "require_once"
   component:
     app-depth-2*
       exception*
@@ -48,6 +50,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "4665d486184740231357ab63f4543a8d"
+  tree_label: "require_once"
   component:
     app-depth-max*
       exception*
@@ -407,6 +410,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "107ed03036d901157372f260bc3df446"
+  tree_label: "require_once"
   component:
     system*
       exception*

@@ -1,10 +1,11 @@
 ---
-created: '2021-02-15T18:20:10.797664Z'
+created: '2021-03-05T12:14:37.858959Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-max:
   hash: null
+  tree_label: "__scrt_common_main_seh"
   component:
     app-depth-max (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
@@ -41,6 +42,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "15d397771f229af8dc42783542f81dd4"
+  tree_label: "__scrt_common_main_seh"
   component:
     system*
       exception*

@@ -1,10 +1,11 @@
 ---
-created: '2020-11-12T10:56:57.127842Z'
+created: '2021-03-05T11:40:22.543998Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "703d3dd9cb763e3f5037f659d27da947"
+  tree_label: "__pthread_start"
   component:
     app*
       exception*
@@ -397,6 +398,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "1df163ce3be65319df4fcc9cb34b60c1"
+  tree_label: "__pthread_start"
   component:
     system*
       exception*

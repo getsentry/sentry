@@ -1,10 +1,11 @@
 ---
-created: '2021-02-15T18:20:10.911484Z'
+created: '2021-03-05T12:14:37.963690Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-max:
   hash: null
+  tree_label: "_foo_html_erb"
   component:
     app-depth-max (stacktrace of system takes precedence)
       stacktrace
@@ -16,6 +17,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "4067a71d7098866f87c746a57a77b2bb"
+  tree_label: "_foo_html_erb"
   component:
     system*
       stacktrace*

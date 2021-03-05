@@ -1,10 +1,11 @@
 ---
-created: '2020-08-25T09:17:11.244403Z'
+created: '2021-03-05T11:40:21.827886Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "228c649a3aa0901622c0a0e66ab0522c"
+  tree_label: "Invoke"
   component:
     app*
       exception*
@@ -180,6 +181,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "4ccd0f1953483581ba360c7518f90332"
+  tree_label: "Invoke"
   component:
     system*
       exception*

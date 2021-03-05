@@ -1,10 +1,11 @@
 ---
-created: '2020-02-26T19:54:36.158642Z'
+created: '2021-03-05T11:40:23.045256Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "6e721dc6a6f261cc9ce994fe8dc2c917"
+  tree_label: "Hub.Object.<anonymous>.Hub.withScope"
   component:
     app*
       exception*
@@ -86,6 +87,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "4dc62db23de39a20e1274015ee07d202"
+  tree_label: "Hub.Object.<anonymous>.Hub.withScope"
   component:
     system*
       exception*

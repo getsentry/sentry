@@ -1,10 +1,11 @@
 ---
-created: '2020-07-23T17:38:23.477158Z'
+created: '2021-03-05T11:40:26.037490Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "4a3cf3893b6485428dd02da116c8370e"
+  tree_label: "promiseReactionJob"
   component:
     app*
       exception*
@@ -147,6 +148,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "0b81da6ea3d7cc82b1d4825b7aac0b8d"
+  tree_label: "promiseReactionJob"
   component:
     system*
       exception*
