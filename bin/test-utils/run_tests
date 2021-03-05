@@ -18,8 +18,4 @@ export SENTRY_SKIP_BACKEND_VALIDATION=1
 # Allocate more space for node (needed for webpack builds)
 export NODE_OPTIONS=--max-old-space-size=4096
 
-# /usr/src/sentry is where we volume mount sentry source as pulled in by CI.
-# We move the prebuilt sentry node_modules in the test image into the expected location.
-mv /usr/src/sentry_node_modules /usr/src/sentry/node_modules
-
 exec "$@"
