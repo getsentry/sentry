@@ -4,4 +4,4 @@ set -e
 
 # This is used by GHA to install sentry after the test container
 # is run, which mounts the sentry source.
-docker exec sentry-test SENTRY_LIGHT_BUILD=1 pip install --no-dependencies .
+docker exec sentry-test pip install --no-dependencies .

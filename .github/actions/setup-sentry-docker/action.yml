@@ -65,6 +65,8 @@ runs:
 
     - name: Setup sentry
       shell: bash
+      env:
+        SENTRY_LIGHT_BUILD: 1
       run: |
         bin/test-utils/install_sentry
 
