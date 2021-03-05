@@ -23,87 +23,68 @@ type Props = {
   traceSlug: string;
 };
 
-type TraceQueryProps = Omit<React.ComponentProps<typeof TraceFullQuery>, 'children'>;
-
 class TraceDetailsContent extends React.Component<Props> {
-  getTraceQueryProps(): TraceQueryProps {
+  renderTraceLoading() {
+    return <LoadingIndicator />;
+  }
+
+  renderTraceNotFound() {
+    return <LoadingError message={t('The trace you are looking for was not found.')} />;
+  }
+
+  renderTrace(trace) {
+    const traceInfo = getTraceInfo(trace);
+
+    return (
+      <TraceDetailHeader>
+        <MetaData
+          headingText={t('Transactions')}
+          tooltipText={t('All the transactions that are a part of this trace.')}
+          bodyText={t(
+            '%s of %s',
+            traceInfo.relevantTransactions,
+            traceInfo.totalTransactions
+          )}
+          subtext={tn(
+            'Across %s project',
+            'Across %s projects',
+            traceInfo.relevantProjects
+          )}
+        />
+      </TraceDetailHeader>
+    );
+  }
+
+  renderContent() {
     const {location, organization, traceSlug} = this.props;
     const {query} = location;
     const start = decodeScalar(query.start);
     const end = decodeScalar(query.end);
 
     if (!start || !end) {
-      throw new Error('No date range selection found.');
+      // throw new Error('No date range selection found.');
+      return this.renderTraceNotFound();
     }
 
-    return {
-      location,
-      orgSlug: organization.slug,
-      traceId: traceSlug,
-      start,
-      end,
-    };
-  }
-
-  renderTraceContent(traceQueryProps: TraceQueryProps) {
     return (
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <TraceFullQuery {...traceQueryProps}>
-            {({isLoading, error, trace}) => {
-              if (isLoading) {
-                return <LoadingIndicator />;
-              } else if (error !== null || trace === null) {
-                return (
-                  <LoadingError
-                    message={t('The trace you are looking for was not found.')}
-                  />
-                );
-              }
-
-              const traceInfo = getTraceInfo(trace);
-
-              return (
-                <TraceDetailHeader>
-                  <MetaData
-                    headingText={t('Transactions')}
-                    tooltipText={t('All the transactions that are a part of this trace.')}
-                    bodyText={t(
-                      '%s of %s',
-                      traceInfo.relevantTransactions,
-                      traceInfo.totalTransactions
-                    )}
-                    subtext={tn(
-                      'Across %s project',
-                      'Across %s projects',
-                      traceInfo.relevantProjects
-                    )}
-                  />
-                </TraceDetailHeader>
-              );
-            }}
-          </TraceFullQuery>
-        </Layout.Main>
-      </Layout.Body>
+      <TraceFullQuery
+        location={location}
+        orgSlug={organization.slug}
+        traceId={traceSlug}
+        start={start}
+        end={end}
+      >
+        {({isLoading, error, trace}) => {
+          if (isLoading) {
+            return this.renderTraceLoading();
+          } else if (error !== null || trace === null) {
+            return this.renderTraceNotFound();
+          } else {
+            return this.renderTrace(trace);
+          }
+        }}
+      </TraceFullQuery>
     );
-  }
-
-  renderNoContent() {
-    return (
-      <React.Fragment>
-        There is no content for me to show here. Probably because there is no date
-        selection, so sad.
-      </React.Fragment>
-    );
-  }
-
-  renderContent() {
-    try {
-      const traceQueryProps = this.getTraceQueryProps();
-      return this.renderTraceContent(traceQueryProps);
-    } catch (error) {
-      return this.renderNoContent();
-    }
   }
 
   render() {
@@ -123,7 +104,9 @@ class TraceDetailsContent extends React.Component<Props> {
             </Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
-        {this.renderContent()}
+        <Layout.Body>
+          <Layout.Main fullWidth>{this.renderContent()}</Layout.Main>
+        </Layout.Body>
       </React.Fragment>
     );
   }
