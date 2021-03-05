@@ -1,7 +1,7 @@
 import {css} from '@emotion/core';
 
 import {t} from 'app/locale';
-import {LegacyBrowser} from 'app/types/dynamicSampling';
+import {DynamicSamplingInnerName, LegacyBrowser} from 'app/types/dynamicSampling';
 import theme from 'app/utils/theme';
 
 export const modalCss = css`
@@ -11,12 +11,26 @@ export const modalCss = css`
 
   @media (min-width: ${theme.breakpoints[0]}) {
     .modal-dialog {
-      width: 70%;
-      margin-left: -35%;
+      width: 95%;
+      margin-left: -47.5%;
     }
   }
 
   @media (min-width: ${theme.breakpoints[1]}) {
+    .modal-dialog {
+      width: 75%;
+      margin-left: -37.5%;
+    }
+  }
+
+  @media (min-width: ${theme.breakpoints[2]}) {
+    .modal-dialog {
+      width: 65%;
+      margin-left: -37.5%;
+    }
+  }
+
+  @media (min-width: ${theme.breakpoints[3]}) {
     .modal-dialog {
       width: 55%;
       margin-left: -27.5%;
@@ -25,8 +39,8 @@ export const modalCss = css`
 
   @media (min-width: ${theme.breakpoints[4]}) {
     .modal-dialog {
-      width: 30%;
-      margin-left: -15%;
+      width: 45%;
+      margin-left: -22.5%;
     }
   }
 `;
@@ -75,4 +89,28 @@ export function isLegacyBrowser(
   maybe: Array<string> | Array<LegacyBrowser>
 ): maybe is Array<LegacyBrowser> {
   return maybe.every(m => !!LEGACY_BROWSER_LIST[m]);
+}
+
+export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName) {
+  switch (category) {
+    case DynamicSamplingInnerName.EVENT_LEGACY_BROWSER:
+      return t('Match all selected legacy browsers below');
+    case DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS:
+      return t('Match all browser extensions');
+    case DynamicSamplingInnerName.EVENT_LOCALHOST:
+      return t('Match all localhosts');
+    case DynamicSamplingInnerName.EVENT_WEB_CRAWLERS:
+      return t('Match all web crawlers');
+    case DynamicSamplingInnerName.EVENT_USER:
+    case DynamicSamplingInnerName.TRACE_USER:
+      return t('%s (Multiline)', 'Match by user id, ex. 4711');
+    case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
+    case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
+      return t('%s (Multiline)', 'ex. prod or dev');
+    case DynamicSamplingInnerName.TRACE_RELEASE:
+    case DynamicSamplingInnerName.EVENT_RELEASE:
+      return t('%s (Multiline)', 'ex. 1* or [I3].[0-9].*');
+    default:
+      return '';
+  }
 }
