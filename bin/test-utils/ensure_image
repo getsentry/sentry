@@ -45,7 +45,7 @@ then
   cache_from="--cache-from "${GCR_URL}/${IMAGE_NAME}:master""
 fi
 
-docker build -t "${tagged_image}" -f Dockerfile.test "${cache_from}" .
+docker build -t "${tagged_image}" -f Dockerfile.test ${cache_from} .
 
 docker tag "${tagged_image}" "${GCR_URL}/${tagged_image}"
 docker push "${GCR_URL}/${tagged_image}"
