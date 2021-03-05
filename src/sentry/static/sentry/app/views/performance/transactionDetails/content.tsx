@@ -182,6 +182,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                       showExampleCommit={false}
                       showTagSummary={false}
                       location={location}
+                      api={this.api}
                     />
                   </QuickTraceContext.Provider>
                 </SpanEntryContext.Provider>
