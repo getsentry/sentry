@@ -31,7 +31,7 @@ export default function QuickTraceQuery({children, ...props}: QueryProps) {
                   trace,
                 });
               } catch (error) {
-                Sentry.setTag('currentTraceId', props.event.contexts?.trace?.trace_id);
+                Sentry.setTag('current.trace_id', props.event.contexts?.trace?.trace_id);
                 Sentry.captureException(error);
               }
             }

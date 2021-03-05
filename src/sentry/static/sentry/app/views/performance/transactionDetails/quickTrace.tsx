@@ -146,7 +146,7 @@ function QuickTracePills({
   try {
     parsedQuickTrace = parseQuickTrace(quickTrace, event);
   } catch (error) {
-    Sentry.setTag('currentEventID', event.id);
+    Sentry.setTag('current.event_id', event.id);
     Sentry.captureException(new Error('Current event not in quick trace'));
     return <React.Fragment>{'\u2014'}</React.Fragment>;
   }
