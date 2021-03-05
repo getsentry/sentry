@@ -67,7 +67,7 @@ export const fields: Record<string, Field> = {
           {name}
         </PlatformWrapper>,
       ]),
-    help: t('The primary platform for this project, used only for aesthetics'),
+    help: t('The primary platform for this project'),
   },
 
   subjectPrefix: {
