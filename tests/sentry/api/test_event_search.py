@@ -743,7 +743,7 @@ class ParseSearchQueryTest(unittest.TestCase):
 
     def test_invalid_numeric_shorthand(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, "is not a valid number suffix, must be k, m or b"
+            InvalidSearchQuery, expected_regex="is not a valid number suffix, must be k, m or b"
         ):
             parse_search_query("stack.colno:>3s")
 
