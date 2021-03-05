@@ -82,6 +82,9 @@ const styles = (theme: Theme, isDark: boolean) => css`
               color: ${theme.textColor} !important;
             }
           }
+          &.border-bottom {
+            border-color: ${theme.border};
+          }
         }
 
         ul.crumbs li .table.key-value pre {
