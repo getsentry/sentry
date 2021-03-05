@@ -10,7 +10,7 @@ cd "$(dirname "$0")/../.." || exit 1
 CACHE_VERSION=1
 
 dependants="\
-   docker-test/Dockerfile \
+   test.Dockerfile \
    requirements-base.txt \
    requirements-dev.txt \
    requirements-pre-commit.txt \
@@ -18,4 +18,4 @@ dependants="\
    yarn.lock \
 "
 
-echo $CACHE_VERSION | cat "$dependants" - | shasum | cut -d ' ' -f1
+echo $CACHE_VERSION | cat $dependants - | shasum | cut -d ' ' -f1
