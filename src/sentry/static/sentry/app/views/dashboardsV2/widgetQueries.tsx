@@ -1,6 +1,7 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
+import unzip from 'lodash/unzip';
 
 import {doEventsRequest} from 'app/actionCreators/events';
 import {Client} from 'app/api';
@@ -106,6 +107,7 @@ type State = {
   errorMessage: undefined | string;
   loading: boolean;
   timeseriesResults: undefined | Series[];
+  rawResults: undefined | RawResult[];
   tableResults: undefined | TableDataWithTitle[];
 };
 
@@ -114,6 +116,7 @@ class WidgetQueries extends React.Component<Props, State> {
     loading: true,
     errorMessage: undefined,
     timeseriesResults: undefined,
+    rawResults: undefined,
     tableResults: undefined,
   };
 
@@ -123,14 +126,41 @@ class WidgetQueries extends React.Component<Props, State> {
 
   componentDidUpdate(prevProps: Props) {
     const {selection, widget} = this.props;
+
+    // We do not fetch data whenever the query name changes.
+    const [prevWidgetQueryNames, prevWidgetQueries] = unzip(
+      prevProps.widget.queries.map(({name, ...rest}) => [name, rest])
+    ) as [string[], Omit<WidgetQuery, 'name'>[]];
+
+    const [widgetQueryNames, widgetQueries] = unzip(
+      widget.queries.map(({name, ...rest}) => [name, rest])
+    ) as [string[], Omit<WidgetQuery, 'name'>[]];
+
     if (
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isEqual(widget.interval, prevProps.widget.interval) ||
-      !isEqual(widget.queries, prevProps.widget.queries) ||
+      !isEqual(widgetQueries, prevWidgetQueries) ||
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isSelectionEqual(selection, prevProps.selection)
     ) {
       this.fetchData();
+      return;
+    }
+
+    if (
+      !isEqual(prevWidgetQueryNames, widgetQueryNames) &&
+      this.state.rawResults?.length === widget.queries.length
+    ) {
+      // If the query names has changed, then update timeseries labels
+
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState(prevState => {
+        const timeseriesResults = widget.queries.reduce((acc: Series[], query, index) => {
+          return acc.concat(transformResult(query, prevState.rawResults![index]));
+        }, []);
+
+        return {...prevState, timeseriesResults};
+      });
     }
   }
 
@@ -219,7 +249,7 @@ class WidgetQueries extends React.Component<Props, State> {
 
   fetchTimeseriesData() {
     const {selection, api, organization, widget} = this.props;
-    this.setState({timeseriesResults: []});
+    this.setState({timeseriesResults: [], rawResults: []});
 
     const {environments, projects} = selection;
     const {start, end, period: statsPeriod} = selection.datetime;
@@ -252,12 +282,14 @@ class WidgetQueries extends React.Component<Props, State> {
         const rawResults = await promise;
         completed++;
         this.setState(prevState => {
-          const timeseriesResults = prevState.timeseriesResults?.concat(
+          const timeseriesResults = (prevState.timeseriesResults ?? []).concat(
             transformResult(widget.queries[i], rawResults)
           );
+
           return {
             ...prevState,
             timeseriesResults,
+            rawResults: (prevState.rawResults ?? []).concat(rawResults),
             loading: completed === promises.length ? false : true,
           };
         });
