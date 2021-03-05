@@ -727,6 +727,7 @@ class ParseSearchQueryTest(unittest.TestCase):
                 value=SearchValue(raw_value=3000000.0),
             )
         ]
+
         assert parse_search_query("stack.colno:>3b") == [
             SearchFilter(
                 key=SearchKey(name="stack.colno"),
@@ -736,7 +737,12 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_invalid_numeric_fields(self):
-        invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
+        invalid_queries = [
+            "project.id:one",
+            "issue.id:two",
+            "transaction.duration:>hotdog",
+            "stack.colno:>3s",
+        ]
         for invalid_query in invalid_queries:
             with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric field"):
                 parse_search_query(invalid_query)
@@ -3097,6 +3103,7 @@ class ResolveFieldListTest(unittest.TestCase):
             "p50(transaction.duration)",
             "avg(measurements.foo)",
             "percentile(measurements.fcp, 0.5)",
+            "stddev(measurements.foo)",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         functions = result["functions"]
@@ -3121,6 +3128,9 @@ class ResolveFieldListTest(unittest.TestCase):
             "column": "measurements.fcp",
             "percentile": 0.5,
         }
+
+        assert functions["stddev_measurements_foo"].instance.name == "stddev"
+        assert functions["stddev_measurements_foo"].arguments == {"column": "measurements.foo"}
 
     def test_to_other_function_basic(self):
         fields = [
@@ -3235,6 +3245,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = [
             ["last_seen()", "timestamp"],
             ["avg(measurements.lcp)", "measurements.lcp"],
+            ["stddev(measurements.lcp)", "measurements.lcp"],
             ["min(timestamp)", "timestamp"],
             ["max(timestamp)", "timestamp"],
             ["p95()", "transaction.duration"],

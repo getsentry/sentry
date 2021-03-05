@@ -485,6 +485,7 @@ class SearchVisitor(NodeVisitor):
 
             if aggregate_value is None:
                 aggregate_value = parse_numeric_value(*search_value.match.groups())
+
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:
@@ -2165,6 +2166,22 @@ FUNCTIONS = {
             redundant_grouping=True,
         ),
         Function(
+            "var",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["varSamp", ArgValue("column"), None],
+            result_type_fn=reflective_result_type(),
+            default_result_type="duration",
+            redundant_grouping=True,
+        ),
+        Function(
+            "stddev",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["stddevSamp", ArgValue("column"), None],
+            result_type_fn=reflective_result_type(),
+            default_result_type="duration",
+            redundant_grouping=True,
+        ),
+        Function(
             "sum",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["sum", ArgValue("column"), None],
@@ -2483,6 +2500,7 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
             alias.aggregate,
         )
     function_name, columns, alias = parse_function(field, match)
+
     function = FUNCTIONS[function_name]
     if not function.is_accessible(functions_acl):
         raise InvalidSearchQuery(f"{function.name}: no access to private function")
