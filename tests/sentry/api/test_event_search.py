@@ -727,6 +727,13 @@ class ParseSearchQueryTest(unittest.TestCase):
                 value=SearchValue(raw_value=3000000.0),
             )
         ]
+        assert parse_search_query("stack.colno:>3b") == [
+            SearchFilter(
+                key=SearchKey(name="stack.colno"),
+                operator=">",
+                value=SearchValue(raw_value=3000000000.0),
+            )
+        ]
 
     def test_invalid_numeric_fields(self):
         invalid_queries = [

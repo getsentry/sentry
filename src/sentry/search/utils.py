@@ -72,22 +72,17 @@ def parse_percentage(value):
     return value / 100
 
 
-def parse_numeric_value(value):
+def parse_numeric_value(value, suffix=None):
     try:
         value = float(value)
     except ValueError:
-        pass
-    else:
-        return value
-
-    numeric_multiples = {"k": 10.0 ** 3, "m": 10.0 ** 6}
-    value, suffix = value[:-1], value[-1]
-    if suffix not in numeric_multiples:
         raise InvalidQuery("Invalid format for numeric field")
 
-    try:
-        value = float(value)
-    except ValueError:
+    if not suffix:
+        return value
+
+    numeric_multiples = {"k": 10.0 ** 3, "m": 10.0 ** 6, "b": 10.0 ** 9}
+    if suffix not in numeric_multiples:
         raise InvalidQuery("Invalid format for numeric field")
 
     return value * numeric_multiples[suffix]

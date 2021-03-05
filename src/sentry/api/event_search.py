@@ -158,7 +158,7 @@ aggregate_key        = key open_paren function_arg* closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
-numeric_value        = ~r"[-]?[0-9\.]+[k|m]?(?=\s|\)|$)"
+numeric_value        = ~r"([-]?[0-9\.]+)([k|m|b])?(?=\s|\)|$)"
 boolean_value        = ~r"(true|1|false|0)(?=\s|\)|$)"i
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
@@ -444,7 +444,7 @@ class SearchVisitor(NodeVisitor):
 
         if self.is_numeric_key(search_key.name):
             try:
-                search_value = SearchValue(parse_numeric_value(search_value.text))
+                search_value = SearchValue(parse_numeric_value(*search_value.match.groups()))
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, search_value)
@@ -484,7 +484,7 @@ class SearchVisitor(NodeVisitor):
                         aggregate_value = parse_duration(*search_value.match.groups())
 
             if aggregate_value is None:
-                aggregate_value = parse_numeric_value(search_value.text)
+                aggregate_value = parse_numeric_value(*search_value.match.groups())
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:
