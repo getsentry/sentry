@@ -136,8 +136,24 @@ def zerofill(data, start, end, rollup, orderby):
             rv = rv + data_by_time[key]
             data_by_time[key] = []
         else:
-            rv.append({"time": key})
+            val = dict(DEFAULT_TS_VAL)
+            val["time"] = key
+            rv.append(val)
 
     if "-time" in orderby:
         return list(reversed(rv))
     return rv
+
+
+DEFAULT_TS_VAL = [
+    ("accepted", {"quantity": 0, "times_seen": 0}),
+    ("filtered", {"quantity": 0, "times_seen": 0}),
+    (
+        "dropped",
+        {
+            "overQuota": {"quantity": 0, "times_seen": 0},
+            "spikeProtection": {"quantity": 0, "times_seen": 0},
+            "other": {"quantity": 0, "times_seen": 0},
+        },
+    ),
+]

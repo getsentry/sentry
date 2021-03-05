@@ -8,13 +8,24 @@ from sentry.snuba import outcomes
 from sentry_relay import DataCategory
 from sentry.utils.outcomes import Outcome
 from collections import defaultdict
+from enum import IntEnum
+import collections.abc
+
+
+def update(d, u):
+    for k, v in u.items():
+        if isinstance(v, collections.abc.Mapping):
+            d[k] = update(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
 
 
 # TODO: add this onto the outcomes module?
 OUTCOME_TO_STR = {
     Outcome.ACCEPTED: "accepted",
     Outcome.FILTERED: "filtered",
-    Outcome.RATE_LIMITED: "spike_protection?",
+    Outcome.RATE_LIMITED: "dropped",
 }
 
 
@@ -43,12 +54,28 @@ def outcome_to_string(outcome):
     return OUTCOME_TO_STR[outcome]
 
 
+class RateLimitReason(IntEnum):
+    DEFAULT = 0
+    OVER_QUOTA = 1
+    SMART_LIMIT = 2
+
+
+def rate_limited_reason_mapper(reason):
+    if reason in {"usage_exceeded", "grace_period"}:
+        reason_val = "overQuota"
+    elif reason == "smart_rate_limit":
+        reason_val = "spikeProtection"
+    else:
+        reason_val = "other"
+    return reason_val
+
+
 def datamapper(row):
     obj = {"time": row["time"]}
     if row["outcome"] == Outcome.RATE_LIMITED:
         # TODO: make this actually work
         obj[outcome_to_string(row["outcome"])] = {
-            row["reason"]: {
+            rate_limited_reason_mapper(row["reason"]): {
                 "quantity": row["quantity"],
                 "times_seen": row["times_seen"],
             }
@@ -84,7 +111,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         for row in result:
             if "category" in row:
                 uniq_key = row["time"]
-                new_res[CATEGORY_NAME_MAP[row["category"]]][uniq_key].update(datamapper(row))
+                update(new_res[CATEGORY_NAME_MAP[row["category"]]][uniq_key], datamapper(row))
 
         new_res = {
             category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")
@@ -121,16 +148,18 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
         }
         new_res = {}
         for row in result:
-            if "category" in row:
+            if "category" in row:  # TODO: if remove zerofill, remove this conditionals
                 uniq_key = "-".join([str(row["time"]), str(row["project_id"])])
                 if row["project_id"] in new_res:
-                    new_res[row["project_id"]][CATEGORY_NAME_MAP[row["category"]]][uniq_key].update(
-                        datamapper(row)
+                    update(
+                        new_res[row["project_id"]][CATEGORY_NAME_MAP[row["category"]]][uniq_key],
+                        datamapper(row),
                     )
                 else:
                     new_res[row["project_id"]] = template.copy()
-                    new_res[row["project_id"]][CATEGORY_NAME_MAP[row["category"]]][uniq_key].update(
-                        datamapper(row)
+                    update(
+                        new_res[row["project_id"]][CATEGORY_NAME_MAP[row["category"]]][uniq_key],
+                        datamapper(row),
                     )
 
         new_res = {
@@ -173,7 +202,7 @@ class OrganizationProjectStatsDetails(ProjectEndpoint):
         for row in result:
             if "category" in row:
                 uniq_key = row["time"]
-                new_res[CATEGORY_NAME_MAP[row["category"]]][uniq_key].update(datamapper(row))
+                update(new_res[CATEGORY_NAME_MAP[row["category"]]][uniq_key], datamapper(row))
 
         new_res = {
             category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")

@@ -38,6 +38,17 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "quantity": 1,
             }
         )
+        self.store_outcomes(
+            {
+                "org_id": self.org.id,
+                "timestamp": self.now,
+                "project_id": self.project.id,
+                "outcome": Outcome.RATE_LIMITED,
+                "reason": "usage_exceeded",
+                "category": DataCategory.ERROR,
+                "quantity": 1,
+            }
+        )
 
     def test_org_simple(self):
         make_request = functools.partial(
@@ -54,10 +65,17 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert response.status_code == 200, response.content
         assert response.data["statsErrors"][0]["accepted"] == {"quantity": 1, "times_seen": 1}
         assert response.data["statsErrors"][0]["filtered"] == {"quantity": 0, "times_seen": 0}
-        assert response.data["statsErrors"][0]["dropped"] == {
-            "overQuota": {"quantity": 0, "times_seen": 0},
-            "spikeProtection": {"quantity": 0, "times_seen": 0},
-            "other": {"quantity": 0, "times_seen": 0},
+        assert response.data["statsErrors"][0]["dropped"]["overQuota"] == {
+            "quantity": 1,
+            "times_seen": 1,
+        }
+        assert response.data["statsErrors"][0]["dropped"]["spikeProtection"] == {
+            "quantity": 0,
+            "times_seen": 0,
+        }
+        assert response.data["statsErrors"][0]["dropped"]["other"] == {
+            "quantity": 0,
+            "times_seen": 0,
         }
         assert "time" in response.data["statsErrors"][0]  # TODO: write better test for this
 
@@ -75,7 +93,9 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "interval": "1d",
             }
         )
+        from pprint import pprint
 
+        pprint(response.data)
         assert response.status_code == 200, response.content
         assert response.data[self.project.id]["statsErrors"][0]["accepted"] == {
             "quantity": 1,
@@ -85,11 +105,19 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             "quantity": 0,
             "times_seen": 0,
         }
-        assert response.data[self.project.id]["statsErrors"][0]["dropped"] == {
-            "overQuota": {"quantity": 0, "times_seen": 0},
-            "spikeProtection": {"quantity": 0, "times_seen": 0},
-            "other": {"quantity": 0, "times_seen": 0},
+        assert response.data[self.project.id]["statsErrors"][0]["dropped"]["overQuota"] == {
+            "quantity": 1,
+            "times_seen": 1,
         }
+        assert response.data[self.project.id]["statsErrors"][0]["dropped"]["spikeProtection"] == {
+            "quantity": 0,
+            "times_seen": 0,
+        }
+        assert response.data[self.project.id]["statsErrors"][0]["dropped"]["other"] == {
+            "quantity": 0,
+            "times_seen": 0,
+        }
+
         assert self.other_project.id in response.data
 
     def test_project_org_stats(self):
@@ -107,10 +135,17 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert response.status_code == 200, response.content
         assert response.data["statsErrors"][0]["accepted"] == {"quantity": 1, "times_seen": 1}
         assert response.data["statsErrors"][0]["filtered"] == {"quantity": 0, "times_seen": 0}
-        assert response.data["statsErrors"][0]["dropped"] == {
-            "overQuota": {"quantity": 0, "times_seen": 0},
-            "spikeProtection": {"quantity": 0, "times_seen": 0},
-            "other": {"quantity": 0, "times_seen": 0},
+        assert response.data["statsErrors"][0]["dropped"]["overQuota"] == {
+            "quantity": 1,
+            "times_seen": 1,
+        }
+        assert response.data["statsErrors"][0]["dropped"]["spikeProtection"] == {
+            "quantity": 0,
+            "times_seen": 0,
+        }
+        assert response.data["statsErrors"][0]["dropped"]["other"] == {
+            "quantity": 0,
+            "times_seen": 0,
         }
         assert "time" in response.data["statsErrors"][0]  # TODO: write better test for this
 
