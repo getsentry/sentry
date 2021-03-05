@@ -1,10 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import itertools
 import math
+import pytz
 
 from sentry.api.event_search import get_filter
-from sentry.api.utils import get_date_range_rollup_from_params
-from sentry.utils.dates import to_timestamp
+from sentry.api.utils import get_date_range_from_params
+from sentry.utils.dates import parse_stats_period, to_timestamp, to_datetime
 from sentry.utils.snuba import Dataset, raw_query, resolve_condition
 
 """
@@ -226,7 +227,8 @@ class QueryDefinition:
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, query, params):
+    # XXX: Do *not* enable `allow_minute_resolution` yet outside of unit tests!
+    def __init__(self, query, params, allow_minute_resolution=False):
         self.query = query.get("query", "")
         raw_fields = query.getlist("field", [])
         raw_groupby = query.getlist("groupBy", [])
@@ -246,7 +248,7 @@ class QueryDefinition:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
-        start, end, rollup = get_date_range_rollup_from_params(query, "1h", round_range=True)
+        start, end, rollup = _get_constrained_date_range(query, allow_minute_resolution)
         self.rollup = rollup
         self.start = start
         self.end = end
@@ -275,6 +277,74 @@ class QueryDefinition:
         self.aggregations = snuba_filter.aggregations
         self.conditions = conditions
         self.filter_keys = snuba_filter.filter_keys
+
+
+MAX_POINTS = 1000
+ONE_DAY = timedelta(days=1).total_seconds()
+ONE_HOUR = timedelta(hours=1).total_seconds()
+ONE_MINUTE = timedelta(minutes=1).total_seconds()
+
+
+class InvalidParams(Exception):
+    pass
+
+
+def _get_constrained_date_range(params, allow_minute_resolution=False):
+    interval = parse_stats_period(params.get("interval", "1h"))
+    interval = int(3600 if interval is None else interval.total_seconds())
+
+    smallest_interval = ONE_MINUTE if allow_minute_resolution else ONE_HOUR
+    if interval % smallest_interval != 0 or interval < smallest_interval:
+        interval_str = "one minute" if allow_minute_resolution else "one hour"
+        raise InvalidParams(
+            f"The interval has to be a multiple of the minimum interval of {interval_str}."
+        )
+
+    if interval > ONE_DAY:
+        raise InvalidParams("The interval has to be less than one day.")
+
+    if ONE_DAY % interval != 0:
+        raise InvalidParams("The interval should divide one day cleanly.")
+
+    using_minute_resolution = interval % ONE_HOUR != 0
+
+    start, end = get_date_range_from_params(params)
+
+    # if `end` is explicitly given, we add a second to it, so it is treated as
+    # inclusive. the rounding logic down below will take care of the rest.
+    if params.get("end"):
+        end += timedelta(seconds=1)
+
+    date_range = end - start
+    # round the range up to a multiple of the interval.
+    # the minimum is 1h so the "totals" will not go out of sync, as they will
+    # use the materialized storage due to no grouping on the `started` column.
+    rounding_interval = max(interval, ONE_HOUR)
+    date_range = timedelta(
+        seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))
+    )
+
+    if using_minute_resolution:
+        if date_range.total_seconds() > 6 * ONE_HOUR:
+            raise InvalidParams(
+                "The time-range when using one-minute resolution intervals is restricted to 6 hours."
+            )
+        if (datetime.now(tz=pytz.utc) - start).total_seconds() > 30 * ONE_DAY:
+            raise InvalidParams(
+                "The time-range when using one-minute resolution intervals is restricted to the last 30 days."
+            )
+
+    if date_range.total_seconds() / interval > MAX_POINTS:
+        raise InvalidParams(
+            "Your interval and date range would create too many results. "
+            "Use a larger interval, or a smaller date range."
+        )
+
+    end_ts = int(interval * math.ceil(to_timestamp(end) / interval))
+    end = to_datetime(end_ts)
+    start = end - date_range
+
+    return start, end, interval
 
 
 TS_COL = "bucketed_started"
