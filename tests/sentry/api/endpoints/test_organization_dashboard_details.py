@@ -217,7 +217,11 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "table",
                     "interval": "5m",
                     "queries": [
-                        {"name": "Errors", "fields": ["count()", "project"], "conditions": "event.type:error"}
+                        {
+                            "name": "Errors",
+                            "fields": ["count()", "project"],
+                            "conditions": "event.type:error",
+                        }
                     ],
                 },
             ],
