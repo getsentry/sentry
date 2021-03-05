@@ -1,6 +1,7 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import * as Layout from 'app/components/layouts/thirds';
@@ -26,6 +27,10 @@ type Props = {
 class TraceDetailsContent extends React.Component<Props> {
   renderTraceLoading() {
     return <LoadingIndicator />;
+  }
+
+  renderTraceRequiresDateRangeSelection() {
+    return <LoadingError message={t('Trace view requires a date range selection.')} />;
   }
 
   renderTraceNotFound() {
@@ -62,8 +67,9 @@ class TraceDetailsContent extends React.Component<Props> {
     const end = decodeScalar(query.end);
 
     if (!start || !end) {
-      // throw new Error('No date range selection found.');
-      return this.renderTraceNotFound();
+      Sentry.setTag('currentTraceId', traceSlug);
+      Sentry.captureException(new Error('No date range selection found.'));
+      return this.renderTraceRequiresDateRangeSelection();
     }
 
     return (
