@@ -118,11 +118,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     },
     {
       guide: 'for_review_guide',
-      requiredTargets: [
-        'for_review_guide_tab',
-        'inbox_guide_reason',
-        'inbox_guide_issue',
-      ],
+      requiredTargets: ['for_review_guide_tab', 'inbox_guide_reason'],
       steps: [
         {
           target: 'for_review_guide_tab',
@@ -151,7 +147,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           cantDismiss: true,
         },
         {
-          target: 'inbox_guide_issue',
+          target: 'for_review_guide_tab',
           description: t(
             `Everything is automatically reviewed after seven days, preventing
             issues from piling up and you from losing your damn mind.`
