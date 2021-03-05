@@ -736,15 +736,16 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_invalid_numeric_fields(self):
-        invalid_queries = [
-            "project.id:one",
-            "issue.id:two",
-            "transaction.duration:>hotdog",
-            "stack.colno:>3s",
-        ]
+        invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
         for invalid_query in invalid_queries:
             with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric field"):
                 parse_search_query(invalid_query)
+
+    def test_invalid_numeric_shorthand(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, "is not a valid number suffix, must be k, m or b"
+        ):
+            parse_search_query("stack.colno:>3s")
 
     def test_negated_on_boolean_values_and_non_boolean_field(self):
         assert parse_search_query("!user.id:true") == [
@@ -895,7 +896,9 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_invalid_numeric_aggregate_filter(self):
-        with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric field"):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, expected_regex="is not a valid number suffix, must be k, m or b"
+        ):
             parse_search_query("min(measurements.size):3s")
 
     def test_duration_measurements_filter(self):

@@ -83,7 +83,7 @@ def parse_numeric_value(value, suffix=None):
 
     numeric_multiples = {"k": 10.0 ** 3, "m": 10.0 ** 6, "b": 10.0 ** 9}
     if suffix not in numeric_multiples:
-        raise InvalidQuery("Invalid format for numeric field")
+        raise InvalidQuery(f"{suffix} is not a valid number suffix, must be k, m or b")
 
     return value * numeric_multiples[suffix]
 
