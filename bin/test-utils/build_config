@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+export GCR_URL="ghcr.io/getsentry"
+export IMAGE_NAME="sentry-ci"

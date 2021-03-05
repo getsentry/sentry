@@ -1,0 +1,9 @@
+# Ignore everything
+*
+
+!/package.json
+!/yarn.lock
+!/requirements*
+!/setup.py
+!/pyproject.toml
+

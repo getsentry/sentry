@@ -1,0 +1,64 @@
+name: 'Ensure Docker Image'
+description: 'Ensures that a Docker test image exists'
+inputs:
+  sentry_sha:
+    description: 'The sentry sha to use. Ignores if = "master"'
+    required: false
+    default: 'master'
+
+runs:
+  using: "composite"
+  steps:
+    # - name: Get branch name (merge)
+      # shell: bash
+      # run: echo "BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | tr / -)" >> $GITHUB_ENV
+
+    - name: Configure docker
+      shell: bash
+      run: |
+        echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
+        mkdir -p $HOME/.docker
+        echo '{"experimental": "enabled"}' > $HOME/.docker/config.json
+        gcloud auth configure-docker --quiet
+
+    # - name: Registry login
+      # run: |
+        # echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+    # - name: Build docker image
+      # shell: bash
+      # run: |
+        # docker pull us.gcr.io/internal-sentry/sentry-ci:latest || true
+        # docker build . \
+          # --cache-from us.gcr.io/internal-sentry/sentry-ci:latest \
+          # --cache-from us.gcr.io/internal-sentry/sentry-ci:${{ env.BRANCH_NAME }} \
+          # --cache-from us.gcr.io/internal-sentry/sentry-ci:$GITHUB_SHA \
+          # -t us.gcr.io/internal-sentry/sentry-ci:latest \
+          # -t us.gcr.io/internal-sentry/sentry-ci:${{ env.BRANCH_NAME }} \
+          # -t us.gcr.io/internal-sentry/sentry-ci:$GITHUB_SHA \
+          # -f test.Dockerfile
+
+
+    # - name: Publish docker image
+      # shell: bash
+      # run: |
+        # docker push us.gcr.io/internal-sentry/sentry-ci:$GITHUB_SHA
+        # docker push us.gcr.io/internal-sentry/sentry-ci:${{ env.BRANCH_NAME }}
+        # docker push us.gcr.io/internal-sentry/sentry-ci:latest
+
+    # - name: bump-sentry ${{ inputs.sentry_sha }}
+      # shell: bash
+      # run: |
+        # if [[ "${{ inputs.sentry_sha }}" != "master" ]]; then
+          # git config --global user.email "github-actions@sentry.io"
+          # git config --global user.name "github-actions[bot]"
+          # bin/bump-sentry ${{ inputs.sentry_sha }}
+        # fi
+
+    # - name: Collect dependencies
+      # shell: bash
+      # run: bin/test-utils/collect_deps
+
+    # - name: Ensure image
+      # shell: bash
+      # run: bin/test-utils/ensure_image
