@@ -28,8 +28,10 @@ const filterOptionCategories = {
 
 type FilterOptions = React.ComponentProps<typeof Filter>['options'];
 
+type ImageCandidates = Image['candidates'];
+
 type Props = {
-  candidates: Image['candidates'];
+  candidates: ImageCandidates;
   organization: Organization;
   projectId: Project['id'];
   baseUrl: string;
@@ -42,8 +44,8 @@ type Props = {
 type State = {
   searchTerm: string;
   filterOptions: FilterOptions;
-  filteredCandidatesBySearch: Image['candidates'];
-  filteredCandidatesByFilter: Image['candidates'];
+  filteredCandidatesBySearch: ImageCandidates;
+  filteredCandidatesByFilter: ImageCandidates;
 };
 
 class Candidates extends React.Component<Props, State> {
@@ -139,7 +141,7 @@ class Candidates extends React.Component<Props, State> {
     });
   }
 
-  getFilterOptions(candidates: Image['candidates']) {
+  getFilterOptions(candidates: ImageCandidates) {
     const {imageStatus} = this.props;
 
     const filterOptions = {};
@@ -174,7 +176,7 @@ class Candidates extends React.Component<Props, State> {
   }
 
   getFilteredCandidatedByFilter(
-    candidates: Image['candidates'],
+    candidates: ImageCandidates,
     filterOptions: FilterOptions
   ) {
     const checkedStatusOptions = new Set(

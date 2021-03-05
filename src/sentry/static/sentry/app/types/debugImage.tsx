@@ -116,11 +116,12 @@ export type Image = {
   candidates: Array<ImageCandidate>;
   image_size?: number;
   debug_file?: string;
-  code_file?: string;
+  code_file?: string | null;
   code_id?: string;
   debug_id?: string;
   debug_status?: ImageStatus | null;
   unwind_status?: ImageStatus | null;
   arch?: string;
   image_addr?: string;
+  uuid?: string;
 };
