@@ -40,7 +40,7 @@ type Props = DefaultProps & {
    */
   shorten?: boolean;
   /**
-   * Shortens the shortened relative time. Pass both shorten and extraShort.
+   * Shortens the shortened relative time
    * min to m, hr to h
    */
   extraShort?: boolean;
@@ -165,7 +165,7 @@ export function getRelativeDate(
       time: getDuration(moment().diff(moment(date), 'seconds'), 0, true),
       suffix,
     });
-  } else if (shorten && !suffix) {
+  } else if ((shorten || extraShort) && !suffix) {
     return getDuration(moment().diff(moment(date), 'seconds'), 0, true, extraShort);
   } else if (!suffix) {
     return moment(date).fromNow(true);

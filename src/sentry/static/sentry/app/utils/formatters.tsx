@@ -62,7 +62,7 @@ export function getDuration(
 ): string {
   const value = Math.abs(seconds * 1000);
 
-  if (value >= MONTH) {
+  if (value >= MONTH && !extraShort) {
     const {label, result} = roundWithFixed(value / MONTH, fixedDigits);
     return `${label}${
       abbreviation ? tn('mo', 'mos', result) : ` ${tn('month', 'months', result)}`
@@ -70,35 +70,42 @@ export function getDuration(
   }
   if (value >= WEEK) {
     const {label, result} = roundWithFixed(value / WEEK, fixedDigits);
-    return `${label}${
-      abbreviation ? (extraShort ? t('w') : t('wk')) : ` ${tn('week', 'weeks', result)}`
-    }`;
+    const units = extraShort
+      ? t('w')
+      : abbreviation
+      ? t('wk')
+      : ` ${tn('week', 'weeks', result)}`;
+    return `${label}${units}`;
   }
   if (value >= 172800000) {
     const {label, result} = roundWithFixed(value / DAY, fixedDigits);
     return `${label}${
-      abbreviation ? (extraShort ? t('d') : t('d')) : ` ${tn('day', 'days', result)}`
+      abbreviation || extraShort ? t('d') : ` ${tn('day', 'days', result)}`
     }`;
   }
   if (value >= 7200000) {
     const {label, result} = roundWithFixed(value / HOUR, fixedDigits);
-    return `${label}${
-      abbreviation ? (extraShort ? t('h') : t('hr')) : ` ${tn('hour', 'hours', result)}`
-    }`;
+    const units = extraShort
+      ? t('h')
+      : abbreviation
+      ? t('hr')
+      : ` ${tn('hour', 'hours', result)}`;
+    return `${label}${units}`;
   }
   if (value >= 120000) {
     const {label, result} = roundWithFixed(value / MINUTE, fixedDigits);
-    return `${label}${
-      abbreviation
-        ? extraShort
-          ? t('m')
-          : t('min')
-        : ` ${tn('minute', 'minutes', result)}`
-    }`;
+    const units = extraShort
+      ? t('m')
+      : abbreviation
+      ? t('min')
+      : ` ${tn('minute', 'minutes', result)}`;
+    return `${label}${units}`;
   }
   if (value >= SECOND) {
     const {label, result} = roundWithFixed(value / SECOND, fixedDigits);
-    return `${label}${abbreviation ? t('s') : ` ${tn('second', 'seconds', result)}`}`;
+    return `${label}${
+      abbreviation || extraShort ? t('s') : ` ${tn('second', 'seconds', result)}`
+    }`;
   }
 
   const {label} = roundWithFixed(value, fixedDigits);
