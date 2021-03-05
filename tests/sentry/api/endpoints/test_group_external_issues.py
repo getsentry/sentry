@@ -24,7 +24,7 @@ class GroupExternalIssuesEndpointTest(APITestCase):
         assert response.data == [
             {
                 "id": str(external_issue.id),
-                "groupId": str(group.id),
+                "issueId": str(group.id),
                 "serviceType": "sentry-app",
                 "displayName": "App#issue-1",
                 "webUrl": "https://example.com/app/issues/1",

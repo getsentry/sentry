@@ -32,7 +32,7 @@ function getConfiguration({organization}: ConfigParams): NavigationSection[] {
         },
         {
           path: `${pathPrefix}/emails/`,
-          title: t('Emails'),
+          title: t('Email Addresses'),
           description: t(
             'Add or remove secondary emails, change your primary email, verify your emails'
           ),
