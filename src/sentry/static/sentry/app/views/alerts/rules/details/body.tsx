@@ -346,7 +346,14 @@ class DetailsBody extends React.Component<Props> {
       return this.renderLoading();
     }
 
-    const {query, environment, aggregate, projects: projectSlugs, timeWindow, triggers} = rule;
+    const {
+      query,
+      environment,
+      aggregate,
+      projects: projectSlugs,
+      timeWindow,
+      triggers,
+    } = rule;
 
     const criticalTrigger = triggers.find(({label}) => label === 'critical');
     const warningTrigger = triggers.find(({label}) => label === 'warning');
@@ -386,7 +393,7 @@ class DetailsBody extends React.Component<Props> {
                       </PresetName>
                       {tct(' [metric] over [window]', {
                         metric: aggregate,
-                        window: (<Duration seconds={timeWindow * 60} />),
+                        window: <Duration seconds={timeWindow * 60} />,
                       })}
                     </ChartHeader>
                     <EventsRequest
