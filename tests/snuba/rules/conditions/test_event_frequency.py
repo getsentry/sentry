@@ -30,7 +30,7 @@ class FrequencyConditionMixin:
         raise NotImplementedError
 
     def test_one_minute(self):
-        with self.disable_cache():
+        with self.disable_cache(), self.disable_snuba_query_cache():
             event = self.store_event(
                 data={
                     "fingerprint": ["something_random"],
@@ -69,7 +69,7 @@ class FrequencyConditionMixin:
             self.assertPasses(environment_rule, event)
 
     def test_one_hour(self):
-        with self.disable_cache():
+        with self.disable_cache(), self.disable_snuba_query_cache():
             event = self.store_event(
                 data={
                     "fingerprint": ["something_random"],
@@ -104,7 +104,7 @@ class FrequencyConditionMixin:
             self.assertPasses(environment_rule, event)
 
     def test_one_day(self):
-        with self.disable_cache():
+        with self.disable_cache(), self.disable_snuba_query_cache():
             event = self.store_event(
                 data={
                     "fingerprint": ["something_random"],
@@ -141,7 +141,7 @@ class FrequencyConditionMixin:
             self.assertPasses(environment_rule, event)
 
     def test_more_than_zero(self):
-        with self.disable_cache():
+        with self.disable_cache(), self.disable_snuba_query_cache():
             event = self.store_event(
                 data={
                     "event_id": "a" * 32,
@@ -196,7 +196,6 @@ class FrequencyConditionMixin:
 
 
 class EventFrequencyConditionTestCase(FrequencyConditionMixin, RuleTestCase, SnubaTestCase):
-    disable_snuba_query_cache = True
     rule_cls = EventFrequencyCondition
 
     def disable_cache(self):
@@ -222,7 +221,6 @@ class EventUniqueUserFrequencyConditionTestCase(
     RuleTestCase,
     SnubaTestCase,
 ):
-    disable_snuba_query_cache = True
     rule_cls = EventUniqueUserFrequencyCondition
 
     def disable_cache(self):

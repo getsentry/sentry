@@ -662,10 +662,6 @@ class SnubaTestCase(BaseTestCase):
     tests that require snuba.
     """
 
-    # Snuba caches queries locally for a period of time. If you need to skip the cache
-    # set this to True on your test class
-    disable_snuba_query_cache = False
-
     def setUp(self):
         super().setUp()
         self.init_snuba()
@@ -674,17 +670,11 @@ class SnubaTestCase(BaseTestCase):
     def initialize(self, reset_snuba, call_snuba):
         self.call_snuba = call_snuba
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        if cls.disable_snuba_query_cache:
-            cls.snuba_update_config({"use_readthrough_query_cache": 0, "use_cache": 0})
-
-    @classmethod
-    def tearDownClass(cls):
-        super().setUpClass()
-        if cls.disable_snuba_query_cache:
-            cls.snuba_update_config({"use_readthrough_query_cache": None, "use_cache": None})
+    @contextmanager
+    def disable_snuba_query_cache(self):
+        self.snuba_update_config({"use_readthrough_query_cache": 0, "use_cache": 0})
+        yield
+        self.snuba_update_config({"use_readthrough_query_cache": None, "use_cache": None})
 
     @classmethod
     def snuba_get_config(cls):
