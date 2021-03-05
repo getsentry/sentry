@@ -79,6 +79,6 @@ class DemoStartView(BaseView):
         resp = self.redirect(auth.get_login_redirect(request))
         # set a cookie of whether the user accepteed tracking so we know
         # whether to initialize analytics when accepted_tracking=1
-        resp.set_cookie("accepted_tracking", request.GET.get("accepted_tracking"))
+        resp.set_cookie("accepted_tracking", request.POST.get("accepted_tracking"))
 
         return resp
