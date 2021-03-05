@@ -116,7 +116,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         for item in result["data"]:
             parent_map[item["trace.parent_span"]].append(item)
 
-        # Temporary oldschool style of feature flagging this out, since errors will impact performance
+        # Temporarily feature flagging this out, since errors will impact performance
         if not features.has("organizations:trace-view-summary", organization, actor=request.user):
             error_map = []
         else:
@@ -198,16 +198,16 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             )
 
             # Use issue ids to get the error's short id
-            if error_results:
-                self.handle_issues(error_results["data"], params["project_id"], organization)
             error_map = defaultdict(list)
-            for row in error_results["data"]:
-                error_map[row["trace.span"]].append(
-                    {
-                        "issue": row["issue"],
-                        "id": row["id"],
-                    }
-                )
+            if error_results["data"]:
+                self.handle_issues(error_results["data"], params["project_id"], organization)
+                for row in error_results["data"]:
+                    error_map[row["trace.span"]].append(
+                        {
+                            "issue": row["issue"],
+                            "id": row["id"],
+                        }
+                    )
             return error_map
 
     def serialize_event(self, *args, **kwargs):
