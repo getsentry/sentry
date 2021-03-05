@@ -3,7 +3,6 @@ import petname
 from django.http import Http404
 from django.conf import settings
 from django.db import transaction
-from django.views.decorators.csrf import csrf_exempt
 from django.template.defaultfilters import slugify
 
 from sentry import roles
@@ -26,9 +25,11 @@ def generate_random_name():
 
 
 class DemoStartView(BaseView):
+    csrf_protect = False
+    auth_required = False
+
     @transaction.atomic
-    @csrf_exempt
-    def dispatch(self, request):
+    def post(self, request):
         # need this check for tests since the route will exist even if DEMO_MODE=False
         if not settings.DEMO_MODE:
             raise Http404
