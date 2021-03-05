@@ -374,43 +374,16 @@ class Event:
 
     def get_sorted_grouping_variants(self, force_config=None):
         """ Get grouping variants sorted into flat and hierarchical variants """
+        from sentry.grouping.api import sort_grouping_variants
+
         variants = self.get_grouping_variants(force_config)
-        return self._sort_grouping_variants(variants)
+        return sort_grouping_variants(variants)
 
     @staticmethod
     def _hashes_from_sorted_grouping_variants(variants):
         """ Create hashes from variants and filter out None values """
         hashes = (variant.get_hash() for variant in variants)
         return [hash_ for hash_ in hashes if hash_ is not None]
-
-    @staticmethod
-    def _sort_grouping_variants(variants):
-        """ Sort the output of `get_grouping_variants` into flat and hierarchical variants """
-
-        from sentry.grouping.variants import HIERARCHICAL_VARIANTS
-
-        flat_variants = []
-        hierarchical_variants = []
-
-        for name, variant in variants.items():
-
-            if name in HIERARCHICAL_VARIANTS:
-                hierarchical_variants.append((name, variant))
-            else:
-                flat_variants.append((name, variant))
-
-        # Sort system variant to the back of the list to resolve ambiguities when
-        # choosing primary_hash for Snuba
-        flat_variants.sort(key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0)
-        flat_variants = [variant for name, variant in flat_variants]
-
-        # Sort hierarchical_variants by order defined in HIERARCHICAL_VARIANTS
-        hierarchical_variants.sort(
-            key=lambda name_and_variant: HIERARCHICAL_VARIANTS.index(name_and_variant[0])
-        )
-        hierarchical_variants = [variant for name, variant in hierarchical_variants]
-
-        return flat_variants, hierarchical_variants
 
     def get_grouping_variants(self, force_config=None, normalize_stacktraces=False):
         """
