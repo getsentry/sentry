@@ -2337,7 +2337,6 @@ describe('EventView.getYAxisOptions()', function () {
         'ignored-field',
         'count_unique(issue)',
         'last_seen()',
-        'min(time)',
         'max(timestamp)',
       ]),
     });

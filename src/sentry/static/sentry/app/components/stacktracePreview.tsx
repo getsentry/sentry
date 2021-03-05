@@ -9,7 +9,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, PlatformType} from 'app/types';
-import {Event} from 'app/types/event';
+import {EntryType, Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -75,7 +75,7 @@ class StacktracePreview extends React.Component<Props, State> {
 
     const exceptionsWithStacktrace =
       event.entries
-        .find(e => e.type === 'exception')
+        .find(e => e.type === EntryType.EXCEPTION)
         ?.data?.values.filter(({stacktrace}) => defined(stacktrace)) ?? [];
 
     const exceptionStacktrace: StacktraceType | undefined = isStacktraceNewestFirst()
@@ -86,7 +86,8 @@ class StacktracePreview extends React.Component<Props, State> {
       return exceptionStacktrace;
     }
 
-    const threads = event.entries.find(e => e.type === 'threads')?.data?.values ?? [];
+    const threads =
+      event.entries.find(e => e.type === EntryType.THREADS)?.data?.values ?? [];
     const bestThread = findBestThread(threads);
 
     if (!bestThread) {
