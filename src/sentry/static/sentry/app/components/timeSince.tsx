@@ -160,13 +160,13 @@ export function getRelativeDate(
 ): string {
   const date = getDateObj(currentDateTime);
 
-  if (shorten && suffix) {
+  if ((shorten || extraShort) && suffix) {
     return t('%(time)s %(suffix)s', {
-      time: getDuration(moment().diff(moment(date), 'seconds'), 0, true),
+      time: getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort),
       suffix,
     });
   } else if ((shorten || extraShort) && !suffix) {
-    return getDuration(moment().diff(moment(date), 'seconds'), 0, true, extraShort);
+    return getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort);
   } else if (!suffix) {
     return moment(date).fromNow(true);
   } else if (suffix === 'ago') {
