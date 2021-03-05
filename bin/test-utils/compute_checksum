@@ -10,7 +10,7 @@ cd "$(dirname "$0")/../.." || exit 1
 CACHE_VERSION=1
 
 dependants="\
-   Dockerfile.test \
+   docker-test/Dockerfile \
    requirements-base.txt \
    requirements-dev.txt \
    requirements-pre-commit.txt \

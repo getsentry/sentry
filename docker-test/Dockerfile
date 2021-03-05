@@ -57,7 +57,9 @@ ENV PIP_SRC=/.pip
 RUN pip install "pip>=20.0.2"
 
 # Install sentry dependencies.
-WORKDIR /usr/src/sentry
+RUN ls -la
+RUN pwd
+RUN ls /usr/src
 COPY requirements-base.txt ./
 # gcc is needed for at least uwsgi.
 # g++ is required for at least mmh3.
@@ -117,4 +119,4 @@ RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
     && rm "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
 
 # Need to set the workdir to here, so we can access bin/test-utils.
-WORKDIR /usr/src/sentry
+# WORKDIR /usr/src/sentry
