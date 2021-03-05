@@ -67,7 +67,7 @@ class TraceDetailsContent extends React.Component<Props> {
     const end = decodeScalar(query.end);
 
     if (!start || !end) {
-      Sentry.setTag('currentTraceId', traceSlug);
+      Sentry.setTag('current.trace_id', traceSlug);
       Sentry.captureException(new Error('No date range selection found.'));
       return this.renderTraceRequiresDateRangeSelection();
     }
