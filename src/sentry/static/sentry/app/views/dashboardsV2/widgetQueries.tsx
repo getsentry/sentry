@@ -1,7 +1,6 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
-import unzip from 'lodash/unzip';
 
 import {doEventsRequest} from 'app/actionCreators/events';
 import {Client} from 'app/api';
@@ -128,13 +127,23 @@ class WidgetQueries extends React.Component<Props, State> {
     const {selection, widget} = this.props;
 
     // We do not fetch data whenever the query name changes.
-    const [prevWidgetQueryNames, prevWidgetQueries] = unzip(
-      prevProps.widget.queries.map(({name, ...rest}) => [name, rest])
-    ) as [string[], Omit<WidgetQuery, 'name'>[]];
+    const [prevWidgetQueryNames, prevWidgetQueries] = prevProps.widget.queries.reduce(
+      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+        names.push(name);
+        queries.push(rest);
+        return [names, queries];
+      },
+      [[], []]
+    );
 
-    const [widgetQueryNames, widgetQueries] = unzip(
-      widget.queries.map(({name, ...rest}) => [name, rest])
-    ) as [string[], Omit<WidgetQuery, 'name'>[]];
+    const [widgetQueryNames, widgetQueries] = widget.queries.reduce(
+      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+        names.push(name);
+        queries.push(rest);
+        return [names, queries];
+      },
+      [[], []]
+    );
 
     if (
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
