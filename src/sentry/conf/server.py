@@ -518,7 +518,6 @@ CELERY_RESULT_SERIALIZER = "pickle"
 CELERY_ACCEPT_CONTENT = {"pickle"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
-    "sentry.demo.tasks",
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
     "sentry.snuba.tasks",
