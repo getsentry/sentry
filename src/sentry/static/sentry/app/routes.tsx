@@ -47,10 +47,8 @@ type CustomProps = {
  * We add some additional props to our routes
  */
 
-export const Route = BaseRoute as React.ComponentClass<RouteProps & CustomProps>;
-export const IndexRoute = BaseIndexRoute as React.ComponentClass<
-  IndexRouteProps & CustomProps
->;
+const Route = BaseRoute as React.ComponentClass<RouteProps & CustomProps>;
+const IndexRoute = BaseIndexRoute as React.ComponentClass<IndexRouteProps & CustomProps>;
 
 type ComponentCallback = Parameters<NonNullable<RouteProps['getComponent']>>[1];
 
