@@ -52,7 +52,7 @@ class Truncate extends React.Component<Props, State> {
         : value.slice(0, maxLength - 4);
 
       // Try to trim to values from the regex
-      if (trimRegex && trimRegex.test(slicedValue)) {
+      if (trimRegex && slicedValue.search(trimRegex) >= 0) {
         if (leftTrim) {
           shortValue = (
             <span>

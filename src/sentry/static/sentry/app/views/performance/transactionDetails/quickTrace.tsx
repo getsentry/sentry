@@ -1,9 +1,11 @@
 import React from 'react';
+import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'app/components/dropdownLink';
 import ErrorBoundary from 'app/components/errorBoundary';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import Tooltip from 'app/components/tooltip';
@@ -11,6 +13,7 @@ import Truncate from 'app/components/truncate';
 import {t, tn} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
 import {
@@ -19,14 +22,17 @@ import {
   QuickTraceQueryChildrenProps,
 } from 'app/utils/performance/quickTrace/types';
 import {isTransaction, parseQuickTrace} from 'app/utils/performance/quickTrace/utils';
+import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 
 import {
   DropdownItem,
+  DropdownItemSubContainer,
   EventNode,
   MetaData,
   QuickTraceContainer,
   SectionSubtext,
+  StyledTruncate,
   TraceConnector,
 } from './styles';
 import {
@@ -41,6 +47,14 @@ type Props = {
   organization: OrganizationSummary;
   quickTrace: QuickTraceQueryChildrenProps;
 };
+
+function handleTraceLink(organization) {
+  trackAnalyticsEvent({
+    eventKey: 'quick_trace.trace_id.clicked',
+    eventName: 'Quick Trace: Trace ID clicked',
+    organization_id: parseInt(organization.id, 10),
+  });
+}
 
 export default function QuickTrace({
   event,
@@ -57,7 +71,7 @@ export default function QuickTrace({
   const traceTarget = generateTraceTarget(event, organization);
 
   const body = isLoading ? (
-    <Placeholder height="33px" />
+    <Placeholder height="27px" />
   ) : error || trace === null ? (
     '\u2014'
   ) : (
@@ -80,7 +94,9 @@ export default function QuickTrace({
         traceId === null ? (
           '\u2014'
         ) : (
-          <Link to={traceTarget}>{t('Trace ID: %s', getShortEventId(traceId))}</Link>
+          <Link to={traceTarget} onClick={() => handleTraceLink(organization)}>
+            {t('Trace ID: %s', getShortEventId(traceId))}
+          </Link>
         )
       }
     />
@@ -256,6 +272,19 @@ function QuickTracePills({
   return <QuickTraceContainer>{nodes}</QuickTraceContainer>;
 }
 
+function handleDropdownItem(
+  target: LocationDescriptor,
+  organization: OrganizationSummary,
+  extra: boolean
+) {
+  trackAnalyticsEvent({
+    eventKey: 'quick_trace.dropdown.clicked' + (extra ? '_extra' : ''),
+    eventName: 'Quick Trace: Dropdown clicked',
+    organization_id: parseInt(organization.id, 10),
+  });
+  ReactRouter.browserHistory.push(target);
+}
+
 type EventNodeSelectorProps = {
   location: Location;
   organization: OrganizationSummary;
@@ -298,14 +327,31 @@ function EventNodeSelector({
         {events.slice(0, numEvents).map((event, i) => {
           const target = generateSingleEventTarget(event, organization, location);
           return (
-            <DropdownItem key={event.event_id} to={target} first={i === 0}>
-              <Truncate
-                value={event.transaction}
-                maxLength={35}
-                leftTrim
-                trimRegex={/\.|\//g}
-                expandable={false}
-              />
+            <DropdownItem
+              key={event.event_id}
+              onSelect={() => handleDropdownItem(target, organization, false)}
+              first={i === 0}
+            >
+              <DropdownItemSubContainer>
+                <Projects orgId={organization.slug} slugs={[event.project_slug]}>
+                  {({projects}) => {
+                    const project = projects.find(p => p.slug === event.project_slug);
+                    return (
+                      <ProjectBadge
+                        hideName
+                        project={project ? project : {slug: event.project_slug}}
+                        avatarSize={16}
+                      />
+                    );
+                  }}
+                </Projects>
+                <StyledTruncate
+                  value={event.transaction}
+                  maxLength={35}
+                  leftTrim
+                  trimRegex={/\.|\//g}
+                />
+              </DropdownItemSubContainer>
               <SectionSubtext>
                 {getDuration(
                   event['transaction.duration'] / 1000,
@@ -317,7 +363,11 @@ function EventNodeSelector({
           );
         })}
         {events.length > numEvents && hoverText && extrasTarget && (
-          <DropdownItem to={extrasTarget}>{hoverText}</DropdownItem>
+          <DropdownItem
+            onSelect={() => handleDropdownItem(extrasTarget, organization, true)}
+          >
+            {hoverText}
+          </DropdownItem>
         )}
       </DropdownLink>
     );

@@ -11,7 +11,7 @@ from django.utils.encoding import force_text
 from pytz import UTC
 import sentry_sdk
 
-from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb
+from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb, options
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
     DataCategory,
@@ -398,7 +398,8 @@ class EventManager:
 
         save_aggregate_fn = (
             _save_aggregate2
-            if features.has("projects:race-free-group-creation", project)
+            if not options.get("store.race-free-group-creation-force-disable")
+            and features.has("projects:race-free-group-creation", project)
             else _save_aggregate
         )
 

@@ -41,7 +41,7 @@ LINK_SHARED_EVENT = """{
         },
         {
             "domain": "example.com",
-            "url": "http://testserver/organizations/%(org1)s/incidents/%(incident)s/"
+            "url": "http://testserver/organizations/%(org1)s/alerts/rules/details/%(incident)s/"
         },
         {
             "domain": "another-example.com",
@@ -169,9 +169,7 @@ class LinkSharedEventTest(BaseEventTest):
         data = dict(parse_qsl(responses.calls[0].request.body))
         unfurls = json.loads(data["unfurls"])
         issue_url = f"http://testserver/organizations/{self.org.slug}/issues/{group1.id}/"
-        incident_url = (
-            f"http://testserver/organizations/{self.org.slug}/incidents/{incident.identifier}/"
-        )
+        incident_url = f"http://testserver/organizations/{self.org.slug}/alerts/rules/details/{incident.identifier}/"
         event_url = f"http://testserver/organizations/{self.org.slug}/issues/{group3.id}/events/{event.event_id}/"
 
         assert unfurls == {
