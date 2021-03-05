@@ -72,7 +72,7 @@ function isStatsPeriodDefault(
 }
 
 class PerformanceLanding extends React.Component<Props, State> {
-  static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
       eventView: generatePerformanceEventView(

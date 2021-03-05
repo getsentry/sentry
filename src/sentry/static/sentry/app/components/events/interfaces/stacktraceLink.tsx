@@ -1,13 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {openModal} from 'app/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
+import {Body, Header, Hovercard} from 'app/components/hovercard';
+import {IconInfo} from 'app/icons';
 import {IconClose} from 'app/icons/iconClose';
 import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 import {
   Frame,
   Integration,
@@ -38,6 +41,7 @@ type StacktraceResultItem = {
   config?: RepositoryProjectPathConfigWithIntegration;
   sourceUrl?: string;
   error?: 'file_not_found' | 'stack_root_mismatch';
+  attemptedUrl?: string;
 };
 
 type State = AsyncComponent['state'] & {
@@ -70,11 +74,9 @@ class StacktraceLink extends AsyncComponent<Props, State> {
 
     switch (error) {
       case 'stack_root_mismatch':
-        return t('Error matching your configuration, check your stack trace root.');
+        return t('Error matching your configuration.');
       case 'file_not_found':
-        return t(
-          'Could not find source file, check your repository and source code root.'
-        );
+        return t('Source file not found.');
       default:
         return t('There was an error encountered with the code mapping for this project');
     }
@@ -136,6 +138,13 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     ];
   }
 
+  onRequestError(error, args) {
+    Sentry.withScope(scope => {
+      scope.setExtra('errorInfo', args);
+      Sentry.captureException(new Error(error));
+    });
+  }
+
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -183,9 +192,10 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     this.reloadData();
   };
 
-  // let the ErrorBoundary handle errors by raising it
+  // don't show the error boundary if the component fails.
+  // capture the endpoint error on onRequestError
   renderError(): React.ReactNode {
-    throw new Error('Error loading endpoints');
+    return null;
   }
 
   renderLoading() {
@@ -243,20 +253,68 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     return null;
   }
 
-  renderMatchNoUrl() {
+  renderHovercard() {
+    const error = this.match.error;
+    const url = this.match.attemptedUrl;
+    const {frame} = this.props;
     const {config} = this.match;
+    return (
+      <React.Fragment>
+        <StyledHovercard
+          header={
+            error === 'stack_root_mismatch' ? (
+              <span>{t('Mismatch between filename and stack root')}</span>
+            ) : (
+              <span>{t('Unable to find source code url')}</span>
+            )
+          }
+          body={
+            error === 'stack_root_mismatch' ? (
+              <HeaderContainer>
+                <HovercardLine>
+                  filename: <code>{`${frame.filename}`}</code>
+                </HovercardLine>
+                <HovercardLine>
+                  stack root: <code>{`${config?.stackRoot}`}</code>
+                </HovercardLine>
+              </HeaderContainer>
+            ) : (
+              <HeaderContainer>
+                <HovercardLine>{url}</HovercardLine>
+              </HeaderContainer>
+            )
+          }
+        >
+          <StyledIconInfo size="xs" />
+        </StyledHovercard>
+      </React.Fragment>
+    );
+  }
+
+  renderMatchNoUrl() {
+    const {config, error} = this.match;
     const {organization} = this.props;
-    const text = this.errorText;
     const url = `/settings/${organization.slug}/integrations/${config?.provider.key}/${config?.integrationId}/?tab=codeMappings`;
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
-        {text}
-        <Button onClick={() => this.onReconfigureMapping()} to={url} size="xsmall">
-          {t('Configure Stack Trace Linking')}
-        </Button>
+        <ErrorInformation>
+          {error && this.renderHovercard()}
+          <ErrorText>{this.errorText}</ErrorText>
+          {tct('[link:Configure Stack Trace Linking] to fix this problem.', {
+            link: (
+              <a
+                onClick={() => {
+                  this.onReconfigureMapping();
+                }}
+                href={url}
+              />
+            ),
+          })}
+        </ErrorInformation>
       </CodeMappingButtonContainer>
     );
   }
+
   renderMatchWithUrl(config: RepositoryProjectPathConfigWithIntegration, url: string) {
     url = `${url}#L${this.props.frame.lineNo}`;
     return (
@@ -269,6 +327,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       </OpenInContainer>
     );
   }
+
   renderBody() {
     const {config, sourceUrl} = this.match || {};
     const {isDismissed, promptLoaded} = this.state;
@@ -298,4 +357,42 @@ export const CodeMappingButtonContainer = styled(OpenInContainer)`
 const StyledIconClose = styled(IconClose)`
   margin: auto;
   cursor: pointer;
+`;
+
+const StyledIconInfo = styled(IconInfo)`
+  margin-right: ${space(0.5)};
+  margin-bottom: -2px;
+  cursor: pointer;
+  line-height: 0;
+`;
+
+const StyledHovercard = styled(Hovercard)`
+  font-weight: normal;
+  width: inherit;
+  line-height: 0;
+  ${Header} {
+    font-weight: strong;
+    font-size: ${p => p.theme.fontSizeSmall};
+    color: ${p => p.theme.subText};
+  }
+  ${Body} {
+    font-weight: normal;
+    font-size: ${p => p.theme.fontSizeSmall};
+  }
+`;
+const HeaderContainer = styled('div')`
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+`;
+const HovercardLine = styled('div')`
+  padding-bottom: 3px;
+`;
+
+const ErrorInformation = styled('div')`
+  padding-right: 5px;
+  margin-right: ${space(1)};
+`;
+const ErrorText = styled('span')`
+  margin-right: ${space(0.5)};
 `;
