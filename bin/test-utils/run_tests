@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Test runner script. This is used to setup the environment to run tests.
+
+export NODE_ENV=development
+
+# Needed for chrome-driver to execute acceptance tests
+export DISPLAY=:99
+
+# Sentry specific environment configuration/cues
+export DJANGO_CONF=test
+export DB=postgres
+export SENTRY_LIGHT_BUILD=1
+export SENTRY_SKIP_BACKEND_VALIDATION=1
+
+# Allocate more space for node (needed for webpack builds)
+export NODE_OPTIONS=--max-old-space-size=4096
+
+# /usr/src/sentry is where we volume mount sentry source as pulled in by CI.
+# We move the prebuilt sentry node_modules in the test image into the expected location.
+mv /usr/src/sentry_node_modules /usr/src/sentry/node_modules
+
+exec "$@"

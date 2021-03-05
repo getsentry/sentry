@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+# This script ensures that the build image is available for the current set of
+# requirement files.
+#
+# It will first check if the current requirement file checksum already has an
+# associated docker image in the registry. If it does not, it will build the
+# docker (pulling down the latest master image to use for as a cache)
+
+set -e
+
+# Execute within the sentry project root
+cd "$(dirname "$0")/../.." || exit 1
+
+source bin/test-utils/build_config
+image_checksum="$(bin/test-utils/compute_checksum)"
+tagged_image="${IMAGE_NAME}:${image_checksum}"
+
+# Helper for tagging the current build as the current master
+function ensure_master_tag {
+  [[ "$GITHUB_REF" != "refs/heads/master" ]] && return
+
+  # XXX(epurkhsier): We use gcloud to add the tag to the remote as dockers CLI
+  # doesn't have a simple way to push a tag to a remote without first
+  # downloading the container and tagging it locally.
+  echo "Tagging current image as ${IMAGE_NAME}:master image"
+  gcloud container images add-tag --quiet "${GCR_URL}/${tagged_image}" "${GCR_URL}/${IMAGE_NAME}:master"
+}
+
+# If the docker image already exists on GCR its a no-op
+if docker manifest inspect "${GCR_URL}/${tagged_image}" 1>/dev/null
+then
+  echo "Test container with checksum ${image_checksum} already exists"
+  ensure_master_tag
+  exit 0
+fi
+
+echo "No test container for checksum ${image_checksum} exists. Building..."
+
+# If a master image exists, pull that down and use it as the cache for
+# rebuilding the current image
+if docker manifest inspect "${GCR_URL}/${IMAGE_NAME}:master" 1>/dev/null
+then
+  docker pull "${GCR_URL}/${IMAGE_NAME}:master"
+  cache_from="--cache-from "${GCR_URL}/${IMAGE_NAME}:master""
+fi
+
+docker build -t "${tagged_image}" -f Dockerfile.test "${cache_from}" .
+
+docker tag "${tagged_image}" "${GCR_URL}/${tagged_image}"
+docker push "${GCR_URL}/${tagged_image}"
+
+echo "New container with checksum ${image_checksum} built and pushed"
+ensure_master_tag

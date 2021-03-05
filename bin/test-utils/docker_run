@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Execute within the sentry project root
+cd "$(dirname "$0")/../.." || exit 1
+
+source bin/test-utils/build_config
+image_checksum="$(bin/test-utils/compute_checksum)"
+
+time docker pull "$GCR_URL/${IMAGE_NAME}:${image_checksum}"
+
+# NOTE: Any environment variables that need passed up from the build
+#       environment must be specified here.
+# NOTE: We mount the host's (test runner) docker socket so that devservices
+#       can do its docker stuff on the host.
+
+# We're pre-emptively forwarding all GHA env vars listed on: https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables
+# GITHUB_WORKFLOW     The name of the workflow.
+# GITHUB_RUN_ID       A unique number for each run within a repository. This number does not change if you re-run the workflow run.
+# GITHUB_RUN_NUMBER   A unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run.
+# GITHUB_ACTION       The unique identifier (id) of the action.
+# GITHUB_ACTIONS      Always set to true when GitHub Actions is running the workflow. You can use this variable to differentiate when tests are being run locally or by GitHub Actions.
+# GITHUB_ACTOR        The name of the person or app that initiated the workflow. For example, octocat.
+# GITHUB_REPOSITORY   The owner and repository name. For example, octocat/Hello-World.
+# GITHUB_EVENT_NAME   The name of the webhook event that triggered the workflow.
+# GITHUB_EVENT_PATH   The path of the file with the complete webhook event payload. For example, /github/workflow/event.json.
+# GITHUB_WORKSPACE    The GitHub workspace directory path. The workspace directory is a copy of your repository if your workflow uses the actions/checkout action. If you don't use the actions/checkout action, the directory will be empty. For example, /home/runner/work/my-repo-name/my-repo-name.
+# GITHUB_SHA          The commit SHA that triggered the workflow. For example, ffac537e6cbbf934b08745a378932722df287a53.
+# GITHUB_REF          The branch or tag ref that triggered the workflow. For example, refs/heads/feature-branch-1. If neither a branch or tag is available for the event type, the variable will not exist.
+# GITHUB_HEAD_REF     Only set for forked repositories. The branch of the head repository.
+# GITHUB_BASE_REF     Only set for forked repositories. The branch of the base repository.
+# GITHUB_SERVER_URL   Returns the URL of the GitHub server. For example: https://github.com.
+# GITHUB_API_URL      Returns the API URL. For example: https://api.github.com.
+# GITHUB_GRAPHQL_URL  Returns the GraphQL API URL. For example: https://api.github.com/graphql.
+docker run \
+  --name=sentry-test \
+  --rm \
+  --network=host \
+  --volume "$(pwd)":/usr/src/sentry \
+  -d \
+  -i \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e CI \
+  -e GITHUB_REF \
+  -e GITHUB_WORKFLOW \
+  -e GITHUB_RUN_ID	\
+  -e GITHUB_RUN_NUMBER \
+  -e GITHUB_ACTION \
+  -e GITHUB_ACTIONS \
+  -e GITHUB_ACTOR	\
+  -e GITHUB_REPOSITORY \
+  -e GITHUB_EVENT_NAME \
+  -e GITHUB_EVENT_PATH \
+  -e GITHUB_WORKSPACE \
+  -e GITHUB_SHA \
+  -e GITHUB_REF \
+  -e GITHUB_HEAD_REF \
+  -e GITHUB_BASE_REF \
+  -e GITHUB_SERVER_URL \
+  -e GITHUB_API_URL \
+  -e GITHUB_GRAPHQL_URL \
+  -e PYTEST_SENTRY_DSN \
+  -e PYTEST_SENTRY_ALWAYS_REPORT \
+  -e PYTEST_ADDOPTS \
+  -e PGPASSWORD \
+  -e MIGRATIONS_TEST_MIGRATE \
+  -e SENTRY_NO_VIRTUALENV_CREATION \
+  -e SENTRY_WEBPACK_WEBHOOK_SECRET \
+  -e SENTRY_INSTRUMENTATION \
+  -e TOTAL_TEST_GROUPS \
+  -e TEST_GROUP \
+  -e TEST_GROUP_STRATEGY \
+  -e VISUAL_SNAPSHOT_ENABLE \
+  -e VISUAL_HTML_ENABLE \
+  "${GCR_URL}/${IMAGE_NAME}:${image_checksum}"

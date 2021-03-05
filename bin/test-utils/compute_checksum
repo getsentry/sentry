@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# This script computes the checksum used to deterministically identify the
+# build image that is valid for the current set of sentry frontend and backend requirements.
+
+set -e
+
+cd "$(dirname "$0")/../.." || exit 1
+
+CACHE_VERSION=1
+
+dependants="\
+   Dockerfile.test \
+   requirements-base.txt \
+   requirements-dev.txt \
+   requirements-pre-commit.txt \
+   package.json \
+   yarn.lock \
+"
+
+echo $CACHE_VERSION | cat "$dependants" - | shasum | cut -d ' ' -f1

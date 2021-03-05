@@ -1,0 +1,121 @@
+name: 'Sentry Setup'
+description: 'Sets up a sentry test environment'
+inputs:
+  snuba:
+    description: 'Is snuba required?'
+    required: false
+    default: 'false'
+  kafka:
+    description: 'Is kafka required?'
+    required: false
+    default: 'false'
+  devservices:
+    description: 'Are basic devservices required?'
+    required: false
+    default: 'true'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup default environment variables
+      shell: bash
+      env:
+        NEED_KAFKA: ${{ inputs.kafka }}
+        MATRIX_INSTANCE: ${{ matrix.instance }}
+        MATRIX_INSTANCE_TOTAL: ${{ strategy.job-total }}
+      run: |
+        ### pytest-sentry configuration ###
+        echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
+        echo "PYTEST_ADDOPTS=--reruns 5" >> $GITHUB_ENV
+        # this handles pytest test sharding
+        if [ "$MATRIX_INSTANCE" ]; then
+          echo "TEST_GROUP=$MATRIX_INSTANCE" >> $GITHUB_ENV
+          echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
+        fi
+
+        # This records failures on master to sentry in order to detect flakey tests, as it's
+        # expected that people have failing tests on their PRs
+        [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
+
+        ### services configuration ###
+        # Note: some backend tests (e.g. tests/sentry/eventstream/kafka/test_consumer.py) will behave
+        # differently if these are set.
+        if [ "$NEED_KAFKA" = "true" ]; then
+          echo "SENTRY_KAFKA_HOSTS=sentry_kafka:9092" >> $GITHUB_ENV
+          echo "SENTRY_ZOOKEEPER_HOSTS=sentry_zookeeper:2181" >> $GITHUB_ENV
+        fi
+
+    - name: Configure docker
+      shell: bash
+      run: |
+        mkdir -p $HOME/.docker
+        echo '{"experimental": "enabled"}' > $HOME/.docker/config.json
+        gcloud auth configure-docker --quiet
+
+    # - name: Collect dependencies
+      # shell: bash
+      # run: |
+        # bin/test-utils/collect_deps
+
+    - name: Start sentry test container
+      shell: bash
+      run: |
+        bin/test-utils/docker_run
+
+    - name: Setup sentry
+      shell: bash
+      run: |
+        bin/test-utils/install_sentry
+
+    - name: Start devservices
+      shell: bash
+      env:
+        NEED_DEVSERVICES: ${{ inputs.devservices }}
+        NEED_KAFKA: ${{ inputs.kafka }}
+        NEED_SNUBA: ${{ inputs.snuba }}
+      run: |
+        if [ "$NEED_DEVSERVICES" != "true" ]; then
+          exit 0
+        fi
+
+        docker exec sentry-test sentry devservices up postgres redis
+
+        if [ "$NEED_KAFKA" = "true" ]; then
+          docker exec sentry-test sentry devservices up kafka zookeeper
+        fi
+
+        if [ "$NEED_SNUBA" = "true" ]; then
+          docker exec sentry-test sentry devservices up clickhouse snuba
+          docker exec sentry_snuba python -c 'import socket; print(socket.gethostbyname("sentry_clickhouse"))'
+        fi
+
+    # TODO(joshuarli): This docker debug stuff is temporary.
+    #       Sometimes, snuba migrations will fail because it can't resolve sentry_clickhouse to that container's IP.
+    #       (You can only see this in docker logs - otherwise I believe it manifests as exit 137.)
+    #       This can happen when the container isn't up, but it's pretty fast...
+    #       Anyway, I have trouble reproducing it, so we'll just let it stew and revert if it becomes flaky again. See PR #4618.
+    - name: Snuba migration
+      shell: bash
+      env:
+        NEED_SNUBA: ${{ inputs.snuba }}
+      run: |
+        echo "::group::docker stats"
+        docker ps
+        docker stats --no-stream
+        docker system df
+        echo "::endgroup::"
+
+        if [ "$NEED_SNUBA" = "true" ]; then
+          docker exec sentry_snuba python -c 'import socket; print(socket.gethostbyname("sentry_clickhouse"))'
+          docker exec sentry_snuba snuba migrations migrate --force
+        fi
+
+        for container in `docker ps -q`; do
+          echo "::group::docker inspect $container"
+          docker inspect --format '{{.State}}' $container
+          echo "::endgroup::"
+
+          echo "::group::docker logs $container"
+          docker logs $container;
+          echo "::endgroup::"
+        done

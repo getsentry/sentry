@@ -1,0 +1,94 @@
+# Test Infrastructure
+
+Our test builds are dockerized and use a deterministic approach to caching
+dependencies to improve setup times. This works by creating a "test image" that
+includes system and package (frontend + backend deps) that can be re-used to
+execute our test suites.
+
+The following describes how "test images" are built and how tests are executed
+in the images. See the `.github/workflows` directory for exact build execution steps.
+
+## Building the test Image
+
+There are two build stages in our CI configuration, the first is the
+'Setup' step. This step ensures that a test image is available fort the current
+"set" for dependencies. That is to say _when a external build dependency
+changes, a new test image must be built_.
+
+The steps described here are codified in the `ensure_image` script.
+
+1. We first acquire the set of dependency files from Sentry. This is done using
+   the `collect_deps` script, which downloads the files specifying Sentrys
+   requirements.
+
+2. We compute a checksum of the combination of _all requirement
+   files_. The exact list of files taken into account can be found in the
+   `compute_checksum` script.
+
+   The general rule of what files must be present in this file is, if the file
+   is used as the input for installing one or more dependencies, and that file
+   is used in the test image Dockerfile.test, the file must be included in the
+   checksum list.
+
+3. After computing the checksum we can verify if the test image has already
+   been built, or if we need to build this test image. We do this by querying
+   the container registry for existence of the test image with the tag equal to
+   the checksum.
+
+   **If the test image is available, the Setup build stage will immediately
+   complete.** Otherwise, we must build the image for use in the test stage.
+
+4. When the image is **not available** we execute `docker build` using the
+   Dockerfile.test. After completing the build the test image will be pushed to
+   the container registry and tagged with the checksum.
+
+   - When building the docker file, as a performance optimization, we will
+     first pull down the most recently build test-image for the master branch.
+     This allows us to re-use the cache-layers of the image when building the
+     test image for the newly computed checksum. This can speed up the build
+     if only a frontend package has changed as it will not need to install all
+     of the backend packages
+
+   - To facilitate this performance optimization, any time we ensure the test
+     image, if we are executing our test suite on master, we will tag the
+     current checksum with the tag 'master'. Allowing us to identify the
+     'latest' master build. This tag is **only used for this optimization**.
+
+### Google Container Registry
+
+Containers are stored in Googles Container Registry under the sentry.io
+organization. We authenticate docker using the gcloud sdk, which is authorized
+using GitHub secrets.
+
+## Executing test with the test image
+
+When executing the CI test matrix, each test is executed using the
+`docker_run_tests` script. This script computes the dependency checksum and
+pulls down the associated test image. Remember, the first stage of the build
+ensured this images existence. When executing the container, the source being
+tested is mounted into the container.
+
+Once the container is booted, the tests are executed _within the container_
+with the `run_test` script, which sets up the environment for test execution:
+
+1. Setup test environment variables.
+
+2. Install getsentry and sentry.
+
+   The test image has all of getsentry's dependencies installed, but not
+   getsentry nor sentry itself. Note that requirements-sentry.txt is not
+   included in the computed checksum; we'd constantly be building new images
+   then.
+
+   Volume mounting getsentry source (in docker_run_tests) as pulled down by
+   CI ensures that we get the up-to-date getsentry (and
+   requirements-sentry.txt).  The volume-mounted source is then installed by
+   run_tests inside the image.
+
+   The whole point of this docker stuff is to cache images with dependencies
+   prepared ahead of time.
+
+3. Move prebuilt getsentry `node_modules` into the getsentry source, allowing
+   javascript execution.
+
+Finally, the specified test command will be executed within this environment.

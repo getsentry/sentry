@@ -1,0 +1,34 @@
+name: 'Ensure Docker Image'
+description: 'Ensures that a Docker test image exists'
+inputs:
+  sentry_sha:
+    description: 'The sentry sha to use. Ignores if = "master"'
+    required: false
+    default: 'master'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Configure docker
+      shell: bash
+      run: |
+        mkdir -p $HOME/.docker
+        echo '{"experimental": "enabled"}' > $HOME/.docker/config.json
+        gcloud auth configure-docker --quiet
+
+    - name: bump-sentry ${{ inputs.sentry_sha }}
+      shell: bash
+      run: |
+        if [[ "${{ inputs.sentry_sha }}" != "master" ]]; then
+          git config --global user.email "github-actions@sentry.io"
+          git config --global user.name "github-actions[bot]"
+          bin/bump-sentry ${{ inputs.sentry_sha }}
+        fi
+
+    # - name: Collect dependencies
+      # shell: bash
+      # run: bin/test-utils/collect_deps
+
+    - name: Ensure image
+      shell: bash
+      run: bin/test-utils/ensure_image

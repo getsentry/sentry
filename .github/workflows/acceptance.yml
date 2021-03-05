@@ -14,56 +14,63 @@ on:
   pull_request:
 
 jobs:
+  ensure_docker:
+    name: ensure docker image
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout sentry
+        uses: actions/checkout@v2
+
+      - name: Install gcloud utils
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          version: '281.0.0'
+          export_default_credentials: true
+          service_account_key: ${{ secrets.GCR_SERVICE_ACCOUNT }}
+
+      - name: Ensure docker image
+        uses: ./.github/actions/ensure-docker
+
   frontend:
     name: frontend tests
     runs-on: ubuntu-20.04
     timeout-minutes: 20
+    needs: [ensure_docker]
 
     env:
       VISUAL_HTML_ENABLE: 1
-    steps:
-      - uses: actions/checkout@v2
-        name: Checkout sentry
 
+    steps:
+      - name: Checkout sentry
+        uses: actions/checkout@v2
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - uses: volta-cli/action@v1
-
-      # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-
-      - uses: actions/cache@v2
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+      - name: Install gcloud utils
+        uses: google-github-actions/setup-gcloud@master
         with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+          version: '281.0.0'
+          export_default_credentials: true
+          service_account_key: ${{ secrets.GCR_SERVICE_ACCOUNT }}
 
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
+      - name: Setup Sentry
+        uses: ./.github/actions/setup-sentry-docker
+        with:
+          devservices: false
 
-      - name: jest
+      - name: Run tests
         run: |
-          NODE_ENV=production yarn build-css
-          yarn test-ci --forceExit
-
-      - name: Save HTML artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: jest-html
-          path: .artifacts/visual-snapshots/jest
+          docker exec sentry-test bin/test-utils/run_tests make ci-test-js
 
       - name: Create Images from HTML
         uses: getsentry/action-html-to-image@main
         with:
           base-path: .artifacts/visual-snapshots/jest
-          css-path: src/sentry/static/sentry/dist/sentry.css
+          css-path: ${{ github.workspace }}/dist/sentry.css
 
       - name: Save snapshots
         if: always()
@@ -79,6 +86,8 @@ jobs:
     name: acceptance
     runs-on: ubuntu-20.04
     timeout-minutes: 20
+    needs: [ensure_docker]
+
     strategy:
       matrix:
         instance: [0, 1, 2, 3]
@@ -88,71 +97,35 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
-      - uses: actions/checkout@v2
-        name: Checkout sentry
+      - name: Checkout sentry
+        uses: actions/checkout@v2
 
-      - uses: volta-cli/action@v1
-
-      - name: Set python version output
-        id: python-version
-        run: |
-          echo "::set-output name=python-version::$(cat .python-version)"
-
-      # Until GH composite actions can use `uses`, we need to setup python here
-      - uses: actions/setup-python@v2
+      - name: Install gcloud utils
+        uses: google-github-actions/setup-gcloud@master
         with:
-          python-version: ${{ steps.python-version.outputs.python-version }}
+          version: '281.0.0'
+          export_default_credentials: true
+          service_account_key: ${{ secrets.GCR_SERVICE_ACCOUNT }}
 
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        id: pip
-
-      - name: pip cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: |
-            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
-
-      - name: Setup sentry python env
-        uses: ./.github/actions/setup-sentry
-        id: setup
+      - name: Setup Sentry
+        uses: ./.github/actions/setup-sentry-docker
         with:
           snuba: true
 
-      - name: yarn cache
-        uses: actions/cache@v2
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+      - name: Run tests
+        id: test
+        run: |
+          mkdir -p .artifacts/visual-snapshots/acceptance
+          mkdir -p .artifacts/visual-snapshots/acceptance-mobile
+          mkdir -p .artifacts/visual-snapshots/acceptance-tooltips
+          docker exec -e TEST_GROUP_STRATEGY=individual sentry-test bin/test-utils/run_tests make ci-test-acceptance
+
+      - name: Save artifacts
+        if: failure()
+        uses: actions/upload-artifact@v2
         with:
-          path: ${{ steps.setup.outputs.yarn-cache-dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-
-      - name: Install Javascript Dependencies
-        run: |
-          yarn install --frozen-lockfile
-
-      - name: webpack
-        env:
-          SENTRY_INSTRUMENTATION: 1
-          # this is fine to not have for forks, it shouldn't fail
-          SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
-        run: |
-          yarn webpack --display errors-only
-
-      - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-        if: always()
-        run: |
-          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
-          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-mobile
-          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-tooltips
-          make run-acceptance
-        env:
-          PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
-          USE_SNUBA: 1
+          name: acceptance
+          path: .artifacts
 
       - name: Save snapshots
         if: always()
