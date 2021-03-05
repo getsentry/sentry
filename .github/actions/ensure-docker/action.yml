@@ -12,8 +12,9 @@ runs:
     - name: Configure docker
       shell: bash
       run: |
+        echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
         mkdir -p $HOME/.docker
-        echo '{"experimental": "enabled", "features":{ "buildkit": true}}' > $HOME/.docker/config.json
+        echo '{"experimental": "enabled"}' > $HOME/.docker/config.json
         gcloud auth configure-docker --quiet
 
     - name: bump-sentry ${{ inputs.sentry_sha }}
