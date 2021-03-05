@@ -10,3 +10,4 @@ pytest-html==1.22.0
 pytest-sentry==0.1.6
 pytest-rerunfailures==8.0
 responses>=0.8.1,<0.9.0
+sqlparse==0.2.4
