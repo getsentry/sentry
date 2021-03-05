@@ -228,7 +228,7 @@ def get_function_component(
             )
 
     if function_component.values:
-        function_component.tree_label = function_component.values[0]
+        function_component.update(tree_label=function_component.values[0])
 
     return function_component
 
