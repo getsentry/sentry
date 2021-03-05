@@ -195,7 +195,8 @@ class FrequencyConditionMixin:
         self.assertDoesNotPass(rule, event)
 
 
-class EventFrequencyConditionTestCase(FrequencyConditionMixin, SnubaTestCase, RuleTestCase):
+class EventFrequencyConditionTestCase(FrequencyConditionMixin, RuleTestCase, SnubaTestCase):
+    disable_snuba_query_cache = True
     rule_cls = EventFrequencyCondition
 
     def disable_cache(self):
@@ -218,9 +219,10 @@ class EventFrequencyConditionTestCase(FrequencyConditionMixin, SnubaTestCase, Ru
 
 class EventUniqueUserFrequencyConditionTestCase(
     FrequencyConditionMixin,
-    SnubaTestCase,
     RuleTestCase,
+    SnubaTestCase,
 ):
+    disable_snuba_query_cache = True
     rule_cls = EventUniqueUserFrequencyCondition
 
     def disable_cache(self):

@@ -84,7 +84,7 @@ from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.retries import TimedRetryPolicy
-
+from sentry.utils.snuba import _snuba_pool
 from .fixtures import Fixtures
 from .factories import Factories
 from .skips import requires_snuba
@@ -662,6 +662,10 @@ class SnubaTestCase(BaseTestCase):
     tests that require snuba.
     """
 
+    # Snuba caches queries locally for a period of time. If you need to skip the cache
+    # set this to True on your test class
+    disable_snuba_query_cache = False
+
     def setUp(self):
         super().setUp()
         self.init_snuba()
@@ -669,6 +673,26 @@ class SnubaTestCase(BaseTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, reset_snuba, call_snuba):
         self.call_snuba = call_snuba
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        if cls.disable_snuba_query_cache:
+            cls.snuba_update_config({"use_readthrough_query_cache": 0, "use_cache": 0})
+
+    @classmethod
+    def tearDownClass(cls):
+        super().setUpClass()
+        if cls.disable_snuba_query_cache:
+            cls.snuba_update_config({"use_readthrough_query_cache": None, "use_cache": None})
+
+    @classmethod
+    def snuba_get_config(cls):
+        return _snuba_pool.request("GET", "/config.json").data
+
+    @classmethod
+    def snuba_update_config(cls, config_vals):
+        return _snuba_pool.request("POST", "/config.json", body=json.dumps(config_vals))
 
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
