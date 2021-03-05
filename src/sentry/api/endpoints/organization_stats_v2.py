@@ -8,17 +8,7 @@ from sentry.snuba import outcomes
 from sentry_relay import DataCategory
 from sentry.utils.outcomes import Outcome
 from collections import defaultdict
-from enum import IntEnum
 import collections.abc
-
-
-def update(d, u):
-    for k, v in u.items():
-        if isinstance(v, collections.abc.Mapping):
-            d[k] = update(d.get(k, {}), v)
-        else:
-            d[k] = v
-    return d
 
 
 # TODO: add this onto the outcomes module?
@@ -48,45 +38,6 @@ DEFAULT_TS_VAL = [
         },
     ),
 ]
-
-
-def outcome_to_string(outcome):
-    return OUTCOME_TO_STR[outcome]
-
-
-class RateLimitReason(IntEnum):
-    DEFAULT = 0
-    OVER_QUOTA = 1
-    SMART_LIMIT = 2
-
-
-def rate_limited_reason_mapper(reason):
-    if reason in {"usage_exceeded", "grace_period"}:
-        reason_val = "overQuota"
-    elif reason == "smart_rate_limit":
-        reason_val = "spikeProtection"
-    else:
-        reason_val = "other"
-    return reason_val
-
-
-def datamapper(row):
-    obj = {"time": row["time"]}
-    if row["outcome"] == Outcome.RATE_LIMITED:
-        # TODO: make this actually work
-        obj[outcome_to_string(row["outcome"])] = {
-            rate_limited_reason_mapper(row["reason"]): {
-                "quantity": row["quantity"],
-                "times_seen": row["times_seen"],
-            }
-        }
-
-    else:
-        obj[outcome_to_string(row["outcome"])] = {
-            "quantity": row["quantity"],
-            "times_seen": row["times_seen"],
-        }
-    return obj
 
 
 class OrganizationStatsEndpointV2(OrganizationEndpoint):
@@ -139,44 +90,37 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
             filter_keys={"org_id": [organization.id], "project_id": project_ids},
             orderby=["times_seen", "time"],
         )
-        # need .copy here?
-        # TODO: zerofill projects
         template = {
             "statsErrors": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
             "statsTransactions": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
             "statsAttachments": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
         }
-        new_res = {}
+        # need .copy here?
+        # response = defaultdict(lambda: template)
+        response = {project_id: template.copy() for project_id in project_ids}
+
+        # group results by timestamp, using defaultdict to coalesce into format
+        # TODO: use itertools.groupby?
         for row in result:
-            if "category" in row:  # TODO: if remove zerofill, remove this conditionals
-                uniq_key = "-".join([str(row["time"]), str(row["project_id"])])
-                if row["project_id"] in new_res:
-                    update(
-                        new_res[row["project_id"]][CATEGORY_NAME_MAP[row["category"]]][uniq_key],
-                        datamapper(row),
-                    )
-                else:
-                    new_res[row["project_id"]] = template.copy()
-                    update(
-                        new_res[row["project_id"]][CATEGORY_NAME_MAP[row["category"]]][uniq_key],
-                        datamapper(row),
-                    )
-
-        new_res = {
-            project_id: {
-                category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")
-                for category, val in val2.items()
-            }
-            for project_id, val2 in new_res.items()
-        }
+            uniq_key = "-".join([str(row["time"])])
+            update(
+                response[row["project_id"]][CATEGORY_NAME_MAP[row["category"]]][uniq_key],
+                datamapper(row),
+            )
+        # add project_ids with no results to dict
         for project_id in project_ids:
-            if project_id not in new_res:
-                new_res[project_id] = template.copy()
-                for val in CATEGORY_NAME_MAP.values():
-                    # TODO: zerofill w/ empty objects?
-                    new_res[project_id][val] = outcomes.zerofill([], start, end, rollup, "time")
+            if project_id not in response:
+                response[project_id] = template.copy()
 
-        return Response(new_res)
+        # zerofill response
+        response = {
+            project_id: {
+                category: outcomes.zerofill(list(stats.values()), start, end, rollup, "time")
+                for category, stats in timeseries.items()
+            }
+            for project_id, timeseries in response.items()
+        }
+        return Response(response)
 
 
 class OrganizationProjectStatsDetails(ProjectEndpoint):
@@ -209,3 +153,45 @@ class OrganizationProjectStatsDetails(ProjectEndpoint):
             for category, val in new_res.items()
         }
         return Response(new_res)
+
+
+def outcome_to_string(outcome):
+    return OUTCOME_TO_STR[outcome]
+
+
+def rate_limited_reason_mapper(reason):
+    if reason in {"usage_exceeded", "grace_period"}:
+        reason_val = "overQuota"
+    elif reason == "smart_rate_limit":
+        reason_val = "spikeProtection"
+    else:
+        reason_val = "other"
+    return reason_val
+
+
+def datamapper(row):
+    obj = {"time": row["time"]}
+    if row["outcome"] == Outcome.RATE_LIMITED:
+        # TODO: make this actually work
+        obj[outcome_to_string(row["outcome"])] = {
+            rate_limited_reason_mapper(row["reason"]): {
+                "quantity": row["quantity"],
+                "times_seen": row["times_seen"],
+            }
+        }
+
+    else:
+        obj[outcome_to_string(row["outcome"])] = {
+            "quantity": row["quantity"],
+            "times_seen": row["times_seen"],
+        }
+    return obj
+
+
+def update(d, u):
+    for k, v in u.items():
+        if isinstance(v, collections.abc.Mapping):
+            d[k] = update(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
