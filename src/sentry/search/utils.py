@@ -72,6 +72,22 @@ def parse_percentage(value):
     return value / 100
 
 
+def parse_numeric_value(value, suffix=None):
+    try:
+        value = float(value)
+    except ValueError:
+        raise InvalidQuery("Invalid format for numeric field")
+
+    if not suffix:
+        return value
+
+    numeric_multiples = {"k": 10.0 ** 3, "m": 10.0 ** 6, "b": 10.0 ** 9}
+    if suffix not in numeric_multiples:
+        raise InvalidQuery(f"{suffix} is not a valid number suffix, must be k, m or b")
+
+    return value * numeric_multiples[suffix]
+
+
 def parse_datetime_range(value):
     try:
         flag, count, interval = value[0], int(value[1:-1]), value[-1]

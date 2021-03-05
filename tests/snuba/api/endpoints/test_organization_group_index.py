@@ -278,9 +278,17 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.create_group(checksum="a" * 32, last_seen=now - timedelta(seconds=1))
         self.login_as(user=self.user)
 
-        response = self.get_response(sort_by="date", query="timesSeen:>1k")
+        response = self.get_response(sort_by="date", query="timesSeen:>1t")
         assert response.status_code == 400
         assert "Invalid format for numeric field" in response.data["detail"]
+
+    def test_valid_numeric_query(self):
+        now = timezone.now()
+        self.create_group(checksum="a" * 32, last_seen=now - timedelta(seconds=1))
+        self.login_as(user=self.user)
+
+        response = self.get_response(sort_by="date", query="timesSeen:>1k")
+        assert response.status_code == 200
 
     def test_invalid_sort_key(self):
         now = timezone.now()

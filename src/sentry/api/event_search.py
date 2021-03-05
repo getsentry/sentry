@@ -20,6 +20,7 @@ from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
     parse_datetime_value,
+    parse_numeric_value,
     parse_release,
     InvalidQuery,
 )
@@ -144,7 +145,7 @@ numeric_filter       = search_key sep operator? numeric_value
 # Boolean comparison filter
 boolean_filter       = negation? search_key sep boolean_value
 # Aggregate numeric filter
-aggregate_filter          = negation? aggregate_key sep operator? (numeric_value / duration_format / percentage_format)
+aggregate_filter          = negation? aggregate_key sep operator? (duration_format / numeric_value / percentage_format)
 aggregate_date_filter     = negation? aggregate_key sep operator? (date_format / alt_date_format)
 aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
 
@@ -157,7 +158,7 @@ aggregate_key        = key open_paren function_arg* closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
-numeric_value        = ~r"[-]?[0-9\.]+(?=\s|\)|$)"
+numeric_value        = ~r"([-]?[0-9\.]+)([k|m|b])?(?=\s|\)|$)"
 boolean_value        = ~r"(true|1|false|0)(?=\s|\)|$)"i
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
@@ -443,9 +444,9 @@ class SearchVisitor(NodeVisitor):
 
         if self.is_numeric_key(search_key.name):
             try:
-                search_value = SearchValue(float(search_value.text))
-            except ValueError:
-                raise InvalidSearchQuery(f"Invalid numeric query: {search_key}")
+                search_value = SearchValue(parse_numeric_value(*search_value.match.groups()))
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, search_value)
         else:
             search_value = SearchValue(
@@ -483,7 +484,7 @@ class SearchVisitor(NodeVisitor):
                         aggregate_value = parse_duration(*search_value.match.groups())
 
             if aggregate_value is None:
-                aggregate_value = float(search_value.text)
+                aggregate_value = parse_numeric_value(*search_value.match.groups())
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:
@@ -541,7 +542,7 @@ class SearchVisitor(NodeVisitor):
             return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
 
     def visit_duration_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
+        (search_key, sep, operator, search_value) = children
 
         operator = operator[0] if not isinstance(operator, Node) else "="
         if self.is_duration_key(search_key.name):
@@ -550,6 +551,8 @@ class SearchVisitor(NodeVisitor):
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
+        elif self.is_numeric_key(search_key.name):
+            return self.visit_numeric_filter(node, (search_key, sep, operator, search_value))
         else:
             search_value = operator + search_value.text if operator != "=" else search_value.text
             return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
