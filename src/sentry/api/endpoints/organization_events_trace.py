@@ -115,7 +115,13 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         parent_map = defaultdict(list)
         for item in result["data"]:
             parent_map[item["trace.parent_span"]].append(item)
-        error_map = self.get_error_map(organization, trace_id, params)
+
+        # Temporary oldschool style of feature flagging this out, since errors will impact performance
+        if not features.has("organizations:trace-view-summary", organization, actor=request.user):
+            error_map = []
+        else:
+            error_map = self.get_error_map(organization, trace_id, params)
+
         return Response(
             self.serialize(
                 parent_map, error_map, root, warning_extra, params, snuba_event, event_id
