@@ -1,7 +1,6 @@
 # Ignore everything
 *
 
-!/docker-test
 !/package.json
 !/yarn.lock
 !/requirements*

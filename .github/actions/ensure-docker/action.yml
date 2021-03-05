@@ -13,7 +13,7 @@ runs:
       shell: bash
       run: |
         mkdir -p $HOME/.docker
-        echo '{"experimental": "enabled"}' > $HOME/.docker/config.json
+        echo '{"experimental": "enabled", "features":{ "buildkit": true}}' > $HOME/.docker/config.json
         gcloud auth configure-docker --quiet
 
     - name: bump-sentry ${{ inputs.sentry_sha }}
