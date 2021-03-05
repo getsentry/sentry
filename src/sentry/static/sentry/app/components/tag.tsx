@@ -32,6 +32,10 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
    */
   to?: React.ComponentProps<typeof Link>['to'];
   /**
+   * Triggered when the item is clicked
+   */
+  onClick?: (eventKey: any) => void;
+  /**
    * Makes the tag clickable. Use for external links.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
    */
@@ -51,6 +55,7 @@ function Tag({
   icon,
   tooltipText,
   to,
+  onClick,
   href,
   onDismiss,
   children,
@@ -111,7 +116,13 @@ function Tag({
       return <ExternalLink href={href}>{tag}</ExternalLink>;
     }
 
-    if (defined(to)) {
+    if (defined(to) && defined(onClick)) {
+      return (
+        <Link to={to} onClick={onClick}>
+          {tag}
+        </Link>
+      );
+    } else if (defined(to)) {
       return <Link to={to}>{tag}</Link>;
     }
 
