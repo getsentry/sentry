@@ -1,6 +1,7 @@
 import React from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlock';
+import {Event} from 'app/types/event';
 
 import getUnknownData from '../getUnknownData';
 
@@ -9,6 +10,7 @@ import {DeviceData, DeviceKnownDataType} from './types';
 
 type Props = {
   data: DeviceData;
+  event: Event;
 };
 
 const deviceKnownDataValues = [
@@ -53,9 +55,9 @@ const deviceKnownDataValues = [
 
 const deviceIgnoredDataValues = [];
 
-const Device = ({data}: Props) => (
+const Device = ({data, event}: Props) => (
   <React.Fragment>
-    <ContextBlock data={getDeviceKnownData(data, deviceKnownDataValues)} />
+    <ContextBlock data={getDeviceKnownData(event, data, deviceKnownDataValues)} />
     <ContextBlock
       data={getUnknownData(data, [...deviceKnownDataValues, ...deviceIgnoredDataValues])}
     />

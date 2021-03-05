@@ -3,7 +3,10 @@ import React from 'react';
 import DeviceName from 'app/components/deviceName';
 import FileSize from 'app/components/fileSize';
 import {t} from 'app/locale';
+import {Event} from 'app/types/event';
 import {defined} from 'app/utils';
+
+import {getRelativeTimeFromEventDateCreated} from '../utils';
 
 import formatMemory from './formatMemory';
 import formatStorage from './formatStorage';
@@ -14,7 +17,11 @@ type Output = {
   value?: React.ReactNode;
 };
 
-function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType): Output {
+function getDeviceKnownDataDetails(
+  event: Event,
+  data: DeviceData,
+  type: DeviceKnownDataType
+): Output {
   switch (type) {
     case DeviceKnownDataType.NAME:
       return {
@@ -135,7 +142,7 @@ function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType):
     case DeviceKnownDataType.BOOT_TIME:
       return {
         subject: t('Boot Time'),
-        value: data.boot_time,
+        value: getRelativeTimeFromEventDateCreated(event.dateCreated, data.boot_time),
       };
     case DeviceKnownDataType.TIMEZONE:
       return {

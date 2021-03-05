@@ -31,7 +31,7 @@ function getOperatingSystemKnownDataDetails(
     case OperatingSystemKnownDataType.ROOTED:
       return {
         subject: t('Rooted'),
-        value: defined(data.rooted) ? (data.rooted ? 'yes' : 'no') : null,
+        value: defined(data.rooted) ? (data.rooted ? t('yes') : t('no')) : null,
       };
     default:
       return {
