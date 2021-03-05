@@ -208,7 +208,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(wrapper.find('input[name="displayType"]').props().value).toEqual(
       widget.displayType
     );
-    expect(wrapper.find('WidgetQueryForm')).toHaveLength(2);
+    expect(wrapper.find('WidgetQueryForm')).toHaveLength(1);
+    expect(wrapper.find('StyledSearchBar')).toHaveLength(2);
+    expect(wrapper.find('QueryField')).toHaveLength(1);
 
     title.simulate('change', {target: {value: 'New title'}});
     await clickSubmit(wrapper);
