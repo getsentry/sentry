@@ -258,7 +258,7 @@ describe('IssueListSearchBar', function () {
         organization,
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
-      expect(searchBar.find('[data-test-id="pin-icon"]')).toHaveLength(3);
+      expect(searchBar.find('[data-test-id="pin-icon"]')).toHaveLength(2);
     });
 
     it('pins a search from the searchbar', function () {

@@ -81,11 +81,13 @@ const getInputButtonStyles = (p: {
   };
 `;
 
-const getDropdownElementStyles = (p: {
+type DropdownElementStylesProps = {
   theme: Theme;
   showBelowMediaQuery: number;
   last?: boolean;
-}) => `
+};
+
+const getDropdownElementStyles = (p: DropdownElementStylesProps) => `
   padding: 0 ${space(1)} ${p.last ? null : space(0.5)};
   margin-bottom: ${p.last ? null : space(0.5)};
   display: none;
@@ -1355,9 +1357,9 @@ const StyledDropdownLink = styled(DropdownLink)`
   }
 `;
 
-const DropdownElement = withTheme(styled('a')`
+const DropdownElement = styled('a')<Omit<DropdownElementStylesProps, 'theme'>>`
   ${getDropdownElementStyles}
-`);
+`;
 
 const StyledButtonBar = styled(ButtonBar)`
   margin-right: ${space(1)};

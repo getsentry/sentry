@@ -233,8 +233,9 @@ class Chart extends React.Component<ChartProps, State> {
   }
 }
 
+const ThemedChart = withTheme(Chart);
+
 export type EventsChartProps = {
-  theme: Theme;
   api: Client;
   router: InjectedRouter;
   organization: OrganizationSummary;
@@ -339,7 +340,6 @@ type ChartDataProps = {
 class EventsChart extends React.Component<EventsChartProps> {
   render() {
     const {
-      theme,
       api,
       period,
       utc,
@@ -406,8 +406,7 @@ class EventsChart extends React.Component<EventsChartProps> {
 
           {React.isValidElement(chartHeader) && chartHeader}
 
-          <Chart
-            theme={theme}
+          <ThemedChart
             zoomRenderProps={zoomRenderProps}
             loading={loading}
             reloading={reloading}
@@ -491,4 +490,4 @@ class EventsChart extends React.Component<EventsChartProps> {
   }
 }
 
-export default withTheme(EventsChart);
+export default EventsChart;
