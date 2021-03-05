@@ -82,8 +82,10 @@ cssselect==1.0.3
 # sentry-plugins specific dependencies
 phabricator==0.7.0
 
-# test dependencies, but unable to move to requirements-test until sentry.utils.pytest and similar are moved to tests/
+# test dependencies, but unable to move to requirements-test until
+# sentry.utils.pytest and sentry.testutils are moved to tests/
 selenium==3.141.0
+sqlparse==0.2.4
 # We're still using mock in Python 3.6 because it contains a fix to Python issue37972.
 # We should be able to fully swap it out for stdlib once we're on 3.8.
 mock==4.0.3
