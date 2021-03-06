@@ -112,6 +112,6 @@ RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
     && volta -v \
     && node -v \
     && yarn -v \
-    && yarn install --frozen-lockfile \
+    && yarn install --frozen-lockfile --modules-folder /usr/src/sentry_node_modules \
     && rm -r "$YARN_CACHE_FOLDER" \
     && rm "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
