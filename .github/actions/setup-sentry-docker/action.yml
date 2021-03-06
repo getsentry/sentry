@@ -81,6 +81,8 @@ runs:
           exit 0
         fi
 
+        sentry init
+
         docker exec sentry-test sentry devservices up postgres redis
 
         if [ "$NEED_KAFKA" = "true" ]; then

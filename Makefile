@@ -132,7 +132,6 @@ run-acceptance:
 	@echo ""
 
 test-setup-frontend:
-	sentry init
 	make build-platform-assets
 
 test-setup-db: create-db
@@ -156,6 +155,8 @@ test-js-build: node-version-check
 	@NODE_ENV=production yarn webpack-profile > .artifacts/webpack-stats.json
 
 test-js: node-version-check
+	ls -la
+	ls -la node_modules/bin/jest
 	@echo "--> Running JavaScript tests"
 	@yarn run test-ci
 	@echo ""
