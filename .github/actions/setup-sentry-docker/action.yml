@@ -81,7 +81,7 @@ runs:
           exit 0
         fi
 
-        sentry init
+        docker exec sentry-test sentry init
 
         docker exec sentry-test sentry devservices up postgres redis
 
