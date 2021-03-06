@@ -258,7 +258,7 @@ class DetailsBody extends React.Component<Props> {
           <SummaryStats>{this.renderSummaryStatItems(percentages)}</SummaryStats>
         </ChartSummary>
         <Feature features={['discover-basic']}>
-          <Button size="small" priority="primary" disabled={!rule} {...props}>
+          <Button size="small" disabled={!rule} {...props}>
             {buttonText}
           </Button>
         </Feature>
@@ -295,8 +295,10 @@ class DetailsBody extends React.Component<Props> {
 
     return (
       <GroupedHeaderItems>
-        <ItemTitle>{t('Current Status')}</ItemTitle>
-        <ItemTitle>{activeIncident ? t('Last Triggered') : t('Last Resolved')}</ItemTitle>
+        <SidebarHeading>{t('Status')}</SidebarHeading>
+        <SidebarHeading>
+          {activeIncident ? t('Last Triggered') : t('Last Resolved')}
+        </SidebarHeading>
         <ItemValue>
           <AlertBadge color={color} icon={Icon}>
             <AlertIconWrapper>
@@ -486,14 +488,6 @@ const GroupedHeaderItems = styled('div')`
   margin-bottom: ${space(4)};
 `;
 
-const ItemTitle = styled('h6')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: 0;
-  text-transform: uppercase;
-  color: ${p => p.theme.gray300};
-  letter-spacing: 0.1px;
-`;
-
 const ItemValue = styled('div')`
   display: flex;
   justify-content: flex-start;
@@ -555,7 +549,7 @@ const ChartActions = styled(PanelFooter)`
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding: ${space(2)};
+  padding: ${space(1)} 20px;
 `;
 
 const ChartSummary = styled('div')`
