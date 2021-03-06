@@ -201,7 +201,7 @@ class AssigneeSelector extends React.Component<Props, State> {
     const {onAssign} = this.props;
     if (onAssign) {
       const suggestionType = type === 'member' ? 'user' : type;
-      const suggestion = this.getSuggestedAssignees()?.find(
+      const suggestion = this.getSuggestedAssignees().find(
         actor => actor.type === suggestionType && actor.id === assignee.id
       );
       onAssign?.(type, assignee, suggestion);
