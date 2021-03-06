@@ -88,10 +88,11 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         model = AlertRuleTriggerAction
         fields = ["id", "type", "target_type", "target_identifier", "integration", "sentry_app"]
         extra_kwargs = {
-            "target_identifier": {"required": True},
+            "target_identifier": {"required": False},
             "target_display": {"required": False},
             "integration": {"required": False, "allow_null": True},
             "sentry_app": {"required": False, "allow_null": True},
+            "input_channel_id": {"required": False, "allow_null": True},  # do I need this?
         }
 
     def validate_type(self, type):
@@ -110,6 +111,10 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return string_to_action_target_type[target_type]
 
     def validate(self, attrs):
+        if ("input_channel_id" in attrs) and ("target_identifier" in attrs):
+            raise serializers.ValidationError(
+                "Either input_channel_id or targetIdentifier must be passed but not both"
+            )
         if ("type" in attrs) != ("target_type" in attrs) != ("target_identifier" in attrs):
             raise serializers.ValidationError(
                 "type, targetType and targetIdentifier must be passed together"
@@ -165,6 +170,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     {"sentry_app": "SentryApp must be provided for sentry_app"}
                 )
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
+        attrs["input_channel_id"] = self.context.get("input_channel_id")
         return attrs
 
     def create(self, validated_data):
@@ -258,6 +264,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                         "organization": self.context["organization"],
                         "access": self.context["access"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
+                        "input_channel_id": action_data.pop("input_channel_id", None),
                     },
                     instance=action_instance,
                     data=action_data,
@@ -327,6 +334,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "include_all_projects": {"default": False},
             "threshold_type": {"required": True},
             "resolve_threshold": {"required": False},
+            "input_channel_id": {"required": False},  # is this needed?
         }
 
     def validate_query(self, query):
@@ -382,6 +390,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         both alert and resolve 'after' the warning trigger (whether that means
         > or < the value depends on threshold type).
         """
+
         data.setdefault("dataset", QueryDatasets.EVENTS)
         project_id = data.get("projects")
         if not project_id:
@@ -466,7 +475,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 threshold_type, warning, data.get("resolve_threshold")
             )
             self._validate_critical_warning_triggers(threshold_type, critical, warning)
-
         return data
 
     def _validate_trigger_thresholds(self, threshold_type, trigger, resolve_threshold):
@@ -556,6 +564,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         "organization": self.context["organization"],
                         "access": self.context["access"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
+                        "input_channel_id": self.context.get("input_channel_id"),
                     },
                     instance=trigger_instance,
                     data=trigger_data,

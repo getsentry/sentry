@@ -417,7 +417,6 @@ def get_channel_id_with_timeout(integration, name, timeout):
             except ApiError as e:
                 logger.info("rule.slack.%s_list_failed" % list_type, extra={"error": str(e)})
                 return (prefix, None, False)
-
             for c in items[result_name]:
                 # The "name" field is unique (this is the username for users)
                 # so we return immediately if we find a match.
