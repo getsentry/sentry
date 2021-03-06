@@ -153,11 +153,6 @@ test-js: node-version-check
 	@yarn run test
 	@echo ""
 
-test-js-ci: node-version-check
-	@echo "--> Running CI JavaScript tests"
-	@yarn run test-ci
-	@echo ""
-
 test-python:
 	@echo "--> Running Python tests"
 	# This gets called by getsentry
@@ -220,4 +215,10 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop bootstrap build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
+ci-test-js: node-version-check
+	@echo "--> Running CI JavaScript tests"
+	@yarn run test-ci
+	@echo ""
+ci-test-acceptance: test-acceptance
+
+.PHONY: develop bootstrap build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js ci-test-js
