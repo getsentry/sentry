@@ -8,6 +8,7 @@ import SuggestedAvatarStack from 'app/components/avatar/suggestedAvatarStack';
 import TeamAvatar from 'app/components/avatar/teamAvatar';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import {ItemsBeforeFilter} from 'app/components/dropdownAutoComplete/types';
 import DropdownBubble from 'app/components/dropdownBubble';
 import Highlight from 'app/components/highlight';
 import ExternalLink from 'app/components/links/externalLink';
@@ -25,8 +26,6 @@ import ProjectsStore from 'app/stores/projectsStore';
 import space from 'app/styles/space';
 import {Actor, SuggestedOwner, SuggestedOwnerReason, Team, User} from 'app/types';
 import {buildTeamId, buildUserId, valueIsEqual} from 'app/utils';
-
-type DropdownItems = React.ComponentProps<typeof DropdownAutoComplete>['items'];
 
 type SuggestedAssignee = Actor & {
   suggestedReason: SuggestedOwnerReason;
@@ -141,8 +140,8 @@ class AssigneeSelector extends React.Component<Props, State> {
     this.setState({memberList: members});
   };
 
-  memberList(): User[] {
-    return this.props.memberList ?? this.state.memberList ?? [];
+  memberList(): User[] | undefined {
+    return this.props.memberList ? this.props.memberList : this.state.memberList;
   }
 
   onGroupChange(itemIds: Set<string>) {
@@ -216,7 +215,7 @@ class AssigneeSelector extends React.Component<Props, State> {
     e.stopPropagation();
   };
 
-  renderMemberNode(member: User, suggestedReason?: string): DropdownItems[0] {
+  renderMemberNode(member: User, suggestedReason?: string): ItemsBeforeFilter[0] {
     const {size} = this.props;
 
     return {
@@ -240,7 +239,7 @@ class AssigneeSelector extends React.Component<Props, State> {
     };
   }
 
-  renderNewMemberNodes(): DropdownItems {
+  renderNewMemberNodes(): ItemsBeforeFilter {
     const members = putSessionUserFirst(this.memberList());
     return members.map(member => this.renderMemberNode(member));
   }
@@ -248,7 +247,7 @@ class AssigneeSelector extends React.Component<Props, State> {
   renderTeamNode(
     assignableTeam: AssignableTeam,
     suggestedReason?: string
-  ): DropdownItems[0] {
+  ): ItemsBeforeFilter[0] {
     const {size} = this.props;
     const {id, display, team} = assignableTeam;
     return {
@@ -272,7 +271,7 @@ class AssigneeSelector extends React.Component<Props, State> {
     };
   }
 
-  renderNewTeamNodes(): DropdownItems {
+  renderNewTeamNodes(): ItemsBeforeFilter {
     return this.assignableTeams().map(team => this.renderTeamNode(team));
   }
 
@@ -303,11 +302,11 @@ class AssigneeSelector extends React.Component<Props, State> {
     return <GroupHeader>{label}</GroupHeader>;
   }
 
-  renderNewDropdownItems(): DropdownItems {
+  renderNewDropdownItems(): ItemsBeforeFilter {
     const teams = this.renderNewTeamNodes();
     const members = this.renderNewMemberNodes();
 
-    const dropdownItems: DropdownItems = [
+    const dropdownItems: ItemsBeforeFilter = [
       {label: this.renderDropdownGroupLabel(t('Teams')), id: 'team-header', items: teams},
       {
         label: this.renderDropdownGroupLabel(t('People')),
@@ -316,7 +315,7 @@ class AssigneeSelector extends React.Component<Props, State> {
       },
     ];
 
-    const suggestedAssignees = this.renderSuggestedAssigneeNodes();
+    const suggestedAssignees = this.renderSuggestedAssigneeNodes() ?? [];
     if (suggestedAssignees.length) {
       dropdownItems.unshift({
         label: this.renderDropdownGroupLabel(t('Suggested')),
@@ -335,7 +334,7 @@ class AssigneeSelector extends React.Component<Props, State> {
     }
 
     const assignableTeams = this.assignableTeams();
-    const memberList = this.memberList();
+    const memberList = this.memberList() ?? [];
     const suggestedAssignees: Array<SuggestedAssignee | null> = suggestedOwners.map(
       owner => {
         // converts a backend suggested owner to a suggested assignee
@@ -404,7 +403,7 @@ class AssigneeSelector extends React.Component<Props, State> {
               e?.stopPropagation();
             }}
             busy={memberList === undefined}
-            items={memberList !== undefined ? this.renderNewDropdownItems() : []}
+            items={memberList !== undefined ? this.renderNewDropdownItems() : null}
             alignMenu="right"
             onSelect={this.handleAssign}
             itemSize="small"
