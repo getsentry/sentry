@@ -258,7 +258,7 @@ class DetailsBody extends React.Component<Props> {
           <SummaryStats>{this.renderSummaryStatItems(percentages)}</SummaryStats>
         </ChartSummary>
         <Feature features={['discover-basic']}>
-          <Button size="small" priority="default" disabled={!rule} {...props}>
+          <Button size="small" disabled={!rule} {...props}>
             {buttonText}
           </Button>
         </Feature>
