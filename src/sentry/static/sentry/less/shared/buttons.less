@@ -1,10 +1,59 @@
 // stylelint-disable selector-no-qualifying-type
 
+.button-variant(@color; @background; @border) {
+  color: @color;
+  background-color: @background;
+  border-color: @border;
+
+  &:focus,
+  &.focus {
+    color: @color;
+    background-color: darken(@background, 10%);
+    border-color: darken(@border, 25%);
+  }
+  &:hover {
+    color: @color;
+    background-color: darken(@background, 10%);
+    border-color: darken(@border, 12%);
+  }
+  &:active,
+  &.active,
+  .open > .dropdown-toggle& {
+    color: @color;
+    background-color: darken(@background, 10%);
+    background-image: none;
+    border-color: darken(@border, 12%);
+
+    &:hover,
+    &:focus,
+    &.focus {
+      color: @color;
+      background-color: darken(@background, 17%);
+      border-color: darken(@border, 25%);
+    }
+  }
+  &.disabled,
+  &[disabled],
+  fieldset[disabled] & {
+    &:hover,
+    &:focus,
+    &.focus {
+      background-color: @background;
+      border-color: @border;
+    }
+  }
+}
+
+// Button sizes
+.button-size(@padding-vertical; @padding-horizontal; @font-size; @line-height; @border-radius) {
+  padding: @padding-vertical @padding-horizontal;
+  font-size: @font-size;
+  line-height: @line-height;
+  border-radius: @border-radius;
+}
+
 //
 // Buttons
-// --------------------------------------------------
-
-// Base styles
 // --------------------------------------------------
 
 .btn {
@@ -80,96 +129,18 @@
 .btn-info {
   .button-variant(@btn-info-color; @btn-info-bg; @btn-info-border);
 }
-// Warning appears as orange
-.btn-warning {
-  .button-variant(@btn-warning-color; @btn-warning-bg; @btn-warning-border);
-}
 // Danger and error appear as red
 .btn-danger {
   .button-variant(@btn-danger-color; @btn-danger-bg; @btn-danger-border);
 }
 
-// Link buttons
-// -------------------------
-
-// Make a button look and behave like a link
-.btn-link {
-  font-weight: 400;
-  color: @link-color;
-  border-radius: 0;
-
-  &,
-  &:active,
-  &.active,
-  &[disabled],
-  fieldset[disabled] & {
-    background-color: transparent;
-    box-shadow: none;
-  }
-  &,
-  &:hover,
-  &:focus,
-  &:active {
-    border-color: transparent;
-  }
-  &:hover,
-  &:focus {
-    color: @link-hover-color;
-    text-decoration: @link-hover-decoration;
-    background-color: transparent;
-  }
-  &[disabled],
-  fieldset[disabled] & {
-    &:hover,
-    &:focus {
-      color: @btn-link-disabled-color;
-      text-decoration: none;
-    }
-  }
-}
-
 // Button Sizes
 // --------------------------------------------------
 
-.btn-lg {
-  // line-height: ensure even-numbered height of button next to large input
-  .button-size(
-    @padding-large-vertical; @padding-large-horizontal; @font-size-large;
-      @line-height-large; @btn-border-radius-large
-  );
-}
 .btn-sm {
   // line-height: ensure proper height of button next to small input
   .button-size(
     @padding-small-vertical; @padding-small-horizontal; @font-size-small;
       @line-height-small; @btn-border-radius-small
   );
-}
-.btn-xs {
-  .button-size(
-    @padding-xs-vertical; @padding-xs-horizontal; @font-size-small; @line-height-small;
-      @btn-border-radius-small
-  );
-}
-
-// Block button
-// --------------------------------------------------
-
-.btn-block {
-  display: block;
-  width: 100%;
-}
-
-// Vertically space out multiple block buttons
-.btn-block + .btn-block {
-  margin-top: 5px;
-}
-
-// Specificity overrides
-input[type='submit'],
-input[type='reset'],
-input[type='button'] {
-  &.btn-block {
-    width: 100%;
-  }
 }
