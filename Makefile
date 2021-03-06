@@ -132,6 +132,7 @@ run-acceptance:
 	@echo ""
 
 test-setup-frontend:
+	sentry init
 	make build-platform-assets
 
 test-setup-db: create-db
