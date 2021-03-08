@@ -36,7 +36,7 @@ jobs:
   frontend:
     name: frontend tests
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     needs: [ensure_docker]
 
     env:
@@ -70,7 +70,7 @@ jobs:
         uses: getsentry/action-html-to-image@main
         with:
           base-path: .artifacts/visual-snapshots/jest
-          css-path: ${{ github.workspace }}/dist/sentry.css
+          css-path: ./dist/sentry.css
 
       - name: Save snapshots
         if: always()
