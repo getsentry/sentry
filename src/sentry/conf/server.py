@@ -916,8 +916,6 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable mobile app pages.
-    "organizations:mobile-app": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
