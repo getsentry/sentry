@@ -157,6 +157,7 @@ class WidgetQueries extends React.Component<Props, State> {
     }
 
     if (
+      !this.state.loading &&
       !isEqual(prevWidgetQueryNames, widgetQueryNames) &&
       this.state.rawResults?.length === widget.queries.length
     ) {
