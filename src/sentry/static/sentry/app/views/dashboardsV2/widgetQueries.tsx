@@ -105,6 +105,7 @@ type TableDataWithTitle = TableData & {title: string};
 type State = {
   errorMessage: undefined | string;
   loading: boolean;
+  queryFetchID: symbol | undefined;
   timeseriesResults: undefined | Series[];
   rawResults: undefined | RawResult[];
   tableResults: undefined | TableDataWithTitle[];
@@ -113,6 +114,7 @@ type State = {
 class WidgetQueries extends React.Component<Props, State> {
   state: State = {
     loading: true,
+    queryFetchID: undefined,
     errorMessage: undefined,
     timeseriesResults: undefined,
     rawResults: undefined,
@@ -174,7 +176,7 @@ class WidgetQueries extends React.Component<Props, State> {
     }
   }
 
-  fetchEventData() {
+  fetchEventData(queryFetchID: symbol) {
     const {selection, api, organization, widget} = this.props;
 
     const {start, end, period: statsPeriod} = selection.datetime;
@@ -239,6 +241,11 @@ class WidgetQueries extends React.Component<Props, State> {
 
         completed++;
         this.setState(prevState => {
+          if (prevState.queryFetchID !== queryFetchID) {
+            // invariant: a different request was initiated after this request
+            return prevState;
+          }
+
           return {
             ...prevState,
             tableResults,
@@ -257,7 +264,7 @@ class WidgetQueries extends React.Component<Props, State> {
     });
   }
 
-  fetchTimeseriesData() {
+  fetchTimeseriesData(queryFetchID: symbol) {
     const {selection, api, organization, widget} = this.props;
     this.setState({timeseriesResults: [], rawResults: []});
 
@@ -292,6 +299,11 @@ class WidgetQueries extends React.Component<Props, State> {
         const rawResults = await promise;
         completed++;
         this.setState(prevState => {
+          if (prevState.queryFetchID !== queryFetchID) {
+            // invariant: a different request was initiated after this request
+            return prevState;
+          }
+
           const timeseriesResults = (prevState.timeseriesResults ?? []).concat(
             transformResult(widget.queries[i], rawResults)
           );
@@ -313,12 +325,13 @@ class WidgetQueries extends React.Component<Props, State> {
   fetchData() {
     const {widget} = this.props;
 
-    this.setState({loading: true, errorMessage: undefined});
+    const queryFetchID = Symbol('queryFetchID');
+    this.setState({loading: true, errorMessage: undefined, queryFetchID});
 
     if (['table', 'world_map', 'big_number'].includes(widget.displayType)) {
-      this.fetchEventData();
+      this.fetchEventData(queryFetchID);
     } else {
-      this.fetchTimeseriesData();
+      this.fetchTimeseriesData(queryFetchID);
     }
   }
 
