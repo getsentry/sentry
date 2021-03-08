@@ -290,6 +290,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             if any(g for g in groups if not request.access.has_project_access(g.project)):
                 raise PermissionDenied
             return Response(serialize(groups, request.user, serializer()))
+
         try:
             cursor_result, query_kwargs = self._search(
                 request,

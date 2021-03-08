@@ -4,8 +4,6 @@ from datetime import timedelta
 from django.utils import timezone
 from sentry.buffer.base import Buffer
 from sentry.models import (
-    Actor,
-    ACTOR_TYPES,
     Group,
     Organization,
     Project,
@@ -58,9 +56,7 @@ class BufferTest(TestCase):
 
     def test_increments_when_null(self):
         org = Organization.objects.create(slug="test-org")
-        team = Team.objects.create(
-            organization=org, slug="test-team", actor=Actor.objects.create(type=ACTOR_TYPES["user"])
-        )
+        team = Team.objects.create(organization=org, slug="test-team")
         project = Project.objects.create(organization=org, slug="test-project")
         project.add_team(team)
         release = Release.objects.create(organization=org, version="abcdefg")
