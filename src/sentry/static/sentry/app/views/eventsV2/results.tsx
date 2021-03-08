@@ -13,6 +13,7 @@ import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Confirm from 'app/components/confirm';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import SearchBar from 'app/components/events/searchBar';
 import * as Layout from 'app/components/layouts/thirds';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -32,7 +33,6 @@ import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import SearchBar from 'app/views/events/searchBar';
 
 import {addRoutePerformanceContext} from '../performance/utils';
 
@@ -69,7 +69,7 @@ function readShowTagsState() {
 }
 
 class Results extends React.Component<Props, State> {
-  static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     const eventView = EventView.fromLocation(nextProps.location);
     return {...prevState, eventView};
   }

@@ -1,7 +1,7 @@
 import logging
 import sentry_sdk
 
-from collections import deque
+from collections import defaultdict, deque
 
 from rest_framework.response import Response
 
@@ -29,7 +29,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
             "organizations:trace-view-quick", organization, actor=request.user
         ) or features.has("organizations:trace-view-summary", organization, actor=request.user)
 
-    def serialize_event(self, event, parent, generation=None, is_root_event=False):
+    def serialize_event(self, event, parent, generation=None):
         return {
             "event_id": event["id"],
             "span_id": event["trace.span"],
@@ -40,8 +40,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
             "parent_event_id": parent,
             # Avoid empty string for root events
             "parent_span_id": event["trace.parent_span"] or None,
-            # TODO(wmak) remove once we switch over to generation
-            "is_root": is_root_event,
             # Can be None on the light trace when we don't know the parent
             "generation": generation,
         }
@@ -112,7 +110,9 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
                 {"extra_roots": extra_roots, **warning_extra},
             )
 
-        parent_map = {item["trace.parent_span"]: item for item in result["data"]}
+        parent_map = defaultdict(list)
+        for item in result["data"]:
+            parent_map[item["trace.parent_span"]].append(item)
         return Response(
             self.serialize(parent_map, root, warning_extra, params, snuba_event, event_id)
         )
@@ -121,7 +121,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
     def serialize(self, parent_map, root, warning_extra, params, snuba_event, event_id=None):
         """ Because the light endpoint could potentially have gaps between root and event we return a flattened list """
-        trace_results = [self.serialize_event(root, None, 0, True)]
+        trace_results = [self.serialize_event(root, None, 0)]
 
         with sentry_sdk.start_span(op="building.trace", description="light trace"):
             if root["id"] != event_id:
@@ -145,8 +145,13 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
             event = eventstore.get_event_by_id(snuba_event["project.id"], event_id)
             for span in event.data.get("spans", []):
                 if span["span_id"] in parent_map:
-                    child_event = parent_map[span["span_id"]]
-                    trace_results.append(self.serialize_event(child_event, event_id))
+                    child_events = parent_map[span["span_id"]]
+                    trace_results.extend(
+                        [
+                            self.serialize_event(child_event, event_id)
+                            for child_event in child_events
+                        ]
+                    )
 
         return trace_results
 
@@ -160,29 +165,22 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     def serialize(self, parent_map, root, warning_extra, params, snuba_event=None, event_id=None):
         """ For the full event trace, we return the results as a graph instead of a flattened list """
         parent_events = {}
-        result = parent_events[root["id"]] = self.serialize_event(root, None, 0, True)
-        with sentry_sdk.start_span(
-            op="nodestore", description=f"retrieving {len(parent_map)} nodes"
-        ) as span:
-            span.set_data("total nodes", len(parent_map))
-            node_data = {
-                event.event_id: event
-                for event in eventstore.get_events(
-                    eventstore.Filter(
-                        project_ids=params["project_id"],
-                        event_ids=[event["id"] for event in parent_map.values()],
-                    )
-                )
-            }
+        result = parent_events[root["id"]] = self.serialize_event(root, None, 0)
 
         with sentry_sdk.start_span(op="building.trace", description="full trace"):
             to_check = deque([root])
             iteration = 0
             while to_check:
                 current_event = to_check.popleft()
-                event = node_data.get(current_event["id"])
-                previous_event = parent_events[current_event["id"]]
 
+                # This is faster than doing a call to get_events, since get_event_by_id only makes a call to snuba
+                # when non transaction events are included.
+                with sentry_sdk.start_span(op="nodestore", description="get_event_by_id"):
+                    event = eventstore.get_event_by_id(
+                        current_event["project.id"], current_event["id"]
+                    )
+
+                previous_event = parent_events[current_event["id"]]
                 previous_event.update(
                     {event_key: event.data.get(event_key) for event_key in NODESTORE_KEYS}
                 )
@@ -191,15 +189,16 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     if child["span_id"] not in parent_map:
                         continue
                     # Avoid potential span loops by popping, so we don't traverse the same nodes twice
-                    child_event = parent_map.pop(child["span_id"])
+                    child_events = parent_map.pop(child["span_id"])
 
-                    parent_events[child_event["id"]] = self.serialize_event(
-                        child_event, current_event["id"], previous_event["generation"] + 1
-                    )
-                    # Add this event to its parent's children
-                    previous_event["children"].append(parent_events[child_event["id"]])
+                    for child_event in child_events:
+                        parent_events[child_event["id"]] = self.serialize_event(
+                            child_event, current_event["id"], previous_event["generation"] + 1
+                        )
+                        # Add this event to its parent's children
+                        previous_event["children"].append(parent_events[child_event["id"]])
 
-                    to_check.append(child_event)
+                        to_check.append(child_event)
                 # Limit iterations just to be safe
                 iteration += 1
                 if iteration > MAX_TRACE_SIZE:

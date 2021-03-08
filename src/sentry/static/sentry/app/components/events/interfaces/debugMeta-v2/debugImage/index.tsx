@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
+import NotAvailable from 'app/components/notAvailable';
 import {IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -39,7 +40,11 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
         <ImageAddress>{imageAddress}</ImageAddress>
       </ImageColumn>
       <Column>
-        <Processings unwind_status={unwind_status} debug_status={debug_status} />
+        {unwind_status || debug_status ? (
+          <Processings unwind_status={unwind_status} debug_status={debug_status} />
+        ) : (
+          <NotAvailable />
+        )}
       </Column>
       <DebugFilesColumn>
         <Button

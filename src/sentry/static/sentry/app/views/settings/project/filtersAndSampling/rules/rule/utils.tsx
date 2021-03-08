@@ -14,13 +14,16 @@ export function getInnerNameLabel(name: DynamicSamplingInnerName) {
     case DynamicSamplingInnerName.EVENT_USER:
     case DynamicSamplingInnerName.TRACE_USER:
       return t('User');
+    case DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS:
+      return t('Browser Extensions');
+    case DynamicSamplingInnerName.EVENT_LOCALHOST:
+      return t('Localhost');
+    case DynamicSamplingInnerName.EVENT_WEB_CRAWLERS:
+      return t('Web Crawlers');
+    case DynamicSamplingInnerName.EVENT_LEGACY_BROWSER:
+      return t('Legacy Browsers');
     default: {
-      Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
-        Sentry.captureException(
-          new Error('Unknown dynamic sampling condition inner name')
-        );
-      });
+      Sentry.captureException(new Error('Unknown dynamic sampling condition inner name'));
       return null; //this shall never happen
     }
   }

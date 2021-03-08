@@ -428,6 +428,7 @@ class ReleaseSerializer(Serializer):
                 "totalSessions": data["total_sessions"],
                 "totalSessions24h": data["total_sessions_24h"],
                 "adoption": data["adoption"],
+                "sessions_adoption": data["sessions_adoption"],
                 "stats": data.get("stats"),
                 # XXX: legacy key, should be removed later.
                 "hasHealthData": data["has_health_data"],
