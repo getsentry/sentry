@@ -13,7 +13,7 @@ from sentry.incidents.endpoints.serializers import (
 )
 from sentry.incidents.logic import create_alert_rule_trigger, ChannelLookupTimeoutError
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
-from sentry.models import Integration, Environment
+from sentry.models import ACTOR_TYPES, Integration, Environment
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import TestCase
 
@@ -95,7 +95,6 @@ class TestAlertRuleSerializer(TestCase):
         field_is_required = ["This field is required."]
         assert serializer.errors == {
             "name": field_is_required,
-            "owner": field_is_required,
             "timeWindow": field_is_required,
             "query": field_is_required,
             "triggers": field_is_required,
@@ -515,13 +514,15 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
-        assert alert_rule.owner.get_actor_id() == f"team:{self.team.id}"
+        assert alert_rule.owner == self.team.actor
+        assert alert_rule.owner.type == ACTOR_TYPES["team"]
 
         base_params.update({"name": "another_test", "owner": f"user:{self.user.id}"})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
-        assert alert_rule.owner.get_actor_id() == f"user:{self.user.id}"
+        assert alert_rule.owner == self.user.actor
+        assert alert_rule.owner.type == ACTOR_TYPES["user"]
 
 
 class TestAlertRuleTriggerSerializer(TestCase):

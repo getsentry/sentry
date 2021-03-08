@@ -335,7 +335,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         }
 
     def validate_owner(self, owner):
-        # owner_id should be team:id or user:id
+        # owner should be team:id or user:id
         try:
             actor = Actor.from_actor_identifier(owner)
         except Exception:

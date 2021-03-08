@@ -41,6 +41,8 @@ from sentry.mediators import (
     service_hooks,
 )
 from sentry.models import (
+    Actor,
+    ACTOR_TYPES,
     Activity,
     Environment,
     Group,
@@ -70,6 +72,8 @@ from sentry.models import (
     RepositoryProjectPathConfig,
     Rule,
     ExternalUser,
+    ExternalTeam,
+    ProjectCodeOwners,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
@@ -260,7 +264,11 @@ class Factories:
             kwargs["slug"] = slugify(str(kwargs["name"]))
         members = kwargs.pop("members", None)
 
-        team = Team.objects.create(organization=organization, **kwargs)
+        team = Team.objects.create(
+            organization=organization,
+            actor=Actor.objects.create(type=ACTOR_TYPES["team"]),
+            **kwargs,
+        )
         if members:
             for user in members:
                 Factories.create_team_membership(team=team, user=user)
@@ -957,3 +965,18 @@ class Factories:
         kwargs.setdefault("external_name", "")
 
         return ExternalUser.objects.create(organizationmember=organizationmember, **kwargs)
+
+    @staticmethod
+    def create_external_team(team, **kwargs):
+        kwargs.setdefault("provider", ExternalTeam.get_provider_enum("github"))
+        kwargs.setdefault("external_name", "@getsentry/ecosystem")
+
+        return ExternalTeam.objects.create(team=team, **kwargs)
+
+    @staticmethod
+    def create_codeowners(project, code_mapping, **kwargs):
+        kwargs.setdefault("raw", "")
+
+        return ProjectCodeOwners.objects.create(
+            project=project, repository_project_path_config=code_mapping, **kwargs
+        )

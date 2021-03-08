@@ -7,8 +7,12 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from enum import Enum
 
-from sentry.api.fields.actor import Actor, ActorModelMixin
-from sentry.db.models import FlexibleForeignKey, Model, UUIDField, OneToOneCascadeDeletes, BoundedPositiveIntegerField, BoundedBigIntegerField
+from sentry.db.models import (
+    FlexibleForeignKey,
+    Model,
+    UUIDField,
+    OneToOneCascadeDeletes,
+)
 from sentry.db.models import ArrayField, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User
@@ -355,12 +359,8 @@ class AlertRuleExcludedProjects(Model):
         db_table = "sentry_alertruleexcludedprojects"
         unique_together = (("alert_rule", "project"),)
 
-RULE_OWNER_TYPES = {
-    "user": 1,
-    "team": 2
-}
 
-class AlertRule(Model, ActorModelMixin):
+class AlertRule(Model):
     __core__ = True
 
     objects = AlertRuleManager()
@@ -368,16 +368,11 @@ class AlertRule(Model, ActorModelMixin):
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
+    owner = FlexibleForeignKey("sentry.Actor", null=True)
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )
     name = models.TextField()
-
-    owner_type = BoundedPositiveIntegerField(
-        choices=((v,k) for k,v in RULE_OWNER_TYPES.items()),
-        null=True,
-    )
-    owner_identifier = BoundedBigIntegerField(null=True)
 
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     # Determines whether we include all current and future projects from this
@@ -414,10 +409,6 @@ class AlertRule(Model, ActorModelMixin):
         except AlertRuleActivity.DoesNotExist:
             pass
         return None
-
-    @property
-    def owner(self):
-        return self.actor("owner")
 
 
 class TriggerStatus(Enum):
