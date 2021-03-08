@@ -10,11 +10,10 @@ To get this file to load, add the follwing to your sentry.conf.py file:
 from sentry.demo.settings import *
 
 """
-
 DEMO_MODE = True
 CELERY_IMPORTS = CELERY_IMPORTS + ("sentry.demo.tasks",)
 CELERYBEAT_SCHEDULE["demo_delete_users_orgs"] = {
     "task": "sentry.demo.tasks.delete_users_orgs",
-    "schedule": timedelta(hours=1),
+    "schedule": timedelta(seconds=10),
     "options": {"expires": 3600, "queue": "cleanup"},
 }
