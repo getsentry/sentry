@@ -1,6 +1,6 @@
 from collections import defaultdict, namedtuple
 from rest_framework import serializers
-from sentry.models import User, Team
+from sentry.models import actor_type_to_model, Team, User
 from sentry.utils.auth import find_users
 from sentry.utils.compat import filter
 
@@ -11,6 +11,10 @@ class Actor(namedtuple("Actor", "id type")):
 
     def get_type_string(self):
         return self.type.__name__.lower()
+
+    @classmethod
+    def from_model(cls, actor):
+        return actor_type_to_model(actor.type).objects.get(actor_id=actor.id)
 
     @classmethod
     def from_actor_identifier(cls, actor_identifier):
