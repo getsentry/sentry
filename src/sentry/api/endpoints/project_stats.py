@@ -9,7 +9,7 @@ from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 
 
 class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
-    def get(self, request, project_slug=None):
+    def get(self, request, project):
         """
         Retrieve Event Counts for a Project
         ```````````````````````````````````
@@ -47,7 +47,7 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
             stat_model = tsdb.models.project
             try:
                 query_kwargs["environment_id"] = self._get_environment_id_from_request(
-                    request, project_slug.organization_id
+                    request, project.organization_id
                 )
             except Environment.DoesNotExist:
                 raise ResourceDoesNotExist
@@ -60,7 +60,7 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
                 raise ValueError("Invalid stat: %s" % stat)
 
         data = tsdb.get_range(
-            model=stat_model, keys=[project_slug.id], **self._parse_args(request, **query_kwargs)
-        )[project_slug.id]
+            model=stat_model, keys=[project.id], **self._parse_args(request, **query_kwargs)
+        )[project.id]
 
         return Response(data)
