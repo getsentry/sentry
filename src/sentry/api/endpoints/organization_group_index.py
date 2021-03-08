@@ -20,7 +20,7 @@ from sentry.api.helpers.group_index import (
     update_groups,
     ValidationError,
 )
-from sentry.api.paginator import DateTimePaginator
+from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_params, InvalidParams
@@ -29,11 +29,7 @@ from sentry.search.snuba.backend import (
     assigned_or_suggested_filter,
     EventsDatasetSnubaSearchBackend,
 )
-from sentry.search.snuba.executors import (
-    get_search_filter,
-    InvalidSearchQuery,
-    PostgresSnubaQueryExecutor,
-)
+from sentry.search.snuba.executors import get_search_filter, InvalidSearchQuery
 from sentry.snuba import discover
 from sentry.utils.compat import map
 from sentry.utils.cursors import Cursor, CursorResult
@@ -79,7 +75,7 @@ def inbox_search(
     end = max([earliest_date, end])
 
     if start >= end:
-        return PostgresSnubaQueryExecutor.empty_result
+        return Paginator(Group.objects.none()).get_result()
 
     # Make sure search terms are valid
     invalid_search_terms = [
