@@ -515,13 +515,6 @@ def browser(request, live_server):
     return driver
 
 
-@pytest.fixture(scope="session", autouse=True)
-def _environment(request):
-    config = request.config
-    # add environment details to the pytest-html plugin
-    config._metadata.update({"Driver": config.option.selenium_driver})
-
-
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield
