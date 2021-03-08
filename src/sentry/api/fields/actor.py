@@ -9,6 +9,9 @@ class Actor(namedtuple("Actor", "id type")):
     def get_actor_id(self):
         return "%s:%d" % (self.type.__name__.lower(), self.id)
 
+    def get_type_string(self):
+        return self.type.__name__.lower()
+
     @classmethod
     def from_actor_identifier(cls, actor_identifier):
         """
@@ -45,6 +48,9 @@ class Actor(namedtuple("Actor", "id type")):
 
     def resolve(self):
         return self.type.objects.get(id=self.id)
+
+    def resolve_to_actor(self):
+        return self.resolve().actor
 
     @classmethod
     def resolve_many(cls, actors):

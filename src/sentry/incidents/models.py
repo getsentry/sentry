@@ -7,10 +7,16 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from enum import Enum
 
-from sentry.db.models import FlexibleForeignKey, Model, UUIDField, OneToOneCascadeDeletes
+from sentry.db.models import (
+    FlexibleForeignKey,
+    Model,
+    UUIDField,
+    OneToOneCascadeDeletes,
+)
 from sentry.db.models import ArrayField, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User
+
 from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
@@ -362,10 +368,12 @@ class AlertRule(Model):
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
+    owner = FlexibleForeignKey("sentry.Actor", null=True)
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )
     name = models.TextField()
+
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     # Determines whether we include all current and future projects from this
     # organization in this rule.
@@ -373,6 +381,7 @@ class AlertRule(Model):
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
     threshold_period = models.IntegerField()
+
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 

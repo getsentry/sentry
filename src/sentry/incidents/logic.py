@@ -585,6 +585,7 @@ def create_alert_rule(
     organization,
     projects,
     name,
+    owner,
     query,
     aggregate,
     time_window,
@@ -607,6 +608,7 @@ def create_alert_rule(
     if `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project
+    :param owner: Actor (sentry.api.field.actor) namedtuple consisting of id and type (User or Team) or None
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes
@@ -639,6 +641,10 @@ def create_alert_rule(
             environment,
             event_types=event_types,
         )
+        actor = None
+        if owner:
+            actor = owner.resolve_to_actor()
+
         alert_rule = AlertRule.objects.create(
             organization=organization,
             snuba_query=snuba_query,
@@ -647,6 +653,7 @@ def create_alert_rule(
             resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
+            owner=actor,
         )
 
         if include_all_projects:
@@ -713,6 +720,7 @@ def update_alert_rule(
     dataset=None,
     projects=None,
     name=None,
+    owner=None,
     query=None,
     aggregate=None,
     time_window=None,
@@ -734,6 +742,7 @@ def update_alert_rule(
     `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project.
+    :param owner: Actor (sentry.api.field.actor) namedtuple consisting of id and type (User or Team) or None
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes.
@@ -780,6 +789,8 @@ def update_alert_rule(
         updated_query_fields["dataset"] = dataset
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
+    if owner is not None:
+        updated_fields["owner"] = owner.resolve_to_actor()
 
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
