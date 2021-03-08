@@ -23,7 +23,7 @@ jsonschema==3.2.0
 lxml==4.6.2
 maxminddb==1.5.4
 mistune==0.8.4
-mmh3==2.3.1
+mmh3==3.0.0
 parsimonious==0.8.0
 petname==2.6
 phonenumberslite==8.11.3
