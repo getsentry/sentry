@@ -67,7 +67,6 @@ RUN set -x \
   # uwsgi
   && buildDeps="$buildDeps \
   gcc \
-  g++ \
   wget \
   " \
   # maxminddb
