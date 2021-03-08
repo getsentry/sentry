@@ -10,7 +10,9 @@ target-version=['py36']
 [tool.pytest.ini_options]
 # note: When updating the traceback format, make sure to update .github/pytest.json
 # We don't use the celery pytest plugin.
-addopts = "-ra --tb=short --strict-markers -p no:celery"
+# TODO: Warnings are disabled for now (they always have been)
+#       until the good ones are fixed and the rest filtered for.
+addopts = "-ra --tb=short --strict-markers -p no:celery -p no:warnings"
 # TODO: --import-mode=importlib will become the default soon,
 # currently we have a few relative imports that don't work with that.
 markers = [
