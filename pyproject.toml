@@ -11,7 +11,8 @@ target-version=['py36']
 # note: When updating the traceback format, make sure to update .github/pytest.json
 # We don't use the celery pytest plugin.
 addopts = "-ra --tb=short --strict-markers -p no:celery"
-# --import-mode=importlib
+# TODO: --import-mode=importlib will become the default soon,
+# currently we have a few relative imports that don't work with that.
 markers = [
     "snuba: mark a test as requiring snuba",
 ]
