@@ -874,17 +874,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200
             assert len(response.data) == 0
 
-            response = self.get_response(
-                sort="inbox",
-                limit=10,
-                query="is:unresolved is:for_review assigned_or_suggested:me_or_none",
-                expand=["inbox", "owners"],
-                start=iso_format(before_now(days=9)),
-                end=iso_format(before_now(days=8)),
-            )
-            assert response.status_code == 200
-            assert len(response.data) == 0
-
     def test_assigned_or_suggested_search(self):
         event = self.store_event(
             data={
