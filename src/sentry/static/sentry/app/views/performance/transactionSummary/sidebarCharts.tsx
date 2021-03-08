@@ -58,7 +58,7 @@ function SidebarCharts({api, eventView, organization, router, totals}: Props) {
     },
   };
   const chartOptions = {
-    height: 460,
+    height: 480,
     grid: [
       {
         top: '60px',
