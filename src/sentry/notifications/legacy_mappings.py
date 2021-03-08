@@ -1,4 +1,4 @@
-from sentry.models.notificationsetting import (
+from sentry.notifications.types import (
     NotificationSettingTypes,
     NotificationSettingOptionValues,
 )
