@@ -1,6 +1,6 @@
+import styled from '@emotion/styled';
 import {Query} from 'history';
 
-import styled from 'app/styled';
 import space from 'app/styles/space';
 
 import {DisplayModes} from './charts';
