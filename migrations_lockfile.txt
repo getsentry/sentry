@@ -8,9 +8,10 @@ will then be regenerated, and you should be able to merge without conflicts.
 admin: 0002_logentry_remove_auto_add
 auth: 0008_alter_user_username_max_length
 contenttypes: 0002_remove_content_type_name
+demo: 0001_add_demo_org_user_models
 jira_ac: 0001_initial
 nodestore: 0002_nodestore_no_dictfield
-sentry: 0171_org_demo_waiting_assignment_status
+sentry: 0171_add_demo_org_user_models
 sessions: 0001_initial
 sites: 0002_alter_domain_unique
 social_auth: 0001_initial

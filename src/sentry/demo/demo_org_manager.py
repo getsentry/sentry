@@ -1,4 +1,4 @@
-from django.utils import timezone
+from django.db import transaction
 from typing import Tuple
 
 from sentry.models import (
@@ -6,26 +6,28 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
-    OrganizationStatus,
     Team,
 )
 from sentry.utils.email import create_fake_email
 
 from .tasks import build_up_org_buffer
 from .utils import NoDemoOrgReady
+from .models import DemoUser, DemoOrganization, DemoOrgStatus
 
 
+@transaction.atomic
 def assign_demo_org() -> Tuple[Organization, User]:
-    org = Organization.objects.filter(status=OrganizationStatus.WAITING_DEMO_ASSIGNMENT).first()
-    if not org:
+    demo_org = DemoOrganization.objects.filter(status=DemoOrgStatus.PENDING).first()
+    if not demo_org:
         raise NoDemoOrgReady()
 
+    org = demo_org.organization
+
     email = create_fake_email(org.slug, "demo")
-    user = User.objects.create(
+    user = DemoUser.create_user(
         email=email,
         username=email,
         is_managed=True,
-        flags=User.flags["demo_mode"],
     )
 
     # TODO: May need logic in case team no longer exists
@@ -35,9 +37,7 @@ def assign_demo_org() -> Tuple[Organization, User]:
     OrganizationMemberTeam.objects.create(team=team, organizationmember=member, is_active=True)
 
     # update the date added to now so we reset the timer on deletion
-    org.date_added = timezone.now()
-    org.status = OrganizationStatus.ACTIVE
-    org.save()
+    demo_org.mark_assigned()
 
     # build up the buffer
     build_up_org_buffer.apply_async()

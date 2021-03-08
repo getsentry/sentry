@@ -1,7 +1,6 @@
 from datetime import timedelta
 from django.conf import settings
 from django.db import transaction
-from django.db.models import F
 from django.utils import timezone
 from django.template.defaultfilters import slugify
 
@@ -19,6 +18,7 @@ from sentry.tasks.deletion import delete_organization
 
 from .data_population import populate_python_project, populate_react_project
 from .utils import generate_random_name
+from .models import DemoOrgStatus, DemoOrganization
 
 
 @instrumented_task(
@@ -29,21 +29,24 @@ def delete_users_orgs(**kwargs):
         return
 
     # delete everything older than a day
-    cutoff_time = timezone.now() - timedelta(days=1)
+    cutoff_time = timezone.now() - timedelta(seconds=30)
 
-    # first mark orgs for deletion
     # note this only runs in demo mode (not SaaS) so the underlying tables here are small
     org_list = Organization.objects.filter(
-        date_added__lte=cutoff_time,
-        flags=F("flags").bitor(Organization.flags["demo_mode"]),
-        status__in=(OrganizationStatus.ACTIVE, OrganizationStatus.PENDING_DELETION),
+        demoorganization__isnull=False,
+        demoorganization__date_assigned__lte=cutoff_time,
+        demoorganization__status=DemoOrgStatus.ACTIVE,
+        status__in=(
+            OrganizationStatus.ACTIVE,
+            OrganizationStatus.PENDING_DELETION,
+        ),
     )
+
+    # first mark orgs for deletion
     org_list.update(status=OrganizationStatus.PENDING_DELETION)
 
     # next delete the users
-    User.objects.filter(
-        date_joined__lte=cutoff_time, flags=F("flags").bitor(User.flags["demo_mode"])
-    ).delete()
+    User.objects.filter(demouser__isnull=False, demouser__date_assigned__lte=cutoff_time).delete()
 
     # now finally delete the orgs
     for org in org_list:
@@ -61,12 +64,7 @@ def create_demo_org() -> None:
 
     slug = slugify(name)
 
-    org = Organization.objects.create(
-        name=name,
-        slug=slug,
-        flags=Organization.flags["demo_mode"],
-        status=OrganizationStatus.WAITING_DEMO_ASSIGNMENT,
-    )
+    org = DemoOrganization.create_org(name=name, slug=slug)
 
     owner = User.objects.get(email=settings.DEMO_ORG_OWNER_EMAIL)
     OrganizationMember.objects.create(organization=org, user=owner, role=roles.get_top_dog().id)
@@ -98,9 +96,7 @@ def build_up_org_buffer():
         return
 
     # find how many orgs we have waiting assignment
-    num_orgs = Organization.objects.filter(
-        status=OrganizationStatus.WAITING_DEMO_ASSIGNMENT
-    ).count()
+    num_orgs = DemoOrganization.objects.filter(status=DemoOrgStatus.PENDING).count()
     num_to_populate = ORG_BUFFER_SIZE - num_orgs
 
     # synchronnously build up our org buffer if under sized

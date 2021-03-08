@@ -102,10 +102,6 @@ class User(BaseModel, AbstractBaseUser):
     flags = BitField(
         flags=(
             ("newsletter_consent_prompt", "Do we need to ask this user for newsletter consent?"),
-            (
-                "demo_mode",
-                "Mark an user as a demo user.",
-            ),
         ),
         default=0,
         null=True,

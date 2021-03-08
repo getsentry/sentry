@@ -23,7 +23,6 @@ class OrganizationStatus(IntEnum):
     ACTIVE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
-    WAITING_DEMO_ASSIGNMENT = 3
 
     # alias
     VISIBLE = 0
@@ -53,7 +52,6 @@ OrganizationStatus._labels = {
     OrganizationStatus.ACTIVE: "active",
     OrganizationStatus.PENDING_DELETION: "pending deletion",
     OrganizationStatus.DELETION_IN_PROGRESS: "deletion in progress",
-    OrganizationStatus.WAITING_DEMO_ASSIGNMENT: "waiting demo assignment",
 }
 
 
@@ -130,10 +128,6 @@ class Organization(Model):
             (
                 "disable_new_visibility_features",
                 "Temporarily opt out of new visibility features and ui",
-            ),
-            (
-                "demo_mode",
-                "Mark an organization as a demo org.",
             ),
         ),
         default=1,
