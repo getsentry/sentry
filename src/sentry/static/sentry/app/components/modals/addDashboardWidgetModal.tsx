@@ -12,7 +12,7 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import WidgetQueryForm from 'app/components/dashboards/widgetQueryForm';
+import WidgetQueriesForm from 'app/components/dashboards/widgetQueriesForm';
 import SelectControl from 'app/components/forms/selectControl';
 import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -366,7 +366,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               const measurementKeys = Object.values(measurements).map(({key}) => key);
               const amendedFieldOptions = fieldOptions(measurementKeys);
               return (
-                <WidgetQueryForm
+                <WidgetQueriesForm
                   organization={organization}
                   selection={selection}
                   fieldOptions={amendedFieldOptions}

@@ -41,10 +41,10 @@ type Props = {
 };
 
 /**
- * Contain widget query interactions and signal changes via the onChange
+ * Contain widget queries interactions and signal changes via the onChange
  * callback. This component's state should live in the parent.
  */
-class WidgetQueryForm extends React.Component<Props> {
+class WidgetQueriesForm extends React.Component<Props> {
   // Handle scalar field values changing.
   handleFieldChange = (queryIndex: number, field: string) => {
     const {queries, onChange} = this.props;
@@ -206,4 +206,4 @@ const LegendAliasInput = styled(Input)`
   width: 33%;
 `;
 
-export default WidgetQueryForm;
+export default WidgetQueriesForm;

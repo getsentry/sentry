@@ -173,7 +173,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(errors).toHaveLength(2);
 
     // Nested object error should display
-    const conditionError = wrapper.find('WidgetQueryForm FieldErrorReason');
+    const conditionError = wrapper.find('WidgetQueriesForm FieldErrorReason');
     expect(conditionError).toHaveLength(1);
   });
 
@@ -208,7 +208,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(wrapper.find('input[name="displayType"]').props().value).toEqual(
       widget.displayType
     );
-    expect(wrapper.find('WidgetQueryForm')).toHaveLength(1);
+    expect(wrapper.find('WidgetQueriesForm')).toHaveLength(1);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(2);
     expect(wrapper.find('QueryField')).toHaveLength(1);
 
@@ -263,9 +263,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(wrapper.find('input[name="displayType"]').props().value).toEqual(
       widget.displayType
     );
-    expect(wrapper.find('WidgetQueryForm')).toHaveLength(1);
+    expect(wrapper.find('WidgetQueriesForm')).toHaveLength(1);
     // Should have an orderby select
-    expect(wrapper.find('WidgetQueryForm SelectControl[name="orderby"]')).toHaveLength(1);
+    expect(wrapper.find('WidgetQueriesForm SelectControl[name="orderby"]')).toHaveLength(
+      1
+    );
 
     // Add a column, and choose a value,
     wrapper.find('button[aria-label="Add a Column"]').simulate('click');
