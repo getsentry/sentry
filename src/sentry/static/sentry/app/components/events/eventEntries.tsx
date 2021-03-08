@@ -151,7 +151,7 @@ class EventEntries extends React.Component<Props, State> {
   }
 
   async checkProGuardError() {
-    const {event} = this.props;
+    const {event, isShare} = this.props;
 
     if (!event || event.platform !== 'java') {
       this.setState({isLoading: false});
@@ -184,6 +184,11 @@ class EventEntries extends React.Component<Props, State> {
     // otherwise the proguard id wouldn't be in the event.
     // But maybe it failed to upload the mappings file
     if (defined(proGuardImageUuid)) {
+      if (isShare) {
+        this.setState({isLoading: false});
+        return;
+      }
+
       const proguardMappingFiles = await this.fetchProguardMappingFiles(
         proGuardImageUuid
       );
