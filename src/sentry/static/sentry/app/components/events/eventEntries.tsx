@@ -47,7 +47,7 @@ import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
 
-const MATCH_MINIFIED_DATA_REGEX = /^(\w|\w{2}\.\w{1,2}|\w{3}((\.\w)|(\.\w{2}){2}))(\.|$)/g;
+const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH = /^(\w|\w{2}\.\w{1,2}|\w{3}((\.\w)|(\.\w{2}){2}))(\.|$)/g;
 
 const defaultProps = {
   isShare: false,
@@ -124,7 +124,7 @@ class EventEntries extends React.Component<Props, State> {
       return false;
     }
 
-    return !![...str.matchAll(MATCH_MINIFIED_DATA_REGEX)].length;
+    return !![...str.matchAll(MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH)].length;
   }
 
   hasThreadOrExceptionMinifiedFrameData(event: Event, bestThread?: Thread) {
