@@ -122,7 +122,7 @@ class IntegrationPipeline(Pipeline):
                 else:
                     self.get_logger().info(
                         "finish_pipeline.identity_linked_different_user",
-                        {
+                        extra={
                             "idp_id": idp.id,
                             "external_id": identity["external_id"],
                             "object_id": matched_identity.id,
