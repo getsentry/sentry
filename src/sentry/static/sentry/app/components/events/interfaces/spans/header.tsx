@@ -759,7 +759,6 @@ const HeaderContainer = styled('div')`
 `;
 
 const MinimapBackground = styled('div')`
-  background-color: ${p => p.theme.background};
   height: ${MINIMAP_HEIGHT}px;
   max-height: ${MINIMAP_HEIGHT}px;
   overflow: hidden;
@@ -894,7 +893,6 @@ const OperationsBreakdown = styled('div')`
   position: absolute;
   left: 0;
   top: 0;
-  padding: ${space(2)} ${space(3)};
   overflow: hidden;
 `;
 
