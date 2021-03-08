@@ -62,12 +62,9 @@ class AlertRuleSerializer(Serializer):
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
         owner = None
         if obj.owner:
-            # try:
             owner = Actor(
                 Actor.from_model(obj.owner).id, actor_type_to_model(obj.owner.type)
             ).get_actor_id()
-            # except Exception:
-            # pass
         return {
             "id": str(obj.id),
             "name": obj.name,
