@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 
-from sentry.api.fields.actor import Actor, ACTOR_TYPE_TO_MODEL
+from sentry.api.fields.actor import Actor
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.incidents.models import (
     AlertRule,
@@ -12,7 +12,7 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.models import Rule
+from sentry.models import actor_type_to_model, Rule
 from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 
@@ -62,12 +62,12 @@ class AlertRuleSerializer(Serializer):
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
         owner = None
         if obj.owner:
-            try:
-                owner = Actor(
-                    Actor.from_model(obj.owner).id, ACTOR_TYPE_TO_MODEL[obj.owner.type]
-                ).get_actor_id()
-            except Exception:
-                pass
+            # try:
+            owner = Actor(
+                Actor.from_model(obj.owner).id, actor_type_to_model(obj.owner.type)
+            ).get_actor_id()
+            # except Exception:
+            # pass
         return {
             "id": str(obj.id),
             "name": obj.name,
