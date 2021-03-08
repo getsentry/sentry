@@ -41,6 +41,8 @@ from sentry.mediators import (
     service_hooks,
 )
 from sentry.models import (
+    Actor,
+    ACTOR_TYPES,
     Activity,
     Environment,
     Group,
@@ -262,7 +264,11 @@ class Factories:
             kwargs["slug"] = slugify(str(kwargs["name"]))
         members = kwargs.pop("members", None)
 
-        team = Team.objects.create(organization=organization, **kwargs)
+        team = Team.objects.create(
+            organization=organization,
+            actor=Actor.objects.create(type=ACTOR_TYPES["team"]),
+            **kwargs,
+        )
         if members:
             for user in members:
                 Factories.create_team_membership(team=team, user=user)

@@ -22,7 +22,7 @@ class Actor(Model):
 
 def handle_actor_pre_save(instance, **kwargs):
     # we want to create an actor if we don't have one
-    if not instance.actor:
+    if instance.actor is None:
         instance.actor = Actor.objects.create(type=ACTOR_TYPES[type(instance).__name__.lower()])
 
 

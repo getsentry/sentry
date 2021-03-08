@@ -963,7 +963,7 @@ SENTRY_FEATURES = {
     # attachments
     "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
-    "organizations:inbox": False,
+    "organizations:inbox": True,
     # Set default tab to inbox
     "organizations:inbox-tab-default": False,
     # Add `assigned_or_suggested:me_or_none` to inbox tab query

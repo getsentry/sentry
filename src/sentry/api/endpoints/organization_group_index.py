@@ -20,7 +20,7 @@ from sentry.api.helpers.group_index import (
     update_groups,
     ValidationError,
 )
-from sentry.api.paginator import DateTimePaginator
+from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_params, InvalidParams
@@ -32,7 +32,6 @@ from sentry.search.snuba.backend import (
 from sentry.search.snuba.executors import (
     get_search_filter,
     InvalidSearchQuery,
-    PostgresSnubaQueryExecutor,
 )
 from sentry.snuba import discover
 from sentry.utils.compat import map
@@ -79,7 +78,7 @@ def inbox_search(
     end = max([earliest_date, end])
 
     if start >= end:
-        return PostgresSnubaQueryExecutor.empty_result
+        return Paginator(Group.objects.none()).get_result()
 
     # Make sure search terms are valid
     invalid_search_terms = [
@@ -294,7 +293,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             if any(g for g in groups if not request.access.has_project_access(g.project)):
                 raise PermissionDenied
             return Response(serialize(groups, request.user, serializer()))
-
         try:
             cursor_result, query_kwargs = self._search(
                 request,

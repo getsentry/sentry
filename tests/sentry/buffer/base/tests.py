@@ -3,7 +3,16 @@ from sentry.utils.compat import mock
 from datetime import timedelta
 from django.utils import timezone
 from sentry.buffer.base import Buffer
-from sentry.models import Group, Organization, Project, Release, ReleaseProject, Team
+from sentry.models import (
+    Actor,
+    ACTOR_TYPES,
+    Group,
+    Organization,
+    Project,
+    Release,
+    ReleaseProject,
+    Team,
+)
 from sentry.testutils import TestCase
 
 
@@ -49,7 +58,9 @@ class BufferTest(TestCase):
 
     def test_increments_when_null(self):
         org = Organization.objects.create(slug="test-org")
-        team = Team.objects.create(organization=org, slug="test-team")
+        team = Team.objects.create(
+            organization=org, slug="test-team", actor=Actor.objects.create(type=ACTOR_TYPES["user"])
+        )
         project = Project.objects.create(organization=org, slug="test-project")
         project.add_team(team)
         release = Release.objects.create(organization=org, version="abcdefg")
