@@ -17,7 +17,6 @@ export type EventLite = {
   project_slug: string;
   parent_event_id: string | null;
   parent_span_id: string | null;
-  is_root: boolean;
 };
 
 export type TraceLite = EventLite[];

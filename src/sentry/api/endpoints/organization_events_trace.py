@@ -29,7 +29,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
             "organizations:trace-view-quick", organization, actor=request.user
         ) or features.has("organizations:trace-view-summary", organization, actor=request.user)
 
-    def serialize_event(self, event, parent, generation=None, is_root_event=False):
+    def serialize_event(self, event, parent, generation=None):
         return {
             "event_id": event["id"],
             "span_id": event["trace.span"],
@@ -40,8 +40,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
             "parent_event_id": parent,
             # Avoid empty string for root events
             "parent_span_id": event["trace.parent_span"] or None,
-            # TODO(wmak) remove once we switch over to generation
-            "is_root": is_root_event,
             # Can be None on the light trace when we don't know the parent
             "generation": generation,
         }
@@ -123,7 +121,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
     def serialize(self, parent_map, root, warning_extra, params, snuba_event, event_id=None):
         """ Because the light endpoint could potentially have gaps between root and event we return a flattened list """
-        trace_results = [self.serialize_event(root, None, 0, True)]
+        trace_results = [self.serialize_event(root, None, 0)]
 
         with sentry_sdk.start_span(op="building.trace", description="light trace"):
             if root["id"] != event_id:
@@ -167,7 +165,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     def serialize(self, parent_map, root, warning_extra, params, snuba_event=None, event_id=None):
         """ For the full event trace, we return the results as a graph instead of a flattened list """
         parent_events = {}
-        result = parent_events[root["id"]] = self.serialize_event(root, None, 0, True)
+        result = parent_events[root["id"]] = self.serialize_event(root, None, 0)
 
         with sentry_sdk.start_span(op="building.trace", description="full trace"):
             to_check = deque([root])
