@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SavedQueryList from 'app/views/discover/sidebar/savedQueryList';
 
@@ -21,7 +21,7 @@ describe('savedQueryList', function () {
   });
 
   it('renders empty state', async function () {
-    const wrapper = mount(<SavedQueryList organization={organization} />);
+    const wrapper = mountWithTheme(<SavedQueryList organization={organization} />);
     await tick();
 
     expect(wrapper.text()).toBe('No saved queries');
@@ -33,7 +33,7 @@ describe('savedQueryList', function () {
       TestStubs.DiscoverSavedQuery({id: '2', name: '2two'}),
     ];
     mockResponse.push(...savedQueries);
-    const wrapper = mount(<SavedQueryList organization={organization} />);
+    const wrapper = mountWithTheme(<SavedQueryList organization={organization} />);
     await tick();
 
     const text = wrapper.text();

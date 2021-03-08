@@ -16,4 +16,4 @@ const mountWithTheme = (tree, opts) => {
   return mount(tree, {wrappingComponent: WrappingThemeProvider, ...opts});
 };
 
-export {mountWithTheme as mount, mountWithTheme, render, shallow};
+export {mountWithTheme, render, shallow};

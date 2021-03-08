@@ -1,14 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import {mount, render} from 'sentry-test/enzyme';
+import {mountWithTheme, render} from 'sentry-test/enzyme';
 
 import {ResultTable} from 'app/views/discover/result/table';
 
 describe('ResultTable', function () {
   let wrapper;
   beforeEach(function () {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ResultTable
         organization={TestStubs.Organization({
           projects: [TestStubs.Project({id: '1'})],
