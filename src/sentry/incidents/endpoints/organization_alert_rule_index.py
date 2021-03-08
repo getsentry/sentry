@@ -48,8 +48,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=project_ids
         )
 
-        name = request.get("name", None)
-        teams = request.get("teams", [])
+        name = request.GET.get("name", None)
+        teams = request.GET.get("teams", [])
         if teams:
             alert_rules = alert_rules.filter(
                 Q(owner_id__in=Team.objects.filter(id__in=teams).values_list("actor_id", flat=True))

@@ -570,9 +570,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.assert_alert_rule_serialized(self.three_alert_rule, result[0], skip_dates=True)
         self.assert_alert_rule_serialized(self.one_alert_rule, result[1], skip_dates=True)
 
-
     def test_team_filter(self):
-        # TODO: Will fix this test properly when the Actor migration merges and we have Actors
         self.setup_project_and_rules()
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -582,11 +580,14 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200
         result = json.loads(response.content)
-        assert len(result) == 4
-
+        assert len(result) == 3
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "10", "project": [self.project.id], "team":[self.team.id, team_2.id]}
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "team": [self.team.id, self.team_2.id],
+            }
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -595,13 +596,26 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert len(result) == 2
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "10", "project": [self.project.id], "team":[-1]}
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "team": [self.team.id, self.team_2.id],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 2
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "10", "project": [self.project.id], "team": [-1]}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 0
-    
-    def team_name_filter(self):
+
+    def test_name_filter(self):
         assert True is False
