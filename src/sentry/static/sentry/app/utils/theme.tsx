@@ -380,6 +380,9 @@ const commonTheme = {
       gridCellError: 1,
       iconWrapper: 1,
     },
+
+    truncationFullValue: 10,
+
     traceView: {
       spanTreeToggler: 900,
       dividerLine: 909,

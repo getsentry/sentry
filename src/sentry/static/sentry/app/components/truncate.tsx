@@ -130,7 +130,7 @@ export const FullValue = styled('span')<{
   ${p =>
     p.expanded &&
     `
-    z-index: 10;
+    z-index: ${p.theme.zIndex.truncationFullValue};
     display: block;
     `}
 `;
