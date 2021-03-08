@@ -13,20 +13,12 @@ from sentry.models import (
     UserOption,
     UserEmail,
 )
-
-
-KEY_MAP = {
-    "alerts": {"key": "mail:alert", "type": int},
-    "workflow": {"key": "workflow:notifications", "type": ""},
-    "deploy": {"key": "deploy-emails", "type": ""},
-    "reports": {"key": "reports:disabled-organizations", "type": ""},
-    "email": {"key": "mail:email", "type": ""},
-}
+from sentry.notifications.legacy_mappings import FINE_TUNING_KEY_MAP
 
 
 class UserNotificationFineTuningEndpoint(UserEndpoint):
     def get(self, request, user, notification_type):
-        if notification_type not in KEY_MAP:
+        if notification_type not in FINE_TUNING_KEY_MAP:
             return Response(
                 {"detail": "Unknown notification type: %s." % notification_type},
                 status=status.HTTP_404_NOT_FOUND,
@@ -38,7 +30,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             user,
             request.user,
             notifications,
-            notification_option_key=KEY_MAP[notification_type]["key"],
+            notification_option_key=FINE_TUNING_KEY_MAP[notification_type]["key"],
         )
         return Response(serialized)
 
@@ -66,13 +58,13 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         :param map: Expects a map of id -> value (enabled or email)
         """
 
-        if notification_type not in KEY_MAP:
+        if notification_type not in FINE_TUNING_KEY_MAP:
             return Response(
                 {"detail": "Unknown notification type: %s." % notification_type},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        key = KEY_MAP[notification_type]
+        key = FINE_TUNING_KEY_MAP[notification_type]
         filter_args = {"user": user, "key": key["key"]}
 
         if notification_type == "reports":

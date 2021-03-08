@@ -1,42 +1,12 @@
 from collections import defaultdict
+from rest_framework.response import Response
+from rest_framework import serializers
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize, Serializer
 from sentry.models import UserOption, UserOptionValue
-
-
-from rest_framework.response import Response
-
-from rest_framework import serializers
-
-USER_OPTION_SETTINGS = {
-    "deployNotifications": {
-        "key": "deploy-emails",
-        "default": UserOptionValue.committed_deploys_only,  # '3'
-        "type": int,
-    },
-    "personalActivityNotifications": {
-        "key": "self_notifications",
-        "default": UserOptionValue.all_conversations,  # '0'
-        "type": bool,
-    },
-    "selfAssignOnResolve": {
-        "key": "self_assign_issue",
-        "default": UserOptionValue.all_conversations,  # '0'
-        "type": bool,
-    },
-    "subscribeByDefault": {
-        "key": "subscribe_by_default",
-        "default": UserOptionValue.participating_only,  # '1'
-        "type": bool,
-    },
-    "workflowNotifications": {
-        "key": "workflow:notifications",
-        "default": UserOptionValue.participating_only,  # '1'
-        "type": int,
-    },
-}
+from sentry.notifications.manager import USER_OPTION_SETTINGS
 
 
 class UserNotificationsSerializer(Serializer):
