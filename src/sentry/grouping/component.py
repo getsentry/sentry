@@ -27,7 +27,7 @@ def _calculate_contributes(values):
 
 def _calculate_tree_label(values):
     for value in values or ():
-        if isinstance(value, GroupingComponent) and value.tree_label:
+        if isinstance(value, GroupingComponent) and value.contributes and value.tree_label:
             return value.tree_label
 
 
@@ -131,7 +131,7 @@ class GroupingComponent:
             self.contributes = contributes
         if contributes_to_similarity is not None:
             self.contributes_to_similarity = contributes_to_similarity
-        if tree_label is not None:
+        if self.contributes and tree_label is not None:
             self.tree_label = tree_label
 
     def shallow_copy(self):
