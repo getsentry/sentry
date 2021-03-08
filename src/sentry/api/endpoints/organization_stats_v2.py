@@ -89,8 +89,6 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
             "statsTransactions": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
             "statsAttachments": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
         }
-        # need deepcopy here?
-        # response = defaultdict(lambda: template)
         response = {project_id: deepcopy(template) for project_id in project_ids}
 
         # group results by projectid>timestamp, using defaultdict to coalesce into format
