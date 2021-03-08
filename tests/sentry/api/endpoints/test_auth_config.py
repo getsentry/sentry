@@ -49,7 +49,7 @@ class AuthConfigEndpointTest(APITestCase):
         assert not response.data["hasNewsletter"]
         assert response.data["serverHostname"] == "testserver"
 
-    @pytest.mark.skipIf(
+    @pytest.mark.skipif(
         lambda x: settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter"
     )
     def test_has_newsletter(self):

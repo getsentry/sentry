@@ -8,7 +8,7 @@ from sentry.models import UserEmail
 from sentry.testutils import APITestCase
 
 
-@pytest.mark.skipIf(
+@pytest.mark.skipif(
     lambda x: settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter"
 )
 class UserSubscriptionsNewsletterTest(APITestCase):
