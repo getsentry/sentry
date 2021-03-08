@@ -15,7 +15,7 @@ def backfill_null_actors(apps, schema_editor):
 
     for team in RangeQuerySetWrapperWithProgressBar(Team.objects.all()):
         if team.actor_id is None:
-            team.actor = Actor.objects.create(type=0)
+            team.actor_id = Actor.objects.create(type=0).id
             team.save()
 
 
