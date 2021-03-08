@@ -180,6 +180,11 @@ const aliases = {
    * Default Progressbar color
    */
   progressBar: colors.purple300,
+
+  /**
+   * Default Progressbar color
+   */
+  progressBackground: colors.gray100,
 } as const;
 
 const warning = {
@@ -528,6 +533,7 @@ const darkAliases = {
   chartLineColor: colors.gray500,
   chartLabel: colors.gray400,
   progressBar: colors.purple200,
+  progressBackground: colors.gray500,
 } as const;
 
 export const lightTheme = {

@@ -1331,8 +1331,8 @@ class QueryTransformTest(TestCase):
         end_time = before_now(seconds=1)
 
         discover.query(
-            selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
-            query="http.method:GET max(time):>2019-12-01",
+            selected_columns=["transaction", "avg(transaction.duration)", "max(timestamp)"],
+            query="http.method:GET max(timestamp):>2019-12-01",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
         )
@@ -1344,9 +1344,9 @@ class QueryTransformTest(TestCase):
             dataset=Dataset.Discover,
             aggregations=[
                 ["avg", "duration", "avg_transaction_duration"],
-                ["max", "time", "max_time"],
+                ["max", "timestamp", "max_timestamp"],
             ],
-            having=[["max_time", ">", 1575158400]],
+            having=[["max_timestamp", ">", 1575158400]],
             end=end_time,
             start=start_time,
             orderby=None,
@@ -1372,7 +1372,7 @@ class QueryTransformTest(TestCase):
                 "data": [{"transaction": "api.do_things", "duration": 200}],
             }
             discover.query(
-                selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
+                selected_columns=["transaction", "avg(transaction.duration)", "max(timestamp)"],
                 query=f"http.method:GET avg(transaction.duration):>{query_string}",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
@@ -1385,7 +1385,7 @@ class QueryTransformTest(TestCase):
                 dataset=Dataset.Discover,
                 aggregations=[
                     ["avg", "duration", "avg_transaction_duration"],
-                    ["max", "time", "max_time"],
+                    ["max", "timestamp", "max_timestamp"],
                 ],
                 having=[["avg_transaction_duration", ">", value]],
                 end=end_time,
@@ -1408,7 +1408,7 @@ class QueryTransformTest(TestCase):
         with pytest.raises(InvalidSearchQuery):
             discover.query(
                 selected_columns=["transaction"],
-                query="http.method:GET max(time):>5",
+                query="http.method:GET max(timestamp):>5",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
             )
@@ -1425,7 +1425,7 @@ class QueryTransformTest(TestCase):
         with pytest.raises(InvalidSearchQuery):
             discover.query(
                 selected_columns=["transaction"],
-                query="http.method:GET max(time):>5",
+                query="http.method:GET max(timestamp):>5",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
                 auto_aggregations=True,
@@ -1443,7 +1443,7 @@ class QueryTransformTest(TestCase):
         with pytest.raises(AssertionError):
             discover.query(
                 selected_columns=["transaction"],
-                query="http.method:GET max(time):>5",
+                query="http.method:GET max(timestamp):>5",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=False,
                 auto_aggregations=True,
@@ -1460,14 +1460,17 @@ class QueryTransformTest(TestCase):
 
         discover.query(
             selected_columns=["transaction", "p95()"],
-            query="http.method:GET max(time):>5",
+            query="http.method:GET max(timestamp):>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
             auto_aggregations=True,
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            aggregations=[["quantile(0.95)", "duration", "p95"], ["max", "time", "max_time"]],
+            aggregations=[
+                ["quantile(0.95)", "duration", "p95"],
+                ["max", "timestamp", "max_timestamp"],
+            ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["transaction"],
@@ -1475,7 +1478,7 @@ class QueryTransformTest(TestCase):
             start=start_time,
             end=end_time,
             orderby=None,
-            having=[["max_time", ">", 5.0]],
+            having=[["max_timestamp", ">", 5.0]],
             limit=50,
             offset=None,
             referrer=None,
@@ -1491,15 +1494,18 @@ class QueryTransformTest(TestCase):
         end_time = before_now(seconds=1)
 
         discover.query(
-            selected_columns=["transaction", "min(time)"],
-            query="max(time):>5 AND min(time):<10",
+            selected_columns=["transaction", "min(timestamp)"],
+            query="max(timestamp):>5 AND min(timestamp):<10",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
             auto_aggregations=True,
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            aggregations=[["min", "time", "min_time"], ["max", "time", "max_time"]],
+            aggregations=[
+                ["min", "timestamp", "min_timestamp"],
+                ["max", "timestamp", "max_timestamp"],
+            ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["transaction"],
@@ -1507,7 +1513,7 @@ class QueryTransformTest(TestCase):
             start=start_time,
             end=end_time,
             orderby=None,
-            having=[["max_time", ">", 5.0], ["min_time", "<", 10.0]],
+            having=[["max_timestamp", ">", 5.0], ["min_timestamp", "<", 10.0]],
             limit=50,
             offset=None,
             referrer=None,
@@ -2538,6 +2544,68 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
+
+
+# Temporary basic coverage for performance facets
+class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.project = self.create_project()
+        self.min_ago = before_now(minutes=1)
+        self.day_ago = before_now(days=1)
+        self.two_mins_ago = before_now(minutes=2)
+        self._transaction_count = 0
+
+    def store_transaction(self, name="exampleTransaction", duration=100, tags=None):
+        if tags is None:
+            tags = []
+        event = load_data("transaction").copy()
+        event.update(
+            {
+                "transaction": name,
+                "event_id": f"{self._transaction_count:02x}".rjust(32, "0"),
+                "start_timestamp": iso_format(self.two_mins_ago - timedelta(seconds=duration)),
+                "timestamp": iso_format(self.two_mins_ago),
+            }
+        )
+        self._transaction_count += 1
+        self.store_event(data=event, project_id=self.project.id)
+
+    def test_invalid_query(self):
+        with pytest.raises(InvalidSearchQuery):
+            discover.get_performance_facets(
+                "\n", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+            )
+
+    def test_no_results(self):
+        results = discover.get_performance_facets(
+            "", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+        )
+        assert results == []
+
+    def test_single_project(self):
+        self.store_transaction(duration=1, tags=[["color", "red"]])
+        self.store_transaction(duration=2, tags=[["color", "blue"]])
+
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+
+        with self.options(
+            {
+                "discover2.tags_performance_facet_sample_rate": 1,
+            }
+        ):
+            result = discover.get_performance_facets("", params)
+            self.wait_for_event_count(self.project.id, 2)
+
+            assert len(result) == 10
+            for r in result:
+                if r.key == "color" and r.value == "red":
+                    assert r.count == 1000
+                elif r.key == "color" and r.value == "blue":
+                    assert r.count == 2000
+                else:
+                    assert r.count == 1500
 
 
 def test_zerofill():

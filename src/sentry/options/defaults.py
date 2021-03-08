@@ -261,6 +261,9 @@ register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)
 # Enables setting a sampling rate when producing the tag facet.
 register("discover2.tags_facet_enable_sampling", default=True, flags=FLAG_PRIORITIZE_DISK)
 
+# Enables setting a sampling rate when producing the tag facet.
+register("discover2.tags_performance_facet_sample_rate", default=0.1)
+
 # Killswitch for datascrubbing after stacktrace processing. Set to False to
 # disable datascrubbers.
 register("processing.can-use-scrubbers", default=True)
@@ -280,3 +283,5 @@ register("store.nodestore-stats-sample-rate", default=0.0)  # unused
 
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False)
+
+register("store.race-free-group-creation-force-disable", default=False)
