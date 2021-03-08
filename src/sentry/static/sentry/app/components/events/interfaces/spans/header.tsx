@@ -759,6 +759,7 @@ const HeaderContainer = styled('div')`
 `;
 
 const MinimapBackground = styled('div')`
+  background-color: ${p => p.theme.background};
   height: ${MINIMAP_HEIGHT}px;
   max-height: ${MINIMAP_HEIGHT}px;
   overflow: hidden;
