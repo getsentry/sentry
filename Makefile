@@ -230,6 +230,6 @@ ci-test-js:
 	NODE_ENV=production yarn build-css
 	make test-js
 
-ci-test-acceptance: test-setup-frontend test-setup-db collectstatic test-acceptance
+ci-test-acceptance: test-setup-frontend test-setup-db test-acceptance
 
 .PHONY: develop bootstrap build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js ci-test-js
