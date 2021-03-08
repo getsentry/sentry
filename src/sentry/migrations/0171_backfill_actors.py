@@ -3,10 +3,19 @@
 from django.db import migrations
 import django.db.models.deletion
 import sentry.db.models.fields.foreignkey
+from sentry.models import Actor
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
 def backfill_null_actors(apps, schema_editor):
-    pass
+    User = apps.get_model("sentry", "User")
+    Team = apps.get_model("sentry", "Team")
+
+    for user in RangeQuerySetWrapperWithProgressBar(User.objects.filter(actor=None)):
+        user.update({"actor": Actor.objects.create(type=1)})
+
+    for team in RangeQuerySetWrapperWithProgressBar(Team.objects.filter(actor=None)):
+        team.update({"actor": Actor.objects.create(type=0)})
 
 
 class Migration(migrations.Migration):
@@ -19,7 +28,7 @@ class Migration(migrations.Migration):
     #   they can be monitored. Since data migrations will now hold a transaction open
     #   this is even more important.
     # - Adding columns to highly active tables, even ones that are NULL.
-    is_dangerous = False
+    is_dangerous = True
 
     # This flag is used to decide whether to run this migration in a transaction or not.
     # By default we prefer to run in a transaction, but for migrations where you want
