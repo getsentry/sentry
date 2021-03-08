@@ -14,6 +14,7 @@ from sentry.utils.snuba import (
     naiveify_datetime,
     to_naive_timestamp,
 )
+from copy import deepcopy
 
 
 CATEGORY_NAME_MAP = {
@@ -47,9 +48,9 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         )
 
         response = {
-            "statsErrors": defaultdict(lambda: DEFAULT_TS_VAL),
-            "statsTransactions": defaultdict(lambda: DEFAULT_TS_VAL),
-            "statsAttachments": defaultdict(lambda: DEFAULT_TS_VAL),
+            "statsErrors": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
+            "statsTransactions": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
+            "statsAttachments": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
         }
         for row in result:
             nested_update(
@@ -84,13 +85,13 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
             orderby=["times_seen", "time"],
         )
         template = {
-            "statsErrors": defaultdict(lambda: DEFAULT_TS_VAL),
-            "statsTransactions": defaultdict(lambda: DEFAULT_TS_VAL),
-            "statsAttachments": defaultdict(lambda: DEFAULT_TS_VAL),
+            "statsErrors": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
+            "statsTransactions": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
+            "statsAttachments": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
         }
         # need deepcopy here?
         # response = defaultdict(lambda: template)
-        response = {project_id: template.copy() for project_id in project_ids}
+        response = {project_id: deepcopy(template) for project_id in project_ids}
 
         # group results by projectid>timestamp, using defaultdict to coalesce into format
         for row in result:
@@ -101,7 +102,7 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
         # add project_ids with no results to dict
         for project_id in project_ids:
             if project_id not in response:
-                response[project_id] = template.copy()
+                response[project_id] = deepcopy(template)
 
         # zerofill response
         response = {
@@ -114,13 +115,13 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
         return Response(response)
 
 
-class OrganizationProjectStatsDetails(OrganizationEndpoint, ProjectEndpoint):
-    def get(self, request, project, organization):
+class OrganizationProjectStatsDetails(ProjectEndpoint, OrganizationEndpoint):
+    def get(self, request, project):
         start, end, rollup = get_date_range_rollup_from_params(request.GET, "1h", round_range=True)
 
         # TODO: see if there's a better way to get the user's projects
         project_list = []
-        team_list = Team.objects.get_for_user(organization=organization, user=request.user)
+        team_list = Team.objects.get_for_user(organization=project.organization, user=request.user)
         for team in team_list:
             project_list.extend(Project.objects.get_for_user(team=team, user=request.user))
         project_ids = list({p.id for p in project_list})
@@ -138,11 +139,10 @@ class OrganizationProjectStatsDetails(OrganizationEndpoint, ProjectEndpoint):
             orderby=["time"],
         )
 
-        # need deepcopy here?
         response = {
-            "statsErrors": defaultdict(lambda: DEFAULT_TS_VAL.copy()),
-            "statsTransactions": defaultdict(lambda: DEFAULT_TS_VAL.copy()),
-            "statsAttachments": defaultdict(lambda: DEFAULT_TS_VAL.copy()),
+            "statsErrors": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
+            "statsTransactions": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
+            "statsAttachments": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
         }
         for row in result:
             nested_update(
@@ -218,7 +218,7 @@ def zerofill(data, start, end, rollup, orderby):
             rv = rv + data_by_time[key]
             data_by_time[key] = []
         else:
-            val = DEFAULT_TS_VAL.copy()
+            val = deepcopy(DEFAULT_TS_VAL)
             val["time"] = key
             rv.append(val)
 
