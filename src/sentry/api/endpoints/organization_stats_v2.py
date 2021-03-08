@@ -12,11 +12,11 @@ import collections.abc
 
 
 # TODO: add this onto the outcomes module?
-OUTCOME_TO_STR = {
-    Outcome.ACCEPTED: "accepted",
-    Outcome.FILTERED: "filtered",
-    Outcome.RATE_LIMITED: "dropped",
-}
+# OUTCOME_TO_STR = {
+#     Outcome.ACCEPTED: "accepted",
+#     Outcome.FILTERED: "filtered",
+#     Outcome.RATE_LIMITED: "dropped",
+# }
 
 
 CATEGORY_NAME_MAP = {
@@ -62,7 +62,9 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         for row in result:
             if "category" in row:
                 uniq_key = row["time"]
-                update(response[CATEGORY_NAME_MAP[row["category"]]][uniq_key], datamapper(row))
+                nested_update(
+                    response[CATEGORY_NAME_MAP[row["category"]]][uniq_key], datamapper(row)
+                )
 
         response = {
             category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")
@@ -102,7 +104,7 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
         # group results by timestamp, using defaultdict to coalesce into format
         # TODO: use itertools.groupby?
         for row in result:
-            update(
+            nested_update(
                 response[row["project_id"]][CATEGORY_NAME_MAP[row["category"]]][row["time"]],
                 datamapper(row),
             )
@@ -145,7 +147,9 @@ class OrganizationProjectStatsDetails(ProjectEndpoint):
         for row in result:
             if "category" in row:
                 uniq_key = row["time"]
-                update(response[CATEGORY_NAME_MAP[row["category"]]][uniq_key], datamapper(row))
+                nested_update(
+                    response[CATEGORY_NAME_MAP[row["category"]]][uniq_key], datamapper(row)
+                )
 
         response = {
             category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")
@@ -155,10 +159,12 @@ class OrganizationProjectStatsDetails(ProjectEndpoint):
 
 
 def outcome_to_string(outcome):
-    return OUTCOME_TO_STR[outcome]
+    # TODO: why do we rename this?
+    return "dropped" if outcome == Outcome.RATE_LIMITED else Outcome(outcome).api_name()
 
 
 def rate_limited_reason_mapper(reason):
+    # billing logic ported over. TODO: combine usages of this into some abstracted module?
     if reason in {"usage_exceeded", "grace_period"}:
         reason_val = "overQuota"
     elif reason == "smart_rate_limit":
@@ -171,14 +177,12 @@ def rate_limited_reason_mapper(reason):
 def datamapper(row):
     obj = {"time": row["time"]}
     if row["outcome"] == Outcome.RATE_LIMITED:
-        # TODO: make this actually work
         obj[outcome_to_string(row["outcome"])] = {
             rate_limited_reason_mapper(row["reason"]): {
                 "quantity": row["quantity"],
                 "times_seen": row["times_seen"],
             }
         }
-
     else:
         obj[outcome_to_string(row["outcome"])] = {
             "quantity": row["quantity"],
@@ -187,10 +191,11 @@ def datamapper(row):
     return obj
 
 
-def update(d, u):
+def nested_update(d, u):
+    # https://stackoverflow.com/a/3233356
     for k, v in u.items():
         if isinstance(v, collections.abc.Mapping):
-            d[k] = update(d.get(k, {}), v)
+            d[k] = nested_update(d.get(k, {}), v)
         else:
             d[k] = v
     return d

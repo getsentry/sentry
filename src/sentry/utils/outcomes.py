@@ -18,6 +18,9 @@ class Outcome(IntEnum):
     INVALID = 3
     ABUSE = 4
 
+    def api_name(self):
+        return self.name.lower()
+
 
 outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
 outcomes_publisher = None
