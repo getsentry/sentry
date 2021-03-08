@@ -115,6 +115,25 @@ def test_timestamps():
     assert actual_timestamps == expected_timestamps
 
 
+@freeze_time("2021-03-08T09:34:00.000Z")
+def test_hourly_rounded_start():
+    query = _make_query("statsPeriod=30m&interval=1m&field=sum(session)")
+
+    actual_timestamps = _get_timestamps(query)
+
+    assert actual_timestamps[0] == "2021-03-08T09:00:00Z"
+    assert len(actual_timestamps) == 60
+
+    # in this case "45m" means from 08:49:00-09:34:00, but since we round start/end
+    # to hours, we extend the start time to 08:00:00.
+    query = _make_query("statsPeriod=45m&interval=1m&field=sum(session)")
+
+    actual_timestamps = _get_timestamps(query)
+
+    assert actual_timestamps[0] == "2021-03-08T08:00:00Z"
+    assert len(actual_timestamps) == 120
+
+
 def test_rounded_end():
     query = _make_query(
         "field=sum(session)&interval=1h&start=2021-02-24T00:00:00Z&end=2021-02-25T00:00:00Z"

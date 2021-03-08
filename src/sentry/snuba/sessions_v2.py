@@ -319,7 +319,7 @@ def _get_constrained_date_range(params, allow_minute_resolution=False):
     # round the range up to a multiple of the interval.
     # the minimum is 1h so the "totals" will not go out of sync, as they will
     # use the materialized storage due to no grouping on the `started` column.
-    rounding_interval = max(interval, ONE_HOUR)
+    rounding_interval = int(math.ceil(interval / ONE_HOUR) * ONE_HOUR)
     date_range = timedelta(
         seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))
     )
@@ -340,8 +340,15 @@ def _get_constrained_date_range(params, allow_minute_resolution=False):
             "Use a larger interval, or a smaller date range."
         )
 
-    end_ts = int(interval * math.ceil(to_timestamp(end) / interval))
+    end_ts = int(rounding_interval * math.ceil(to_timestamp(end) / rounding_interval))
     end = to_datetime(end_ts)
+    # when expanding the rounding interval, we would adjust the end time too far
+    # to the future, in which case the start time would not actually contain our
+    # desired date range. adjust for this by extend the time by another interval.
+    # for example, when "45m" means the range from 08:49:00-09:34:00, our rounding
+    # has to go from 08:00:00 to 10:00:00.
+    if rounding_interval > interval and (end - date_range) > start:
+        date_range += timedelta(seconds=rounding_interval)
     start = end - date_range
 
     return start, end, interval
