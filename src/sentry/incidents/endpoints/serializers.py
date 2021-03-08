@@ -88,7 +88,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         model = AlertRuleTriggerAction
         fields = ["id", "type", "target_type", "target_identifier", "integration", "sentry_app"]
         extra_kwargs = {
-            "target_identifier": {"required": False},
+            "target_identifier": {"required": True},
             "target_display": {"required": False},
             "integration": {"required": False, "allow_null": True},
             "sentry_app": {"required": False, "allow_null": True},
