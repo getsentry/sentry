@@ -18,3 +18,4 @@ addopts = "-ra --tb=short --strict-markers -p no:celery -p no:warnings"
 markers = [
     "snuba: mark a test as requiring snuba",
 ]
+selenium_driver = "chrome"
