@@ -111,10 +111,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return string_to_action_target_type[target_type]
 
     def validate(self, attrs):
-        if ("input_channel_id" in attrs) and ("target_identifier" in attrs):
-            raise serializers.ValidationError(
-                "Either input_channel_id or targetIdentifier must be passed but not both"
-            )
         if ("type" in attrs) != ("target_type" in attrs) != ("target_identifier" in attrs):
             raise serializers.ValidationError(
                 "type, targetType and targetIdentifier must be passed together"
