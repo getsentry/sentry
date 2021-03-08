@@ -859,6 +859,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert response.data[0]["inbox"] is not None
             assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
 
+    def test_inbox_search_outside_retention(self):
+        with self.feature("organizations:inbox"):
+            self.login_as(user=self.user)
             response = self.get_response(
                 sort="inbox",
                 limit=10,
@@ -867,17 +870,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 expand=["inbox", "owners"],
                 start=iso_format(before_now(days=20)),
                 end=iso_format(before_now(days=15)),
-            )
-            assert response.status_code == 200
-            assert len(response.data) == 0
-
-            response = self.get_response(
-                sort="inbox",
-                limit=10,
-                query="is:unresolved is:for_review assigned_or_suggested:me_or_none",
-                expand=["inbox", "owners"],
-                start=iso_format(before_now(days=9)),
-                end=iso_format(before_now(days=8)),
             )
             assert response.status_code == 200
             assert len(response.data) == 0

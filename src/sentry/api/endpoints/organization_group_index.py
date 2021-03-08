@@ -29,10 +29,7 @@ from sentry.search.snuba.backend import (
     assigned_or_suggested_filter,
     EventsDatasetSnubaSearchBackend,
 )
-from sentry.search.snuba.executors import (
-    get_search_filter,
-    InvalidSearchQuery,
-)
+from sentry.search.snuba.executors import get_search_filter, InvalidSearchQuery
 from sentry.snuba import discover
 from sentry.utils.compat import map
 from sentry.utils.cursors import Cursor, CursorResult
