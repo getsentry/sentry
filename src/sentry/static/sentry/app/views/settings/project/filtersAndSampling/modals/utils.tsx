@@ -106,7 +106,7 @@ export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName) {
       return t('Match by user id, ex. 4711 (Multiline)');
     case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
     case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
-      return t('%s (Multiline)', 'ex. prod or dev');
+      return t('ex. prod or dev (Multiline)');
     case DynamicSamplingInnerName.TRACE_RELEASE:
     case DynamicSamplingInnerName.EVENT_RELEASE:
       return t('ex. 1* or [I3].[0-9].* (Multiline)');
