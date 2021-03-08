@@ -60,7 +60,7 @@ function ProjectIssues({organization, location}: Props) {
   const queryParams = {
     limit: 5,
     ...getParams(pick(location.query, [...Object.values(URL_PARAM), 'cursor'])),
-    query: 'is:unresolved',
+    query: 'is:unresolved error.unhandled:true',
     sort: 'freq',
   };
 
