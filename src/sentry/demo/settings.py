@@ -14,6 +14,6 @@ DEMO_MODE = True
 CELERY_IMPORTS = CELERY_IMPORTS + ("sentry.demo.tasks",)
 CELERYBEAT_SCHEDULE["demo_delete_users_orgs"] = {
     "task": "sentry.demo.tasks.delete_users_orgs",
-    "schedule": timedelta(seconds=10),
+    "schedule": timedelta(hours=1),
     "options": {"expires": 3600, "queue": "cleanup"},
 }

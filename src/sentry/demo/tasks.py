@@ -1,5 +1,6 @@
 from datetime import timedelta
 from django.conf import settings
+from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 from django.template.defaultfilters import slugify
@@ -28,7 +29,7 @@ def delete_users_orgs(**kwargs):
         return
 
     # delete everything older than a day
-    cutoff_time = timezone.now() - timedelta(seconds=30)
+    cutoff_time = timezone.now() - timedelta(days=1)
 
     # first mark orgs for deletion
     # note this only runs in demo mode (not SaaS) so the underlying tables here are small
@@ -50,9 +51,7 @@ def delete_users_orgs(**kwargs):
         delete_organization.apply_async(kwargs={"object_id": org.id})
 
 
-@instrumented_task(
-    name="sentry.demo.tasks.create_demo_org",
-)
+@transaction.atomic
 def create_demo_org() -> None:
     if not settings.DEMO_MODE:
         return
@@ -73,7 +72,6 @@ def create_demo_org() -> None:
     OrganizationMember.objects.create(organization=org, user=owner, role=roles.get_top_dog().id)
 
     team = org.team_set.create(name=org.name)
-
     python_project = Project.objects.create(name="Python", organization=org, platform="python")
     python_project.add_team(team)
 

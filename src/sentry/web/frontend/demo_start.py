@@ -2,7 +2,8 @@ from django.http import Http404
 from django.conf import settings
 from django.db import transaction
 
-from sentry.demo.utils import assign_demo_org, NoDemoOrgReady
+from sentry.demo.utils import NoDemoOrgReady
+from sentry.demo.demo_org_manager import assign_demo_org
 from sentry.utils import auth
 from sentry.web.frontend.base import BaseView
 
