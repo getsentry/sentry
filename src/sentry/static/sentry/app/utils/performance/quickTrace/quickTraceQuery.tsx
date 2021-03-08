@@ -62,7 +62,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
                   trace,
                 });
               } catch (error) {
-                Sentry.setTag('currentTraceId', traceId);
+                Sentry.setTag('current.trace_id', traceId);
                 Sentry.captureException(error);
               }
             }
