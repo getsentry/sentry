@@ -109,7 +109,7 @@ export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName) {
       return t('%s (Multiline)', 'ex. prod or dev');
     case DynamicSamplingInnerName.TRACE_RELEASE:
     case DynamicSamplingInnerName.EVENT_RELEASE:
-      return t('%s (Multiline)', 'ex. 1* or [I3].[0-9].*');
+      return t('ex. 1* or [I3].[0-9].* (Multiline)');
     default:
       return '';
   }
