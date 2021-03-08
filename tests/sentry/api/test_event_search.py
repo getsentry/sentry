@@ -712,11 +712,40 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_numeric_filter_with_shorthand(self):
+        assert parse_search_query("stack.colno:>3k") == [
+            SearchFilter(
+                key=SearchKey(name="stack.colno"),
+                operator=">",
+                value=SearchValue(raw_value=3000.0),
+            )
+        ]
+        assert parse_search_query("stack.colno:>3m") == [
+            SearchFilter(
+                key=SearchKey(name="stack.colno"),
+                operator=">",
+                value=SearchValue(raw_value=3000000.0),
+            )
+        ]
+        assert parse_search_query("stack.colno:>3b") == [
+            SearchFilter(
+                key=SearchKey(name="stack.colno"),
+                operator=">",
+                value=SearchValue(raw_value=3000000000.0),
+            )
+        ]
+
     def test_invalid_numeric_fields(self):
         invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
         for invalid_query in invalid_queries:
             with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric field"):
                 parse_search_query(invalid_query)
+
+    def test_invalid_numeric_shorthand(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, expected_regex="is not a valid number suffix, must be k, m or b"
+        ):
+            parse_search_query("stack.colno:>3s")
 
     def test_negated_on_boolean_values_and_non_boolean_field(self):
         assert parse_search_query("!user.id:true") == [
@@ -754,12 +783,32 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_duration_filter_overrides_numeric_shorthand(self):
+        # 2m should mean 2 minutes for duration filters (as opposed to 2 million)
+        assert parse_search_query("transaction.duration:>2m") == [
+            SearchFilter(
+                key=SearchKey(name="transaction.duration"),
+                operator=">",
+                value=SearchValue(raw_value=120000.0),
+            )
+        ]
+
     def test_aggregate_duration_filter(self):
         assert parse_search_query("avg(transaction.duration):>500s") == [
             SearchFilter(
                 key=AggregateKey(name="avg(transaction.duration)"),
                 operator=">",
                 value=SearchValue(raw_value=500000.0),
+            )
+        ]
+
+    def test_aggregate_duration_filter_overrides_numeric_shorthand(self):
+        # 2m should mean 2 minutes for duration filters (as opposed to 2 million)
+        assert parse_search_query("avg(transaction.duration):>2m") == [
+            SearchFilter(
+                key=AggregateKey(name="avg(transaction.duration)"),
+                operator=">",
+                value=SearchValue(raw_value=120000.0),
             )
         ]
 
@@ -829,6 +878,28 @@ class ParseSearchQueryTest(unittest.TestCase):
                 value=SearchValue(raw_value=3.1415),
             )
         ]
+
+        assert parse_search_query("min(measurements.size):<3k") == [
+            SearchFilter(
+                key=SearchKey(name="min(measurements.size)"),
+                operator="<",
+                value=SearchValue(raw_value=3000.0),
+            )
+        ]
+
+        assert parse_search_query("min(measurements.size):2m") == [
+            SearchFilter(
+                key=SearchKey(name="min(measurements.size)"),
+                operator="=",
+                value=SearchValue(raw_value=2000000.0),
+            )
+        ]
+
+    def test_invalid_numeric_aggregate_filter(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, expected_regex="is not a valid number suffix, must be k, m or b"
+        ):
+            parse_search_query("min(measurements.size):3s")
 
     def test_duration_measurements_filter(self):
         assert parse_search_query("measurements.fp:1.5s") == [
