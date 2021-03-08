@@ -75,10 +75,10 @@ class AssigneeSelector extends React.Component<Props, State> {
     const group = GroupStore.get(this.props.id);
     const memberList = MemberListStore.loaded ? MemberListStore.getAll() : undefined;
     const loading = GroupStore.hasStatus(this.props.id, 'assignTo');
-    const suggestedOwners = group && group.owners;
+    const suggestedOwners = group?.owners;
 
     return {
-      assignedTo: group && group.assignedTo,
+      assignedTo: group?.assignedTo,
       memberList,
       loading,
       suggestedOwners,
@@ -91,8 +91,8 @@ class AssigneeSelector extends React.Component<Props, State> {
       const group = GroupStore.get(this.props.id);
       this.setState({
         loading,
-        assignedTo: group && group.assignedTo,
-        suggestedOwners: group && group.owners,
+        assignedTo: group?.assignedTo,
+        suggestedOwners: group?.owners,
       });
     }
   }
@@ -150,8 +150,8 @@ class AssigneeSelector extends React.Component<Props, State> {
     }
     const group = GroupStore.get(this.props.id);
     this.setState({
-      assignedTo: group && group.assignedTo,
-      suggestedOwners: group && group.owners,
+      assignedTo: group?.assignedTo,
+      suggestedOwners: group?.owners,
       loading: GroupStore.hasStatus(this.props.id, 'assignTo'),
     });
   }
@@ -281,9 +281,7 @@ class AssigneeSelector extends React.Component<Props, State> {
     const {assignedTo} = this.state;
     // filter out suggested assignees if a suggestion is already selected
     return this.getSuggestedAssignees()
-      .filter(
-        ({type, id}) => !(assignedTo && type === assignedTo.type && id === assignedTo.id)
-      )
+      .filter(({type, id}) => !(type === assignedTo?.type && id === assignedTo?.id))
       .filter(({type}) => type === 'user' || type === 'team')
       .map(({type, suggestedReason, assignee}) => {
         const reason =
@@ -526,9 +524,7 @@ export function putSessionUserFirst(members: User[] | undefined): User[] {
   }
 
   const sessionUser = ConfigStore.get('user');
-  const sessionUserIndex = members.findIndex(
-    member => sessionUser && member.id === sessionUser.id
-  );
+  const sessionUserIndex = members.findIndex(member => member.id === sessionUser?.id);
 
   if (sessionUserIndex === -1) {
     return members;
