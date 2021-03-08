@@ -1,11 +1,10 @@
 ---
-created: '2021-03-05T12:14:37.313568Z'
+created: '2021-03-08T16:39:06.504172Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-max:
   hash: null
-  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
   component:
     app-depth-max (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
@@ -26,7 +25,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "9bb5de55b854491dacc677184c9b019a"
-  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+  tree_label: "<lambda>::operator()"
   component:
     system*
       exception*

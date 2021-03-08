@@ -1,5 +1,5 @@
 ---
-created: '2021-03-05T12:14:35.902642Z'
+created: '2021-03-08T16:39:05.152670Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -24,7 +24,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "228c649a3aa0901622c0a0e66ab0522c"
-  tree_label: "Invoke"
+  tree_label: "lambda_method"
   component:
     app-depth-max*
       exception*

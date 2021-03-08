@@ -1,11 +1,10 @@
 ---
-created: '2021-03-05T11:40:15.410120Z'
+created: '2020-11-12T10:57:16.548617Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
-  tree_label: "_main"
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
@@ -38,7 +37,6 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "eb87c1031dba55b67df86fb9fff59dc6"
-  tree_label: "_main"
   component:
     system*
       exception*

@@ -227,7 +227,7 @@ def get_function_component(
                 hint="ignored because sourcemap used and context line available",
             )
 
-    if function_component.values:
+    if function_component.values and context["hierarchical_grouping"]:
         function_component.update(tree_label=function_component.values[0])
 
     return function_component

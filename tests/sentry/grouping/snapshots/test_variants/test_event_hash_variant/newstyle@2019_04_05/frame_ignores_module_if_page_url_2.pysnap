@@ -1,11 +1,10 @@
 ---
-created: '2021-03-05T11:40:20.739800Z'
+created: '2020-02-26T19:54:30.506357Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
-  tree_label: "a"
   component:
     app (stacktrace of system takes precedence)
       stacktrace
@@ -19,7 +18,6 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "0cc175b9c0f1b6a831c399e269772661"
-  tree_label: "a"
   component:
     system*
       stacktrace*

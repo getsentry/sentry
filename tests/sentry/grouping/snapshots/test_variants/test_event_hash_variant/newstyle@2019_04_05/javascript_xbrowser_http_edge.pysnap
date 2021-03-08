@@ -1,11 +1,10 @@
 ---
-created: '2021-03-05T11:40:19.808845Z'
+created: '2020-02-26T19:54:31.391561Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
-  tree_label: "Anonymous function"
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
@@ -83,7 +82,6 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "e834aba6bf7b758128da092a68a18e9a"
-  tree_label: "Anonymous function"
   component:
     system*
       exception*

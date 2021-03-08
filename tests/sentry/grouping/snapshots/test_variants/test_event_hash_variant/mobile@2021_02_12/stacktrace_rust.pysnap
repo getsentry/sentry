@@ -1,11 +1,11 @@
 ---
-created: '2021-03-05T12:14:37.190539Z'
+created: '2021-03-08T16:39:06.381053Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-max:
   hash: "eb87c1031dba55b67df86fb9fff59dc6"
-  tree_label: "_main"
+  tree_label: "log_demo::main"
   component:
     app-depth-max*
       exception*
