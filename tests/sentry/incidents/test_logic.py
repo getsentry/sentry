@@ -847,7 +847,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             AlertRuleThresholdType.ABOVE,
             1,
         )
-        assert alert_rule_1.owner.get_actor_id() == f"user:{self.user.id}"
+        assert alert_rule_1.owner.id == self.user.actor.id
         alert_rule_2 = create_alert_rule(
             self.organization,
             [self.project],
@@ -859,7 +859,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             AlertRuleThresholdType.ABOVE,
             1,
         )
-        assert alert_rule_2.owner.get_actor_id() == f"team:{self.team.id}"
+        assert alert_rule_2.owner.id == self.team.actor.id
 
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -1089,27 +1089,27 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             AlertRuleThresholdType.ABOVE,
             1,
         )
-        assert alert_rule.owner.get_actor_id() == f"user:{self.user.id}"
+        assert alert_rule.owner.id == self.user.actor.id
         update_alert_rule(
             alert_rule=alert_rule,
             owner=Actor.from_actor_identifier(f"team:{self.team.id}"),
         )
-        assert alert_rule.owner.get_actor_id() == f"team:{self.team.id}"
+        assert alert_rule.owner.id == self.team.actor.id
         update_alert_rule(
             alert_rule=alert_rule,
             owner=Actor.from_actor_identifier(f"user:{self.user.id}"),
         )
-        assert alert_rule.owner.get_actor_id() == f"user:{self.user.id}"
+        assert alert_rule.owner.id == self.user.actor.id
         update_alert_rule(
             alert_rule=alert_rule,
             owner=Actor.from_actor_identifier(self.user.id),
         )
-        assert alert_rule.owner.get_actor_id() == f"user:{self.user.id}"
+        assert alert_rule.owner.id == self.user.actor.id
         update_alert_rule(
             alert_rule=alert_rule,
             name="not updating owner",
         )
-        assert alert_rule.owner.get_actor_id() == f"user:{self.user.id}"
+        assert alert_rule.owner.id == self.user.actor.id
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
