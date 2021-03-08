@@ -165,6 +165,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     {"sentry_app": "SentryApp must be provided for sentry_app"}
                 )
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
+        attrs["input_channel_id"] = self.context.get("input_channel_id")
         return attrs
 
     def create(self, validated_data):
@@ -258,6 +259,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                         "organization": self.context["organization"],
                         "access": self.context["access"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
+                        "input_channel_id": action_data.pop("input_channel_id", None),
                     },
                     instance=action_instance,
                     data=action_data,
@@ -556,6 +558,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         "organization": self.context["organization"],
                         "access": self.context["access"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
+                        "input_channel_id": self.context.get("input_channel_id"),
                     },
                     instance=trigger_instance,
                     data=trigger_data,
