@@ -12,10 +12,12 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {decodeScalar} from 'app/utils/queryString';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
+import {SidebarSpacer} from 'app/views/performance/transactionSummary/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
@@ -23,8 +25,6 @@ import {
 import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 
 import VitalInfo from '../vitalDetail/vitalInfo';
-
-import {SidebarSpacer} from './utils';
 
 type Props = {
   eventView: EventView;
@@ -55,7 +55,9 @@ function UserStats({eventView, totals, location, organization, transactionName}:
       );
     }
 
-    apdex = totals[`apdex_${threshold}`].toFixed(4);
+    const apdexKey = `apdex_${threshold}`;
+    const formatter = getFieldRenderer(apdexKey, {[apdexKey]: 'number'});
+    apdex = formatter(totals, {organization, location});
 
     const [vitalsPassed, vitalsTotal] = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce(
       ([passed, total], vs) => {
@@ -187,6 +189,10 @@ const StatNumber = styled('div')`
   font-size: 32px;
   margin-bottom: ${space(0.5)};
   color: ${p => p.theme.textColor};
+
+  > div {
+    text-align: left;
+  }
 `;
 
 const SectionValue = styled('span')`
