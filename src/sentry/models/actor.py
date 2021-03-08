@@ -18,8 +18,8 @@ class Actor(Model):
 
     type = models.PositiveSmallIntegerField(
         choices=(
-            (0, "team"),
-            (1, "user"),
+            (ACTOR_TYPES["team"], "team"),
+            (ACTOR_TYPES["user"], "user"),
         )
     )
 
