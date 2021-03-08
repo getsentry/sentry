@@ -31,7 +31,6 @@ Pillow==8.1.0
 progressbar2==3.32.0
 psycopg2-binary==2.7.7
 PyJWT==1.5.3
-pyrsistent==0.17.3
 python-dateutil>=2.0.0,<3.0.0
 python-memcached==1.59
 python-u2flib-server==5.0.0
@@ -49,7 +48,6 @@ rfc3986-validator==0.1.1
 sentry-relay==0.8.4
 sentry-sdk>=0.20.0,<0.21.0
 simplejson==3.11.1
-sqlparse==0.2.4
 statsd==3.1
 structlog==17.1.0
 symbolic==8.0.3
@@ -74,8 +72,6 @@ grpcio==1.35.0
 # not directly used, but provides a speedup for redis
 hiredis==0.3.1
 
-
-
 # not directly used, but pinned for at least semaphore/symbolic
 cffi==1.12.2
 
@@ -83,14 +79,13 @@ cffi==1.12.2
 cssutils==1.0.2
 cssselect==1.0.3
 
-# not directly used, but needed
-setproctitle==1.1.10
-
 # sentry-plugins specific dependencies
 phabricator==0.7.0
 
-# test dependencies, but unable to move to requirements-test until sentry.utils.pytest and similar are moved to tests/
+# test dependencies, but unable to move to requirements-test until
+# sentry.utils.pytest and sentry.testutils are moved to tests/
 selenium==3.141.0
+sqlparse==0.2.4
 # We're still using mock in Python 3.6 because it contains a fix to Python issue37972.
 # We should be able to fully swap it out for stdlib once we're on 3.8.
 mock==4.0.3
