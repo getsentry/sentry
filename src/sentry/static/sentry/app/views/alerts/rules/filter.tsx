@@ -25,14 +25,6 @@ type Props = {
 };
 
 class Filter extends React.Component<Props> {
-  constructor(props: Props) {
-    super(props);
-
-    this.state = {
-      selection: new Set(),
-    };
-  }
-
   toggleFilter = (filter: string) => {
     const {onFilterChange, selection} = this.props;
     const newSelection = new Set(selection);
@@ -46,12 +38,11 @@ class Filter extends React.Component<Props> {
 
   toggleAllFilters = () => {
     const {filterList, onFilterChange, selection} = this.props;
-    let newSelection: Set<string>;
-    if (selection.size === filterList.length) {
-      newSelection = new Set();
-    } else {
-      newSelection = new Set(filterList);
-    }
+    const newSelection =
+      selection.size === filterList.length
+        ? (new Set() as Set<string>)
+        : new Set(filterList);
+
     onFilterChange(newSelection);
   };
 
