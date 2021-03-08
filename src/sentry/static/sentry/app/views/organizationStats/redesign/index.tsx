@@ -56,7 +56,7 @@ class OrganizationStats extends React.Component<Props, State> {
   setSelectedDataCategory = (dataCategory: DataCategory) => {
     this.setState({dataCategory});
   };
-  
+
   get selectedDataCategory() {
     return capitalize(this.state.dataCategory);
   }
