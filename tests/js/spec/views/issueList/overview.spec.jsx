@@ -506,7 +506,7 @@ describe('IssueList', function () {
       wrapper.update();
 
       wrapper.find('IssueListSortOptions DropdownButton').simulate('click');
-      wrapper.find('IssueListSortOptions MenuItem span').at(3).simulate('click');
+      wrapper.find('DropdownItem').at(3).find('MenuItem span').at(1).simulate('click');
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
