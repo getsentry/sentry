@@ -1309,6 +1309,46 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 integration=integration,
             )
 
+    @responses.activate
+    def test_slack_channel_id_provided(self):
+        integration = Integration.objects.create(
+            external_id="2",
+            provider="slack",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.SLACK
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_name = "#some_channel"
+        channel_id = "s_c"
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
+            ),
+        )
+
+        action = create_alert_rule_trigger_action(
+            self.trigger,
+            type,
+            target_type,
+            target_identifier=channel_name,
+            integration=integration,
+            input_channel_id=channel_id,
+        )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == channel_id
+        assert action.target_display == channel_name
+        assert action.integration == integration
+
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
     def test_msteams(self, mock_get_channel_id):
         integration = Integration.objects.create(external_id="1", provider="msteams")
