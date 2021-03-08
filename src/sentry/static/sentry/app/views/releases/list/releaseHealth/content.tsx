@@ -59,7 +59,7 @@ const Content = ({
           <AdoptionColumn>
             {supportsSessionAdoption ? t('Adoption') : t('User Adoption')}
           </AdoptionColumn>
-          {activeDisplay === DisplayOption.CRASH_FREE_USERS ? (
+          {activeDisplay === DisplayOption.USERS ? (
             <React.Fragment>
               <SessionsColumn>{t('Crash Free Users')}</SessionsColumn>
               <DailyColumn>
@@ -117,13 +117,11 @@ const Content = ({
               totalSessions24h,
             } = healthData || {};
             const selectedAdoption =
-              activeDisplay === DisplayOption.CRASH_FREE_SESSIONS &&
-              supportsSessionAdoption
+              activeDisplay === DisplayOption.SESSIONS && supportsSessionAdoption
                 ? sessions_adoption
                 : adoption;
             const selected24hCount =
-              activeDisplay === DisplayOption.CRASH_FREE_SESSIONS &&
-              supportsSessionAdoption
+              activeDisplay === DisplayOption.SESSIONS && supportsSessionAdoption
                 ? totalSessions24h
                 : totalUsers24h;
 
@@ -161,7 +159,7 @@ const Content = ({
                     )}
                   </AdoptionColumn>
 
-                  {activeDisplay === DisplayOption.CRASH_FREE_USERS ? (
+                  {activeDisplay === DisplayOption.USERS ? (
                     <SessionsColumn>
                       {showPlaceholders ? (
                         <StyledPlaceholder width="60px" />

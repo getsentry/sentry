@@ -180,24 +180,24 @@ describe('ReleasesList', function () {
     const displayDropdown = wrapper.find('ReleaseListDisplayOptions');
 
     const activeDisplay = displayDropdown.find('DropdownButton button');
-    expect(activeDisplay.text()).toEqual('DisplayCrash Free Sessions');
+    expect(activeDisplay.text()).toEqual('DisplaySessions');
 
     const displayOptions = displayDropdown.find('DropdownItem');
     expect(displayOptions).toHaveLength(2);
 
     const crashFreeSessionsOption = displayOptions.at(0);
     expect(crashFreeSessionsOption.props().isActive).toEqual(true);
-    expect(crashFreeSessionsOption.text()).toEqual('Crash Free Sessions');
+    expect(crashFreeSessionsOption.text()).toEqual('Sessions');
 
     const crashFreeUsersOption = displayOptions.at(1);
-    expect(crashFreeUsersOption.text()).toEqual('Crash Free Users');
+    expect(crashFreeUsersOption.text()).toEqual('Users');
     expect(crashFreeUsersOption.props().isActive).toEqual(false);
 
     crashFreeUsersOption.find('span').simulate('click');
 
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
-        display: DisplayOption.CRASH_FREE_USERS,
+        display: DisplayOption.USERS,
       }),
     });
   });
