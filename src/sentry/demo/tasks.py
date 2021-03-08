@@ -29,7 +29,7 @@ def delete_users_orgs(**kwargs):
         return
 
     # delete everything older than a day
-    cutoff_time = timezone.now() - timedelta(seconds=30)
+    cutoff_time = timezone.now() - timedelta(days=1)
 
     # note this only runs in demo mode (not SaaS) so the underlying tables here are small
     org_list = Organization.objects.filter(
