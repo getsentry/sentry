@@ -8,12 +8,13 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 def backfill_null_actors(apps, schema_editor):
     User = apps.get_model("sentry", "User")
     Team = apps.get_model("sentry", "Team")
-
-    for user in RangeQuerySetWrapperWithProgressBar(User.objects.filter(actor=None)):
+    users = User.objects.filter(actor=None)
+    for user in RangeQuerySetWrapperWithProgressBar(users):
         user.actor = Actor.objects.create(type=1)
         user.save()
 
-    for team in RangeQuerySetWrapperWithProgressBar(Team.objects.filter(actor=None)):
+    teams = Team.objects.filter(actor=None)
+    for team in RangeQuerySetWrapperWithProgressBar(teams):
         team.actor = Actor.objects.create(type=0)
         team.save()
 
@@ -37,7 +38,7 @@ class Migration(migrations.Migration):
     # You'll also usually want to set this to `False` if you're writing a data
     # migration, since we don't want the entire migration to run in one long-running
     # transaction.
-    atomic = True
+    atomic = False
 
     dependencies = [
         ("sentry", "0170_actor_introduction"),
