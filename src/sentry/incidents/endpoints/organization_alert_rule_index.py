@@ -15,7 +15,14 @@ from sentry.api.serializers import serialize, CombinedRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.snuba.dataset import Dataset
-from sentry.models import Rule, RuleStatus, Project, OrganizationMemberTeam, Team
+from sentry.models import (
+    Rule,
+    RuleStatus,
+    Project,
+    OrganizationMember,
+    OrganizationMemberTeam,
+    Team,
+)
 
 
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
@@ -48,19 +55,47 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=project_ids
         )
 
-        name = request.GET.get("name", None)
-        teams = request.GET.get("teams", [])
+        teams = request.GET.getlist("team", [])
         if teams:
-            alert_rules = alert_rules.filter(
-                Q(owner_id__in=Team.objects.filter(id__in=teams).values_list("actor_id", flat=True))
-            )
-            issue_rules = issue_rules.filter(
-                Q(owner_id__in=Team.objects.filter(id__in=teams).values_list("actor_id", flat=True))
-            )
+            unassigned = None
+            if "unassigned" in teams:
+                teams.remove("unassigned")
+                unassigned = Q(owner_id=None)
 
-        if name:
-            alert_rules = alert_rules.filter(name__contains=name)
-            issue_rules = issue_rules.filter(label__contains=name)
+            if "myteams" in teams:
+                teams.remove("myteams")
+                for t in Team.objects.filter(
+                    id__in=OrganizationMemberTeam.objects.filter(
+                        organizationmember__in=OrganizationMember.objects.filter(
+                            user=request.user, organization_id=organization.id
+                        ),
+                        is_active=True,
+                    ).values("team")
+                ):
+                    teams.append(t.id)
+
+            for team_id in teams:
+                if type(team_id) is not int and not team_id.isdigit():
+                    return Response("Invalid Team IDs", status=status.HTTP_400_BAD_REQUEST)
+
+            teams_query = Q(
+                owner_id__in=Team.objects.filter(id__in=teams).values_list("actor_id", flat=True)
+            )
+            filter_query = teams_query
+            if unassigned:
+                filter_query = filter_query | unassigned
+
+            alert_rules = alert_rules.filter(filter_query)
+            # TODO(Chris F): Issue rule owner support migration coming in another PR
+            # issue_rules = issue_rules.filter(
+            # owner_id__in=Team.objects.filter(id__in=teams).values_list("actor_id", flat=True)
+            # )
+
+        # TODO(Chris F.): Implement Name Filtering
+        # name = request.GET.get("name", None)
+        # if name:
+        # alert_rules = alert_rules.filter(name__contains=name)
+        # issue_rules = issue_rules.filter(label__contains=name)
 
         is_asc = request.GET.get("asc", False) == "1"
         sort_key = request.GET.get("sort", "date_added")

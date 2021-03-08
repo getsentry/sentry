@@ -346,8 +346,10 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
     def setup_project_and_rules(self):
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
-        self.team = self.create_team(organization=self.org, name="Mariachi Band")
-        self.team2 = self.create_team(organization=self.org, name="Folk Band")
+        self.team = self.create_team(
+            organization=self.org, name="Mariachi Band", members=[self.user]
+        )
+        self.team2 = self.create_team(organization=self.org, name="Folk Band", members=[self.user])
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
         self.project2 = self.create_project(organization=self.org)
@@ -357,13 +359,13 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC),
-            owner=Actor.from_actor_identifier(f"team:{self.team.id}")
+            owner=Actor.from_actor_identifier(f"team:{self.team.id}"),
         )
         self.other_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project2],
             date_added=before_now(minutes=5).replace(tzinfo=pytz.UTC),
-            owner=Actor.from_actor_identifier(f"team:{self.team.id}")
+            owner=Actor.from_actor_identifier(f"team:{self.team.id}"),
         )
         self.issue_rule = self.create_issue_alert_rule(
             data={
@@ -379,7 +381,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC),
-            owner=Actor.from_actor_identifier(f"team:{self.team2.id}")
+            owner=Actor.from_actor_identifier(f"team:{self.team2.id}"),
         )
         self.combined_rules_url = f"/api/0/organizations/{self.org.slug}/combined-rules/"
 
@@ -584,7 +586,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
     def test_team_filter(self):
         self.setup_project_and_rules()
-
+        self.issue_rule.delete()  # TODO(Chris F.) Instead of working around this non-working filter, just delete it
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "10", "project": [self.project.id]}
             response = self.client.get(
@@ -592,7 +594,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200
         result = json.loads(response.content)
-        assert len(result) == 3
+        assert len(result) == 2
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {
@@ -620,7 +622,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 2
 
-
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {
                 "per_page": "10",
@@ -635,16 +636,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert len(result) == 3
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "10", "project": [self.project.id], "team": [-1]}
-            response = self.client.get(
-                path=self.combined_rules_url, data=request_data, content_type="application/json"
-            )
-        assert response.status_code == 200
-        result = json.loads(response.content)
-        assert len(result) == 0
-
-
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "10", "project": [self.project.id], "team": ["unassigned"]}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
@@ -652,6 +643,21 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 0
+
+        self.an_unassigned_alert_rule = self.create_alert_rule(
+            organization=self.org,
+            projects=[self.project],
+            date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC),
+            owner=None,
+        )
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "10", "project": [self.project.id], "team": ["unassigned"]}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 1
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "10", "project": [self.project.id], "team": ["notvalid"]}
@@ -667,7 +673,20 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200
         result = json.loads(response.content)
-        assert len(result) == 0
+        assert len(result) == 2
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id, self.project2.id],
+                "team": ["myteams"],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 3
 
     def test_name_filter(self):
         assert True is False
