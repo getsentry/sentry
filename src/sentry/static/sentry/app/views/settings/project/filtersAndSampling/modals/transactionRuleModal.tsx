@@ -1,11 +1,14 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {withTheme} from 'emotion-theming';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import ExternalLink from 'app/components/links/externalLink';
+import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -14,6 +17,7 @@ import {
   DynamicSamplingRule,
   DynamicSamplingRuleType,
 } from 'app/types/dynamicSampling';
+import {Theme} from 'app/utils/theme';
 import Field from 'app/views/settings/components/forms/field';
 
 import {DYNAMIC_SAMPLING_DOC_LINK} from '../utils';
@@ -21,7 +25,9 @@ import {DYNAMIC_SAMPLING_DOC_LINK} from '../utils';
 import Form from './form';
 import {Transaction} from './utils';
 
-type Props = Form['props'];
+type Props = Form['props'] & {
+  theme: Theme;
+};
 
 type State = Form['state'] & {
   tracing: boolean;
@@ -149,6 +155,7 @@ class TransactionRuleModal extends Form<Props, State> {
   }
 
   getExtraFields() {
+    const {theme} = this.props;
     const {tracing, isTracingDisabled} = this.state;
 
     return (
@@ -160,24 +167,34 @@ class TransactionRuleModal extends Form<Props, State> {
         stacked
         showHelpInTooltip
       >
-        <TracingWrapper
-          onClick={
-            isTracingDisabled ? undefined : () => this.handleChange('tracing', !tracing)
-          }
-        >
-          <StyledCheckboxFancy isChecked={tracing} isDisabled={isTracingDisabled} />
-          {tct(
-            'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain. [link:Learn more about tracing].',
-            {
-              link: (
-                <ExternalLink
-                  href={DYNAMIC_SAMPLING_DOC_LINK}
-                  onClick={event => event.stopPropagation()}
-                />
-              ),
+        <Tooltip
+          title={t('This field can only be edited if there are no match conditions')}
+          disabled={!isTracingDisabled}
+          popperStyle={css`
+            @media (min-width: ${theme.breakpoints[0]}) {
+              max-width: 370px;
             }
-          )}
-        </TracingWrapper>
+          `}
+        >
+          <TracingWrapper
+            onClick={
+              isTracingDisabled ? undefined : () => this.handleChange('tracing', !tracing)
+            }
+          >
+            <StyledCheckboxFancy isChecked={tracing} isDisabled={isTracingDisabled} />
+            {tct(
+              'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain. [link:Learn more about tracing].',
+              {
+                link: (
+                  <ExternalLink
+                    href={DYNAMIC_SAMPLING_DOC_LINK}
+                    onClick={event => event.stopPropagation()}
+                  />
+                ),
+              }
+            )}
+          </TracingWrapper>
+        </Tooltip>
       </Field>
     );
   }
@@ -239,7 +256,7 @@ class TransactionRuleModal extends Form<Props, State> {
   };
 }
 
-export default TransactionRuleModal;
+export default withTheme(TransactionRuleModal);
 
 const TracingWrapper = styled('div')`
   display: grid;

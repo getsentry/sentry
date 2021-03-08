@@ -5,8 +5,10 @@ import omit from 'lodash/omit';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -317,6 +319,9 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
           {this.getModalTitle()}
         </Header>
         <Body>
+          <Alert type="info" icon={<IconInfo size="md" />}>
+            {t('A new rule may take a few minutes to propagate.')}
+          </Alert>
           <Fields>
             {this.getExtraFields()}
             <RadioField
