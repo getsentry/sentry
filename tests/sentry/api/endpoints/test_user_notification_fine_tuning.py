@@ -22,14 +22,14 @@ class UserNotificationFineTuningTest(APITestCase):
 
     def test_returns_correct_defaults(self):
         UserOption.objects.create(user=self.user, project=self.project, key="mail:alert", value=1)
-        resp = self.get_valid_response("me", "alerts")
-        assert resp.data.get(self.project.id) == 1
+        response = self.get_valid_response("me", "alerts")
+        assert response.data.get(self.project.id) == 1
 
         UserOption.objects.create(
             user=self.user, organization=self.org, key="deploy-emails", value=1
         )
-        resp = self.get_valid_response("me", "deploy")
-        assert resp.data.get(self.org.id) == 1
+        response = self.get_valid_response("me", "deploy")
+        assert response.data.get(self.org.id) == 1
 
         UserOption.objects.create(
             user=self.user,
@@ -37,8 +37,8 @@ class UserNotificationFineTuningTest(APITestCase):
             key="reports:disabled-organizations",
             value=[self.org.id],
         )
-        resp = self.get_valid_response("me", "reports")
-        assert resp.data.get(self.org.id) == 0
+        response = self.get_valid_response("me", "reports")
+        assert response.data.get(self.org.id) == 0
 
     def test_invalid_notification_type(self):
         self.get_valid_response("me", "invalid", status_code=404)

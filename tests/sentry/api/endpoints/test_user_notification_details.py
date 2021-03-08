@@ -49,19 +49,19 @@ class UserNotificationDetailsTest(APITestCase):
 
         self.login_as(user=user)
 
-        resp = self.get_valid_response("me")
+        response = self.get_valid_response("me")
 
-        assert resp.data.get("deployNotifications") == 3
-        assert resp.data.get("personalActivityNotifications") is False
-        assert resp.data.get("selfAssignOnResolve") is False
-        assert resp.data.get("subscribeByDefault") is True
-        assert resp.data.get("workflowNotifications") == int(UserOptionValue.participating_only)
+        assert response.data.get("deployNotifications") == 3
+        assert response.data.get("personalActivityNotifications") is False
+        assert response.data.get("selfAssignOnResolve") is False
+        assert response.data.get("subscribeByDefault") is True
+        assert response.data.get("workflowNotifications") == int(UserOptionValue.participating_only)
 
     def test_saves_and_returns_values(self):
         user = self.create_user(email="a@example.com")
         self.login_as(user=user)
 
-        resp = self.get_valid_response(
+        response = self.get_valid_response(
             "me",
             method="put",
             **{
@@ -71,11 +71,11 @@ class UserNotificationDetailsTest(APITestCase):
             },
         )
 
-        assert resp.data.get("deployNotifications") == 2
-        assert resp.data.get("personalActivityNotifications") is True
-        assert resp.data.get("selfAssignOnResolve") is True
-        assert resp.data.get("subscribeByDefault") is True
-        assert resp.data.get("workflowNotifications") == int(UserOptionValue.participating_only)
+        assert response.data.get("deployNotifications") == 2
+        assert response.data.get("personalActivityNotifications") is True
+        assert response.data.get("selfAssignOnResolve") is True
+        assert response.data.get("subscribeByDefault") is True
+        assert response.data.get("workflowNotifications") == int(UserOptionValue.participating_only)
 
         assert (
             UserOption.objects.get(
@@ -92,9 +92,9 @@ class UserNotificationDetailsTest(APITestCase):
             user=user, project=None, organization=org, key="deploy-emails", value=1
         )
 
-        resp = self.get_valid_response("me", method="put", **{"deployNotifications": 2})
+        response = self.get_valid_response("me", method="put", **{"deployNotifications": 2})
 
-        assert resp.data.get("deployNotifications") == 2
+        assert response.data.get("deployNotifications") == 2
         assert (
             UserOption.objects.get(
                 user=user, project=None, organization=org, key="deploy-emails"
