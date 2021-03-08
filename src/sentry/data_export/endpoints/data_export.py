@@ -81,7 +81,7 @@ class DataExportQuerySerializer(serializers.Serializer):
             try:
                 snuba_filter = get_filter(query_info["query"], processor.params)
                 resolve_field_list(
-                    fields,
+                    fields.copy(),
                     snuba_filter,
                     auto_fields=True,
                     auto_aggregations=True,
