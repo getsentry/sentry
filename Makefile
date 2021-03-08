@@ -132,7 +132,6 @@ run-acceptance:
 	@echo ""
 
 test-setup-frontend:
-	sentry init
 	make build-platform-assets
 
 test-setup-db: create-db
@@ -226,6 +225,7 @@ collectstatic: node-version-check
 	sentry django collectstatic --noinput 1>/dev/null
 
 ci-test-js: test-setup-frontend test-js
+	sentry init
 	NODE_ENV=production yarn build-css
 ci-test-acceptance: test-setup-frontend test-setup-db collectstatic test-acceptance
 
