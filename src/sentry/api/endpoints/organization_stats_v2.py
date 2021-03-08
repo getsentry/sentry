@@ -167,6 +167,9 @@ def rate_limited_reason_mapper(reason):
     return reason_val
 
 
+# TODO: add ts and date fields to replace "timestamp" field
+
+
 def map_row_to_format(row):
     obj = {"time": row["time"]}
     if row["outcome"] == Outcome.RATE_LIMITED:
