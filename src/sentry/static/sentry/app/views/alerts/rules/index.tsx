@@ -6,6 +6,7 @@ import flatten from 'lodash/flatten';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
+import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
@@ -15,15 +16,18 @@ import {PanelTable, PanelTableHeader} from 'app/components/panels';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {IconArrow, IconCheckmark} from 'app/icons';
 import {t, tct} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Organization, Project, Team} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Projects from 'app/utils/projects';
+import withTeams from 'app/utils/withTeams';
 
 import AlertHeader from '../list/header';
 import {isIssueAlert} from '../utils';
 
+import Filter, {List, ListItem} from './filter';
 import RuleListRow from './row';
 
 const DEFAULT_SORT: {asc: boolean; field: 'date_added'} = {
@@ -35,13 +39,27 @@ const DOCS_URL =
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
+  teams: Team[];
 };
 
 type State = {
   ruleList?: IssueAlertRule[];
+  filteredTeams: Set<string>;
 };
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
+  getDefaultState() {
+    const state = super.getDefaultState();
+    const {
+      location: {query},
+    } = this.props;
+    const filteredTeams = query.team ? new Set(query.team) : new Set();
+    return {
+      ...state,
+      filteredTeams,
+    };
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {params, location} = this.props;
     const {query} = location;
@@ -82,6 +100,18 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     );
   }
 
+  handleChangeFilter = (activeFilters: Set<string>) => {
+    const {router, location} = this.props;
+    this.setState({filteredTeams: activeFilters});
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        team: [...activeFilters],
+      },
+    });
+  };
+
   handleDeleteRule = async (projectId: string, rule: IssueAlertRule) => {
     const {params} = this.props;
     const {orgId} = params;
@@ -102,6 +132,42 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
   renderLoading() {
     return this.renderBody();
+  }
+
+  renderFilterBar() {
+    const {teams} = this.props;
+    const {filteredTeams} = this.state;
+    const teamIds = teams.map(({id}) => id);
+    return (
+      <FilterWrapper>
+        <Filter
+          header={t('Team')}
+          onFilterChange={this.handleChangeFilter}
+          filterList={teamIds}
+          selection={filteredTeams}
+        >
+          {({toggleFilter}) => {
+            return (
+              <List>
+                {teams.map(({id, name}) => (
+                  <ListItem
+                    key={id}
+                    isChecked={filteredTeams.has(id)}
+                    onClick={event => {
+                      event.stopPropagation();
+                      toggleFilter(id);
+                    }}
+                  >
+                    <TeamName>{name}</TeamName>
+                    <CheckboxFancy isChecked={filteredTeams.has(id)} />
+                  </ListItem>
+                ))}
+              </List>
+            );
+          }}
+        </Filter>
+      </FilterWrapper>
+    );
   }
 
   renderList() {
@@ -127,54 +193,57 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
         <Layout.Main fullWidth>
           <Feature features={['organizations:team-alerts-ownership']}>
             {({hasFeature}) => (
-              <StyledPanelTable
-                headers={[
-                  t('Type'),
-                  t('Alert Name'),
-                  t('Project'),
-                  ...(hasFeature ? [t('Team')] : []),
-                  t('Created By'),
-                  // eslint-disable-next-line react/jsx-key
-                  <StyledSortLink
-                    to={{
-                      pathname: `/organizations/${orgId}/alerts/rules/`,
-                      query: {
-                        ...query,
-                        asc: sort.asc ? undefined : '1',
-                      },
-                    }}
-                  >
-                    {t('Created')}{' '}
-                    <IconArrow
-                      color="gray300"
-                      size="xs"
-                      direction={sort.asc ? 'up' : 'down'}
-                    />
-                  </StyledSortLink>,
-                  t('Actions'),
-                ]}
-                isLoading={loading}
-                isEmpty={ruleList?.length === 0}
-                emptyMessage={this.tryRenderEmpty()}
-                showTeamCol={hasFeature}
-              >
-                <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
-                  {({initiallyLoaded, projects}) =>
-                    ruleList.map(rule => (
-                      <RuleListRow
-                        // Metric and issue alerts can have the same id
-                        key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
-                        projectsLoaded={initiallyLoaded}
-                        projects={projects as Project[]}
-                        rule={rule}
-                        orgId={orgId}
-                        onDelete={this.handleDeleteRule}
-                        organization={organization}
+              <React.Fragment>
+                {hasFeature && this.renderFilterBar()}
+                <StyledPanelTable
+                  headers={[
+                    t('Type'),
+                    t('Alert Name'),
+                    t('Project'),
+                    ...(hasFeature ? [t('Team')] : []),
+                    t('Created By'),
+                    // eslint-disable-next-line react/jsx-key
+                    <StyledSortLink
+                      to={{
+                        pathname: `/organizations/${orgId}/alerts/rules/`,
+                        query: {
+                          ...query,
+                          asc: sort.asc ? undefined : '1',
+                        },
+                      }}
+                    >
+                      {t('Created')}{' '}
+                      <IconArrow
+                        color="gray300"
+                        size="xs"
+                        direction={sort.asc ? 'up' : 'down'}
                       />
-                    ))
-                  }
-                </Projects>
-              </StyledPanelTable>
+                    </StyledSortLink>,
+                    t('Actions'),
+                  ]}
+                  isLoading={loading}
+                  isEmpty={ruleList?.length === 0}
+                  emptyMessage={this.tryRenderEmpty()}
+                  showTeamCol={hasFeature}
+                >
+                  <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+                    {({initiallyLoaded, projects}) =>
+                      ruleList.map(rule => (
+                        <RuleListRow
+                          // Metric and issue alerts can have the same id
+                          key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
+                          projectsLoaded={initiallyLoaded}
+                          projects={projects as Project[]}
+                          rule={rule}
+                          orgId={orgId}
+                          onDelete={this.handleDeleteRule}
+                          organization={organization}
+                        />
+                      ))
+                    }
+                  </Projects>
+                </StyledPanelTable>
+              </React.Fragment>
             )}
           </Feature>
           <Pagination pageLinks={ruleListPageLinks} />
@@ -225,7 +294,7 @@ class AlertRulesListContainer extends React.Component<Props> {
   }
 }
 
-export default AlertRulesListContainer;
+export default withTeams(AlertRulesListContainer);
 
 const StyledLayoutBody = styled(Layout.Body)`
   margin-bottom: -20px;
@@ -237,6 +306,15 @@ const StyledSortLink = styled(Link)`
   :hover {
     color: inherit;
   }
+`;
+
+const TeamName = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  ${overflowEllipsis};
+`;
+
+const FilterWrapper = styled('div')`
+  margin-bottom: ${space(1.5)};
 `;
 
 const StyledPanelTable = styled(PanelTable)<{showTeamCol: boolean}>`
