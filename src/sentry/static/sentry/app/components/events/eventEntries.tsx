@@ -98,10 +98,10 @@ class EventEntries extends React.Component<Props, State> {
     );
   }
 
-  async fetchDebugFile(query: string): Promise<Array<DebugFile>> {
+  async fetchProguardMappingFiles(query: string): Promise<Array<DebugFile>> {
     const {api, organization, project} = this.props;
     try {
-      const debugFiles = await api.requestPromise(
+      const proguardMappingFiles = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
         {
           method: 'GET',
@@ -111,7 +111,7 @@ class EventEntries extends React.Component<Props, State> {
           },
         }
       );
-      return debugFiles;
+      return proguardMappingFiles;
     } catch (error) {
       Sentry.captureException(error);
       // do nothing, the UI will not display extra error details
@@ -184,9 +184,11 @@ class EventEntries extends React.Component<Props, State> {
     // otherwise the proguard id wouldn't be in the event.
     // But maybe it failed to upload the mappings file
     if (defined(proGuardImageUuid)) {
-      const debugFile = await this.fetchDebugFile(proGuardImageUuid);
+      const proguardMappingFiles = await this.fetchProguardMappingFiles(
+        proGuardImageUuid
+      );
 
-      if (!debugFile.length) {
+      if (!proguardMappingFiles.length) {
         proGuardErrors.push({
           type: 'proguard_missing_mapping',
           message: projectProcessingIssuesMessages.proguard_missing_mapping,
@@ -206,6 +208,7 @@ class EventEntries extends React.Component<Props, State> {
           }
           Sentry.captureMessage('Event contains proguard image but not uuid');
         });
+        return;
       }
     }
 
@@ -235,7 +238,9 @@ class EventEntries extends React.Component<Props, State> {
 
       // This capture will be removed once we're confident with the level of effectiveness
       Sentry.captureMessage(
-        "Displaying ProGuard warning 'proguard_potentially_misconfigured_plugin' for suspected event"
+        !proGuardImage
+          ? 'No Proguard is used at all, but a frame did match the regex'
+          : "Displaying ProGuard warning 'proguard_potentially_misconfigured_plugin' for suspected event"
       );
     }
 
