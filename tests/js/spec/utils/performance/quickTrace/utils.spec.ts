@@ -70,7 +70,6 @@ function generateTransactionLite({
     project_slug: generateProjectSlug(position),
     parent_event_id: generation <= 0 ? null : generateEventId(parentPosition),
     parent_span_id: generation <= 0 ? null : generateSpanId(parentPosition),
-    is_root: generation === 0,
   };
 }
 
