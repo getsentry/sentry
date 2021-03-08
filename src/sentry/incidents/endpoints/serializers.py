@@ -92,7 +92,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             "target_display": {"required": False},
             "integration": {"required": False, "allow_null": True},
             "sentry_app": {"required": False, "allow_null": True},
-            "input_channel_id": {"required": False, "allow_null": True},  # do I need this?
         }
 
     def validate_type(self, type):
@@ -330,7 +329,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "include_all_projects": {"default": False},
             "threshold_type": {"required": True},
             "resolve_threshold": {"required": False},
-            "input_channel_id": {"required": False},  # is this needed?
         }
 
     def validate_query(self, query):
@@ -386,7 +384,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         both alert and resolve 'after' the warning trigger (whether that means
         > or < the value depends on threshold type).
         """
-
         data.setdefault("dataset", QueryDatasets.EVENTS)
         project_id = data.get("projects")
         if not project_id:
@@ -471,6 +468,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 threshold_type, warning, data.get("resolve_threshold")
             )
             self._validate_critical_warning_triggers(threshold_type, critical, warning)
+
         return data
 
     def _validate_trigger_thresholds(self, threshold_type, trigger, resolve_threshold):
