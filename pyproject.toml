@@ -14,5 +14,4 @@ addopts = "-ra --tb=short --strict-markers -p no:celery"
 # --import-mode=importlib
 markers = [
     "snuba: mark a test as requiring snuba",
-    "obsolete: mark test as obsolete and soon to be removed",
 ]
