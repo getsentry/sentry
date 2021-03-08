@@ -11,33 +11,21 @@ from collections import defaultdict
 import collections.abc
 
 
-# TODO: add this onto the outcomes module?
-# OUTCOME_TO_STR = {
-#     Outcome.ACCEPTED: "accepted",
-#     Outcome.FILTERED: "filtered",
-#     Outcome.RATE_LIMITED: "dropped",
-# }
-
-
 CATEGORY_NAME_MAP = {
     DataCategory.ERROR: "statsErrors",
     DataCategory.TRANSACTION: "statsTransactions",
     DataCategory.ATTACHMENT: "statsAttachments",
 }
 
-
-DEFAULT_TS_VAL = [
-    ("accepted", {"quantity": 0, "times_seen": 0}),
-    ("filtered", {"quantity": 0, "times_seen": 0}),
-    (
-        "dropped",
-        {
-            "overQuota": {"quantity": 0, "times_seen": 0},
-            "spikeProtection": {"quantity": 0, "times_seen": 0},
-            "other": {"quantity": 0, "times_seen": 0},
-        },
-    ),
-]
+DEFAULT_TS_VAL = {
+    "accepted": {"quantity": 0, "times_seen": 0},
+    "filtered": {"quantity": 0, "times_seen": 0},
+    "dropped": {
+        "overQuota": {"quantity": 0, "times_seen": 0},
+        "spikeProtection": {"quantity": 0, "times_seen": 0},
+        "other": {"quantity": 0, "times_seen": 0},
+    },
+}
 
 
 class OrganizationStatsEndpointV2(OrganizationEndpoint):
@@ -53,18 +41,15 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
             orderby=["time"],
         )
 
-        # TODO: see if you can use a regular dict in lambda
         response = {
-            "statsErrors": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
-            "statsTransactions": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
-            "statsAttachments": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
+            "statsErrors": defaultdict(lambda: DEFAULT_TS_VAL),
+            "statsTransactions": defaultdict(lambda: DEFAULT_TS_VAL),
+            "statsAttachments": defaultdict(lambda: DEFAULT_TS_VAL),
         }
         for row in result:
-            if "category" in row:
-                uniq_key = row["time"]
-                nested_update(
-                    response[CATEGORY_NAME_MAP[row["category"]]][uniq_key], datamapper(row)
-                )
+            nested_update(
+                response[CATEGORY_NAME_MAP[row["category"]]][row["time"]], map_row_to_format(row)
+            )
 
         response = {
             category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")
@@ -77,6 +62,7 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
     def get(self, request, organization):
         start, end, rollup = get_date_range_rollup_from_params(request.GET, "1h", round_range=True)
 
+        # TODO: see if there's a better way to get the user's projects
         project_list = []
         team_list = Team.objects.get_for_user(organization=organization, user=request.user)
         for team in team_list:
@@ -93,20 +79,19 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
             orderby=["times_seen", "time"],
         )
         template = {
-            "statsErrors": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
-            "statsTransactions": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
-            "statsAttachments": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
+            "statsErrors": defaultdict(lambda: DEFAULT_TS_VAL),
+            "statsTransactions": defaultdict(lambda: DEFAULT_TS_VAL),
+            "statsAttachments": defaultdict(lambda: DEFAULT_TS_VAL),
         }
         # need .copy here?
         # response = defaultdict(lambda: template)
         response = {project_id: template.copy() for project_id in project_ids}
 
-        # group results by timestamp, using defaultdict to coalesce into format
-        # TODO: use itertools.groupby?
+        # group results by projectid>timestamp, using defaultdict to coalesce into format
         for row in result:
             nested_update(
                 response[row["project_id"]][CATEGORY_NAME_MAP[row["category"]]][row["time"]],
-                datamapper(row),
+                map_row_to_format(row),
             )
         # add project_ids with no results to dict
         for project_id in project_ids:
@@ -124,9 +109,19 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
         return Response(response)
 
 
-class OrganizationProjectStatsDetails(ProjectEndpoint):
-    def get(self, request, project):
+class OrganizationProjectStatsDetails(OrganizationEndpoint, ProjectEndpoint):
+    def get(self, request, project, organization):
         start, end, rollup = get_date_range_rollup_from_params(request.GET, "1h", round_range=True)
+
+        # TODO: see if there's a better way to get the user's projects
+        project_list = []
+        team_list = Team.objects.get_for_user(organization=organization, user=request.user)
+        for team in team_list:
+            project_list.extend(Project.objects.get_for_user(team=team, user=request.user))
+        project_ids = list({p.id for p in project_list})
+
+        if project.id not in project_ids:
+            return Response(status=404)
 
         result = outcomes.query(
             start=start,
@@ -140,16 +135,14 @@ class OrganizationProjectStatsDetails(ProjectEndpoint):
 
         # need .copy here?
         response = {
-            "statsErrors": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
-            "statsTransactions": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
-            "statsAttachments": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
+            "statsErrors": defaultdict(lambda: DEFAULT_TS_VAL),
+            "statsTransactions": defaultdict(lambda: DEFAULT_TS_VAL),
+            "statsAttachments": defaultdict(lambda: DEFAULT_TS_VAL),
         }
         for row in result:
-            if "category" in row:
-                uniq_key = row["time"]
-                nested_update(
-                    response[CATEGORY_NAME_MAP[row["category"]]][uniq_key], datamapper(row)
-                )
+            nested_update(
+                response[CATEGORY_NAME_MAP[row["category"]]][row["time"]], map_row_to_format(row)
+            )
 
         response = {
             category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")
@@ -174,7 +167,7 @@ def rate_limited_reason_mapper(reason):
     return reason_val
 
 
-def datamapper(row):
+def map_row_to_format(row):
     obj = {"time": row["time"]}
     if row["outcome"] == Outcome.RATE_LIMITED:
         obj[outcome_to_string(row["outcome"])] = {
