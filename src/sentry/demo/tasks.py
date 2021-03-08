@@ -1,24 +1,17 @@
 from datetime import timedelta
 from django.conf import settings
-from django.db import transaction
 from django.utils import timezone
-from django.template.defaultfilters import slugify
 
-from sentry import roles
 from sentry.models import (
     User,
     Organization,
     OrganizationStatus,
-    OrganizationMember,
-    Project,
-    ProjectKey,
 )
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.deletion import delete_organization
 
-from .data_population import populate_python_project, populate_react_project
-from .utils import generate_random_name
 from .models import DemoOrgStatus, DemoOrganization
+from .demo_org_manager import create_demo_org
 
 
 @instrumented_task(
@@ -52,37 +45,6 @@ def delete_users_orgs(**kwargs):
     for org in org_list:
         # apply async so if so we continue if one org aborts
         delete_organization.apply_async(kwargs={"object_id": org.id})
-
-
-@transaction.atomic
-def create_demo_org() -> None:
-    if not settings.DEMO_MODE:
-        return
-
-    # TODO: add way to ensure we generate unique petnames
-    name = generate_random_name()
-
-    slug = slugify(name)
-
-    org = DemoOrganization.create_org(name=name, slug=slug)
-
-    owner = User.objects.get(email=settings.DEMO_ORG_OWNER_EMAIL)
-    OrganizationMember.objects.create(organization=org, user=owner, role=roles.get_top_dog().id)
-
-    team = org.team_set.create(name=org.name)
-    python_project = Project.objects.create(name="Python", organization=org, platform="python")
-    python_project.add_team(team)
-
-    react_project = Project.objects.create(
-        name="React", organization=org, platform="javascript-react"
-    )
-    react_project.add_team(team)
-
-    populate_python_project(python_project)
-    populate_react_project(react_project)
-
-    # delete all DSNs for the org so people don't send events
-    ProjectKey.objects.filter(project__organization=org).delete()
 
 
 ORG_BUFFER_SIZE = 3
