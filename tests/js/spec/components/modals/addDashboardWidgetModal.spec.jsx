@@ -50,6 +50,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     {name: 'custom-field', key: 'custom-field'},
   ];
 
+  let eventsStatsMock;
+
   beforeEach(function () {
     TagStore.onLoadTagsSuccess(tags);
     MockApiClient.addMockResponse({
@@ -58,13 +60,17 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       statusCode: 200,
       body: [],
     });
-    MockApiClient.addMockResponse({
+    eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {data: [{'event.type': 'error'}], meta: {'event.type': 'string'}},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
     });
   });
 
@@ -184,8 +190,18 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       interval: '5m',
       displayType: 'line',
       queries: [
-        {id: '9', name: 'errors', conditions: 'event.type:error', fields: ['count()']},
-        {id: '9', name: 'csp', conditions: 'event.type:csp', fields: ['count()']},
+        {
+          id: '9',
+          name: 'errors',
+          conditions: 'event.type:error',
+          fields: ['count()', 'count_unique(id)'],
+        },
+        {
+          id: '9',
+          name: 'csp',
+          conditions: 'event.type:csp',
+          fields: ['count()', 'count_unique(id)'],
+        },
       ],
     };
     const onAdd = jest.fn();
@@ -210,7 +226,30 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     );
     expect(wrapper.find('WidgetQueriesForm')).toHaveLength(1);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(2);
-    expect(wrapper.find('QueryField')).toHaveLength(1);
+    expect(wrapper.find('QueryField')).toHaveLength(2);
+
+    // Expect events-stats endpoint to be called for each search conditions with
+    // the same y-axis parameters
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'event.type:error',
+          yAxis: ['count()', 'count_unique(id)'],
+        }),
+      })
+    );
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'event.type:csp',
+          yAxis: ['count()', 'count_unique(id)'],
+        }),
+      })
+    );
 
     title.simulate('change', {target: {value: 'New title'}});
     await clickSubmit(wrapper);
