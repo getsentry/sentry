@@ -12,7 +12,6 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {decodeScalar} from 'app/utils/queryString';
@@ -24,6 +23,8 @@ import {
 import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 
 import VitalInfo from '../vitalDetail/vitalInfo';
+
+import {SidebarSpacer} from './utils';
 
 type Props = {
   eventView: EventView;
@@ -54,9 +55,7 @@ function UserStats({eventView, totals, location, organization, transactionName}:
       );
     }
 
-    const apdexKey = `apdex_${threshold}`;
-    const formatter = getFieldRenderer(apdexKey, {[apdexKey]: 'number'});
-    apdex = formatter(totals, {organization, location});
+    apdex = totals[`apdex_${threshold}`].toFixed(4);
 
     const [vitalsPassed, vitalsTotal] = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce(
       ([passed, total], vs) => {
@@ -86,30 +85,31 @@ function UserStats({eventView, totals, location, organization, transactionName}:
   });
 
   return (
-    <div>
-      <SidebarWrapper>
-        <SectionHeading>
-          {t('Apdex Score')}
-          <QuestionTooltip
-            position="top"
-            title={t(
-              'Apdex is the ratio of both satisfactory and tolerable response time to all response times.'
-            )}
-            size="sm"
-          />
-        </SectionHeading>
-        <StatNumber>{apdex}</StatNumber>
-        <Link to={`/settings/${organization.slug}/performance/`}>
-          <SectionValue>
-            {threshold}ms {t('threshold')}
-          </SectionValue>
-        </Link>
-      </SidebarWrapper>
+    <React.Fragment>
+      <SectionHeading>
+        {t('Apdex Score')}
+        <QuestionTooltip
+          position="top"
+          title={t(
+            'Apdex is the ratio of both satisfactory and tolerable response time to all response times.'
+          )}
+          size="sm"
+        />
+      </SectionHeading>
+      <StatNumber>{apdex}</StatNumber>
+      <Link to={`/settings/${organization.slug}/performance/`}>
+        <SectionValue>
+          {threshold}ms {t('threshold')}
+        </SectionValue>
+      </Link>
+
+      <SidebarSpacer />
+
       <Feature features={['organizations:performance-vitals-overview']}>
         {({hasFeature}) => {
           if (vitalsPassRate !== null && hasFeature) {
             return (
-              <SidebarWrapper>
+              <React.Fragment>
                 <VitalsHeading>
                   <SectionHeading>
                     {t('Web Vitals')}
@@ -133,12 +133,14 @@ function UserStats({eventView, totals, location, organization, transactionName}:
                   hideVitalPercentNames
                   hideDurationDetail
                 />
-              </SidebarWrapper>
+
+                <SidebarSpacer />
+              </React.Fragment>
             );
           } else {
             return (
               vitalsPassRate !== null && (
-                <div>
+                <React.Fragment>
                   <SectionHeading>
                     {t('Web Vitals')}
                     <QuestionTooltip
@@ -153,30 +155,27 @@ function UserStats({eventView, totals, location, organization, transactionName}:
                   <Link to={webVitalsTarget}>
                     <SectionValue>{t('Passed')}</SectionValue>
                   </Link>
-                </div>
+
+                  <SidebarSpacer />
+                </React.Fragment>
               )
             );
           }
         }}
       </Feature>
-      <UserMiseryContainer>
-        <SectionHeading>
-          {t('User Misery')}
-          <QuestionTooltip
-            position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY)}
-            size="sm"
-          />
-        </SectionHeading>
-        {userMisery}
-      </UserMiseryContainer>
-    </div>
+
+      <SectionHeading>
+        {t('User Misery')}
+        <QuestionTooltip
+          position="top"
+          title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY)}
+          size="sm"
+        />
+      </SectionHeading>
+      {userMisery}
+    </React.Fragment>
   );
 }
-
-const SidebarWrapper = styled('div')`
-  margin-bottom: ${space(3)};
-`;
 
 const VitalsHeading = styled('div')`
   display: flex;
@@ -184,18 +183,10 @@ const VitalsHeading = styled('div')`
   align-items: center;
 `;
 
-const UserMiseryContainer = styled('div')`
-  margin-bottom: ${space(4)};
-`;
-
 const StatNumber = styled('div')`
   font-size: 32px;
   margin-bottom: ${space(0.5)};
   color: ${p => p.theme.textColor};
-
-  > div {
-    text-align: left;
-  }
 `;
 
 const SectionValue = styled('span')`

@@ -138,6 +138,14 @@ class TransactionSummary extends React.Component<Props, State> {
         kind: 'function',
         function: ['count_unique', 'user', undefined],
       },
+      {
+        kind: 'function',
+        function: ['failure_rate', '', undefined],
+      },
+      {
+        kind: 'function',
+        function: ['tpm', '', undefined],
+      },
       ...vitals.map(
         vital =>
           ({

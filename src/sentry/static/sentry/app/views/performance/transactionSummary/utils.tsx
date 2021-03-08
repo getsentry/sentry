@@ -1,5 +1,8 @@
 import {Query} from 'history';
 
+import styled from 'app/styled';
+import space from 'app/styles/space';
+
 import {DisplayModes} from './charts';
 
 export enum TransactionFilterOptions {
@@ -56,3 +59,7 @@ export function transactionSummaryRouteWithQuery({
     },
   };
 }
+
+export const SidebarSpacer = styled('div')`
+  margin-top: ${space(3)};
+`;

@@ -12,9 +12,10 @@ import {SectionHeading} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval} from 'app/components/charts/utils';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {LightWeightOrganization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {tooltipFormatter} from 'app/utils/discover/charts';
@@ -34,9 +35,10 @@ type Props = ReactRouter.WithRouterProps & {
   organization: LightWeightOrganization;
   location: Location;
   eventView: EventView;
+  totals: Record<string, number> | null;
 };
 
-function SidebarCharts({api, eventView, organization, router}: Props) {
+function SidebarCharts({api, eventView, organization, router, totals}: Props) {
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
@@ -59,19 +61,19 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
     height: 460,
     grid: [
       {
-        top: '40px',
+        top: '60px',
         left: '10px',
         right: '10px',
         height: '100px',
       },
       {
-        top: '190px',
+        top: '220px',
         left: '10px',
         right: '10px',
         height: '100px',
       },
       {
-        top: '330px',
+        top: '380px',
         left: '10px',
         right: '10px',
         height: '120px',
@@ -141,35 +143,57 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
   };
   const project = eventView.project;
   const environment = eventView.environment;
+  const threshold = organization.apdexThreshold;
 
   return (
     <RelativeBox>
-      <ChartTitle top="0px" key="apdex">
-        {t('Apdex')}
-        <QuestionTooltip
-          position="top"
-          title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
-          size="sm"
-        />
-      </ChartTitle>
+      <ChartLabel top="0px">
+        <ChartTitle>
+          {t('Apdex')}
+          <QuestionTooltip
+            position="top"
+            title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
+            size="sm"
+          />
+        </ChartTitle>
+        {totals ? (
+          <ChartValue>{totals[`apdex_${threshold}`].toFixed(4)}</ChartValue>
+        ) : (
+          <Placeholder height="24px" />
+        )}
+      </ChartLabel>
 
-      <ChartTitle top="150px" key="failure-rate">
-        {t('Failure Rate')}
-        <QuestionTooltip
-          position="top"
-          title={getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)}
-          size="sm"
-        />
-      </ChartTitle>
+      <ChartLabel top="160px">
+        <ChartTitle>
+          {t('Failure Rate')}
+          <QuestionTooltip
+            position="top"
+            title={getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)}
+            size="sm"
+          />
+        </ChartTitle>
+        {totals ? (
+          <ChartValue>{formatPercentage(totals.failure_rate)}</ChartValue>
+        ) : (
+          <Placeholder height="24px" />
+        )}
+      </ChartLabel>
 
-      <ChartTitle top="300px" key="throughput">
-        {t('TPM')}
-        <QuestionTooltip
-          position="top"
-          title={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
-          size="sm"
-        />
-      </ChartTitle>
+      <ChartLabel top="320px">
+        <ChartTitle>
+          {t('TPM')}
+          <QuestionTooltip
+            position="top"
+            title={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
+            size="sm"
+          />
+        </ChartTitle>
+        {totals ? (
+          <ChartValue>{tct('[tpm] tpm', {tpm: totals.tpm.toFixed(0)})}</ChartValue>
+        ) : (
+          <Placeholder height="24px" />
+        )}
+      </ChartLabel>
 
       <ChartZoom
         router={router}
@@ -228,12 +252,18 @@ const RelativeBox = styled('div')`
   position: relative;
 `;
 
-const ChartTitle = styled(SectionHeading)<{top: string}>`
-  background: ${p => p.theme.background};
+const ChartTitle = styled(SectionHeading)`
+  margin: 0;
+`;
+
+const ChartLabel = styled('div')<{top: string}>`
   position: absolute;
   top: ${p => p.top};
-  margin: 0;
   z-index: 1;
+`;
+
+const ChartValue = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 export default withApi(ReactRouter.withRouter(SidebarCharts));
