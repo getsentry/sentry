@@ -61,7 +61,7 @@ class OrganizationStats extends React.Component<Props, State> {
   }
 
   /**
-   * Fetches aggregated stats of tne entire organization
+   * Fetches aggregated stats of the entire organization
    */
   getOrganizationStats() {
     this.setState({orgStatsLoading: true});
