@@ -208,7 +208,6 @@ class EventEntries extends React.Component<Props, State> {
           }
           Sentry.captureMessage('Event contains proguard image but not uuid');
         });
-        return;
       }
     }
 
@@ -237,11 +236,18 @@ class EventEntries extends React.Component<Props, State> {
       });
 
       // This capture will be removed once we're confident with the level of effectiveness
-      Sentry.captureMessage(
-        !proGuardImage
-          ? 'No Proguard is used at all, but a frame did match the regex'
-          : "Displaying ProGuard warning 'proguard_potentially_misconfigured_plugin' for suspected event"
-      );
+      Sentry.withScope(function (s) {
+        s.setLevel(Sentry.Severity.Warning);
+        if (event.sdk) {
+          s.setTag('offending.event.sdk.name', event.sdk.name);
+          s.setTag('offending.event.sdk.version', event.sdk.version);
+        }
+        Sentry.captureMessage(
+          !proGuardImage
+            ? 'No Proguard is used at all, but a frame did match the regex'
+            : "Displaying ProGuard warning 'proguard_potentially_misconfigured_plugin' for suspected event"
+        );
+      });
     }
 
     this.setState({proGuardErrors, isLoading: false});

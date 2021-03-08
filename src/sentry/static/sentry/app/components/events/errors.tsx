@@ -88,7 +88,7 @@ class Errors extends React.Component<Props, State> {
     const {event} = this.props;
     const {errors} = event;
 
-    const sourceCodeErrors = errors.filter(
+    const sourceCodeErrors = (errors ?? []).filter(
       error => error.type === 'js_no_source' && error.data.url
     );
 
@@ -127,13 +127,13 @@ class Errors extends React.Component<Props, State> {
   render() {
     const {event, proGuardErrors} = this.props;
     const {isOpen, releaseArtifacts} = this.state;
-    const {dist} = event;
+    const {dist, errors: eventErrors = []} = event;
 
     // XXX: uniqWith returns unique errors and is not performant with large datasets
-    const eventErrors: Array<Error> =
-      event.errors.length > MAX_ERRORS ? event.errors : uniqWith(event.errors, isEqual);
+    const otherErrors: Array<Error> =
+      eventErrors.length > MAX_ERRORS ? eventErrors : uniqWith(eventErrors, isEqual);
 
-    const errors = [...eventErrors, ...proGuardErrors];
+    const errors = [...otherErrors, ...proGuardErrors];
 
     return (
       <StyledBanner priority="danger">
