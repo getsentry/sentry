@@ -4,6 +4,8 @@ from sentry.models import User, Team
 from sentry.utils.auth import find_users
 from sentry.utils.compat import filter
 
+ACTOR_TYPE_TO_MODEL = [Team, User]
+
 
 class Actor(namedtuple("Actor", "id type")):
     def get_actor_id(self):
@@ -11,6 +13,10 @@ class Actor(namedtuple("Actor", "id type")):
 
     def get_type_string(self):
         return self.type.__name__.lower()
+
+    @classmethod
+    def from_model(cls, actor):
+        return ACTOR_TYPE_TO_MODEL[actor.type].objects.get(actor_id=actor.id)
 
     @classmethod
     def from_actor_identifier(cls, actor_identifier):
