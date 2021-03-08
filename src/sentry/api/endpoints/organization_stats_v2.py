@@ -10,6 +10,11 @@ from sentry.utils.outcomes import Outcome
 from collections import defaultdict
 import collections.abc
 
+from sentry.utils.snuba import (
+    naiveify_datetime,
+    to_naive_timestamp,
+)
+
 
 CATEGORY_NAME_MAP = {
     DataCategory.ERROR: "statsErrors",
@@ -52,7 +57,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
             )
 
         response = {
-            category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")
+            category: zerofill(list(val.values()), start, end, rollup, "time")
             for category, val in response.items()
         }
         return Response(response)
@@ -83,7 +88,7 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
             "statsTransactions": defaultdict(lambda: DEFAULT_TS_VAL),
             "statsAttachments": defaultdict(lambda: DEFAULT_TS_VAL),
         }
-        # need .copy here?
+        # need deepcopy here?
         # response = defaultdict(lambda: template)
         response = {project_id: template.copy() for project_id in project_ids}
 
@@ -101,7 +106,7 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
         # zerofill response
         response = {
             project_id: {
-                category: outcomes.zerofill(list(stats.values()), start, end, rollup, "time")
+                category: zerofill(list(stats.values()), start, end, rollup, "time")
                 for category, stats in timeseries.items()
             }
             for project_id, timeseries in response.items()
@@ -133,11 +138,11 @@ class OrganizationProjectStatsDetails(OrganizationEndpoint, ProjectEndpoint):
             orderby=["time"],
         )
 
-        # need .copy here?
+        # need deepcopy here?
         response = {
-            "statsErrors": defaultdict(lambda: DEFAULT_TS_VAL),
-            "statsTransactions": defaultdict(lambda: DEFAULT_TS_VAL),
-            "statsAttachments": defaultdict(lambda: DEFAULT_TS_VAL),
+            "statsErrors": defaultdict(lambda: DEFAULT_TS_VAL.copy()),
+            "statsTransactions": defaultdict(lambda: DEFAULT_TS_VAL.copy()),
+            "statsAttachments": defaultdict(lambda: DEFAULT_TS_VAL.copy()),
         }
         for row in result:
             nested_update(
@@ -145,7 +150,7 @@ class OrganizationProjectStatsDetails(OrganizationEndpoint, ProjectEndpoint):
             )
 
         response = {
-            category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")
+            category: zerofill(list(val.values()), start, end, rollup, "time")
             for category, val in response.items()
         }
         return Response(response)
@@ -195,3 +200,28 @@ def nested_update(d, u):
         else:
             d[k] = v
     return d
+
+
+def zerofill(data, start, end, rollup, orderby):
+    rv = []
+    start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
+    end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
+    data_by_time = {}
+
+    for obj in data:
+        if obj["time"] in data_by_time:
+            data_by_time[obj["time"]].append(obj)
+        else:
+            data_by_time[obj["time"]] = [obj]
+    for key in range(start, end, rollup):
+        if key in data_by_time and len(data_by_time[key]) > 0:
+            rv = rv + data_by_time[key]
+            data_by_time[key] = []
+        else:
+            val = DEFAULT_TS_VAL.copy()
+            val["time"] = key
+            rv.append(val)
+
+    if "-time" in orderby:
+        return list(reversed(rv))
+    return rv
