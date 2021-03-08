@@ -21,7 +21,7 @@ import TimeSince from 'app/components/timeSince';
 import {IconCheckmark} from 'app/icons/iconCheckmark';
 import {IconFire} from 'app/icons/iconFire';
 import {IconWarning} from 'app/icons/iconWarning';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
@@ -348,7 +348,14 @@ class DetailsBody extends React.Component<Props> {
       return this.renderLoading();
     }
 
-    const {query, environment, aggregate, projects: projectSlugs, triggers} = rule;
+    const {
+      query,
+      environment,
+      aggregate,
+      projects: projectSlugs,
+      timeWindow,
+      triggers,
+    } = rule;
 
     const criticalTrigger = triggers.find(({label}) => label === 'critical');
     const warningTrigger = triggers.find(({label}) => label === 'warning');
@@ -383,7 +390,13 @@ class DetailsBody extends React.Component<Props> {
                 <ChartPanel>
                   <PanelBody withPadding>
                     <ChartHeader>
-                      {this.metricPreset?.name ?? t('Custom metric')}
+                      <PresetName>
+                        {this.metricPreset?.name ?? t('Custom metric')}
+                      </PresetName>
+                      {tct(' [metric] over [window]', {
+                        metric: aggregate,
+                        window: <Duration seconds={timeWindow * 60} />,
+                      })}
                     </ChartHeader>
                     <EventsRequest
                       api={api}
@@ -543,6 +556,13 @@ const ChartPanel = styled(Panel)`
 
 const ChartHeader = styled('header')`
   margin-bottom: ${space(1)};
+  display: flex;
+  flex-direction: row;
+`;
+
+const PresetName = styled('div')`
+  text-transform: capitalize;
+  margin-right: ${space(0.5)};
 `;
 
 const ChartActions = styled(PanelFooter)`
