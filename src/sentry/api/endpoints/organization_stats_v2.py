@@ -54,7 +54,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         )
 
         # TODO: see if you can use a regular dict in lambda
-        new_res = {
+        response = {
             "statsErrors": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
             "statsTransactions": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
             "statsAttachments": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
@@ -62,13 +62,13 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         for row in result:
             if "category" in row:
                 uniq_key = row["time"]
-                update(new_res[CATEGORY_NAME_MAP[row["category"]]][uniq_key], datamapper(row))
+                update(response[CATEGORY_NAME_MAP[row["category"]]][uniq_key], datamapper(row))
 
-        new_res = {
+        response = {
             category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")
-            for category, val in new_res.items()
+            for category, val in response.items()
         }
-        return Response(new_res)
+        return Response(response)
 
 
 class OrganizationProjectStatsIndex(OrganizationEndpoint):
@@ -102,9 +102,8 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
         # group results by timestamp, using defaultdict to coalesce into format
         # TODO: use itertools.groupby?
         for row in result:
-            uniq_key = "-".join([str(row["time"])])
             update(
-                response[row["project_id"]][CATEGORY_NAME_MAP[row["category"]]][uniq_key],
+                response[row["project_id"]][CATEGORY_NAME_MAP[row["category"]]][row["time"]],
                 datamapper(row),
             )
         # add project_ids with no results to dict
@@ -138,7 +137,7 @@ class OrganizationProjectStatsDetails(ProjectEndpoint):
         )
 
         # need .copy here?
-        new_res = {
+        response = {
             "statsErrors": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
             "statsTransactions": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
             "statsAttachments": defaultdict(lambda: dict(DEFAULT_TS_VAL)),
@@ -146,13 +145,13 @@ class OrganizationProjectStatsDetails(ProjectEndpoint):
         for row in result:
             if "category" in row:
                 uniq_key = row["time"]
-                update(new_res[CATEGORY_NAME_MAP[row["category"]]][uniq_key], datamapper(row))
+                update(response[CATEGORY_NAME_MAP[row["category"]]][uniq_key], datamapper(row))
 
-        new_res = {
+        response = {
             category: outcomes.zerofill(list(val.values()), start, end, rollup, "time")
-            for category, val in new_res.items()
+            for category, val in response.items()
         }
-        return Response(new_res)
+        return Response(response)
 
 
 def outcome_to_string(outcome):
