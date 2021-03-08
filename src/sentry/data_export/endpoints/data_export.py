@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
-from sentry.api.event_search import get_filter, InvalidSearchQuery
+from sentry.api.event_search import get_filter, resolve_field_list, InvalidSearchQuery
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.models import Environment
@@ -79,7 +79,13 @@ class DataExportQuerySerializer(serializers.Serializer):
                 organization_id=organization.id,
             )
             try:
-                get_filter(query_info["query"], processor.params)
+                snuba_filter = get_filter(query_info["query"], processor.params)
+                resolve_field_list(
+                    fields,
+                    snuba_filter,
+                    auto_fields=True,
+                    auto_aggregations=True,
+                )
             except InvalidSearchQuery as err:
                 raise serializers.ValidationError(str(err))
 
