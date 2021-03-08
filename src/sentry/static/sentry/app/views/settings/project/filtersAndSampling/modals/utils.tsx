@@ -103,7 +103,7 @@ export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName) {
       return t('Match all web crawlers');
     case DynamicSamplingInnerName.EVENT_USER:
     case DynamicSamplingInnerName.TRACE_USER:
-      return t('%s (Multiline)', 'Match by user id, ex. 4711');
+      return t('Match by user id, ex. 4711 (Multiline)');
     case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
     case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
       return t('%s (Multiline)', 'ex. prod or dev');
