@@ -224,9 +224,12 @@ collectstatic: node-version-check
 	yarn webpack
 	sentry django collectstatic --noinput 1>/dev/null
 
-ci-test-js: test-setup-frontend test-js
+ci-test-js:
 	sentry init
+	make test-setup-frontend
 	NODE_ENV=production yarn build-css
+	make test-js
+
 ci-test-acceptance: test-setup-frontend test-setup-db collectstatic test-acceptance
 
 .PHONY: develop bootstrap build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js ci-test-js
