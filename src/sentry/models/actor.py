@@ -1,6 +1,6 @@
 from django.db import models
-from django.db.models.signals import pre_save
 from sentry.db.models import Model
+from django.db.models.signals import pre_save
 
 ACTOR_TYPES = {"team": 0, "user": 1}
 
@@ -22,8 +22,10 @@ class Actor(Model):
 
 def handle_actor_pre_save(instance, **kwargs):
     # we want to create an actor if we don't have one
-    if not instance.actor:
-        instance.actor = Actor.objects.create(type=ACTOR_TYPES[type(instance).__name__.lower()])
+    if not instance.actor_id:
+        instance.actor_id = Actor.objects.create(
+            type=ACTOR_TYPES[type(instance).__name__.lower()]
+        ).id
 
 
 pre_save.connect(
