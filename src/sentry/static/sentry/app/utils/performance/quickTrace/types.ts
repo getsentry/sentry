@@ -1,4 +1,3 @@
-import {Event} from 'app/types/event';
 import {
   DiscoverQueryProps,
   GenericChildrenProps,
@@ -32,7 +31,10 @@ export type TraceFull = EventLite & {
 };
 
 export type TraceProps = {
-  event: Event;
+  eventId: string;
+  traceId: string;
+  start: string;
+  end: string;
 };
 
 export type TraceRequestProps = DiscoverQueryProps & TraceProps;

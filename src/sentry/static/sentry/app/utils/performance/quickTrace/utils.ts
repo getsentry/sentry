@@ -1,7 +1,6 @@
 import omit from 'lodash/omit';
 
 import {Client} from 'app/api';
-import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {Event, EventTransaction} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
@@ -211,12 +210,7 @@ export function getQuickTraceRequestPayload({eventView, location}: DiscoverQuery
   return omit(eventView.getEventsAPIPayload(location), ['field', 'sort', 'per_page']);
 }
 
-export function makeEventView(event: EventTransaction) {
-  const {start, end} = getTraceDateTimeRange({
-    start: event.startTimestamp,
-    end: event.endTimestamp,
-  });
-
+export function makeEventView(start: string, end: string) {
   return EventView.fromSavedQuery({
     id: undefined,
     version: 2,
@@ -231,4 +225,23 @@ export function makeEventView(event: EventTransaction) {
     start,
     end,
   });
+}
+
+export function reduceTrace<T>(
+  trace: TraceFull,
+  visitor: (acc: T, e: TraceFull) => T,
+  initialValue: T
+): T {
+  let result = initialValue;
+
+  const events = [trace];
+  while (events.length) {
+    const current = events.pop()!;
+    for (const child of current.children) {
+      events.push(child);
+    }
+    result = visitor(result, current);
+  }
+
+  return result;
 }
