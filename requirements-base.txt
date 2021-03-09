@@ -46,7 +46,9 @@ rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
 # [end] jsonschema format validators
 sentry-relay==0.8.4
-sentry-sdk>=0.20.0,<0.21.0
+# Using this version of `sentry-sdk` in order to dogfood dynamic sampling/tracestate processing. Please check
+# in with Jan and/or Katie before changing.
+sentry-sdk @ https://github.com/getsentry/sentry-python/archive/0.21.0-beta.0.zip
 simplejson==3.11.1
 statsd==3.1
 structlog==17.1.0
