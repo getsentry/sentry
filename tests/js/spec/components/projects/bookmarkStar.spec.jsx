@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 
@@ -8,7 +8,7 @@ describe('BookmarkStar', function () {
   let wrapper, projectMock;
 
   beforeEach(function () {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <BookmarkStar
         organization={TestStubs.Organization()}
         project={TestStubs.Project()}
@@ -49,7 +49,7 @@ describe('BookmarkStar', function () {
   });
 
   it('can unstar', async function () {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <BookmarkStar
         organization={TestStubs.Organization()}
         project={TestStubs.Project({
@@ -75,7 +75,7 @@ describe('BookmarkStar', function () {
   });
 
   it('takes a manual isBookmarked prop', function () {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <BookmarkStar
         organization={TestStubs.Organization()}
         project={TestStubs.Project()}

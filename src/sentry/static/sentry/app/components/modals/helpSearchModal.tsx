@@ -1,6 +1,7 @@
 import React from 'react';
 import {ClassNames, css} from '@emotion/core';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import HelpSearch from 'app/components/helpSearch';
@@ -8,29 +9,30 @@ import Hook from 'app/components/hook';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
 
 type Props = ModalRenderProps & {
+  theme: Theme;
   organization: Organization;
   placeholder?: string;
 };
 
-const HelpSearchModal = withOrganization(
-  ({
-    Body,
-    closeModal,
-    organization,
-    placeholder = t('Search for documentation, FAQs, blog posts...'),
-    ...props
-  }: Props) => (
-    <Body>
-      <ClassNames>
-        {({css: injectedCss}) => (
-          <HelpSearch
-            {...props}
-            entryPoint="sidebar_help"
-            dropdownStyle={injectedCss`
+const HelpSearchModal = ({
+  Body,
+  closeModal,
+  theme,
+  organization,
+  placeholder = t('Search for documentation, FAQs, blog posts...'),
+  ...props
+}: Props) => (
+  <Body>
+    <ClassNames>
+      {({css: injectedCss}) => (
+        <HelpSearch
+          {...props}
+          entryPoint="sidebar_help"
+          dropdownStyle={injectedCss`
                 width: 100%;
                 border: transparent;
                 border-top-left-radius: 0;
@@ -39,19 +41,16 @@ const HelpSearchModal = withOrganization(
                 box-shadow: none;
                 border-top: 1px solid ${theme.border};
               `}
-            renderInput={({getInputProps}) => (
-              <InputWrapper>
-                <Input autoFocus {...getInputProps({type: 'text', placeholder})} />
-              </InputWrapper>
-            )}
-            resultFooter={
-              <Hook name="help-modal:footer" {...{organization, closeModal}} />
-            }
-          />
-        )}
-      </ClassNames>
-    </Body>
-  )
+          renderInput={({getInputProps}) => (
+            <InputWrapper>
+              <Input autoFocus {...getInputProps({type: 'text', placeholder})} />
+            </InputWrapper>
+          )}
+          resultFooter={<Hook name="help-modal:footer" {...{organization, closeModal}} />}
+        />
+      )}
+    </ClassNames>
+  </Body>
 );
 
 const InputWrapper = styled('div')`
@@ -76,4 +75,4 @@ export const modalCss = css`
   }
 `;
 
-export default HelpSearchModal;
+export default withTheme(withOrganization(HelpSearchModal));

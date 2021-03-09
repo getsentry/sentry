@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -13,7 +13,7 @@ describe('withGlobalSelection HoC', function () {
   it('handles projects', function () {
     const MyComponent = () => null;
     const Container = withGlobalSelection(MyComponent);
-    const wrapper = mount(<Container />);
+    const wrapper = mountWithTheme(<Container />);
 
     expect(wrapper.find('MyComponent').prop('selection').projects).toEqual([]);
 
@@ -27,7 +27,7 @@ describe('withGlobalSelection HoC', function () {
     let selection;
     const MyComponent = () => null;
     const Container = withGlobalSelection(MyComponent);
-    const wrapper = mount(<Container />);
+    const wrapper = mountWithTheme(<Container />);
 
     selection = wrapper.find('MyComponent').prop('selection');
     expect(selection.datetime.period).toEqual('14d');
@@ -62,7 +62,7 @@ describe('withGlobalSelection HoC', function () {
   it('handles environments', function () {
     const MyComponent = () => null;
     const Container = withGlobalSelection(MyComponent);
-    const wrapper = mount(<Container />);
+    const wrapper = mountWithTheme(<Container />);
 
     expect(wrapper.find('MyComponent').prop('selection').environments).toEqual([]);
 

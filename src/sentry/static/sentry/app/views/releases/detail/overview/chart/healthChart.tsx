@@ -1,5 +1,6 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -18,7 +19,7 @@ import {getUtcDateString} from 'app/utils/dates';
 import {axisDuration} from 'app/utils/discover/charts';
 import {getExactDuration} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import {displayCrashFreePercent} from 'app/views/releases/utils';
 
 import {
@@ -31,6 +32,7 @@ import {YAxis} from './releaseChartControls';
 import {isOtherSeries, sortSessionSeries} from './utils';
 
 type Props = {
+  theme: Theme;
   reloading: boolean;
   timeseriesData: Series[];
   zoomRenderProps: ZoomRenderProps;
@@ -115,7 +117,7 @@ class HealthChart extends React.Component<Props> {
   };
 
   configureYAxis() {
-    const {yAxis} = this.props;
+    const {theme, yAxis} = this.props;
     switch (yAxis) {
       case YAxis.CRASH_FREE:
         return {
@@ -296,4 +298,4 @@ class HealthChart extends React.Component<Props> {
   }
 }
 
-export default HealthChart;
+export default withTheme(HealthChart);

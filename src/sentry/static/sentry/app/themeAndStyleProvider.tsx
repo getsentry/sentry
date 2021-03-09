@@ -7,7 +7,7 @@ import {loadPreferencesState} from 'app/actionCreators/preferences';
 import ConfigStore from 'app/stores/configStore';
 import GlobalStyles from 'app/styles/global';
 import {Config} from 'app/types';
-import theme, {darkTheme, Theme} from 'app/utils/theme';
+import {darkTheme, lightTheme, Theme} from 'app/utils/theme';
 import withConfig from 'app/utils/withConfig';
 
 type Props = {
@@ -20,7 +20,7 @@ type State = {
 
 class Main extends React.Component<Props, State> {
   state = {
-    theme: ConfigStore.get('theme') === 'dark' ? darkTheme : theme,
+    theme: ConfigStore.get('theme') === 'dark' ? darkTheme : lightTheme,
   };
 
   componentDidMount() {
@@ -32,7 +32,7 @@ class Main extends React.Component<Props, State> {
     if (config.theme !== prevProps.config.theme) {
       // eslint-disable-next-line
       this.setState({
-        theme: config.theme === 'dark' ? darkTheme : theme,
+        theme: config.theme === 'dark' ? darkTheme : lightTheme,
       });
     }
   }

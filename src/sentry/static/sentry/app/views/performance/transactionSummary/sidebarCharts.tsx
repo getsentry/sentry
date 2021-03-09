@@ -1,6 +1,7 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -25,18 +26,19 @@ import {
   formatPercentage,
 } from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 type Props = ReactRouter.WithRouterProps & {
+  theme: Theme;
   api: Client;
   organization: LightWeightOrganization;
   location: Location;
   eventView: EventView;
 };
 
-function SidebarCharts({api, eventView, organization, router}: Props) {
+function SidebarCharts({theme, api, eventView, organization, router}: Props) {
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
@@ -236,4 +238,4 @@ const ChartTitle = styled(SectionHeading)<{top: string}>`
   z-index: 1;
 `;
 
-export default withApi(ReactRouter.withRouter(SidebarCharts));
+export default withApi(withTheme(ReactRouter.withRouter(SidebarCharts)));

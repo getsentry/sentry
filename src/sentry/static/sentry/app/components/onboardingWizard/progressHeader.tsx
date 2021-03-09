@@ -1,18 +1,20 @@
 import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 
 import ProgressRing from 'app/components/progressRing';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {OnboardingTaskDescriptor, OnboardingTaskStatus} from 'app/types';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 type Props = {
+  theme: Theme;
   allTasks: OnboardingTaskDescriptor[];
   completedTasks: OnboardingTaskStatus[];
 };
-const ProgressHeader = ({allTasks, completedTasks}: Props) => (
+const ProgressHeader = ({theme, allTasks, completedTasks}: Props) => (
   <Container>
     <StyledProgressRing
       size={80}
@@ -34,7 +36,7 @@ const ProgressHeader = ({allTasks, completedTasks}: Props) => (
   </Container>
 );
 
-export default ProgressHeader;
+export default withTheme(ProgressHeader);
 
 const Container = styled('div')`
   display: grid;

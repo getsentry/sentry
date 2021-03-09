@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import {closeModal, openModal} from 'app/actionCreators/modal';
@@ -14,7 +14,7 @@ describe('GlobalModal', function () {
   });
 
   it('uses actionCreators to open and close Modal', async function () {
-    const wrapper = mount(<GlobalModal />);
+    const wrapper = mountWithTheme(<GlobalModal />);
 
     openModal(() => <div id="modal-test">Hi</div>);
 
@@ -32,7 +32,7 @@ describe('GlobalModal', function () {
   });
 
   it('calls onClose handler when modal is clicked out of', async function () {
-    const wrapper = mount(<GlobalModal />);
+    const wrapper = mountWithTheme(<GlobalModal />);
     const closeSpy = jest.fn();
 
     openModal(
@@ -54,7 +54,7 @@ describe('GlobalModal', function () {
   });
 
   it('calls onClose handler when closeModal prop is called', async function () {
-    const wrapper = mount(<GlobalModal />);
+    const wrapper = mountWithTheme(<GlobalModal />);
     const closeSpy = jest.fn();
 
     openModal(({closeModal: cm}) => <button onClick={cm} />, {onClose: closeSpy});

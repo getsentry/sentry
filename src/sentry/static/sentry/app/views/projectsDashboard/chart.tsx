@@ -1,22 +1,24 @@
 import React from 'react';
+import {withTheme} from 'emotion-theming';
 
 import BaseChart from 'app/components/charts/baseChart';
 import {t} from 'app/locale';
 import {Project} from 'app/types';
 import {axisLabelFormatter} from 'app/utils/discover/charts';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 import NoEvents from './noEvents';
 
 type BaseChartProps = React.ComponentProps<typeof BaseChart>;
 
 type Props = {
+  theme: Theme;
   firstEvent: boolean;
   stats: Project['stats'];
   transactionStats?: Project['transactionStats'];
 };
 
-const Chart = ({firstEvent, stats, transactionStats}: Props) => {
+const Chart = ({theme, firstEvent, stats, transactionStats}: Props) => {
   const series: BaseChartProps['series'] = [];
   const hasTransactions = transactionStats !== undefined;
 
@@ -162,4 +164,4 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
   );
 };
 
-export default Chart;
+export default withTheme(Chart);

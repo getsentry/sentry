@@ -1,8 +1,7 @@
-import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
-import theme, {Color} from 'app/utils/theme';
+import {Color, Theme} from 'app/utils/theme';
 
 const IconWrapper = styled('div', {
   shouldForwardProp: prop => prop !== 'color',
@@ -79,10 +78,10 @@ const GridCellLeft = styled(GridCell)`
   }
 `;
 
-const aroundContentStyle = css`
-  border: 1px solid ${theme.border};
-  border-radius: ${theme.borderRadius};
-  box-shadow: ${theme.dropShadowLightest};
+const aroundContentStyle = (p: {theme: Theme}) => `
+  border: 1px solid ${p.theme.border};
+  border-radius: ${p.theme.borderRadius};
+  box-shadow: ${p.theme.dropShadowLightest};
   z-index: 1;
 `;
 

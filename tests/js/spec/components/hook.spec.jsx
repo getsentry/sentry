@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Hook from 'app/components/hook';
 import HookStore from 'app/stores/hookStore';
@@ -25,7 +25,7 @@ describe('Hook', function () {
   });
 
   it('renders component from a hook', function () {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()} />
       </div>,
@@ -38,7 +38,7 @@ describe('Hook', function () {
   });
 
   it('renders an invalid hook', function () {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <div>
         <Hook name="invalid-hook" organization={TestStubs.Organization()} />
       </div>,
@@ -50,7 +50,7 @@ describe('Hook', function () {
   });
 
   it('can re-render when hooks get after initial render', function () {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()} />
       </div>,
@@ -73,7 +73,7 @@ describe('Hook', function () {
   });
 
   it('can use children as a render prop', function () {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()}>
           {({hooks}) => hooks.map((hook, i) => <Wrapper key={i}>{hook}</Wrapper>)}

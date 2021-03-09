@@ -1,6 +1,7 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 import {browserHistory} from 'react-router';
+import {withTheme} from 'emotion-theming';
 import {Location, Query} from 'history';
 
 import {Client} from 'app/api';
@@ -23,7 +24,7 @@ import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
 import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
 import {transformEventStatsSmoothed} from '../trends/utils';
@@ -41,6 +42,7 @@ type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
 type Props = ReactRouter.WithRouterProps &
   ViewProps & {
+    theme: Theme;
     api: Client;
     location: Location;
     organization: OrganizationSummary;
@@ -66,6 +68,7 @@ class TrendChart extends React.Component<Props> {
 
   render() {
     const {
+      theme,
       api,
       project,
       environment,
@@ -224,4 +227,4 @@ class TrendChart extends React.Component<Props> {
   }
 }
 
-export default withApi(ReactRouter.withRouter(TrendChart));
+export default withApi(withTheme(ReactRouter.withRouter(TrendChart)));
