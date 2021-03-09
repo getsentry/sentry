@@ -7,30 +7,17 @@ from sentry.models import Project, Team
 from sentry.snuba import outcomes
 from sentry_relay import DataCategory
 from sentry.utils.outcomes import Outcome
-from collections import defaultdict
-import collections.abc
 
 from sentry.utils.snuba import (
     naiveify_datetime,
     to_naive_timestamp,
 )
-from copy import deepcopy
 
 
 CATEGORY_NAME_MAP = {
     DataCategory.ERROR: "statsErrors",
     DataCategory.TRANSACTION: "statsTransactions",
     DataCategory.ATTACHMENT: "statsAttachments",
-}
-
-DEFAULT_TS_VAL = {
-    "accepted": {"quantity": 0, "times_seen": 0},
-    "filtered": {"quantity": 0, "times_seen": 0},
-    "dropped": {
-        "overQuota": {"quantity": 0, "times_seen": 0},
-        "spikeProtection": {"quantity": 0, "times_seen": 0},
-        "other": {"quantity": 0, "times_seen": 0},
-    },
 }
 
 
@@ -47,21 +34,13 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
             orderby=["time"],
         )
 
-        response = {
-            "statsErrors": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
-            "statsTransactions": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
-            "statsAttachments": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
-        }
+        response = StatsResponse(start, end, rollup)
         for row in result:
-            nested_update(
-                response[CATEGORY_NAME_MAP[row["category"]]][row["time"]], map_row_to_format(row)
-            )
+            stat_to_update = response.get(row["category"])
+            stat_to_update.update(row)
 
-        response = {
-            category: zerofill(list(val.values()), start, end, rollup, "time")
-            for category, val in response.items()
-        }
-        return Response(response)
+        # response.zerofill(start, end, rollup)
+        return Response(response.build_fields())
 
 
 class OrganizationProjectStatsIndex(OrganizationEndpoint):
@@ -84,33 +63,15 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
             filter_keys={"org_id": [organization.id], "project_id": project_ids},
             orderby=["times_seen", "time"],
         )
-        template = {
-            "statsErrors": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
-            "statsTransactions": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
-            "statsAttachments": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
-        }
-        response = {project_id: deepcopy(template) for project_id in project_ids}
 
-        # group results by projectid>timestamp, using defaultdict to coalesce into format
+        response = {project_id: StatsResponse(start, end, rollup) for project_id in project_ids}
         for row in result:
-            nested_update(
-                response[row["project_id"]][CATEGORY_NAME_MAP[row["category"]]][row["time"]],
-                map_row_to_format(row),
-            )
-        # add project_ids with no results to dict
-        for project_id in project_ids:
-            if project_id not in response:
-                response[project_id] = deepcopy(template)
+            stat_to_update = response[row["project_id"]].get(row["category"])
+            stat_to_update.update(row)
 
-        # zerofill response
-        response = {
-            project_id: {
-                category: zerofill(list(stats.values()), start, end, rollup, "time")
-                for category, stats in timeseries.items()
-            }
-            for project_id, timeseries in response.items()
-        }
-        return Response(response)
+        return Response(
+            {project_id: stat_res.build_fields() for project_id, stat_res in response.items()}
+        )
 
 
 class OrganizationProjectStatsDetails(ProjectEndpoint, OrganizationEndpoint):
@@ -136,72 +97,17 @@ class OrganizationProjectStatsDetails(ProjectEndpoint, OrganizationEndpoint):
             filter_keys={"org_id": [project.organization.id], "project_id": [project.id]},
             orderby=["time"],
         )
-
-        response = {
-            "statsErrors": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
-            "statsTransactions": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
-            "statsAttachments": defaultdict(lambda: deepcopy(DEFAULT_TS_VAL)),
-        }
+        response = StatsResponse(start, end, rollup)
         for row in result:
-            nested_update(
-                response[CATEGORY_NAME_MAP[row["category"]]][row["time"]], map_row_to_format(row)
-            )
+            stat_to_update = response.get(row["category"])
+            stat_to_update.update(row)
 
-        response = {
-            category: zerofill(list(val.values()), start, end, rollup, "time")
-            for category, val in response.items()
-        }
-        return Response(response)
+        return Response(response.build_fields())
 
 
-def outcome_to_string(outcome):
-    # TODO: why do we rename this?
-    return "dropped" if outcome == Outcome.RATE_LIMITED else Outcome(outcome).api_name()
-
-
-def rate_limited_reason_mapper(reason):
-    # billing logic ported over. TODO: combine usages of this into some abstracted module?
-    if reason in {"usage_exceeded", "grace_period"}:
-        reason_val = "overQuota"
-    elif reason == "smart_rate_limit":
-        reason_val = "spikeProtection"
-    else:
-        reason_val = "other"
-    return reason_val
-
-
-# TODO: add ts and date fields to replace "timestamp" field
-
-
-def map_row_to_format(row):
-    obj = {"time": row["time"]}
-    if row["outcome"] == Outcome.RATE_LIMITED:
-        obj[outcome_to_string(row["outcome"])] = {
-            rate_limited_reason_mapper(row["reason"]): {
-                "quantity": row["quantity"],
-                "times_seen": row["times_seen"],
-            }
-        }
-    else:
-        obj[outcome_to_string(row["outcome"])] = {
-            "quantity": row["quantity"],
-            "times_seen": row["times_seen"],
-        }
-    return obj
-
-
-def nested_update(d, u):
-    # https://stackoverflow.com/a/3233356
-    for k, v in u.items():
-        if isinstance(v, collections.abc.Mapping):
-            d[k] = nested_update(d.get(k, {}), v)
-        else:
-            d[k] = v
-    return d
-
-
+# TODO: verify what kind of timestamp we return to frontend
 def zerofill(data, start, end, rollup, orderby):
-    rv = []
+    rv = {}
     start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
     end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
     data_by_time = {}
@@ -216,10 +122,115 @@ def zerofill(data, start, end, rollup, orderby):
             rv = rv + data_by_time[key]
             data_by_time[key] = []
         else:
-            val = deepcopy(DEFAULT_TS_VAL)
-            val["time"] = key
-            rv.append(val)
+            val = MeasureValue(key)
+            rv[key] = val
 
-    if "-time" in orderby:
-        return list(reversed(rv))
     return rv
+
+
+class StatMeasure:
+    def __init__(self, quantity=0, times_seen=0):
+        self.quantity = quantity
+        self.times_seen = times_seen
+
+
+class StatsResponse:
+    def __init__(self, start, end, rollup):
+        self.errors = TimeSeriesValues(start, end, rollup)
+        self.transactions = TimeSeriesValues(start, end, rollup)
+        self.attachments = TimeSeriesValues(start, end, rollup)
+
+    _GETTERS = {
+        DataCategory.ERROR: (lambda s: s.errors),
+        DataCategory.TRANSACTION: (lambda s: s.transactions),
+        DataCategory.ATTACHMENT: (lambda s: s.attachments),
+    }
+
+    ALL_FIELDS = frozenset(_GETTERS.keys())
+
+    def get(self, category):
+        return self._GETTERS[category](self)
+
+    def __iter__(self):
+        yield DataCategory.ERROR, self.errors
+        yield DataCategory.TRANSACTION, self.transactions
+        yield DataCategory.ATTACHMENT, self.attachments
+
+    def zerofill(self, start, end, rollup):
+        self.errors = zerofill(self.errors, start, end, rollup, "time")
+        self.transactions = zerofill(self.transactions, start, end, rollup, "time")
+        self.attachments = zerofill(self.attachments, start, end, rollup, "time")
+
+    def build_fields(self):
+        return {CATEGORY_NAME_MAP[category]: values.serialize() for category, values in self}
+
+
+class MeasureValue:
+    def __init__(self, time):
+        self.accepted = StatMeasure(0, 0)
+        self.filtered = StatMeasure(0, 0)
+        self.over_quota = StatMeasure(0, 0)
+        self.spike_protection = StatMeasure(0, 0)
+        self.other = StatMeasure(0, 0)
+        self.time = time
+
+    def serialize(self):
+        return {
+            "accepted": {
+                "quantity": self.accepted.quantity,
+                "times_seen": self.accepted.times_seen,
+            },
+            "filtered": {"quantity": self.filtered.quantity, "times_seen": self.filtered.quantity},
+            "dropped": {
+                "overQuota": {
+                    "quantity": self.over_quota.quantity,
+                    "times_seen": self.over_quota.quantity,
+                },
+                "spikeProtection": {
+                    "quantity": self.spike_protection.quantity,
+                    "times_seen": self.spike_protection.quantity,
+                },
+                "other": {"quantity": self.other.quantity, "times_seen": self.other.quantity},
+            },
+            "time": self.time,
+        }
+
+    def update(self, row):
+        if row["outcome"] == Outcome.RATE_LIMITED:
+            if row["reason"] in {"usage_exceeded", "grace_period"}:
+                self.over_quota.quantity = row["quantity"]
+                self.over_quota.times_seen = row["times_seen"]
+            elif row["reason"] in "smart_rate_limit":
+                self.spike_protection.quantity = row["quantity"]
+                self.spike_protection.times_seen = row["quantity"]
+            else:
+                self.other.quantity = row["quantity"]
+                self.other.times_seen = row["quantity"]
+
+        elif row["outcome"] == Outcome.ACCEPTED:
+            self.accepted.quantity = row["quantity"]
+            self.accepted.times_seen = row["times_seen"]
+        elif row["outcome"] == Outcome.FILTERED:
+            self.filtered.quantity = row["quantity"]
+            self.filtered.times_seen = row["times_seen"]
+
+    def rate_limited_reason_mapper(reason):
+        # billing logic ported over. TODO: combine usages of this into some abstracted module?
+        if reason in {"usage_exceeded", "grace_period"}:
+            reason_val = "overQuota"
+        elif reason == "smart_rate_limit":
+            reason_val = "spikeProtection"
+        else:
+            reason_val = "other"
+        return reason_val
+
+
+class TimeSeriesValues:
+    def __init__(self, start, end, rollup):
+        self.values = zerofill({}, start, end, rollup, "time")
+
+    def update(self, row):
+        self.values[row["time"]].update(row)
+
+    def serialize(self):
+        return [value.serialize() for value in self.values.values()]
