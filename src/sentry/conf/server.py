@@ -1576,7 +1576,7 @@ SENTRY_DEVSERVICES = {
         "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
         "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
         "healthcheck": {
-            "test": ["CMD-SHELL", "pg_isready -U postgres"],
+            "test": ["CMD", "pg_isready", "-U", "postgres"],
             "interval": 30000000000,  # Test every 30 seconds (in ns).
             "timeout": 5000000000,  # Time we should expect the test to take.
             "retries": 3,
