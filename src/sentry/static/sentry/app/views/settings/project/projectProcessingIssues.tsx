@@ -33,7 +33,7 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
-const MESSAGES = {
+export const projectProcessingIssuesMessages = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
   native_internal_failure: t('Internal failure when attempting to symbolicate: {error}'),
   native_bad_dsym: t('The debug information file used was broken.'),
@@ -264,7 +264,7 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
   }
 
   getProblemDescription(item: ProcessingIssueItem) {
-    const msg = MESSAGES[item.type];
+    const msg = projectProcessingIssuesMessages[item.type];
     return msg || t('Unknown Error');
   }
 
