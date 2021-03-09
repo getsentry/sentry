@@ -382,6 +382,7 @@ def query_subscription_consumer(**options):
         subscriber.shutdown()
 
     signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
 
     subscriber.run()
 
