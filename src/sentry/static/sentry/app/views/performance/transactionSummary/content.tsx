@@ -10,7 +10,6 @@ import SearchBar from 'app/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -202,27 +201,24 @@ class SummaryContent extends React.Component<Props, State> {
               eventView={eventView}
               totalValues={totalCount}
             />
-            {totalValues === null ? (
-              <Placeholder height="352px" />
-            ) : (
-              <TransactionsList
-                location={location}
-                organization={organization}
-                eventView={eventView}
-                titles={[t('id'), t('user'), t('duration'), t('timestamp')]}
-                handleDropdownChange={this.handleTransactionsListSortChange}
-                generateLink={{
-                  id: generateTransactionLink(transactionName),
-                }}
-                baseline={transactionName}
-                handleBaselineClick={this.handleViewDetailsClick}
-                handleCellAction={this.handleCellAction}
-                handleOpenInDiscoverClick={this.handleDiscoverViewClick}
-                {...getTransactionsListSort(location, {
-                  p95: totalValues.p95,
-                })}
-              />
-            )}
+            <TransactionsList
+              location={location}
+              organization={organization}
+              eventView={eventView}
+              titles={[t('id'), t('user'), t('duration'), t('timestamp')]}
+              handleDropdownChange={this.handleTransactionsListSortChange}
+              generateLink={{
+                id: generateTransactionLink(transactionName),
+              }}
+              baseline={transactionName}
+              handleBaselineClick={this.handleViewDetailsClick}
+              handleCellAction={this.handleCellAction}
+              handleOpenInDiscoverClick={this.handleDiscoverViewClick}
+              {...getTransactionsListSort(location, {
+                p95: totalValues ? totalValues.p95 : 0,
+              })}
+              forceLoading={!totalValues}
+            />
             <RelatedIssues
               organization={organization}
               location={location}

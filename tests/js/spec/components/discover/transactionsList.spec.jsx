@@ -373,4 +373,22 @@ describe('TransactionsList', function () {
       });
     });
   });
+
+  describe('Loading', function () {
+    it('renders loading indicator if forced', async function () {
+      wrapper = mountWithTheme(
+        <TransactionsList
+          api={api}
+          location={location}
+          organization={organization}
+          eventView={eventView}
+          selected={options[0]}
+          options={options}
+          handleDropdownChange={handleDropdownChange}
+          forceLoading
+        />
+      );
+      expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
+    });
+  });
 });
