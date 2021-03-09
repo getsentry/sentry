@@ -54,14 +54,19 @@ function EventOrGroupExtraDetails({
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
   const hasInbox = organization.features.includes('inbox');
+  const inboxReason = inbox && (
+    <InboxReason inbox={inbox} showDateAdded={showInboxTime} />
+  );
 
   return (
     <GroupExtra hasInbox={hasInbox}>
-      {hasInbox && inbox && (
-        <GuideAnchor target="inbox_guide_reason" disabled={!hasGuideAnchor}>
-          <InboxReason inbox={inbox} showDateAdded={showInboxTime} />
-        </GuideAnchor>
-      )}
+      {hasInbox &&
+        inbox &&
+        (hasGuideAnchor ? (
+          <GuideAnchor target="inbox_guide_reason">{inboxReason}</GuideAnchor>
+        ) : (
+          inboxReason
+        ))}
       {shortId &&
         (hasInbox ? (
           <InboxShortId
