@@ -47,7 +47,7 @@ const RichHttpContentClippedBoxKeyValueList = ({
 
   const transformedData = getTransformedData(data);
 
-  if (transformedData.length === 0) {
+  if (!transformedData.length) {
     return null;
   }
 

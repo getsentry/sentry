@@ -1,4 +1,5 @@
 import {t} from 'app/locale';
+import HookStore from 'app/stores/hookStore';
 import {Organization} from 'app/types';
 import {NavigationSection} from 'app/views/settings/types';
 
@@ -32,7 +33,7 @@ function getConfiguration({organization}: ConfigParams): NavigationSection[] {
         },
         {
           path: `${pathPrefix}/emails/`,
-          title: t('Emails'),
+          title: t('Email Addresses'),
           description: t(
             'Add or remove secondary emails, change your primary email, verify your emails'
           ),
@@ -80,11 +81,9 @@ function getConfiguration({organization}: ConfigParams): NavigationSection[] {
             "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
           ),
         },
-        {
-          path: `${pathPrefix}/api/mobile-app/`,
-          title: t('Mobile App'),
-          show: () => !!organization?.features?.includes('mobile-app'),
-        },
+        ...HookStore.get('settings:api-navigation-config').flatMap(cb =>
+          cb(organization)
+        ),
       ],
     },
   ];

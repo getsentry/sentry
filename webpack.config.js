@@ -228,7 +228,7 @@ let appConfig = {
     sentry: 'less/sentry.less',
 
     /**
-     * old plugins that use select2 when creating a new issue e.g. Trello, Teamwork*
+     * Old plugins that use select2 when creating a new issue e.g. Trello, Teamwork*
      */
     select2: 'less/select2.less',
   },

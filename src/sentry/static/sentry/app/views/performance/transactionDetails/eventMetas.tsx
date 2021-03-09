@@ -71,12 +71,14 @@ function EventMetas({event, organization, projectId, location, quickTrace}: Prop
         bodyText={event.contexts?.trace?.status ?? '\u2014'}
         subtext={httpStatus}
       />
-      <QuickTrace
-        event={event}
-        organization={organization}
-        location={location}
-        quickTrace={quickTrace}
-      />
+      <QuickTraceContainer>
+        <QuickTrace
+          event={event}
+          organization={organization}
+          location={location}
+          quickTrace={quickTrace}
+        />
+      </QuickTraceContainer>
     </EventDetailHeader>
   );
 }
@@ -92,6 +94,16 @@ const EventDetailHeader = styled('div')`
     grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;
     grid-row-gap: 0;
     margin-bottom: 0;
+  }
+`;
+
+const QuickTraceContainer = styled('div')`
+  grid-column: 1/4;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    justify-self: flex-end;
+    min-width: 325px;
+    grid-column: unset;
   }
 `;
 
