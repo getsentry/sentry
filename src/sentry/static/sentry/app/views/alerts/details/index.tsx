@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -9,6 +9,7 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
+import {makeRuleDetailsQuery} from 'app/views/alerts/list/row';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
 import {
@@ -62,6 +63,15 @@ class IncidentDetails extends React.Component<Props, State> {
 
     try {
       const incidentPromise = fetchIncident(api, orgId, alertId).then(incident => {
+        const hasRedesign = incident.alertRule &&
+          this.props.organization.features.includes('alert-details-redesign');
+        if(hasRedesign) {
+          browserHistory.replace({
+            pathname: `/organizations/${orgId}/alerts/rules/details/${incident.alertRule?.id}/`,
+            query: makeRuleDetailsQuery(incident),
+          });
+        }
+
         this.setState({incident});
         markIncidentAsSeen(api, orgId, incident);
       });
