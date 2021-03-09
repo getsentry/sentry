@@ -301,6 +301,38 @@ describe('TransactionsList', function () {
         })
       );
     });
+
+    it('handles forceLoading correctly', async function () {
+      wrapper = mountWithTheme(
+        <TransactionsList
+          api={null}
+          location={location}
+          organization={organization}
+          eventView={eventView}
+          selected={options[0]}
+          options={options}
+          handleDropdownChange={handleDropdownChange}
+          forceLoading
+        />
+      );
+
+      expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
+      wrapper.setProps({api, forceLoading: false});
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
+      expect(wrapper.find('DropdownControl')).toHaveLength(1);
+      expect(wrapper.find('DropdownItem')).toHaveLength(2);
+      expect(wrapper.find('DiscoverButton')).toHaveLength(1);
+      expect(wrapper.find('Pagination')).toHaveLength(1);
+      expect(wrapper.find('PanelTable')).toHaveLength(1);
+      // 2 for the transaction names
+      expect(wrapper.find('GridCell')).toHaveLength(2);
+      // 2 for the counts
+      expect(wrapper.find('GridCellNumber')).toHaveLength(2);
+    });
   });
 
   describe('Baseline', function () {
@@ -371,24 +403,6 @@ describe('TransactionsList', function () {
       cells.forEach((cell, i) => {
         expect(cell.text()).toEqual(cellTexts[i]);
       });
-    });
-  });
-
-  describe('Loading', function () {
-    it('renders loading indicator if forced', async function () {
-      wrapper = mountWithTheme(
-        <TransactionsList
-          api={api}
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          selected={options[0]}
-          options={options}
-          handleDropdownChange={handleDropdownChange}
-          forceLoading
-        />
-      );
-      expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
     });
   });
 });
