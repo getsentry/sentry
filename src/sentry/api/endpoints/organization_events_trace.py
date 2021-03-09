@@ -6,7 +6,7 @@ from collections import defaultdict, deque
 from rest_framework.response import Response
 
 from sentry import features, eventstore
-from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
+from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
 from sentry.snuba import discover
 
 
@@ -23,7 +23,7 @@ def is_root(item):
     return item["root"] == "1"
 
 
-class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
+class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
         return features.has(
             "organizations:trace-view-quick", organization, actor=request.user
@@ -113,13 +113,32 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
         parent_map = defaultdict(list)
         for item in result["data"]:
             parent_map[item["trace.parent_span"]].append(item)
+
+        # Temporarily feature flagging this out, since errors will impact performance
+        if not features.has("organizations:trace-view-summary", organization, actor=request.user):
+            error_map = []
+        else:
+            error_map = self.get_error_map(organization, trace_id, params)
+
         return Response(
-            self.serialize(parent_map, root, warning_extra, params, snuba_event, event_id)
+            self.serialize(
+                parent_map, error_map, root, warning_extra, params, snuba_event, event_id
+            )
         )
 
 
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
-    def serialize(self, parent_map, root, warning_extra, params, snuba_event, event_id=None):
+    def get_error_map(self, *args, **kwargs):
+        """We don't get the error map for the light view
+
+        This is because we only get spans for the root + current event, which means we could only create an error
+        to transaction association for up to two events.
+        """
+        return {}
+
+    def serialize(
+        self, parent_map, error_map, root, warning_extra, params, snuba_event, event_id=None
+    ):
         """ Because the light endpoint could potentially have gaps between root and event we return a flattened list """
         trace_results = [self.serialize_event(root, None, 0)]
 
@@ -157,12 +176,52 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 
 
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
+    def get_error_map(self, organization, trace_id, params):
+        with sentry_sdk.start_span(op="discover", description="getting trace errors"):
+            # This can't be combined with the transaction query since we need dataset specific fields
+            error_results = discover.query(
+                selected_columns=[
+                    "id",
+                    "timestamp",
+                    "issue",
+                    "trace.span",
+                ],
+                orderby=["-timestamp", "id"],
+                params=params,
+                query=f"!event.type:transaction trace:{trace_id}",
+                limit=MAX_TRACE_SIZE,
+                # we can get project from the associated transaction, which can save us a db query
+                auto_fields=False,
+                referrer="api.trace-view.get_errors",
+            )
+
+            # Use issue ids to get the error's short id
+            error_map = defaultdict(list)
+            if error_results["data"]:
+                self.handle_issues(error_results["data"], params["project_id"], organization)
+                for row in error_results["data"]:
+                    error_map[row["trace.span"]].append(
+                        {
+                            "issue": row["issue"],
+                            "id": row["id"],
+                            "span": row["trace.span"],
+                        }
+                    )
+            return error_map
+
     def serialize_event(self, *args, **kwargs):
         event = super().serialize_event(*args, **kwargs)
-        event["children"] = []
+        event.update(
+            {
+                "children": [],
+                "errors": [],
+            }
+        )
         return event
 
-    def serialize(self, parent_map, root, warning_extra, params, snuba_event=None, event_id=None):
+    def serialize(
+        self, parent_map, error_map, root, warning_extra, params, snuba_event=None, event_id=None
+    ):
         """ For the full event trace, we return the results as a graph instead of a flattened list """
         parent_events = {}
         result = parent_events[root["id"]] = self.serialize_event(root, None, 0)
@@ -186,6 +245,8 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 )
 
                 for child in event.data.get("spans", []):
+                    if child["span_id"] in error_map:
+                        previous_event["errors"].extend(error_map.pop(child["span_id"]))
                     if child["span_id"] not in parent_map:
                         continue
                     # Avoid potential span loops by popping, so we don't traverse the same nodes twice
