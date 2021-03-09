@@ -21,7 +21,7 @@ const colors = {
   purple300: '#6C5FC7',
 
   blue100: '#D2DFF7',
-  blue200: '#92A8EA',
+  blue200: '#6893e3',
   blue300: '#3D74DB',
 
   orange100: '#FFF1ED',
@@ -192,39 +192,9 @@ const aliases = {
 
 const warning = {
   background: colors.yellow300,
-  backgroundLight: color(colors.yellow100).alpha(aliases.alertBackgroundAlpha).string(),
+  backgroundLight: color(colors.yellow100).alpha(0.3).string(),
   border: colors.yellow300,
   iconColor: colors.yellow300,
-} as const;
-
-const alert = {
-  muted: {
-    background: colors.gray200,
-    backgroundLight: aliases.backgroundSecondary,
-    border: aliases.border,
-    iconColor: 'inherit',
-  },
-  info: {
-    background: colors.blue300,
-    backgroundLight: color(colors.blue100).alpha(aliases.alertBackgroundAlpha).string(),
-    border: colors.blue200,
-    iconColor: colors.blue300,
-  },
-  warning,
-  warn: warning,
-  success: {
-    background: colors.green300,
-    backgroundLight: color(colors.green100).alpha(aliases.alertBackgroundAlpha).string(),
-    border: colors.green200,
-    iconColor: colors.green300,
-  },
-  error: {
-    background: colors.red300,
-    backgroundLight: color(colors.red100).alpha(aliases.alertBackgroundAlpha).string(),
-    border: colors.red200,
-    iconColor: colors.red300,
-    textLight: colors.red200,
-  },
 } as const;
 
 const badge = {
@@ -280,6 +250,36 @@ const tag = {
     iconColor: colors.white,
   },
 };
+
+const generateAlertTheme = alias => ({
+  muted: {
+    background: colors.gray200,
+    backgroundLight: alias.backgroundSecondary,
+    border: alias.border,
+    iconColor: 'inherit',
+  },
+  info: {
+    background: colors.blue300,
+    backgroundLight: color(colors.blue100).alpha(alias.alertBackgroundAlpha).string(),
+    border: colors.blue200,
+    iconColor: colors.blue300,
+  },
+  warning,
+  warn: warning,
+  success: {
+    background: colors.green300,
+    backgroundLight: color(colors.green100).alpha(alias.alertBackgroundAlpha).string(),
+    border: colors.green200,
+    iconColor: colors.green300,
+  },
+  error: {
+    background: colors.red300,
+    backgroundLight: color(colors.red100).alpha(alias.alertBackgroundAlpha).string(),
+    border: colors.red200,
+    iconColor: colors.red300,
+    textLight: colors.red200,
+  },
+});
 
 const generateButtonTheme = alias => ({
   borderRadius: '3px',
@@ -517,7 +517,7 @@ const darkAliases = {
   innerBorder: colors.gray500,
   textColor: colors.white,
   subText: colors.gray200,
-  linkColor: colors.blue300,
+  linkColor: colors.blue200,
   linkHoverColor: colors.blue300,
   disabled: colors.gray400,
   active: colors.pink300,
@@ -545,12 +545,14 @@ const theme = {
   ...commonTheme,
   ...aliases,
   button: generateButtonTheme(aliases),
+  alert: generateAlertTheme(aliases),
 } as const;
 
 export const darkTheme = {
   ...commonTheme,
   ...darkAliases,
   button: generateButtonTheme(darkAliases),
+  alert: generateAlertTheme(darkAliases),
 } as const;
 
 export type Theme = typeof theme | typeof darkTheme;
