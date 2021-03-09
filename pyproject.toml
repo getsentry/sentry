@@ -19,3 +19,6 @@ markers = [
     "snuba: mark a test as requiring snuba",
 ]
 selenium_driver = "chrome"
+# This is for people who install pytest-xdist locally,
+# and use the -f/--looponfail feature.
+looponfailroots = ["src", "tests"]
