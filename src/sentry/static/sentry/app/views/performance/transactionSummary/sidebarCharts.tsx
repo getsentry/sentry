@@ -157,7 +157,7 @@ function SidebarCharts({api, eventView, organization, router, totals}: Props) {
           />
         </ChartTitle>
         {totals ? (
-          <ChartValue>{totals[`apdex_${threshold}`].toFixed(4)}</ChartValue>
+          <ChartValue>{formatFloat(totals[`apdex_${threshold}`], 4)}</ChartValue>
         ) : (
           <Placeholder height="24px" />
         )}
@@ -189,7 +189,7 @@ function SidebarCharts({api, eventView, organization, router, totals}: Props) {
           />
         </ChartTitle>
         {totals ? (
-          <ChartValue>{tct('[tpm] tpm', {tpm: totals.tpm.toFixed(0)})}</ChartValue>
+          <ChartValue>{tct('[tpm] tpm', {tpm: formatFloat(totals.tpm, 4)})}</ChartValue>
         ) : (
           <Placeholder height="24px" />
         )}
