@@ -1476,7 +1476,14 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear' | 'zepel';
+    slug:
+      | 'clickup'
+      | 'clubhouse'
+      | 'linear'
+      | 'rookout'
+      | 'spikesh'
+      | 'teamwork'
+      | 'zepel';
     name: string;
   };
 };

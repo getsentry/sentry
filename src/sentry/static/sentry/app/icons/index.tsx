@@ -81,6 +81,7 @@ export {IconSiren} from './iconSiren';
 export {IconSliders} from './iconSliders';
 export {IconSound} from './iconSound';
 export {IconSpan} from './iconSpan';
+export {IconSpikesh} from './iconSpikesh';
 export {IconStack} from './iconStack';
 export {IconStar} from './iconStar';
 export {IconStats} from './iconStats';
