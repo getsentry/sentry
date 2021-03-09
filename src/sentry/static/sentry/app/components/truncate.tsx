@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import space from 'app/styles/space';
 
 type DefaultProps = {
+  className: string;
   maxLength: number;
   leftTrim: boolean;
   expandable: boolean;
@@ -12,7 +13,6 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   value: string;
-  className?: string;
   trimRegex?: RegExp;
 };
 
@@ -22,6 +22,7 @@ type State = {
 
 class Truncate extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
+    className: '',
     maxLength: 50,
     leftTrim: false,
     expandable: true,
@@ -48,6 +49,7 @@ class Truncate extends React.Component<Props, State> {
 
   render() {
     const {
+      className,
       leftTrim,
       trimRegex,
       maxLength,
@@ -87,10 +89,8 @@ class Truncate extends React.Component<Props, State> {
       shortValue = value;
     }
 
-    const className = this.props.className || '';
-
     return (
-      <TruncatedContainer
+      <Wrapper
         className={className}
         onMouseOver={expandable ? this.onFocus : undefined}
         onMouseOut={expandable ? this.onBlur : undefined}
@@ -103,12 +103,12 @@ class Truncate extends React.Component<Props, State> {
             {value}
           </FullValue>
         )}
-      </TruncatedContainer>
+      </Wrapper>
     );
   }
 }
 
-const TruncatedContainer = styled('span')`
+const Wrapper = styled('span')`
   position: relative;
 `;
 
