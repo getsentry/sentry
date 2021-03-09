@@ -118,7 +118,7 @@ class SpansInterface extends React.Component<Props, State> {
     });
 
     const conditions = new QueryResults([
-      'event.type:error',
+      '!event.type:transaction',
       `trace:${parsedTrace.traceID}`,
     ]);
 
