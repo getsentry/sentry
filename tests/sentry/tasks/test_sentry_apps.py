@@ -359,10 +359,9 @@ class TestSendResourceChangeWebhook(TestCase):
             )
 
         assert len(safe_urlopen.mock_calls) == 2
-        call_1 = safe_urlopen.mock_calls[0].kwargs
-        call_2 = safe_urlopen.mock_calls[1].kwargs
-        assert call_1["url"] == self.sentry_app_1.webhook_url
-        assert call_2["url"] == self.sentry_app_2.webhook_url
+        call_urls = [call.kwargs["url"] for call in safe_urlopen.mock_calls]
+        assert self.sentry_app_1.webhook_url in call_urls
+        assert self.sentry_app_2.webhook_url in call_urls
 
 
 @patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")
