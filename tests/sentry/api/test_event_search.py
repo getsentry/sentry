@@ -2010,13 +2010,15 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {"project_id": [p1.id, p2.id]}
         assert _filter.project_ids == [p1.id, p2.id]
 
-        with pytest.raises(InvalidSearchQuery) as err:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
             params = {"project_id": []}
             get_filter(f"project.name:{p1.slug}", params)
+
+        exc = exc_info.value
+        exc_str = f"{exc}"
         assert (
-            "Invalid query. Project %s does not exist or is not an actively selected project"
-            % p1.slug
-            in str(err)
+            f"Invalid query. Project {p1.slug} does not exist or is not an actively selected project"
+            in exc_str
         )
 
     def test_not_has_project(self):
@@ -2034,16 +2036,20 @@ class GetSnubaQueryArgsTest(TestCase):
             assert result.conditions == [["transaction.status", "=", key]]
 
     def test_transaction_status_no_wildcard(self):
-        with pytest.raises(InvalidSearchQuery) as err:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
             get_filter("transaction.status:o*")
-        assert "Invalid value" in str(err)
-        assert "cancelled," in str(err)
+        exc = exc_info.value
+        exc_str = f"{exc}"
+        assert "Invalid value" in exc_str
+        assert "cancelled," in exc_str
 
     def test_transaction_status_invalid(self):
-        with pytest.raises(InvalidSearchQuery) as err:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
             get_filter("transaction.status:lol")
-        assert "Invalid value" in str(err)
-        assert "cancelled," in str(err)
+        exc = exc_info.value
+        exc_str = f"{exc}"
+        assert "Invalid value" in exc_str
+        assert "cancelled," in exc_str
 
     def test_error_handled(self):
         result = get_filter("error.handled:true")
@@ -2189,6 +2195,20 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_trace_id(self):
         result = get_filter("trace:a0fa8803753e40fd8124b21eeb2986b5")
         assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
+
+    def test_group_id_query(self):
+        # If a user queries on group_id, make sure it gets turned into a tag not the actual group_id field
+        assert get_filter("group_id:not-a-group-id-but-a-string").conditions == [
+            [["ifNull", ["tags[group_id]", "''"]], "=", "not-a-group-id-but-a-string"]
+        ]
+
+        assert get_filter("group_id:wildcard-string*").conditions == [
+            [
+                ["match", [["ifNull", ["tags[group_id]", "''"]], "'(?i)^wildcard\\-string.*$'"]],
+                "=",
+                1,
+            ]
+        ]
 
 
 class ResolveFieldListTest(unittest.TestCase):
@@ -2395,24 +2415,24 @@ class ResolveFieldListTest(unittest.TestCase):
         assert "MAX(user) is not a valid function" in str(err)
 
     def test_aggregate_function_invalid_column(self):
-        with pytest.raises(InvalidSearchQuery) as err:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
             fields = ["min(message)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "InvalidSearchQuery: min(message): column argument invalid: message is not a numeric column"
-            in str(err)
-        )
+
+        exc = exc_info.value
+        exc_str = f"{exc}"
+        assert "min(message): column argument invalid: message is not a numeric column" == exc_str
 
     def test_aggregate_function_missing_parameter(self):
-        with pytest.raises(InvalidSearchQuery) as err:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
             fields = ["count_unique()"]
             resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "InvalidSearchQuery: count_unique(): column argument invalid: a column is required"
-            in str(err)
-        )
 
-        with pytest.raises(InvalidSearchQuery) as err:
+        exc = exc_info.value
+        exc_str = f"{exc}"
+        assert "count_unique(): column argument invalid: a column is required" == exc_str
+
+        with pytest.raises(InvalidSearchQuery):
             fields = ["count_unique(  )"]
             resolve_field_list(fields, eventstore.Filter())
 

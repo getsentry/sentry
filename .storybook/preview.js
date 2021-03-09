@@ -4,13 +4,13 @@ import {ThemeProvider} from 'emotion-theming';
 
 import {addParameters, addDecorator} from '@storybook/react';
 
-import theme, {darkTheme} from '../src/sentry/static/sentry/app/utils/theme';
+import {lightTheme, darkTheme} from '../src/sentry/static/sentry/app/utils/theme';
 import GlobalStyles from '../src/sentry/static/sentry/app/styles/global';
 import '../docs-ui/index.js';
 
 const withTheme = (Story, context) => {
   const isDark = context.globals.theme === 'dark';
-  const currentTheme = isDark ? darkTheme : theme;
+  const currentTheme = isDark ? darkTheme : lightTheme;
 
   // Set @storybook/addon-backgrounds current color based on theme
   if (context.globals.theme) {
@@ -135,7 +135,7 @@ export const parameters = {
     values: [
       {
         name: 'light',
-        value: theme.background,
+        value: lightTheme.background,
       },
       {
         name: 'dark',

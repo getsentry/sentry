@@ -11,7 +11,7 @@ contenttypes: 0002_remove_content_type_name
 demo: 0001_add_demo_org_user_models
 jira_ac: 0001_initial
 nodestore: 0002_nodestore_no_dictfield
-sentry: 0171_add_demo_org_user_models
+sentry: 0172_remove_demo_flag
 sessions: 0001_initial
 sites: 0002_alter_domain_unique
 social_auth: 0001_initial
