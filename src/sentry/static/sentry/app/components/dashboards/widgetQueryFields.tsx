@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import {IconDelete} from 'app/icons';
+import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -85,9 +85,10 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
     );
   }
 
-  const showAddYAxisButton = !(
-    ['world_map', 'big_number'].includes(displayType) && fields.length === 1
-  );
+  const hideAddYAxisButton =
+    (['world_map', 'big_number'].includes(displayType) && fields.length === 1) ||
+    (['line', 'area', 'stacked_area', 'bar'].includes(displayType) &&
+      fields.length === 3);
 
   return (
     <Field
@@ -121,13 +122,13 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
           )}
         </QueryFieldWrapper>
       ))}
-      <div>
-        {showAddYAxisButton && (
-          <Button size="small" onClick={handleAdd}>
+      {!hideAddYAxisButton && (
+        <div>
+          <Button size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
             {t('Add Overlay')}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </Field>
   );
 }
