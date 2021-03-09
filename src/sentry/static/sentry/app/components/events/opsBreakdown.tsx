@@ -272,13 +272,18 @@ class OpsBreakdown extends React.Component<Props> {
       );
     }
 
-    return <StyledBreakdown>{contents}</StyledBreakdown>;
+    return <StyledBreakdownNoHeader>{contents}</StyledBreakdownNoHeader>;
   }
 }
 
 const StyledBreakdown = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(4)};
+`;
+
+const StyledBreakdownNoHeader = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: ${space(2)} ${space(3)};
 `;
 
 const OpsLine = styled('div')`
