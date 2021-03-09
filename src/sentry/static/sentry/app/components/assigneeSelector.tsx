@@ -64,9 +64,7 @@ class AssigneeSelector extends React.Component<Props, State> {
   };
 
   static defaultProps = {
-    id: null,
     size: 20,
-    memberList: undefined,
   };
 
   state = this.getInitialState();
@@ -537,6 +535,8 @@ export function putSessionUserFirst(members: User[] | undefined): User[] {
   return arrangedMembers;
 }
 
+export default AssigneeSelector;
+
 const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
@@ -546,8 +546,6 @@ const AssigneeWrapper = styled('div')`
     right: -14px;
   }
 `;
-
-export default AssigneeSelector;
 
 const StyledIconUser = styled(IconUser)`
   /* We need this to center with Avatar */
