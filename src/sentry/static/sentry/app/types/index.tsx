@@ -231,6 +231,7 @@ export type Project = {
 
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {
+    next_id: number;
     rules: DynamicSamplingRules;
   } | null;
   plugins: Plugin[];
