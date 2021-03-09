@@ -56,7 +56,7 @@ class UserNotificationFineTuningTest(APITestCase):
             "alerts",
             method="put",
             status_code=204,
-            **{self.project.id: 1, self.project2.id: 0},
+            **{str(self.project.id): 1, str(self.project2.id): 2},
         )
 
         assert (
@@ -71,7 +71,7 @@ class UserNotificationFineTuningTest(APITestCase):
 
         # Can return to default
         self.get_valid_response(
-            "me", "alerts", method="put", status_code=204, **{self.project.id: -1}
+            "me", "alerts", method="put", status_code=204, **{str(self.project.id): -1}
         )
 
         assert not UserOption.objects.filter(
@@ -89,7 +89,7 @@ class UserNotificationFineTuningTest(APITestCase):
             "workflow",
             method="put",
             status_code=204,
-            **{self.project.id: 1, self.project2.id: 2},
+            **{str(self.project.id): 1, str(self.project2.id): 2},
         )
 
         assert (
@@ -108,7 +108,7 @@ class UserNotificationFineTuningTest(APITestCase):
 
         # Can return to default
         self.get_valid_response(
-            "me", "workflow", method="put", status_code=204, **{self.project.id: -1}
+            "me", "workflow", method="put", status_code=204, **{str(self.project.id): -1}
         )
 
         assert not UserOption.objects.filter(
@@ -130,7 +130,7 @@ class UserNotificationFineTuningTest(APITestCase):
             "email",
             method="put",
             status_code=204,
-            **{self.project.id: "a@example.com", self.project2.id: "alias@example.com"},
+            **{str(self.project.id): "a@example.com", str(self.project2.id): "alias@example.com"},
         )
 
         assert (
@@ -149,7 +149,11 @@ class UserNotificationFineTuningTest(APITestCase):
         ).save()
 
         self.get_valid_response(
-            "me", "email", method="put", status_code=400, **{self.project.id: "alias@example.com"}
+            "me",
+            "email",
+            method="put",
+            status_code=400,
+            **{str(self.project.id): "alias@example.com"},
         )
 
     def test_email_routing_emails_must_be_valid(self):
@@ -157,11 +161,17 @@ class UserNotificationFineTuningTest(APITestCase):
         UserEmail.objects.create(user=new_user, email="alias2@example.com", is_verified=True).save()
 
         self.get_valid_response(
-            "me", "email", method="put", status_code=400, **{self.project2.id: "alias2@example.com"}
+            "me",
+            "email",
+            method="put",
+            status_code=400,
+            **{str(self.project2.id): "alias2@example.com"},
         )
 
     def test_saves_and_returns_deploy(self):
-        self.get_valid_response("me", "deploy", method="put", status_code=204, **{self.org.id: 0})
+        self.get_valid_response(
+            "me", "deploy", method="put", status_code=204, **{str(self.org.id): 0}
+        )
 
         assert (
             UserOption.objects.get(
@@ -170,39 +180,56 @@ class UserNotificationFineTuningTest(APITestCase):
             == "0"
         )
 
-        self.get_valid_response("me", "deploy", method="put", status_code=204, **{self.org.id: 2})
+        self.get_valid_response(
+            "me", "deploy", method="put", status_code=204, **{str(self.org.id): 1}
+        )
         assert (
             UserOption.objects.get(user=self.user, organization=self.org, key="deploy-emails").value
             == "1"
         )
 
-        self.get_valid_response("me", "deploy", method="put", status_code=204, **{self.org.id: -1})
+        self.get_valid_response(
+            "me", "deploy", method="put", status_code=204, **{str(self.org.id): -1}
+        )
         assert not UserOption.objects.filter(
             user=self.user, organization=self.org, key="deploy-emails"
         ).exists()
 
     def test_saves_and_returns_weekly_reports(self):
+        # TODO MARCOS
         self.get_valid_response(
-            "me", "reports", method="put", status_code=204, **{self.org.id: 0, self.org2.id: "0"}
+            "me",
+            "reports",
+            method="put",
+            status_code=204,
+            **{str(self.org.id): 0, str(self.org2.id): "0"},
         )
 
         assert set(
             UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
         ) == {self.org.id, self.org2.id}
 
-        self.get_valid_response("me", "reports", method="put", status_code=204, **{self.org.id: 1})
+        self.get_valid_response(
+            "me", "reports", method="put", status_code=204, **{str(self.org.id): 1}
+        )
         assert set(
             UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
         ) == {self.org2.id}
 
-        self.get_valid_response("me", "reports", method="put", status_code=204, **{self.org.id: 0})
+        self.get_valid_response(
+            "me", "reports", method="put", status_code=204, **{str(self.org.id): 0}
+        )
         assert set(
             UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
         ) == {self.org.id, self.org2.id}
 
     def test_enable_weekly_reports_from_default_setting(self):
         self.get_valid_response(
-            "me", "reports", method="put", status_code=204, **{self.org.id: 1, self.org2.id: "1"}
+            "me",
+            "reports",
+            method="put",
+            status_code=204,
+            **{str(self.org.id): 1, str(self.org2.id): "1"},
         )
 
         assert (
@@ -211,13 +238,17 @@ class UserNotificationFineTuningTest(APITestCase):
         )
 
         # can disable
-        self.get_valid_response("me", "reports", method="put", status_code=204, **{self.org.id: 0})
+        self.get_valid_response(
+            "me", "reports", method="put", status_code=204, **{str(self.org.id): 0}
+        )
         assert set(
             UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
         ) == {self.org.id}
 
         # re-enable
-        self.get_valid_response("me", "reports", method="put", status_code=204, **{self.org.id: 1})
+        self.get_valid_response(
+            "me", "reports", method="put", status_code=204, **{str(self.org.id): 1}
+        )
         assert (
             set(UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value)
             == set()
@@ -231,14 +262,16 @@ class UserNotificationFineTuningTest(APITestCase):
             organization=new_org, teams=[new_team], name="New Project"
         )
 
-        self.get_valid_response("me", "reports", method="put", status_code=403, **{new_org.id: 0})
+        self.get_valid_response(
+            "me", "reports", method="put", status_code=403, **{str(new_org.id): 0}
+        )
 
         assert not UserOption.objects.filter(
             user=self.user, organization=new_org, key="reports"
         ).exists()
 
         self.get_valid_response(
-            "me", "alerts", method="put", status_code=403, **{new_project.id: 1}
+            "me", "alerts", method="put", status_code=403, **{str(new_project.id): 1}
         )
 
         assert not UserOption.objects.filter(
