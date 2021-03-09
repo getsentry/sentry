@@ -1,0 +1,78 @@
+{
+  "exception": {
+    "values": [
+      {
+        "module": "java.lang",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "createNoInputRewardRedeemedNoticeItem",
+              "in_app": false,
+              "lineno": 86,
+              "module": "com.example.chat.messagefactory.ChatMessageFactory"
+            },
+            {
+              "function": "createAnnotatedSpannable",
+              "in_app": false,
+              "lineno": 18,
+              "module": "com.example.AnnotationSpanHelper"
+            }
+          ]
+        },
+        "thread_id": 2,
+        "type": "ClassCastException",
+        "value": "java.lang.String cannot be cast to android.text.Spanned"
+      },
+      {
+        "module": "io.reactivex.exceptions",
+        "stacktrace": {
+          "frames": [
+            {
+              "in_app": false,
+              "function": "accept",
+              "lineno": 2,
+              "module": "io.reactivex.internal.functions.Functions$OnErrorMissingConsumer"
+            }
+          ]
+        },
+        "thread_id": 2,
+        "type": "OnErrorNotImplementedException",
+        "value": "The exception was not handled due to missing onError handler in the subscribe() method call. Further reading: https://github.com/ReactiveX/RxJava/wiki/Error-Handling | java.lang.ClassCastException: java.lang.String cannot be cast to android.text.Spanned"
+      }
+    ]
+  },
+  "threads": {
+    "values": [
+      {
+        "crashed": true,
+        "current": true,
+        "id": 2,
+        "name": "main",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "accept",
+              "in_app": true,
+              "lineno": 5,
+              "module": "MyApp"
+            },
+            {
+              "function": "lambda$onCreate$2",
+              "in_app": true,
+              "lineno": 5,
+              "module": "MyApp"
+            },
+            {
+              "abs_path": "VMStack.java",
+              "in_app": false,
+              "filename": "VMStack.java",
+              "function": "getThreadStackTrace",
+              "module": "dalvik.system.VMStack"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "platform": "java"
+}

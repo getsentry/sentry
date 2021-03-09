@@ -1,0 +1,100 @@
+---
+created: '2021-03-09T08:48:22.403045Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "423a07241a903a5ae70121d56e4a56b2"
+  component:
+    app*
+      chained-exception*
+        exception*
+          stacktrace
+            frame (non app frame)
+              module*
+                "com.example.chat.messagefactory.ChatMessageFactory"
+              function*
+                "createNoInputRewardRedeemedNoticeItem"
+            frame (non app frame)
+              module*
+                "com.example.AnnotationSpanHelper"
+              function*
+                "createAnnotatedSpannable"
+          type*
+            "ClassCastException"
+        exception*
+          stacktrace
+            frame (non app frame)
+              module*
+                "io.reactivex.internal.functions.Functions$OnErrorMissingConsumer"
+              function*
+                "accept"
+          type*
+            "OnErrorNotImplementedException"
+      threads (exception of app/system takes precedence)
+        stacktrace*
+          frame*
+            module*
+              "MyApp"
+            function*
+              "accept"
+          frame*
+            module*
+              "MyApp"
+            function (ignored lambda function)
+              "lambda$onCreate$2"
+          frame (non app frame)
+            module*
+              "dalvik.system.VMStack"
+            filename (module takes precedence)
+              "vmstack.java"
+            function*
+              "getThreadStackTrace"
+--------------------------------------------------------------------------
+system:
+  hash: "7aa97fc486ee8768b2741989a75593b1"
+  component:
+    system*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "com.example.chat.messagefactory.ChatMessageFactory"
+              function*
+                "createNoInputRewardRedeemedNoticeItem"
+            frame*
+              module*
+                "com.example.AnnotationSpanHelper"
+              function*
+                "createAnnotatedSpannable"
+          type*
+            "ClassCastException"
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "io.reactivex.internal.functions.Functions$OnErrorMissingConsumer"
+              function*
+                "accept"
+          type*
+            "OnErrorNotImplementedException"
+      threads (exception of app/system takes precedence)
+        stacktrace*
+          frame*
+            module*
+              "MyApp"
+            function*
+              "accept"
+          frame*
+            module*
+              "MyApp"
+            function (ignored lambda function)
+              "lambda$onCreate$2"
+          frame*
+            module*
+              "dalvik.system.VMStack"
+            filename (module takes precedence)
+              "vmstack.java"
+            function*
+              "getThreadStackTrace"

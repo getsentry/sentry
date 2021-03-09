@@ -1,0 +1,130 @@
+---
+created: '2021-03-09T08:48:13.518188Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      chained-exception (ignored because hash matches system variant)
+        exception*
+          stacktrace*
+            frame* (frame considered in-app because no frame is in-app)
+              module*
+                "com.example.chat.messagefactory.ChatMessageFactory"
+              function*
+                "createNoInputRewardRedeemedNoticeItem"
+              lineno (function takes precedence)
+                86
+            frame* (frame considered in-app because no frame is in-app)
+              module*
+                "com.example.AnnotationSpanHelper"
+              function*
+                "createAnnotatedSpannable"
+              lineno (function takes precedence)
+                18
+          type*
+            "ClassCastException"
+          value (stacktrace and type take precedence)
+            "java.lang.String cannot be cast to android.text.Spanned"
+        exception*
+          stacktrace*
+            frame* (frame considered in-app because no frame is in-app)
+              module*
+                "io.reactivex.internal.functions.Functions$OnErrorMissingConsumer"
+              function*
+                "accept"
+              lineno (function takes precedence)
+                2
+          type*
+            "OnErrorNotImplementedException"
+          value (stacktrace and type take precedence)
+            "The exception was not handled due to missing onError handler in the subscribe() method call. Further reading: https://github.com/ReactiveX/RxJava/wiki/Error-Handling | java.lang.ClassCastException: java.lang.String cannot be cast to android.text.Spanned"
+      threads (exception of system takes precedence)
+        stacktrace*
+          frame*
+            module*
+              "MyApp"
+            function*
+              "accept"
+            lineno (function takes precedence)
+              5
+          frame*
+            module*
+              "MyApp"
+            function*
+              salt* (normalized lambda function name)
+                "<function>"
+            lineno (function takes precedence)
+              5
+          frame (non app frame)
+            module*
+              "dalvik.system.VMStack"
+            filename (module takes precedence)
+              "VMStack.java"
+            function*
+              "getThreadStackTrace"
+--------------------------------------------------------------------------
+system:
+  hash: "7aa97fc486ee8768b2741989a75593b1"
+  component:
+    system*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "com.example.chat.messagefactory.ChatMessageFactory"
+              function*
+                "createNoInputRewardRedeemedNoticeItem"
+              lineno (function takes precedence)
+                86
+            frame*
+              module*
+                "com.example.AnnotationSpanHelper"
+              function*
+                "createAnnotatedSpannable"
+              lineno (function takes precedence)
+                18
+          type*
+            "ClassCastException"
+          value (stacktrace and type take precedence)
+            "java.lang.String cannot be cast to android.text.Spanned"
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "io.reactivex.internal.functions.Functions$OnErrorMissingConsumer"
+              function*
+                "accept"
+              lineno (function takes precedence)
+                2
+          type*
+            "OnErrorNotImplementedException"
+          value (stacktrace and type take precedence)
+            "The exception was not handled due to missing onError handler in the subscribe() method call. Further reading: https://github.com/ReactiveX/RxJava/wiki/Error-Handling | java.lang.ClassCastException: java.lang.String cannot be cast to android.text.Spanned"
+      threads (exception of system takes precedence)
+        stacktrace*
+          frame*
+            module*
+              "MyApp"
+            function*
+              "accept"
+            lineno (function takes precedence)
+              5
+          frame*
+            module*
+              "MyApp"
+            function*
+              salt* (normalized lambda function name)
+                "<function>"
+            lineno (function takes precedence)
+              5
+          frame*
+            module*
+              "dalvik.system.VMStack"
+            filename (module takes precedence)
+              "VMStack.java"
+            function*
+              "getThreadStackTrace"
