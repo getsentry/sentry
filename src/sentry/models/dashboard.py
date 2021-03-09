@@ -123,12 +123,12 @@ PREBUILT_DASHBOARDS = {
                         {
                             "name": "Known Users",
                             "conditions": "has:user.email !event.type:transaction",
-                            "fields": ["count_unique(user.email)"],
+                            "fields": ["count_unique(user)"],
                         },
                         {
                             "name": "Anonymous Users",
                             "conditions": "!has:user.email !event.type:transaction",
-                            "fields": ["count()"],
+                            "fields": ["count_unique(user)"],
                         },
                     ],
                 },

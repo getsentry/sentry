@@ -219,7 +219,7 @@ export async function openAddDashboardWidgetModal(options: DashboardWidgetModalO
   const mod = await import(
     /* webpackChunkName: "AddDashboardWidgetModal" */ 'app/components/modals/addDashboardWidgetModal'
   );
-  const {default: Modal} = mod;
+  const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static'});
+  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
