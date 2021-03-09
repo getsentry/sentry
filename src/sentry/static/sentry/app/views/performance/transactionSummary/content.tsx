@@ -38,7 +38,7 @@ import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
 import UserStats from './userStats';
-import {TransactionFilterOptions} from './utils';
+import {SidebarSpacer, TransactionFilterOptions} from './utils';
 
 type Props = {
   location: Location;
@@ -236,12 +236,19 @@ class SummaryContent extends React.Component<Props, State> {
               transactionName={transactionName}
               eventView={eventView}
             />
-            <SidebarCharts organization={organization} eventView={eventView} />
+            <SidebarSpacer />
+            <SidebarCharts
+              organization={organization}
+              totals={totalValues}
+              eventView={eventView}
+            />
+            <SidebarSpacer />
             <StatusBreakdown
               eventView={eventView}
               organization={organization}
               location={location}
             />
+            <SidebarSpacer />
             <Tags
               generateUrl={this.generateTagUrl}
               totalValues={totalCount}
