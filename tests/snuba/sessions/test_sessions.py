@@ -161,11 +161,13 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "sessions_24h": 2,
                 "users_24h": 1,
                 "adoption": 100.0,
+                "sessions_adoption": 66.66666666666666,
             },
             (self.project.id, self.session_crashed_release): {
                 "sessions_24h": 1,
                 "users_24h": 1,
                 "adoption": 100.0,
+                "sessions_adoption": 33.33333333333333,
             },
         }
 
@@ -201,11 +203,13 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "sessions_24h": 2,
                 "users_24h": 1,
                 "adoption": 50.0,
+                "sessions_adoption": 50.0,
             },
             (self.project.id, self.session_crashed_release): {
                 "sessions_24h": 2,
                 "users_24h": 2,
                 "adoption": 100.0,
+                "sessions_adoption": 50.0,
             },
         }
 
@@ -236,6 +240,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "stats": {"24h": stats_crash},
                 "crash_free_users": 0.0,
                 "adoption": 100.0,
+                "sessions_adoption": 33.33333333333333,
                 "has_health_data": True,
                 "crash_free_sessions": 0.0,
                 "duration_p50": None,
@@ -251,6 +256,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "stats": {"24h": stats_ok},
                 "crash_free_users": 100.0,
                 "adoption": 100.0,
+                "sessions_adoption": 66.66666666666666,
                 "has_health_data": True,
                 "crash_free_sessions": 100.0,
                 "duration_p50": 45.0,
@@ -285,6 +291,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "stats": {"24h": stats_crash},
                 "crash_free_users": 0.0,
                 "adoption": 100.0,
+                "sessions_adoption": 33.33333333333333,
                 "has_health_data": True,
                 "crash_free_sessions": 0.0,
                 "duration_p50": None,
@@ -299,6 +306,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "total_users_24h": 1,
                 "stats": {"24h": stats_ok},
                 "crash_free_users": 100.0,
+                "sessions_adoption": 66.66666666666666,
                 "adoption": 100.0,
                 "has_health_data": True,
                 "crash_free_sessions": 100.0,

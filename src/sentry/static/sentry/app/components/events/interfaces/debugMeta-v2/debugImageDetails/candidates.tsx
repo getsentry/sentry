@@ -13,7 +13,7 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {BuiltinSymbolSource} from 'app/types/debugFiles';
-import {CandidateDownloadStatus, Image} from 'app/types/debugImage';
+import {CandidateDownloadStatus, Image, ImageStatus} from 'app/types/debugImage';
 import {defined} from 'app/utils';
 
 import Filter from '../filter';
@@ -21,23 +21,31 @@ import Filter from '../filter';
 import Status from './candidate/status';
 import Candidate from './candidate';
 
+const filterOptionCategories = {
+  status: t('Status'),
+  source: t('Source'),
+};
+
 type FilterOptions = React.ComponentProps<typeof Filter>['options'];
 
+type ImageCandidates = Image['candidates'];
+
 type Props = {
-  candidates: Image['candidates'];
+  candidates: ImageCandidates;
   organization: Organization;
   projectId: Project['id'];
   baseUrl: string;
   builtinSymbolSources: Array<BuiltinSymbolSource> | null;
   onDelete: (debugId: string) => void;
   isLoading: boolean;
+  imageStatus?: ImageStatus;
 };
 
 type State = {
   searchTerm: string;
   filterOptions: FilterOptions;
-  filteredCandidatesBySearch: Image['candidates'];
-  filteredCandidatesByFilter: Image['candidates'];
+  filteredCandidatesBySearch: ImageCandidates;
+  filteredCandidatesByFilter: ImageCandidates;
 };
 
 class Candidates extends React.Component<Props, State> {
@@ -133,38 +141,53 @@ class Candidates extends React.Component<Props, State> {
     });
   }
 
-  getFilterOptions(candidates: Image['candidates']) {
-    return {
-      [t('Status')]: [
-        ...new Set(candidates.map(candidate => candidate.download.status)),
-      ].map(status => ({
+  getFilterOptions(candidates: ImageCandidates) {
+    const {imageStatus} = this.props;
+
+    const filterOptions = {};
+
+    const candidateStatus = [
+      ...new Set(candidates.map(candidate => candidate.download.status)),
+    ];
+
+    if (candidateStatus.length > 1) {
+      filterOptions[filterOptionCategories.status] = candidateStatus.map(status => ({
         id: status,
         symbol: <Status status={status} />,
-        isChecked: status !== CandidateDownloadStatus.NOT_FOUND,
-      })),
-      [t('Source')]: [
-        ...new Set(candidates.map(candidate => candidate.source_name ?? t('Unknown'))),
-      ].map(sourceName => ({
+        isChecked:
+          status !== CandidateDownloadStatus.NOT_FOUND ||
+          imageStatus === ImageStatus.MISSING,
+      }));
+    }
+
+    const candidateSources = [
+      ...new Set(candidates.map(candidate => candidate.source_name ?? t('Unknown'))),
+    ];
+
+    if (candidateSources.length > 1) {
+      filterOptions[filterOptionCategories.source] = candidateSources.map(sourceName => ({
         id: sourceName,
         symbol: sourceName,
         isChecked: false,
-      })),
-    } as FilterOptions;
+      }));
+    }
+
+    return filterOptions as FilterOptions;
   }
 
   getFilteredCandidatedByFilter(
-    candidates: Image['candidates'],
+    candidates: ImageCandidates,
     filterOptions: FilterOptions
   ) {
     const checkedStatusOptions = new Set(
-      Object.values(filterOptions)[0]
-        .filter(filterOption => filterOption.isChecked)
+      filterOptions[filterOptionCategories.status]
+        ?.filter(filterOption => filterOption.isChecked)
         .map(option => option.id)
     );
 
     const checkedSourceOptions = new Set(
-      Object.values(filterOptions)[1]
-        .filter(filterOption => filterOption.isChecked)
+      filterOptions[filterOptionCategories.source]
+        ?.filter(filterOption => filterOption.isChecked)
         .map(option => option.id)
     );
 
@@ -364,11 +387,15 @@ const Title = styled('div')`
 const Search = styled('div')`
   flex-grow: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: flex-end;
 
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    flex-direction: row;
-    justify-content: flex-end;
+  @media (max-width: ${props => props.theme.breakpoints[0]}) {
+    flex-direction: column;
+    justify-content: flex-start;
+    .drop-down-filter-menu {
+      border-top-right-radius: ${p => p.theme.borderRadius};
+    }
   }
 `;
 
@@ -382,7 +409,6 @@ const StyledSearchBar = styled(SearchBar)`
   width: 100%;
   margin-bottom: ${space(2)};
   position: relative;
-  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   .search-input {
     height: 32px;
   }

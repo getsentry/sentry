@@ -37,6 +37,10 @@
   </script>
   {% endscript %}
 
+  {% script %}
+    {% include "sentry/partial/preload-data.html" %}
+  {% endscript %}
+
   {% block scripts %}
   {% locale_js_include %}
   {% asset_url "sentry" "dist/vendor.js" as asset_url %}
@@ -44,6 +48,11 @@
 
   {% asset_url "sentry" "dist/app.js" as asset_url %}
   {% script src=asset_url data-entry="true" %}{% endscript %}
+
+  {% injected_script_assets as injected_assets %}
+  {% for asset_url in injected_assets %}
+    {% script src=asset_url %}{% endscript %}
+  {% endfor %}
 
   {% script %}
   <script>

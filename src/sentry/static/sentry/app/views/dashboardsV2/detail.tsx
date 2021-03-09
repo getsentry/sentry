@@ -28,7 +28,7 @@ import DashboardTitle from './title';
 import {DashboardDetails, DashboardState, Widget} from './types';
 import {cloneDashboard} from './utils';
 
-const UNSAVED_MESSAGE = t('You have unsaved changes are you sure you want to leave?');
+const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
 type Props = {
   api: Client;
@@ -265,7 +265,7 @@ class DashboardDetail extends React.Component<Props, State> {
       return {
         ...prevState,
         modifiedDashboard: {
-          ...modifiedDashboard,
+          ...prevState.modifiedDashboard!,
           widgets,
         },
       };

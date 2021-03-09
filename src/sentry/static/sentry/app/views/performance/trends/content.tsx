@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import SearchBar from 'app/components/events/searchBar';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
@@ -13,7 +14,6 @@ import {generateAggregateFields} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import SearchBar from 'app/views/events/searchBar';
 
 import {FilterViews} from '../landing';
 import {getTransactionSearchQuery} from '../utils';

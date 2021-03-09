@@ -56,12 +56,12 @@ setup-pyenv:
 	./scripts/pyenv_setup.sh
 
 ensure-venv:
-	@./scripts/ensure-venv.sh
+	./scripts/ensure-venv.sh
 
 ensure-pinned-pip: ensure-venv upgrade-pip
 
 upgrade-pip:
-	bash ./scripts/python.sh upgrade-pip
+	./scripts/python.sh upgrade-pip
 
 setup-git-config:
 	@git config --local branch.autosetuprebase always
@@ -92,7 +92,7 @@ install-js-dev: node-version-check
 	yarn check --verify-tree || yarn install --check-files
 
 install-py-dev:
-	bash ./scripts/python.sh install-py-dev
+	./scripts/python.sh install-py-dev
 
 build-js-po: node-version-check
 	mkdir -p build
@@ -128,7 +128,7 @@ fetch-release-registry:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	py.test tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html" --self-contained-html
+	py.test tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml"
 	@echo ""
 
 test-cli:
@@ -220,4 +220,4 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
+.PHONY: develop bootstrap build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js

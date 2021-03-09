@@ -141,7 +141,8 @@ export function getOnboardingTasks(
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'external',
-      location: 'https://docs.sentry.io/enriching-error-data/context/#capturing-the-user',
+      location:
+        'https://docs.sentry.io/platform-redirect/?next=/enriching-events/identify-user/',
       display: true,
     },
     {
@@ -201,7 +202,7 @@ export function getOnboardingTasks(
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
-      location: `/settings/${organization.slug}/projects/:projectId/alerts/`,
+      location: `/organizations/${organization.slug}/alerts/rules/`,
       display: true,
     },
   ];

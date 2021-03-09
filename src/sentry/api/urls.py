@@ -95,12 +95,14 @@ from .endpoints.organization_environments import OrganizationEnvironmentsEndpoin
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import (
-    OrganizationEventsEndpoint,
     OrganizationEventsV2Endpoint,
     OrganizationEventsGeoEndpoint,
 )
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
+from .endpoints.organization_events_facets_performance import (
+    OrganizationEventsFacetsPerformanceEndpoint,
+)
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
     OrganizationEventBaseline,
@@ -222,6 +224,7 @@ from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_codeowners import ProjectCodeOwnersEndpoint
+from .endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
@@ -856,11 +859,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-config-repositories",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/events/$",
-                    OrganizationEventsEndpoint.as_view(),
-                    name="sentry-api-0-organization-events",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/sdk-updates/$",
                     OrganizationSdkUpdatesEndpoint.as_view(),
                     name="sentry-api-0-organization-sdk-updates",
@@ -870,7 +868,7 @@ urlpatterns = [
                     OrganizationHasMobileAppEvents.as_view(),
                     name="sentry-api-0-organization-has-mobile-events",
                 ),
-                # This is temporary while we alpha test eventsv2
+                # TODO add an alias for /organizations/:slug/events/ and deprecate eventsv2
                 url(
                     r"^(?P<organization_slug>[^\/]+)/eventsv2/$",
                     OrganizationEventsV2Endpoint.as_view(),
@@ -895,6 +893,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-facets/$",
                     OrganizationEventsFacetsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-facets",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-facets-performance/$",
+                    OrganizationEventsFacetsPerformanceEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-facets-performance",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",
@@ -1696,6 +1699,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners/$",
                     ProjectCodeOwnersEndpoint.as_view(),
                     name="sentry-api-0-project-codeowners",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners/(?P<codeowners_id>[^\/]+)/$",
+                    ProjectCodeOwnersDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-codeowners-details",
                 ),
                 # Load plugin project urls
                 url(

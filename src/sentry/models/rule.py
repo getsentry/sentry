@@ -38,9 +38,8 @@ class Rule(Model):
         choices=((RuleStatus.ACTIVE, "Active"), (RuleStatus.INACTIVE, "Inactive")),
         db_index=True,
     )
+    owner = FlexibleForeignKey("sentry.Actor", null=True)
 
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
-    team = FlexibleForeignKey("sentry.Team", null=True)
 
     date_added = models.DateTimeField(default=timezone.now)
 

@@ -15,7 +15,7 @@ import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Release, ReleaseProject} from 'app/types';
+import {Organization, Release, ReleaseProject} from 'app/types';
 import {defined} from 'app/utils';
 
 import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
@@ -31,7 +31,7 @@ import ProjectLink from './projectLink';
 type Props = {
   projects: Array<ReleaseProject>;
   releaseVersion: Release['version'];
-  orgSlug: string;
+  organization: Organization;
   activeDisplay: DisplayOption;
   location: Location;
   showPlaceholders: boolean;
@@ -41,10 +41,11 @@ const Content = ({
   projects,
   releaseVersion,
   location,
-  orgSlug,
+  organization,
   activeDisplay,
   showPlaceholders,
 }: Props) => {
+  const supportsSessionAdoption = organization.features.includes('session-adoption');
   const activeStatsPeriod = (location.query.healthStatsPeriod || '24h') as StatsPeriod;
   const healthStatsPeriod = (
     <HealthStatsPeriod location={location} activePeriod={activeStatsPeriod} />
@@ -55,7 +56,9 @@ const Content = ({
       <Header>
         <Layout>
           <Column>{t('Project Name')}</Column>
-          <AdoptionColumn>{t('User Adoption')}</AdoptionColumn>
+          <AdoptionColumn>
+            {supportsSessionAdoption ? t('Adoption') : t('User Adoption')}
+          </AdoptionColumn>
           {activeDisplay === DisplayOption.CRASH_FREE_USERS ? (
             <React.Fragment>
               <SessionsColumn>{t('Crash Free Users')}</SessionsColumn>
@@ -103,6 +106,7 @@ const Content = ({
             const {
               hasHealthData,
               adoption,
+              sessions_adoption,
               stats,
               crashFreeUsers,
               crashFreeSessions,
@@ -112,6 +116,16 @@ const Content = ({
               totalSessions,
               totalSessions24h,
             } = healthData || {};
+            const selectedAdoption =
+              activeDisplay === DisplayOption.CRASH_FREE_SESSIONS &&
+              supportsSessionAdoption
+                ? sessions_adoption
+                : adoption;
+            const selected24hCount =
+              activeDisplay === DisplayOption.CRASH_FREE_SESSIONS &&
+              supportsSessionAdoption
+                ? totalSessions24h
+                : totalUsers24h;
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
@@ -123,7 +137,7 @@ const Content = ({
                   <AdoptionColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder width="150px" />
-                    ) : defined(adoption) ? (
+                    ) : defined(selectedAdoption) ? (
                       <AdoptionWrapper>
                         <ProgressBarWrapper>
                           <Tooltip
@@ -137,10 +151,10 @@ const Content = ({
                               />
                             }
                           >
-                            <ProgressBar value={Math.ceil(adoption)} />
+                            <ProgressBar value={Math.ceil(selectedAdoption)} />
                           </Tooltip>
                         </ProgressBarWrapper>
-                        <Count value={totalUsers24h ?? 0} />
+                        <Count value={selected24hCount ?? 0} />
                       </AdoptionWrapper>
                     ) : (
                       <NotAvailable />
@@ -193,7 +207,7 @@ const Content = ({
                       <Tooltip title={t('Open in Issues')}>
                         <GlobalSelectionLink
                           to={getReleaseUnhandledIssuesUrl(
-                            orgSlug,
+                            organization.slug,
                             project.id,
                             releaseVersion
                           )}
@@ -209,7 +223,11 @@ const Content = ({
                   <NewIssuesColumn>
                     <Tooltip title={t('Open in Issues')}>
                       <GlobalSelectionLink
-                        to={getReleaseNewIssuesUrl(orgSlug, project.id, releaseVersion)}
+                        to={getReleaseNewIssuesUrl(
+                          organization.slug,
+                          project.id,
+                          releaseVersion
+                        )}
                       >
                         <Count value={newGroups || 0} />
                       </GlobalSelectionLink>
@@ -218,7 +236,7 @@ const Content = ({
 
                   <ViewColumn>
                     <ProjectLink
-                      orgSlug={orgSlug}
+                      orgSlug={organization.slug}
                       project={project}
                       releaseVersion={releaseVersion}
                       location={location}

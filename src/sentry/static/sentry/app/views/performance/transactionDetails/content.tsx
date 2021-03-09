@@ -23,9 +23,8 @@ import {Organization, Project} from 'app/types';
 import {Event, EventTag} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
-import QuickTraceQuery, {
-  QuickTraceQueryChildrenProps,
-} from 'app/utils/performance/quickTrace/quickTraceQuery';
+import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
+import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
 import {appendTagCondition, decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
@@ -199,9 +198,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     projectId={this.projectId}
                   />
                   <RootSpanStatus event={event} />
+                  <OpsBreakdown event={event} />
                 </React.Fragment>
               )}
-              <OpsBreakdown event={event} />
               <EventVitals event={event} />
               <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
             </Layout.Side>
@@ -211,7 +210,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     );
 
     const hasQuickTraceView =
-      organization.features.includes('trace-view-quick') &&
+      organization.features.includes('trace-view-quick') ||
       organization.features.includes('trace-view-summary');
 
     if (hasQuickTraceView) {

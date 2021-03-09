@@ -3,6 +3,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectAlertRulePermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.fields.actor import Actor
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.integrations.slack import tasks
@@ -92,18 +93,20 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             }
             owner = data.get("owner")
             if owner:
-                try:
-                    team = user = None
-                    if owner.type == User:
-                        user = owner.resolve()
-                    elif owner.type == Team:
-                        team = owner.resolve()
-                except Exception:
-                    return Response(
-                        "Could not resolve owner into user or team",
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                kwargs.update({"team": team, "user": user})
+                owner = Actor.from_actor_identifier(owner)
+                kwargs.update({"owner": owner.resolve_to_actor()})
+                # try:
+                #     team = user = None
+                #     if owner.type == User:
+                #         user = owner.resolve()
+                #     elif owner.type == Team:
+                #         team = owner.resolve()
+                # except Exception:
+                #     return Response(
+                #         "Could not resolve owner into user or team",
+                #         status=status.HTTP_400_BAD_REQUEST,
+                #     )
+                # kwargs.update({"team": team, "user": user})
 
             if data.get("pending_save"):
                 client = tasks.RedisRuleStatus()
