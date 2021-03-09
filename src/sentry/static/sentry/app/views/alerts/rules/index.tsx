@@ -27,7 +27,7 @@ import withTeams from 'app/utils/withTeams';
 import AlertHeader from '../list/header';
 import {isIssueAlert} from '../utils';
 
-import Filter, {List, ListItem} from './filter';
+import Filter from './filter';
 import RuleListRow from './row';
 
 const DEFAULT_SORT: {asc: boolean; field: 'date_added'} = {
@@ -44,22 +44,9 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 
 type State = {
   ruleList?: IssueAlertRule[];
-  filteredTeams: Set<string>;
 };
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
-  getDefaultState() {
-    const state = super.getDefaultState();
-    const {
-      location: {query},
-    } = this.props;
-    const filteredTeams = query.team ? new Set(query.team) : new Set();
-    return {
-      ...state,
-      filteredTeams,
-    };
-  }
-
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {params, location} = this.props;
     const {query} = location;
@@ -102,7 +89,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
   handleChangeFilter = (activeFilters: Set<string>) => {
     const {router, location} = this.props;
-    this.setState({filteredTeams: activeFilters});
     router.push({
       pathname: location.pathname,
       query: {
@@ -135,8 +121,10 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   }
 
   renderFilterBar() {
-    const {teams} = this.props;
-    const {filteredTeams} = this.state;
+    const {teams, location} = this.props;
+    const teamQuery = location.query?.team;
+    const filteredTeams: Set<string> =
+      typeof teamQuery === 'string' ? new Set([teamQuery]) : new Set(teamQuery);
     const teamIds = teams.map(({id}) => id);
     return (
       <FilterWrapper>
@@ -146,25 +134,23 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
           filterList={teamIds}
           selection={filteredTeams}
         >
-          {({toggleFilter}) => {
-            return (
-              <List>
-                {teams.map(({id, name}) => (
-                  <ListItem
-                    key={id}
-                    isChecked={filteredTeams.has(id)}
-                    onClick={event => {
-                      event.stopPropagation();
-                      toggleFilter(id);
-                    }}
-                  >
-                    <TeamName>{name}</TeamName>
-                    <CheckboxFancy isChecked={filteredTeams.has(id)} />
-                  </ListItem>
-                ))}
-              </List>
-            );
-          }}
+          {({toggleFilter}) => (
+            <List>
+              {teams.map(({id, name}) => (
+                <ListItem
+                  key={id}
+                  isChecked={filteredTeams.has(id)}
+                  onClick={event => {
+                    event.stopPropagation();
+                    toggleFilter(id);
+                  }}
+                >
+                  <TeamName>{name}</TeamName>
+                  <CheckboxFancy isChecked={filteredTeams.has(id)} />
+                </ListItem>
+              ))}
+            </List>
+          )}
         </Filter>
       </FilterWrapper>
     );
@@ -315,6 +301,36 @@ const TeamName = styled('div')`
 
 const FilterWrapper = styled('div')`
   margin-bottom: ${space(1.5)};
+`;
+
+const List = styled('ul')`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+`;
+
+const ListItem = styled('li')<{isChecked?: boolean}>`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  grid-column-gap: ${space(1)};
+  align-items: center;
+  padding: ${space(1)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  :hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+  ${CheckboxFancy} {
+    opacity: ${p => (p.isChecked ? 1 : 0.3)};
+  }
+
+  &:hover ${CheckboxFancy} {
+    opacity: 1;
+  }
+
+  &:hover span {
+    color: ${p => p.theme.blue300};
+    text-decoration: underline;
+  }
 `;
 
 const StyledPanelTable = styled(PanelTable)<{showTeamCol: boolean}>`
