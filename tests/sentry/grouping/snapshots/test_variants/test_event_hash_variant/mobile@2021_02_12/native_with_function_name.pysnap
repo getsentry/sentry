@@ -6,45 +6,108 @@ source: tests/sentry/grouping/test_variants.py
 app:
   hash: null
   component:
-    app (exception of system takes precedence)
+    app (exception of system/system-depth-1/system-depth-2/system-depth-3/system-depth-max takes precedence)
       threads (thread has no stacktrace)
 --------------------------------------------------------------------------
-app-depth-max:
-  hash: null
+system:
+  hash: "c29439027eafcf7642f641554ab0f0ef"
   component:
-    app-depth-max (exception of system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
+    system*
+      exception*
+        stacktrace*
+          frame*
             filename*
               "main.cpp"
             function*
               "main"
-          frame (non app frame)
+          frame*
             filename*
               "main.cpp"
             function*
               "(anonymous namespace)::start"
-          frame (non app frame)
+          frame*
             filename*
               "main.cpp"
             function*
               "(anonymous namespace)::crash"
-          frame (non app frame)
+          frame*
             filename*
               "main.cpp"
             function*
               "(anonymous namespace)::something::nested::Foo<T>::crash"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
-        value*
+        value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
-system:
+system-depth-1:
+  hash: "9c68fbdc389c8d6d98106b45da4183e8"
+  component:
+    system-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+system-depth-2:
+  hash: "369693282e85d4fc42cbda11cd3620ab"
+  component:
+    system-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::crash"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+system-depth-3:
+  hash: "f67a4dfafe32e2b7860fedb711abd689"
+  component:
+    system-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::start"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::crash"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+system-depth-max:
   hash: "c29439027eafcf7642f641554ab0f0ef"
   tree_label: "main"
   component:
-    system*
+    system-depth-max*
       exception*
         stacktrace*
           frame*

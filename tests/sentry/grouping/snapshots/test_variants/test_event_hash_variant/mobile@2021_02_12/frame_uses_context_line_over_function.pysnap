@@ -3,22 +3,22 @@ created: '2021-03-08T16:39:07.138661Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+system:
+  hash: "fb73cb54ced59b1c0c60d9bb40b7336b"
   component:
-    app-depth-max (stacktrace of system takes precedence)
-      stacktrace
-        frame (non app frame)
+    system*
+      stacktrace*
+        frame*
           filename*
             "foo.py"
           function*
             "bar"
 --------------------------------------------------------------------------
-system:
+system-depth-max:
   hash: "fb73cb54ced59b1c0c60d9bb40b7336b"
   tree_label: "bar"
   component:
-    system*
+    system-depth-max*
       stacktrace*
         frame*
           filename*

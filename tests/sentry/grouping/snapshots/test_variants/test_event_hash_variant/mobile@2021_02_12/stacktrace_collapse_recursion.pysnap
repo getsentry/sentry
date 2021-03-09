@@ -3,54 +3,54 @@ created: '2021-03-08T16:39:06.770091Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+system:
+  hash: "894c3489e2ade384dc107bca6829d134"
   component:
-    app-depth-max (stacktrace of system takes precedence)
-      stacktrace
-        frame (non app frame)
+    system*
+      stacktrace*
+        frame*
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "main"
-        frame (non app frame)
+        frame*
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "normalFunc"
-        frame (non app frame)
+        frame*
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame (non app frame)
+        frame (ignored due to recursion)
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame (non app frame)
+        frame (ignored due to recursion)
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame (non app frame)
+        frame*
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame (non app frame)
+        frame*
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
@@ -58,11 +58,105 @@ app-depth-max:
           function*
             "throwError"
 --------------------------------------------------------------------------
-system:
+system-depth-1:
+  hash: "b7e1e5ef711f75f419c749ffb19efb39"
+  component:
+    system-depth-1*
+      stacktrace*
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+system-depth-2:
+  hash: "9840fdc749627fbfacae7e58f325326a"
+  component:
+    system-depth-2*
+      stacktrace*
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+system-depth-3:
+  hash: "e40eae807d6005ad95f045fcccaeb0a4"
+  component:
+    system-depth-3*
+      stacktrace*
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+system-depth-4:
+  hash: "3fb69ce71efee7c559762478ce1981bc"
+  component:
+    system-depth-4*
+      stacktrace*
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "normalFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+system-depth-max:
   hash: "894c3489e2ade384dc107bca6829d134"
   tree_label: "main"
   component:
-    system*
+    system-depth-max*
       stacktrace*
         frame*
           module*

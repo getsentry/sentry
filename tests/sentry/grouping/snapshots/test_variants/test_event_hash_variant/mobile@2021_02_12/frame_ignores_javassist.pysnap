@@ -3,22 +3,22 @@ created: '2021-03-08T16:39:06.701231Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+system:
+  hash: "538bdfd8d7bb2495d0d6429c3689a420"
   component:
-    app-depth-max (stacktrace of system takes precedence)
-      stacktrace
-        frame (non app frame)
+    system*
+      stacktrace*
+        frame*
           module* (removed codegen marker)
             "com.example.api.entry.EntriesResource_$$_javassist<auto>"
           function*
             "fn"
 --------------------------------------------------------------------------
-system:
+system-depth-max:
   hash: "538bdfd8d7bb2495d0d6429c3689a420"
   tree_label: "fn"
   component:
-    system*
+    system-depth-max*
       stacktrace*
         frame*
           module* (removed codegen marker)

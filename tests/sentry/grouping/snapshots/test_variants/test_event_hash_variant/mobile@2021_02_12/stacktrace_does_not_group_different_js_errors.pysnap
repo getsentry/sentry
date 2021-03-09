@@ -1,17 +1,8 @@
 ---
-created: '2021-02-15T18:20:08.749248Z'
+created: '2021-03-09T09:24:45.680350Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
-  component:
-    app-depth-max
-      stacktrace
-        frame (non app frame)
-          filename (ignored because frame points to a URL)
-            "index.js"
---------------------------------------------------------------------------
 fallback:
   hash: "d41d8cd98f00b204e9800998ecf8427e"
 --------------------------------------------------------------------------
@@ -19,6 +10,15 @@ system:
   hash: null
   component:
     system
+      stacktrace
+        frame
+          filename (ignored because frame points to a URL)
+            "index.js"
+--------------------------------------------------------------------------
+system-depth-max:
+  hash: null
+  component:
+    system-depth-max
       stacktrace
         frame
           filename (ignored because frame points to a URL)

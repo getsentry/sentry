@@ -3,30 +3,41 @@ created: '2021-03-08T16:39:05.273990Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+system:
+  hash: "c5da56c71b31f34c5880d734cbc8f5bb"
   component:
-    app-depth-max (stacktrace of system takes precedence)
-      stacktrace
-        frame (non app frame)
+    system*
+      stacktrace*
+        frame (ignored low quality javascript frame)
           filename (anonymous filename discarded)
             "<anonymous>"
-        frame (non app frame)
+        frame*
           filename*
             "dojo.js"
           function*
             "c"
-        frame (non app frame)
+        frame*
           filename*
             "dojo.js"
           function* (trimmed javascript function)
             "_createDocumentViewModel"
 --------------------------------------------------------------------------
-system:
+system-depth-1:
+  hash: "ea2440178d85fe985acebaa85a1610d0"
+  component:
+    system-depth-1*
+      stacktrace*
+        frame*
+          filename*
+            "dojo.js"
+          function* (trimmed javascript function)
+            "_createDocumentViewModel"
+--------------------------------------------------------------------------
+system-depth-max:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
   tree_label: "c"
   component:
-    system*
+    system-depth-max*
       stacktrace*
         frame (ignored low quality javascript frame)
           filename (anonymous filename discarded)

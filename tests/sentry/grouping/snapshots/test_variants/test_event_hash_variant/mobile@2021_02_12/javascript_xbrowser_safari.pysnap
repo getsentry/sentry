@@ -3,73 +3,199 @@ created: '2021-03-08T16:39:05.964594Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+system:
+  hash: "c63e8727af1a8fe75872b6a762797113"
   component:
-    app-depth-max (exception of system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
+    system*
+      exception*
+        stacktrace*
+          frame*
             filename*
               "test.html"
-          frame (non app frame)
+          frame*
             filename*
               "test.html"
             function*
               "testMethod"
-          frame (non app frame)
+          frame*
             filename*
               "test.html"
             function*
               "aha"
-          frame (non app frame)
+          frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
               "[native code]"
             function*
               "eval"
-          frame (non app frame)
+          frame*
             filename*
               "test.html"
             function*
               "test"
-          frame (non app frame)
+          frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
               "[native code]"
             function*
               "map"
-          frame (non app frame)
+          frame*
             filename*
               "test.html"
-          frame (non app frame)
+          frame*
             filename*
               "test.html"
             function*
               "callback"
-          frame (non app frame)
+          frame*
             filename*
               "test.html"
             function*
               "callAnotherThing"
-          frame (non app frame)
+          frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
               "[native code]"
             function*
               "aha"
-          frame (non app frame)
+          frame*
             filename*
               "test.html"
             function*
               "aha"
         type*
           "Error"
-        value*
+        value (ignored because stacktrace takes precedence)
           "bad"
 --------------------------------------------------------------------------
-system:
+system-depth-1:
+  hash: "e48dbc3d72a1bba72eb10cf0cfb2f122"
+  component:
+    system-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "test.html"
+            function*
+              "aha"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+system-depth-2:
+  hash: "78acc30fe8d8e2064308f28393383e51"
+  component:
+    system-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "aha"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+system-depth-3:
+  hash: "ec9def2a5325597f5b348f141b83b261"
+  component:
+    system-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callback"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "aha"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+system-depth-4:
+  hash: "01b5dfbc3a7cf58591f53b2da01832da"
+  component:
+    system-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "test.html"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callback"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "aha"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+system-depth-5:
+  hash: "4b0afdab89c9fdf5c0ddcfa2098bd6e8"
+  component:
+    system-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "test.html"
+            function*
+              "test"
+          frame*
+            filename*
+              "test.html"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callback"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "aha"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+system-depth-max:
   hash: "c63e8727af1a8fe75872b6a762797113"
   tree_label: "testMethod"
   component:
-    system*
+    system-depth-max*
       exception*
         stacktrace*
           frame*

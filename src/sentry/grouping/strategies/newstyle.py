@@ -365,7 +365,12 @@ def stacktrace(stacktrace, context, **meta):
         )
 
         full_stacktrace = rv.pop("app")
-        rv["app-depth-max"] = full_stacktrace
+        source = "app"
+        if not full_stacktrace.contributes:
+            full_stacktrace = rv["system"].shallow_copy()
+            source = "system"
+
+        rv[f"{source}-depth-max"] = full_stacktrace
 
         for max_frames in range(1, 6):
             stacktrace = full_stacktrace.shallow_copy()
@@ -389,7 +394,7 @@ def stacktrace(stacktrace, context, **meta):
             new_values.reverse()
             stacktrace.update(values=new_values)
 
-            rv[f"app-depth-{max_frames}"] = stacktrace
+            rv[f"{source}-depth-{max_frames}"] = stacktrace
 
     else:
         rv = call_with_variants(

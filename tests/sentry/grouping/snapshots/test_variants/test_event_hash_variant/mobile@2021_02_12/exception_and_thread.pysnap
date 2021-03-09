@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T08:47:43.054149Z'
+created: '2021-03-09T09:24:47.103886Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -16,37 +16,9 @@ app-depth-1:
               "lambda$onCreate$2"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "ded67a8b0956e73baa3cab2e08b8e4fa"
+  hash: "49a194ee5ef3c5301d7f4c7e6d50e258"
   component:
     app-depth-max*
-      chained-exception*
-        exception*
-          stacktrace
-            frame (non app frame)
-              module*
-                "com.example.chat.messagefactory.ChatMessageFactory"
-              function*
-                "createNoInputRewardRedeemedNoticeItem"
-            frame (non app frame)
-              module*
-                "com.example.AnnotationSpanHelper"
-              function*
-                "createAnnotatedSpannable"
-          type*
-            "ClassCastException"
-          value*
-            "java.lang.String cannot be cast to android.text.Spanned"
-        exception*
-          stacktrace
-            frame (non app frame)
-              module*
-                "io.reactivex.internal.functions.Functions$OnErrorMissingConsumer"
-              function*
-                "accept"
-          type*
-            "OnErrorNotImplementedException"
-          value* (stripped common values)
-            "The exception was not handled due to missing onError handler in the subscribe() method call. Further reading: <url> | java.lang.ClassCastException: java.lang.String cannot be cast to android.text.Spanned"
       threads*
         stacktrace*
           frame*
@@ -99,7 +71,7 @@ system:
             "OnErrorNotImplementedException"
           value (ignored because stacktrace takes precedence)
             "The exception was not handled due to missing onError handler in the subscribe() method call. Further reading: <url> | java.lang.ClassCastException: java.lang.String cannot be cast to android.text.Spanned"
-      threads (exception of app-depth-max/system takes precedence)
+      threads (exception of system/system-depth-1/system-depth-max takes precedence)
         stacktrace*
           frame*
             module*
@@ -118,3 +90,53 @@ system:
               "vmstack.java"
             function*
               "getThreadStackTrace"
+--------------------------------------------------------------------------
+system-depth-1:
+  hash: "9b2f648557654ced919ccf7f68052219"
+  component:
+    system-depth-1*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "com.example.AnnotationSpanHelper"
+              function*
+                "createAnnotatedSpannable"
+          type*
+            "ClassCastException"
+          value (ignored because stacktrace takes precedence)
+            "java.lang.String cannot be cast to android.text.Spanned"
+--------------------------------------------------------------------------
+system-depth-max:
+  hash: "7aa97fc486ee8768b2741989a75593b1"
+  component:
+    system-depth-max*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "com.example.chat.messagefactory.ChatMessageFactory"
+              function*
+                "createNoInputRewardRedeemedNoticeItem"
+            frame*
+              module*
+                "com.example.AnnotationSpanHelper"
+              function*
+                "createAnnotatedSpannable"
+          type*
+            "ClassCastException"
+          value (ignored because stacktrace takes precedence)
+            "java.lang.String cannot be cast to android.text.Spanned"
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "io.reactivex.internal.functions.Functions$OnErrorMissingConsumer"
+              function*
+                "accept"
+          type*
+            "OnErrorNotImplementedException"
+          value (ignored because stacktrace takes precedence)
+            "The exception was not handled due to missing onError handler in the subscribe() method call. Further reading: <url> | java.lang.ClassCastException: java.lang.String cannot be cast to android.text.Spanned"

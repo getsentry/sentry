@@ -3,13 +3,13 @@ created: '2021-03-08T16:39:06.252857Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+system:
+  hash: "90888e813b09fa25061af2883c0fb9bd"
   component:
-    app-depth-max (exception of system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
+    system*
+      exception*
+        stacktrace*
+          frame*
             module*
               "django.core.handlers.base"
             filename (module takes precedence)
@@ -18,7 +18,7 @@ app-depth-max:
               "get_response"
             context-line*
               "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
-          frame (non app frame)
+          frame*
             module*
               "django.views.generic.base"
             filename (module takes precedence)
@@ -27,7 +27,7 @@ app-depth-max:
               "view"
             context-line*
               "return self.dispatch(request, *args, **kwargs)"
-          frame (non app frame)
+          frame*
             module*
               "django.utils.decorators"
             filename (module takes precedence)
@@ -36,7 +36,7 @@ app-depth-max:
               "_wrapper"
             context-line*
               "return bound_func(*args, **kwargs)"
-          frame (non app frame)
+          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.views.decorators.csrf"
             filename (module takes precedence)
@@ -45,7 +45,7 @@ app-depth-max:
               "wrapped_view"
             context-line*
               "return view_func(*args, **kwargs)"
-          frame (non app frame)
+          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.utils.decorators"
             filename (module takes precedence)
@@ -63,7 +63,7 @@ app-depth-max:
               "dispatch"
             context-line*
               "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
-          frame (non app frame)
+          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.views.generic.base"
             filename (module takes precedence)
@@ -90,7 +90,7 @@ app-depth-max:
               "handle"
             context-line*
               "email = request.POST['user']"
-          frame (non app frame)
+          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.utils.datastructures"
             filename (module takes precedence)
@@ -101,14 +101,63 @@ app-depth-max:
               "raise MultiValueDictKeyError(repr(key))"
         type*
           "MultiValueDictKeyError"
-        value*
+        value (ignored because stacktrace takes precedence)
           "\"'user'\""
 --------------------------------------------------------------------------
-system:
+system-depth-1:
+  hash: "1d73d06508db5c517ce31b7f7e8ce794"
+  component:
+    system-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "django.utils.decorators"
+            filename (module takes precedence)
+              "decorators.py"
+            function*
+              "_wrapper"
+            context-line*
+              "return bound_func(*args, **kwargs)"
+        type*
+          "MultiValueDictKeyError"
+        value (ignored because stacktrace takes precedence)
+          "\"'user'\""
+--------------------------------------------------------------------------
+system-depth-2:
+  hash: "fffce8f5341aba04611ac9a2e2b69aec"
+  component:
+    system-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "django.views.generic.base"
+            filename (module takes precedence)
+              "base.py"
+            function*
+              "view"
+            context-line*
+              "return self.dispatch(request, *args, **kwargs)"
+          frame*
+            module*
+              "django.utils.decorators"
+            filename (module takes precedence)
+              "decorators.py"
+            function*
+              "_wrapper"
+            context-line*
+              "return bound_func(*args, **kwargs)"
+        type*
+          "MultiValueDictKeyError"
+        value (ignored because stacktrace takes precedence)
+          "\"'user'\""
+--------------------------------------------------------------------------
+system-depth-max:
   hash: "90888e813b09fa25061af2883c0fb9bd"
   tree_label: "get_response"
   component:
-    system*
+    system-depth-max*
       exception*
         stacktrace*
           frame*

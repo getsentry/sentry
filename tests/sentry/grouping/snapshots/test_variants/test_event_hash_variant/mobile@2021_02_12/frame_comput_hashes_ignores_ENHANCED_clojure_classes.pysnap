@@ -3,22 +3,22 @@ created: '2021-03-08T16:39:06.271051Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+system:
+  hash: "526b64456c48836a46ec1a89544fd412"
   component:
-    app-depth-max (stacktrace of system takes precedence)
-      stacktrace
-        frame (non app frame)
+    system*
+      stacktrace*
+        frame*
           module* (removed codegen marker)
             "sentry_clojure_example.core$_main$fn__<auto>"
           function*
             "invoke"
 --------------------------------------------------------------------------
-system:
+system-depth-max:
   hash: "526b64456c48836a46ec1a89544fd412"
   tree_label: "invoke"
   component:
-    system*
+    system-depth-max*
       stacktrace*
         frame*
           module* (removed codegen marker)

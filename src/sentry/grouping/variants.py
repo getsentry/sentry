@@ -193,4 +193,10 @@ HIERARCHICAL_VARIANTS = [
     "app-depth-4",
     "app-depth-5",
     "app-depth-max",  # hashing by full stacktrace
+    "system-depth-1",
+    "system-depth-2",
+    "system-depth-3",
+    "system-depth-4",
+    "system-depth-5",
+    "system-depth-max",
 ]

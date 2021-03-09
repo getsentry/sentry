@@ -3,31 +3,62 @@ created: '2021-03-08T16:39:05.384880Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+system:
+  hash: "61d21e6d53c0837718af047c20e5e7ea"
   component:
-    app-depth-max (exception of system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
+    system*
+      exception*
+        stacktrace*
+          frame*
             function*
               "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
-          frame (non app frame)
+          frame*
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame (non app frame)
+          frame*
             function*
               "<lambda>::operator()"
         type (ignored because exception is synthetic)
           "log_demo"
-        value*
+        value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
-system:
+system-depth-1:
+  hash: "9bb5de55b854491dacc677184c9b019a"
+  component:
+    system-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "<lambda>::operator()"
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+system-depth-2:
+  hash: "60f7e9027ea3d1d8bf2a7745a8f91a06"
+  component:
+    system-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
+          frame*
+            function*
+              "<lambda>::operator()"
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+system-depth-max:
   hash: "61d21e6d53c0837718af047c20e5e7ea"
   tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
   component:
-    system*
+    system-depth-max*
       exception*
         stacktrace*
           frame*

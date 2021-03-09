@@ -3,12 +3,12 @@ created: '2021-03-08T16:39:06.137807Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+system:
+  hash: "0cc175b9c0f1b6a831c399e269772661"
   component:
-    app-depth-max (stacktrace of system takes precedence)
-      stacktrace
-        frame (non app frame)
+    system*
+      stacktrace*
+        frame*
           module (ignored bad javascript module)
             "foo/bar/baz"
           filename (ignored because frame points to a URL)
@@ -16,11 +16,11 @@ app-depth-max:
           function*
             "a"
 --------------------------------------------------------------------------
-system:
+system-depth-max:
   hash: "0cc175b9c0f1b6a831c399e269772661"
   tree_label: "a"
   component:
-    system*
+    system-depth-max*
       stacktrace*
         frame*
           module (ignored bad javascript module)

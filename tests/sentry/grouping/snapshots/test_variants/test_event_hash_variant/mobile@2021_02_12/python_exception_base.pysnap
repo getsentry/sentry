@@ -1,10 +1,10 @@
 ---
-created: '2021-02-24T11:18:07.838118Z'
+created: '2021-03-09T09:24:47.084660Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-max:
-  hash: "c52ebcc2d9d0780a23c7d99831678830"
+  hash: "9509e122c6175606d52862fa4f64853c"
   component:
     app-depth-max*
       chained-exception*
@@ -16,15 +16,6 @@ app-depth-max:
           type*
             "ValueError"
           value (ignored because stacktrace takes precedence)
-            "hello world"
-        exception*
-          stacktrace
-            frame (non app frame)
-              filename*
-                "baz.py"
-          type*
-            "ValueError"
-          value*
             "hello world"
 --------------------------------------------------------------------------
 system:
@@ -41,6 +32,21 @@ system:
             "ValueError"
           value (ignored because stacktrace takes precedence)
             "hello world"
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "baz.py"
+          type*
+            "ValueError"
+          value (ignored because stacktrace takes precedence)
+            "hello world"
+--------------------------------------------------------------------------
+system-depth-max:
+  hash: "9509e122c6175606d52862fa4f64853c"
+  component:
+    system-depth-max*
+      chained-exception*
         exception*
           stacktrace*
             frame*

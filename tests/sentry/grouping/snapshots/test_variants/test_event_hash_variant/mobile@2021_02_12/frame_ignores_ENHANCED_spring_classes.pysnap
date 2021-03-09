@@ -3,22 +3,22 @@ created: '2021-03-08T16:39:06.300767Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+system:
+  hash: "45c0b0a8c777e7a7040d7c39233a08a5"
   component:
-    app-depth-max (stacktrace of system takes precedence)
-      stacktrace
-        frame (non app frame)
+    system*
+      stacktrace*
+        frame*
           module* (removed codegen marker)
             "invalid.gruml.talkytalkyhub.common.config.JipJipConfig$$EnhancerBySpringCGLIB$$<auto>"
           function*
             "jipJipManagementApplication"
 --------------------------------------------------------------------------
-system:
+system-depth-max:
   hash: "45c0b0a8c777e7a7040d7c39233a08a5"
   tree_label: "jipJipManagementApplication"
   component:
-    system*
+    system-depth-max*
       stacktrace*
         frame*
           module* (removed codegen marker)

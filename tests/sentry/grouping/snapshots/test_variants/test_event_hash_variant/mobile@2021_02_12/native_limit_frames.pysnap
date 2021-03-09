@@ -3,31 +3,31 @@ created: '2021-03-08T16:39:06.504172Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+system:
+  hash: "9bb5de55b854491dacc677184c9b019a"
   component:
-    app-depth-max (exception of system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
+    system*
+      exception*
+        stacktrace*
+          frame (ignored because only 1 frame is considered by stack trace rule (family:native max-frames=1))
             function*
               "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
-          frame (non app frame)
+          frame (ignored because only 1 frame is considered by stack trace rule (family:native max-frames=1))
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame (non app frame)
+          frame*
             function*
               "<lambda>::operator()"
         type (ignored because exception is synthetic)
           "log_demo"
-        value*
+        value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
-system:
+system-depth-max:
   hash: "9bb5de55b854491dacc677184c9b019a"
   tree_label: "<lambda>::operator()"
   component:
-    system*
+    system-depth-max*
       exception*
         stacktrace*
           frame (ignored because only 1 frame is considered by stack trace rule (family:native max-frames=1))
