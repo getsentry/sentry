@@ -12,5 +12,3 @@ def pytest_configure(config):
     # XXX(dcramer): Kombu throws a warning due to transaction.commit_manually
     # being used
     warnings.filterwarnings("error", "", Warning, r"^(?!(|kombu|raven|sentry))")
-
-    config.addinivalue_line("markers", "obsolete: mark test as obsolete and soon to be removed")

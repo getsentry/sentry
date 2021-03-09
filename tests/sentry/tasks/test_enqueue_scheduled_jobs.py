@@ -58,9 +58,7 @@ class EnqueueScheduledJobsTest(TestCase):
         ) == {"sentry.tasks.enqueue_scheduled_jobs", "sentry.tasks.enqueue_scheduled_jobs_followup"}
 
     def test_schedule_job_order(self):
-        with pytest.raises(
-            ValidationError, message="ValidationError raised. Check order of inputs"
-        ):
+        with pytest.raises(ValidationError):
             job = [
                 (
                     "sentry.tasks.enqueue_scheduled_jobs",
@@ -69,3 +67,4 @@ class EnqueueScheduledJobsTest(TestCase):
                 )
             ]
             schedule_jobs(job)
+            pytest.fail("ValidationError raised. Check order of inputs.")
