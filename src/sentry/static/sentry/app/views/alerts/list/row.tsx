@@ -30,6 +30,29 @@ import {getIncidentMetricPreset, isIssueAlert} from '../utils';
 import SparkLine from './sparkLine';
 import {TableLayout, TitleAndSparkLine} from './styles';
 
+/**
+ * Retrieve the start/end for showing the graph of the metric
+ * Will show at least 150 and no more than 10,000 data points
+ */
+export const makeRuleDetailsQuery = (incident: Incident): {start: string; end: string} => {
+  const {timeWindow} = incident.alertRule;
+  const timeWindowMillis = timeWindow * 60 * 1000;
+  const minRange = timeWindowMillis * API_INTERVAL_POINTS_MIN;
+  const maxRange = timeWindowMillis * API_INTERVAL_POINTS_LIMIT;
+  const now = moment.utc();
+  const startDate = moment.utc(incident.dateStarted);
+  // make a copy of now since we will modify endDate and use now for comparing
+  const endDate = incident.dateClosed ? moment.utc(incident.dateClosed) : moment(now);
+  const incidentRange = Math.max(endDate.diff(startDate), 3 * timeWindowMillis);
+  const range = Math.min(maxRange, Math.max(minRange, incidentRange));
+  const halfRange = moment.duration(range / 2);
+
+  return {
+    start: getUtcDateString(startDate.subtract(halfRange)),
+    end: getUtcDateString(moment.min(endDate.add(halfRange), now)),
+  };
+}
+
 type Props = {
   incident: Incident;
   projects: Project[];
@@ -175,29 +198,6 @@ function ErrorLoadingStatsIcon() {
       <IconWarning />
     </Tooltip>
   );
-}
-
-/**
- * Retrieve the start/end for showing the graph of the metric
- * Will show at least 150 and no more than 10,000 data points
- */
-export const makeRuleDetailsQuery = (incident: Incident): {start: string; end: string} => {
-  const {timeWindow} = incident.alertRule;
-  const timeWindowMillis = timeWindow * 60 * 1000;
-  const minRange = timeWindowMillis * API_INTERVAL_POINTS_MIN;
-  const maxRange = timeWindowMillis * API_INTERVAL_POINTS_LIMIT;
-  const now = moment.utc();
-  const startDate = moment.utc(incident.dateStarted);
-  // make a copy of now since we will modify endDate and use now for comparing
-  const endDate = incident.dateClosed ? moment.utc(incident.dateClosed) : moment(now);
-  const incidentRange = Math.max(endDate.diff(startDate), 3 * timeWindowMillis);
-  const range = Math.min(maxRange, Math.max(minRange, incidentRange));
-  const halfRange = moment.duration(range / 2);
-
-  return {
-    start: getUtcDateString(startDate.subtract(halfRange)),
-    end: getUtcDateString(moment.min(endDate.add(halfRange), now)),
-  };
 }
 
 const CreatedResolvedTime = styled('div')`
