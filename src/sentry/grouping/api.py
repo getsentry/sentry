@@ -168,11 +168,7 @@ def _get_calculated_grouping_variants_for_event(event, context):
                         else strategy.name,
                         "" if strategy.name.endswith("s") else "s",
                     )
-            elif (
-                component.contributes
-                and winning_strategy != strategy.name
-                and variant not in HIERARCHICAL_VARIANTS
-            ):
+            elif component.contributes and winning_strategy != strategy.name:
                 component.update(
                     contributes=False, contributes_to_similarity=True, hint=precedence_hint
                 )

@@ -1,14 +1,13 @@
 ---
-created: '2021-03-09T10:13:48.251439Z'
+created: '2021-03-09T12:41:00.851939Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "9075e416a7d67c2f6c7d9386dff2e591"
-  tree_label: "accept"
+  hash: null
   component:
-    app-depth-1*
-      threads*
+    app-depth-1 (exception of system/system-depth-1/system-depth-2 takes precedence)
+      threads (exception of system/system-depth-1/system-depth-2 takes precedence)
         stacktrace*
           frame*
             module*
@@ -17,11 +16,10 @@ app-depth-1:
               "lambda$onCreate$2"
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "49a194ee5ef3c5301d7f4c7e6d50e258"
-  tree_label: "accept"
+  hash: null
   component:
-    app-depth-2*
-      threads*
+    app-depth-2 (exception of system/system-depth-1/system-depth-2 takes precedence)
+      threads (exception of system/system-depth-1/system-depth-2 takes precedence)
         stacktrace*
           frame*
             module*
