@@ -113,11 +113,11 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         producer = Producer(conf)
         producer.produce(self.topic, json.dumps(self.old_valid_wrapper))
         producer.flush()
-        mock_callback = Mock()
-        mock_callback.side_effect = KeyboardInterrupt()
+
+        consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
+        mock_callback = Mock(side_effect=lambda *a, **k: consumer.shutdown())
         register_subscriber(self.registration_key)(mock_callback)
         sub = self.create_subscription()
-        consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
         consumer.run()
 
         payload = self.old_payload
@@ -137,11 +137,11 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         producer = Producer(conf)
         producer.produce(self.topic, json.dumps(self.valid_wrapper))
         producer.flush()
-        mock_callback = Mock()
-        mock_callback.side_effect = KeyboardInterrupt()
+
+        consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
+        mock_callback = Mock(side_effect=lambda *a, **k: consumer.shutdown())
         register_subscriber(self.registration_key)(mock_callback)
         sub = self.create_subscription()
-        consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
         consumer.run()
 
         payload = self.valid_payload
