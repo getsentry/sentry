@@ -2190,6 +2190,20 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("trace:a0fa8803753e40fd8124b21eeb2986b5")
         assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
 
+    def test_group_id_query(self):
+        # If a user queries on group_id, make sure it gets turned into a tag not the actual group_id field
+        assert get_filter("group_id:not-a-group-id-but-a-string").conditions == [
+            [["ifNull", ["tags[group_id]", "''"]], "=", "not-a-group-id-but-a-string"]
+        ]
+
+        assert get_filter("group_id:wildcard-string*").conditions == [
+            [
+                ["match", [["ifNull", ["tags[group_id]", "''"]], "'(?i)^wildcard\\-string.*$'"]],
+                "=",
+                1,
+            ]
+        ]
+
 
 class ResolveFieldListTest(unittest.TestCase):
     def test_non_string_field_error(self):
