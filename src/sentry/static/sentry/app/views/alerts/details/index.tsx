@@ -63,9 +63,10 @@ class IncidentDetails extends React.Component<Props, State> {
 
     try {
       const incidentPromise = fetchIncident(api, orgId, alertId).then(incident => {
-        const hasRedesign = incident.alertRule &&
+        const hasRedesign =
+          incident.alertRule &&
           this.props.organization.features.includes('alert-details-redesign');
-        if(hasRedesign) {
+        if (hasRedesign) {
           browserHistory.replace({
             pathname: `/organizations/${orgId}/alerts/rules/details/${incident.alertRule?.id}/`,
             query: makeRuleDetailsQuery(incident),
