@@ -123,8 +123,9 @@ def value_from_row(row, tagkey):
 
 def zerofill(data, start, end, rollup):
     rv = []
+    end = int(to_timestamp(end))
     rollup_start = (int(to_timestamp(start)) // rollup) * rollup
-    rollup_end = (int(to_timestamp(end)) // rollup) * rollup + rollup
+    rollup_end = (end // rollup) * rollup
 
     # Fudge the end value when we're only getting a single window.
     # This ensure that we get both values for a single large window that
@@ -149,7 +150,7 @@ def zerofill(data, start, end, rollup):
     # Add any remaining rows that are not aligned to the rollup and are lower than the
     # end date.
     if i < len(data):
-        rv.extend(row for row in data[i:] if row[0] < rollup_end)
+        rv.extend(row for row in data[i:] if row[0] < end)
 
     return rv
 
