@@ -1,0 +1,56 @@
+---
+created: '2021-03-09T11:30:16.917580Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      chained-exception (ignored because hash matches system variant)
+        exception (exception has no stacktrace)
+          type*
+            "RemoteException"
+          value*
+            "Remote stack trace:\n\tat com.android.server.wm.ActivityTaskManagerService.ensureValidPictureInPictureActivityParamsLocked(ActivityTaskManagerService.java:5113)\n\tat com.android.server.wm.ActivityTaskManagerService.setPictureInPictureParams(ActivityTaskManagerService.java:5056)\n\tat android.app.IActivityTaskManager$Stub.onTransact(IActivityTaskManager.java:3447)\n\tat android.os.Binder.execTransactInternal(Binder.java:1021)\n\tat android.os.Binder.execTransact(Binder.java:994)\n"
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "com.example.MainActivity"
+              filename (module takes precedence)
+                "MainActivity.java"
+              function*
+                "onDestroy"
+              lineno (function takes precedence)
+                9
+          type*
+            "OnErrorNotImplementedException"
+          value (stacktrace and type take precedence)
+            "The exception was not handled due to missing onError handler in the subscribe() method call."
+--------------------------------------------------------------------------
+system:
+  hash: "7591753ac1edb6a7ae8a72f438e6cb02"
+  component:
+    system*
+      chained-exception*
+        exception (exception has no stacktrace)
+          type*
+            "RemoteException"
+          value*
+            "Remote stack trace:\n\tat com.android.server.wm.ActivityTaskManagerService.ensureValidPictureInPictureActivityParamsLocked(ActivityTaskManagerService.java:5113)\n\tat com.android.server.wm.ActivityTaskManagerService.setPictureInPictureParams(ActivityTaskManagerService.java:5056)\n\tat android.app.IActivityTaskManager$Stub.onTransact(IActivityTaskManager.java:3447)\n\tat android.os.Binder.execTransactInternal(Binder.java:1021)\n\tat android.os.Binder.execTransact(Binder.java:994)\n"
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "com.example.MainActivity"
+              filename (module takes precedence)
+                "MainActivity.java"
+              function*
+                "onDestroy"
+              lineno (function takes precedence)
+                9
+          type*
+            "OnErrorNotImplementedException"
+          value (stacktrace and type take precedence)
+            "The exception was not handled due to missing onError handler in the subscribe() method call."

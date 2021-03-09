@@ -1,0 +1,41 @@
+---
+created: '2021-03-09T11:30:25.863222Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "2fb32c8e579d1b13772518480429f908"
+  component:
+    app*
+      chained-exception*
+        exception*
+          type*
+            "RemoteException"
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "com.example.MainActivity"
+              filename (module takes precedence)
+                "mainactivity.java"
+              function*
+                "onDestroy"
+          type*
+            "OnErrorNotImplementedException"
+--------------------------------------------------------------------------
+system:
+  hash: "7591753ac1edb6a7ae8a72f438e6cb02"
+  component:
+    system*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "com.example.MainActivity"
+              filename (module takes precedence)
+                "mainactivity.java"
+              function*
+                "onDestroy"
+          type*
+            "OnErrorNotImplementedException"

@@ -1,0 +1,47 @@
+---
+created: '2021-03-09T11:30:21.403381Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "b58b842a9ba24a70c8509d996baeb3a4"
+  component:
+    app*
+      chained-exception*
+        exception*
+          type*
+            "RemoteException"
+          value* (stripped common values)
+            "Remote stack trace:\n\tat com.android.server.wm.ActivityTaskManagerService.ensureValidPictureInPictureActivityParamsLocked(ActivityTaskManagerService.java:<int>)..."
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "com.example.MainActivity"
+              filename (module takes precedence)
+                "mainactivity.java"
+              function*
+                "onDestroy"
+          type*
+            "OnErrorNotImplementedException"
+          value (ignored because stacktrace takes precedence)
+            "The exception was not handled due to missing onError handler in the subscribe() method call."
+--------------------------------------------------------------------------
+system:
+  hash: "7591753ac1edb6a7ae8a72f438e6cb02"
+  component:
+    system*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "com.example.MainActivity"
+              filename (module takes precedence)
+                "mainactivity.java"
+              function*
+                "onDestroy"
+          type*
+            "OnErrorNotImplementedException"
+          value (ignored because stacktrace takes precedence)
+            "The exception was not handled due to missing onError handler in the subscribe() method call."

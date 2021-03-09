@@ -1,0 +1,32 @@
+{
+  "exception": {
+    "values": [
+      {
+        "module": "android.os",
+        "stacktrace": {
+          "frames": null
+        },
+        "thread_id": 2,
+        "type": "RemoteException",
+        "value": "Remote stack trace:\n\tat com.android.server.wm.ActivityTaskManagerService.ensureValidPictureInPictureActivityParamsLocked(ActivityTaskManagerService.java:5113)\n\tat com.android.server.wm.ActivityTaskManagerService.setPictureInPictureParams(ActivityTaskManagerService.java:5056)\n\tat android.app.IActivityTaskManager$Stub.onTransact(IActivityTaskManager.java:3447)\n\tat android.os.Binder.execTransactInternal(Binder.java:1021)\n\tat android.os.Binder.execTransact(Binder.java:994)\n"
+      },
+      {
+        "type": "OnErrorNotImplementedException",
+        "value": "The exception was not handled due to missing onError handler in the subscribe() method call.",
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "MainActivity.java",
+              "filename": "MainActivity.java",
+              "function": "onDestroy",
+              "in_app": true,
+              "lineno": 9,
+              "module": "com.example.MainActivity"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "platform": "java"
+}
