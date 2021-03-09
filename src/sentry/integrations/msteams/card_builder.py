@@ -328,7 +328,7 @@ def build_group_title(group):
     else:
         text = group.title
 
-    link = group.get_absolute_url()
+    link = group.get_absolute_url(params={"referrer": "msteams"})
 
     title_text = f"[{text}]({link})"
     return {
