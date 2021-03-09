@@ -1,4 +1,6 @@
 import logging
+import signal
+from typing import Any
 
 from confluent_kafka import OFFSET_INVALID, TopicPartition
 from django.conf import settings
@@ -106,7 +108,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             return results
 
         def on_assign(consumer, partitions):
-            logger.debug("Received partition assignment: %r", partitions)
+            logger.info("Received partition assignment: %r", partitions)
 
             for i in partitions:
                 if i.offset == OFFSET_INVALID:
@@ -131,7 +133,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 owned_partition_offsets[key] = updated_offset
 
         def on_revoke(consumer, partitions):
-            logger.debug("Revoked partition assignment: %r", partitions)
+            logger.info("Revoked partition assignment: %r", partitions)
 
             offsets_to_commit = []
 
@@ -181,38 +183,45 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 )
                 commit(offsets_to_commit)
 
-        try:
-            i = 0
-            while True:
-                message = consumer.poll(0.1)
-                if message is None:
-                    continue
+        shutdown_requested = False
 
-                error = message.error()
-                if error is not None:
-                    raise Exception(error)
+        def handle_shutdown_request(signum: int, frame: Any) -> None:
+            nonlocal shutdown_requested
+            logger.debug("Received signal %r, requesting shutdown...", signum)
+            shutdown_requested = True
 
-                key = (message.topic(), message.partition())
-                if key not in owned_partition_offsets:
-                    logger.warning("Skipping message for unowned partition: %r", key)
-                    continue
+        signal.signal(signal.SIGINT, handle_shutdown_request)
+        signal.signal(signal.SIGTERM, handle_shutdown_request)
 
-                i = i + 1
-                owned_partition_offsets[key] = message.offset() + 1
+        i = 0
+        while not shutdown_requested:
+            message = consumer.poll(0.1)
+            if message is None:
+                continue
 
-                with metrics.timer("eventstream.duration", instance="get_task_kwargs_for_message"):
-                    task_kwargs = get_task_kwargs_for_message(message.value())
+            error = message.error()
+            if error is not None:
+                raise Exception(error)
 
-                if task_kwargs is not None:
-                    with metrics.timer(
-                        "eventstream.duration", instance="dispatch_post_process_group_task"
-                    ):
-                        self._dispatch_post_process_group_task(**task_kwargs)
+            key = (message.topic(), message.partition())
+            if key not in owned_partition_offsets:
+                logger.warning("Skipping message for unowned partition: %r", key)
+                continue
 
-                if i % commit_batch_size == 0:
-                    commit_offsets()
-        except KeyboardInterrupt:
-            pass
+            i = i + 1
+            owned_partition_offsets[key] = message.offset() + 1
+
+            with metrics.timer("eventstream.duration", instance="get_task_kwargs_for_message"):
+                task_kwargs = get_task_kwargs_for_message(message.value())
+
+            if task_kwargs is not None:
+                with metrics.timer(
+                    "eventstream.duration", instance="dispatch_post_process_group_task"
+                ):
+                    self._dispatch_post_process_group_task(**task_kwargs)
+
+            if i % commit_batch_size == 0:
+                commit_offsets()
 
         logger.debug("Committing offsets and closing consumer...")
         commit_offsets()
