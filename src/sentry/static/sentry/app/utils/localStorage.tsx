@@ -5,8 +5,9 @@ interface LocalStorage {
 }
 
 function createLocalStorage(): LocalStorage {
-  const localStorage = window.localStorage;
   try {
+    const localStorage = window.localStorage;
+
     const mod = 'sentry';
     localStorage.setItem(mod, mod);
     localStorage.removeItem(mod);

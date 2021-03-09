@@ -26,7 +26,7 @@ export function combineStatus(
   return combined || ImageStatus.UNUSED;
 }
 
-export function getFileName(path?: string) {
+export function getFileName(path?: string | null) {
   if (!path) {
     return undefined;
   }
