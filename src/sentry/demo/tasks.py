@@ -26,7 +26,6 @@ def delete_users_orgs(**kwargs):
 
     # note this only runs in demo mode (not SaaS) so the underlying tables here are small
     org_list = Organization.objects.filter(
-        demoorganization__isnull=False,
         demoorganization__date_assigned__lte=cutoff_time,
         demoorganization__status=DemoOrgStatus.ACTIVE,
         status__in=(
