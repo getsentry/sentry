@@ -1,14 +1,27 @@
 ---
-created: '2021-03-08T16:39:06.912495Z'
+created: '2021-03-09T19:19:10.452100Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+app-depth-1:
+  hash: "dc3d511120ce04996b1eef3496516e5c"
+  tree_label: "fn"
   component:
-    app-depth-max (stacktrace of system takes precedence)
-      stacktrace
-        frame (non app frame)
+    app-depth-1*
+      stacktrace*
+        frame*
+          filename* (cleaned javassist parts)
+            "entriesresource_$$_javassist<auto>.java"
+          function*
+            "fn"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "dc3d511120ce04996b1eef3496516e5c"
+  tree_label: "fn"
+  component:
+    app-depth-2*
+      stacktrace*
+        frame*
           filename* (cleaned javassist parts)
             "entriesresource_$$_javassist<auto>.java"
           function*

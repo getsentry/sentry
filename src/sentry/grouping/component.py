@@ -47,6 +47,7 @@ class GroupingComponent:
         similarity_encoder=None,
         similarity_self_encoder=None,
         tree_label=None,
+        is_prefix_frame=None,
     ):
         self.id = id
 
@@ -68,6 +69,7 @@ class GroupingComponent:
 
         self.similarity_encoder = similarity_encoder
         self.similarity_self_encoder = similarity_self_encoder
+        self.is_prefix_frame = is_prefix_frame
 
     @property
     def name(self):

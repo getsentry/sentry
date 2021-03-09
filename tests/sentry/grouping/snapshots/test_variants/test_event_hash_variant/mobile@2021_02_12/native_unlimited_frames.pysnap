@@ -1,26 +1,123 @@
 ---
-created: '2021-03-08T16:39:05.384880Z'
+created: '2021-03-09T19:19:08.707742Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+app-depth-1:
+  hash: "9bb5de55b854491dacc677184c9b019a"
+  tree_label: "<lambda>::operator()"
   component:
-    app-depth-max (exception of system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
-            function*
-              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
-          frame (non app frame)
-            function*
-              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame (non app frame)
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
             function*
               "<lambda>::operator()"
         type (ignored because exception is synthetic)
           "log_demo"
-        value*
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "60f7e9027ea3d1d8bf2a7745a8f91a06"
+  tree_label: "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
+          frame*
+            function*
+              "<lambda>::operator()"
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "61d21e6d53c0837718af047c20e5e7ea"
+  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+          frame*
+            function*
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
+          frame*
+            function*
+              "<lambda>::operator()"
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "61d21e6d53c0837718af047c20e5e7ea"
+  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+          frame*
+            function*
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
+          frame*
+            function*
+              "<lambda>::operator()"
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "61d21e6d53c0837718af047c20e5e7ea"
+  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+          frame*
+            function*
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
+          frame*
+            function*
+              "<lambda>::operator()"
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "61d21e6d53c0837718af047c20e5e7ea"
+  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+          frame*
+            function*
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
+          frame*
+            function*
+              "<lambda>::operator()"
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:

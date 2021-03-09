@@ -1,5 +1,5 @@
 ---
-created: '2021-03-08T16:39:06.072203Z'
+created: '2021-03-09T19:19:09.326354Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,7 +25,7 @@ app-depth-1:
           "Error while reading from socket: ('Connection closed by server.',)"
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "1266d500012e00a6c5ffd30faea2b43a"
+  hash: "ac1a85601e0656df67b159e882145099"
   tree_label: "is_rate_limited"
   component:
     app-depth-2*
@@ -49,13 +49,22 @@ app-depth-2:
               "call_script"
             context-line*
               "return script(keys, args, client)"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "__call__"
+            context-line*
+              "return client.evalsha(self.sha, len(keys), *args)"
         type*
           "ConnectionError"
         value (ignored because stacktrace takes precedence)
           "Error while reading from socket: ('Connection closed by server.',)"
 --------------------------------------------------------------------------
 app-depth-3:
-  hash: "b4f26653d1931cbad5820cdcae76f44f"
+  hash: "8538e8eb15b0b93e3355cf9d08268131"
   tree_label: "is_rate_limited"
   component:
     app-depth-3*
@@ -88,13 +97,31 @@ app-depth-3:
               "call_script"
             context-line*
               "return script(keys, args, client)"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "__call__"
+            context-line*
+              "return client.evalsha(self.sha, len(keys), *args)"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "evalsha"
+            context-line*
+              "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
         type*
           "ConnectionError"
         value (ignored because stacktrace takes precedence)
           "Error while reading from socket: ('Connection closed by server.',)"
 --------------------------------------------------------------------------
 app-depth-4:
-  hash: "a1e0d912554c02ca099f24e2f208b2ed"
+  hash: "a4f739f3240d6c4fc5ed50428442abc1"
   tree_label: "<lambda>"
   component:
     app-depth-4*
@@ -136,13 +163,133 @@ app-depth-4:
               "call_script"
             context-line*
               "return script(keys, args, client)"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "__call__"
+            context-line*
+              "return client.evalsha(self.sha, len(keys), *args)"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "evalsha"
+            context-line*
+              "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "execute_command"
+            context-line*
+              "return self.parse_response(connection, command_name, **options)"
+        type*
+          "ConnectionError"
+        value (ignored because stacktrace takes precedence)
+          "Error while reading from socket: ('Connection closed by server.',)"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "acb23d293e6a73416ad00df1bb35d8a8"
+  tree_label: "safe_execute"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.utils.safe"
+            filename (module takes precedence)
+              "safe.py"
+            function*
+              "safe_execute"
+            context-line*
+              "result = func(*args, **kwargs)"
+          frame*
+            module*
+              "sentry.utils.services"
+            filename (module takes precedence)
+              "services.py"
+            function*
+              "<lambda>"
+            context-line*
+              "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
+          frame*
+            module*
+              "getsentry.quotas"
+            filename (module takes precedence)
+              "quotas.py"
+            function*
+              "is_rate_limited"
+            context-line*
+              "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
+          frame*
+            module*
+              "sentry.quotas.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "is_rate_limited"
+            context-line*
+              "rejections = is_rate_limited(client, keys, args)"
+          frame*
+            module*
+              "sentry.utils.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "call_script"
+            context-line*
+              "return script(keys, args, client)"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "__call__"
+            context-line*
+              "return client.evalsha(self.sha, len(keys), *args)"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "evalsha"
+            context-line*
+              "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "execute_command"
+            context-line*
+              "return self.parse_response(connection, command_name, **options)"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "parse_response"
+            context-line*
+              "response = connection.read_response()"
         type*
           "ConnectionError"
         value (ignored because stacktrace takes precedence)
           "Error while reading from socket: ('Connection closed by server.',)"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "6b059b9febc815ac18ac4d2082e38a9b"
+  hash: "013d3477a774fe20c468dc8accd516f1"
   tree_label: "safe_execute"
   component:
     app-depth-max*
@@ -193,7 +340,7 @@ app-depth-max:
               "call_script"
             context-line*
               "return script(keys, args, client)"
-          frame (non app frame)
+          frame*
             module*
               "redis.client"
             filename (module takes precedence)
@@ -202,7 +349,7 @@ app-depth-max:
               "__call__"
             context-line*
               "return client.evalsha(self.sha, len(keys), *args)"
-          frame (non app frame)
+          frame*
             module*
               "redis.client"
             filename (module takes precedence)
@@ -211,7 +358,7 @@ app-depth-max:
               "evalsha"
             context-line*
               "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
-          frame (non app frame)
+          frame*
             module*
               "redis.client"
             filename (module takes precedence)
@@ -220,7 +367,7 @@ app-depth-max:
               "execute_command"
             context-line*
               "return self.parse_response(connection, command_name, **options)"
-          frame (non app frame)
+          frame*
             module*
               "redis.client"
             filename (module takes precedence)
@@ -229,7 +376,7 @@ app-depth-max:
               "parse_response"
             context-line*
               "response = connection.read_response()"
-          frame (non app frame)
+          frame*
             module*
               "redis.connection"
             filename (module takes precedence)
@@ -238,7 +385,7 @@ app-depth-max:
               "read_response"
             context-line*
               "response = self._parser.read_response()"
-          frame (non app frame)
+          frame*
             module*
               "redis.connection"
             filename (module takes precedence)
@@ -255,8 +402,8 @@ app-depth-max:
 default:
   hash: null
   component:
-    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-max/system takes precedence)
-      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-max/system takes precedence)
+    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
         "%s.process_error"
 --------------------------------------------------------------------------
 system:

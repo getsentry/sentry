@@ -1,13 +1,26 @@
 ---
-created: '2021-03-08T16:39:06.832557Z'
+created: '2021-03-09T19:19:10.359557Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
+app-depth-1:
   hash: "1a11687556cf74559f0ae90b1c87e2fd"
   tree_label: "main"
   component:
-    app-depth-max*
+    app-depth-1*
+      threads*
+        stacktrace*
+          frame*
+            filename*
+              "baz.c"
+            function*
+              "main"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "1a11687556cf74559f0ae90b1c87e2fd"
+  tree_label: "main"
+  component:
+    app-depth-2*
       threads*
         stacktrace*
           frame*

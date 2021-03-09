@@ -1,10 +1,144 @@
 ---
-created: '2021-03-08T16:39:06.151835Z'
+created: '2021-03-09T19:19:09.470445Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
+app-depth-1:
   hash: "a728cdf5d62c8e017c35c3fe04051b6e"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "server.php"
+            context-line*
+              "require_once __DIR__.'/public/index.php';"
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "7a40239cc759dc4f36f25e6453e6bcea"
+  tree_label: "run"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "server.php"
+            context-line*
+              "require_once __DIR__.'/public/index.php';"
+          frame*
+            filename*
+              "pipeline.php"
+            function* (anonymous class method)
+              "run"
+            context-line*
+              "return $callable($passable);"
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "63c67781779781d9b0a442a5b2bdb976"
+  tree_label: "run"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "server.php"
+            context-line*
+              "require_once __DIR__.'/public/index.php';"
+          frame*
+            filename*
+              "pipeline.php"
+            function* (anonymous class method)
+              "run"
+            context-line*
+              "return $callable($passable);"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+            context-line*
+              "? $pipe->{$this->method}(...$parameters)"
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "63c67781779781d9b0a442a5b2bdb976"
+  tree_label: "run"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "server.php"
+            context-line*
+              "require_once __DIR__.'/public/index.php';"
+          frame*
+            filename*
+              "pipeline.php"
+            function* (anonymous class method)
+              "run"
+            context-line*
+              "return $callable($passable);"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+            context-line*
+              "? $pipe->{$this->method}(...$parameters)"
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "63c67781779781d9b0a442a5b2bdb976"
+  tree_label: "run"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "server.php"
+            context-line*
+              "require_once __DIR__.'/public/index.php';"
+          frame*
+            filename*
+              "pipeline.php"
+            function* (anonymous class method)
+              "run"
+            context-line*
+              "return $callable($passable);"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+            context-line*
+              "? $pipe->{$this->method}(...$parameters)"
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "63c67781779781d9b0a442a5b2bdb976"
+  tree_label: "run"
   component:
     app-depth-max*
       exception*
@@ -14,14 +148,14 @@ app-depth-max:
               "server.php"
             context-line*
               "require_once __DIR__.'/public/index.php';"
-          frame (non app frame)
+          frame*
             filename*
               "pipeline.php"
             function* (anonymous class method)
               "run"
             context-line*
               "return $callable($passable);"
-          frame (non app frame)
+          frame*
             filename*
               "pipeline.php"
             function*

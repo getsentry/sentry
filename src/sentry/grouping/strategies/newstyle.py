@@ -352,51 +352,14 @@ def stacktrace(stacktrace, context, **meta):
     assert context["variant"] is None
 
     if context["hierarchical_grouping"]:
-        rv = call_with_variants(
-            _single_stacktrace_variant,
-            # when app hash is equal to system hash, we do not want to stop it
-            # from contributing as it will become a hierarchical hash when
-            # renamed to app-depth-max. Therefore we must not make system a
-            # mandatory variant ('system' instead of '!system')
-            ["system", "app"],
-            stacktrace,
-            context=context,
-            meta=meta,
-        )
-
-        full_stacktrace = rv.pop("app")
-        rv["app-depth-max"] = full_stacktrace
-
-        for max_frames in range(1, 6):
-            stacktrace = full_stacktrace.shallow_copy()
-            new_values = []
-            ignored_frames = 0
-
-            # cannot update contributes here as this copy is shallow.
-            # instead, trim down list
-            for component in reversed(stacktrace.values):
-                if not component.contributes:
-                    continue
-
-                if len(new_values) < max_frames:
-                    new_values.append(component)
-                else:
-                    ignored_frames += 1
-
-            if not new_values or not ignored_frames:
-                break
-
-            new_values.reverse()
-            stacktrace.update(values=new_values)
-
-            rv[f"app-depth-{max_frames}"] = stacktrace
+        with context:
+            context["variant"] = "system"
+            return _single_stacktrace_variant(stacktrace, context=context, meta=meta)
 
     else:
-        rv = call_with_variants(
+        return call_with_variants(
             _single_stacktrace_variant, ["!system", "app"], stacktrace, context=context, meta=meta
         )
-
-    return rv
 
 
 def _single_stacktrace_variant(stacktrace, context, meta):
@@ -411,7 +374,7 @@ def _single_stacktrace_variant(stacktrace, context, meta):
         with context:
             context["is_recursion"] = is_recursion_v1(frame, prev_frame)
             frame_component = context.get_grouping_component(frame, **meta)
-        if variant == "app" and not frame.in_app:
+        if not context["hierarchical_grouping"] and variant == "app" and not frame.in_app:
             frame_component.update(contributes=False, hint="non app frame")
         values.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
@@ -430,14 +393,79 @@ def _single_stacktrace_variant(stacktrace, context, meta):
     ):
         values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
 
-    return {
-        variant: context.config.enhancements.assemble_stacktrace_component(
-            values,
-            frames_for_filtering,
-            meta["event"].platform,
-            similarity_self_encoder=_stacktrace_encoder,
-        )
+    main_variant = context.config.enhancements.assemble_stacktrace_component(
+        values,
+        frames_for_filtering,
+        meta["event"].platform,
+        similarity_self_encoder=_stacktrace_encoder,
+    )
+
+    if not context["hierarchical_grouping"]:
+        return {variant: main_variant}
+
+    blaming_frame_idx = len(values) - 1
+
+    for idx, (component, frame) in enumerate(zip(values, frames_for_filtering)):
+        if component.contributes and frame["in_app"]:
+            # don't break, find in-app frame closest to crashing frame
+            # TODO: tweakability
+            blaming_frame_idx = idx
+
+    blaming_frame_component = values[blaming_frame_idx]
+
+    prev_variant = GroupingComponent(id="stacktrace", values=[blaming_frame_component])
+    all_variants = {
+        "app-depth-1": prev_variant,
     }
+
+    while len(all_variants) < 5:
+        depth = len(all_variants) + 1
+        key = f"app-depth-{depth}"
+        assert key not in all_variants
+        pre_frames = _accumulate_frame_levels(values, blaming_frame_idx, depth, -1)
+        post_frames = _accumulate_frame_levels(values, blaming_frame_idx, depth, 1)
+
+        pre_frames.reverse()
+        pre_frames.append(blaming_frame_component)
+        pre_frames.extend(post_frames)
+
+        if len(prev_variant.values) == len(pre_frames):
+            all_variants[key] = main_variant
+            break
+
+        all_variants[key] = GroupingComponent(id="stacktrace", values=pre_frames)
+
+    else:
+        all_variants["app-depth-max"] = main_variant
+
+    # done for backwards compat to find old groups
+    all_variants["system"] = main_variant
+
+    return all_variants
+
+
+def _accumulate_frame_levels(values, blaming_frame_idx, depth, direction):
+    rv = []
+
+    # subtract depth by one to count blaming frame
+    depth -= 1
+
+    idx = blaming_frame_idx + direction
+    while 0 <= idx < len(values):
+        component = values[idx]
+        idx += direction
+
+        if not component.contributes:
+            continue
+
+        rv.append(component)
+        if not component.is_prefix_frame:
+            depth -= 1
+
+            if depth == 0:
+                break
+
+    return rv
 
 
 @stacktrace.variant_processor

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-08T16:39:06.587798Z'
+created: '2021-03-09T19:19:10.051553Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -90,13 +90,119 @@ app-depth-3:
         value (ignored because stacktrace takes precedence)
           "GET /issues/<int>/events/latest/ <int>"
 --------------------------------------------------------------------------
+app-depth-4:
+  hash: "8ba87de016203ffe62a5e9e0656ebdf8"
+  tree_label: "rh"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "rh"
+            context-line (discarded because line too long)
+              "{snip} nate;q=Q;p=y;switch(q.tag){case 2:case 3:var X=q.stateNode;if(q.effectTag&4)if(null===oc)X.props=q.memoizedProps,X.state=q.memoizedState,X.c {snip}"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "X"
+            context-line*
+              "this.fetchData();"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "this"
+            context-line*
+              "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
+          frame*
+            module*
+              "app/api"
+            filename (module takes precedence)
+              "api.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchGroupEventAndMarkSeen"
+            context-line*
+              "const preservedError = new Error();"
+        type*
+          "NotFoundError"
+        value (ignored because stacktrace takes precedence)
+          "GET /issues/<int>/events/latest/ <int>"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "782153e53117c0f58035c28b745f1150"
+  tree_label: "Xg"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "Xg"
+            context-line (discarded because line too long)
+              "{snip} t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finishedWork,null!==d&&rh( {snip}"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "rh"
+            context-line (discarded because line too long)
+              "{snip} nate;q=Q;p=y;switch(q.tag){case 2:case 3:var X=q.stateNode;if(q.effectTag&4)if(null===oc)X.props=q.memoizedProps,X.state=q.memoizedState,X.c {snip}"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "X"
+            context-line*
+              "this.fetchData();"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "this"
+            context-line*
+              "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
+          frame*
+            module*
+              "app/api"
+            filename (module takes precedence)
+              "api.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchGroupEventAndMarkSeen"
+            context-line*
+              "const preservedError = new Error();"
+        type*
+          "NotFoundError"
+        value (ignored because stacktrace takes precedence)
+          "GET /issues/<int>/events/latest/ <int>"
+--------------------------------------------------------------------------
 app-depth-max:
-  hash: "4a3cf3893b6485428dd02da116c8370e"
+  hash: "d5456487ea8dccfe96c1968b19870978"
+  tree_label: "this"
   component:
     app-depth-max*
       exception*
         stacktrace*
-          frame (non app frame)
+          frame*
             module*
               "usr/src/getsentry/src/sentry/node_modules/core-js/modules/_microtask"
             filename (module takes precedence)
@@ -105,7 +211,7 @@ app-depth-max:
               "M"
             context-line*
               "fn();"
-          frame (non app frame)
+          frame*
             module*
               "usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise"
             filename (module takes precedence)
@@ -114,7 +220,7 @@ app-depth-max:
               "fn"
             context-line*
               "while (chain.length > i) run(chain[i++]); // variable length - can't use forEach"
-          frame (non app frame)
+          frame*
             module*
               "usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise"
             filename (module takes precedence)
@@ -123,7 +229,7 @@ app-depth-max:
               "run"
             context-line*
               "result = handler(value); // may throw"
-          frame (non app frame)
+          frame*
             module*
               "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
             filename (module takes precedence)
@@ -132,7 +238,7 @@ app-depth-max:
               "_next"
             context-line*
               "asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"
-          frame (non app frame)
+          frame*
             module*
               "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
             filename (module takes precedence)
@@ -141,7 +247,7 @@ app-depth-max:
               "asyncGeneratorStep"
             context-line*
               "var info = gen[key](arg);"
-          frame (non app frame)
+          frame*
             module*
               "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
             filename (module takes precedence)
@@ -150,7 +256,7 @@ app-depth-max:
               "key"
             context-line*
               "return this._invoke(method, arg);"
-          frame (non app frame)
+          frame*
             module*
               "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
             filename (module takes precedence)
@@ -159,7 +265,7 @@ app-depth-max:
               "this"
             context-line*
               "var record = tryCatch(innerFn, self, context);"
-          frame (non app frame)
+          frame*
             module*
               "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
             filename (module takes precedence)
@@ -177,7 +283,7 @@ app-depth-max:
               "fn"
             context-line*
               "this.setState({"
-          frame (non app frame)
+          frame*
             module*
               "usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production"
             filename (module takes precedence)
@@ -186,7 +292,7 @@ app-depth-max:
               "this"
             context-line (discarded because line too long)
               "{snip} !==typeof a&&\"function\"!==typeof a&&null!=a?B(\"85\"):void 0;this.updater.enqueueSetState(this,a,b,\"setState\")};E.prototype.forceUpdate=functi {snip}"
-          frame (non app frame)
+          frame*
             module*
               "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
@@ -195,7 +301,7 @@ app-depth-max:
               "this"
             context-line (discarded because line too long)
               "{snip} );e.payload=b;void 0!==c&&null!==c&&(e.callback=c);ff(a,e);If(a,d)},enqueueReplaceState:function(a,b,c){a=a._reactInternalFiber;var d=Gf();d {snip}"
-          frame (non app frame)
+          frame*
             module*
               "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
@@ -204,7 +310,7 @@ app-depth-max:
               "If"
             context-line (discarded because line too long)
               "{snip} );else if(c=b.expirationTime,0===c||a<c)b.expirationTime=a;V||(W?Wg&&(Y=b,Z=1,Xg(b,1,!0)):1===a?Yg(1,null):Zg(b,a))}$g>ah&&($g=0,t(\"185\"))}} {snip}"
-          frame (non app frame)
+          frame*
             module*
               "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
@@ -213,7 +319,7 @@ app-depth-max:
               "Yg"
             context-line (discarded because line too long)
               "{snip} ),qh(),oh(),lh=kh;else for(;null!==Y&&0!==Z&&(0===a||a>=Z);)Xg(Y,Z,!0),qh();null!==hh&&(ch=0,dh=null);0!==Z&&Zg(Y,Z);hh=null;eh=!1;$g=0;mh=n {snip}"
-          frame (non app frame)
+          frame*
             module*
               "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
@@ -222,7 +328,7 @@ app-depth-max:
               "Xg"
             context-line (discarded because line too long)
               "{snip} t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finishedWork,null!==d&&rh( {snip}"
-          frame (non app frame)
+          frame*
             module*
               "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)

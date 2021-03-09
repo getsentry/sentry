@@ -1,19 +1,100 @@
 ---
-created: '2021-03-08T16:39:06.865518Z'
+created: '2021-03-09T19:19:10.396229Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+app-depth-1:
+  hash: "d3c856bb49bc89fc5ee18f6df4348188"
+  tree_label: "invoke"
   component:
-    app-depth-max (stacktrace of system takes precedence)
-      stacktrace
-        frame (non app frame)
+    app-depth-1*
+      stacktrace*
+        frame*
+          module* (removed reflection marker)
+            "jdk.internal.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "9bc326575875422d0d4ced3c35d9f916"
+  tree_label: "invoke"
+  component:
+    app-depth-2*
+      stacktrace*
+        frame*
           module* (removed reflection marker)
             "sun.reflect.GeneratedMethodAccessor"
           function*
             "invoke"
-        frame (non app frame)
+        frame*
+          module* (removed reflection marker)
+            "jdk.internal.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "9bc326575875422d0d4ced3c35d9f916"
+  tree_label: "invoke"
+  component:
+    app-depth-3*
+      stacktrace*
+        frame*
+          module* (removed reflection marker)
+            "sun.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+        frame*
+          module* (removed reflection marker)
+            "jdk.internal.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "9bc326575875422d0d4ced3c35d9f916"
+  tree_label: "invoke"
+  component:
+    app-depth-4*
+      stacktrace*
+        frame*
+          module* (removed reflection marker)
+            "sun.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+        frame*
+          module* (removed reflection marker)
+            "jdk.internal.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "9bc326575875422d0d4ced3c35d9f916"
+  tree_label: "invoke"
+  component:
+    app-depth-5*
+      stacktrace*
+        frame*
+          module* (removed reflection marker)
+            "sun.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+        frame*
+          module* (removed reflection marker)
+            "jdk.internal.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "9bc326575875422d0d4ced3c35d9f916"
+  tree_label: "invoke"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          module* (removed reflection marker)
+            "sun.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+        frame*
           module* (removed reflection marker)
             "jdk.internal.reflect.GeneratedMethodAccessor"
           function*

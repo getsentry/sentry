@@ -1,22 +1,103 @@
 ---
-created: '2021-03-08T16:39:05.273990Z'
+created: '2021-03-09T19:19:08.586618Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+app-depth-1:
+  hash: "ea2440178d85fe985acebaa85a1610d0"
+  tree_label: "_createDocumentViewModel"
   component:
-    app-depth-max (stacktrace of system takes precedence)
-      stacktrace
-        frame (non app frame)
-          filename (anonymous filename discarded)
-            "<anonymous>"
-        frame (non app frame)
+    app-depth-1*
+      stacktrace*
+        frame*
+          filename*
+            "dojo.js"
+          function* (trimmed javascript function)
+            "_createDocumentViewModel"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "c5da56c71b31f34c5880d734cbc8f5bb"
+  tree_label: "c"
+  component:
+    app-depth-2*
+      stacktrace*
+        frame*
           filename*
             "dojo.js"
           function*
             "c"
-        frame (non app frame)
+        frame*
+          filename*
+            "dojo.js"
+          function* (trimmed javascript function)
+            "_createDocumentViewModel"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "c5da56c71b31f34c5880d734cbc8f5bb"
+  tree_label: "c"
+  component:
+    app-depth-3*
+      stacktrace*
+        frame*
+          filename*
+            "dojo.js"
+          function*
+            "c"
+        frame*
+          filename*
+            "dojo.js"
+          function* (trimmed javascript function)
+            "_createDocumentViewModel"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "c5da56c71b31f34c5880d734cbc8f5bb"
+  tree_label: "c"
+  component:
+    app-depth-4*
+      stacktrace*
+        frame*
+          filename*
+            "dojo.js"
+          function*
+            "c"
+        frame*
+          filename*
+            "dojo.js"
+          function* (trimmed javascript function)
+            "_createDocumentViewModel"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "c5da56c71b31f34c5880d734cbc8f5bb"
+  tree_label: "c"
+  component:
+    app-depth-5*
+      stacktrace*
+        frame*
+          filename*
+            "dojo.js"
+          function*
+            "c"
+        frame*
+          filename*
+            "dojo.js"
+          function* (trimmed javascript function)
+            "_createDocumentViewModel"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "c5da56c71b31f34c5880d734cbc8f5bb"
+  tree_label: "c"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame (ignored low quality javascript frame)
+          filename (anonymous filename discarded)
+            "<anonymous>"
+        frame*
+          filename*
+            "dojo.js"
+          function*
+            "c"
+        frame*
           filename*
             "dojo.js"
           function* (trimmed javascript function)

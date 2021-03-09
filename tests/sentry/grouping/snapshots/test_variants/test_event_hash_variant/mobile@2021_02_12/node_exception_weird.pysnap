@@ -1,5 +1,5 @@
 ---
-created: '2021-03-08T16:39:06.289243Z'
+created: '2021-03-09T19:19:09.712353Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -134,7 +134,7 @@ app-depth-4:
           "bla"
 --------------------------------------------------------------------------
 app-depth-5:
-  hash: "d50c59998b650da06b01b9f2b8ecc2f7"
+  hash: "20741a4530d240adb9910aefac03e4b1"
   tree_label: "<anonymous>"
   component:
     app-depth-5*
@@ -142,11 +142,13 @@ app-depth-5:
         stacktrace*
           frame*
             module*
-              "onunhandledrejection.ts"
+              "jest-mock.build:index"
             filename (module takes precedence)
-              "onunhandledrejection.ts"
+              "index.js"
             function (ignored unknown function name)
               "<anonymous>"
+            context-line*
+              "return original.apply(this, arguments);"
           frame*
             module*
               "hub.ts"
@@ -187,7 +189,7 @@ app-depth-5:
           "bla"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "a20509269752c9a1bea6078851e4d39c"
+  hash: "252dc79eb5653bf822e2684d90734cb8"
   tree_label: "withScope"
   component:
     app-depth-max*
@@ -209,7 +211,7 @@ app-depth-max:
               "onunhandledrejection.ts"
             function (ignored unknown function name)
               "<anonymous>"
-          frame (non app frame)
+          frame*
             module*
               "jest-mock.build:index"
             filename (module takes precedence)
@@ -218,7 +220,7 @@ app-depth-max:
               "mockConstructor [as captureException]"
             context-line*
               "return fn.apply(this, arguments);"
-          frame (non app frame)
+          frame*
             module*
               "jest-mock.build:index"
             filename (module takes precedence)
@@ -227,7 +229,7 @@ app-depth-max:
               "<anonymous>"
             context-line*
               "})();"
-          frame (non app frame)
+          frame*
             module*
               "jest-mock.build:index"
             filename (module takes precedence)
@@ -236,7 +238,7 @@ app-depth-max:
               "finalReturnValue"
             context-line*
               "return specificMockImpl.apply(this, arguments);"
-          frame (non app frame)
+          frame*
             module*
               "jest-mock.build:index"
             filename (module takes precedence)

@@ -1,43 +1,174 @@
 ---
-created: '2021-03-08T16:39:06.173578Z'
+created: '2021-03-09T19:19:09.520162Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   component:
-    app (exception of system takes precedence)
+    app (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
       threads (thread has no stacktrace)
 --------------------------------------------------------------------------
-app-depth-max:
-  hash: null
+app-depth-1:
+  hash: "9c68fbdc389c8d6d98106b45da4183e8"
+  tree_label: "(anonymous namespace)::something::nested::Foo<T>::crash"
   component:
-    app-depth-max (exception of system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
-            filename*
-              "main.cpp"
-            function*
-              "main"
-          frame (non app frame)
-            filename*
-              "main.cpp"
-            function*
-              "(anonymous namespace)::start"
-          frame (non app frame)
-            filename*
-              "main.cpp"
-            function*
-              "(anonymous namespace)::crash"
-          frame (non app frame)
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
             filename*
               "main.cpp"
             function*
               "(anonymous namespace)::something::nested::Foo<T>::crash"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
-        value*
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "369693282e85d4fc42cbda11cd3620ab"
+  tree_label: "(anonymous namespace)::crash"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::crash"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "f67a4dfafe32e2b7860fedb711abd689"
+  tree_label: "(anonymous namespace)::start"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::start"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::crash"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "c29439027eafcf7642f641554ab0f0ef"
+  tree_label: "main"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "main"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::start"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::crash"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "c29439027eafcf7642f641554ab0f0ef"
+  tree_label: "main"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "main"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::start"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::crash"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "c29439027eafcf7642f641554ab0f0ef"
+  tree_label: "main"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "main"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::start"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::crash"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
 system:

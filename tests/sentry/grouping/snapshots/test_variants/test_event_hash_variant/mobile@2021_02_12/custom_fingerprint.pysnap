@@ -1,5 +1,5 @@
 ---
-created: '2021-03-08T16:39:06.092263Z'
+created: '2021-03-09T19:19:09.352791Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -49,6 +49,15 @@ app-depth-2:
               "_prefetch"
             context-line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
+          frame*
+            module*
+              "concurrent.futures._base"
+            filename (module takes precedence)
+              "_base.py"
+            function*
+              "__exit__"
+            context-line*
+              "self.shutdown(wait=True)"
         type*
           "SoftTimeLimitExceeded"
         value (ignored because stacktrace takes precedence)
@@ -88,6 +97,24 @@ app-depth-3:
               "_prefetch"
             context-line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
+          frame*
+            module*
+              "concurrent.futures._base"
+            filename (module takes precedence)
+              "_base.py"
+            function*
+              "__exit__"
+            context-line*
+              "self.shutdown(wait=True)"
+          frame*
+            module*
+              "concurrent.futures.thread"
+            filename (module takes precedence)
+              "thread.py"
+            function*
+              "shutdown"
+            context-line*
+              "t.join(sys.maxint)"
         type*
           "SoftTimeLimitExceeded"
         value (ignored because stacktrace takes precedence)
@@ -136,6 +163,33 @@ app-depth-4:
               "_prefetch"
             context-line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
+          frame*
+            module*
+              "concurrent.futures._base"
+            filename (module takes precedence)
+              "_base.py"
+            function*
+              "__exit__"
+            context-line*
+              "self.shutdown(wait=True)"
+          frame*
+            module*
+              "concurrent.futures.thread"
+            filename (module takes precedence)
+              "thread.py"
+            function*
+              "shutdown"
+            context-line*
+              "t.join(sys.maxint)"
+          frame*
+            module*
+              "threading"
+            filename (module takes precedence)
+              "threading.py"
+            function*
+              "join"
+            context-line*
+              "self.__block.wait(delay)"
         type*
           "SoftTimeLimitExceeded"
         value (ignored because stacktrace takes precedence)
@@ -193,6 +247,42 @@ app-depth-5:
               "_prefetch"
             context-line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
+          frame*
+            module*
+              "concurrent.futures._base"
+            filename (module takes precedence)
+              "_base.py"
+            function*
+              "__exit__"
+            context-line*
+              "self.shutdown(wait=True)"
+          frame*
+            module*
+              "concurrent.futures.thread"
+            filename (module takes precedence)
+              "thread.py"
+            function*
+              "shutdown"
+            context-line*
+              "t.join(sys.maxint)"
+          frame*
+            module*
+              "threading"
+            filename (module takes precedence)
+              "threading.py"
+            function*
+              "join"
+            context-line*
+              "self.__block.wait(delay)"
+          frame*
+            module*
+              "threading"
+            filename (module takes precedence)
+              "threading.py"
+            function*
+              "wait"
+            context-line*
+              "_sleep(delay)"
         type*
           "SoftTimeLimitExceeded"
         value (ignored because stacktrace takes precedence)
@@ -313,7 +403,7 @@ app-depth-max:
               "_prefetch"
             context-line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-          frame (non app frame)
+          frame*
             module*
               "concurrent.futures._base"
             filename (module takes precedence)
@@ -322,7 +412,7 @@ app-depth-max:
               "__exit__"
             context-line*
               "self.shutdown(wait=True)"
-          frame (non app frame)
+          frame*
             module*
               "concurrent.futures.thread"
             filename (module takes precedence)
@@ -331,7 +421,7 @@ app-depth-max:
               "shutdown"
             context-line*
               "t.join(sys.maxint)"
-          frame (non app frame)
+          frame*
             module*
               "threading"
             filename (module takes precedence)
@@ -340,7 +430,7 @@ app-depth-max:
               "join"
             context-line*
               "self.__block.wait(delay)"
-          frame (non app frame)
+          frame*
             module*
               "threading"
             filename (module takes precedence)
@@ -349,7 +439,7 @@ app-depth-max:
               "wait"
             context-line*
               "_sleep(delay)"
-          frame (non app frame)
+          frame*
             module*
               "billiard.pool"
             filename (module takes precedence)

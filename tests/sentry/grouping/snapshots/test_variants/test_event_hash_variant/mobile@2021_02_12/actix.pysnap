@@ -1,5 +1,5 @@
 ---
-created: '2021-03-08T16:39:05.785135Z'
+created: '2021-03-09T19:19:09.024198Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -21,7 +21,7 @@ app-depth-1:
           "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "5cf39244fb365390a16ae393df9a55b7"
+  hash: "52ca913fefb2c66702771b60e2b678ff"
   tree_label: "actix_web::pipeline::ProcessResponse<T>::poll_io"
   component:
     app-depth-2*
@@ -37,13 +37,18 @@ app-depth-2:
               "lib.rs"
             function*
               "log::__private_api_log"
+          frame*
+            filename*
+              "log.rs"
+            function*
+              "sentry::integrations::log::Logger::log"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
           "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
 --------------------------------------------------------------------------
 app-depth-3:
-  hash: "c5de9705747039471f5c6674ce9530bf"
+  hash: "5dadb24b31c49fd3bb6daa7940632d58"
   tree_label: "actix_web::pipeline::Pipeline<T>::poll_io"
   component:
     app-depth-3*
@@ -64,13 +69,23 @@ app-depth-3:
               "lib.rs"
             function*
               "log::__private_api_log"
+          frame*
+            filename*
+              "log.rs"
+            function*
+              "sentry::integrations::log::Logger::log"
+          frame*
+            filename*
+              "hub.rs"
+            function*
+              "sentry::hub::Hub::with_active"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
           "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
 --------------------------------------------------------------------------
 app-depth-4:
-  hash: "165eeab6e2e604c7590f33ea5863061e"
+  hash: "4d7ea748c4b6651559d5fa3d2a40f1ee"
   tree_label: "actix_web::server::h1::Http1Dispatcher<T>::parse"
   component:
     app-depth-4*
@@ -96,13 +111,28 @@ app-depth-4:
               "lib.rs"
             function*
               "log::__private_api_log"
+          frame*
+            filename*
+              "log.rs"
+            function*
+              "sentry::integrations::log::Logger::log"
+          frame*
+            filename*
+              "hub.rs"
+            function*
+              "sentry::hub::Hub::with_active"
+          frame*
+            filename*
+              "hub.rs"
+            function*
+              "sentry::hub::Hub::with"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
           "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
 --------------------------------------------------------------------------
 app-depth-5:
-  hash: "7cceb99a79f82dd8c675438c5460089d"
+  hash: "1d6d3181680fd992d672f28200fcd0ea"
   tree_label: "actix_web::server::h1::Http1Dispatcher<T>::poll_io"
   component:
     app-depth-5*
@@ -133,13 +163,33 @@ app-depth-5:
               "lib.rs"
             function*
               "log::__private_api_log"
+          frame*
+            filename*
+              "log.rs"
+            function*
+              "sentry::integrations::log::Logger::log"
+          frame*
+            filename*
+              "hub.rs"
+            function*
+              "sentry::hub::Hub::with_active"
+          frame*
+            filename*
+              "hub.rs"
+            function*
+              "sentry::hub::Hub::with"
+          frame*
+            filename*
+              "local.rs"
+            function*
+              "std::thread::local::LocalKey<T>::with"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
           "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "703d3dd9cb763e3f5037f659d27da947"
+  hash: "1df163ce3be65319df4fcc9cb34b60c1"
   tree_label: "__pthread_start"
   component:
     app-depth-max*
@@ -151,27 +201,27 @@ app-depth-max:
           frame*
             function*
               "__pthread_body"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "thread.rs"
             function*
               "std::sys::unix::thread::Thread::new::thread_start"
-          frame (marked out of app by stack trace rule (family:native function:alloc::* -app))
+          frame* (marked out of app by stack trace rule (family:native function:alloc::* -app))
             filename*
               "boxed.rs"
             function*
               "alloc::boxed::FnBox<T>::call_box"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "panic.rs"
             function*
               "std::panic::catch_unwind"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "panicking.rs"
             function*
@@ -181,22 +231,22 @@ app-depth-max:
               "lib.rs"
             function*
               "___rust_maybe_catch_panic"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "panicking.rs"
             function*
               "std::panicking::try::do_call"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "panic.rs"
             function*
               "std::panic::AssertUnwindSafe<T>::call_once"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "backtrace.rs"
             function*
@@ -221,12 +271,12 @@ app-depth-max:
               "lib.rs"
             function*
               "tokio_reactor::with_default"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "local.rs"
             function*
@@ -246,12 +296,12 @@ app-depth-max:
               "clock.rs"
             function*
               "tokio_timer::clock::clock::with_default"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "local.rs"
             function*
@@ -271,12 +321,12 @@ app-depth-max:
               "handle.rs"
             function*
               "tokio_timer::timer::handle::with_default"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "local.rs"
             function*
@@ -296,12 +346,12 @@ app-depth-max:
               "global.rs"
             function*
               "tokio_executor::global::with_default"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "local.rs"
             function*
@@ -341,12 +391,12 @@ app-depth-max:
               "lib.rs"
             function*
               "tokio_current_thread::Borrow<T>::enter"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "local.rs"
             function*
@@ -406,7 +456,7 @@ app-depth-max:
               "mod.rs"
             function*
               "futures::task_impl::Spawn<T>::poll_future_notify::{{closure}}"
-          frame (marked out of app by stack trace rule (family:native function:alloc::* -app))
+          frame*
             filename*
               "mod.rs"
             function*
@@ -491,37 +541,37 @@ app-depth-max:
               "lib.rs"
             function*
               "log::__private_api_log"
-          frame (non app frame)
+          frame*
             filename*
               "log.rs"
             function*
               "sentry::integrations::log::Logger::log"
-          frame (non app frame)
+          frame*
             filename*
               "hub.rs"
             function*
               "sentry::hub::Hub::with_active"
-          frame (non app frame)
+          frame*
             filename*
               "hub.rs"
             function*
               "sentry::hub::Hub::with"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::try_with"
-          frame (non app frame)
+          frame*
             filename*
               "hub.rs"
             function*
               "sentry::hub::Hub::with::{{closure}}"
-          frame (non app frame)
+          frame*
             filename*
               "hub.rs"
             function*

@@ -1,17 +1,74 @@
 ---
-created: '2021-02-15T18:46:45.099400Z'
+created: '2021-03-09T19:19:10.527354Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
+app-depth-1:
   hash: "1effb24729ae4c43efa36b460511136a"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "659ad79e2e70c822d30a53d7d889529e"
+  component:
+    app-depth-2*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+        frame*
+          filename*
+            "bar.py"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "659ad79e2e70c822d30a53d7d889529e"
+  component:
+    app-depth-3*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+        frame*
+          filename*
+            "bar.py"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "659ad79e2e70c822d30a53d7d889529e"
+  component:
+    app-depth-4*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+        frame*
+          filename*
+            "bar.py"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "659ad79e2e70c822d30a53d7d889529e"
+  component:
+    app-depth-5*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+        frame*
+          filename*
+            "bar.py"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "659ad79e2e70c822d30a53d7d889529e"
   component:
     app-depth-max*
       stacktrace*
         frame*
           filename*
             "foo.py"
-        frame (non app frame)
+        frame*
           filename*
             "bar.py"
 --------------------------------------------------------------------------

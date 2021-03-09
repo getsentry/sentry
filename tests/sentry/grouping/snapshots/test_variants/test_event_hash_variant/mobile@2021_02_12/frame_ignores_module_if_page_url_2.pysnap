@@ -1,14 +1,29 @@
 ---
-created: '2021-03-08T16:39:06.137807Z'
+created: '2021-03-09T19:19:09.440376Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+app-depth-1:
+  hash: "0cc175b9c0f1b6a831c399e269772661"
+  tree_label: "a"
   component:
-    app-depth-max (stacktrace of system takes precedence)
-      stacktrace
-        frame (non app frame)
+    app-depth-1*
+      stacktrace*
+        frame*
+          module (ignored bad javascript module)
+            "foo/bar/baz"
+          filename (ignored because frame points to a URL)
+            "foo.py"
+          function*
+            "a"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "0cc175b9c0f1b6a831c399e269772661"
+  tree_label: "a"
+  component:
+    app-depth-2*
+      stacktrace*
+        frame*
           module (ignored bad javascript module)
             "foo/bar/baz"
           filename (ignored because frame points to a URL)

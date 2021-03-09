@@ -1,42 +1,178 @@
 ---
-created: '2021-03-08T16:39:07.042502Z'
+created: '2021-03-09T19:19:10.586205Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+app-depth-1:
+  hash: "a839396425816f4aee5fa6faccdf2dc8"
+  tree_label: "`anonymous namespace'::crash"
   component:
-    app-depth-max (exception of system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
-            filename*
-              "exe_common.inl"
-            function*
-              "__scrt_common_main_seh"
-          frame (non app frame)
-            filename*
-              "exe_common.inl"
-            function*
-              "invoke_main"
-          frame (non app frame)
-            filename*
-              "main.cpp"
-            function*
-              "main"
-          frame (non app frame)
-            filename*
-              "main.cpp"
-            function*
-              "`anonymous namespace'::start"
-          frame (non app frame)
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
             filename*
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
-        value*
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "417de9b3a8cc314067366db722a116ca"
+  tree_label: "`anonymous namespace'::start"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::crash"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "46b84e4da51648cc9f9741abd2bdad51"
+  tree_label: "main"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "main"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::crash"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "2e93ec0f91f97f5211a422d1ab6f7a28"
+  tree_label: "invoke_main"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "main"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::crash"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "15d397771f229af8dc42783542f81dd4"
+  tree_label: "__scrt_common_main_seh"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "exe_common.inl"
+            function*
+              "__scrt_common_main_seh"
+          frame*
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "main"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::crash"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "15d397771f229af8dc42783542f81dd4"
+  tree_label: "__scrt_common_main_seh"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "exe_common.inl"
+            function*
+              "__scrt_common_main_seh"
+          frame*
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "main"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::crash"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 system:
