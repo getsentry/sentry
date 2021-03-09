@@ -40,11 +40,21 @@ const TOP_N_SPANS = 4;
 
 type OpBreakdownType = OpStats[];
 
-type Props = {
+type DefaultProps = {
+  topN: number;
+  hideHeader: boolean;
+};
+
+type Props = DefaultProps & {
   event: Event;
 };
 
 class OpsBreakdown extends React.Component<Props> {
+  static defaultProps: DefaultProps = {
+    topN: TOP_N_SPANS,
+    hideHeader: false,
+  };
+
   getTransactionEvent(): EventTransaction | undefined {
     const {event} = this.props;
 
@@ -56,6 +66,7 @@ class OpsBreakdown extends React.Component<Props> {
   }
 
   generateStats(): OpBreakdownType {
+    const {topN} = this.props;
     const event = this.getTransactionEvent();
 
     if (!event) {
@@ -163,7 +174,7 @@ class OpsBreakdown extends React.Component<Props> {
       }
     );
 
-    const breakdown = sortedOpsBreakdown.slice(0, TOP_N_SPANS).map(
+    const breakdown = sortedOpsBreakdown.slice(0, topN).map(
       ([operationName, duration]: [OperationName, Duration]): OpStats => {
         return {
           name: operationName,
@@ -174,7 +185,7 @@ class OpsBreakdown extends React.Component<Props> {
       }
     );
 
-    const other = sortedOpsBreakdown.slice(TOP_N_SPANS).reduce(
+    const other = sortedOpsBreakdown.slice(topN).reduce(
       (accOther: OpStats, [_operationName, duration]: [OperationName, Duration]) => {
         accOther.totalInterval += duration;
 
@@ -208,6 +219,8 @@ class OpsBreakdown extends React.Component<Props> {
   }
 
   render() {
+    const {hideHeader} = this.props;
+
     const event = this.getTransactionEvent();
 
     if (!event) {
@@ -216,50 +229,61 @@ class OpsBreakdown extends React.Component<Props> {
 
     const breakdown = this.generateStats();
 
-    return (
-      <StyledBreakdown>
-        <SectionHeading>
-          {t('Operation Breakdown')}
-          <QuestionTooltip
-            position="top"
-            size="sm"
-            containerDisplayMode="block"
-            title={t(
-              'Durations are calculated by summing span durations over the course of the transaction. Percentages are then calculated by dividing the individual op duration by the sum of total op durations. Overlapping/parallel spans are only counted once.'
-            )}
-          />
-        </SectionHeading>
-        {breakdown.map(currOp => {
-          const {name, percentage, totalInterval} = currOp;
+    const contents = breakdown.map(currOp => {
+      const {name, percentage, totalInterval} = currOp;
 
-          const isOther = name === OtherOperation;
-          const operationName = typeof name === 'string' ? name : t('Other');
+      const isOther = name === OtherOperation;
+      const operationName = typeof name === 'string' ? name : t('Other');
 
-          const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
-          const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
-          const opsColor: string = pickSpanBarColour(operationName);
+      const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
+      const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
+      const opsColor: string = pickSpanBarColour(operationName);
 
-          return (
-            <OpsLine key={operationName}>
-              <OpsNameContainer>
-                <OpsDot style={{backgroundColor: isOther ? 'transparent' : opsColor}} />
-                <OpsName>{operationName}</OpsName>
-              </OpsNameContainer>
-              <OpsContent>
-                <Dur>{durLabel}ms</Dur>
-                <Pct>{pctLabel}%</Pct>
-              </OpsContent>
-            </OpsLine>
-          );
-        })}
-      </StyledBreakdown>
-    );
+      return (
+        <OpsLine key={operationName}>
+          <OpsNameContainer>
+            <OpsDot style={{backgroundColor: isOther ? 'transparent' : opsColor}} />
+            <OpsName>{operationName}</OpsName>
+          </OpsNameContainer>
+          <OpsContent>
+            <Dur>{durLabel}ms</Dur>
+            <Pct>{pctLabel}%</Pct>
+          </OpsContent>
+        </OpsLine>
+      );
+    });
+
+    if (!hideHeader) {
+      return (
+        <StyledBreakdown>
+          <SectionHeading>
+            {t('Operation Breakdown')}
+            <QuestionTooltip
+              position="top"
+              size="sm"
+              containerDisplayMode="block"
+              title={t(
+                'Durations are calculated by summing span durations over the course of the transaction. Percentages are then calculated by dividing the individual op duration by the sum of total op durations. Overlapping/parallel spans are only counted once.'
+              )}
+            />
+          </SectionHeading>
+          {contents}
+        </StyledBreakdown>
+      );
+    }
+
+    return <StyledBreakdownNoHeader>{contents}</StyledBreakdownNoHeader>;
   }
 }
 
 const StyledBreakdown = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(4)};
+`;
+
+const StyledBreakdownNoHeader = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: ${space(2)} ${space(3)};
 `;
 
 const OpsLine = styled('div')`

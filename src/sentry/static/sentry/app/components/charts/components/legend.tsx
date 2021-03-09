@@ -23,7 +23,7 @@ export default function Legend(
     padding: 0,
     formatter,
     icon: 'circle',
-    itemHeight: 8,
+    itemHeight: 14,
     itemWidth: 8,
     itemGap: 12,
     align: 'left' as const,
@@ -32,6 +32,7 @@ export default function Legend(
       verticalAlign: 'top',
       fontSize: 11,
       fontFamily: theme.text.family,
+      lineHeight: 14,
     },
     inactiveColor: theme.inactive,
   });

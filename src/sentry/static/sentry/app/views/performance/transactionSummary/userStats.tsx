@@ -5,6 +5,7 @@ import {Location} from 'history';
 import Feature from 'app/components/acl/feature';
 import {SectionHeading} from 'app/components/charts/styles';
 import Link from 'app/components/links/link';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import UserMisery from 'app/components/userMisery';
 import {IconOpen} from 'app/icons';
@@ -28,16 +29,16 @@ import VitalInfo from '../vitalDetail/vitalInfo';
 
 type Props = {
   eventView: EventView;
-  totals: Record<string, number>;
+  totals: Record<string, number> | null;
   location: Location;
   organization: Organization;
   transactionName: string;
 };
 
 function UserStats({eventView, totals, location, organization, transactionName}: Props) {
-  let userMisery = <StatNumber>{'\u2014'}</StatNumber>;
+  let userMisery = <Placeholder height="34px" />;
   const threshold = organization.apdexThreshold;
-  let apdex: React.ReactNode = <StatNumber>{'\u2014'}</StatNumber>;
+  let apdex: React.ReactNode = <Placeholder height="24px" />;
   let vitalsPassRate: React.ReactNode = null;
 
   if (totals) {
