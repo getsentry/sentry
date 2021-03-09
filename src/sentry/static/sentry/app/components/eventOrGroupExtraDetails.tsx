@@ -57,8 +57,8 @@ function EventOrGroupExtraDetails({
 
   return (
     <GroupExtra hasInbox={hasInbox}>
-      {hasInbox && inbox && (
-        <GuideAnchor target="inbox_guide_reason" disabled={!hasGuideAnchor}>
+      {hasInbox && inbox && hasGuideAnchor && (
+        <GuideAnchor target="inbox_guide_reason">
           <InboxReason inbox={inbox} showDateAdded={showInboxTime} />
         </GuideAnchor>
       )}
