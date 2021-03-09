@@ -39,9 +39,7 @@ class Filter extends React.Component<Props> {
   toggleAllFilters = () => {
     const {filterList, onFilterChange, selection} = this.props;
     const newSelection =
-      selection.size === filterList.length
-        ? (new Set() as Set<string>)
-        : new Set(filterList);
+      selection.size === filterList.length ? new Set<string>() : new Set(filterList);
 
     onFilterChange(newSelection);
   };
@@ -150,36 +148,6 @@ const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: 
     `
       border-bottom-color: ${p.theme.button.primary.border};
     `}
-`;
-
-export const List = styled('ul')`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-`;
-
-export const ListItem = styled('li')<{isChecked?: boolean}>`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  grid-column-gap: ${space(1)};
-  align-items: center;
-  padding: ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  :hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-  ${CheckboxFancy} {
-    opacity: ${p => (p.isChecked ? 1 : 0.3)};
-  }
-
-  &:hover ${CheckboxFancy} {
-    opacity: 1;
-  }
-
-  &:hover span {
-    color: ${p => p.theme.blue300};
-    text-decoration: underline;
-  }
 `;
 
 export default Filter;
