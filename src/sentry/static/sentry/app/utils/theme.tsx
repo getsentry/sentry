@@ -9,7 +9,7 @@ const colors = {
   gray100: '#E7E1EC',
   gray200: '#C6BECF',
   gray300: '#9386A0',
-  gray400: '#776589',
+  gray400: '#4d4158',
   gray500: '#2B1D38',
 
   yellow100: '#FDE8b4',
@@ -21,7 +21,7 @@ const colors = {
   purple300: '#6C5FC7',
 
   blue100: '#D2DFF7',
-  blue200: '#6893e3',
+  blue200: '#6e9ef7',
   blue300: '#3D74DB',
 
   orange100: '#FFF1ED',
@@ -192,7 +192,7 @@ const aliases = {
 
 const warning = {
   background: colors.yellow300,
-  backgroundLight: color(colors.yellow100).alpha(0.3).string(),
+  backgroundLight: color(colors.yellow100).alpha(aliases.alertBackgroundAlpha).string(),
   border: colors.yellow300,
   iconColor: colors.yellow300,
 } as const;
@@ -512,7 +512,7 @@ const darkAliases = {
   bodyBackground: colors.black,
   headerBackground: colors.gray500,
   background: colors.black,
-  backgroundSecondary: colors.black,
+  backgroundSecondary: colors.gray500,
   border: colors.gray400,
   innerBorder: colors.gray500,
   textColor: colors.white,

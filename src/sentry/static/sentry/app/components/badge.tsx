@@ -31,7 +31,7 @@ const Badge = styled(({priority: _priority, text, ...props}: Props) => (
   text-align: center;
   color: ${p => p.theme.textColor};
   background-color: ${p =>
-    p.priority ? priorityColors[p.priority] : p.theme.bodyBackground};
+    p.priority ? priorityColors[p.priority] : p.theme.innerBorder};
   transition: background 100ms linear;
   position: relative;
   top: -1px;
