@@ -1,5 +1,5 @@
 ---
-created: '2021-02-15T18:20:10.652652Z'
+created: '2021-03-08T16:39:06.912495Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -16,6 +16,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "dc3d511120ce04996b1eef3496516e5c"
+  tree_label: "fn"
   component:
     system*
       stacktrace*

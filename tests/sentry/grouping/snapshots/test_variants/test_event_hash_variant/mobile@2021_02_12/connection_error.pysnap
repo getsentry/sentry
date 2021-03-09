@@ -1,10 +1,11 @@
 ---
-created: '2021-02-15T18:55:34.979965Z'
+created: '2021-03-08T16:39:06.072203Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "2c93c07fa1d6e07a4de03fb5c4d3876a"
+  tree_label: "call_script"
   component:
     app-depth-1*
       exception*
@@ -25,6 +26,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "1266d500012e00a6c5ffd30faea2b43a"
+  tree_label: "is_rate_limited"
   component:
     app-depth-2*
       exception*
@@ -54,6 +56,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "b4f26653d1931cbad5820cdcae76f44f"
+  tree_label: "is_rate_limited"
   component:
     app-depth-3*
       exception*
@@ -92,6 +95,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "a1e0d912554c02ca099f24e2f208b2ed"
+  tree_label: "<lambda>"
   component:
     app-depth-4*
       exception*
@@ -139,6 +143,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "6b059b9febc815ac18ac4d2082e38a9b"
+  tree_label: "safe_execute"
   component:
     app-depth-max*
       exception*
@@ -256,6 +261,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "013d3477a774fe20c468dc8accd516f1"
+  tree_label: "safe_execute"
   component:
     system*
       exception*

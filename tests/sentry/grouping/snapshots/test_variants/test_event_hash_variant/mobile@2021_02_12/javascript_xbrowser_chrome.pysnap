@@ -1,5 +1,5 @@
 ---
-created: '2021-02-15T18:20:08.967216Z'
+created: '2021-03-08T16:39:05.424817Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -62,6 +62,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "c63e8727af1a8fe75872b6a762797113"
+  tree_label: "testMethod"
   component:
     system*
       exception*

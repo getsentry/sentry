@@ -1,5 +1,5 @@
 ---
-created: '2021-02-15T18:20:08.878413Z'
+created: '2021-03-08T16:39:05.350387Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -408,6 +408,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "ec87dd10e4f7512ecccb4a068c5774ae"
+  tree_label: "run"
   component:
     system*
       exception*

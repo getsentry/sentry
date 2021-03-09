@@ -1,5 +1,5 @@
 ---
-created: '2021-02-15T18:20:10.717307Z'
+created: '2021-03-08T16:39:06.969871Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -76,6 +76,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "c0f3f7d6deb17aec9d07259ac684fad0"
+  tree_label: "dispatchInteractiveEvent"
   component:
     system*
       exception*

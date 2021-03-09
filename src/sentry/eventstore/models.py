@@ -365,33 +365,25 @@ class Event:
             if hashes is not None:
                 return hashes, hierarchical_hashes
 
-        from sentry.grouping.variants import HIERARCHICAL_VARIANTS
-
-        flat_hashes = []
-        hierarchical_hashes = []
-
-        for name, variant in self.get_grouping_variants(force_config).items():
-            _hash = variant.get_hash()
-            if not _hash:
-                continue
-
-            if name in HIERARCHICAL_VARIANTS:
-                hierarchical_hashes.append((name, _hash))
-            else:
-                flat_hashes.append((name, _hash))
-
-        # Sort system hash to the back of the list to resolve ambiguities when
-        # choosing primary_hash for Snuba
-        flat_hashes.sort(key=lambda name_and_hash: 1 if name_and_hash[0] == "system" else 0)
-        flat_hashes = [_hash for name, _hash in flat_hashes]
-
-        # Sort hierarchical_hashes by order defined in HIERARCHICAL_VARIANTS
-        hierarchical_hashes.sort(
-            key=lambda name_and_hash: HIERARCHICAL_VARIANTS.index(name_and_hash[0])
-        )
-        hierarchical_hashes = [_hash for name, _hash in hierarchical_hashes]
+        # Create fresh hashes
+        flat_variants, hierarchical_variants = self.get_sorted_grouping_variants(force_config)
+        flat_hashes = self._hashes_from_sorted_grouping_variants(flat_variants)
+        hierarchical_hashes = self._hashes_from_sorted_grouping_variants(hierarchical_variants)
 
         return flat_hashes, hierarchical_hashes
+
+    def get_sorted_grouping_variants(self, force_config=None):
+        """ Get grouping variants sorted into flat and hierarchical variants """
+        from sentry.grouping.api import sort_grouping_variants
+
+        variants = self.get_grouping_variants(force_config)
+        return sort_grouping_variants(variants)
+
+    @staticmethod
+    def _hashes_from_sorted_grouping_variants(variants):
+        """ Create hashes from variants and filter out None values """
+        hashes = (variant.get_hash() for variant in variants)
+        return [hash_ for hash_ in hashes if hash_ is not None]
 
     def get_grouping_variants(self, force_config=None, normalize_stacktraces=False):
         """

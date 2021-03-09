@@ -9,6 +9,7 @@ from sentry.grouping.variants import (
     ComponentVariant,
     CustomFingerprintVariant,
     SaltedComponentVariant,
+    HIERARCHICAL_VARIANTS,
 )
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, ENHANCEMENT_BASES
 from sentry.grouping.utils import (
@@ -253,3 +254,30 @@ def get_grouping_variants_for_event(event, config=None):
         rv["fallback"] = FallbackVariant()
 
     return rv
+
+
+def sort_grouping_variants(variants):
+    """ Sort a sequence of variants into flat and hierarchical variants """
+
+    flat_variants = []
+    hierarchical_variants = []
+
+    for name, variant in variants.items():
+
+        if name in HIERARCHICAL_VARIANTS:
+            hierarchical_variants.append((name, variant))
+        else:
+            flat_variants.append((name, variant))
+
+    # Sort system variant to the back of the list to resolve ambiguities when
+    # choosing primary_hash for Snuba
+    flat_variants.sort(key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0)
+    flat_variants = [variant for name, variant in flat_variants]
+
+    # Sort hierarchical_variants by order defined in HIERARCHICAL_VARIANTS
+    hierarchical_variants.sort(
+        key=lambda name_and_variant: HIERARCHICAL_VARIANTS.index(name_and_variant[0])
+    )
+    hierarchical_variants = [variant for name, variant in hierarchical_variants]
+
+    return flat_variants, hierarchical_variants
