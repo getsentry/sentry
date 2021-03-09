@@ -6,7 +6,7 @@ import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRa
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import {IntegrationProvider, Organization, Project, User} from 'app/types';
 import {ExperimentKey} from 'app/types/experiments';
-import {NavigationSection} from 'app/views/settings/types';
+import {NavigationItem, NavigationSection} from 'app/views/settings/types';
 
 // XXX(epurkhiser): A Note about `_`.
 //
@@ -38,6 +38,7 @@ export type HookName = keyof Hooks;
 export type RouteHooks = {
   routes: RoutesHook;
   'routes:admin': RoutesHook;
+  'routes:api': RoutesHook;
   'routes:organization': RoutesHook;
   'routes:organization-root': RoutesHook;
 };
@@ -120,6 +121,7 @@ export type InterfaceChromeHooks = {
   'organization:header': OrganizationHeaderComponentHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
+  'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
   'sidebar:bottom-items': SidebarBottomItemsHook;
   'sidebar:item-label': SidebarItemLabelHook;
   'help-modal:footer': HelpModalFooterHook;
@@ -137,6 +139,7 @@ export type OnboardingHooks = {
  * Settings navigation hooks.
  */
 export type SettingsHooks = {
+  'settings:api-navigation-config': SettingsItemsHook;
   'settings:organization-navigation': OrganizationSettingsHook;
   'settings:organization-navigation-config': SettingsConfigHook;
 };
@@ -288,6 +291,11 @@ type OrganizationSettingsHook = (organization: Organization) => React.ReactEleme
  * Provides additional setting configurations
  */
 type SettingsConfigHook = (organization: Organization) => NavigationSection;
+
+/**
+ * Provides additional setting navigation items
+ */
+type SettingsItemsHook = (organization?: Organization) => NavigationItem[];
 
 /**
  * Each sidebar label is wrapped with this hook, to allow sidebar item

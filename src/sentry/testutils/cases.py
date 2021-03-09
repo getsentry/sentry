@@ -693,14 +693,19 @@ class SnubaTestCase(BaseTestCase):
         # While snuba is synchronous, clickhouse isn't entirely synchronous.
         attempt = 0
         snuba_filter = eventstore.Filter(project_ids=[project_id])
+        last_events_seen = 0
+
         while attempt < attempts:
             events = eventstore.get_events(snuba_filter)
+            last_events_seen = len(events)
             if len(events) >= total:
                 break
             attempt += 1
             time.sleep(0.05)
         if attempt == attempts:
-            assert False, f"Could not ensure event was persisted within {attempt} attempt(s)"
+            assert (
+                False
+            ), f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
 
     def store_session(self, session):
         assert (
@@ -819,7 +824,7 @@ class OutcomesSnubaTest(TestCase):
         super().setUp()
         assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
 
-    def __format(self, org_id, project_id, outcome, timestamp, key_id):
+    def __format(self, org_id, project_id, outcome, category, timestamp, key_id):
         return {
             "project_id": project_id,
             "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
@@ -827,12 +832,13 @@ class OutcomesSnubaTest(TestCase):
             "reason": None,
             "key_id": key_id,
             "outcome": outcome,
+            "category": category,
         }
 
-    def store_outcomes(self, org_id, project_id, outcome, timestamp, key_id, num_times):
+    def store_outcomes(self, org_id, project_id, outcome, category, timestamp, key_id, num_times):
         outcomes = []
         for _ in range(num_times):
-            outcomes.append(self.__format(org_id, project_id, outcome, timestamp, key_id))
+            outcomes.append(self.__format(org_id, project_id, outcome, category, timestamp, key_id))
 
         assert (
             requests.post(

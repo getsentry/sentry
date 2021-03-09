@@ -49,7 +49,10 @@ const ACTIONS: Action[] = [
     title: 'Toggle Translation Markers',
     description: 'Toggles translation markers on or off in the application',
     requiresSuperuser: true,
-    action: () => toggleLocaleDebug(),
+    action: () => {
+      toggleLocaleDebug();
+      window.location.reload();
+    },
   },
 
   {
