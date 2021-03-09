@@ -21,7 +21,7 @@ import TimeSince from 'app/components/timeSince';
 import {IconCheckmark} from 'app/icons/iconCheckmark';
 import {IconFire} from 'app/icons/iconFire';
 import {IconWarning} from 'app/icons/iconWarning';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
@@ -258,7 +258,7 @@ class DetailsBody extends React.Component<Props> {
           <SummaryStats>{this.renderSummaryStatItems(percentages)}</SummaryStats>
         </ChartSummary>
         <Feature features={['discover-basic']}>
-          <Button size="small" priority="primary" disabled={!rule} {...props}>
+          <Button size="small" disabled={!rule} {...props}>
             {buttonText}
           </Button>
         </Feature>
@@ -295,8 +295,10 @@ class DetailsBody extends React.Component<Props> {
 
     return (
       <GroupedHeaderItems>
-        <ItemTitle>{t('Current Status')}</ItemTitle>
-        <ItemTitle>{activeIncident ? t('Last Triggered') : t('Last Resolved')}</ItemTitle>
+        <SidebarHeading>{t('Status')}</SidebarHeading>
+        <SidebarHeading>
+          {activeIncident ? t('Last Triggered') : t('Last Resolved')}
+        </SidebarHeading>
         <ItemValue>
           <AlertBadge color={color} icon={Icon}>
             <AlertIconWrapper>
@@ -346,7 +348,14 @@ class DetailsBody extends React.Component<Props> {
       return this.renderLoading();
     }
 
-    const {query, environment, aggregate, projects: projectSlugs, triggers} = rule;
+    const {
+      query,
+      environment,
+      aggregate,
+      projects: projectSlugs,
+      timeWindow,
+      triggers,
+    } = rule;
 
     const criticalTrigger = triggers.find(({label}) => label === 'critical');
     const warningTrigger = triggers.find(({label}) => label === 'warning');
@@ -372,16 +381,22 @@ class DetailsBody extends React.Component<Props> {
                   </DropdownControl>
                   {timePeriod.custom && (
                     <StyledTimeRange>
-                      <DateTime date={timePeriod.start} timeAndDate />
+                      <DateTime date={moment.utc(timePeriod.start)} timeAndDate />
                       {' — '}
-                      <DateTime date={timePeriod.end} timeAndDate />
+                      <DateTime date={moment.utc(timePeriod.end)} timeAndDate />
                     </StyledTimeRange>
                   )}
                 </ChartControls>
                 <ChartPanel>
                   <PanelBody withPadding>
                     <ChartHeader>
-                      {this.metricPreset?.name ?? t('Custom metric')}
+                      <PresetName>
+                        {this.metricPreset?.name ?? t('Custom metric')}
+                      </PresetName>
+                      {tct(' [metric] over [window]', {
+                        metric: aggregate,
+                        window: <Duration seconds={timeWindow * 60} />,
+                      })}
                     </ChartHeader>
                     <EventsRequest
                       api={api}
@@ -486,14 +501,6 @@ const GroupedHeaderItems = styled('div')`
   margin-bottom: ${space(4)};
 `;
 
-const ItemTitle = styled('h6')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: 0;
-  text-transform: uppercase;
-  color: ${p => p.theme.gray300};
-  letter-spacing: 0.1px;
-`;
-
 const ItemValue = styled('div')`
   display: flex;
   justify-content: flex-start;
@@ -549,13 +556,20 @@ const ChartPanel = styled(Panel)`
 
 const ChartHeader = styled('header')`
   margin-bottom: ${space(1)};
+  display: flex;
+  flex-direction: row;
+`;
+
+const PresetName = styled('div')`
+  text-transform: capitalize;
+  margin-right: ${space(0.5)};
 `;
 
 const ChartActions = styled(PanelFooter)`
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding: ${space(2)};
+  padding: ${space(1)} 20px;
 `;
 
 const ChartSummary = styled('div')`
