@@ -250,9 +250,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     projectId={this.projectId}
                   />
                   <RootSpanStatus event={event} />
+                  <OpsBreakdown event={event} />
                 </React.Fragment>
               )}
-              <OpsBreakdown event={event} />
               <EventVitals event={event} />
               {event.groupID && (
                 <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
