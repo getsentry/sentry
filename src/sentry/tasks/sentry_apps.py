@@ -193,7 +193,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
             data[name] = serialize(instance)
 
         # Trigger a new task for each webhook
-        send_resource_change_webhook.delay(installation=installation, event=event, data=data)
+        send_resource_change_webhook.delay(installation_id=installation.id, event=event, data=data)
 
 
 @instrumented_task("sentry.tasks.process_resource_change_bound", bind=True, **TASK_OPTIONS)
@@ -258,7 +258,18 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
 
 @instrumented_task("sentry.tasks.send_process_resource_change_webhook", **TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
-def send_resource_change_webhook(installation, event, data, *args, **kwargs):
+def send_resource_change_webhook(installation_id, event, data, *args, **kwargs):
+    try:
+        installation = SentryAppInstallation.objects.get(
+            id=installation_id, status=SentryAppInstallationStatus.INSTALLED
+        )
+    except SentryAppInstallation.DoesNotExist:
+        logger.info(
+            "send_process_resource_change_webhook.missing_installation",
+            extra={"installation_id": installation_id, "event": event},
+        )
+        return
+
     send_webhooks(installation, event, data=data)
 
     metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
