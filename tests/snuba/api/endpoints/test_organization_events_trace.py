@@ -5,11 +5,15 @@ from django.core.urlresolvers import reverse
 
 from sentry.utils.samples import load_data
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
-    FEATURES = ["organizations:trace-view-quick", "organizations:global-views"]
+    FEATURES = [
+        "organizations:trace-view-quick",
+        "organizations:trace-view-summary",
+        "organizations:global-views",
+    ]
 
     def get_start_end(self, duration):
         start = before_now(minutes=1, milliseconds=duration)
@@ -569,9 +573,41 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert response.status_code == 200, response.content
         self.assert_trace_data(response.data)
         gen1_event = response.data["children"][0]
+        assert len(gen1_event["errors"] == 2)
         assert {"id": error.event_id, "issue": error.group.qualified_short_id} in gen1_event[
             "errors"
         ]
         assert {"id": error1.event_id, "issue": error1.group.qualified_short_id} in gen1_event[
             "errors"
         ]
+
+    def test_with_default(self):
+        start, _ = self.get_start_end(1000)
+        default_event = self.store_event(
+            {
+                "timestamp": iso_format(start),
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": self.trace_id,
+                        "span_id": self.root_span_ids[0],
+                    },
+                },
+            },
+            project_id=self.gen1_project.id,
+        )
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        self.assert_trace_data(response.data)
+        root_event = response.data
+        assert len(root_event["errors"]) == 1
+        assert {
+            "id": default_event.event_id,
+            "issue": default_event.group.qualified_short_id,
+        } in root_event["errors"]

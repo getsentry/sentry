@@ -190,7 +190,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 ],
                 orderby=["-timestamp", "id"],
                 params=params,
-                query=f"event.type:error trace:{trace_id}",
+                query=f"!event.type:transaction trace:{trace_id}",
                 limit=MAX_TRACE_SIZE,
                 # we can get project from the associated transaction, which can save us a db query
                 auto_fields=False,
@@ -206,6 +206,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         {
                             "issue": row["issue"],
                             "id": row["id"],
+                            "span": row["trace.span"],
                         }
                     )
             return error_map
