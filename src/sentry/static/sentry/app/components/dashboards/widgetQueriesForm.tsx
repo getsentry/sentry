@@ -88,6 +88,7 @@ class WidgetQueriesForm extends React.Component<Props> {
               key={queryIndex}
               label={queryIndex === 0 ? t('Query') : null}
               inline={false}
+              style={{paddingBottom: `8px`}}
               flexibleControlStateSize
               stacked
               error={errors?.[queryIndex].conditions}
@@ -130,7 +131,7 @@ class WidgetQueriesForm extends React.Component<Props> {
           );
         })}
         {canAddSearchConditions && (
-          <AddOverlayButton
+          <Button
             size="small"
             icon={<IconAdd isCircled />}
             onClick={(event: React.MouseEvent) => {
@@ -139,7 +140,7 @@ class WidgetQueriesForm extends React.Component<Props> {
             }}
           >
             {t('Add Query')}
-          </AddOverlayButton>
+          </Button>
         )}
         <WidgetQueryFields
           displayType={displayType}
@@ -181,12 +182,7 @@ class WidgetQueriesForm extends React.Component<Props> {
 }
 
 const QueryWrapper = styled('div')`
-  padding-bottom: ${space(3)};
   position: relative;
-`;
-
-const AddOverlayButton = styled(Button)`
-  margin-bottom: ${space(2)};
 `;
 
 export const SearchConditionsWrapper = styled('div')`

@@ -435,7 +435,7 @@ export const modalCss = css`
   .modal-dialog {
     position: unset;
     width: 100%;
-    max-width: 875px;
+    max-width: 700px;
     margin: 50px auto;
   }
 `;
