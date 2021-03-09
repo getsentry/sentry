@@ -2263,6 +2263,7 @@ class ResolveFieldListTest(unittest.TestCase):
     def test_field_alias_duration_expansion_with_brackets(self):
         fields = [
             "avg(transaction.duration)",
+            "stddev(transaction.duration)",
             "latest_event()",
             "last_seen()",
             "apdex(300)",
@@ -2279,6 +2280,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["avg", "transaction.duration", "avg_transaction_duration"],
+            ["stddevSamp", "transaction.duration", "stddev_transaction_duration"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["max", "timestamp", "last_seen"],
             ["apdex(duration, 300)", None, "apdex_300"],
@@ -2505,6 +2507,26 @@ class ResolveFieldListTest(unittest.TestCase):
             ["divide(count(), divide(3600, 60))", None, "epm"],
         ]
         assert result["groupby"] == []
+
+    def test_stddev_function(self):
+        fields = ["stddev(measurements.fcp)", "stddev(transaction.duration)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            ["stddevSamp", "measurements.fcp", "stddev_measurements_fcp"],
+            ["stddevSamp", "transaction.duration", "stddev_transaction_duration"],
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["stddev(user.id)"]
+            resolve_field_list(fields, eventstore.Filter())
+
+        assert "user.id is not a numeric column" in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["stddev()"]
+            resolve_field_list(fields, eventstore.Filter())
+
+        assert "stddev(): expected 1 argument(s)" in str(err)
 
     def test_tpm_function_alias(self):
         """ TPM should be functionally identical to EPM except in name """

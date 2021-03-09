@@ -2070,11 +2070,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "stddev(transaction.duration)",
                 "var(transaction.duration)",
             ],
-            "query": (
-                "event.type:transaction min(transaction.duration):>1000 "
-                + "max(transaction.duration):>1000 avg(transaction.duration):>1000 "
-                + "sum(transaction.duration):>1000 stddev(transaction.duration):>=0.0 "
-                + "var(transaction.duration):>=0.0"
+            "query": " ".join(
+                [
+                    "event.type:transaction",
+                    "min(transaction.duration):>1000",
+                    "max(transaction.duration):>1000",
+                    "avg(transaction.duration):>1000",
+                    "sum(transaction.duration):>1000",
+                    "stddev(transaction.duration):>=0.0",
+                    "var(transaction.duration):>=0.0",
+                ]
             ),
         }
         response = self.do_request(query, features=features)
