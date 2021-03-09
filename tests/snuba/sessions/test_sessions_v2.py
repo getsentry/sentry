@@ -67,9 +67,13 @@ def test_interval_restrictions():
     # making sure intervals are cleanly divisible
     with pytest.raises(InvalidParams, match="The interval has to be less than one day."):
         _make_query("statsPeriod=4d&interval=2d&field=sum(session)")
-    with pytest.raises(InvalidParams, match="The interval should divide one day cleanly."):
+    with pytest.raises(
+        InvalidParams, match="The interval should divide one day without a remainder."
+    ):
         _make_query("statsPeriod=6h&interval=59m&field=sum(session)")
-    with pytest.raises(InvalidParams, match="The interval should divide one day cleanly."):
+    with pytest.raises(
+        InvalidParams, match="The interval should divide one day without a remainder."
+    ):
         _make_query("statsPeriod=4d&interval=5h&field=sum(session)")
 
     _make_query("statsPeriod=6h&interval=90m&field=sum(session)")
