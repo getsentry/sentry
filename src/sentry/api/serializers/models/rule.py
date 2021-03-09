@@ -1,5 +1,6 @@
+from sentry.api.fields.actor import Actor
 from sentry.api.serializers import Serializer, register
-from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
+from sentry.models import actor_type_to_model, Environment, Rule, RuleActivity, RuleActivityType
 from sentry.utils.compat import filter
 
 
@@ -51,6 +52,11 @@ class RuleSerializer(Serializer):
             dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])
             for o in obj.data.get("conditions", [])
         ]
+        owner = None
+        if obj.owner:
+            owner = Actor(
+                Actor.from_model(obj.owner).id, actor_type_to_model(obj.owner.type)
+            ).get_actor_id()
 
         d = {
             # XXX(dcramer): we currently serialize unsaved rule objects
@@ -69,7 +75,7 @@ class RuleSerializer(Serializer):
             "frequency": obj.data.get("frequency") or Rule.DEFAULT_FREQUENCY,
             "name": obj.label,
             "dateCreated": obj.date_added,
-            "owner": obj.owner.get_actor_id() if obj.owner else None,
+            "owner": owner,
             "createdBy": attrs.get("created_by", None),
             "environment": environment.name if environment is not None else None,
             "projects": [obj.project.slug],

@@ -64,8 +64,7 @@ class CreateProjectRuleTest(APITestCase):
 
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == "hello world"
-        assert rule.team is None
-        assert rule.user == self.user
+        assert rule.owner == self.user.actor
         assert rule.data["action_match"] == "any"
         assert rule.data["filter_match"] == "any"
         assert rule.data["actions"] == actions

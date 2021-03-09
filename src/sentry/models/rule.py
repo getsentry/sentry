@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from enum import Enum
@@ -68,17 +67,6 @@ class Rule(Model):
             return created_activity.user
         except RuleActivity.DoesNotExist:
             pass
-
-        return None
-
-    @property
-    def owner(self):
-        from sentry.api.fields.actor import Actor
-
-        owner = self.user if self.user else self.team
-        if owner:
-            owner_id = Actor(owner.id, type(owner)).get_actor_id()
-            return Actor.from_actor_identifier(owner_id)
 
         return None
 
