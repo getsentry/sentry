@@ -9,7 +9,8 @@ from sentry.testutils import APITestCase
 
 
 @pytest.mark.skipif(
-    lambda x: settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter"
+    settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",
+    reason="Requires DummyNewsletter.",
 )
 class UserSubscriptionsNewsletterTest(APITestCase):
     def setUp(self):
