@@ -1,10 +1,11 @@
 ---
-created: '2021-03-08T16:39:05.863021Z'
+created: '2021-03-09T10:13:47.500013Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 system:
   hash: "b2602ad455472dede8e4c340d8a7eaba"
+  tree_label: "testMethod"
   component:
     system*
       exception*
@@ -80,6 +81,7 @@ system:
 --------------------------------------------------------------------------
 system-depth-1:
   hash: "b00d16c0cfb749738aa97ab643b896d6"
+  tree_label: "aha"
   component:
     system-depth-1*
       exception*
@@ -98,6 +100,7 @@ system-depth-1:
 --------------------------------------------------------------------------
 system-depth-2:
   hash: "73facb3a45e918c97815e79d62fc43b7"
+  tree_label: "callAnotherThing"
   component:
     system-depth-2*
       exception*
@@ -123,6 +126,7 @@ system-depth-2:
 --------------------------------------------------------------------------
 system-depth-3:
   hash: "c10618815cb9d15b0e81ed312a98e876"
+  tree_label: "callback"
   component:
     system-depth-3*
       exception*
@@ -155,6 +159,7 @@ system-depth-3:
 --------------------------------------------------------------------------
 system-depth-4:
   hash: "4f469a97e68ee14eaa6d2415d0dce221"
+  tree_label: "callback"
   component:
     system-depth-4*
       exception*
@@ -192,6 +197,7 @@ system-depth-4:
 --------------------------------------------------------------------------
 system-depth-5:
   hash: "39d673f040bd575e7fcc952ca42d7a86"
+  tree_label: "test"
   component:
     system-depth-5*
       exception*

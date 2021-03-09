@@ -1,10 +1,11 @@
 ---
-created: '2021-03-08T16:39:07.042502Z'
+created: '2021-03-09T10:13:48.807451Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 system:
   hash: "15d397771f229af8dc42783542f81dd4"
+  tree_label: "__scrt_common_main_seh"
   component:
     system*
       exception*
@@ -41,6 +42,7 @@ system:
 --------------------------------------------------------------------------
 system-depth-1:
   hash: "a839396425816f4aee5fa6faccdf2dc8"
+  tree_label: "`anonymous namespace'::crash"
   component:
     system-depth-1*
       exception*
@@ -57,6 +59,7 @@ system-depth-1:
 --------------------------------------------------------------------------
 system-depth-2:
   hash: "417de9b3a8cc314067366db722a116ca"
+  tree_label: "`anonymous namespace'::start"
   component:
     system-depth-2*
       exception*
@@ -78,6 +81,7 @@ system-depth-2:
 --------------------------------------------------------------------------
 system-depth-3:
   hash: "46b84e4da51648cc9f9741abd2bdad51"
+  tree_label: "main"
   component:
     system-depth-3*
       exception*
@@ -104,6 +108,7 @@ system-depth-3:
 --------------------------------------------------------------------------
 system-depth-4:
   hash: "2e93ec0f91f97f5211a422d1ab6f7a28"
+  tree_label: "invoke_main"
   component:
     system-depth-4*
       exception*

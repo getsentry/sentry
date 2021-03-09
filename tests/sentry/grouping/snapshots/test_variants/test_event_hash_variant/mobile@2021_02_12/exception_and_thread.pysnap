@@ -1,10 +1,11 @@
 ---
-created: '2021-03-09T09:48:23.118726Z'
+created: '2021-03-09T10:13:48.251439Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "9075e416a7d67c2f6c7d9386dff2e591"
+  tree_label: "accept"
   component:
     app-depth-1*
       threads*
@@ -17,6 +18,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "49a194ee5ef3c5301d7f4c7e6d50e258"
+  tree_label: "accept"
   component:
     app-depth-2*
       threads*
@@ -41,6 +43,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 system:
   hash: "7aa97fc486ee8768b2741989a75593b1"
+  tree_label: "createNoInputRewardRedeemedNoticeItem"
   component:
     system*
       chained-exception*
@@ -93,6 +96,7 @@ system:
 --------------------------------------------------------------------------
 system-depth-1:
   hash: "a7d7e75ce5e09430410663be6422eac4"
+  tree_label: "createAnnotatedSpannable"
   component:
     system-depth-1*
       chained-exception*
@@ -121,6 +125,7 @@ system-depth-1:
 --------------------------------------------------------------------------
 system-depth-2:
   hash: "516d909edeb89d2ecfbcabfd250b8f93"
+  tree_label: "createNoInputRewardRedeemedNoticeItem"
   component:
     system-depth-2*
       chained-exception*

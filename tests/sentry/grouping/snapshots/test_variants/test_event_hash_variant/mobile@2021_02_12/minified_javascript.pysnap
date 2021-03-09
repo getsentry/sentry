@@ -1,10 +1,11 @@
 ---
-created: '2021-03-08T16:39:07.006222Z'
+created: '2021-03-09T10:13:48.769345Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 system:
   hash: "dcfcd48a02c100bbe4023cbc783054f0"
+  tree_label: "M"
   component:
     system*
       exception*
@@ -212,6 +213,7 @@ system:
 --------------------------------------------------------------------------
 system-depth-1:
   hash: "26c7e56e7ca2afe463a03d055f388082"
+  tree_label: "wrapTimeFunction/<"
   component:
     system-depth-1*
       exception*
@@ -230,6 +232,7 @@ system-depth-1:
 --------------------------------------------------------------------------
 system-depth-2:
   hash: "f1434ba679e6b1155a535a19738c3be2"
+  tree_label: "e"
   component:
     system-depth-2*
       exception*
@@ -257,6 +260,7 @@ system-depth-2:
 --------------------------------------------------------------------------
 system-depth-3:
   hash: "27b19d035e291a5a750f2d39f0658220"
+  tree_label: "componentPromise"
   component:
     system-depth-3*
       exception*
@@ -293,6 +297,7 @@ system-depth-3:
 --------------------------------------------------------------------------
 system-depth-4:
   hash: "256fdadc22b3abffcf4ec847e43615d3"
+  tree_label: "e/<"
   component:
     system-depth-4*
       exception*
@@ -338,6 +343,7 @@ system-depth-4:
 --------------------------------------------------------------------------
 system-depth-5:
   hash: "09767cbb939dfda38a031f6ce40e6ee0"
+  tree_label: "W"
   component:
     system-depth-5*
       exception*

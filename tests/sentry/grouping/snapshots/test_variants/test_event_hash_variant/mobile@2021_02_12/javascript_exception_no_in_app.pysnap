@@ -1,10 +1,11 @@
 ---
-created: '2021-03-08T16:39:06.969871Z'
+created: '2021-03-09T10:13:48.728677Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 system:
   hash: "c0f3f7d6deb17aec9d07259ac684fad0"
+  tree_label: "dispatchInteractiveEvent"
   component:
     system*
       exception*
@@ -76,6 +77,7 @@ system:
 --------------------------------------------------------------------------
 system-depth-1:
   hash: "5652852c2e0f030ff2aab75531859300"
+  tree_label: "callCallback"
   component:
     system-depth-1*
       exception*
@@ -92,6 +94,7 @@ system-depth-1:
 --------------------------------------------------------------------------
 system-depth-2:
   hash: "dec9099448c6b933bd8f19a81eaca1bd"
+  tree_label: "sentryWrapped"
   component:
     system-depth-2*
       exception*
@@ -113,6 +116,7 @@ system-depth-2:
 --------------------------------------------------------------------------
 system-depth-3:
   hash: "aaae5958b3c09511bd5201fdfc436667"
+  tree_label: "invokeGuardedCallbackDev"
   component:
     system-depth-3*
       exception*
@@ -139,6 +143,7 @@ system-depth-3:
 --------------------------------------------------------------------------
 system-depth-4:
   hash: "b32646fc84b4b6b67d079fbc0618820e"
+  tree_label: "invokeGuardedCallback"
   component:
     system-depth-4*
       exception*
@@ -170,6 +175,7 @@ system-depth-4:
 --------------------------------------------------------------------------
 system-depth-5:
   hash: "a179ca629ea4296d1a975c061b84da97"
+  tree_label: "replayUnitOfWork"
   component:
     system-depth-5*
       exception*

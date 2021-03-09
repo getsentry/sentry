@@ -1,10 +1,11 @@
 ---
-created: '2021-03-08T16:39:06.318002Z'
+created: '2021-03-09T10:13:47.995936Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 system:
   hash: "538bdfd8d7bb2495d0d6429c3689a420"
+  tree_label: "fn"
   component:
     system*
       stacktrace*

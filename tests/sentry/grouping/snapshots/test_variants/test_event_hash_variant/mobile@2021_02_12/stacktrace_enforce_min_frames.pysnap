@@ -1,10 +1,11 @@
 ---
-created: '2021-03-08T16:39:06.053561Z'
+created: '2021-03-09T10:13:47.711400Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 system:
   hash: "e0b4eea234ff891472cb927c00153bbe"
+  tree_label: "_main"
   component:
     system*
       exception*
@@ -37,6 +38,7 @@ system:
 --------------------------------------------------------------------------
 system-depth-1:
   hash: "6bcfd06e9f2d4ecc13c3068c56f08a3d"
+  tree_label: "log::__private_api_log"
   component:
     system-depth-1*
       exception*
@@ -51,6 +53,7 @@ system-depth-1:
 --------------------------------------------------------------------------
 system-depth-2:
   hash: "530d3e1d0e491b1429075d946b93c5cd"
+  tree_label: "log_demo::main"
   component:
     system-depth-2*
       exception*
@@ -68,6 +71,7 @@ system-depth-2:
 --------------------------------------------------------------------------
 system-depth-3:
   hash: "00cf41c4907b1c15c20189007fd0cffd"
+  tree_label: "std::rt::lang_start::{{closure}}"
   component:
     system-depth-3*
       exception*
@@ -88,6 +92,7 @@ system-depth-3:
 --------------------------------------------------------------------------
 system-depth-4:
   hash: "804fe59ad967ff79f51148c2fc1e1c2c"
+  tree_label: "std::panicking::try::do_call"
   component:
     system-depth-4*
       exception*
@@ -111,6 +116,7 @@ system-depth-4:
 --------------------------------------------------------------------------
 system-depth-5:
   hash: "7c63b39cc8c54948f95871205ac3aeb5"
+  tree_label: "___rust_maybe_catch_panic"
   component:
     system-depth-5*
       exception*

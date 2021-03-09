@@ -1,10 +1,10 @@
 ---
-created: '2021-03-08T16:39:05.909209Z'
+created: '2021-03-09T10:13:47.547229Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: "750486b8d8c51500fa0dfbb6f1577af0"
+app-depth-1:
+  hash: "73b820e39fcb5ac396b0e288dfec33ac"
   tree_label: "main"
   component:
     app-depth-1*
@@ -123,6 +123,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "8924849495809d42431719c2b9ab65c8"
+  tree_label: "main"
   component:
     system*
       chained-exception*
@@ -511,6 +512,7 @@ system:
 --------------------------------------------------------------------------
 system-depth-1:
   hash: "1f971aa67585d85a2e9e6eb690376e1d"
+  tree_label: "bind0"
   component:
     system-depth-1*
       chained-exception*
@@ -541,9 +543,9 @@ system-depth-1:
           value (ignored because stacktrace takes precedence)
             "service.getName(): \"Tomcat\";  Protocol handler start failed"
 --------------------------------------------------------------------------
-system:
-  hash: "8924849495809d42431719c2b9ab65c8"
-  tree_label: "main"
+system-depth-2:
+  hash: "838ca06e71d56da0d58c8b684fa6c77a"
+  tree_label: "bind"
   component:
     system-depth-2*
       chained-exception*
@@ -590,6 +592,7 @@ system:
 --------------------------------------------------------------------------
 system-depth-3:
   hash: "e8f73dea2deb7369e187495e063a1b7b"
+  tree_label: "bind"
   component:
     system-depth-3*
       chained-exception*
@@ -650,6 +653,7 @@ system-depth-3:
 --------------------------------------------------------------------------
 system-depth-4:
   hash: "aaf325b9d3e0cd391701622831800ca8"
+  tree_label: "bind"
   component:
     system-depth-4*
       chained-exception*
@@ -724,6 +728,7 @@ system-depth-4:
 --------------------------------------------------------------------------
 system-depth-5:
   hash: "72e8348aa207c683dc07d82a720d4cba"
+  tree_label: "bind"
   component:
     system-depth-5*
       chained-exception*
@@ -812,6 +817,7 @@ system-depth-5:
 --------------------------------------------------------------------------
 system-depth-max:
   hash: "ca1e356d85bc74d82d4ae8f3f8bfbbf7"
+  tree_label: "main"
   component:
     system-depth-max*
       chained-exception*

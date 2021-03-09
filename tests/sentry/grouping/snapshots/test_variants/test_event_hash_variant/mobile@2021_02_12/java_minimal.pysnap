@@ -1,5 +1,5 @@
 ---
-created: '2021-03-08T16:39:05.350387Z'
+created: '2021-03-09T10:13:46.958230Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,6 +12,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "ec87dd10e4f7512ecccb4a068c5774ae"
+  tree_label: "run"
   component:
     system*
       exception*
@@ -408,6 +409,7 @@ system:
 --------------------------------------------------------------------------
 system-depth-1:
   hash: "52ea220ca35556ebb03e1991e153c653"
+  tree_label: "home"
   component:
     system-depth-1*
       exception*
@@ -426,6 +428,7 @@ system-depth-1:
 --------------------------------------------------------------------------
 system-depth-2:
   hash: "59ef3cab7ba66f62b79d29aa80090c5c"
+  tree_label: "invoke0"
   component:
     system-depth-2*
       exception*
@@ -451,6 +454,7 @@ system-depth-2:
 --------------------------------------------------------------------------
 system-depth-3:
   hash: "1415060f2c35db944c439d52c620310b"
+  tree_label: "invoke"
   component:
     system-depth-3*
       exception*
@@ -483,6 +487,7 @@ system-depth-3:
 --------------------------------------------------------------------------
 system-depth-4:
   hash: "fceae19423f2f5c139821d29c433ba4c"
+  tree_label: "invoke"
   component:
     system-depth-4*
       exception*
@@ -522,6 +527,7 @@ system-depth-4:
 --------------------------------------------------------------------------
 system-depth-5:
   hash: "44a7bd6bf1a716b6d20615191a4fd11e"
+  tree_label: "invoke"
   component:
     system-depth-5*
       exception*

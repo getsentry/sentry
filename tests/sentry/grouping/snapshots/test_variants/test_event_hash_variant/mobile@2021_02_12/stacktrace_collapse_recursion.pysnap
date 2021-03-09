@@ -1,10 +1,11 @@
 ---
-created: '2021-03-08T16:39:06.770091Z'
+created: '2021-03-09T10:13:48.525627Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 system:
   hash: "894c3489e2ade384dc107bca6829d134"
+  tree_label: "main"
   component:
     system*
       stacktrace*
@@ -60,6 +61,7 @@ system:
 --------------------------------------------------------------------------
 system-depth-1:
   hash: "b7e1e5ef711f75f419c749ffb19efb39"
+  tree_label: "throwError"
   component:
     system-depth-1*
       stacktrace*
@@ -73,6 +75,7 @@ system-depth-1:
 --------------------------------------------------------------------------
 system-depth-2:
   hash: "9840fdc749627fbfacae7e58f325326a"
+  tree_label: "recurFunc"
   component:
     system-depth-2*
       stacktrace*
@@ -93,6 +96,7 @@ system-depth-2:
 --------------------------------------------------------------------------
 system-depth-3:
   hash: "e40eae807d6005ad95f045fcccaeb0a4"
+  tree_label: "recurFunc"
   component:
     system-depth-3*
       stacktrace*
@@ -120,6 +124,7 @@ system-depth-3:
 --------------------------------------------------------------------------
 system-depth-4:
   hash: "3fb69ce71efee7c559762478ce1981bc"
+  tree_label: "normalFunc"
   component:
     system-depth-4*
       stacktrace*
