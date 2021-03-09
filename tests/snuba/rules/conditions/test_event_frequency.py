@@ -39,7 +39,7 @@ class FrequencyConditionMixin:
                 },
                 project_id=self.project.id,
             )
-            value = 2
+            value = 1
             data = {"interval": "1m", "value": str(value)}
 
             rule = self.get_rule(data=data, rule=Rule(environment_id=None))
@@ -78,7 +78,7 @@ class FrequencyConditionMixin:
                 },
                 project_id=self.project.id,
             )
-            value = 2
+            value = 1
             data = {"interval": "1h", "value": str(value)}
 
             rule = self.get_rule(data=data, rule=Rule(environment_id=None))
@@ -113,7 +113,7 @@ class FrequencyConditionMixin:
                 },
                 project_id=self.project.id,
             )
-            value = 2
+            value = 1
             data = {"interval": "1d", "value": str(value)}
 
             rule = self.get_rule(data=data, rule=Rule(environment_id=None))
@@ -174,25 +174,26 @@ class FrequencyConditionMixin:
             self.assertPasses(environment_rule, event)
 
     def test_cache(self):
-        event = self.store_event(
-            data={
-                "fingerprint": ["something_random"],
-                "timestamp": iso_format(before_now(days=5)),
-                "user": {"id": uuid4().hex},
-            },
-            project_id=self.project.id,
-        )
-        value = 2
-        data = {"interval": "1d", "value": str(value)}
+        with self.disable_snuba_query_cache():
+            event = self.store_event(
+                data={
+                    "fingerprint": ["something_random"],
+                    "timestamp": iso_format(before_now(days=5)),
+                    "user": {"id": uuid4().hex},
+                },
+                project_id=self.project.id,
+            )
+            value = 2
+            data = {"interval": "1d", "value": str(value)}
 
-        rule = self.get_rule(data=data, rule=Rule(environment_id=None))
+            rule = self.get_rule(data=data, rule=Rule(environment_id=None))
 
-        self.increment(event, value, timestamp=now() - timedelta(hours=12))
-        self.assertDoesNotPass(rule, event)
+            self.increment(event, value, timestamp=now() - timedelta(hours=12))
+            self.assertDoesNotPass(rule, event)
 
-        # Should not pass, since we'll hit the cache
-        self.increment(event, 1, timestamp=now() - timedelta(hours=12))
-        self.assertDoesNotPass(rule, event)
+            # Should not pass, since we'll hit the cache
+            self.increment(event, 1, timestamp=now() - timedelta(hours=12))
+            self.assertDoesNotPass(rule, event)
 
 
 class EventFrequencyConditionTestCase(FrequencyConditionMixin, RuleTestCase, SnubaTestCase):
