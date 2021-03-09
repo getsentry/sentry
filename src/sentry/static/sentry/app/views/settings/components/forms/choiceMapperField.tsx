@@ -153,14 +153,14 @@ export default class ChoiceMapper extends React.Component<FieldProps> {
     };
 
     // Remove already added values from the items list
-    const selectableValues = addDropdown.items.filter(
-      i => !value.hasOwnProperty(i.value)
-    );
+    const selectableValues =
+      addDropdown.items?.filter(i => !value.hasOwnProperty(i.value)) ?? [];
 
-    const valueMap = addDropdown.items.reduce((map, item) => {
-      map[item.value] = item.label;
-      return map;
-    }, {});
+    const valueMap =
+      addDropdown.items?.reduce((map, item) => {
+        map[item.value] = item.label;
+        return map;
+      }, {}) ?? {};
 
     const dropdown = (
       <DropdownAutoComplete

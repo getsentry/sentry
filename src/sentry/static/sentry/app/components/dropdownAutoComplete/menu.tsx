@@ -22,7 +22,8 @@ export type MenuFooterChildProps = {
 type ListProps = React.ComponentProps<typeof List>;
 
 type Props = {
-  items: ItemsBeforeFilter;
+  /** null items indicates loading */
+  items: ItemsBeforeFilter | null;
   children: (
     args: Pick<
       AutoCompleteChildrenArgs,
