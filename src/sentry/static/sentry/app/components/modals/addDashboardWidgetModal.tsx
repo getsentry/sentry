@@ -372,7 +372,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           <ButtonBar gap={1}>
             <Button
               external
-              href="https://docs.sentry.io/product/dashboards/custom-dashboards/"
+              href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
             >
               {t('Read the docs')}
             </Button>
