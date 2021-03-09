@@ -381,9 +381,9 @@ class DetailsBody extends React.Component<Props> {
                   </DropdownControl>
                   {timePeriod.custom && (
                     <StyledTimeRange>
-                      <DateTime date={timePeriod.start} timeAndDate />
+                      <DateTime date={moment.utc(timePeriod.start)} timeAndDate />
                       {' — '}
-                      <DateTime date={timePeriod.end} timeAndDate />
+                      <DateTime date={moment.utc(timePeriod.end)} timeAndDate />
                     </StyledTimeRange>
                   )}
                 </ChartControls>
