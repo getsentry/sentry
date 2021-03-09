@@ -95,7 +95,7 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
       data-test-id="y-axis"
       label={t('Y-Axis')}
       inline={false}
-      style={{padding: `24px 0`}}
+      style={{padding: `16px 0 24px 0`}}
       flexibleControlStateSize
       stacked
       error={errors?.fields}
