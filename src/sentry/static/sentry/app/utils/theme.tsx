@@ -182,6 +182,11 @@ const aliases = {
   progressBar: colors.purple300,
 
   /**
+   * Default Progressbar color
+   */
+  progressBackground: colors.gray100,
+
+  /**
    * Background of default badge (mainly used in NavTabs)
    */
   badgeBackground: colors.gray200,
@@ -536,6 +541,7 @@ const darkAliases = {
   chartLineColor: colors.gray500,
   chartLabel: colors.gray400,
   progressBar: colors.purple200,
+  progressBackground: colors.gray500,
   badgeBackground: colors.gray400,
 } as const;
 

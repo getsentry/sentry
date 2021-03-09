@@ -67,7 +67,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.create_group(checksum="a" * 32, last_seen=before_now(seconds=1))
         self.login_as(user=self.user)
 
-        response = self.client.get(f"{self.path}?sort_by=date&query=timesSeen:>1k", format="json")
+        response = self.client.get(f"{self.path}?sort_by=date&query=timesSeen:>1t", format="json")
         assert response.status_code == 400
         assert "could not" in response.data["detail"]
 
