@@ -433,13 +433,11 @@ const DoubleFieldWrapper = styled('div')`
 `;
 
 export const modalCss = css`
-  padding: 50px;
-
   .modal-dialog {
     position: unset;
     width: 100%;
-    max-width: 875px;
-    margin: 50px auto;
+    max-width: 700px;
+    margin: 70px auto;
   }
 `;
 
