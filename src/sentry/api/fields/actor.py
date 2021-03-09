@@ -48,7 +48,7 @@ class Actor(namedtuple("Actor", "id type")):
 
     def resolve_to_actor(self):
         return self.resolve().actor
-        
+
     @classmethod
     def resolve_many(cls, actors):
         """

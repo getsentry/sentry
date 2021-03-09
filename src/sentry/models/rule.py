@@ -40,7 +40,6 @@ class Rule(Model):
     )
     owner = FlexibleForeignKey("sentry.Actor", null=True)
 
-
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager(cache_fields=("pk",))
