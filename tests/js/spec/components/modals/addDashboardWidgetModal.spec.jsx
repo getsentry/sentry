@@ -256,6 +256,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(onAdd).not.toHaveBeenCalled();
     expect(widget.title).toEqual('New title');
+
+    expect(eventsStatsMock).toHaveBeenCalledTimes(2);
   });
 
   it('renders column inputs for table widgets', async function () {
