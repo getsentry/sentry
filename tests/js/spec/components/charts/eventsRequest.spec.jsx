@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {doEventsRequest} from 'app/actionCreators/events';
 import EventsRequest from 'app/components/charts/eventsRequest';
@@ -37,7 +37,7 @@ describe('EventsRequest', function () {
           data: [[new Date(), [COUNT_OBJ]]],
         })
       );
-      wrapper = mount(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
+      wrapper = mountWithTheme(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
     });
 
     it('makes requests', async function () {
@@ -132,7 +132,7 @@ describe('EventsRequest', function () {
           ],
         })
       );
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <EventsRequest {...DEFAULTS} includePrevious>
           {mock}
         </EventsRequest>
@@ -207,7 +207,7 @@ describe('EventsRequest', function () {
         })
       );
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <EventsRequest {...DEFAULTS} includeTimeseries>
           {mock}
         </EventsRequest>
@@ -246,7 +246,7 @@ describe('EventsRequest', function () {
         })
       );
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <EventsRequest {...DEFAULTS} includeTimeseries>
           {mock}
         </EventsRequest>
@@ -300,7 +300,7 @@ describe('EventsRequest', function () {
         })
       );
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <EventsRequest {...DEFAULTS} includePrevious yAxis="apdex()">
           {mock}
         </EventsRequest>
@@ -390,7 +390,7 @@ describe('EventsRequest', function () {
         })
       );
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <EventsRequest {...DEFAULTS} includePrevious yAxis={['apdex()', 'epm()']}>
           {mock}
         </EventsRequest>
@@ -454,7 +454,7 @@ describe('EventsRequest', function () {
         })
       );
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <EventsRequest
           {...DEFAULTS}
           includePrevious
@@ -497,7 +497,7 @@ describe('EventsRequest', function () {
     });
 
     it('does not make request', async function () {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <EventsRequest {...DEFAULTS} expired>
           {mock}
         </EventsRequest>
@@ -506,7 +506,7 @@ describe('EventsRequest', function () {
     });
 
     it('errors', async function () {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <EventsRequest {...DEFAULTS} expired>
           {mock}
         </EventsRequest>

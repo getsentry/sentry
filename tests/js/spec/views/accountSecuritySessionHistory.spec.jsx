@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import SessionHistory from 'app/views/settings/account/accountSecurity/sessionHistory';
@@ -40,7 +40,7 @@ describe('AccountSecuritySessionHistory', function () {
       ],
     });
 
-    const wrapper = mount(<SessionHistory />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<SessionHistory />, TestStubs.routerContext());
 
     wrapper.update();
     await tick();
