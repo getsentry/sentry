@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from sentry.utils.compat.mock import patch
 from requests.exceptions import Timeout
 
-from sentry.constants import SentryAppStatus, SentryAppInstallationStatus
+from sentry.constants import SentryAppStatus
 from sentry.models import Rule, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
@@ -332,7 +332,6 @@ class TestSendResourceChangeWebhook(TestCase):
         self.install_2 = self.create_sentry_app_installation(
             organization=self.project.organization,
             slug=self.sentry_app_2.slug,
-            status=SentryAppInstallationStatus.INSTALLED,
         )
 
     @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponse404)
