@@ -1479,11 +1479,11 @@ export type SentryAppComponent = {
     slug:
       | 'clickup'
       | 'clubhouse'
-      | 'rookout'
-      | 'teamwork'
       | 'linear'
-      | 'zepel'
-      | 'spike-integration';
+      | 'rookout'
+      | 'spikesh'
+      | 'teamwork'
+      | 'zepel';
     name: string;
   };
 };

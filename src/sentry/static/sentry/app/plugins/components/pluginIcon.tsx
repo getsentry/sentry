@@ -100,7 +100,7 @@ export const ICON_PATHS = {
   rookout,
   segment,
   slack,
-  'spike-integration': spikesh,
+  spikesh,
   split,
   taiga,
   teamwork,

@@ -22,14 +22,14 @@ const SentryAppIcon = ({slug}: Props) => {
       return <IconClickup size="md" />;
     case 'clubhouse':
       return <IconClubhouse size="md" />;
+    case 'linear':
+      return <IconLinear size="md" />;
     case 'rookout':
       return <IconRookout size="md" />;
-    case 'spike-integration':
+    case 'spikesh':
       return <IconSpikesh size="md" />;
     case 'teamwork':
       return <IconTeamwork size="md" />;
-    case 'linear':
-      return <IconLinear size="md" />;
     case 'zepel':
       return <IconZepel size="md" />;
     default:
