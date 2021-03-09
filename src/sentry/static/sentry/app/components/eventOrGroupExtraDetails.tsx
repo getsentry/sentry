@@ -60,11 +60,13 @@ function EventOrGroupExtraDetails({
 
   return (
     <GroupExtra hasInbox={hasInbox}>
-      {hasInbox && inbox && hasGuideAnchor ? (
-        <GuideAnchor target="inbox_guide_reason">{inboxReason}</GuideAnchor>
-      ) : (
-        inboxReason
-      )}
+      {hasInbox &&
+        inbox &&
+        (hasGuideAnchor ? (
+          <GuideAnchor target="inbox_guide_reason">{inboxReason}</GuideAnchor>
+        ) : (
+          inboxReason
+        ))}
       {shortId &&
         (hasInbox ? (
           <InboxShortId
