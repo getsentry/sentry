@@ -893,31 +893,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert results["order"] == 0
         assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
 
-    def test_top_events_with_standard_deviation(self):
-        with self.feature(self.enabled_features):
-            response = self.client.get(
-                self.url,
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
-                    "interval": "1h",
-                    "yAxis": "count()",
-                    "orderby": ["-p99()"],
-                    "field": ["transaction", "stddev(transaction.duration)"],
-                    "topEvents": 5,
-                },
-                format="json",
-            )
-
-        data = response.data
-
-        assert response.status_code == 200, response.content
-        assert len(data) == 1
-
-        results = data[self.transaction.transaction]
-        assert results["order"] == 0
-        assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
-
     def test_top_events_with_functions_on_different_transactions(self):
         """ Transaction2 has less events, but takes longer so order should be self.transaction then transaction2 """
         transaction_data = load_data("transaction")
