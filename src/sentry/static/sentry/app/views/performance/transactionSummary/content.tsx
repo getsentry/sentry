@@ -215,7 +215,7 @@ class SummaryContent extends React.Component<Props, State> {
               handleCellAction={this.handleCellAction}
               handleOpenInDiscoverClick={this.handleDiscoverViewClick}
               {...getTransactionsListSort(location, {
-                p95: totalValues ? totalValues.p95 : 0,
+                p95: totalValues?.p95 ?? 0,
               })}
               forceLoading={!totalValues}
             />
