@@ -1,11 +1,15 @@
 from django.apps import AppConfig
 
 
-from .models import DemoOrganization, DemoUser
-
-
 class Config(AppConfig):
     name = "sentry.demo"
 
-    def get_models(self):
+    def ready(self):
+        from .tasks import build_up_org_buffer
+
+        build_up_org_buffer.apply_async()
+
+    def get_models(self, *args, **kwargs):
+        from .models import DemoOrganization, DemoUser
+
         return [DemoOrganization, DemoUser]
