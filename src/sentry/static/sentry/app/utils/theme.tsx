@@ -124,7 +124,9 @@ const aliases = {
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: colors.purple300,
+  linkColor: colors.blue300,
+
+  linkHoverColor: colors.blue300,
 
   /**
    * Secondary button colors
@@ -185,11 +187,12 @@ const aliases = {
    * Default Progressbar color
    */
   progressBackground: colors.gray100,
+  alertBackgroundAlpha: 0.3,
 } as const;
 
 const warning = {
   background: colors.yellow300,
-  backgroundLight: color(colors.yellow100).alpha(0.3).string(),
+  backgroundLight: color(colors.yellow100).alpha(aliases.alertBackgroundAlpha).string(),
   border: colors.yellow300,
   iconColor: colors.yellow300,
 } as const;
@@ -203,7 +206,7 @@ const alert = {
   },
   info: {
     background: colors.blue300,
-    backgroundLight: color(colors.blue100).alpha(0.3).string(),
+    backgroundLight: color(colors.blue100).alpha(aliases.alertBackgroundAlpha).string(),
     border: colors.blue200,
     iconColor: colors.blue300,
   },
@@ -211,13 +214,13 @@ const alert = {
   warn: warning,
   success: {
     background: colors.green300,
-    backgroundLight: color(colors.green100).alpha(0.3).string(),
+    backgroundLight: color(colors.green100).alpha(aliases.alertBackgroundAlpha).string(),
     border: colors.green200,
     iconColor: colors.green300,
   },
   error: {
     background: colors.red300,
-    backgroundLight: color(colors.red100).alpha(0.3).string(),
+    backgroundLight: color(colors.red100).alpha(aliases.alertBackgroundAlpha).string(),
     border: colors.red200,
     iconColor: colors.red300,
     textLight: colors.red200,
@@ -509,12 +512,13 @@ const darkAliases = {
   bodyBackground: colors.black,
   headerBackground: colors.gray500,
   background: colors.black,
-  backgroundSecondary: colors.gray500,
+  backgroundSecondary: colors.black,
   border: colors.gray400,
   innerBorder: colors.gray500,
   textColor: colors.white,
   subText: colors.gray200,
-  linkColor: colors.purple200,
+  linkColor: colors.blue300,
+  linkHoverColor: colors.blue300,
   disabled: colors.gray400,
   active: colors.pink300,
   focus: colors.gray500,
@@ -534,6 +538,7 @@ const darkAliases = {
   chartLabel: colors.gray400,
   progressBar: colors.purple200,
   progressBackground: colors.gray500,
+  alertBackgroundAlpha: 0.1,
 } as const;
 
 const theme = {
