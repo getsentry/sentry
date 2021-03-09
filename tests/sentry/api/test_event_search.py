@@ -737,7 +737,6 @@ class ParseSearchQueryTest(unittest.TestCase):
 
     def test_invalid_numeric_fields(self):
         invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
-
         for invalid_query in invalid_queries:
             with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric field"):
                 parse_search_query(invalid_query)
