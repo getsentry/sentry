@@ -14,11 +14,11 @@ system:
           function*
             "call"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "53b9e9679a8ea25880376080b76f98ad"
   tree_label: "call"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           module (ignored java lambda)

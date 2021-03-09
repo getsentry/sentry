@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T09:24:45.770575Z'
+created: '2021-03-09T09:48:21.505251Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,10 +12,10 @@ system:
           filename*
             "foo.py"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "1effb24729ae4c43efa36b460511136a"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           filename*

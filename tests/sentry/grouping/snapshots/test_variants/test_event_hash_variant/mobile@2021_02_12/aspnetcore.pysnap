@@ -22,11 +22,11 @@ app-depth-1:
         value (ignored because stacktrace takes precedence)
           "sync exception"
 --------------------------------------------------------------------------
-app-depth-max:
+app-depth-2:
   hash: "228c649a3aa0901622c0a0e66ab0522c"
   tree_label: "lambda_method"
   component:
-    app-depth-max*
+    app-depth-2*
       exception*
         stacktrace*
           frame (non app frame)
@@ -194,8 +194,8 @@ app-depth-max:
 default:
   hash: null
   component:
-    default (exception of app-depth-1/app-depth-max/system takes precedence)
-      message (exception of app-depth-1/app-depth-max/system takes precedence)
+    default (exception of app-depth-1/app-depth-2/system takes precedence)
+      message (exception of app-depth-1/app-depth-2/system takes precedence)
         "An unhandled exception has occurred while executing the request."
 --------------------------------------------------------------------------
 system:

@@ -24,11 +24,11 @@ app-depth-1:
         value (ignored because stacktrace takes precedence)
           "\"'user'\""
 --------------------------------------------------------------------------
-app-depth-max:
+app-depth-2:
   hash: "121caa876de75ec51bf72ed4c852cd75"
   tree_label: "post"
   component:
-    app-depth-max*
+    app-depth-2*
       exception*
         stacktrace*
           frame (non app frame)

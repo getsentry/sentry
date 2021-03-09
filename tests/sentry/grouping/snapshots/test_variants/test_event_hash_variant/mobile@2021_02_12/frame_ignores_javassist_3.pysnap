@@ -14,11 +14,11 @@ system:
           function*
             "fn"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "dc3d511120ce04996b1eef3496516e5c"
   tree_label: "fn"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           filename* (cleaned javassist parts)

@@ -6,7 +6,7 @@ source: tests/sentry/grouping/test_variants.py
 app:
   hash: null
   component:
-    app (exception of system/system-depth-1/system-depth-2/system-depth-3/system-depth-max takes precedence)
+    app (exception of system/system-depth-1/system-depth-2/system-depth-3/system-depth-4 takes precedence)
       threads (thread has no stacktrace)
 --------------------------------------------------------------------------
 system:
@@ -103,11 +103,11 @@ system-depth-3:
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-4:
   hash: "c29439027eafcf7642f641554ab0f0ef"
   tree_label: "main"
   component:
-    system-depth-max*
+    system-depth-4*
       exception*
         stacktrace*
           frame*

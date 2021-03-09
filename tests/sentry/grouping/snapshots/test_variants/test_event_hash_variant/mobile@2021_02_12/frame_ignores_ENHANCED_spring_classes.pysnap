@@ -14,11 +14,11 @@ system:
           function*
             "jipJipManagementApplication"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "45c0b0a8c777e7a7040d7c39233a08a5"
   tree_label: "jipJipManagementApplication"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           module* (removed codegen marker)

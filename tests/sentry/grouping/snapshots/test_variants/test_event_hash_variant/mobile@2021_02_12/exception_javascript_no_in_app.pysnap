@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T09:24:46.606367Z'
+created: '2021-03-09T09:48:22.444261Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -50,10 +50,10 @@ system-depth-1:
         value (ignored because stacktrace takes precedence)
           "Cannot read property 'submitError' of null"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-2:
   hash: "26552f86ca2368e708afa1df6effc1c5"
   component:
-    system-depth-max*
+    system-depth-2*
       exception*
         stacktrace*
           frame*

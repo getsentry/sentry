@@ -54,11 +54,11 @@ system-depth-2:
         value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-3:
   hash: "61d21e6d53c0837718af047c20e5e7ea"
   tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
   component:
-    system-depth-max*
+    system-depth-3*
       exception*
         stacktrace*
           frame*

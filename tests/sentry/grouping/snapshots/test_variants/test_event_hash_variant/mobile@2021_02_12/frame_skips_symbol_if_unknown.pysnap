@@ -14,11 +14,11 @@ system:
           function*
             "main"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "a972f399399f5566f39b14a7afdd24ff"
   tree_label: "main"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           module*

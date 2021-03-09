@@ -16,11 +16,11 @@ system:
           context-line*
             "hello world"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "64a0e0a34d99dce03a8c5a4c237a4b5a"
   tree_label: "test"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           filename (ignored because frame points to a URL)

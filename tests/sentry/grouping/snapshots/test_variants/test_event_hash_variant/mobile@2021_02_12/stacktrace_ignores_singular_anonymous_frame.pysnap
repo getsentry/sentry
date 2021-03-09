@@ -33,11 +33,11 @@ system-depth-1:
           function* (trimmed javascript function)
             "_createDocumentViewModel"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-2:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
   tree_label: "c"
   component:
-    system-depth-max*
+    system-depth-2*
       stacktrace*
         frame (ignored low quality javascript frame)
           filename (anonymous filename discarded)

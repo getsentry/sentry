@@ -389,6 +389,7 @@ def stacktrace(stacktrace, context, **meta):
                     ignored_frames += 1
 
             if not new_values or not ignored_frames:
+                rv[f"{source}-depth-{max_frames}"] = rv.pop(f"{source}-depth-max")
                 break
 
             new_values.reverse()

@@ -57,11 +57,11 @@ app-depth-3:
         value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
-app-depth-max:
+app-depth-4:
   hash: "418120a66f7031923031f5c52aca0724"
   tree_label: "_main"
   component:
-    app-depth-max*
+    app-depth-4*
       exception*
         stacktrace*
           frame*

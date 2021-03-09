@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T09:24:47.461219Z'
+created: '2021-03-09T09:48:23.615066Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,10 +14,10 @@ system:
           function (ignored lambda function)
             "lambda$work$1"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "be7f1b8b4014de623c533a8218dba5bd"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           module*

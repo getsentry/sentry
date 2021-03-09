@@ -14,11 +14,11 @@ system:
           function* (removed generated erb template suffix)
             "_foo_html_erb"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "4067a71d7098866f87c746a57a77b2bb"
   tree_label: "_foo_html_erb"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           filename*

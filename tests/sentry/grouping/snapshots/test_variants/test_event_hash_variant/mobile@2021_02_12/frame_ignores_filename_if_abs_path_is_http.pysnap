@@ -14,11 +14,11 @@ system:
           function*
             "test"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "098f6bcd4621d373cade4e832627b4f6"
   tree_label: "test"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           filename (ignored because frame points to a URL)

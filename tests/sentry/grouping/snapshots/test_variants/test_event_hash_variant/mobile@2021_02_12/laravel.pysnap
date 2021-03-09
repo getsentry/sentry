@@ -48,11 +48,11 @@ app-depth-2:
         value (ignored because stacktrace takes precedence)
           "LARAVEL TEST"
 --------------------------------------------------------------------------
-app-depth-max:
+app-depth-3:
   hash: "4665d486184740231357ab63f4543a8d"
   tree_label: "require_once"
   component:
-    app-depth-max*
+    app-depth-3*
       exception*
         stacktrace*
           frame*

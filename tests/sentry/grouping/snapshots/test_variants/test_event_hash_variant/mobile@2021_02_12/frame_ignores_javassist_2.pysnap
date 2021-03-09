@@ -14,11 +14,11 @@ system:
           function*
             "fn"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "538bdfd8d7bb2495d0d6429c3689a420"
   tree_label: "fn"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           module* (removed codegen marker)

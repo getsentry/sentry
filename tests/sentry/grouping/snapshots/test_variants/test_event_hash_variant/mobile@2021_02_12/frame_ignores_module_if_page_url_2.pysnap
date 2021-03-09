@@ -16,11 +16,11 @@ system:
           function*
             "a"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "0cc175b9c0f1b6a831c399e269772661"
   tree_label: "a"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           module (ignored bad javascript module)

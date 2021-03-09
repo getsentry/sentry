@@ -3,10 +3,10 @@ created: '2021-03-08T16:39:06.151835Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
+app-depth-1:
   hash: "a728cdf5d62c8e017c35c3fe04051b6e"
   component:
-    app-depth-max*
+    app-depth-1*
       exception*
         stacktrace*
           frame*

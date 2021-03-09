@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T09:24:46.402342Z'
+created: '2021-03-09T09:48:22.185331Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -17,10 +17,10 @@ system:
           filename (ignored because frame points to a URL)
             "foo.py"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: null
   component:
-    system-depth-max
+    system-depth-1
       stacktrace
         frame (ignored single non-URL JavaScript frame)
           module*

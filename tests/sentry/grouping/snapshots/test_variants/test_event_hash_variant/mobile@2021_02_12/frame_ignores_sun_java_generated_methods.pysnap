@@ -30,11 +30,11 @@ system-depth-1:
           function*
             "invoke"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-2:
   hash: "9bc326575875422d0d4ced3c35d9f916"
   tree_label: "invoke"
   component:
-    system-depth-max*
+    system-depth-2*
       stacktrace*
         frame*
           module* (removed reflection marker)

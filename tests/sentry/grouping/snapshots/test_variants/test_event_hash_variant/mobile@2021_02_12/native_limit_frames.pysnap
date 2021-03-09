@@ -23,11 +23,11 @@ system:
         value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "9bb5de55b854491dacc677184c9b019a"
   tree_label: "<lambda>::operator()"
   component:
-    system-depth-max*
+    system-depth-1*
       exception*
         stacktrace*
           frame (ignored because only 1 frame is considered by stack trace rule (family:native max-frames=1))

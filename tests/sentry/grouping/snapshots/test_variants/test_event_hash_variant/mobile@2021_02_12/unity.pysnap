@@ -3,11 +3,11 @@ created: '2021-03-08T16:39:05.365595Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
+app-depth-1:
   hash: "a12d579fed7636c2a5d2fae110c95ce5"
   tree_label: "SampleScript.ThrowNull ()"
   component:
-    app-depth-max*
+    app-depth-1*
       exception*
         stacktrace*
           frame (non app frame)

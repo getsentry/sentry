@@ -23,10 +23,10 @@ app-depth-1:
         value (ignored because stacktrace takes precedence)
           "undefined is not a function (evaluating '({}).invalidFunction()')"
 --------------------------------------------------------------------------
-app-depth-max:
+app-depth-2:
   hash: "73470e545e51eea9cff8a6c006f68f57"
   component:
-    app-depth-max*
+    app-depth-2*
       exception*
         stacktrace*
           frame (non app frame)

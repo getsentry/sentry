@@ -14,11 +14,11 @@ system:
           function*
             "invoke"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "07d1a8e5728b3c4c7aa8b8273fd0e753"
   tree_label: "invoke"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           module* (removed codegen marker)

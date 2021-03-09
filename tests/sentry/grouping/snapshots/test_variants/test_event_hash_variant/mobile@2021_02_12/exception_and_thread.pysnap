@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T09:24:47.103886Z'
+created: '2021-03-09T09:48:23.118726Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -15,10 +15,10 @@ app-depth-1:
             function (ignored lambda function)
               "lambda$onCreate$2"
 --------------------------------------------------------------------------
-app-depth-max:
+app-depth-2:
   hash: "49a194ee5ef3c5301d7f4c7e6d50e258"
   component:
-    app-depth-max*
+    app-depth-2*
       threads*
         stacktrace*
           frame*
@@ -71,7 +71,7 @@ system:
             "OnErrorNotImplementedException"
           value (ignored because stacktrace takes precedence)
             "The exception was not handled due to missing onError handler in the subscribe() method call. Further reading: <url> | java.lang.ClassCastException: java.lang.String cannot be cast to android.text.Spanned"
-      threads (exception of system/system-depth-1/system-depth-max takes precedence)
+      threads (exception of system/system-depth-1/system-depth-2 takes precedence)
         stacktrace*
           frame*
             module*
@@ -92,34 +92,12 @@ system:
               "getThreadStackTrace"
 --------------------------------------------------------------------------
 system-depth-1:
-  hash: "9b2f648557654ced919ccf7f68052219"
+  hash: "a7d7e75ce5e09430410663be6422eac4"
   component:
     system-depth-1*
       chained-exception*
         exception*
           stacktrace*
-            frame*
-              module*
-                "com.example.AnnotationSpanHelper"
-              function*
-                "createAnnotatedSpannable"
-          type*
-            "ClassCastException"
-          value (ignored because stacktrace takes precedence)
-            "java.lang.String cannot be cast to android.text.Spanned"
---------------------------------------------------------------------------
-system-depth-max:
-  hash: "7aa97fc486ee8768b2741989a75593b1"
-  component:
-    system-depth-max*
-      chained-exception*
-        exception*
-          stacktrace*
-            frame*
-              module*
-                "com.example.chat.messagefactory.ChatMessageFactory"
-              function*
-                "createNoInputRewardRedeemedNoticeItem"
             frame*
               module*
                 "com.example.AnnotationSpanHelper"
@@ -140,3 +118,25 @@ system-depth-max:
             "OnErrorNotImplementedException"
           value (ignored because stacktrace takes precedence)
             "The exception was not handled due to missing onError handler in the subscribe() method call. Further reading: <url> | java.lang.ClassCastException: java.lang.String cannot be cast to android.text.Spanned"
+--------------------------------------------------------------------------
+system-depth-2:
+  hash: "516d909edeb89d2ecfbcabfd250b8f93"
+  component:
+    system-depth-2*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "com.example.chat.messagefactory.ChatMessageFactory"
+              function*
+                "createNoInputRewardRedeemedNoticeItem"
+            frame*
+              module*
+                "com.example.AnnotationSpanHelper"
+              function*
+                "createAnnotatedSpannable"
+          type*
+            "ClassCastException"
+          value (ignored because stacktrace takes precedence)
+            "java.lang.String cannot be cast to android.text.Spanned"

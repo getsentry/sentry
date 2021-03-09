@@ -152,11 +152,11 @@ system-depth-4:
           function*
             "throwError"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-5:
   hash: "894c3489e2ade384dc107bca6829d134"
   tree_label: "main"
   component:
-    system-depth-max*
+    system-depth-5*
       stacktrace*
         frame*
           module*

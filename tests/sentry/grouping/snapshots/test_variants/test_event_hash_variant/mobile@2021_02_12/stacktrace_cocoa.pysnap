@@ -1,12 +1,12 @@
 ---
-created: '2021-02-15T18:46:43.218741Z'
+created: '2021-03-09T09:48:21.356009Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
+app-depth-1:
   hash: "eb416f98479efa56a77c524602dc9979"
   component:
-    app-depth-max*
+    app-depth-1*
       stacktrace*
         frame*
           filename*

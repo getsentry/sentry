@@ -141,11 +141,11 @@ app-depth-4:
         value (ignored because stacktrace takes precedence)
           "Error while reading from socket: ('Connection closed by server.',)"
 --------------------------------------------------------------------------
-app-depth-max:
+app-depth-5:
   hash: "6b059b9febc815ac18ac4d2082e38a9b"
   tree_label: "safe_execute"
   component:
-    app-depth-max*
+    app-depth-5*
       exception*
         stacktrace*
           frame*
@@ -255,8 +255,8 @@ app-depth-max:
 default:
   hash: null
   component:
-    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-max/system takes precedence)
-      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-max/system takes precedence)
+    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/system takes precedence)
+      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/system takes precedence)
         "%s.process_error"
 --------------------------------------------------------------------------
 system:

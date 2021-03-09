@@ -3,11 +3,11 @@ created: '2021-03-08T16:39:06.381053Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
+app-depth-1:
   hash: "eb87c1031dba55b67df86fb9fff59dc6"
   tree_label: "log_demo::main"
   component:
-    app-depth-max*
+    app-depth-1*
       exception*
         stacktrace*
           frame (non app frame)

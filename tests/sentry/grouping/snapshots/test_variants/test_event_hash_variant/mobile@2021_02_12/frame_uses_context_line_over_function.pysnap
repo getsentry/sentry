@@ -14,11 +14,11 @@ system:
           function*
             "bar"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "fb73cb54ced59b1c0c60d9bb40b7336b"
   tree_label: "bar"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           filename*

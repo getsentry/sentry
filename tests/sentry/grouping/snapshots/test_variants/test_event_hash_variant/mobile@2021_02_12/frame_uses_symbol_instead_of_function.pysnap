@@ -14,11 +14,11 @@ system:
           function*
             "int main()"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "23db4a9e73800923f345d2b868993345"
   tree_label: "int main()"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           module*

@@ -153,11 +153,11 @@ system-depth-2:
         value (ignored because stacktrace takes precedence)
           "\"'user'\""
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-3:
   hash: "90888e813b09fa25061af2883c0fb9bd"
   tree_label: "get_response"
   component:
-    system-depth-max*
+    system-depth-3*
       exception*
         stacktrace*
           frame*

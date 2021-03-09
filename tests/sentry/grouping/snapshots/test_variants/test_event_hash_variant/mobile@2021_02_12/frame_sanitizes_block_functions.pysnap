@@ -14,11 +14,11 @@ system:
           function* (ruby block)
             "block"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "27eed4125fc13d42163ddb0b8f357b48"
   tree_label: "block"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           filename*

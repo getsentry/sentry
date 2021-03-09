@@ -7,7 +7,7 @@ app-depth-max:
   hash: "750486b8d8c51500fa0dfbb6f1577af0"
   tree_label: "main"
   component:
-    app-depth-max*
+    app-depth-1*
       chained-exception*
         exception*
           stacktrace*
@@ -117,8 +117,8 @@ app-depth-max:
 default:
   hash: null
   component:
-    default (exception of app-depth-max/system/system-depth-1/system-depth-2/system-depth-3/system-depth-4/system-depth-5/system-depth-max takes precedence)
-      message (exception of app-depth-max/system/system-depth-1/system-depth-2/system-depth-3/system-depth-4/system-depth-5/system-depth-max takes precedence)
+    default (exception of app-depth-1/system/system-depth-1/system-depth-2/system-depth-3/system-depth-4/system-depth-5/system-depth-max takes precedence)
+      message (exception of app-depth-1/system/system-depth-1/system-depth-2/system-depth-3/system-depth-4/system-depth-5/system-depth-max takes precedence)
         "Failed to start connector [Connector[HTTP/<float><int>]]"
 --------------------------------------------------------------------------
 system:

@@ -24,11 +24,11 @@ app-depth-1:
         value (ignored because stacktrace takes precedence)
           "<int> Client Error: Too Many Requests for url: <url>"
 --------------------------------------------------------------------------
-app-depth-max:
+app-depth-2:
   hash: "d59239f5aad3304d60beb1fde3369b78"
   tree_label: "safe_execute"
   component:
-    app-depth-max*
+    app-depth-2*
       exception*
         stacktrace*
           frame*
@@ -66,8 +66,8 @@ app-depth-max:
 default:
   hash: null
   component:
-    default (exception of app-depth-1/app-depth-max/system takes precedence)
-      message (exception of app-depth-1/app-depth-max/system takes precedence)
+    default (exception of app-depth-1/app-depth-2/system takes precedence)
+      message (exception of app-depth-1/app-depth-2/system takes precedence)
         "%s.process_error"
 --------------------------------------------------------------------------
 system:

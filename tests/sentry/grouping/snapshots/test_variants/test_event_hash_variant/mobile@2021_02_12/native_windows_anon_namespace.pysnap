@@ -133,11 +133,11 @@ system-depth-4:
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-5:
   hash: "15d397771f229af8dc42783542f81dd4"
   tree_label: "__scrt_common_main_seh"
   component:
-    system-depth-max*
+    system-depth-5*
       exception*
         stacktrace*
           frame*

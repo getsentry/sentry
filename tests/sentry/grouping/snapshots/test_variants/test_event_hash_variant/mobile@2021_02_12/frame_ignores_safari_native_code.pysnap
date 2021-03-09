@@ -14,11 +14,11 @@ system:
           function*
             "forEach"
 --------------------------------------------------------------------------
-system-depth-max:
+system-depth-1:
   hash: "30eb5001914d29dd8461898b5b8094fe"
   tree_label: "forEach"
   component:
-    system-depth-max*
+    system-depth-1*
       stacktrace*
         frame*
           filename (native code indicated by filename)
