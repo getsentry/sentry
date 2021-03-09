@@ -41,10 +41,15 @@ const propFilter = (p: string) =>
 
 const TextArea = styled(TextAreaControl, {shouldForwardProp: propFilter})`
   ${inputStyles};
-  height: auto;
-  min-height: 40px;
-  padding: calc(${space(1)} - 1px);
-  line-height: 1.6em;
+  line-height: 1.5em;
+  ${p =>
+    p.autosize &&
+    `
+      height: auto;
+      min-height: 40px;
+      padding: calc(${space(1)} - 1px);
+      line-height: 1.6em;
+    `}
 `;
 
 export default TextArea;
