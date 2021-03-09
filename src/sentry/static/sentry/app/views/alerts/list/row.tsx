@@ -34,7 +34,9 @@ import {TableLayout, TitleAndSparkLine} from './styles';
  * Retrieve the start/end for showing the graph of the metric
  * Will show at least 150 and no more than 10,000 data points
  */
-export const makeRuleDetailsQuery = (incident: Incident): {start: string; end: string} => {
+export const makeRuleDetailsQuery = (
+  incident: Incident
+): {start: string; end: string} => {
   const {timeWindow} = incident.alertRule;
   const timeWindowMillis = timeWindow * 60 * 1000;
   const minRange = timeWindowMillis * API_INTERVAL_POINTS_MIN;
@@ -51,7 +53,7 @@ export const makeRuleDetailsQuery = (incident: Incident): {start: string; end: s
     start: getUtcDateString(startDate.subtract(halfRange)),
     end: getUtcDateString(moment.min(endDate.add(halfRange), now)),
   };
-}
+};
 
 type Props = {
   incident: Incident;
