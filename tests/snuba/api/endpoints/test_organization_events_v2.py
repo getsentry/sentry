@@ -2934,3 +2934,25 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
         assert "Link" not in response
+
+    def test_no_nans(self):
+        project = self.create_project(organization=self.organization)
+        query = {
+            "projects": [project.id],
+            "field": [
+                "avg(transaction.duration)",
+                "p50(transaction.duration)",
+                "p75(transaction.duration)",
+                "p95(transaction.duration)",
+                "p99(transaction.duration)",
+                "sum(transaction.duration)",
+                "min(transaction.duration)",
+                "max(transaction.duration)",
+            ],
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        for value in response.data["data"][0].values():
+            assert value is None

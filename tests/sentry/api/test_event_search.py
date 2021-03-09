@@ -2292,18 +2292,38 @@ class ResolveFieldListTest(unittest.TestCase):
 
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["avg", "transaction.duration", "avg_transaction_duration"],
+            ["avgOrNull", "transaction.duration", "avg_transaction_duration"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["max", "timestamp", "last_seen"],
             ["apdex(duration, 300)", None, "apdex_300"],
             ["uniqIf(user, greater(duration, 1200))", None, "user_misery_300"],
-            ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
-            ["quantile(0.95)", "transaction.duration", "percentile_transaction_duration_0_95"],
-            ["quantile(0.99)", "transaction.duration", "percentile_transaction_duration_0_99"],
-            ["quantile(0.995)", "transaction.duration", "percentile_transaction_duration_0_995"],
-            ["quantile(0.999)", "transaction.duration", "percentile_transaction_duration_0_99900"],
             [
-                "quantile(0.99999)",
+                "quantileOrNull(0.75)",
+                "transaction.duration",
+                "percentile_transaction_duration_0_75",
+            ],
+            [
+                "quantileOrNull(0.95)",
+                "transaction.duration",
+                "percentile_transaction_duration_0_95",
+            ],
+            [
+                "quantileOrNull(0.99)",
+                "transaction.duration",
+                "percentile_transaction_duration_0_99",
+            ],
+            [
+                "quantileOrNull(0.995)",
+                "transaction.duration",
+                "percentile_transaction_duration_0_995",
+            ],
+            [
+                "quantileOrNull(0.999)",
+                "transaction.duration",
+                "percentile_transaction_duration_0_99900",
+            ],
+            [
+                "quantileOrNull(0.99999)",
                 "transaction.duration",
                 "percentile_transaction_duration_0_99999",
             ],
@@ -2366,7 +2386,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             ["uniq", "user", "count_unique_user"],
             ["count", None, "count_id"],
-            ["min", "timestamp", "min_timestamp"],
+            ["minOrNull", "timestamp", "min_timestamp"],
         ]
         assert result["groupby"] == []
 
@@ -2442,7 +2462,11 @@ class ResolveFieldListTest(unittest.TestCase):
 
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
+            [
+                "quantileOrNull(0.75)",
+                "transaction.duration",
+                "percentile_transaction_duration_0_75",
+            ],
         ]
         assert result["groupby"] == []
 
@@ -2945,10 +2969,10 @@ class ResolveFieldListTest(unittest.TestCase):
             result = resolve_field_list(fields, eventstore.Filter())
 
             assert result["aggregations"] == [
-                ["quantile(0.5)", snuba_column, f"p50_{column_alias}".strip("_")],
-                ["quantile(0.75)", snuba_column, f"p75_{column_alias}".strip("_")],
-                ["quantile(0.95)", snuba_column, f"p95_{column_alias}".strip("_")],
-                ["quantile(0.99)", snuba_column, f"p99_{column_alias}".strip("_")],
+                ["quantileOrNull(0.5)", snuba_column, f"p50_{column_alias}".strip("_")],
+                ["quantileOrNull(0.75)", snuba_column, f"p75_{column_alias}".strip("_")],
+                ["quantileOrNull(0.95)", snuba_column, f"p95_{column_alias}".strip("_")],
+                ["quantileOrNull(0.99)", snuba_column, f"p99_{column_alias}".strip("_")],
                 ["max", snuba_column, f"p100_{column_alias}".strip("_")],
             ]
 

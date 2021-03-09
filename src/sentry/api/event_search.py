@@ -1955,7 +1955,7 @@ FUNCTIONS = {
         Function(
             "percentile",
             required_args=[NumericColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
-            aggregate=["quantile({percentile:g})", ArgValue("column"), None],
+            aggregate=["quantileOrNull({percentile:g})", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -1963,7 +1963,7 @@ FUNCTIONS = {
         Function(
             "p50",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
-            aggregate=["quantile(0.5)", ArgValue("column"), None],
+            aggregate=["quantileOrNull(0.5)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -1971,7 +1971,7 @@ FUNCTIONS = {
         Function(
             "p75",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
-            aggregate=["quantile(0.75)", ArgValue("column"), None],
+            aggregate=["quantileOrNull(0.75)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -1979,7 +1979,7 @@ FUNCTIONS = {
         Function(
             "p95",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
-            aggregate=["quantile(0.95)", ArgValue("column"), None],
+            aggregate=["quantileOrNull(0.95)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -1987,7 +1987,7 @@ FUNCTIONS = {
         Function(
             "p99",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
-            aggregate=["quantile(0.99)", ArgValue("column"), None],
+            aggregate=["quantileOrNull(0.99)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -2148,7 +2148,7 @@ FUNCTIONS = {
         Function(
             "min",
             required_args=[NumericColumnNoLookup("column")],
-            aggregate=["min", ArgValue("column"), None],
+            aggregate=["minOrNull", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -2156,7 +2156,7 @@ FUNCTIONS = {
         Function(
             "max",
             required_args=[NumericColumnNoLookup("column")],
-            aggregate=["max", ArgValue("column"), None],
+            aggregate=["maxOrNull", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -2164,7 +2164,7 @@ FUNCTIONS = {
         Function(
             "avg",
             required_args=[NumericColumnNoLookup("column")],
-            aggregate=["avg", ArgValue("column"), None],
+            aggregate=["avgOrNull", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -2172,7 +2172,7 @@ FUNCTIONS = {
         Function(
             "sum",
             required_args=[NumericColumnNoLookup("column")],
-            aggregate=["sum", ArgValue("column"), None],
+            aggregate=["sumOrNull", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
         ),
