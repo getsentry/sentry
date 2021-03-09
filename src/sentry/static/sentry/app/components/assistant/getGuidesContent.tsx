@@ -118,7 +118,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     },
     {
       guide: 'for_review_guide',
-      requiredTargets: ['for_review_guide_tab', 'inbox_guide_reason'],
+      requiredTargets: ['for_review_guide_tab', 'inbox_guide_reason', 'is_inbox_tab'],
       steps: [
         {
           target: 'for_review_guide_tab',

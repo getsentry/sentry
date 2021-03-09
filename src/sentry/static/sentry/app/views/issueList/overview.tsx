@@ -21,6 +21,7 @@ import {fetchTagValues, loadOrganizationTags} from 'app/actionCreators/tags';
 import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
@@ -1034,6 +1035,9 @@ class IssueListOverview extends React.Component<Props, State> {
       <Feature organization={organization} features={['organizations:inbox']}>
         {({hasFeature}) => (
           <React.Fragment>
+            {hasFeature && isForReviewQuery(query) && (
+              <GuideAnchor target="is_inbox_tab" />
+            )}
             {hasFeature && (
               <IssueListHeader
                 organization={organization}
