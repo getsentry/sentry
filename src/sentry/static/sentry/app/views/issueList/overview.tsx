@@ -1035,9 +1035,6 @@ class IssueListOverview extends React.Component<Props, State> {
       <Feature organization={organization} features={['organizations:inbox']}>
         {({hasFeature}) => (
           <React.Fragment>
-            {hasFeature && isForReviewQuery(query) && (
-              <GuideAnchor target="is_inbox_tab" />
-            )}
             {hasFeature && (
               <IssueListHeader
                 organization={organization}
@@ -1131,6 +1128,10 @@ class IssueListOverview extends React.Component<Props, State> {
                 )}
               </SidebarContainer>
             </StyledPageContent>
+
+            {hasFeature && isForReviewQuery(query) && (
+              <GuideAnchor target="is_inbox_tab" />
+            )}
           </React.Fragment>
         )}
       </Feature>
