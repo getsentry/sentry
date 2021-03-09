@@ -659,8 +659,10 @@ def bulk_raw_query(snuba_param_list, referrer=None, use_cache=False):
         for (query_pos, query_params), cache_key in zip(query_param_list, cache_keys):
             cached_result = cache_data.get(cache_key)
             if cached_result is None:
+                metrics.incr("snuba.query_cache.miss")
                 to_query.append((query_pos, query_params, cache_key))
             else:
+                metrics.incr("snuba.query_cache.hit")
                 results.append((query_pos, json.loads(cached_result)))
     else:
         to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
