@@ -92,11 +92,6 @@ export type Actor = {
   email?: string;
 };
 
-export type SuggestedAssignee = Actor & {
-  suggestedReason: SuggestedOwnerReason;
-  assignee: Team | User;
-};
-
 /**
  * Organization summaries are sent when you request a
  * list of all organizations
@@ -1476,7 +1471,14 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear' | 'zepel';
+    slug:
+      | 'clickup'
+      | 'clubhouse'
+      | 'linear'
+      | 'rookout'
+      | 'spikesh'
+      | 'teamwork'
+      | 'zepel';
     name: string;
   };
 };

@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import BarChart from 'app/components/charts/barChart';
@@ -18,7 +19,7 @@ import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
 import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
 import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 import {DoubleHeaderContainer} from '../../styles';
 
@@ -26,6 +27,7 @@ const NUM_BUCKETS = 50;
 const PRECISION = 0;
 
 type Props = {
+  theme: Theme;
   location: Location;
   organization: Organization;
   eventView: EventView;
@@ -37,6 +39,7 @@ type Props = {
 
 export function HistogramChart(props: Props) {
   const {
+    theme,
     location,
     onFilterChange,
     organization,
@@ -167,4 +170,4 @@ const MaskContainer = styled('div')`
   position: relative;
 `;
 
-export default HistogramChart;
+export default withTheme(HistogramChart);
