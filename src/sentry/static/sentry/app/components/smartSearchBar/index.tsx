@@ -248,6 +248,11 @@ type Props = {
    * such as the stream view where it is a top level concept
    */
   excludeEnvironment?: boolean;
+  /**
+   * Used to enforce length on the query
+   */
+  maxQueryLength?: number;
+  queryCharsLeft?: number;
 };
 
 type State = {
@@ -918,7 +923,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     tagName: string,
     type: ItemType
   ) => {
-    const {hasRecentSearches, maxSearchItems} = this.props;
+    const {hasRecentSearches, maxSearchItems, queryCharsLeft} = this.props;
 
     this.setState(
       createSearchGroups(
@@ -926,7 +931,8 @@ class SmartSearchBar extends React.Component<Props, State> {
         hasRecentSearches ? recentSearchItems : undefined,
         tagName,
         type,
-        maxSearchItems
+        maxSearchItems,
+        queryCharsLeft
       )
     );
   };
@@ -1084,6 +1090,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       onSidebarToggle,
       inlineLabel,
       sort,
+      maxQueryLength,
     } = this.props;
 
     const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
@@ -1111,6 +1118,7 @@ class SmartSearchBar extends React.Component<Props, State> {
           onChange={this.onQueryChange}
           onClick={this.onInputClick}
           disabled={disabled}
+          maxLength={maxQueryLength}
         />
         {(this.state.loading || this.state.searchGroups.length > 0) && (
           <DropdownWrapper visible={this.state.dropdownVisible}>

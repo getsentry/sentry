@@ -6,6 +6,7 @@ import {Location} from 'history';
 import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
+import {MAX_QUERY_LENGTH} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -50,8 +51,12 @@ type Props = {
   handleSearch: (searchQuery: string) => void;
 } & WithRouterProps;
 
-type State = {};
+type State = {
+  charsLeft?: number;
+};
 class LandingContent extends React.Component<Props, State> {
+  state: State = {charsLeft: MAX_QUERY_LENGTH};
+
   componentDidMount() {
     const {organization} = this.props;
     trackAnalyticsEvent({
@@ -69,6 +74,13 @@ class LandingContent extends React.Component<Props, State> {
 
     return stringifyQueryObject(parsed);
   }
+
+  handleQueryLength = (value: string) => {
+    const charCount = value.length;
+    const maxChar = MAX_QUERY_LENGTH;
+    const charLength = maxChar - charCount;
+    this.setState({charsLeft: charLength});
+  };
 
   handleLandingDisplayChange = (field: string) => {
     const {location, organization, eventView, projects} = this.props;
@@ -128,6 +140,9 @@ class LandingContent extends React.Component<Props, State> {
               ['epm()', 'eps()']
             )}
             onSearch={handleSearch}
+            onChange={this.handleQueryLength}
+            maxQueryLength={MAX_QUERY_LENGTH}
+            queryCharsLeft={this.state.charsLeft}
           />
           <ProjectTypeDropdown>
             <DropdownControl
@@ -296,6 +311,7 @@ class LandingContent extends React.Component<Props, State> {
             ['epm()', 'eps()']
           )}
           onSearch={handleSearch}
+          maxQueryLength={MAX_QUERY_LENGTH}
         />
         <Feature features={['performance-vitals-overview']}>
           <FrontendCards
