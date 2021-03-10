@@ -781,5 +781,9 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         expected = [
             (0, 1, [("transaction.duration", 0)]),
+            (1, 2, [("transaction.duration", 0)]),
+            (2, 3, [("transaction.duration", 0)]),
+            (3, 4, [("transaction.duration", 0)]),
+            (4, 5, [("transaction.duration", 0)]),
         ]
         assert response.data == self.as_response_data(expected)
