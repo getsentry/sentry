@@ -18,6 +18,7 @@ type Props = {
   onEditRule: (rule: DynamicSamplingRule) => () => void;
   onDeleteRule: (rule: DynamicSamplingRule) => () => void;
   onUpdateRules: (rules: Array<DynamicSamplingRule>) => void;
+  emptyMessage: string;
 };
 
 type State = {
@@ -90,14 +91,14 @@ class Rules extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {onEditRule, onDeleteRule, disabled} = this.props;
+    const {onEditRule, onDeleteRule, disabled, emptyMessage} = this.props;
     const {rules} = this.state;
 
     return (
       <StyledPanelTable
         headers={['', t('Type'), t('Conditions'), t('Rate'), '']}
         isEmpty={!rules.length}
-        emptyMessage={t('There are no rules to display')}
+        emptyMessage={emptyMessage}
       >
         <DraggableList
           disabled={disabled}
