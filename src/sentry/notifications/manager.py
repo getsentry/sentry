@@ -22,7 +22,7 @@ def validate(type: NotificationSettingTypes, value: NotificationSettingOptionVal
 def _get_scope(user_id, project=None, organization=None):
     """
     Figure out the scope from parameters and return it as a tuple,
-    TODO Add validation. Make sure user_id is in the project or organization.
+    TODO(mgaeta): Make sure user_id is in the project or organization.
 
     :param user_id: The user's ID
     :param project: (Optional) Project object
@@ -84,7 +84,7 @@ def _get_legacy_value(type: NotificationSettingTypes, value: NotificationSetting
 
 class NotificationsManager(BaseManager):
     """
-    TODO add a caching layer for notification settings
+    TODO(mgaeta): Add a caching layer for notification settings
     """
 
     @staticmethod
@@ -98,17 +98,18 @@ class NotificationsManager(BaseManager):
         """
         Something noteworthy has happened. Let the targets know about what
         happened on their own terms. For each target, check their notification
-        preferences and send them a message (or potentially do nothing if this
-        kind of correspondence is muted.)
+        preferences and send them a message (or potentially do nothing and
+        return False if this kind of correspondence is muted.)
 
         :param provider: ExternalProviders enum
         :param type: NotificationSettingTypes enum
-        :param user_id: User object's ID
-        :param team_id: Team object's ID
-        :param data: TODO describe the payload schema
-        :return:
+        :param user_id: (optional) User object's ID
+        :param team_id: (optional) Team object's ID
+        :param data: The payload depends on the notification type.
+
+        :return: Boolean. Was a notification sent?
         """
-        pass
+        return False
 
     def get_settings(
         self,
@@ -120,14 +121,18 @@ class NotificationsManager(BaseManager):
         organization=None,
     ):
         """
-        In this temporary implementation, always read EMAIL settings from UserOptions.
+        In this temporary implementation, always read EMAIL settings from
+        UserOptions. One and only one of (user, team, project, or organization)
+        must not be null. This function automatically translates a missing DB
+        row to NotificationSettingOptionValues.DEFAULT.
+
 
         :param provider: ExternalProviders enum
         :param type: NotificationSetting.type enum
-        :param user: TODO
-        :param team: TODO
-        :param project: TODO
-        :param organization: TODO
+        :param user: (optional) A User object
+        :param team: (optional) A Team object
+        :param project: (optional) A Project object
+        :param organization: (optional) An Organization object
 
         :return: NotificationSettingOptionValues enum
         """
@@ -155,7 +160,8 @@ class NotificationsManager(BaseManager):
             user, _get_legacy_key(type), project=project, organization=organization
         )
 
-        # TODO assert value == legacy_value.
+        # TODO(mgaeta): This line will be valid after the "copy migration".
+        # assert _value == legacy_value
 
         return legacy_value
 
@@ -194,7 +200,7 @@ class NotificationsManager(BaseManager):
         team_id_option = team_id or getattr(kwargs.get("team"), "id", None)
 
         if not validate(type, value):
-            raise Exception("TODO VALIDATE")
+            raise Exception(f"value '{value}' is not valid for type '{type}'")
 
         scope_type, scope_identifier = _get_scope(
             user_id_option, project=project_option, organization=organization_option
