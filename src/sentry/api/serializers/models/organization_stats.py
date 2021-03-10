@@ -15,7 +15,7 @@ CATEGORY_NAME_MAP = {
 
 class StatsResponse:
     def __init__(self, start, end, rollup):
-        self._values = {k: TimeSeriesValues(start, end, rollup) for k in CATEGORY_NAME_MAP}
+        self._values = {k: TimeSeriesUsageStats(start, end, rollup) for k in CATEGORY_NAME_MAP}
 
     def get(self, category):
         return self._values[category]
@@ -33,7 +33,7 @@ class StatsResponse:
 
 
 # # TODO: perhaps remove this class
-class TimeSeriesValues:
+class TimeSeriesUsageStats:
     def __init__(self, start, end, rollup):
         self.values = zerofill({}, start, end, rollup, "time")
 
@@ -53,7 +53,7 @@ class StatValue:
         pass
 
 
-class UsageStatCategory:
+class UsageStat:
     def __init__(self, time):
         self.accepted = StatValue()
         self.filtered = StatValue()
@@ -122,7 +122,7 @@ def zerofill(data, start, end, rollup, orderby):
             rv = rv + data_by_time[key]
             data_by_time[key] = []
         else:
-            val = UsageStatCategory(key)
+            val = UsageStat(key)
             rv[key] = val
 
     return rv
