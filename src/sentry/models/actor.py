@@ -49,6 +49,12 @@ class Actor(Model):
 
 
 class ActorTuple(namedtuple("Actor", "id type")):
+    """
+    This is an artifact from before we had the Actor model.
+    We want to eventually drop this model and merge functionality with Actor
+    This should happen more easily if we move GroupAssignee, GroupOwner, etc. to use the Actor model.
+    """
+
     def get_actor_identifier(self):
         return "%s:%d" % (self.type.__name__.lower(), self.id)
 
