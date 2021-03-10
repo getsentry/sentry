@@ -20,13 +20,12 @@ import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
-import {getUtcDateString} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
 import {Widget} from './types';
+import {eventViewFromWidgetQuery} from './utils';
 import WidgetCardChart from './widgetCardChart';
 import WidgetQueries from './widgetQueries';
 
@@ -117,22 +116,7 @@ class WidgetCard extends React.Component<Props> {
       // Open table widget in Discover
 
       const query = widget.queries[0];
-
-      const {start, end, period: statsPeriod} = selection.datetime;
-      const {projects} = selection;
-
-      const eventView = EventView.fromSavedQuery({
-        id: undefined,
-        name: query.name,
-        version: 2,
-        fields: query.fields,
-        query: query.conditions,
-        orderby: query.orderby,
-        projects,
-        range: statsPeriod,
-        start: start ? getUtcDateString(start) : undefined,
-        end: end ? getUtcDateString(end) : undefined,
-      });
+      const eventView = eventViewFromWidgetQuery(query, selection);
 
       menuOptions.push(
         <MenuItem
