@@ -656,7 +656,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200
         result = json.loads(response.content)
-        assert len(result) == 2  # shouldnt this also return the issue rule?
+        assert len(result) == 2
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "10", "project": [self.project.id], "team": ["notvalid"]}
