@@ -10,7 +10,6 @@ from sentry.incidents.models import (
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.models import Rule
-from sentry.models.actor import get_actor_id_from_actor
 from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 
@@ -77,7 +76,7 @@ class AlertRuleSerializer(Serializer):
             "triggers": attrs.get("triggers", []),
             "projects": sorted(attrs.get("projects", [])),
             "includeAllProjects": obj.include_all_projects,
-            "owner": get_actor_id_from_actor(obj.owner),
+            "owner": obj.owner.get_actor_identifier() if obj.owner else None,
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),

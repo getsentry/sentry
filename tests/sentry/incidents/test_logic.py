@@ -11,7 +11,6 @@ from django.core import mail
 from django.utils import timezone
 
 from sentry.api.event_search import InvalidSearchQuery
-from sentry.api.fields.actor import Actor
 from sentry.incidents.events import (
     IncidentCommentCreatedEvent,
     IncidentCreatedEvent,
@@ -79,7 +78,7 @@ from sentry.incidents.models import (
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, BaseIncidentsTest
-from sentry.models import PagerDutyService
+from sentry.models import ActorTuple, PagerDutyService
 
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils import json
@@ -840,7 +839,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project],
             "alert rule 1",
-            Actor.from_actor_identifier(self.user.id),
+            ActorTuple.from_actor_identifier(self.user.id),
             "level:error",
             "count()",
             1,
@@ -852,7 +851,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project],
             "alert rule 2",
-            Actor.from_actor_identifier(f"team:{self.team.id}"),
+            ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
             "level:error",
             "count()",
             1,
@@ -1082,7 +1081,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project],
             "alert rule 1",
-            Actor.from_actor_identifier(self.user.id),
+            ActorTuple.from_actor_identifier(self.user.id),
             "level:error",
             "count()",
             1,
@@ -1092,17 +1091,17 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.owner.id == self.user.actor.id
         update_alert_rule(
             alert_rule=alert_rule,
-            owner=Actor.from_actor_identifier(f"team:{self.team.id}"),
+            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
         )
         assert alert_rule.owner.id == self.team.actor.id
         update_alert_rule(
             alert_rule=alert_rule,
-            owner=Actor.from_actor_identifier(f"user:{self.user.id}"),
+            owner=ActorTuple.from_actor_identifier(f"user:{self.user.id}"),
         )
         assert alert_rule.owner.id == self.user.actor.id
         update_alert_rule(
             alert_rule=alert_rule,
-            owner=Actor.from_actor_identifier(self.user.id),
+            owner=ActorTuple.from_actor_identifier(self.user.id),
         )
         assert alert_rule.owner.id == self.user.actor.id
         update_alert_rule(
