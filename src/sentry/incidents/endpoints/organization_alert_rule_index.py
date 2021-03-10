@@ -76,7 +76,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
             for team_id in teams:
                 if type(team_id) is not int and not team_id.isdigit():
-                    return Response("Invalid Team IDs", status=status.HTTP_400_BAD_REQUEST)
+                    return Response(
+                        f"Invalid Team ID: {team_id}", status=status.HTTP_400_BAD_REQUEST
+                    )
 
             teams_query = Q(
                 owner_id__in=Team.objects.filter(id__in=teams).values_list("actor_id", flat=True)
