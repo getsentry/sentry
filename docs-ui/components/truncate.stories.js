@@ -9,7 +9,7 @@ export default {
 };
 
 export const TruncateAndExpandOnHover = () => (
-  <div>
+  <React.Fragment>
     <Wrapper position="start">
       <Truncate value="https://sentry.io/organizations/sentry/issues/" maxLength={30} />
     </Wrapper>
@@ -21,13 +21,13 @@ export const TruncateAndExpandOnHover = () => (
         expandDirection="left"
       />
     </Wrapper>
-  </div>
+  </React.Fragment>
 );
 
 TruncateAndExpandOnHover.storyName = 'Truncate and Expand on Hover';
 
 export const TruncateWithRegex = () => (
-  <div>
+  <React.Fragment>
     <Wrapper position="start">
       <Truncate
         value="https://sentry.io/organizations/sentry/issues/"
@@ -44,7 +44,7 @@ export const TruncateWithRegex = () => (
         expandDirection="left"
       />
     </Wrapper>
-  </div>
+  </React.Fragment>
 );
 
 TruncateWithRegex.storyName = 'Truncate with Regex';
