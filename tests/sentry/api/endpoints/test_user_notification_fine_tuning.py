@@ -1,4 +1,9 @@
-from sentry.models import UserEmail, UserOption
+from sentry.models import NotificationSetting, UserEmail, UserOption
+from sentry.models.integration import ExternalProviders
+from sentry.notifications.types import (
+    NotificationSettingTypes,
+    NotificationSettingOptionValues,
+)
 from sentry.testutils import APITestCase
 
 
@@ -21,12 +26,22 @@ class UserNotificationFineTuningTest(APITestCase):
         self.login_as(user=self.user)
 
     def test_returns_correct_defaults(self):
-        UserOption.objects.create(user=self.user, project=self.project, key="mail:alert", value=1)
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+            project=self.project,
+        )
         response = self.get_valid_response("me", "alerts")
         assert response.data.get(self.project.id) == 1
 
-        UserOption.objects.create(
-            user=self.user, organization=self.org, key="deploy-emails", value=1
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+            organization=self.org,
         )
         response = self.get_valid_response("me", "deploy")
         assert response.data.get(self.org.id) == 1

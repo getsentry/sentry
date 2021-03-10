@@ -1,5 +1,10 @@
-from sentry.models import UserOption
 from sentry.notifications.legacy_mappings import UserOptionValue
+from sentry.models import NotificationSetting, UserOption
+from sentry.models.integration import ExternalProviders
+from sentry.notifications.types import (
+    NotificationSettingTypes,
+    NotificationSettingOptionValues,
+)
 from sentry.testutils import APITestCase
 
 
@@ -30,22 +35,29 @@ class UserNotificationDetailsTest(APITestCase):
         self.get_valid_response(user.id)
 
     def test_returns_correct_defaults(self):
+        """
+        In this test we add existing per-project and per-organization
+        Notification settings in order to test that defaults are correct.
+        """
         user = self.create_user(email="a@example.com")
         org = self.create_organization(name="Org Name", owner=user)
 
-        # Adding existing UserOptions for a project or org to test that defaults are correct
         # default is 3
-        UserOption.objects.create(
-            user=user, project=None, organization=org, key="deploy-emails", value=1
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.NEVER,
+            user=user,
+            organization=org,
         )
 
         # default is UserOptionValue.participating_only
-        UserOption.objects.create(
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.ALWAYS,
             user=user,
-            project=None,
             organization=org,
-            key="workflow:notifications",
-            value=UserOptionValue.all_conversations,
         )
 
         self.login_as(user=user)
@@ -89,8 +101,12 @@ class UserNotificationDetailsTest(APITestCase):
         user = self.create_user(email="a@example.com")
         org = self.create_organization(name="Org Name", owner=user)
         self.login_as(user=user)
-        UserOption.objects.create(
-            user=user, project=None, organization=org, key="deploy-emails", value=1
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.NEVER,
+            user=user,
+            organization=org,
         )
 
         response = self.get_valid_response("me", method="put", **{"deployNotifications": 2})
