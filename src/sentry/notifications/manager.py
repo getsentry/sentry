@@ -144,7 +144,7 @@ class NotificationsManager(BaseManager):
         )
         target_type, target_identifier = _get_target(user_id_option, team_id_option)
 
-        _value = (
+        value = (  # NOQA
             self.filter(
                 provider=provider.value,
                 type=type.value,
@@ -161,7 +161,7 @@ class NotificationsManager(BaseManager):
         )
 
         # TODO(mgaeta): This line will be valid after the "copy migration".
-        # assert _value == legacy_value
+        # assert value == legacy_value
 
         return legacy_value
 
