@@ -31,4 +31,6 @@ filterwarnings = [
 ]
 # This is for people who install pytest-xdist locally,
 # and use the -f/--looponfail feature.
-looponfailroots = ["src", "tests"]
+# Disabled for now, because it prevents pytest from running with "Unknown config option: looponfailroots"
+# if pytest-xdist is not installed and there is no -p no:warnings.
+# looponfailroots = ["src", "tests"]
