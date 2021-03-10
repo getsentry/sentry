@@ -47,8 +47,9 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         Update user notification options
         ````````````````````````````````
 
-        Updates user's notification options on a per project or organization basis.
-        Expected payload is a map/dict whose key is a project or org id and value varies depending on `notification_type`.
+        Updates user's notification options on a per project or organization
+        basis. Expected payload is a map/dict whose key is a project or org id
+        and value varies depending on `notification_type`.
 
         For `alerts`, `workflow`, `email` it expects a key of projectId
         For `deploy` and `reports` it expects a key of organizationId

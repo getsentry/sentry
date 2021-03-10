@@ -51,7 +51,7 @@ class NotificationPlugin(Plugin):
         """
         This calls the notify_users method of the plugin.
         Normally this method eats the error and logs it but if we
-        set raise_exception=True like we do for the test plugin buttion,
+        set raise_exception=True like we do for the test plugin button,
         the exception is raised
         """
         event = notification.event

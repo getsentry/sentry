@@ -1,9 +1,9 @@
 from sentry.models import (
     Environment,
+    EnvironmentProject,
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    EnvironmentProject,
     ProjectOwnership,
     ProjectTeam,
     Release,

@@ -10,8 +10,8 @@ from sentry.api.serializers.models.group import (
     snuba_tsdb,
 )
 from sentry.models import (
-    Group,
     Environment,
+    Group,
     GroupEnvironment,
     GroupLink,
     GroupResolution,

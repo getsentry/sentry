@@ -1,9 +1,5 @@
-from sentry.utils.compat import mock
-
 from datetime import timedelta
-
 from django.utils import timezone
-from sentry.utils.compat.mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
@@ -19,6 +15,8 @@ from sentry.models import (
     UserOptionValue,
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
+from sentry.utils.compat.mock import patch
 
 
 class GroupSerializerTest(TestCase):

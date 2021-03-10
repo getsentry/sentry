@@ -134,7 +134,9 @@ register("github-app.client-secret", flags=FLAG_PRIORITIZE_DISK)
 # GitHub Auth
 register("github-login.client-id", default="", flags=FLAG_PRIORITIZE_DISK)
 register("github-login.client-secret", default="", flags=FLAG_PRIORITIZE_DISK)
-register("github-login.reqire-verified-email", type=Bool, default=False, flags=FLAG_PRIORITIZE_DISK)
+register(
+    "github-login.require-verified-email", type=Bool, default=False, flags=FLAG_PRIORITIZE_DISK
+)
 register("github-login.base-domain", default="github.com", flags=FLAG_PRIORITIZE_DISK)
 register("github-login.api-domain", default="api.github.com", flags=FLAG_PRIORITIZE_DISK)
 register("github-login.extended-permissions", type=Sequence, default=[], flags=FLAG_PRIORITIZE_DISK)
@@ -278,7 +280,7 @@ register("store.use-relay-dsn-sample-rate", default=1)
 # Mock out integrations and services for tests
 register("mocks.jira", default=False)
 
-# Record statistics about event payloads and their compressability
+# Record statistics about event payloads and their compressibility
 register("store.nodestore-stats-sample-rate", default=0.0)  # unused
 
 # Killswitch to stop storing any reprocessing payloads.
