@@ -196,7 +196,6 @@ class UserNotificationFineTuningTest(APITestCase):
         ).exists()
 
     def test_saves_and_returns_weekly_reports(self):
-        # TODO MARCOS
         self.get_valid_response(
             "me",
             "reports",
