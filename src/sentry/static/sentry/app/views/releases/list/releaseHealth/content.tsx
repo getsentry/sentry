@@ -48,7 +48,6 @@ const Content = ({
   showPlaceholders,
   isTopRelease,
 }: Props) => {
-  const supportsSessionAdoption = organization.features.includes('session-adoption');
   const activeStatsPeriod = (location.query.healthStatsPeriod || '24h') as StatsPeriod;
   const healthStatsPeriod = (
     <HealthStatsPeriod location={location} activePeriod={activeStatsPeriod} />
@@ -59,9 +58,7 @@ const Content = ({
       <Header>
         <Layout>
           <Column>{t('Project Name')}</Column>
-          <AdoptionColumn>
-            {supportsSessionAdoption ? t('Adoption') : t('User Adoption')}
-          </AdoptionColumn>
+          <AdoptionColumn>{t('Adoption')}</AdoptionColumn>
           {activeDisplay === DisplayOption.USERS ? (
             <React.Fragment>
               <SessionsColumn>{t('Crash Free Users')}</SessionsColumn>
@@ -120,13 +117,9 @@ const Content = ({
               totalSessions24h,
             } = healthData || {};
             const selectedAdoption =
-              activeDisplay === DisplayOption.SESSIONS && supportsSessionAdoption
-                ? sessions_adoption
-                : adoption;
+              activeDisplay === DisplayOption.SESSIONS ? sessions_adoption : adoption;
             const selected24hCount =
-              activeDisplay === DisplayOption.SESSIONS && supportsSessionAdoption
-                ? totalSessions24h
-                : totalUsers24h;
+              activeDisplay === DisplayOption.SESSIONS ? totalSessions24h : totalUsers24h;
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
