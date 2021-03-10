@@ -1,8 +1,6 @@
-import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
 
 import {Client} from 'app/api';
-import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {Event, EventTransaction} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
@@ -62,6 +60,10 @@ export function flattenRelevantPaths(
     }
   }
 
+  if (!events.length) {
+    throw new Error('No relevant path exists!');
+  }
+
   /**
    * Traverse all transactions from current transaction onwards and add
    * them all to the relevant path.
@@ -115,19 +117,14 @@ export function parseQuickTrace(
   const {type, trace} = quickTrace;
 
   if (type === 'empty' || trace === null) {
-    return null;
+    throw new Error('Current event not in quick trace!');
   }
 
   const isFullTrace = type === 'full';
 
   const current = trace.find(e => e.event_id === event.id) ?? null;
   if (current === null) {
-    /**
-     * The current event should always be present in the trace, if not
-     * there is no reason to look at the rest for the quick trace.
-     */
-    Sentry.captureException(new Error('Current event not in quick trace'));
-    return null;
+    throw new Error('Current event not in quick trace!');
   }
 
   /**
@@ -213,12 +210,7 @@ export function getQuickTraceRequestPayload({eventView, location}: DiscoverQuery
   return omit(eventView.getEventsAPIPayload(location), ['field', 'sort', 'per_page']);
 }
 
-export function makeEventView(event: EventTransaction) {
-  const {start, end} = getTraceDateTimeRange({
-    start: event.startTimestamp,
-    end: event.endTimestamp,
-  });
-
+export function makeEventView(start: string, end: string) {
   return EventView.fromSavedQuery({
     id: undefined,
     version: 2,
@@ -233,4 +225,23 @@ export function makeEventView(event: EventTransaction) {
     start,
     end,
   });
+}
+
+export function reduceTrace<T>(
+  trace: TraceFull,
+  visitor: (acc: T, e: TraceFull) => T,
+  initialValue: T
+): T {
+  let result = initialValue;
+
+  const events = [trace];
+  while (events.length) {
+    const current = events.pop()!;
+    for (const child of current.children) {
+      events.push(child);
+    }
+    result = visitor(result, current);
+  }
+
+  return result;
 }

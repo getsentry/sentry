@@ -167,6 +167,7 @@ describe('Dashboards > Detail', function () {
           {
             title: 'Errors',
             interval: '1d',
+            id: '1',
           }
         ),
         TestStubs.Widget(
@@ -174,6 +175,21 @@ describe('Dashboards > Detail', function () {
           {
             title: 'Transactions',
             interval: '1d',
+            id: '2',
+          }
+        ),
+        TestStubs.Widget(
+          [
+            {
+              name: '',
+              conditions: 'event.type:transaction transaction:/api/cats',
+              fields: ['p50()'],
+            },
+          ],
+          {
+            title: 'p50 of /api/cats',
+            interval: '1d',
+            id: '3',
           }
         ),
       ];
@@ -231,10 +247,16 @@ describe('Dashboards > Detail', function () {
       const card = wrapper.find('WidgetCard').first();
       card.find('StyledPanel').simulate('mouseOver');
 
-      // Remove the first widget
+      // Remove the second and third widgets
       wrapper
         .find('WidgetCard')
-        .first()
+        .at(1)
+        .find('IconClick[data-test-id="widget-delete"]')
+        .simulate('click');
+
+      wrapper
+        .find('WidgetCard')
+        .at(1)
         .find('IconClick[data-test-id="widget-delete"]')
         .simulate('click');
 
@@ -247,7 +269,7 @@ describe('Dashboards > Detail', function () {
         expect.objectContaining({
           data: expect.objectContaining({
             title: 'Custom Errors',
-            widgets: [widgets[1]],
+            widgets: [widgets[0]],
           }),
         })
       );

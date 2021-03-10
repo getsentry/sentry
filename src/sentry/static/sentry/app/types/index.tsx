@@ -92,11 +92,6 @@ export type Actor = {
   email?: string;
 };
 
-export type SuggestedAssignee = Actor & {
-  suggestedReason: SuggestedOwnerReason;
-  assignee: Team | User;
-};
-
 /**
  * Organization summaries are sent when you request a
  * list of all organizations
@@ -231,6 +226,7 @@ export type Project = {
 
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {
+    next_id: number;
     rules: DynamicSamplingRules;
   } | null;
   plugins: Plugin[];
@@ -1257,7 +1253,7 @@ export type GroupIntegration = Integration & {
 
 export type PlatformExternalIssue = {
   id: string;
-  groupId: string;
+  issueId: string;
   serviceType: string;
   displayName: string;
   webUrl: string;
@@ -1476,7 +1472,14 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear' | 'zepel';
+    slug:
+      | 'clickup'
+      | 'clubhouse'
+      | 'linear'
+      | 'rookout'
+      | 'spikesh'
+      | 'teamwork'
+      | 'zepel';
     name: string;
   };
 };
@@ -1494,6 +1497,7 @@ export type NewQuery = {
   fields: Readonly<string[]>;
   widths?: Readonly<string[]>;
   orderby?: string;
+  expired?: boolean;
 
   // GlobalSelectionHeader
   projects: Readonly<number[]>;

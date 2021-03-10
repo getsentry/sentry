@@ -70,7 +70,6 @@ function generateTransactionLite({
     project_slug: generateProjectSlug(position),
     parent_event_id: generation <= 0 ? null : generateEventId(parentPosition),
     parent_span_id: generation <= 0 ? null : generateSpanId(parentPosition),
-    is_root: generation === 0,
   };
 }
 
@@ -110,8 +109,9 @@ describe('Quick Trace Utils', function () {
     it('flattens trace without the expected event', function () {
       const trace = generateTrace(1);
       const current = {id: 'you cant find me'} as Event;
-      const relevantPath = flattenRelevantPaths(current, trace);
-      expect(relevantPath).toEqual([]);
+      expect(() => flattenRelevantPaths(current, trace)).toThrow(
+        'No relevant path exists!'
+      );
     });
 
     it('flattens a single transaction trace', function () {
@@ -163,19 +163,18 @@ describe('Quick Trace Utils', function () {
   describe('parseQuickTrace', function () {
     it('parses empty trace', function () {
       const current = generateEventSelector({generation: 0, offset: 0});
-      const parsedQuickTrace = parseQuickTrace({type: 'empty', trace: []}, current);
-      expect(parsedQuickTrace).toEqual(null);
+      expect(() => parseQuickTrace({type: 'empty', trace: []}, current)).toThrow(
+        'Current event not in quick trace'
+      );
     });
 
     describe('partial trace', function () {
       it('parses correctly without the expected event', function () {
         const relevantPath = [generateTransactionLite({generation: 0, offset: 0})];
         const current = generateEventSelector({generation: 1, offset: 0});
-        const parsedQuickTrace = parseQuickTrace(
-          {type: 'partial', trace: relevantPath},
-          current
-        );
-        expect(parsedQuickTrace).toEqual(null);
+        expect(() =>
+          parseQuickTrace({type: 'partial', trace: relevantPath}, current)
+        ).toThrow('Current event not in quick trace');
       });
 
       it('parses only the current event', function () {

@@ -60,7 +60,7 @@ function ProjectIssues({organization, location}: Props) {
   const queryParams = {
     limit: 5,
     ...getParams(pick(location.query, [...Object.values(URL_PARAM), 'cursor'])),
-    query: 'is:unresolved',
+    query: 'is:unresolved error.unhandled:true',
     sort: 'freq',
   };
 
@@ -72,7 +72,7 @@ function ProjectIssues({organization, location}: Props) {
   return (
     <React.Fragment>
       <ControlsWrapper>
-        <SectionHeading>{t('Frequent Issues')}</SectionHeading>
+        <SectionHeading>{t('Frequent Unhandled Issues')}</SectionHeading>
         <Button
           data-test-id="issues-open"
           size="small"

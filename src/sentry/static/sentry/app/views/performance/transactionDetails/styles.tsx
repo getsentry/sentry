@@ -6,6 +6,7 @@ import {SectionHeading} from 'app/components/charts/styles';
 import MenuItem from 'app/components/menuItem';
 import QuestionTooltip from 'app/components/questionTooltip';
 import Tag, {Background} from 'app/components/tag';
+import Truncate from 'app/components/truncate';
 import space from 'app/styles/space';
 
 type MetaDataProps = {
@@ -35,18 +36,6 @@ export function MetaData({headingText, tooltipText, bodyText, subtext}: MetaData
 
 const HeaderInfo = styled('div')`
   height: 78px;
-
-  &:last-child {
-    grid-column: 1/4;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    &:last-child {
-      justify-self: flex-end;
-      min-width: 325px;
-      grid-column: unset;
-    }
-  }
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
@@ -93,13 +82,31 @@ const MenuItemContent = styled('div')`
 type DropdownItemProps = {
   children: React.ReactNode;
   to?: string | LocationDescriptor;
+  onSelect?: (eventKey: any) => void;
   first?: boolean;
 };
 
-export function DropdownItem({children, first, to}: DropdownItemProps) {
+export function DropdownItem({children, first, onSelect, to}: DropdownItemProps) {
   return (
-    <StyledMenuItem to={to} first={first}>
+    <StyledMenuItem to={to} onSelect={onSelect} first={first}>
       <MenuItemContent>{children}</MenuItemContent>
     </StyledMenuItem>
   );
 }
+
+export const DropdownItemSubContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+`;
+
+export const StyledTruncate = styled(Truncate)`
+  margin-left: ${space(1)};
+
+  /**
+   * This is the class added to the element that is shown on hover.
+   */
+  .full-value {
+    left: auto;
+    right: -5px;
+  }
+`;
