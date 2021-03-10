@@ -192,5 +192,17 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'release_adoption',
+      requiredTargets: ['release_adoption'],
+      steps: [
+        {
+          target: 'release_adoption',
+          description: t(
+            `This number and adoption bar now respect the Sessions/Users display option you've selected. You can hover to see the details.`
+          ),
+        },
+      ],
+    },
   ];
 }

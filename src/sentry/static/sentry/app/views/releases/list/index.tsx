@@ -291,7 +291,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        {releases.map(release => (
+        {releases.map((release, index) => (
           <ReleaseCard
             key={`${release.version}-${release.projects[0].slug}`}
             activeDisplay={activeDisplay}
@@ -301,6 +301,7 @@ class ReleasesList extends AsyncView<Props, State> {
             selection={selection}
             reloading={reloading}
             showHealthPlaceholders={loadingHealth}
+            isTopRelease={index === 0}
           />
         ))}
         <Pagination pageLinks={releasesPageLinks} />

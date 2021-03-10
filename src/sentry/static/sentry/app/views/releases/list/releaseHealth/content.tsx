@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import Collapsible from 'app/components/collapsible';
 import Count from 'app/components/count';
@@ -35,6 +36,7 @@ type Props = {
   activeDisplay: DisplayOption;
   location: Location;
   showPlaceholders: boolean;
+  isTopRelease: boolean;
 };
 
 const Content = ({
@@ -44,6 +46,7 @@ const Content = ({
   organization,
   activeDisplay,
   showPlaceholders,
+  isTopRelease,
 }: Props) => {
   const supportsSessionAdoption = organization.features.includes('session-adoption');
   const activeStatsPeriod = (location.query.healthStatsPeriod || '24h') as StatsPeriod;
@@ -101,7 +104,7 @@ const Content = ({
             </CollapseButtonWrapper>
           )}
         >
-          {projects.map(project => {
+          {projects.map((project, projectIndex) => {
             const {slug, healthData, newGroups} = project;
             const {
               hasHealthData,
@@ -137,7 +140,16 @@ const Content = ({
                       <StyledPlaceholder width="150px" />
                     ) : defined(selectedAdoption) ? (
                       <AdoptionWrapper>
-                        <ProgressBarWrapper>
+                        <GuideAnchor
+                          target="release_adoption"
+                          disabled={
+                            !(
+                              isTopRelease &&
+                              projectIndex === 0 &&
+                              window.innerWidth >= 800
+                            )
+                          }
+                        >
                           <Tooltip
                             containerDisplayMode="block"
                             title={
@@ -149,9 +161,11 @@ const Content = ({
                               />
                             }
                           >
-                            <ProgressBar value={Math.ceil(selectedAdoption)} />
+                            <ProgressBarWrapper>
+                              <ProgressBar value={Math.ceil(selectedAdoption)} />
+                            </ProgressBarWrapper>
                           </Tooltip>
-                        </ProgressBarWrapper>
+                        </GuideAnchor>
                         <Count value={selected24hCount ?? 0} />
                       </AdoptionWrapper>
                     ) : (
@@ -385,4 +399,6 @@ const StyledPlaceholder = styled(Placeholder)`
 const ProgressBarWrapper = styled('div')`
   min-width: 70px;
   max-width: 90px;
+  /* A bit of padding makes hovering for tooltip easier */
+  padding: ${space(0.5)} 0;
 `;
