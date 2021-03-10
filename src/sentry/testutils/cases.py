@@ -674,9 +674,7 @@ class SnubaTestCase(BaseTestCase):
     def disable_snuba_query_cache(self):
         self.snuba_update_config({"use_readthrough_query_cache": 0, "use_cache": 0})
         yield
-        # TODO: Re-enable this once we can get past the memozing of cache settings in
-        # snuba.
-        # self.snuba_update_config({"use_readthrough_query_cache": None, "use_cache": None})
+        self.snuba_update_config({"use_readthrough_query_cache": None, "use_cache": None})
 
     @classmethod
     def snuba_get_config(cls):
