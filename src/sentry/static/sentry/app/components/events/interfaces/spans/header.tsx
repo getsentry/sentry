@@ -893,7 +893,6 @@ const OperationsBreakdown = styled('div')`
   position: absolute;
   left: 0;
   top: 0;
-  padding: ${space(2)} ${space(3)};
   overflow: hidden;
 `;
 

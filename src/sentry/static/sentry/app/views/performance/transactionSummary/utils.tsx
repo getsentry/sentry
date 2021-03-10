@@ -1,4 +1,7 @@
+import styled from '@emotion/styled';
 import {Query} from 'history';
+
+import space from 'app/styles/space';
 
 import {DisplayModes} from './charts';
 
@@ -56,3 +59,7 @@ export function transactionSummaryRouteWithQuery({
     },
   };
 }
+
+export const SidebarSpacer = styled('div')`
+  margin-top: ${space(3)};
+`;

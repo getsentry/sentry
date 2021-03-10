@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import CommitterStore from 'app/stores/committerStore';
 import withCommitters from 'app/utils/withCommitters';
@@ -37,7 +37,7 @@ describe('withCommitters HoC', function () {
   it('adds committers prop', async () => {
     const Component = () => null;
     const Container = withCommitters(Component);
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Container
         api={api}
         organization={organization}
@@ -69,7 +69,7 @@ describe('withCommitters HoC', function () {
     // jest.spyOn(Container.prototype, 'fetchCommitters');
 
     // Mount and run component
-    mount(
+    mountWithTheme(
       <Container
         api={api}
         organization={organization}
@@ -82,7 +82,7 @@ describe('withCommitters HoC', function () {
     await tick();
 
     // Mount and run duplicates
-    mount(
+    mountWithTheme(
       <Container
         api={api}
         organization={organization}
@@ -92,7 +92,7 @@ describe('withCommitters HoC', function () {
       />
     );
     await tick();
-    mount(
+    mountWithTheme(
       <Container
         api={api}
         organization={organization}
@@ -124,7 +124,7 @@ describe('withCommitters HoC', function () {
     jest.spyOn(Container.prototype, 'componentDidMount');
 
     // Mount and run duplicates
-    mount(
+    mountWithTheme(
       <Container
         api={api}
         organization={organization}
@@ -133,7 +133,7 @@ describe('withCommitters HoC', function () {
         group={group}
       />
     );
-    mount(
+    mountWithTheme(
       <Container
         api={api}
         organization={organization}
@@ -142,7 +142,7 @@ describe('withCommitters HoC', function () {
         group={group}
       />
     );
-    mount(
+    mountWithTheme(
       <Container
         api={api}
         organization={organization}

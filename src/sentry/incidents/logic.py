@@ -1141,6 +1141,7 @@ def create_alert_rule_trigger_action(
     integration=None,
     sentry_app=None,
     use_async_lookup=False,
+    input_channel_id=None,
 ):
     """
     Creates an AlertRuleTriggerAction
@@ -1151,6 +1152,8 @@ def create_alert_rule_trigger_action(
     :param target_display: (Optional) Human readable name for the target
     :param integration: (Optional) The Integration related to this action.
     :param sentry_app: (Optional) The Sentry App related to this action.
+    :param use_async_lookup: (Optional) Longer lookup for the Slack channel async job
+    :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return: The created action
     """
     target_display = None
@@ -1164,6 +1167,7 @@ def create_alert_rule_trigger_action(
             trigger.alert_rule.organization,
             integration.id,
             use_async_lookup=use_async_lookup,
+            input_channel_id=input_channel_id,
         )
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
@@ -1189,6 +1193,7 @@ def update_alert_rule_trigger_action(
     integration=None,
     sentry_app=None,
     use_async_lookup=False,
+    input_channel_id=None,
 ):
     """
     Updates values on an AlertRuleTriggerAction
@@ -1198,6 +1203,8 @@ def update_alert_rule_trigger_action(
     :param target_identifier: The identifier of the target
     :param integration: (Optional) The Integration related to this action.
     :param sentry_app: (Optional) The SentryApp related to this action.
+    :param use_async_lookup: (Optional) Longer lookup for the Slack channel async job
+    :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return:
     """
     updated_fields = {}
@@ -1222,6 +1229,7 @@ def update_alert_rule_trigger_action(
                 organization,
                 integration.id,
                 use_async_lookup=use_async_lookup,
+                input_channel_id=input_channel_id,
             )
             updated_fields["target_display"] = target_display
 
@@ -1242,6 +1250,13 @@ def update_alert_rule_trigger_action(
 def get_target_identifier_display_for_integration(type, target_value, *args, **kwargs):
     # target_value is the Slack username or channel name
     if type == AlertRuleTriggerAction.Type.SLACK.value:
+        # if we have a value for input_channel_id, just set target_identifier to that
+        target_identifier = kwargs.pop("input_channel_id")
+        if target_identifier is not None:
+            return (
+                target_identifier,
+                target_value,
+            )
         target_identifier = get_alert_rule_trigger_action_slack_channel_id(
             target_value, *args, **kwargs
         )
@@ -1298,7 +1313,11 @@ def get_alert_rule_trigger_action_slack_channel_id(
 
 
 def get_alert_rule_trigger_action_msteams_channel_id(
-    name, organization, integration_id, use_async_lookup=False
+    name,
+    organization,
+    integration_id,
+    use_async_lookup=False,
+    input_channel_id=None,
 ):
     from sentry.integrations.msteams.utils import get_channel_id
 
@@ -1312,7 +1331,11 @@ def get_alert_rule_trigger_action_msteams_channel_id(
 
 
 def get_alert_rule_trigger_action_pagerduty_service(
-    target_value, organization, integration_id, use_async_lookup=False
+    target_value,
+    organization,
+    integration_id,
+    use_async_lookup=False,
+    input_channel_id=None,
 ):
     try:
         # TODO: query the org as well to make sure we don't allow

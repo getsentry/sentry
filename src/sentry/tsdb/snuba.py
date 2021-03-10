@@ -244,6 +244,7 @@ class SnubaTSDB(BaseTSDB):
         group_on_model=True,
         group_on_time=False,
         conditions=None,
+        use_cache=False,
     ):
         """
         Normalizes all the TSDB parameters and sends a query to snuba.
@@ -324,6 +325,7 @@ class SnubaTSDB(BaseTSDB):
                 orderby=orderby,
                 referrer=f"tsdb-modelid:{model.value}",
                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group),
+                use_cache=use_cache,
             )
         else:
             result = {}
@@ -374,7 +376,15 @@ class SnubaTSDB(BaseTSDB):
                         del result[rk]
 
     def get_range(
-        self, model, keys, start, end, rollup=None, environment_ids=None, conditions=None
+        self,
+        model,
+        keys,
+        start,
+        end,
+        rollup=None,
+        environment_ids=None,
+        conditions=None,
+        use_cache=False,
     ):
         # 10s is the only rollup under an hour that we support
         if rollup and rollup == 10 and model in self.lower_rollup_query_settings:
@@ -399,6 +409,7 @@ class SnubaTSDB(BaseTSDB):
             aggregation=aggregate_function,
             group_on_time=True,
             conditions=conditions,
+            use_cache=use_cache,
         )
         # convert
         #    {group:{timestamp:count, ...}}
@@ -426,7 +437,7 @@ class SnubaTSDB(BaseTSDB):
         return {k: sorted(result[k].items()) for k in result}
 
     def get_distinct_counts_totals(
-        self, model, keys, start, end=None, rollup=None, environment_id=None
+        self, model, keys, start, end=None, rollup=None, environment_id=None, use_cache=False
     ):
         return self.get_data(
             model,
@@ -436,6 +447,7 @@ class SnubaTSDB(BaseTSDB):
             rollup,
             [environment_id] if environment_id is not None else None,
             aggregation="uniq",
+            use_cache=use_cache,
         )
 
     def get_distinct_counts_union(
