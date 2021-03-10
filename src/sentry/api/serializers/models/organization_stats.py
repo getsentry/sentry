@@ -32,7 +32,7 @@ class StatsResponse:
         return {CATEGORY_NAME_MAP[category]: values.serialize() for category, values in self}
 
 
-# TODO: perhaps remove this class
+# # TODO: perhaps remove this class
 class TimeSeriesValues:
     def __init__(self, start, end, rollup):
         self.values = zerofill({}, start, end, rollup, "time")
@@ -44,7 +44,7 @@ class TimeSeriesValues:
         return [value.serialize() for value in self.values.values()]
 
 
-class StatMeasure:
+class StatValue:
     def __init__(self, quantity=0, times_seen=0):
         self.quantity = quantity
         self.times_seen = times_seen
@@ -53,13 +53,13 @@ class StatMeasure:
         pass
 
 
-class MeasureValue:
+class UsageStatCategory:
     def __init__(self, time):
-        self.accepted = StatMeasure()
-        self.filtered = StatMeasure()
-        self.over_quota = StatMeasure()
-        self.spike_protection = StatMeasure()
-        self.other = StatMeasure()
+        self.accepted = StatValue()
+        self.filtered = StatValue()
+        self.over_quota = StatValue()
+        self.spike_protection = StatValue()
+        self.other = StatValue()
         self.time = time
 
     def serialize(self):
@@ -122,7 +122,7 @@ def zerofill(data, start, end, rollup, orderby):
             rv = rv + data_by_time[key]
             data_by_time[key] = []
         else:
-            val = MeasureValue(key)
+            val = UsageStatCategory(key)
             rv[key] = val
 
     return rv
