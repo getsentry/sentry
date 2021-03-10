@@ -85,8 +85,8 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             }
             owner = data.get("owner")
             if owner:
-                owner = Actor.from_actor_identifier(owner)
                 try:
+                    owner = Actor.from_actor_identifier(owner)
                     kwargs.update({"owner": owner.resolve_to_actor()})
                 except Exception:
                     return Response(
