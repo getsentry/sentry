@@ -42,7 +42,7 @@ date_format = partial(dateformat.format, format_string="F jS, Y")
 
 logger = logging.getLogger(__name__)
 
-BATCH_SIZE = 30000
+BATCH_SIZE = 20000
 
 
 def _get_organization_queryset():
