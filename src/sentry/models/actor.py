@@ -5,14 +5,6 @@ from django.db.models.signals import pre_save
 ACTOR_TYPES = {"team": 0, "user": 1}
 
 
-def actor_type_to_model(type):
-    # type will be 0 or 1 and we want to get Team or User
-    from sentry.models import Team, User
-
-    ACTOR_TYPE_TO_MODEL = [Team, User]  # Indexed to match ACTOR_TYPES.
-    return ACTOR_TYPE_TO_MODEL[type]
-
-
 class Actor(Model):
     __core__ = True
 
@@ -42,3 +34,25 @@ pre_save.connect(
 pre_save.connect(
     handle_actor_pre_save, sender="sentry.User", dispatch_uid="handle_actor_pre_save", weak=False
 )
+
+
+def resolve_from_actor(actor):
+    return actor_type_to_model(actor.type).objects.get(actor_id=actor.id)
+
+
+def get_actor_id_from_actor(actor):
+    from sentry.api.fields.actor import Actor as ActorTuple
+
+    if actor:
+        actor_type = actor_type_to_model(actor.type)
+        resolved_actor = resolve_from_actor(actor)
+        return ActorTuple(resolved_actor.id, actor_type).get_actor_id()
+    return None
+
+
+def actor_type_to_model(type):
+    # type will be 0 or 1 and we want to get Team or User
+    from sentry.models import Team, User
+
+    ACTOR_TYPE_TO_MODEL = [Team, User]  # Indexed to match ACTOR_TYPES.
+    return ACTOR_TYPE_TO_MODEL[type]
