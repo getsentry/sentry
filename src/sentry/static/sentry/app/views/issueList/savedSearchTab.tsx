@@ -90,20 +90,20 @@ const TabWrapper = styled('li')<{isActive?: boolean}>`
   }
   & > span > .dropdown-menu {
     margin-top: ${space(1)};
-    min-width: 30vw;
-    max-width: 35vw;
+    min-width: 20vw;
+    max-width: 25vw;
     z-index: ${p => p.theme.zIndex.globalSelectionHeader};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[4]}) {
+    & > span > .dropdown-menu {
+      max-width: 35vw;
+    }
   }
 
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
     & > span > .dropdown-menu {
       max-width: 50vw;
-    }
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    & > span > .dropdown-menu {
-      max-width: 55vw;
     }
   }
 
