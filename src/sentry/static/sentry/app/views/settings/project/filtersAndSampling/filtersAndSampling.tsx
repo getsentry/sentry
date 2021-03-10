@@ -244,6 +244,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
           onEditRule={this.handleEditRule}
           onDeleteRule={this.handleDeleteRule}
           onUpdateRules={this.handleUpdateRules}
+          isErrorPanel
         />
         <TextBlock>
           {t(
