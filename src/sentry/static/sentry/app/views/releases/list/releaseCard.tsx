@@ -133,7 +133,7 @@ const ReleaseInfoSubheader = styled('div')`
 
 const PackageName = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 `;
 
 const ReleaseProjects = styled('div')`
