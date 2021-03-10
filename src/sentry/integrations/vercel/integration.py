@@ -69,15 +69,6 @@ install_source_code_integration = _(
     "Install a [source code integration]({}) and configure your repositories."
 )
 
-disable_dialog = {
-    "actionText": _("Visit Vercel"),
-    "body": _(
-        "In order to uninstall this integration, you must go"
-        " to Vercel and uninstall there by clicking 'Remove Configuration'."
-    ),
-}
-
-
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     features=FEATURES,
@@ -88,7 +79,6 @@ metadata = IntegrationMetadata(
     aspects={
         "externalInstall": external_install,
         "configure_integration": configure_integration,
-        "disable_dialog": disable_dialog,
     },
 )
 
@@ -117,20 +107,8 @@ class VercelIntegration(IntegrationInstallation):
                     create_project_instruction.format(add_project_link),
                     install_source_code_integration.format(source_code_link),
                 ]
-            },
-            "integration_detail": {"uninstallationUrl": self.get_manage_url()},
+            }
         }
-
-    def get_manage_url(self):
-        slug = self.get_slug()
-        configuration_id = self.get_configuration_id()
-        if configuration_id:
-            if self.metadata["installation_type"] == "team":
-                dashboard_url = "https://vercel.com/dashboard/%s/" % slug
-            else:
-                dashboard_url = "https://vercel.com/dashboard/"
-            return f"{dashboard_url}integrations/{configuration_id}"
-        return None
 
     def get_client(self):
         access_token = self.metadata["access_token"]
@@ -297,12 +275,16 @@ class VercelIntegration(IntegrationInstallation):
             f"Could not update environment variable {key} in Vercel project {vercel_project_id}."
         )
 
+    def uninstall(self):
+        client = self.get_client()
+        client.uninstall(self.get_configuration_id())
+
 
 class VercelIntegrationProvider(IntegrationProvider):
     key = "vercel"
     name = "Vercel"
     can_add = False
-    can_disable = True
+    can_disable = False
     metadata = metadata
     integration_cls = VercelIntegration
     features = frozenset([IntegrationFeatures.DEPLOYMENT])

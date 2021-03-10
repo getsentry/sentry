@@ -16,7 +16,6 @@ from sentry.models import (
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.utils.compat import filter
-from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger("sentry.integrations.vercel.webhooks")
 
@@ -103,7 +102,6 @@ class VercelWebhookEndpoint(Endpoint):
         }
         return [release_payload, sentry_app_installation_token.api_token.token]
 
-    @transaction_start("VercelWebhookEndpoint")
     def post(self, request):
         if not request.META.get("HTTP_X_ZEIT_SIGNATURE"):
             logger.error("vercel.webhook.missing-signature")

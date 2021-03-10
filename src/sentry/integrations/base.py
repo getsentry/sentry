@@ -360,3 +360,11 @@ class IntegrationInstallation:
     @property
     def metadata(self):
         return self.model.metadata
+
+    def uninstall(self):
+        """
+        For integrations that need additional steps for uninstalling
+        that are not covered in the `delete_organization_integration`
+        task.
+        """
+        pass
