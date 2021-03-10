@@ -32,13 +32,13 @@ class Rules extends React.PureComponent<Props, State> {
     this.getRules();
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
+  componentDidUpdate(prevProps: Props) {
     if (!isEqual(prevProps.rules, this.props.rules)) {
       this.getRules();
       return;
     }
 
-    if (!!prevState.rules.length && !isEqual(prevState.rules, this.state.rules)) {
+    if (!isEqual(this.props.rules, this.state.rules)) {
       this.handleUpdateRulesParent();
     }
   }
