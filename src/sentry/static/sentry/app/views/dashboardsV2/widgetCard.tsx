@@ -25,7 +25,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
 import {Widget} from './types';
-import {eventViewFromWidgetQuery} from './utils';
+import {eventViewFromWidget} from './utils';
 import WidgetCardChart from './widgetCardChart';
 import WidgetQueries from './widgetQueries';
 
@@ -103,7 +103,7 @@ class WidgetCard extends React.Component<Props> {
   renderContextMenu() {
     const {widget, selection, organization, showContextMenu} = this.props;
 
-    if (!showContextMenu || widget.queries.length === 0) {
+    if (!showContextMenu) {
       return null;
     }
 
@@ -115,20 +115,23 @@ class WidgetCard extends React.Component<Props> {
     ) {
       // Open table widget in Discover
 
-      const query = widget.queries[0];
-      const eventView = eventViewFromWidgetQuery(query, selection);
+      if (widget.queries.length) {
+        const query = widget.queries[0];
 
-      menuOptions.push(
-        <MenuItem
-          key="open-discover"
-          onClick={event => {
-            event.preventDefault();
-            browserHistory.push(eventView.getResultsViewUrlTarget(organization.slug));
-          }}
-        >
-          {t('Open in Discover')}
-        </MenuItem>
-      );
+        const eventView = eventViewFromWidget(widget.title, query, selection);
+
+        menuOptions.push(
+          <MenuItem
+            key="open-discover"
+            onClick={event => {
+              event.preventDefault();
+              browserHistory.push(eventView.getResultsViewUrlTarget(organization.slug));
+            }}
+          >
+            {t('Open in Discover')}
+          </MenuItem>
+        );
+      }
     }
 
     if (!menuOptions.length) {

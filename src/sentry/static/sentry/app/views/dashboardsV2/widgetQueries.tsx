@@ -26,7 +26,7 @@ import {
 } from 'app/utils/discover/genericDiscoverQuery';
 
 import {Widget, WidgetQuery} from './types';
-import {eventViewFromWidgetQuery} from './utils';
+import {eventViewFromWidget} from './utils';
 
 // Don't fetch more than 4000 bins as we're plotting on a small area.
 const MAX_BIN_COUNT = 4000;
@@ -185,7 +185,7 @@ class WidgetQueries extends React.Component<Props, State> {
     this.setState({tableResults: []});
 
     const promises = widget.queries.map(query => {
-      const eventView = eventViewFromWidgetQuery(query, selection);
+      const eventView = eventViewFromWidget(widget.title, query, selection);
 
       let url: string = '';
       const params: DiscoverQueryRequestParams = {

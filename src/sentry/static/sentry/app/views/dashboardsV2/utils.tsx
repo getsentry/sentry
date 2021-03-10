@@ -10,7 +10,8 @@ export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
   return cloneDeep(dashboard);
 }
 
-export function eventViewFromWidgetQuery(
+export function eventViewFromWidget(
+  title: string,
   query: WidgetQuery,
   selection: GlobalSelection
 ): EventView {
@@ -19,7 +20,7 @@ export function eventViewFromWidgetQuery(
 
   return EventView.fromSavedQuery({
     id: undefined,
-    name: query.name,
+    name: title,
     version: 2,
     fields: query.fields,
     query: query.conditions,
