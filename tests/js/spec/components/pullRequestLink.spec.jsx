@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import PullRequestLink from 'app/components/pullRequestLink';
 
@@ -11,7 +11,7 @@ describe('PullRequestLink', function () {
       repository,
       externalUrl: null,
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
@@ -26,7 +26,7 @@ describe('PullRequestLink', function () {
       },
     });
     const pullRequest = TestStubs.PullRequest({repository});
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
@@ -45,7 +45,7 @@ describe('PullRequestLink', function () {
       },
     });
     const pullRequest = TestStubs.PullRequest({repository});
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
@@ -64,7 +64,7 @@ describe('PullRequestLink', function () {
       },
     });
     const pullRequest = TestStubs.PullRequest({repository});
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
@@ -83,7 +83,7 @@ describe('PullRequestLink', function () {
       },
     });
     const pullRequest = TestStubs.PullRequest({repository});
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 

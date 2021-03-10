@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'app/api';
@@ -46,7 +46,7 @@ describe('Tags', function () {
       query: 'event.type:csp',
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Tags
         eventView={view}
         api={api}
@@ -85,7 +85,7 @@ describe('Tags', function () {
       },
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Tags
         eventView={view}
         api={api}

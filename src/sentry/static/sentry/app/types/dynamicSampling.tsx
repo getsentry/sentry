@@ -115,6 +115,10 @@ export type DynamicSamplingCondition = {
 
 export type DynamicSamplingRule = {
   /**
+   * This is a unique number within a project
+   */
+  id: number;
+  /**
    * Describes the type of rule
    */
   type: DynamicSamplingRuleType;

@@ -8,7 +8,6 @@ import isEqual from 'lodash/isEqual';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
@@ -16,12 +15,7 @@ import {PageContent} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {
-  Column,
-  getAggregateAlias,
-  isAggregateField,
-  WebVital,
-} from 'app/utils/discover/fields';
+import {Column, isAggregateField, WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
@@ -103,10 +97,7 @@ class TransactionSummary extends React.Component<Props, State> {
     return [t('Summary'), t('Performance')].join(' - ');
   }
 
-  getTotalsEventView(
-    organization: Organization,
-    eventView: EventView
-  ): [EventView, TotalValues] {
+  getTotalsEventView(organization: Organization, eventView: EventView): EventView {
     const threshold = organization.apdexThreshold.toString();
 
     const vitals = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce(
@@ -117,7 +108,7 @@ class TransactionSummary extends React.Component<Props, State> {
       []
     );
 
-    const totalsView = eventView.withColumns([
+    return eventView.withColumns([
       {
         kind: 'function',
         function: ['apdex', threshold, undefined],
@@ -138,6 +129,14 @@ class TransactionSummary extends React.Component<Props, State> {
         kind: 'function',
         function: ['count_unique', 'user', undefined],
       },
+      {
+        kind: 'function',
+        function: ['failure_rate', '', undefined],
+      },
+      {
+        kind: 'function',
+        function: ['tpm', '', undefined],
+      },
       ...vitals.map(
         vital =>
           ({
@@ -146,11 +145,6 @@ class TransactionSummary extends React.Component<Props, State> {
           } as Column)
       ),
     ]);
-    const emptyValues = totalsView.fields.reduce((values, field) => {
-      values[getAggregateAlias(field.field)] = 0;
-      return values;
-    }, {});
-    return [totalsView, emptyValues];
   }
 
   render() {
@@ -168,7 +162,7 @@ class TransactionSummary extends React.Component<Props, State> {
       });
       return null;
     }
-    const [totalsView, emptyValues] = this.getTotalsEventView(organization, eventView);
+    const totalsView = this.getTotalsEventView(organization, eventView);
 
     const shouldForceProject = eventView.project.length === 1;
     const forceProject = shouldForceProject
@@ -196,13 +190,10 @@ class TransactionSummary extends React.Component<Props, State> {
                 orgSlug={organization.slug}
                 location={location}
               >
-                {({tableData, isLoading}) => {
-                  if (isLoading) {
-                    return <LoadingIndicator />;
-                  }
+                {({tableData}) => {
                   const totals = (tableData && tableData.data.length
                     ? tableData.data[0]
-                    : emptyValues) as TotalValues;
+                    : null) as TotalValues | null;
                   return (
                     <SummaryContent
                       location={location}
