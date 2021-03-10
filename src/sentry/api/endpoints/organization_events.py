@@ -4,7 +4,6 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
 from sentry import features
-
 from sentry.api.bases import (
     OrganizationEventsV2EndpointBase,
     NoProjects,
