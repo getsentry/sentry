@@ -1,9 +1,11 @@
-from sentry.utils.compat import mock
 import os
 from hashlib import md5
 
 from django.conf import settings
 from sentry_sdk import Hub
+
+from sentry.utils.compat import mock
+from sentry.utils.warnings import UnsupportedBackend
 
 
 TEST_ROOT = os.path.normpath(
@@ -12,6 +14,23 @@ TEST_ROOT = os.path.normpath(
 
 
 def pytest_configure(config):
+    import warnings
+    from django.utils.deprecation import RemovedInDjango20Warning, RemovedInDjango21Warning
+
+    # These warnings should be kept in sync with sentry.runner.settings,
+    # and pytest warningfilters in pyproject.toml.
+    # See pyproject.toml for explanations.
+    warnings.filterwarnings(action="ignore", category=RemovedInDjango20Warning)
+    warnings.filterwarnings(action="ignore", category=RemovedInDjango21Warning)
+    warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+
+    # These warnings are for pytest only.
+    warnings.filterwarnings(
+        action="ignore",
+        message=r".*sentry.digests.backends.dummy.DummyBackend.*",
+        category=UnsupportedBackend,
+    )
+
     # HACK: Only needed for testing!
     os.environ.setdefault("_SENTRY_SKIP_CONFIGURATION", "1")
 

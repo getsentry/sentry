@@ -266,7 +266,7 @@ elif _snapshot_writeback != "new":
 _test_base = os.path.realpath(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(sentry.__file__))))
 )
-_yaml_snap_re = re.compile(r"^---\r?\n(.*?)\r?\n---\r?\n(.*)$(?s)")
+_yaml_snap_re = re.compile(r"^---\r?\n(.*?)\r?\n---\r?\n(.*)$", re.DOTALL)
 
 
 @pytest.fixture
