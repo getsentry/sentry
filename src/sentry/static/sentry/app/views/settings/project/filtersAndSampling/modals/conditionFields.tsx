@@ -87,6 +87,7 @@ function ConditionFields({
                 onChange={value => onChange(index, 'match', value)}
                 disabled={isMatchesDisabled}
                 inline={false}
+                rows={1}
                 autosize
                 hideControlState
                 showHelpInTooltip

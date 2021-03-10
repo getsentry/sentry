@@ -164,6 +164,7 @@ const gcsFields: FieldMap = {
     multiline: true,
     autosize: true,
     maxRows: 5,
+    rows: 3,
     label: t('Private Key'),
     placeholder: '-----BEGIN PRIVATE KEY-----\n[PRIVATE-KEY]\n-----END PRIVATE KEY-----',
     help: tct('The service account key. Credentials can be managed on the [link].', {

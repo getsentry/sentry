@@ -116,6 +116,7 @@ export const fields: Record<string, Field> = {
     multiline: true,
     autosize: true,
     maxRows: 10,
+    rows: 1,
     placeholder: t('https://example.com or example.com'),
     label: t('Allowed Domains'),
     help: t('Separate multiple entries with a newline'),
