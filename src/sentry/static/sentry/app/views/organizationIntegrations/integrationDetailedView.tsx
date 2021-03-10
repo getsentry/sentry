@@ -139,18 +139,11 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   onDisable = (integration: Integration) => {
     let url: string;
 
-    // some integrations have a custom uninstalltion URL we show
-    const uninstallationUrl =
-      integration.dynamicDisplayInformation?.integration_detail?.uninstallationUrl;
-    if (uninstallationUrl) {
-      url = uninstallationUrl;
+    const [domainName, orgName] = integration.domainName.split('/');
+    if (integration.accountType === 'User') {
+      url = `https://${domainName}/settings/installations/`;
     } else {
-      const [domainName, orgName] = integration.domainName.split('/');
-      if (integration.accountType === 'User') {
-        url = `https://${domainName}/settings/installations/`;
-      } else {
-        url = `https://${domainName}/organizations/${orgName}/settings/installations/`;
-      }
+      url = `https://${domainName}/organizations/${orgName}/settings/installations/`;
     }
 
     window.open(url, '_blank');

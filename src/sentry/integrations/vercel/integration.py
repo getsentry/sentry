@@ -107,20 +107,8 @@ class VercelIntegration(IntegrationInstallation):
                     create_project_instruction.format(add_project_link),
                     install_source_code_integration.format(source_code_link),
                 ]
-            },
-            "integration_detail": {"uninstallationUrl": self.get_manage_url()},
+            }
         }
-
-    def get_manage_url(self):
-        slug = self.get_slug()
-        configuration_id = self.get_configuration_id()
-        if configuration_id:
-            if self.metadata["installation_type"] == "team":
-                dashboard_url = "https://vercel.com/dashboard/%s/" % slug
-            else:
-                dashboard_url = "https://vercel.com/dashboard/"
-            return f"{dashboard_url}integrations/{configuration_id}"
-        return None
 
     def get_client(self):
         access_token = self.metadata["access_token"]

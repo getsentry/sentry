@@ -57,10 +57,9 @@ class VercelUninstallEndpoint(Endpoint):
         if len(orgs) == 1:
             try:
                 # Case no. 1: do the deleting and return
-                organization_integration = OrganizationIntegration.objects.get(
+                OrganizationIntegration.objects.get(
                     organization_id=configuration["organization_id"], integration_id=integration.id
                 )
-                organization_integration.delete()
                 create_audit_entry(
                     request=request,
                     organization=orgs[0],
