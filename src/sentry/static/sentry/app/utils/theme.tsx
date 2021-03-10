@@ -185,6 +185,11 @@ const aliases = {
    * Default Progressbar color
    */
   progressBackground: colors.gray100,
+
+  /**
+   * Background of default badge (mainly used in NavTabs)
+   */
+  badgeBackground: colors.gray200,
 } as const;
 
 const warning = {
@@ -224,7 +229,11 @@ const alert = {
   },
 } as const;
 
-const badge = {
+const generateBadgeTheme = alias => ({
+  default: {
+    background: alias.badgeBackground,
+    indicatorColor: alias.badgeBackground,
+  },
   alpha: {
     background: colors.orange400,
     indicatorColor: colors.orange400,
@@ -237,7 +246,7 @@ const badge = {
     background: colors.green300,
     indicatorColor: colors.green300,
   },
-};
+});
 
 const tag = {
   default: {
@@ -474,7 +483,6 @@ const commonTheme = {
   },
 
   alert,
-  badge,
   tag,
 
   charts: {
@@ -534,17 +542,20 @@ const darkAliases = {
   chartLabel: colors.gray400,
   progressBar: colors.purple200,
   progressBackground: colors.gray500,
+  badgeBackground: colors.gray400,
 } as const;
 
 export const lightTheme = {
   ...commonTheme,
   ...aliases,
+  badge: generateBadgeTheme(aliases),
   button: generateButtonTheme(aliases),
 } as const;
 
 export const darkTheme = {
   ...commonTheme,
   ...darkAliases,
+  badge: generateBadgeTheme(darkAliases),
   button: generateButtonTheme(darkAliases),
 } as const;
 
