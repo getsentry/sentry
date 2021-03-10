@@ -10,15 +10,17 @@ target-version=['py36']
 [tool.pytest.ini_options]
 # note: When updating the traceback format, make sure to update .github/pytest.json
 # We don't use the celery pytest plugin.
-# TODO: Warnings are disabled for now (they always have been)
-#       until the good ones are fixed and the rest filtered for.
-addopts = "-ra --tb=short --strict-markers -p no:celery -p no:warnings"
+addopts = "-ra --tb=short --strict-markers -p no:celery"
 # TODO: --import-mode=importlib will become the default soon,
 # currently we have a few relative imports that don't work with that.
 markers = [
     "snuba: mark a test as requiring snuba",
 ]
 selenium_driver = "chrome"
+# Consider all warnings to be errors other than the ignore::'d ones.
+filterwarnings = [
+    "error",
+]
 # This is for people who install pytest-xdist locally,
 # and use the -f/--looponfail feature.
 looponfailroots = ["src", "tests"]
