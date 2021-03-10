@@ -17,9 +17,10 @@ markers = [
     "snuba: mark a test as requiring snuba",
 ]
 selenium_driver = "chrome"
-# Consider all warnings to be errors other than the ignore::'d ones.
+# Consider all warnings to be errors other than the ignored ones.
 filterwarnings = [
     "error",
+    "ignore:django.utils.deprecation.RemovedInDjango20Warning",
 ]
 # This is for people who install pytest-xdist locally,
 # and use the -f/--looponfail feature.
