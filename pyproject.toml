@@ -17,11 +17,13 @@ markers = [
     "snuba: mark a test as requiring snuba",
 ]
 selenium_driver = "chrome"
-# Unless otherwise specified, these warning filters should be kept in
-# sync with sentry.utils.pytest.sentry, and sentry.runner.settings.
 filterwarnings = [
     # Consider all warnings to be errors other than the ignored ones.
     "error",
+    # This is just to prevent pytest from exiting if pytest-xdist isn't installed.
+    "ignore:Unknown config option.*looponfailroots:pytest.PytestConfigWarning",
+    # Unless otherwise specified, these warning filters should be kept in
+    # sync with sentry.utils.pytest.sentry, and sentry.runner.settings.
     # TODO(joshuarli): Address these as a prerequisite to testing on Django 2.1.
     "ignore::django.utils.deprecation.RemovedInDjango20Warning",
     "ignore::django.utils.deprecation.RemovedInDjango21Warning",
@@ -39,6 +41,4 @@ filterwarnings = [
 ]
 # This is for people who install pytest-xdist locally,
 # and use the -f/--looponfail feature.
-# Disabled for now, because it prevents pytest from running with "Unknown config option: looponfailroots"
-# if pytest-xdist is not installed and there is no -p no:warnings.
-# looponfailroots = ["src", "tests"]
+looponfailroots = ["src", "tests"]
