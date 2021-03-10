@@ -97,7 +97,7 @@ const TabWrapper = styled('li')<{isActive?: boolean}>`
 
   @media (max-width: ${p => p.theme.breakpoints[4]}) {
     & > span > .dropdown-menu {
-      min-width: 35vw;
+      max-width: 35vw;
     }
   }
 
