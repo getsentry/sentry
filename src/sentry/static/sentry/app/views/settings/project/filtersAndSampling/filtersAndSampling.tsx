@@ -1,5 +1,4 @@
 import React from 'react';
-import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -86,8 +85,12 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     this.setState({errorRules, transactionRules});
   }
 
-  successfullySubmitted = (projectDetails: Project) => {
+  successfullySubmitted = (projectDetails: Project, successMessage?: React.ReactNode) => {
     this.setState({projectDetails});
+
+    if (successMessage) {
+      addSuccessMessage(successMessage);
+    }
   };
 
   handleOpenErrorRule = (rule?: DynamicSamplingRule) => () => {
@@ -159,12 +162,12 @@ class FiltersAndSampling extends AsyncView<Props, State> {
 
     const newErrorRules =
       rule.type === DynamicSamplingRuleType.ERROR
-        ? errorRules.filter(errorRule => !isEqual(errorRule, rule))
+        ? errorRules.filter(errorRule => errorRule.id !== rule.id)
         : errorRules;
 
     const newTransactionRules =
       rule.type !== DynamicSamplingRuleType.ERROR
-        ? transactionRules.filter(transactionRule => !isEqual(transactionRule, rule))
+        ? transactionRules.filter(transactionRule => transactionRule.id !== rule.id)
         : transactionRules;
 
     const newRules = [...newErrorRules, ...newTransactionRules];
@@ -196,10 +199,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
         `/projects/${organization.slug}/${project.slug}/`,
         {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
       );
-      this.setState({projectDetails});
-      if (successMessage) {
-        addSuccessMessage(successMessage);
-      }
+      this.successfullySubmitted(projectDetails, successMessage);
     } catch (error) {
       this.getRules();
       if (errorMessage) {

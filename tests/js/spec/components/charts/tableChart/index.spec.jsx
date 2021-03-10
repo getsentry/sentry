@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import TableChart from 'app/components/charts/tableChart';
 
@@ -18,7 +18,7 @@ describe('TableChart', function () {
       ['NameError', 15, 15, 15],
       ['ZeroDivisionError', 20, 10, 0],
     ];
-    mount(
+    mountWithTheme(
       <TableChart
         title="Error Type"
         data={ERROR_TYPE_DATA}
@@ -56,7 +56,7 @@ describe('TableChart', function () {
       ['NameError', 'Label', 15, 15, 15],
       ['ZeroDivisionError', 'Label', 20, 10, 0],
     ];
-    mount(
+    mountWithTheme(
       <TableChart
         title="Error Type"
         data={ERROR_TYPE_DATA}
@@ -93,7 +93,7 @@ describe('TableChart', function () {
       ['TypeError', 50, 40, 30],
       ['SyntaxError', 40, 30, 20],
     ];
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <TableChart
         title="Error Type"
         data={ERROR_TYPE_DATA}
@@ -110,7 +110,7 @@ describe('TableChart', function () {
 
   it('renders headers', function () {
     const headers = ['Foo', 'Bar', 'Baz'];
-    mount(
+    mountWithTheme(
       <TableChart
         title="Error Type"
         showRowTotal={false}
@@ -129,7 +129,7 @@ describe('TableChart', function () {
   });
 
   it('renders headers with row total column', function () {
-    mount(
+    mountWithTheme(
       <TableChart
         title="Error Type"
         showRowTotal
@@ -158,7 +158,7 @@ describe('TableChart', function () {
     const renderDataCell = jest.fn();
     const renderHeaderCell = jest.fn();
     const renderTableHeaderCell = jest.fn();
-    mount(
+    mountWithTheme(
       <TableChart
         title="Error Type"
         showRowTotal
