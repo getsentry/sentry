@@ -5,6 +5,7 @@ from rest_framework.exceptions import ParseError
 
 import sentry_sdk
 
+from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
 from sentry.snuba.sessions_v2 import (
     InvalidField,
@@ -16,6 +17,7 @@ from sentry.snuba.sessions_v2 import (
 
 # NOTE: this currently extends `OrganizationEventsEndpointBase` for `handle_query_errors` only, which should ideally be decoupled from the base class.
 class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
+    @rate_limit_endpoint(limit=10, window=1)
     def get(self, request, organization):
         with self.handle_query_errors():
             with sentry_sdk.start_span(op="sessions.endpoint", description="build_sessions_query"):
