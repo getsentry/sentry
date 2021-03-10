@@ -40,7 +40,7 @@ action           = flag_action / var_action
 var_action       = _ var_name _ "=" _ expr
 var_name         = "max-frames" / "min-frames"
 flag_action      = _ range? flag flag_action_name
-flag_action_name = "group" / "app"
+flag_action_name = "group" / "app" / "prefix"
 flag             = "+" / "-"
 range            = "^" / "v"
 expr             = int
@@ -77,7 +77,9 @@ MATCH_KEYS = {
 }
 SHORT_MATCH_KEYS = {v: k for k, v in MATCH_KEYS.items()}
 
-ACTIONS = ["group", "app"]
+ACTIONS = ["group", "app", "prefix"]
+ACTION_BITSIZE = 4
+assert len(ACTIONS) < 1 << ACTION_BITSIZE
 ACTION_FLAGS = {
     (True, None): 0,
     (True, "up"): 1,
@@ -231,7 +233,7 @@ class FlagAction(Action):
         )
 
     def _to_config_structure(self):
-        return ACTIONS.index(self.key) | (ACTION_FLAGS[self.flag, self.range] << 4)
+        return ACTIONS.index(self.key) | (ACTION_FLAGS[self.flag, self.range] << ACTION_BITSIZE)
 
     def _slice_to_range(self, seq, idx):
         if self.range is None:
@@ -278,6 +280,11 @@ class FlagAction(Action):
             elif self.key == "app" and self._in_app_changed(frame, component):
                 component.update(
                     hint="marked {} by {}".format(self.flag and "in-app" or "out of app", rule_hint)
+                )
+
+            elif self.key == "prefix":
+                component.update(
+                    is_prefix_frame=True, hint=f"marked as prefix frame by {rule_hint}"
                 )
 
 
