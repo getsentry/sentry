@@ -44,6 +44,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
@@ -63,6 +64,7 @@ class CreateProjectRuleTest(APITestCase):
 
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == "hello world"
+        assert rule.owner == self.user.actor
         assert rule.data["action_match"] == "any"
         assert rule.data["filter_match"] == "any"
         assert rule.data["actions"] == actions
@@ -91,6 +93,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "environment": "production",
                 "conditions": conditions,
                 "actions": actions,
@@ -128,6 +131,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "environment": None,
                 "conditions": conditions,
                 "actions": actions,
@@ -166,6 +170,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "environment": None,
                 "actionMatch": "any",
                 "frequency": 5,
@@ -204,6 +209,34 @@ class CreateProjectRuleTest(APITestCase):
         response = self.client.post(
             url,
             data={
+                "owner": f"user:{self.user.id}",
+                "actionMatch": "any",
+                "filterMatch": "any",
+                "actions": actions,
+                "conditions": conditions,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400, response.content
+
+    def test_missing_owner(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+
+        url = reverse(
+            "sentry-api-0-project-rules",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.post(
+            url,
+            data={
+                "name": "hello world",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
@@ -237,6 +270,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
@@ -261,6 +295,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
@@ -291,6 +326,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "conditions": conditions,
                 "filters": filters,
                 "actions": actions,
@@ -325,6 +361,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "conditions": conditions,
                 "actions": actions,
                 "actionMatch": "any",
@@ -358,6 +395,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "conditions": conditions,
                 "filters": filters,
                 "actions": actions,
@@ -387,6 +425,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "no action rule",
+                "owner": f"user:{self.user.id}",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "conditions": conditions,
@@ -450,6 +489,7 @@ class CreateProjectRuleTest(APITestCase):
         )
         data = {
             "name": "hello world",
+            "owner": f"user:{self.user.id}",
             "environment": None,
             "actionMatch": "any",
             "frequency": 5,
@@ -475,6 +515,7 @@ class CreateProjectRuleTest(APITestCase):
         assert not Rule.objects.filter(label="hello world").exists()
         kwargs = {
             "name": data["name"],
+            "owner": self.user.actor,
             "environment": data.get("environment"),
             "action_match": data["actionMatch"],
             "filter_match": data.get("filterMatch"),

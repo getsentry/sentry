@@ -69,6 +69,7 @@ class RuleSerializer(Serializer):
             "frequency": obj.data.get("frequency") or Rule.DEFAULT_FREQUENCY,
             "name": obj.label,
             "dateCreated": obj.date_added,
+            "owner": obj.owner.get_actor_identifier() if obj.owner else None,
             "createdBy": attrs.get("created_by", None),
             "environment": environment.name if environment is not None else None,
             "projects": [obj.project.slug],

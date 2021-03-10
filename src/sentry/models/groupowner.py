@@ -59,9 +59,9 @@ class GroupOwner(Model):
         raise NotImplementedError("Unknown Owner")
 
     def owner(self):
-        from sentry.api.fields.actor import Actor
+        from sentry.models import ActorTuple
 
-        return Actor.from_actor_identifier(self.owner_id())
+        return ActorTuple.from_actor_identifier(self.owner_id())
 
 
 def get_owner_details(group_list):

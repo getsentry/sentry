@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 
@@ -12,7 +12,7 @@ describe('AlertLink', function () {
 
   it('can open', function () {
     const onOpen = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <IssueSyncListElement integrationType="github" onOpen={onOpen} />
     );
     expect(onOpen).not.toHaveBeenCalled();
@@ -24,7 +24,7 @@ describe('AlertLink', function () {
     const onClose = jest.fn();
     const onOpen = jest.fn();
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <IssueSyncListElement
         integrationType="github"
         externalIssueLink="github.com/issues/gh-101"

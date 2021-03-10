@@ -213,6 +213,16 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
         self.run_test("time", expected=[])
         self.run_test("time", qs_params={"query": "z"}, expected=[])
 
+    def test_group_id_tag(self):
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago - timedelta(minutes=1)),
+                "tags": {"group_id": "not-a-group-id-but-a-string"},
+            },
+            project_id=self.project.id,
+        )
+        self.run_test("group_id", expected=[("not-a-group-id-but-a-string", 1)])
+
     def test_user_display(self):
         self.store_event(
             data={

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Tooltip from 'app/components/tooltip';
 
@@ -39,7 +39,7 @@ describe('Tooltip', function () {
   });
 
   it('disables and does not render', function () {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Tooltip delay={0} title="test" disabled>
         <span>My Button</span>
       </Tooltip>,

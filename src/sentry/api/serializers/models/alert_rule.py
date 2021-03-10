@@ -1,7 +1,4 @@
 from collections import defaultdict
-
-
-from sentry.api.fields.actor import Actor
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.incidents.models import (
     AlertRule,
@@ -12,7 +9,7 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.models import actor_type_to_model, Rule
+from sentry.models import Rule
 from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 
@@ -60,11 +57,6 @@ class AlertRuleSerializer(Serializer):
         env = obj.snuba_query.environment
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
-        owner = None
-        if obj.owner:
-            owner = Actor(
-                Actor.from_model(obj.owner).id, actor_type_to_model(obj.owner.type)
-            ).get_actor_id()
         return {
             "id": str(obj.id),
             "name": obj.name,
@@ -84,7 +76,7 @@ class AlertRuleSerializer(Serializer):
             "triggers": attrs.get("triggers", []),
             "projects": sorted(attrs.get("projects", [])),
             "includeAllProjects": obj.include_all_projects,
-            "owner": owner,
+            "owner": obj.owner.get_actor_identifier() if obj.owner else None,
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),

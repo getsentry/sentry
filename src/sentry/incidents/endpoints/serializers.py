@@ -9,7 +9,6 @@ from django.utils import timezone
 from django.utils.encoding import force_text
 
 from sentry.api.event_search import InvalidSearchQuery
-from sentry.api.fields.actor import Actor
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
@@ -31,6 +30,7 @@ from sentry.incidents.logic import (
     update_alert_rule_trigger_action,
     WARNING_TRIGGER_LABEL,
 )
+from sentry.models import ActorTuple
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
@@ -166,6 +166,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     {"sentry_app": "SentryApp must be provided for sentry_app"}
                 )
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
+        attrs["input_channel_id"] = self.context.get("input_channel_id")
         return attrs
 
     def create(self, validated_data):
@@ -259,6 +260,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                         "organization": self.context["organization"],
                         "access": self.context["access"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
+                        "input_channel_id": action_data.pop("input_channel_id", None),
                     },
                     instance=action_instance,
                     data=action_data,
@@ -337,12 +339,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     def validate_owner(self, owner):
         # owner should be team:id or user:id
         try:
-            actor = Actor.from_actor_identifier(owner)
+            actor = ActorTuple.from_actor_identifier(owner)
         except Exception:
             raise serializers.ValidationError(
                 "Could not parse owner. Format should be `type:id` where type is `team` or `user`."
             )
-
         try:
             if actor.resolve():
                 return actor
@@ -576,6 +577,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         "organization": self.context["organization"],
                         "access": self.context["access"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
+                        "input_channel_id": self.context.get("input_channel_id"),
                     },
                     instance=trigger_instance,
                     data=trigger_data,
