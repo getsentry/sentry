@@ -710,6 +710,3 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 2
-
-    def test_name_filter(self):
-        assert True is False
