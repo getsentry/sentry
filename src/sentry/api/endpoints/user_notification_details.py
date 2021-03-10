@@ -1,12 +1,12 @@
 from collections import defaultdict
-from rest_framework.response import Response
 from rest_framework import serializers
+from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize, Serializer
-from sentry.models import UserOption, UserOptionValue
-from sentry.notifications.manager import USER_OPTION_SETTINGS
+from sentry.models import UserOption
+from sentry.notifications.legacy_mappings import USER_OPTION_SETTINGS
 
 
 class UserNotificationsSerializer(Serializer):
