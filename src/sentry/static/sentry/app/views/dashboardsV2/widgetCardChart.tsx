@@ -259,7 +259,6 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     const legend = {
       left: 0,
       top: 0,
-      type: 'plain',
       selected: getSeriesSelection(location),
       formatter: (seriesName: string) => {
         const arg = getAggregateArg(seriesName);
