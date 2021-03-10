@@ -341,7 +341,7 @@ const Label = styled('div')<{coloredBg?: boolean}>`
 `;
 
 const Value = styled(Label)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
   padding: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
