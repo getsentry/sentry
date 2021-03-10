@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0163_add_organizationmember_and_external_name"),
+        ("sentry", "0172_rule_owner_fields"),
     ]
 
     operations = [
