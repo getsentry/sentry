@@ -10,8 +10,9 @@ import space from 'app/styles/space';
 import Rules from './rules';
 import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
 
-type Props = React.ComponentProps<typeof Rules> & {
+type Props = Omit<React.ComponentProps<typeof Rules>, 'emptyMessage'> & {
   onAddRule: () => void;
+  isErrorPanel?: boolean;
 };
 
 function RulesPanel({
@@ -21,7 +22,9 @@ function RulesPanel({
   onDeleteRule,
   disabled,
   onUpdateRules,
+  isErrorPanel,
 }: Props) {
+  const panelType = isErrorPanel ? t('error') : t('transaction');
   return (
     <Panel>
       <Rules
@@ -30,6 +33,7 @@ function RulesPanel({
         onDeleteRule={onDeleteRule}
         disabled={disabled}
         onUpdateRules={onUpdateRules}
+        emptyMessage={t('There are no %s rules to display', panelType)}
       />
       <StyledPanelFooter>
         <ButtonBar gap={1}>
@@ -46,7 +50,7 @@ function RulesPanel({
                 : undefined
             }
           >
-            {t('Add rule')}
+            {t('Add %s rule', panelType)}
           </Button>
         </ButtonBar>
       </StyledPanelFooter>

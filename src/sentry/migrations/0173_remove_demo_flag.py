@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
     atomic = True
 
     dependencies = [
-        ("sentry", "0171_backfill_actors"),
+        ("sentry", "0172_rule_owner_fields"),
     ]
 
     operations = [
