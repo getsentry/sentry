@@ -115,6 +115,7 @@ class IssueListFilters extends React.Component<Props> {
                   <IssueListSearchBar
                     organization={organization}
                     query={query || ''}
+                    sort={sort}
                     onSearch={onSearch}
                     disabled={isSearchDisabled}
                     excludeEnvironment
