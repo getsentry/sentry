@@ -180,8 +180,13 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   };
 
   handleUpdateRules = (rules: Array<DynamicSamplingRule>) => {
+    if (!rules.length) {
+      return;
+    }
+
     const {errorRules, transactionRules} = this.state;
-    if (rules[0].type === DynamicSamplingRuleType.ERROR) {
+
+    if (rules[0]?.type === DynamicSamplingRuleType.ERROR) {
       this.submitRules([...rules, ...transactionRules]);
       return;
     }
@@ -244,6 +249,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
           onEditRule={this.handleEditRule}
           onDeleteRule={this.handleDeleteRule}
           onUpdateRules={this.handleUpdateRules}
+          isErrorPanel
         />
         <TextBlock>
           {t(
