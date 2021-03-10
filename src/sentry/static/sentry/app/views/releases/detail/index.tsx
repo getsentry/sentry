@@ -66,11 +66,17 @@ class ReleasesDetail extends AsyncView<Props, State> {
   shouldReload = true;
 
   getTitle() {
-    const {params, organization} = this.props;
+    const {params, organization, selection} = this.props;
+    const {release} = this.state;
+
+    // The release details page will always have only one project selected
+    const project = release?.projects.find(p => p.id === selection.projects[0]);
+
     return routeTitleGen(
       t('Release %s', formatVersion(params.release)),
       organization.slug,
-      false
+      false,
+      project?.slug
     );
   }
 

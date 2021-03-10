@@ -121,7 +121,7 @@ class TransactionComparisonPage extends React.PureComponent<Props> {
     return (
       <SentryDocumentTitle
         title={this.getDocumentTitle({baselineEventSlug, regressionEventSlug})}
-        objSlug={organization.slug}
+        orgSlug={organization.slug}
       >
         <React.Fragment>
           <StyledPageContent>

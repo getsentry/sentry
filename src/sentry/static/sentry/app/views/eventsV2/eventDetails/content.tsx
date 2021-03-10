@@ -312,7 +312,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const title = generateTitle({eventView, event, organization});
 
     return (
-      <SentryDocumentTitle title={title} objSlug={organization.slug}>
+      <SentryDocumentTitle title={title} orgSlug={organization.slug}>
         {super.renderComponent()}
       </SentryDocumentTitle>
     );
