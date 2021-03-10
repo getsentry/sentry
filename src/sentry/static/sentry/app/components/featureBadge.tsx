@@ -1,15 +1,17 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 
 import CircleIndicator from 'app/components/circleIndicator';
 import Tag from 'app/components/tagDeprecated';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 type BadgeProps = {
   type: 'alpha' | 'beta' | 'new';
+  theme: Theme;
   variant?: 'indicator' | 'badge';
   title?: string;
   noTooltip?: boolean;
@@ -29,7 +31,14 @@ const labels = {
   new: t('new'),
 };
 
-const FeaturedBadge = ({type, variant = 'badge', title, noTooltip, ...p}: Props) => (
+const FeaturedBadge = ({
+  type,
+  variant = 'badge',
+  title,
+  theme,
+  noTooltip,
+  ...p
+}: Props) => (
   <div {...p}>
     <Tooltip title={title ?? defaultTitles[type]} disabled={noTooltip} position="right">
       <React.Fragment>
@@ -54,4 +63,4 @@ const StyledFeatureBadge = styled(FeaturedBadge)`
   top: -1px;
 `;
 
-export default StyledFeatureBadge;
+export default withTheme(StyledFeatureBadge);
