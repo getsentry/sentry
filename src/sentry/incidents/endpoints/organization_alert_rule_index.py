@@ -90,12 +90,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             alert_rules = alert_rules.filter(filter_query)
             issue_rules = issue_rules.filter(filter_query)
 
-        # TODO(Chris F.): Implement Name Filtering
-        # name = request.GET.get("name", None)
-        # if name:
-        # alert_rules = alert_rules.filter(name__contains=name)
-        # issue_rules = issue_rules.filter(label__contains=name)
-
         is_asc = request.GET.get("asc", False) == "1"
         sort_key = request.GET.get("sort", "date_added")
         rule_sort_key = (
