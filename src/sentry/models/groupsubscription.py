@@ -49,7 +49,7 @@ def get_user_options(key, user_ids, project, default):
         for option in UserOption.objects.filter(
             Q(project__isnull=True) | Q(project=project),
             user_id__in=user_ids,
-            key="workflow:notifications",
+            key=key,
         )
     }
 

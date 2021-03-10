@@ -25,15 +25,20 @@ from sentry.models import (
     AuditLogEntryEvent,
     Group,
     GroupStatus,
+    NotificationSetting,
     Project,
     ProjectBookmark,
     ProjectRedirect,
     ProjectStatus,
     ProjectTeam,
-    UserOption,
 )
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+from sentry.models.integration import ExternalProviders
+from sentry.notifications.types import (
+    NotificationSettingTypes,
+    NotificationSettingOptionValues,
+)
 from sentry.tasks.deletion import delete_project
 from sentry.utils import json
 from sentry.utils.compat import filter
@@ -532,13 +537,18 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option("sentry:origins", result["allowedDomains"]):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
 
-        if result.get("isSubscribed"):
-            UserOption.objects.set_value(
-                user=request.user, key="mail:alert", value=1, project=project
+        if "isSubscribed" in result:
+            value = (
+                NotificationSettingOptionValues.ALWAYS
+                if result.get("isSubscribed")
+                else NotificationSettingOptionValues.NEVER
             )
-        elif result.get("isSubscribed") is False:
-            UserOption.objects.set_value(
-                user=request.user, key="mail:alert", value=0, project=project
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                value,
+                user=request.user,
+                project=project,
             )
 
         if "dynamicSampling" in result:
