@@ -3,6 +3,7 @@ from sentry.utils.snuba import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry_relay import DataCategory
+from .discover import zerofill
 
 
 def query(groupby, start, end, rollup, aggregations, orderby, fields=None, filter_keys=None):
@@ -26,4 +27,4 @@ def query(groupby, start, end, rollup, aggregations, orderby, fields=None, filte
             if row["category"] in DataCategory.error_categories()
             else DataCategory(row["category"])
         )
-    return result["data"]
+    return zerofill(result["data"], start, end, rollup, "time")

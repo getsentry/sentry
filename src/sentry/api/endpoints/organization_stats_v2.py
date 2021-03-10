@@ -1,8 +1,6 @@
 from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.utils import get_date_range_rollup_from_params
-from sentry.api.bases.project import ProjectEndpoint
-
 from sentry.snuba import outcomes
 from sentry.api.serializers.models.organization_stats import StatsResponse
 
@@ -20,10 +18,15 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
             orderby=["time"],
         )
 
-        response = StatsResponse(start, end, rollup)
+        response = StatsResponse()
         for row in result:
-            stat_to_update = response.get(row["category"])
-            stat_to_update.update(row)
+            if "category" in row:
+                stat_to_update = response.get(row["category"])
+                stat_to_update.update(row)
+            else:
+                # if its a zerofill row, make sure all statcategories have it
+                for _, category_stat in response:
+                    category_stat.update(row)
 
         return Response(response.build_fields())
 
@@ -45,39 +48,51 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
             orderby=["times_seen", "time"],
         )
 
-        response = {project_id: StatsResponse(start, end, rollup) for project_id in project_ids}
+        # TODO: verify this works with sparse response
+        response = {project_id: StatsResponse() for project_id in project_ids}
         for row in result:
-            stat_to_update = response[row["project_id"]].get(row["category"])
-            stat_to_update.update(row)
+            if "category" in row:
+                stat_to_update = response[row["project_id"]].get(row["category"])
+                stat_to_update.update(row)
+            else:
+                # if its a zerofill row, make sure all statcategories have it
+                for project_id, stats_response in response.items():
+                    for _, category_stat in stats_response:
+                        category_stat.update(row)
 
         return Response(
             {project_id: stat_res.build_fields() for project_id, stat_res in response.items()}
         )
 
 
-class OrganizationProjectStatsDetails(ProjectEndpoint, OrganizationEndpoint):
-    def get(self, request, project):
-        start, end, rollup = get_date_range_rollup_from_params(request.GET, "1h", round_range=True)
+# class OrganizationProjectStatsDetails(ProjectEndpoint, OrganizationEndpoint):
+#     def get(self, request, project):
+#         start, end, rollup = get_date_range_rollup_from_params(request.GET, "1h", round_range=True)
 
-        projects = self.get_projects(request, project.organization)
-        project_ids = list({p.id for p in projects})
+#         projects = self.get_projects(request, project.organization)
+#         project_ids = list({p.id for p in projects})
 
-        if project.id not in project_ids:
-            # TODO: more info in response here?
-            return Response(status=404)
+#         if project.id not in project_ids:
+#             # TODO: more info in response here?
+#             return Response(status=404)
 
-        result = outcomes.query(
-            start=start,
-            end=end,
-            rollup=rollup,
-            groupby=["category", "time", "outcome", "reason"],
-            aggregations=[["sum", "times_seen", "times_seen"], ["sum", "quantity", "quantity"]],
-            filter_keys={"org_id": [project.organization.id], "project_id": [project.id]},
-            orderby=["time"],
-        )
-        response = StatsResponse(start, end, rollup)
-        for row in result:
-            stat_to_update = response.get(row["category"])
-            stat_to_update.update(row)
+#         result = outcomes.query(
+#             start=start,
+#             end=end,
+#             rollup=rollup,
+#             groupby=["category", "time", "outcome", "reason"],
+#             aggregations=[["sum", "times_seen", "times_seen"], ["sum", "quantity", "quantity"]],
+#             filter_keys={"org_id": [project.organization.id], "project_id": [project.id]},
+#             orderby=["time"],
+#         )
+#         response = StatsResponse()
+#         for row in result:
+#             if "category" in row:
+#                 stat_to_update = response.get(row["category"])
+#                 stat_to_update.update(row)
+#             else:
+#                 # if its a zerofill row, make sure all statcategories have it
+#                 for _, category_stat in response:
+#                     category_stat.update(row)
 
-        return Response(response.build_fields())
+#         return Response(response.build_fields())

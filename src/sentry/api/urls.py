@@ -191,7 +191,6 @@ from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import (
     OrganizationStatsEndpointV2,
-    OrganizationProjectStatsDetails,
     OrganizationProjectStatsIndex,
 )
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
@@ -1231,11 +1230,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/stats_v2/projects/$",
                     OrganizationProjectStatsIndex.as_view(),
                     name="sentry-api-0-organization-stats-project-index",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/stats_v2/projects/(?P<project_slug>[^\/]+)$",
-                    OrganizationProjectStatsDetails.as_view(),
-                    name="sentry-api-0-organization-stats-projects-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/teams/$",

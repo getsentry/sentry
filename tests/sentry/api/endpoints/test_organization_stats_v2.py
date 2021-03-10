@@ -121,13 +121,11 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
     def test_project_org_stats(self):
         make_request = functools.partial(
             self.client.get,
-            reverse(
-                "sentry-api-0-organization-stats-projects-details",
-                args=[self.org.slug, self.project.slug],
-            ),
+            reverse("sentry-api-0-organization-stats-project-index", args=[self.org.slug]),
         )
         response = make_request(
             {
+                "project": self.project.id,
                 "start": timestamp_format(self.start),
                 "end": timestamp_format(self.now),
                 "interval": "1d",
@@ -135,18 +133,26 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["statsErrors"][0]["accepted"] == {"quantity": 1, "times_seen": 1}
-        assert response.data["statsErrors"][0]["filtered"] == {"quantity": 0, "times_seen": 0}
-        assert response.data["statsErrors"][0]["dropped"]["overQuota"] == {
+        assert response.data[self.project.id]["statsErrors"][0]["accepted"] == {
             "quantity": 1,
             "times_seen": 1,
         }
-        assert response.data["statsErrors"][0]["dropped"]["spikeProtection"] == {
+        assert response.data[self.project.id]["statsErrors"][0]["filtered"] == {
             "quantity": 0,
             "times_seen": 0,
         }
-        assert response.data["statsErrors"][0]["dropped"]["other"] == {
+        assert response.data[self.project.id]["statsErrors"][0]["dropped"]["overQuota"] == {
+            "quantity": 1,
+            "times_seen": 1,
+        }
+        assert response.data[self.project.id]["statsErrors"][0]["dropped"]["spikeProtection"] == {
             "quantity": 0,
             "times_seen": 0,
         }
-        assert "time" in response.data["statsErrors"][0]  # TODO: write better test for this
+        assert response.data[self.project.id]["statsErrors"][0]["dropped"]["other"] == {
+            "quantity": 0,
+            "times_seen": 0,
+        }
+        assert (
+            "time" in response.data[self.project.id]["statsErrors"][0]
+        )  # TODO: write better test for this
