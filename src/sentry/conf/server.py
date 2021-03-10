@@ -916,8 +916,6 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable mobile app pages.
-    "organizations:mobile-app": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -1211,6 +1209,7 @@ SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
 # Snuba configuration
 SENTRY_SNUBA = os.environ.get("SNUBA", "http://127.0.0.1:1218")
 SENTRY_SNUBA_TIMEOUT = 30
+SENTRY_SNUBA_CACHE_TTL_SECONDS = 60
 
 # Node storage backend
 SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
@@ -1577,10 +1576,10 @@ SENTRY_DEVSERVICES = {
         "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
         "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
         "healthcheck": {
-            "test": ["CMD", "pg_isready"],
-            "interval": 1000000000,  # Test every 1 second (in ns).
-            "timeout": 1000000000,  # Time we should expect the test to take.
-            "retries": 5,
+            "test": ["CMD", "pg_isready", "-U", "postgres"],
+            "interval": 30000000000,  # Test every 30 seconds (in ns).
+            "timeout": 5000000000,  # Time we should expect the test to take.
+            "retries": 3,
         },
     },
     "zookeeper": {

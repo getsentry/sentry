@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -10,7 +10,7 @@ describe('utils.projects', function () {
   const renderer = jest.fn(() => null);
 
   const createWrapper = props =>
-    mount(<Projects orgId="org-slug" children={renderer} {...props} />); // eslint-disable-line
+    mountWithTheme(<Projects orgId="org-slug" children={renderer} {...props} />); // eslint-disable-line
 
   beforeEach(function () {
     renderer.mockClear();

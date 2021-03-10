@@ -260,7 +260,9 @@ class RedisTSDB(BaseTSDB):
                     if key_expiries.get(hash_key):
                         client.expireat(hash_key, key_expiries.pop(hash_key))
 
-    def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
+    def get_range(
+        self, model, keys, start, end, rollup=None, environment_ids=None, use_cache=False
+    ):
         """
         To get a range of data for group ID=[1, 2, 3]:
 
@@ -433,7 +435,7 @@ class RedisTSDB(BaseTSDB):
         }
 
     def get_distinct_counts_totals(
-        self, model, keys, start, end=None, rollup=None, environment_id=None
+        self, model, keys, start, end=None, rollup=None, environment_id=None, use_cache=False
     ):
         """
         Count distinct items during a time range.
