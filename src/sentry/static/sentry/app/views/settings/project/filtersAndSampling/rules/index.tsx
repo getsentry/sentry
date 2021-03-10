@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {PanelTable} from 'app/components/panels';
@@ -17,35 +18,40 @@ type Props = {
   onEditRule: (rule: DynamicSamplingRule) => () => void;
   onDeleteRule: (rule: DynamicSamplingRule) => () => void;
   onUpdateRules: (rules: Array<DynamicSamplingRule>) => void;
+  emptyMessage: string;
 };
 
-type RulesWithId = Array<DynamicSamplingRule & {id: string}>;
-
 type State = {
-  rules: RulesWithId;
+  rules: Array<DynamicSamplingRule>;
 };
 
 class Rules extends React.PureComponent<Props, State> {
-  state: State = {
-    rules: [],
-  };
+  state: State = {rules: []};
 
   componentDidMount() {
     this.getRules();
   }
 
-  componentDidUpdate(prevProps: Props) {
-    if (prevProps.rules !== this.props.rules) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    if (!isEqual(prevProps.rules, this.props.rules)) {
       this.getRules();
+      return;
     }
+
+    if (!!prevState.rules.length && !isEqual(prevState.rules, this.state.rules)) {
+      this.handleUpdateRulesParent();
+    }
+  }
+
+  getRules() {
+    this.setState({rules: this.props.rules});
   }
 
   handleUpdateRulesParent() {
     const {onUpdateRules} = this.props;
     const {rules} = this.state;
 
-    const reordered = rules.map(({id: _id, ...rule}) => rule);
-    onUpdateRules(reordered);
+    onUpdateRules(rules);
   }
 
   handleUpdateRules = ({
@@ -55,8 +61,8 @@ class Rules extends React.PureComponent<Props, State> {
   }: UpdateItemsProps) => {
     const {rules} = this.state;
     const reorderedRules = ruleIds
-      .map(ruleId => rules.find(rule => rule.id === ruleId))
-      .filter(rule => !!rule) as RulesWithId;
+      .map(ruleId => rules.find(rule => String(rule.id) === ruleId))
+      .filter(rule => !!rule) as Array<DynamicSamplingRule>;
 
     const activeRuleType = rules[activeIndex].type;
     const overRuleType = rules[overIndex].type;
@@ -81,28 +87,22 @@ class Rules extends React.PureComponent<Props, State> {
       return;
     }
 
-    this.setState({rules: reorderedRules}, this.handleUpdateRulesParent);
+    this.setState({rules: reorderedRules});
   };
 
-  getRules() {
-    const {rules} = this.props;
-    const rulesWithId = rules.map((rule, index) => ({...rule, id: String(index)}));
-    this.setState({rules: rulesWithId});
-  }
-
   render() {
-    const {onEditRule, onDeleteRule, disabled} = this.props;
+    const {onEditRule, onDeleteRule, disabled, emptyMessage} = this.props;
     const {rules} = this.state;
 
     return (
       <StyledPanelTable
         headers={['', t('Type'), t('Conditions'), t('Rate'), '']}
         isEmpty={!rules.length}
-        emptyMessage={t('There are no rules to display')}
+        emptyMessage={emptyMessage}
       >
         <DraggableList
           disabled={disabled}
-          items={rules.map(rule => rule.id)}
+          items={rules.map(rule => String(rule.id))}
           onUpdateItems={this.handleUpdateRules}
           wrapperStyle={({isDragging, isSorting, index}) => {
             if (isDragging) {
@@ -125,19 +125,17 @@ class Rules extends React.PureComponent<Props, State> {
             };
           }}
           renderItem={({value, listeners, attributes, dragging, sorting}) => {
-            const currentRule = rules.find(rule => rule.id === value);
+            const currentRule = rules.find(rule => String(rule.id) === value);
 
             if (!currentRule) {
               return null;
             }
 
-            const {id: _id, ...rule} = currentRule;
-
             return (
               <Rule
-                rule={rule}
-                onEditRule={onEditRule(rule)}
-                onDeleteRule={onDeleteRule(rule)}
+                rule={currentRule}
+                onEditRule={onEditRule(currentRule)}
+                onDeleteRule={onDeleteRule(currentRule)}
                 disabled={disabled}
                 listeners={listeners}
                 grabAttributes={attributes}

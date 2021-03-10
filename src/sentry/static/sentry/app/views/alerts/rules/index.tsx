@@ -161,6 +161,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       params: {orgId},
       location: {query},
       organization,
+      teams,
     } = this.props;
     const {loading, ruleList = [], ruleListPageLinks} = this.state;
 
@@ -174,6 +175,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       // Currently only supported sorting field is 'date_added'
     };
 
+    const userTeams = new Set(teams.filter(({isMember}) => isMember).map(({id}) => id));
     return (
       <StyledLayoutBody>
         <Layout.Main fullWidth>
@@ -224,6 +226,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                           orgId={orgId}
                           onDelete={this.handleDeleteRule}
                           organization={organization}
+                          userTeams={userTeams}
                         />
                       ))
                     }

@@ -70,6 +70,7 @@ const getPublicFormFields = (): Field[] => [
     type: 'textarea',
     label: 'Schema',
     autosize: true,
+    rows: 1,
     help: tct(
       'Schema for your UI components. Click [schema_docs:here] for documentation.',
       {
@@ -104,6 +105,7 @@ const getPublicFormFields = (): Field[] => [
     type: 'textarea',
     label: 'Overview',
     autosize: true,
+    rows: 1,
     help: 'Description of your Integration and its functionality.',
   },
   {
