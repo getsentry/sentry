@@ -21,6 +21,13 @@ selenium_driver = "chrome"
 filterwarnings = [
     "error",
     "ignore:django.utils.deprecation.RemovedInDjango20Warning",
+    # DeprecationWarnings from Python 3.6's sre_parse are just so painful,
+    # and I haven't found a way to ignore it specifically from a module.
+    # This one in particular is from the "cookies" packages as depended
+    # on by an outdated version of responses, and shows up all over tests.
+    # TODO(joshuarli): Upgrade responses, then revisit this.
+    #                  It'll probably show up in other dependencies.
+    "ignore::DeprecationWarning",
 ]
 # This is for people who install pytest-xdist locally,
 # and use the -f/--looponfail feature.
