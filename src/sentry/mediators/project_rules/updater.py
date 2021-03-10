@@ -6,8 +6,7 @@ from sentry.mediators.param import if_param
 class Updater(Mediator):
     rule = Param("sentry.models.Rule")
     name = Param((str,), required=False)
-    user = Param("sentry.models.Team", required=False)
-    user = Param("sentry.models.User", required=False)
+    owner = Param("sentry.models.Actor", required=False)
     environment = Param(int, required=False)
     project = Param("sentry.models.Project")
     action_match = Param((str,), required=False)
@@ -19,8 +18,7 @@ class Updater(Mediator):
 
     def call(self):
         self._update_name()
-        self._update_team()
-        self._update_user()
+        self._update_owner()
         self._update_environment()
         self._update_project()
         self._update_actions()
@@ -35,11 +33,8 @@ class Updater(Mediator):
     def _update_name(self):
         self.rule.label = self.name
 
-    def _update_team(self):
-        self.rule.team = self.team
-
-    def _update_user(self):
-        self.rule.user = self.user
+    def _update_owner(self):
+        self.rule.owner = self.owner
 
     def _update_environment(self):
         # environment can be None so we don't use the if_param decorator

@@ -18,17 +18,14 @@ class TestUpdater(TestCase):
         assert self.rule.label == "Cool New Rule"
 
     def test_update_owner(self):
-        self.updater.user = self.user
+        self.updater.owner = self.user.actor
         self.updater.call()
-        assert self.rule.user == self.user
-        assert self.rule.team is None
+        assert self.rule.owner == self.user.actor
 
         team = self.create_team()
-        self.updater.team = team
-        self.updater.user = None
+        self.updater.owner = team.actor
         self.updater.call()
-        assert self.rule.user is None
-        assert self.rule.team == team
+        assert self.rule.owner == team.actor
 
     def test_update_environment(self):
         self.updater.environment = 3

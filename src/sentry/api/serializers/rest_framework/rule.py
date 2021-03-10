@@ -1,9 +1,8 @@
 from rest_framework import serializers
 
 from sentry import features
-from sentry.api.fields.actor import Actor
 from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
-from sentry.models import Environment, Team, User
+from sentry.models import ActorTuple, Environment, Team, User
 from sentry.rules import rules
 
 from . import ListField
@@ -76,7 +75,7 @@ class RuleSerializer(serializers.Serializer):
     def validate_owner(self, owner):
         # owner_id should be team:id or user:id
         try:
-            actor = Actor.from_actor_identifier(owner)
+            actor = ActorTuple.from_actor_identifier(owner)
         except Exception:
             raise serializers.ValidationError(
                 "Could not parse owner. Format should be `type:id` where type is `team` or `user`."

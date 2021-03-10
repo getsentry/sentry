@@ -82,7 +82,13 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             }
             owner = data.get("owner")
             if owner:
-                kwargs.update({"owner": owner.resolve_to_actor()})
+                try:
+                    kwargs.update({"owner": owner.resolve_to_actor()})
+                except Exception:
+                    return Response(
+                        "Could not resolve owner",
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
             if data.get("pending_save"):
                 client = tasks.RedisRuleStatus()

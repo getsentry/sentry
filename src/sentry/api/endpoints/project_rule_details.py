@@ -3,12 +3,17 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectAlertRulePermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.fields.actor import Actor
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
-from sentry.models import AuditLogEntryEvent, Rule, RuleActivity, RuleActivityType, RuleStatus
+from sentry.models import (
+    AuditLogEntryEvent,
+    Rule,
+    RuleActivity,
+    RuleActivityType,
+    RuleStatus,
+)
 from sentry.web.decorators import transaction_start
 
 
@@ -86,7 +91,6 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             owner = data.get("owner")
             if owner:
                 try:
-                    owner = Actor.from_actor_identifier(owner)
                     kwargs.update({"owner": owner.resolve_to_actor()})
                 except Exception:
                     return Response(
