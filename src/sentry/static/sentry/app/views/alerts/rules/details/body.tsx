@@ -86,6 +86,21 @@ class DetailsBody extends React.Component<Props> {
     return `${direction} ${value}`;
   }
 
+  getMetricText(): React.ReactNode {
+    const {rule} = this.props;
+
+    if (!rule) {
+      return '';
+    }
+
+    const {aggregate, timeWindow} = rule;
+
+    return tct(' [metric] over [window]', {
+      metric: aggregate,
+      window: <Duration seconds={timeWindow * 60} />,
+    })
+  }
+
   getInterval() {
     const {
       timePeriod: {start, end},
@@ -325,10 +340,7 @@ class DetailsBody extends React.Component<Props> {
           </ChartPanel>
         </Layout.Main>
         <Layout.Side>
-          <SidebarHeading>
-            <span>{t('Alert Rule')}</span>
-          </SidebarHeading>
-          {this.renderRuleDetails()}
+          <Placeholder height="200px" />
         </Layout.Side>
       </Layout.Body>
     );
@@ -354,7 +366,6 @@ class DetailsBody extends React.Component<Props> {
       environment,
       aggregate,
       projects: projectSlugs,
-      timeWindow,
       triggers,
     } = rule;
 
@@ -394,10 +405,7 @@ class DetailsBody extends React.Component<Props> {
                       <PresetName>
                         {this.metricPreset?.name ?? t('Custom metric')}
                       </PresetName>
-                      {tct(' [metric] over [window]', {
-                        metric: aggregate,
-                        window: <Duration seconds={timeWindow * 60} />,
-                      })}
+                      {this.getMetricText()}
                     </ChartHeader>
                     <EventsRequest
                       api={api}
@@ -463,9 +471,6 @@ class DetailsBody extends React.Component<Props> {
               <Layout.Side>
                 {this.renderMetricStatus()}
                 <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
-                <SidebarHeading>
-                  <span>{t('Alert Rule')}</span>
-                </SidebarHeading>
                 {this.renderRuleDetails()}
               </Layout.Side>
             </Layout.Body>
