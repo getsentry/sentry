@@ -558,9 +558,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # updated to be something else)
         resp = self.client.post(path, {"email": "adfadsf@example.com", "email_verified": "1"})
 
-        self.assertTemplateUsed(resp, "sentry/auth-confirm-link.html")
-        assert resp.status_code == 200
-        assert resp.context["existing_user"] == user
+        self.assertTemplateUsed(resp, "sentry/404.html")
+        assert resp.status_code == 404
 
     def test_swapped_identities(self):
         """

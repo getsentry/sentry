@@ -387,7 +387,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
     # to consider if 'email_verified' can be trusted or not
     if acting_user and identity.get("email_verified"):
         # we only allow this flow to happen if the existing user has
-        # membership, otherwise we short circuit because it might be
+        # membership, otherwise we return 404 because it might be
         # an attempt to hijack membership of another organization
         has_membership = OrganizationMember.objects.filter(
             user=acting_user, organization=organization
@@ -407,8 +407,10 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
                 # assume they've confirmed they want to attach the identity
                 op = "confirm"
         else:
-            # force them to create a new account
-            acting_user = None
+            # return with 404 page not found
+            return respond(
+                "sentry/404.html", organization=organization, status=404, request=request
+            )
     # without a usable password they cant login, so let's clear the acting_user
     elif acting_user and not acting_user.has_usable_password():
         acting_user = None
