@@ -223,7 +223,7 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter
         assert snuba_filter.conditions == [["release", "=", "latest"]]
         assert snuba_filter.aggregations == [
-            ["quantile(0.95)", "duration", "percentile_transaction_duration__95"]
+            ["quantileOrNull(0.95)", "duration", "percentile_transaction_duration__95"]
         ]
 
     def test_user_query(self):
@@ -243,7 +243,7 @@ class BuildSnubaFilterTest(TestCase):
         )
         assert snuba_filter
         assert snuba_filter.conditions == [["user", "=", "anengineer@work.io"]]
-        assert snuba_filter.aggregations == [["quantile(0.95)", "duration", "p95"]]
+        assert snuba_filter.aggregations == [["quantileOrNull(0.95)", "duration", "p95"]]
 
     def test_boolean_query(self):
         snuba_filter = build_snuba_filter(

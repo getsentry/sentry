@@ -667,7 +667,7 @@ class QueryTransformTest(TestCase):
                     "project",
                 ],
             ],
-            aggregations=[["quantile(0.99)", "duration", "p99"]],
+            aggregations=[["quantileOrNull(0.99)", "duration", "p99"]],
             filter_keys={"project_id": [project2.id]},
             dataset=Dataset.Discover,
             end=None,
@@ -756,7 +756,7 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                ["quantile(0.95)", "duration", "p95"],
+                ["quantileOrNull(0.95)", "duration", "p95"],
                 ["uniq", "transaction", "count_unique_transaction"],
             ],
             filter_keys={"project_id": [self.project.id]},
@@ -924,7 +924,9 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            aggregations=[["quantile(0.75)", "duration", "percentile_transaction_duration_0_75"]],
+            aggregations=[
+                ["quantileOrNull(0.75)", "duration", "percentile_transaction_duration_0_75"]
+            ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["transaction"],
@@ -1207,7 +1209,7 @@ class QueryTransformTest(TestCase):
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
-            aggregations=[["avg", "duration", "avg_transaction_duration"]],
+            aggregations=[["avgOrNull", "duration", "avg_transaction_duration"]],
             having=[["avg_transaction_duration", ">", 5]],
             end=end_time,
             start=start_time,
@@ -1238,7 +1240,7 @@ class QueryTransformTest(TestCase):
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
-            aggregations=[["quantile(0.95)", "duration", "p95"]],
+            aggregations=[["quantileOrNull(0.95)", "duration", "p95"]],
             having=[["p95", ">", 5]],
             end=end_time,
             start=start_time,
@@ -1280,7 +1282,7 @@ class QueryTransformTest(TestCase):
                 filter_keys={"project_id": [self.project.id]},
                 groupby=["transaction"],
                 dataset=Dataset.Discover,
-                aggregations=[["quantile(0.95)", "duration", "p95"]],
+                aggregations=[["quantileOrNull(0.95)", "duration", "p95"]],
                 having=[["p95", ">", value]],
                 end=end_time,
                 start=start_time,
@@ -1311,7 +1313,7 @@ class QueryTransformTest(TestCase):
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
-            aggregations=[["quantile(0.95)", "duration", "p95"]],
+            aggregations=[["quantileOrNull(0.95)", "duration", "p95"]],
             having=[["p95", ">", 5]],
             end=end_time,
             start=start_time,
@@ -1343,8 +1345,8 @@ class QueryTransformTest(TestCase):
             groupby=["transaction"],
             dataset=Dataset.Discover,
             aggregations=[
-                ["avg", "duration", "avg_transaction_duration"],
-                ["max", "timestamp", "max_timestamp"],
+                ["avgOrNull", "duration", "avg_transaction_duration"],
+                ["maxOrNull", "timestamp", "max_timestamp"],
             ],
             having=[["max_timestamp", ">", 1575158400]],
             end=end_time,
@@ -1384,8 +1386,8 @@ class QueryTransformTest(TestCase):
                 groupby=["transaction"],
                 dataset=Dataset.Discover,
                 aggregations=[
-                    ["avg", "duration", "avg_transaction_duration"],
-                    ["max", "timestamp", "max_timestamp"],
+                    ["avgOrNull", "duration", "avg_transaction_duration"],
+                    ["maxOrNull", "timestamp", "max_timestamp"],
                 ],
                 having=[["avg_transaction_duration", ">", value]],
                 end=end_time,
@@ -1468,8 +1470,8 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                ["quantile(0.95)", "duration", "p95"],
-                ["max", "timestamp", "max_timestamp"],
+                ["quantileOrNull(0.95)", "duration", "p95"],
+                ["maxOrNull", "timestamp", "max_timestamp"],
             ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
@@ -1503,8 +1505,8 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                ["min", "timestamp", "min_timestamp"],
-                ["max", "timestamp", "max_timestamp"],
+                ["minOrNull", "timestamp", "min_timestamp"],
+                ["maxOrNull", "timestamp", "max_timestamp"],
             ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
@@ -1536,7 +1538,9 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            aggregations=[["quantile(0.75)", "duration", "percentile_transaction_duration_0_75"]],
+            aggregations=[
+                ["quantileOrNull(0.75)", "duration", "percentile_transaction_duration_0_75"]
+            ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["transaction"],
