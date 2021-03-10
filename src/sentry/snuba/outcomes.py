@@ -4,11 +4,40 @@ from sentry.utils.snuba import (
 from sentry.snuba.dataset import Dataset
 from sentry_relay import DataCategory
 from .discover import zerofill
+from collections import defaultdict
+
+
+def group_by_project(result):
+    ret_results = defaultdict(list)
+    for row in result:
+        proj_id = row["project_id"]
+        del row["project_id"]
+        ret_results[proj_id].append(row)
+    return ret_results
+
+
+def coalesce_error_categories(rows):
+    for row in rows:
+        row["category"] = (
+            DataCategory.ERROR
+            if row["category"] in DataCategory.error_categories()
+            else DataCategory(row["category"])
+        )
+    return rows
+
+
+def _outcomes_dataset(rollup):
+    if rollup >= 3600:
+        # Outcomes is the hourly rollup table
+        return Dataset.Outcomes
+    else:
+        return Dataset.OutcomesRaw
 
 
 def query(groupby, start, end, rollup, aggregations, orderby, fields=None, filter_keys=None):
 
-    # TODO: if roll up >= use hourly, else use raw
+    # TODO: if roll up >= 1hr use hourly, else use raw
+    # TODO: add rollup constraint here
     # add spans
     result = raw_query(
         start=start,
@@ -18,13 +47,16 @@ def query(groupby, start, end, rollup, aggregations, orderby, fields=None, filte
         rollup=rollup,
         filter_keys=filter_keys,
         orderby=orderby,
-        dataset=Dataset.Outcomes,
+        dataset=_outcomes_dataset(rollup),
     )
 
-    for row in result["data"]:
-        row["category"] = (
-            DataCategory.ERROR
-            if row["category"] in DataCategory.error_categories()
-            else DataCategory(row["category"])
-        )
-    return zerofill(result["data"], start, end, rollup, "time")
+    result = coalesce_error_categories(result["data"])
+    # TODO: group by category too?
+    if "project_id" in groupby:
+        result = {
+            project_id: zerofill(rows, start, end, rollup, "time")
+            for project_id, rows in group_by_project(result).items()
+        }
+    else:
+        result = zerofill(result, start, end, rollup, "time")
+    return result

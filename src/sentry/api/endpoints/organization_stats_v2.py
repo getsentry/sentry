@@ -33,7 +33,9 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
 
 class OrganizationProjectStatsIndex(OrganizationEndpoint):
     def get(self, request, organization):
-        start, end, rollup = get_date_range_rollup_from_params(request.GET, "1h", round_range=True)
+        start, end, rollup = get_date_range_rollup_from_params(
+            request.GET, minimum_interval="10s", default_interval="1hr", round_range=True
+        )
 
         projects = self.get_projects(request, organization)
         project_ids = list({p.id for p in projects})
@@ -47,17 +49,15 @@ class OrganizationProjectStatsIndex(OrganizationEndpoint):
             filter_keys={"org_id": [organization.id], "project_id": project_ids},
             orderby=["times_seen", "time"],
         )
-
-        # TODO: verify this works with sparse response
         response = {project_id: StatsResponse() for project_id in project_ids}
-        for row in result:
-            if "category" in row:
-                stat_to_update = response[row["project_id"]].get(row["category"])
-                stat_to_update.update(row)
-            else:
-                # if its a zerofill row, make sure all statcategories have it
-                for project_id, stats_response in response.items():
-                    for _, category_stat in stats_response:
+        for project_id, rows in result.items():
+            for row in rows:
+                if "category" in row:
+                    stat_to_update = response[project_id].get(row["category"])
+                    stat_to_update.update(row)
+                else:
+                    # make sure all categories have zerofilled
+                    for _, category_stat in response[project_id]:
                         category_stat.update(row)
 
         return Response(
