@@ -52,6 +52,7 @@ class BaseAlertRuleSerializerTest:
             "project": project
             "environment": environment
             "name": "My rule name",
+            "owner": actor id,
             "conditions": [],
             "actions": [],
             "actionMatch": "all"
@@ -74,6 +75,8 @@ class BaseAlertRuleSerializerTest:
             rule.data["frequency"] = data["frequency"]
         if data.get("date_added"):
             rule.date_added = data["date_added"]
+        if data.get("owner"):
+            rule.owner = data["owner"]
 
         rule.save()
         return rule

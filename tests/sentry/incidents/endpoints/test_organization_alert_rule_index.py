@@ -6,8 +6,8 @@ from exam import fixture
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
-from sentry.api.fields import Actor
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType
+from sentry.models import ActorTuple
 from sentry.models.organizationmember import OrganizationMember
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import APITestCase
@@ -359,13 +359,13 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC),
-            owner=Actor.from_actor_identifier(f"team:{self.team.id}"),
+            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
         )
         self.other_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project2],
             date_added=before_now(minutes=5).replace(tzinfo=pytz.UTC),
-            owner=Actor.from_actor_identifier(f"team:{self.team.id}"),
+            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
         )
         self.issue_rule = self.create_issue_alert_rule(
             data={
@@ -381,7 +381,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC),
-            owner=Actor.from_actor_identifier(f"team:{self.team2.id}"),
+            owner=ActorTuple.from_actor_identifier(f"team:{self.team2.id}"),
         )
         self.combined_rules_url = f"/api/0/organizations/{self.org.slug}/combined-rules/"
 
@@ -586,7 +586,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
     def test_team_filter(self):
         self.setup_project_and_rules()
-        self.issue_rule.delete()  # TODO(Chris F.) Instead of working around this non-working filter, just delete it
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "10", "project": [self.project.id]}
             response = self.client.get(
@@ -594,7 +593,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200
         result = json.loads(response.content)
-        assert len(result) == 2
+        assert len(result) == 3
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {
@@ -642,7 +641,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200
         result = json.loads(response.content)
-        assert len(result) == 0
+        assert len(result) == 1
 
         self.an_unassigned_alert_rule = self.create_alert_rule(
             organization=self.org,
@@ -657,7 +656,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200
         result = json.loads(response.content)
-        assert len(result) == 1
+        assert len(result) == 2  # shouldnt this also return the issue rule?
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "10", "project": [self.project.id], "team": ["notvalid"]}
@@ -687,6 +686,30 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 3
+
+        self.create_issue_alert_rule(
+            data={
+                "project": self.project,
+                "name": "Issue Rule Test",
+                "conditions": [],
+                "actions": [],
+                "actionMatch": "all",
+                "date_added": before_now(minutes=4).replace(tzinfo=pytz.UTC),
+                "owner": self.team.actor,
+            }
+        )
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "team": [self.team.id],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 2
 
     def test_name_filter(self):
         assert True is False

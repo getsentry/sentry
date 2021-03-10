@@ -86,10 +86,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 filter_query = filter_query | unassigned
 
             alert_rules = alert_rules.filter(filter_query)
-            # TODO(Chris F): Issue rule owner support migration coming in another PR
-            # issue_rules = issue_rules.filter(
-            # owner_id__in=Team.objects.filter(id__in=teams).values_list("actor_id", flat=True)
-            # )
+            issue_rules = issue_rules.filter(filter_query)
 
         # TODO(Chris F.): Implement Name Filtering
         # name = request.GET.get("name", None)
