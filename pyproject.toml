@@ -17,8 +17,8 @@ markers = [
     "snuba: mark a test as requiring snuba",
 ]
 selenium_driver = "chrome"
-# These warning filters should be kept in sync with sentry.utils.pytest.sentry,
-# and sentry.runner.settings.
+# Unless otherwise specified, these warning filters should be kept in
+# sync with sentry.utils.pytest.sentry, and sentry.runner.settings.
 filterwarnings = [
     # Consider all warnings to be errors other than the ignored ones.
     "error",
@@ -31,6 +31,10 @@ filterwarnings = [
     # TODO(joshuarli): Upgrade responses, then revisit this.
     #                  It'll probably show up in other dependencies.
     "ignore::DeprecationWarning",
+    # This ignore should ONLY be here.
+    # If you remove it, then you have to wrap most datetime objects in testing code
+    # with django.utils.timezone.
+    "ignore:DateTimeField.*naive datetime:RuntimeWarning",
 ]
 # This is for people who install pytest-xdist locally,
 # and use the -f/--looponfail feature.
