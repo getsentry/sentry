@@ -95,9 +95,10 @@ def configure(ctx, py, yaml, skip_service_validation=False):
     # This should be kept in-sync with sentry.utils.pytest.sentry,
     # and pytest warningfilters in pyproject.toml.
     # See pyproject.toml for explanations.
-    from django.utils.deprecation import RemovedInDjango20Warning
+    from django.utils.deprecation import RemovedInDjango20Warning, RemovedInDjango21Warning
 
     warnings.filterwarnings(action="ignore", category=RemovedInDjango20Warning)
+    warnings.filterwarnings(action="ignore", category=RemovedInDjango21Warning)
     warnings.filterwarnings(action="ignore", category=DeprecationWarning)
 
     # Add in additional mimetypes that are useful for our static files

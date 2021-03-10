@@ -13,12 +13,13 @@ TEST_ROOT = os.path.normpath(
 
 def pytest_configure(config):
     import warnings
-    from django.utils.deprecation import RemovedInDjango20Warning
+    from django.utils.deprecation import RemovedInDjango20Warning, RemovedInDjango21Warning
 
     # This should be kept in sync with sentry.runner.settings,
     # and pytest warningfilters in pyproject.toml.
     # See pyproject.toml for explanations.
     warnings.filterwarnings(action="ignore", category=RemovedInDjango20Warning)
+    warnings.filterwarnings(action="ignore", category=RemovedInDjango21Warning)
     warnings.filterwarnings(action="ignore", category=DeprecationWarning)
 
     # HACK: Only needed for testing!
