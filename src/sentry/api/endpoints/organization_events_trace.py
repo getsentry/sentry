@@ -35,6 +35,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             "span_id": event["trace.span"],
             "transaction": event["transaction"],
             "transaction.duration": event["transaction.duration"],
+            "transaction.op": event["transaction.op"],
             "project_id": event["project.id"],
             "project_slug": event["project"],
             "parent_event_id": parent,
@@ -55,10 +56,12 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         with self.handle_query_errors():
             result = discover.query(
+                # selected_columns is a set list, since we only want to include the minimum to render the trace
                 selected_columns=[
                     "id",
                     "timestamp",
                     "transaction.duration",
+                    "transaction.op",
                     "transaction",
                     # project gets the slug, and project.id gets added automatically
                     "project",
@@ -182,8 +185,8 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             error_results = discover.query(
                 selected_columns=[
                     "id",
+                    "project",
                     "timestamp",
-                    "issue",
                     "trace.span",
                 ],
                 orderby=["-timestamp", "id"],
@@ -198,16 +201,17 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             # Use issue ids to get the error's short id
             error_map = defaultdict(list)
             if error_results["data"]:
-                self.handle_issues(error_results["data"], params["project_id"], organization)
                 for row in error_results["data"]:
-                    error_map[row["trace.span"]].append(
-                        {
-                            "issue": row["issue"],
-                            "id": row["id"],
-                            "span": row["trace.span"],
-                        }
-                    )
+                    error_map[row["trace.span"]].append(self.serialize_error(row))
             return error_map
+
+    def serialize_error(self, event):
+        return {
+            "event_id": event["id"],
+            "span": event["trace.span"],
+            "project_id": event["project.id"],
+            "project_slug": event["project"],
+        }
 
     def serialize_event(self, *args, **kwargs):
         event = super().serialize_event(*args, **kwargs)
