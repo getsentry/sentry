@@ -20,7 +20,12 @@ class OrganizationSessionsDocsTest(APIDocsTestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
     def test_get(self):
-        query = {"project": [self.project.id], "field": ["sum(session)"], "groupBy": ["release"]}
+        query = {
+            "project": [self.project.id],
+            "statsPeriod": "30d",
+            "field": ["sum(session)"],
+            "groupBy": ["release"],
+        }
 
         request = RequestFactory().get(self.url)
 
