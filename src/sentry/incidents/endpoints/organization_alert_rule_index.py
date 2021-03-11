@@ -30,6 +30,41 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         """
         Fetches alert rules and legacy rules for an organization
         """
+        teams = request.GET.getlist("team", [])
+        if teams:
+            unassigned = None
+            if "unassigned" in teams:
+                teams.remove("unassigned")
+                unassigned = Q(owner_id=None)
+
+            if "myteams" in teams:
+                teams.remove("myteams")
+                for t in Team.objects.filter(
+                    id__in=OrganizationMemberTeam.objects.filter(
+                        organizationmember__in=OrganizationMember.objects.filter(
+                            user=request.user, organization_id=organization.id
+                        ),
+                        is_active=True,
+                    ).values("team")
+                ):
+                    teams.append(t.id)
+
+            # Verify each Team id is numeric
+            for team_id in teams:
+                if type(team_id) is not int and not team_id.isdigit():
+                    return Response(
+                        f"Invalid Team ID: {team_id}", status=status.HTTP_400_BAD_REQUEST
+                    )
+
+            # Verify user has access to each team
+            teams_qs = Team.objects.filter(id__in=set(map(int, teams)))
+            for team in teams_qs:
+                if not team.has_access(request.user):
+                    return Response(
+                        f"Error: You do not have permission to access {team.name}",
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
         project_ids = self.get_requested_project_ids(request) or None
         if project_ids == {-1}:  # All projects for org:
             project_ids = Project.objects.filter(organization=organization).values_list(
@@ -55,39 +90,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=project_ids
         )
 
-        teams = request.GET.getlist("team", [])
         if teams:
-            unassigned = None
-            if "unassigned" in teams:
-                teams.remove("unassigned")
-                unassigned = Q(owner_id=None)
-
-            if "myteams" in teams:
-                teams.remove("myteams")
-                for t in Team.objects.filter(
-                    id__in=OrganizationMemberTeam.objects.filter(
-                        organizationmember__in=OrganizationMember.objects.filter(
-                            user=request.user, organization_id=organization.id
-                        ),
-                        is_active=True,
-                    ).values("team")
-                ):
-                    teams.append(t.id)
-
-            for team_id in teams:
-                if type(team_id) is not int and not team_id.isdigit():
-                    return Response(
-                        f"Invalid Team ID: {team_id}", status=status.HTTP_400_BAD_REQUEST
-                    )
-            teams = set(map(int, teams))
-            teams_qs = Team.objects.filter(id__in=teams)
-            for team in teams_qs:
-                if not team.has_access(request.user):
-                    return Response(
-                        f"Error: You do not have permission to access {team.name}",
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
             teams_query = Q(owner_id__in=teams_qs.values_list("actor_id", flat=True))
             filter_query = teams_query
             if unassigned:
