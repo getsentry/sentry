@@ -8,7 +8,7 @@ import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
 import {
   EventLite,
   QuickTrace,
-  TraceFull,
+  QuickTraceEvent,
   TraceLite,
 } from 'app/utils/performance/quickTrace/types';
 
@@ -17,7 +17,7 @@ export function isTransaction(event: Event): event is EventTransaction {
 }
 
 type PathNode = {
-  event: TraceFull;
+  event: QuickTraceEvent;
   path: TraceLite;
 };
 
@@ -33,10 +33,10 @@ type PathNode = {
  */
 export function flattenRelevantPaths(
   currentEvent: Event,
-  traceFull: TraceFull
+  traceFull: QuickTraceEvent
 ): TraceLite {
   const relevantPath: TraceLite = [];
-  const events: TraceFull[] = [];
+  const events: QuickTraceEvent[] = [];
 
   /**
    * First find a path from the root transaction to the current transaction via
@@ -54,8 +54,11 @@ export function flattenRelevantPaths(
       events.push(current.event);
     } else {
       const path = [...current.path, simplifyEvent(current.event)];
-      for (const child of current.event.children) {
-        paths.push({event: child, path});
+      const children = current.event?.children;
+      if (children) {
+        for (const child of children) {
+          paths.push({event: child, path});
+        }
       }
     }
   }
@@ -70,8 +73,11 @@ export function flattenRelevantPaths(
    */
   while (events.length) {
     const current = events.shift()!;
-    for (const child of current.children) {
-      events.push(child);
+    const children = current?.children;
+    if (children) {
+      for (const child of children) {
+        events.push(child);
+      }
     }
     relevantPath.push(simplifyEvent(current));
   }
@@ -79,7 +85,7 @@ export function flattenRelevantPaths(
   return relevantPath;
 }
 
-function simplifyEvent(event: TraceFull): EventLite {
+function simplifyEvent(event: QuickTraceEvent): EventLite {
   return omit(event, 'children');
 }
 
@@ -87,27 +93,27 @@ type ParsedQuickTrace = {
   /**
    * `null` represents the lack of a root. It may still have a parent
    */
-  root: EventLite | null;
+  root: QuickTraceEvent | null;
   /**
    * `[]` represents the lack of ancestors in a full quick trace
    * `null` represents the uncertainty of ancestors in a lite quick trace
    */
-  ancestors: TraceLite | null;
+  ancestors: QuickTraceEvent[] | null;
   /**
    * `null` represents either the lack of a direct parent or the uncertainty
    * of what the parent is
    */
-  parent: EventLite | null;
-  current: EventLite;
+  parent: QuickTraceEvent | null;
+  current: QuickTraceEvent;
   /**
    * `[]` represents the lack of children in a full/lite quick trace
    */
-  children: TraceLite;
+  children: QuickTraceEvent[];
   /**
    * `[]` represents the lack of descendants in a full quick trace
    * `null` represents the uncertainty of descendants in a lite quick trace
    */
-  descendants: TraceLite | null;
+  descendants: QuickTraceEvent[] | null;
 };
 
 export function parseQuickTrace(
@@ -228,8 +234,8 @@ export function makeEventView(start: string, end: string) {
 }
 
 export function reduceTrace<T>(
-  trace: TraceFull,
-  visitor: (acc: T, e: TraceFull) => T,
+  trace: QuickTraceEvent,
+  visitor: (acc: T, e: QuickTraceEvent) => T,
   initialValue: T
 ): T {
   let result = initialValue;
@@ -237,8 +243,11 @@ export function reduceTrace<T>(
   const events = [trace];
   while (events.length) {
     const current = events.pop()!;
-    for (const child of current.children) {
-      events.push(child);
+    const children = current?.children;
+    if (children) {
+      for (const child of children) {
+        events.push(child);
+      }
     }
     result = visitor(result, current);
   }

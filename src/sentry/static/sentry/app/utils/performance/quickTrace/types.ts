@@ -19,14 +19,24 @@ export type EventLite = {
   parent_span_id: string | null;
 };
 
+export type TraceError = {
+  issue: string;
+  id: string;
+  event_id: string;
+  span: string;
+  transaction: string;
+  project_slug: string;
+};
+
 export type TraceLite = EventLite[];
 
 /**
  * The `events-trace` endpoint returns a tree structure that gives
  * the parent-child relationships between events.
  */
-export type TraceFull = EventLite & {
-  children: TraceFull[];
+export type QuickTraceEvent = EventLite & {
+  children?: QuickTraceEvent[];
+  errors?: TraceError[];
 };
 
 export type TraceProps = {
@@ -40,17 +50,17 @@ export type TraceRequestProps = DiscoverQueryProps & TraceProps;
 
 type EmptyQuickTrace = {
   type: 'empty';
-  trace: TraceLite;
+  trace: QuickTraceEvent[];
 };
 
 type PartialQuickTrace = {
   type: 'partial';
-  trace: TraceLite | null;
+  trace: QuickTraceEvent[] | null;
 };
 
 type FullQuickTrace = {
   type: 'full';
-  trace: TraceLite | null;
+  trace: QuickTraceEvent[] | null;
 };
 
 type BaseTraceChildrenProps = Omit<
@@ -66,7 +76,7 @@ export type TraceFullQueryChildrenProps = BaseTraceChildrenProps &
      * The `event-trace` endpoint returns a full trace with the parent-child
      * relationships. It can be flattened into a `TraceLite` if necessary.
      */
-    trace: TraceFull | null;
+    trace: QuickTraceEvent | null;
   };
 
 export type QuickTrace = EmptyQuickTrace | PartialQuickTrace | FullQuickTrace;

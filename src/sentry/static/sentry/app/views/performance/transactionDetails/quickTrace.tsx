@@ -10,6 +10,7 @@ import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
+import {IconFire} from 'app/icons';
 import {t, tn} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
@@ -17,9 +18,10 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
 import {
-  EventLite,
   QuickTrace as QuickTraceType,
+  QuickTraceEvent,
   QuickTraceQueryChildrenProps,
+  TraceError,
 } from 'app/utils/performance/quickTrace/types';
 import {isTransaction, parseQuickTrace} from 'app/utils/performance/quickTrace/utils';
 import Projects from 'app/utils/projects';
@@ -29,6 +31,7 @@ import {
   DropdownItem,
   DropdownItemSubContainer,
   EventNode,
+  IssueSubtext,
   MetaData,
   QuickTraceContainer,
   SectionSubtext,
@@ -48,7 +51,7 @@ type Props = {
   quickTrace: QuickTraceQueryChildrenProps;
 };
 
-function handleTraceLink(organization) {
+function handleTraceLink(organization: OrganizationSummary) {
   trackAnalyticsEvent({
     eventKey: 'quick_trace.trace_id.clicked',
     eventName: 'Quick Trace: Trace ID clicked',
@@ -110,7 +113,7 @@ type QuickTracePillsProps = {
   organization: OrganizationSummary;
 };
 
-function singleEventHoverText(event: EventLite) {
+function singleEventHoverText(event: QuickTraceEvent) {
   return (
     <div>
       <Truncate
@@ -151,7 +154,7 @@ function QuickTracePills({
     return <React.Fragment>{'\u2014'}</React.Fragment>;
   }
 
-  const {root, ancestors, parent, children, descendants} = parsedQuickTrace;
+  const {root, ancestors, parent, children, descendants, current} = parsedQuickTrace;
 
   const nodes: React.ReactNode[] = [];
 
@@ -215,9 +218,15 @@ function QuickTracePills({
   }
 
   nodes.push(
-    <EventNode key="current-node" type="black">
-      {t('This Event')}
-    </EventNode>
+    <EventNodeSelector
+      key="current-node"
+      location={location}
+      organization={organization}
+      text={t('This Event')}
+      events={[current]}
+      pad="left"
+      nodeKey="current"
+    />
   );
 
   if (children.length) {
@@ -304,7 +313,7 @@ function handleDropdownItem(
 type EventNodeSelectorProps = {
   location: Location;
   organization: OrganizationSummary;
-  events: EventLite[];
+  events: QuickTraceEvent[];
   text: React.ReactNode;
   pad: 'left' | 'right';
   hoverText?: React.ReactNode;
@@ -324,21 +333,52 @@ function EventNodeSelector({
   nodeKey,
   numEvents = 5,
 }: EventNodeSelectorProps) {
-  if (events.length === 1) {
-    /**
-     * When there is only 1 event, clicking the node should take the user directly to
-     * the event without additional steps.
-     */
-    const target = generateSingleEventTarget(events[0], organization, location);
-    return (
-      <StyledEventNode
-        text={text}
-        pad={pad}
-        hoverText={hoverText}
-        to={target}
-        onClick={() => handleNode(nodeKey, organization)}
-      />
+  const errors: TraceError[] = [];
+  events.forEach(e => {
+    e?.errors?.forEach(error => {
+      errors.push({
+        ...error,
+        transaction: e.transaction,
+        project_slug: e.project_slug,
+        // TODO(wmak) return event_id from the API so we don't need to do this
+        event_id: error.id,
+      });
+    });
+  });
+  let type: keyof Theme['tag'] = nodeKey === 'current' ? 'black' : 'white';
+  if (errors.length > 0) {
+    type = nodeKey === 'current' ? 'error' : 'warning';
+    text = (
+      <div>
+        <IconFire size="xs" />
+        {text}
+      </div>
     );
+  }
+  if (events.length === 1 && errors.length === 0) {
+    const target = generateSingleEventTarget(events[0], organization, location);
+    if (nodeKey === 'current') {
+      return (
+        <EventNode pad={pad} type={type}>
+          {text}
+        </EventNode>
+      );
+    } else {
+      /**
+       * When there is only 1 event, clicking the node should take the user directly to
+       * the event without additional steps.
+       */
+      return (
+        <StyledEventNode
+          text={text}
+          pad={pad}
+          hoverText={hoverText}
+          to={target}
+          onClick={() => handleNode(nodeKey, organization)}
+          type={type}
+        />
+      );
+    }
   } else {
     /**
      * When there is more than 1 event, clicking the node should expand a dropdown to
@@ -347,47 +387,82 @@ function EventNodeSelector({
     return (
       <DropdownLink
         caret={false}
-        title={<StyledEventNode text={text} pad={pad} hoverText={hoverText} />}
+        title={
+          <StyledEventNode text={text} pad={pad} hoverText={hoverText} type={type} />
+        }
         anchorRight
       >
-        {events.slice(0, numEvents).map((event, i) => {
-          const target = generateSingleEventTarget(event, organization, location);
+        {errors.slice(0, numEvents).map((error, i) => {
+          const target = generateSingleEventTarget(error, organization, location);
           return (
             <DropdownItem
-              key={event.event_id}
+              key={error.id}
               onSelect={() => handleDropdownItem(target, nodeKey, organization, false)}
               first={i === 0}
             >
               <DropdownItemSubContainer>
-                <Projects orgId={organization.slug} slugs={[event.project_slug]}>
+                <Projects orgId={organization.slug} slugs={[error.project_slug]}>
                   {({projects}) => {
-                    const project = projects.find(p => p.slug === event.project_slug);
+                    const project = projects.find(p => p.slug === error.project_slug);
                     return (
                       <ProjectBadge
                         hideName
-                        project={project ? project : {slug: event.project_slug}}
+                        project={project ? project : {slug: error.project_slug}}
                         avatarSize={16}
                       />
                     );
                   }}
                 </Projects>
                 <StyledTruncate
-                  value={event.transaction}
+                  value={error.transaction}
                   maxLength={35}
                   leftTrim
                   trimRegex={/\.|\//g}
                 />
               </DropdownItemSubContainer>
-              <SectionSubtext>
-                {getDuration(
-                  event['transaction.duration'] / 1000,
-                  event['transaction.duration'] < 1000 ? 0 : 2,
-                  true
-                )}
-              </SectionSubtext>
+              <IssueSubtext>error</IssueSubtext>
             </DropdownItem>
           );
         })}
+        {nodeKey !== 'current' &&
+          events.slice(0, numEvents).map((event, i) => {
+            const target = generateSingleEventTarget(event, organization, location);
+            return (
+              <DropdownItem
+                key={event.event_id}
+                onSelect={() => handleDropdownItem(target, nodeKey, organization, false)}
+                first={i === 0 && errors.length === 0}
+              >
+                <DropdownItemSubContainer>
+                  <Projects orgId={organization.slug} slugs={[event.project_slug]}>
+                    {({projects}) => {
+                      const project = projects.find(p => p.slug === event.project_slug);
+                      return (
+                        <ProjectBadge
+                          hideName
+                          project={project ? project : {slug: event.project_slug}}
+                          avatarSize={16}
+                        />
+                      );
+                    }}
+                  </Projects>
+                  <StyledTruncate
+                    value={event.transaction}
+                    maxLength={35}
+                    leftTrim
+                    trimRegex={/\.|\//g}
+                  />
+                </DropdownItemSubContainer>
+                <SectionSubtext>
+                  {getDuration(
+                    event['transaction.duration'] / 1000,
+                    event['transaction.duration'] < 1000 ? 0 : 2,
+                    true
+                  )}
+                </SectionSubtext>
+              </DropdownItem>
+            );
+          })}
         {events.length > numEvents && hoverText && extrasTarget && (
           <DropdownItem
             onSelect={() => handleDropdownItem(extrasTarget, nodeKey, organization, true)}

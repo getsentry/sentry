@@ -8,6 +8,7 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import Tag, {Background} from 'app/components/tag';
 import Truncate from 'app/components/truncate';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 
 type MetaDataProps = {
   headingText: string;
@@ -52,9 +53,40 @@ export const SectionSubtext = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
+export const IssueSubtext = styled(SectionSubtext)`
+  color: ${p => p.theme.error};
+`;
+
+const nodeColors = {
+  error: {
+    color: theme.white,
+    background: theme.red300,
+    border: theme.red300,
+  },
+  warning: {
+    color: theme.red300,
+    background: theme.white,
+    border: theme.red300,
+  },
+  white: {
+    color: theme.gray500,
+    background: theme.white,
+    border: theme.gray500,
+  },
+  black: {
+    color: theme.white,
+    background: theme.gray500,
+    border: theme.gray500,
+  },
+};
+
 export const EventNode = styled(Tag)<{pad?: 'left' | 'right'}>`
+  div {
+    color: ${p => nodeColors[p.type || 'white'].color};
+  }
   & ${/* sc-selector */ Background} {
-    border: 1px solid ${p => p.theme.gray500};
+    background-color: ${p => nodeColors[p.type || 'white'].background};
+    border: 1px solid ${p => nodeColors[p.type || 'white'].border};
   }
 `;
 
