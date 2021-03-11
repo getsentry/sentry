@@ -43,7 +43,7 @@ class WebhookTest(APITestCase):
 
         assert response.status_code == 204
 
-    def test_invalid_signature_event(self):
+    def test_invalid_sha1_signature_event(self):
 
         url = "/extensions/github/webhook/"
 
@@ -57,6 +57,24 @@ class WebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_HUB_SIGNATURE="sha1=33521abeaaf9a57c2abf486e0ccd54d23cf36fec",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 401
+
+    def test_invalid_sha256_signature_event(self):
+        url = "/extensions/github/webhook/"
+
+        secret = "2d7565c3537847b789d6995dca8d9f84"
+
+        options.set("github-app.webhook-secret", secret)
+
+        response = self.client.post(
+            path=url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_HUB_SIGNATURE_256="sha256=b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
