@@ -15,6 +15,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 import {MetaData} from 'app/views/performance/transactionDetails/styles';
 
+import TraceView from './traceView';
 import {getTraceInfo} from './utils';
 
 type Props = {
@@ -37,7 +38,7 @@ class TraceDetailsContent extends React.Component<Props> {
     return <LoadingError message={t('The trace you are looking for was not found.')} />;
   }
 
-  renderTrace(trace) {
+  renderTraceHeader(trace) {
     const traceInfo = getTraceInfo(trace);
 
     return (
@@ -57,6 +58,14 @@ class TraceDetailsContent extends React.Component<Props> {
           )}
         />
       </TraceDetailHeader>
+    );
+  }
+
+  renderTraceView(trace) {
+    return (
+      <TraceDetailBody>
+        <TraceView trace={trace} />
+      </TraceDetailBody>
     );
   }
 
@@ -86,7 +95,12 @@ class TraceDetailsContent extends React.Component<Props> {
           } else if (error !== null || trace === null) {
             return this.renderTraceNotFound();
           } else {
-            return this.renderTrace(trace);
+            return (
+              <React.Fragment>
+                {this.renderTraceHeader(trace)}
+                {this.renderTraceView(trace)}
+              </React.Fragment>
+            );
           }
         }}
       </TraceFullQuery>
@@ -130,6 +144,10 @@ const TraceDetailHeader = styled('div')`
     grid-row-gap: 0;
     margin-bottom: 0;
   }
+`;
+
+const TraceDetailBody = styled('div')`
+  margin-top: ${space(3)};
 `;
 
 export default TraceDetailsContent;

@@ -50,3 +50,5 @@ export function getTraceInfo(trace) {
     relevantTransactions: 0,
   });
 }
+
+export {toPercent} from 'app/components/events/interfaces/spans/utils';
