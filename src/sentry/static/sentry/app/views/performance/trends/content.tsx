@@ -41,12 +41,10 @@ type Props = {
 
 type State = {
   previousTrendFunction?: TrendFunctionField;
-  charsLeft?: number;
 };
 
 class TrendsContent extends React.Component<Props, State> {
-  state: State = {charsLeft: MAX_QUERY_LENGTH};
-
+  state: State = {};
   handleSearch = (searchQuery: string) => {
     const {location} = this.props;
 
@@ -60,13 +58,6 @@ class TrendsContent extends React.Component<Props, State> {
         query: String(searchQuery).trim() || undefined,
       },
     });
-  };
-
-  handleQueryLength = (value: string) => {
-    const charCount = value.length;
-    const maxChar = MAX_QUERY_LENGTH;
-    const charLength = maxChar - charCount;
-    this.setState({charsLeft: charLength});
   };
 
   handleTrendFunctionChange = (field: string) => {
@@ -166,9 +157,7 @@ class TrendsContent extends React.Component<Props, State> {
             query={query}
             fields={fields}
             onSearch={this.handleSearch}
-            onChange={this.handleQueryLength}
             maxQueryLength={MAX_QUERY_LENGTH}
-            queryCharsLeft={this.state.charsLeft}
           />
           <TrendsDropdown>
             <DropdownControl

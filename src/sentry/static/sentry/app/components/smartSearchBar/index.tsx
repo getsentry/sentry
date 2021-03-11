@@ -252,7 +252,6 @@ type Props = {
    * Used to enforce length on the query
    */
   maxQueryLength?: number;
-  queryCharsLeft?: number;
 };
 
 type State = {
@@ -923,7 +922,11 @@ class SmartSearchBar extends React.Component<Props, State> {
     tagName: string,
     type: ItemType
   ) => {
-    const {hasRecentSearches, maxSearchItems, queryCharsLeft} = this.props;
+    const {hasRecentSearches, maxSearchItems, maxQueryLength} = this.props;
+    const query = this.state.query;
+
+    const queryCharsLeft =
+      maxQueryLength && query ? maxQueryLength - query.length : undefined;
 
     this.setState(
       createSearchGroups(

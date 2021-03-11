@@ -51,12 +51,8 @@ type Props = {
   handleSearch: (searchQuery: string) => void;
 } & WithRouterProps;
 
-type State = {
-  charsLeft?: number;
-};
+type State = {};
 class LandingContent extends React.Component<Props, State> {
-  state: State = {charsLeft: MAX_QUERY_LENGTH};
-
   componentDidMount() {
     const {organization} = this.props;
     trackAnalyticsEvent({
@@ -74,13 +70,6 @@ class LandingContent extends React.Component<Props, State> {
 
     return stringifyQueryObject(parsed);
   }
-
-  handleQueryLength = (value: string) => {
-    const charCount = value.length;
-    const maxChar = MAX_QUERY_LENGTH;
-    const charLength = maxChar - charCount;
-    this.setState({charsLeft: charLength});
-  };
 
   handleLandingDisplayChange = (field: string) => {
     const {location, organization, eventView, projects} = this.props;
@@ -140,9 +129,7 @@ class LandingContent extends React.Component<Props, State> {
               ['epm()', 'eps()']
             )}
             onSearch={handleSearch}
-            onChange={this.handleQueryLength}
             maxQueryLength={MAX_QUERY_LENGTH}
-            queryCharsLeft={this.state.charsLeft}
           />
           <ProjectTypeDropdown>
             <DropdownControl

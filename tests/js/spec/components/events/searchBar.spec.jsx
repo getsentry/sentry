@@ -169,11 +169,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('filters dropdown to accomodate for num characters left in query', async function () {
-    const onChange = jest.fn();
-    const wrapper = mountWithTheme(
-      <SearchBar {...props} queryCharsLeft={4} onChange={onChange} />,
-      options
-    );
+    const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={5} />, options);
     await tick();
     await wrapper.update();
     wrapper.setState;
@@ -187,16 +183,10 @@ describe('Events > SearchBar', function () {
     expect(
       wrapper.find('SearchListItem[data-test-id="search-autocomplete-item"]')
     ).toHaveLength(1);
-
-    expect(onChange).toHaveBeenCalledTimes(1);
   });
 
   it('returns zero dropdown suggestions if out of characters', async function () {
-    const onChange = jest.fn();
-    const wrapper = mountWithTheme(
-      <SearchBar {...props} queryCharsLeft={0} onChange={onChange} />,
-      options
-    );
+    const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={2} />, options);
     await tick();
     await wrapper.update();
     wrapper.setState;
@@ -210,14 +200,10 @@ describe('Events > SearchBar', function () {
     expect(
       wrapper.find('SearchListItem[data-test-id="search-autocomplete-item"]')
     ).toHaveLength(0);
-
-    expect(onChange).toHaveBeenCalledTimes(1);
   });
 
   it('sets maxLength property', async function () {
-    const onChange = jest.fn();
-    props.maxQueryLength = 10;
-    const wrapper = mountWithTheme(<SearchBar {...props} onChange={onChange} />, options);
+    const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={10} />, options);
     await tick();
     expect(wrapper.find('input').prop('maxLength')).toBe(10);
   });

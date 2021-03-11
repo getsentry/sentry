@@ -61,7 +61,6 @@ type State = {
   needConfirmation: boolean;
   confirmedQuery: boolean;
   incompatibleAlertNotice: React.ReactNode;
-  charsLeft: number;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
@@ -85,7 +84,6 @@ class Results extends React.Component<Props, State> {
     needConfirmation: false,
     confirmedQuery: false,
     incompatibleAlertNotice: null,
-    charsLeft: MAX_QUERY_LENGTH,
   };
 
   componentDidMount() {
@@ -296,13 +294,6 @@ class Results extends React.Component<Props, State> {
     }
   };
 
-  handleQueryLength = (value: string) => {
-    const charCount = value.length;
-    const maxChar = MAX_QUERY_LENGTH;
-    const charLength = maxChar - charCount;
-    this.setState({charsLeft: charLength});
-  };
-
   getDocumentTitle(): string {
     const {organization} = this.props;
     const {eventView} = this.state;
@@ -389,7 +380,6 @@ class Results extends React.Component<Props, State> {
       showTags,
       incompatibleAlertNotice,
       confirmedQuery,
-      charsLeft,
     } = this.state;
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
@@ -418,9 +408,7 @@ class Results extends React.Component<Props, State> {
                   query={query}
                   fields={fields}
                   onSearch={this.handleSearch}
-                  onChange={this.handleQueryLength}
                   maxQueryLength={MAX_QUERY_LENGTH}
-                  queryCharsLeft={charsLeft}
                 />
                 <ResultsChart
                   router={router}

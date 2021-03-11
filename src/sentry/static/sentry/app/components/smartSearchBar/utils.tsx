@@ -68,7 +68,7 @@ export function createSearchGroups(
   tagName: string,
   type: ItemType,
   maxSearchItems: number | undefined,
-  queryCharsLeft: number | undefined
+  queryCharsLeft?: number
 ) {
   const activeSearchItem = 0;
 
