@@ -155,7 +155,7 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
                 more about this functionality in our [link:documentation].`,
                   {
                     link: (
-                      <ExternalLink href="https://docs.sentry.io/learn/data-forwarding/" />
+                      <ExternalLink href="https://docs.sentry.io/product/data-management-settings/data-forwarding/" />
                     ),
                   }
                 )}

@@ -76,7 +76,9 @@ const OrganizationAuthList = ({organization, providerList, activeProvider}: Prop
               {tct(
                 'Get started with Single Sign-on for your organization by selecting a provider. Read more in our [link:SSO documentation].',
                 {
-                  link: <ExternalLink href="https://docs.sentry.io/learn/sso/" />,
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/accounts/sso/" />
+                  ),
                 }
               )}
             </PanelAlert>
