@@ -79,10 +79,16 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                     return Response(
                         f"Invalid Team ID: {team_id}", status=status.HTTP_400_BAD_REQUEST
                     )
+            teams = set(map(int, teams))
+            teams_qs = Team.objects.filter(id__in=teams)
+            for team in teams_qs:
+                if not team.has_access(request.user):
+                    return Response(
+                        f"Error: You do not have permission to access {team.name}",
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
-            teams_query = Q(
-                owner_id__in=Team.objects.filter(id__in=teams).values_list("actor_id", flat=True)
-            )
+            teams_query = Q(owner_id__in=teams_qs.values_list("actor_id", flat=True))
             filter_query = teams_query
             if unassigned:
                 filter_query = filter_query | unassigned
