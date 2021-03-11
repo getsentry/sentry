@@ -162,7 +162,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         {
           target: 'assigned_or_suggested_query',
           description: tct(
-            "Tip: use [assignedOrSuggested] to include issues based on your [ownership:ownership rules] and [committed:code you've committed].",
+            "Tip: use [assignedOrSuggested] to include search results based on your [ownership:ownership rules] and [committed:code you've committed].",
             {
               assignedOrSuggested: <code>assigned_or_suggested</code>,
               ownership: (
