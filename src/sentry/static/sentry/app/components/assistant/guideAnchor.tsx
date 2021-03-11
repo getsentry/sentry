@@ -31,6 +31,8 @@ type Props = {
     query: Query;
   };
   onFinish?: () => void;
+  /** Hovercard renders the container */
+  containerClassName?: string;
 };
 
 type State = {
@@ -182,7 +184,7 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 
   render() {
-    const {disabled, children, position, offset} = this.props;
+    const {disabled, children, position, offset, containerClassName} = this.props;
     const {active} = this.state;
 
     if (!active || disabled) {
@@ -196,6 +198,7 @@ const GuideAnchor = createReactClass<Props, State>({
         tipColor={theme.purple300}
         position={position}
         offset={offset}
+        containerClassName={containerClassName}
       >
         <span ref={el => (this.containerElement = el)}>{children}</span>
       </StyledHovercard>
