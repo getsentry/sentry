@@ -19,7 +19,9 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         start = before_now(minutes=1, milliseconds=duration)
         return start, start + timedelta(milliseconds=duration)
 
-    def create_event(self, trace, transaction, spans, parent_span_id, project_id, duration=4000):
+    def create_event(
+        self, trace, transaction, spans, parent_span_id, project_id, duration=4000, span_id=None
+    ):
         start, end = self.get_start_end(duration)
         data = load_data(
             "transaction",
@@ -30,6 +32,8 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         )
         data["transaction"] = transaction
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
+        if span_id:
+            data["contexts"]["trace"]["span_id"] = span_id
         return self.store_event(data, project_id=project_id)
 
     def setUp(self):
@@ -97,6 +101,7 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         # Second Generation
         self.gen2_span_ids = [uuid4().hex[:16] for _ in range(3)]
         self.gen2_project = self.create_project(organization=self.organization)
+        self.gen2_span_id = uuid4().hex[:16]
         self.gen2_events = [
             self.create_event(
                 trace=self.trace_id,
@@ -111,6 +116,7 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
                     }
                 ],
                 parent_span_id=gen1_span_id,
+                span_id=self.gen2_span_id if i == 0 else None,
                 project_id=self.gen2_project.id,
                 duration=1000,
             )
@@ -126,7 +132,7 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
             transaction="/transaction/gen3-0",
             spans=[],
             project_id=self.gen3_project.id,
-            parent_span_id=self.gen2_span_ids[0],
+            parent_span_id=self.gen2_span_id,
             duration=500,
         )
 
@@ -322,7 +328,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         event = events[child_event_id]
         assert event["generation"] is None
         assert event["parent_event_id"] == current_event
-        assert event["parent_span_id"] == self.gen2_span_ids[0]
+        assert event["parent_span_id"] == self.gen2_span_id
 
     def test_third_generation_no_children(self):
         root_event_id = self.root_event.event_id
@@ -352,7 +358,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         # Parent is unknown in this case
         assert event["parent_event_id"] is None
         # But we still know the parent_span
-        assert event["parent_span_id"] == self.gen2_span_ids[0]
+        assert event["parent_span_id"] == self.gen2_span_id
 
     def test_sibling_transactions(self):
         """ More than one transaction can share a parent_span_id """
@@ -433,7 +439,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 gen3 = gen2["children"][0]
                 self.assert_event(gen3, self.gen3_event, f"gen3_{i}")
                 assert gen3["parent_event_id"] == self.gen2_events[i].event_id
-                assert gen3["parent_span_id"] == self.gen2_span_ids[i]
+                assert gen3["parent_span_id"] == self.gen2_span_id
                 assert gen3["generation"] == 3
                 assert gen3["transaction.duration"] == 500
                 assert len(gen3["children"]) == 0

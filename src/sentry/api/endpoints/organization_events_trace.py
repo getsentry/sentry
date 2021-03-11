@@ -165,7 +165,12 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                 )
 
             event = eventstore.get_event_by_id(snuba_event["project.id"], event_id)
-            for span in event.data.get("spans", []):
+
+            spans = event.data.get("spans", [])
+            # Need to include the transaction as a span as well
+            spans.append({"span_id": snuba_event["trace.span"]})
+
+            for span in spans:
                 if span["span_id"] in parent_map:
                     child_events = parent_map[span["span_id"]]
                     trace_results.extend(
@@ -248,7 +253,11 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     {event_key: event.data.get(event_key) for event_key in NODESTORE_KEYS}
                 )
 
-                for child in event.data.get("spans", []):
+                spans = event.data.get("spans", [])
+                # Need to include the transaction as a span as well
+                spans.append({"span_id": previous_event["span_id"]})
+
+                for child in spans:
                     if child["span_id"] in error_map:
                         previous_event["errors"].extend(error_map.pop(child["span_id"]))
                     if child["span_id"] not in parent_map:
