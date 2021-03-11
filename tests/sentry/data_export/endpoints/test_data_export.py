@@ -138,6 +138,16 @@ class DataExportTest(APITestCase):
             ]
         }
 
+    def test_export_invalid_fields(self):
+        """
+        Ensures that if too many fields are requested, returns a 400 status code with the
+        corresponding error message.
+        """
+        payload = self.make_payload("discover", {"field": ["min()"]})
+        with self.feature("organizations:discover-query"):
+            response = self.get_valid_response(self.org.slug, status_code=400, **payload)
+        assert response.data == {"non_field_errors": ["min(): expected 1 argument(s)"]}
+
     @freeze_time("2020-02-27 12:07:37")
     def test_export_invalid_date_params(self):
         """

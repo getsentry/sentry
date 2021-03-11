@@ -784,6 +784,11 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     name = search_filter.key.name if key is None else key
     value = search_filter.value.value
 
+    # We want to use group_id elsewhere so shouldn't be removed from the dataset
+    # but if a user has a tag with the same name we want to make sure that works
+    if name in {"group_id"}:
+        name = f"tags[{name}]"
+
     if name in no_conversion:
         return
     elif name == "id" and search_filter.value.is_wildcard():
@@ -2162,6 +2167,20 @@ FUNCTIONS = {
             aggregate=["avg", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
+        ),
+        Function(
+            "var",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["varSamp", ArgValue("column"), None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
+            "stddev",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["stddevSamp", ArgValue("column"), None],
+            default_result_type="number",
             redundant_grouping=True,
         ),
         Function(

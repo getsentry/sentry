@@ -29,6 +29,8 @@ type Props = {
   orgId: string;
   organization: Organization;
   onDelete: (projectId: string, rule: IssueAlertRule) => void;
+  // Set of team ids that the user belongs to
+  userTeams: Set<string>;
 };
 
 type State = {};
@@ -42,7 +44,15 @@ class RuleListRow extends React.Component<Props, State> {
   );
 
   render() {
-    const {rule, projectsLoaded, projects, organization, orgId, onDelete} = this.props;
+    const {
+      rule,
+      projectsLoaded,
+      projects,
+      organization,
+      orgId,
+      onDelete,
+      userTeams,
+    } = this.props;
     const dateCreated = moment(rule.dateCreated).format('ll');
     const slug = rule.projects[0];
     const editLink = `/organizations/${orgId}/alerts/${
@@ -57,6 +67,8 @@ class RuleListRow extends React.Component<Props, State> {
     const teamActor = ownerId
       ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
       : null;
+
+    const canEdit = ownerId ? userTeams.has(ownerId) : true;
 
     return (
       <ErrorBoundary>
@@ -84,7 +96,7 @@ class RuleListRow extends React.Component<Props, State> {
             {({hasAccess}) => (
               <ButtonBar gap={1}>
                 <Confirm
-                  disabled={!hasAccess}
+                  disabled={!hasAccess || !canEdit}
                   message={tct(
                     "Are you sure you want to delete [name]? You won't be able to view the history of this alert once it's deleted.",
                     {
@@ -105,6 +117,7 @@ class RuleListRow extends React.Component<Props, State> {
                 </Confirm>
                 <Button
                   size="small"
+                  type="button"
                   icon={<IconSettings />}
                   title={t('Edit')}
                   to={editLink}

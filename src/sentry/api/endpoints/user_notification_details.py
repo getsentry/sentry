@@ -55,7 +55,6 @@ class UserNotificationsSerializer(Serializer):
         return results
 
     def serialize(self, obj, attrs, user, *args, **kwargs):
-
         raw_data = {option.key: option.value for option in attrs}
 
         data = {}

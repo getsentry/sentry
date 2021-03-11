@@ -182,6 +182,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                       showExampleCommit={false}
                       showTagSummary={false}
                       location={location}
+                      api={this.api}
                     />
                   </QuickTraceContext.Provider>
                 </SpanEntryContext.Provider>
@@ -250,7 +251,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return (
       <SentryDocumentTitle
         title={t('Performance - Event Details')}
-        objSlug={organization.slug}
+        orgSlug={organization.slug}
       >
         {super.renderComponent()}
       </SentryDocumentTitle>

@@ -362,6 +362,8 @@ def main(num_events=1, extra_events=False, load_trends=False, slow=False):
     dummy_member, _ = OrganizationMember.objects.get_or_create(
         user=dummy_user, organization=org, defaults={"role": roles.get_default().id}
     )
+    # Allow for 0 events, if you only want transactions
+    event1 = event2 = event3 = event4 = event5 = None
 
     for team_name, project_names in mocks:
         print(f"> Mocking team {team_name}")  # NOQA
@@ -690,11 +692,16 @@ def main(num_events=1, extra_events=False, load_trends=False, slow=False):
                 pass
 
             print(f"    > Loading time series data")  # NOQA
-            create_sample_time_series(event1, release=release)
-            create_sample_time_series(event2, release=release)
-            create_sample_time_series(event3)
-            create_sample_time_series(event4, release=release)
-            create_sample_time_series(event5, release=release)
+            if event1:
+                create_sample_time_series(event1, release=release)
+            if event2:
+                create_sample_time_series(event2, release=release)
+            if event3:
+                create_sample_time_series(event3)
+            if event4:
+                create_sample_time_series(event4, release=release)
+            if event5:
+                create_sample_time_series(event5, release=release)
 
             if hasattr(buffer, "process_pending"):
                 print("    > Processing pending buffers")  # NOQA
@@ -746,6 +753,7 @@ def create_mock_transactions(project_map, load_trends=False, slow=False):
             trace_id = uuid4().hex
 
             frontend_span_id = uuid4().hex[:16]
+            frontend_root_span_id = uuid4().hex[:16]
             frontend_duration = random_normal(2000 - 50 * day, 250, 1000)
 
             create_sample_event(
@@ -765,6 +773,7 @@ def create_mock_transactions(project_map, load_trends=False, slow=False):
                 },
                 # Root
                 parent_span_id=None,
+                span_id=frontend_root_span_id,
                 trace=trace_id,
                 spans=[
                     {
@@ -781,6 +790,19 @@ def create_mock_transactions(project_map, load_trends=False, slow=False):
                         "trace_id": trace_id,
                     }
                 ],
+            )
+            create_sample_event(
+                project=frontend_project,
+                platform="javascript",
+                user=transaction_user,
+                transaction="/plants/:plantId/",
+                contexts={
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": frontend_root_span_id,
+                    }
+                },
             )
             # try to give clickhouse some breathing room
             if slow:
@@ -802,7 +824,7 @@ def create_mock_transactions(project_map, load_trends=False, slow=False):
                 start_timestamp=timestamp - timedelta(milliseconds=backend_duration),
                 # match the trace from the javascript transaction
                 trace=trace_id,
-                parent_span_id=frontend_span_id,
+                parent_span_id=frontend_root_span_id,
                 spans=[
                     {
                         "same_process_as_parent": True,
@@ -819,6 +841,19 @@ def create_mock_transactions(project_map, load_trends=False, slow=False):
                     }
                     for name, backend_span_id in backend_span_ids
                 ],
+            )
+            create_sample_event(
+                project=backend_project,
+                platform="python",
+                user=transaction_user,
+                transaction="/api/plants/",
+                contexts={
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": backend_span_ids[0][1],
+                    }
+                },
             )
             for service_project, (name, backend_span_id) in zip(service_projects, backend_span_ids):
                 if slow:
