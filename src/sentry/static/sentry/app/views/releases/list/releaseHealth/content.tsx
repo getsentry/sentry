@@ -117,6 +117,8 @@ const Content = ({
             const selected24hCount =
               activeDisplay === DisplayOption.SESSIONS ? totalSessions24h : totalUsers24h;
 
+            // TODO: START SENDING ADOPTION DATA FROM BACKEND
+
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
                 <Layout>
@@ -129,21 +131,15 @@ const Content = ({
                       <StyledPlaceholder width="150px" />
                     ) : defined(selectedAdoption) ? (
                       <AdoptionWrapper>
-                        <Tooltip
-                          containerDisplayMode="block"
-                          title={
-                            <AdoptionTooltip
-                              totalUsers={totalUsers}
-                              totalSessions={totalSessions}
-                              totalUsers24h={totalUsers24h}
-                              totalSessions24h={totalSessions24h}
-                            />
-                          }
+                        <AdoptionTooltip
+                          releaseCount={null}
+                          projectCount={null}
+                          displayOption={activeDisplay}
                         >
                           <ProgressBarWrapper>
                             <ProgressBar value={Math.ceil(selectedAdoption)} />
                           </ProgressBarWrapper>
-                        </Tooltip>
+                        </AdoptionTooltip>
 
                         <Count value={selected24hCount ?? 0} />
                       </AdoptionWrapper>
