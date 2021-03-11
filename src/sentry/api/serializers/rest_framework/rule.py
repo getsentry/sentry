@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from sentry import features
 from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
-from sentry.models import ActorTuple, Environment, Team, User
+from sentry.models import ActorTuple, Environment
 from sentry.rules import rules
 
 from . import ListField
@@ -70,7 +70,7 @@ class RuleSerializer(serializers.Serializer):
     conditions = ListField(child=RuleNodeField(type="condition/event"), required=False)
     filters = ListField(child=RuleNodeField(type="filter/event"), required=False)
     frequency = serializers.IntegerField(min_value=5, max_value=60 * 24 * 30)
-    owner = serializers.CharField(required=True)
+    owner = serializers.CharField(required=False)
 
     def validate_owner(self, owner):
         # owner_id should be team:id or user:id
@@ -173,12 +173,6 @@ class RuleSerializer(serializers.Serializer):
         if self.validated_data.get("frequency"):
             rule.data["frequency"] = self.validated_data["frequency"]
         if self.validated_data.get("owner"):
-            owner = self.validated_data["owner"]
-            if owner.type == User:
-                rule.user = owner
-                rule.team = None
-            elif owner.type == Team:
-                rule.team = owner
-                rule.user = None
+            rule.owner = self.validated_data["owner"].resolve_to_actor()
         rule.save()
         return rule

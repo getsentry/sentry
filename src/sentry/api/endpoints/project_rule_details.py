@@ -91,7 +91,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             owner = data.get("owner")
             if owner:
                 try:
-                    kwargs.update({"owner": owner.resolve_to_actor()})
+                    kwargs["owner"] = owner.resolve_to_actor()
                 except Exception:
                     return Response(
                         "Could not resolve owner",

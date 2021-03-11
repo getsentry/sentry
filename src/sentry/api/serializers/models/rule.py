@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
+from sentry.models import Actor, Environment, Rule, RuleActivity, RuleActivityType
 from sentry.utils.compat import filter
 
 
@@ -43,6 +43,12 @@ class RuleSerializer(Serializer):
 
             result[rule_activity.rule].update({"created_by": user})
 
+        owned_items = {item.owner_id: item for item in item_list if item.owner_id is not None}
+        alert_rule_actors = Actor.objects.filter(id__in=[k for k in owned_items.keys()])
+        for actor in alert_rule_actors:
+            actor_tuple = actor.get_actor_tuple()
+            result[owned_items[actor.id]]["owner"] = actor_tuple.get_actor_identifier()
+
         return result
 
     def serialize(self, obj, attrs, user):
@@ -69,7 +75,7 @@ class RuleSerializer(Serializer):
             "frequency": obj.data.get("frequency") or Rule.DEFAULT_FREQUENCY,
             "name": obj.label,
             "dateCreated": obj.date_added,
-            "owner": obj.owner.get_actor_identifier() if obj.owner else None,
+            "owner": attrs.get("owner", None),
             "createdBy": attrs.get("created_by", None),
             "environment": environment.name if environment is not None else None,
             "projects": [obj.project.slug],
