@@ -23,7 +23,9 @@ function DemoHeader({organization}: Props) {
         <SentryWrapper>Sentry</SentryWrapper>
       </ImageAndName>
       <StyledButtonBar gap={1}>
-        <ExternalLink href="https://docs.sentry.io">{t('Documentation')}</ExternalLink>
+        <StyledExternalLink href="https://docs.sentry.io">
+          {t('Documentation')}
+        </StyledExternalLink>
         <GetStarted
           onClick={() =>
             trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {}, organization)
@@ -49,6 +51,7 @@ export default createReactClass<Omit<Props, 'organization'>>({
   },
 });
 
+//Note many of the colors don't come from the theme as they come from the marketing site
 const Wrapper = styled('div')`
   background-color: ${p => p.theme.white};
   height: ${p => p.theme.demo.headerSize};
@@ -99,4 +102,8 @@ const SentryWrapper = styled('div')`
 
 const StyledButtonBar = styled(ButtonBar)`
   margin-right: 20px;
+`;
+
+const StyledExternalLink = styled(ExternalLink)`
+  color: #584774;
 `;
