@@ -234,19 +234,14 @@ class NotificationsManager(BaseManager):
         scope_type, scope_identifier = _get_scope(user_id_option, project=project_option)
         target_type, target_identifier = _get_target(user_id_option, team_id_option)
 
-        user = kwargs.pop("user")
-
-        with transaction.atomic():
-            self.filter(
-                provider=provider.value,
-                type=type.value,
-                scope_type=scope_type,
-                scope_identifier=scope_identifier,
-                target_type=target_type,
-                target_identifier=target_identifier,
-            ).delete()
-
-            UserOption.objects.unset_value(user, project_option, _get_legacy_key(type))
+        self.filter(
+            provider=provider.value,
+            type=type.value,
+            scope_type=scope_type,
+            scope_identifier=scope_identifier,
+            target_type=target_type,
+            target_identifier=target_identifier,
+        ).delete()
 
     def remove_settings_for_user(self, user, type: NotificationSettingTypes = None):
         if type:
