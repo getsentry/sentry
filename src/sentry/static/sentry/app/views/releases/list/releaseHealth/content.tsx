@@ -67,23 +67,11 @@ const Content = ({
               {t('Adoption')}
             </GuideAnchor>
           </AdoptionColumn>
-          {activeDisplay === DisplayOption.USERS ? (
-            <React.Fragment>
-              <SessionsColumn>{t('Crash Free Users')}</SessionsColumn>
-              <DailyColumn>
-                <span>{t('Users')}</span>
-                {healthStatsPeriod}
-              </DailyColumn>
-            </React.Fragment>
-          ) : (
-            <React.Fragment>
-              <SessionsColumn>{t('Crash Free Sessions')}</SessionsColumn>
-              <DailyColumn>
-                <span>{t('Sessions')}</span>
-                {healthStatsPeriod}
-              </DailyColumn>
-            </React.Fragment>
-          )}
+          <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
+          <CountColumn>
+            <span>{t('Count')}</span>
+            {healthStatsPeriod}
+          </CountColumn>
           <CrashesColumn>{t('Crashes')}</CrashesColumn>
           <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
           <ViewColumn />
@@ -165,7 +153,7 @@ const Content = ({
                   </AdoptionColumn>
 
                   {activeDisplay === DisplayOption.USERS ? (
-                    <SessionsColumn>
+                    <CrashFreeRateColumn>
                       {showPlaceholders ? (
                         <StyledPlaceholder width="60px" />
                       ) : defined(crashFreeUsers) ? (
@@ -173,9 +161,9 @@ const Content = ({
                       ) : (
                         <NotAvailable />
                       )}
-                    </SessionsColumn>
+                    </CrashFreeRateColumn>
                   ) : (
-                    <SessionsColumn>
+                    <CrashFreeRateColumn>
                       {showPlaceholders ? (
                         <StyledPlaceholder width="60px" />
                       ) : defined(crashFreeSessions) ? (
@@ -183,10 +171,10 @@ const Content = ({
                       ) : (
                         <NotAvailable />
                       )}
-                    </SessionsColumn>
+                    </CrashFreeRateColumn>
                   )}
 
-                  <DailyColumn>
+                  <CountColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder />
                     ) : hasHealthData && defined(stats) ? (
@@ -201,7 +189,7 @@ const Content = ({
                     ) : (
                       <NotAvailable />
                     )}
-                  </DailyColumn>
+                  </CountColumn>
 
                   <CrashesColumn>
                     {showPlaceholders ? (
@@ -343,13 +331,13 @@ const AdoptionWrapper = styled('span')`
   align-items: center;
 `;
 
-const SessionsColumn = styled(Column)`
+const CrashFreeRateColumn = styled(Column)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     text-align: center;
   }
 `;
 
-const DailyColumn = styled(Column)`
+const CountColumn = styled(Column)`
   display: none;
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
