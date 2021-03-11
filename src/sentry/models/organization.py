@@ -129,10 +129,6 @@ class Organization(Model):
                 "disable_new_visibility_features",
                 "Temporarily opt out of new visibility features and ui",
             ),
-            (
-                "demo_mode",
-                "Mark an organization as a demo org.",
-            ),
         ),
         default=1,
     )
