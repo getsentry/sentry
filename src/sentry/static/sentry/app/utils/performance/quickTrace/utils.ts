@@ -6,9 +6,9 @@ import {Event, EventTransaction} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
 import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
 import {
-  EventLite,
   QuickTrace,
   QuickTraceEvent,
+  TraceFull,
   TraceLite,
 } from 'app/utils/performance/quickTrace/types';
 
@@ -17,7 +17,7 @@ export function isTransaction(event: Event): event is EventTransaction {
 }
 
 type PathNode = {
-  event: QuickTraceEvent;
+  event: TraceFull;
   path: TraceLite;
 };
 
@@ -33,10 +33,10 @@ type PathNode = {
  */
 export function flattenRelevantPaths(
   currentEvent: Event,
-  traceFull: QuickTraceEvent
+  traceFull: TraceFull
 ): TraceLite {
   const relevantPath: TraceLite = [];
-  const events: QuickTraceEvent[] = [];
+  const events: TraceFull[] = [];
 
   /**
    * First find a path from the root transaction to the current transaction via
@@ -54,11 +54,8 @@ export function flattenRelevantPaths(
       events.push(current.event);
     } else {
       const path = [...current.path, simplifyEvent(current.event)];
-      const children = current.event?.children;
-      if (children) {
-        for (const child of children) {
-          paths.push({event: child, path});
-        }
+      for (const child of current.event.children) {
+        paths.push({event: child, path});
       }
     }
   }
@@ -73,11 +70,8 @@ export function flattenRelevantPaths(
    */
   while (events.length) {
     const current = events.shift()!;
-    const children = current?.children;
-    if (children) {
-      for (const child of children) {
-        events.push(child);
-      }
+    for (const child of current.children) {
+      events.push(child);
     }
     relevantPath.push(simplifyEvent(current));
   }
@@ -85,7 +79,7 @@ export function flattenRelevantPaths(
   return relevantPath;
 }
 
-function simplifyEvent(event: QuickTraceEvent): EventLite {
+function simplifyEvent(event: TraceFull): QuickTraceEvent {
   return omit(event, 'children');
 }
 
@@ -234,8 +228,8 @@ export function makeEventView(start: string, end: string) {
 }
 
 export function reduceTrace<T>(
-  trace: QuickTraceEvent,
-  visitor: (acc: T, e: QuickTraceEvent) => T,
+  trace: TraceFull,
+  visitor: (acc: T, e: TraceFull) => T,
   initialValue: T
 ): T {
   let result = initialValue;

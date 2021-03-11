@@ -35,7 +35,6 @@ export type TraceLite = EventLite[];
  * the parent-child relationships between events.
  */
 export type QuickTraceEvent = EventLite & {
-  children?: QuickTraceEvent[];
   errors?: TraceError[];
 };
 
@@ -83,9 +82,9 @@ export type TraceFullQueryChildrenProps = BaseTraceChildrenProps &
   Omit<FullQuickTrace, 'trace'> & {
     /**
      * The `event-trace` endpoint returns a full trace with the parent-child
-     * relationships. It can be flattened into a `TraceLite` if necessary.
+     * relationships. It can be flattened into a `QuickTraceEvent` if necessary.
      */
-    trace: QuickTraceEvent | null;
+    trace: TraceFull | null;
   };
 
 export type QuickTrace = EmptyQuickTrace | PartialQuickTrace | FullQuickTrace;

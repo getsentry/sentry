@@ -1,5 +1,5 @@
 import {Event} from 'app/types/event';
-import {QuickTraceEvent} from 'app/utils/performance/quickTrace/types';
+import {TraceFull} from 'app/utils/performance/quickTrace/types';
 import {
   flattenRelevantPaths,
   parseQuickTrace,
@@ -70,15 +70,17 @@ function generateTransactionLite({
     project_slug: generateProjectSlug(position),
     parent_event_id: generation <= 0 ? null : generateEventId(parentPosition),
     parent_span_id: generation <= 0 ? null : generateSpanId(parentPosition),
+    errors: [],
   };
 }
 
-function generateTransaction(opts: {index: number; depth: number}): QuickTraceEvent {
+function generateTransaction(opts: {index: number; depth: number}): TraceFull {
   const {index, depth = -1} = opts;
   const {generation, offset} = computePosition(index);
 
   return {
     ...generateTransactionLite({generation, offset}),
+    errors: [],
     children: Array(depth <= 0 || generation >= depth - 1 ? 0 : 2)
       .fill(null)
       .map((_, i) =>
@@ -90,7 +92,7 @@ function generateTransaction(opts: {index: number; depth: number}): QuickTraceEv
   };
 }
 
-function generateTrace(depth = 1): QuickTraceEvent {
+function generateTrace(depth = 1): TraceFull {
   if (depth < 1) {
     throw new Error('Minimum depth is 1!');
   }
