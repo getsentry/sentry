@@ -1,5 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
 import sentry from 'sentry-images/logos/logo-sentry.svg';
 
@@ -7,11 +9,13 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import ExternalLink from 'app/components/links/externalLink';
 import {t} from 'app/locale';
+import OrganizationStore from 'app/stores/organizationStore';
 import {Organization} from 'app/types';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
-import withOrganization from 'app/utils/withOrganization';
 
-function DemoHeader({organization}: {organization?: Organization}) {
+type Props = {organization?: Organization};
+
+function DemoHeader({organization}: Props) {
   return (
     <Wrapper>
       <ImageAndName>
@@ -33,7 +37,17 @@ function DemoHeader({organization}: {organization?: Organization}) {
   );
 }
 
-export default withOrganization(DemoHeader);
+//can't use withOrganization here since we aren't within the OrganizationContext
+export default createReactClass<Omit<Props, 'organization'>>({
+  displayName: 'DemoHeader',
+  mixins: [Reflux.connect(OrganizationStore, 'organization') as any],
+  render() {
+    const organization = this.state.organization?.organization as
+      | Organization
+      | undefined;
+    return <DemoHeader organization={organization} />;
+  },
+});
 
 const Wrapper = styled('div')`
   background-color: ${p => p.theme.white};
