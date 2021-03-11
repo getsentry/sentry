@@ -2,7 +2,7 @@ import React from 'react';
 
 import GenericDiscoverQuery from 'app/utils/discover/genericDiscoverQuery';
 import {
-  QuickTraceEvent,
+  TraceFull,
   TraceFullQueryChildrenProps,
   TraceRequestProps,
 } from 'app/utils/performance/quickTrace/types';
@@ -38,7 +38,7 @@ function TraceFullQuery({traceId, start, end, children, ...props}: QueryProps) {
   const eventView = makeEventView(start, end);
 
   return (
-    <GenericDiscoverQuery<QuickTraceEvent, {}>
+    <GenericDiscoverQuery<TraceFull, {}>
       route={`events-trace/${traceId}`}
       getRequestPayload={getQuickTraceRequestPayload}
       beforeFetch={beforeFetch}
