@@ -1,11 +1,11 @@
 from collections import defaultdict, namedtuple
+from rest_framework import serializers
 
 from django.db import models
 from django.db.models.signals import pre_save
 
 from sentry.db.models import Model
 from sentry.utils.compat import filter
-from rest_framework import serializers
 
 
 ACTOR_TYPES = {"team": 0, "user": 1}
@@ -15,7 +15,7 @@ def actor_type_to_class(type):
     # type will be 0 or 1 and we want to get Team or User
     from sentry.models import Team, User
 
-    ACTOR_TYPE_TO_CLASS = [Team, User]  # Indexed to match ACTOR_TYPES.
+    ACTOR_TYPE_TO_CLASS = {ACTOR_TYPES["team"]: Team, ACTOR_TYPES["user"]: User}
     return ACTOR_TYPE_TO_CLASS[type]
 
 
@@ -96,7 +96,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
             raise serializers.ValidationError("Unable to resolve actor identifier")
 
     def resolve(self):
-        return self.type.objects.get(id=self.id)
+        return self.type.objects.get(id=self.id).select_related("actor")
 
     def resolve_to_actor(self):
         return self.resolve().actor
