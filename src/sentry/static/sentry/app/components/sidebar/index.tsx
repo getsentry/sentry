@@ -407,7 +407,11 @@ class Sidebar extends React.Component<Props, State> {
     );
 
     return (
-      <StyledSidebar ref={this.sidebarRef} collapsed={collapsed}>
+      <StyledSidebar
+        ref={this.sidebarRef}
+        collapsed={collapsed}
+        demoMode={ConfigStore.get('demoMode')}
+      >
         <SidebarSectionGroupPrimary>
           <SidebarSection>
             <SidebarDropdown
@@ -550,7 +554,7 @@ const responsiveFlex = css`
   }
 `;
 
-const StyledSidebar = styled('div')<{collapsed: boolean}>`
+const StyledSidebar = styled('div')<{collapsed: boolean; demoMode: boolean}>`
   background: ${p => p.theme.sidebar.background};
   background: ${p => p.theme.sidebarGradient};
   color: ${p => p.theme.sidebar.color};
@@ -558,7 +562,7 @@ const StyledSidebar = styled('div')<{collapsed: boolean}>`
   padding: 12px 0 2px; /* Allows for 32px avatars  */
   width: ${p => p.theme.sidebar.expandedWidth};
   position: fixed;
-  top: 0;
+  top: ${p => (p.demoMode ? p.theme.demo.headerSize : 0)};
   left: 0;
   bottom: 0;
   justify-content: space-between;

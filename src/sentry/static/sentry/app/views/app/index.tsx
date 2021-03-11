@@ -1,6 +1,7 @@
 import React from 'react';
 import keydown from 'react-keydown';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 
@@ -215,14 +216,26 @@ class App extends React.Component<Props, State> {
     }
 
     return (
-      <div className="main-container" tabIndex={-1} ref={this.mainContainerRef}>
+      <MainContainer
+        demoMode={ConfigStore.get('demoMode')}
+        tabIndex={-1}
+        ref={this.mainContainerRef}
+      >
         <GlobalModal onClose={this.handleGlobalModalClose} />
         <SystemAlerts className="messages-container" />
         <Indicators className="indicators-container" />
         <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
-      </div>
+      </MainContainer>
     );
   }
 }
 
 export default withApi(withConfig(App));
+
+const MainContainer = styled('div')<{demoMode: boolean}>`
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  outline: none;
+  padding-top: ${p => (p.demoMode ? p.theme.demo.headerSize : 0)};
+`;
