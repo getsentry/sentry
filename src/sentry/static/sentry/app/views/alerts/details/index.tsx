@@ -70,7 +70,8 @@ class IncidentDetails extends React.Component<Props, State> {
           incident.alertRule &&
           this.props.organization.features.includes('alert-details-redesign');
         // only stop redirect if param is explicitly set to false
-        const stopRedirect = location && location.query && location.query.redirect === 'false';
+        const stopRedirect =
+          location && location.query && location.query.redirect === 'false';
         if (hasRedesign && !stopRedirect) {
           browserHistory.replace({
             pathname: `/organizations/${orgId}/alerts/rules/details/${incident.alertRule?.id}/`,
