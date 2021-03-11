@@ -191,9 +191,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
             `Code Mappings are used to map stack trace file paths to source code file paths. These mappings are the basis for features like Stack Trace Linking. To learn more, [link: read the docs].`,
             {
               link: (
-                <ExternalLink
-                  href={`https://docs.sentry.io/product/integrations/${integration.provider.key}/#stack-trace-linking`}
-                />
+                <ExternalLink href="https://docs.sentry.io/product/integrations/gitlab/#stack-trace-linking" />
               ),
             }
           )}

@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from sentry.conf.server import *
 
+
 """
 To get this file to load, add the follwing to your sentry.conf.py file:
 
@@ -18,3 +19,5 @@ CELERYBEAT_SCHEDULE["demo_delete_users_orgs"] = {
     "schedule": timedelta(hours=1),
     "options": {"expires": 3600, "queue": "cleanup"},
 }
+INSTALLED_APPS = INSTALLED_APPS + ("sentry.demo.apps.Config",)
+ROOT_URLCONF = "sentry.demo.urls"
