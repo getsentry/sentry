@@ -48,13 +48,9 @@ const SectionBody = styled('div')`
   margin: ${space(0.5)} 0;
 `;
 
-export const SectionSubtext = styled('div')`
-  color: ${p => p.theme.subText};
+export const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`
+  color: ${p => (p.type === 'error' ? p.theme.error : p.theme.subText)};
   font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-export const IssueSubtext = styled(SectionSubtext)`
-  color: ${p => p.theme.error};
 `;
 
 const nodeColors = {

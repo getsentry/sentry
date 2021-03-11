@@ -31,7 +31,6 @@ import {
   DropdownItem,
   DropdownItemSubContainer,
   EventNode,
-  IssueSubtext,
   MetaData,
   QuickTraceContainer,
   SectionSubtext,
@@ -392,73 +391,34 @@ function EventNodeSelector({
         {errors.slice(0, numEvents).map((error, i) => {
           const target = generateSingleEventTarget(error, organization, location);
           return (
-            <DropdownItem
-              key={error.id}
+            <DropdownNodeItem
+              key={error.event_id}
+              event={error}
               onSelect={() => handleDropdownItem(target, nodeKey, organization, false)}
               first={i === 0}
-            >
-              <DropdownItemSubContainer>
-                <Projects orgId={organization.slug} slugs={[error.project_slug]}>
-                  {({projects}) => {
-                    const project = projects.find(p => p.slug === error.project_slug);
-                    return (
-                      <ProjectBadge
-                        hideName
-                        project={project ? project : {slug: error.project_slug}}
-                        avatarSize={16}
-                      />
-                    );
-                  }}
-                </Projects>
-                <StyledTruncate
-                  value={error.transaction}
-                  maxLength={35}
-                  leftTrim
-                  trimRegex={/\.|\//g}
-                  expandDirection="left"
-                />
-              </DropdownItemSubContainer>
-              <IssueSubtext>error</IssueSubtext>
-            </DropdownItem>
+              organization={organization}
+              subtext="error"
+              subtextType="error"
+            />
           );
         })}
         {nodeKey !== 'current' &&
           events.slice(0, numEvents).map((event, i) => {
             const target = generateSingleEventTarget(event, organization, location);
             return (
-              <DropdownItem
+              <DropdownNodeItem
                 key={event.event_id}
+                event={event}
                 onSelect={() => handleDropdownItem(target, nodeKey, organization, false)}
                 first={i === 0 && errors.length === 0}
-              >
-                <DropdownItemSubContainer>
-                  <Projects orgId={organization.slug} slugs={[event.project_slug]}>
-                    {({projects}) => {
-                      const project = projects.find(p => p.slug === event.project_slug);
-                      return (
-                        <ProjectBadge
-                          hideName
-                          project={project ? project : {slug: event.project_slug}}
-                          avatarSize={16}
-                        />
-                      );
-                    }}
-                  </Projects>
-                  <StyledTruncate
-                    value={event.transaction}
-                    maxLength={35}
-                    leftTrim
-                    trimRegex={/\.|\//g}
-                  />
-                </DropdownItemSubContainer>
-                <SectionSubtext>
-                  {getDuration(
-                    event['transaction.duration'] / 1000,
-                    event['transaction.duration'] < 1000 ? 0 : 2,
-                    true
-                  )}
-                </SectionSubtext>
-              </DropdownItem>
+                organization={organization}
+                subtext={getDuration(
+                  event['transaction.duration'] / 1000,
+                  event['transaction.duration'] < 1000 ? 0 : 2,
+                  true
+                )}
+                subtextType="default"
+              />
             );
           })}
         {events.length > numEvents && hoverText && extrasTarget && (
@@ -471,6 +431,51 @@ function EventNodeSelector({
       </DropdownLink>
     );
   }
+}
+
+type DropdownNodeProps = {
+  event: TraceError | QuickTraceEvent;
+  onSelect?: (eventKey: any) => void;
+  first: boolean;
+  organization: OrganizationSummary;
+  subtext: string;
+  subtextType: 'error' | 'default';
+};
+
+function DropdownNodeItem({
+  event,
+  onSelect,
+  first,
+  organization,
+  subtext,
+  subtextType,
+}: DropdownNodeProps) {
+  return (
+    <DropdownItem onSelect={onSelect} first={first}>
+      <DropdownItemSubContainer>
+        <Projects orgId={organization.slug} slugs={[event.project_slug]}>
+          {({projects}) => {
+            const project = projects.find(p => p.slug === event.project_slug);
+            return (
+              <ProjectBadge
+                hideName
+                project={project ? project : {slug: event.project_slug}}
+                avatarSize={16}
+              />
+            );
+          }}
+        </Projects>
+        <StyledTruncate
+          value={event.transaction}
+          expandDirection="left"
+          maxLength={35}
+          leftTrim
+          trimRegex={/\.|\//g}
+        />
+      </DropdownItemSubContainer>
+      <SectionSubtext type={subtextType}>{subtext}</SectionSubtext>
+    </DropdownItem>
+  );
 }
 
 type EventNodeProps = {

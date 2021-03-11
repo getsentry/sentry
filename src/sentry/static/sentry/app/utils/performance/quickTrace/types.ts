@@ -21,7 +21,6 @@ export type EventLite = {
 
 export type TraceError = {
   issue: string;
-  id: string;
   event_id: string;
   span: string;
   transaction: string;
