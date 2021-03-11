@@ -469,7 +469,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={title} objSlug={orgId} />
+        <SentryDocumentTitle title={title} orgSlug={orgId} />
 
         {!this.props.hideHeader && (
           <SettingsPageHeader

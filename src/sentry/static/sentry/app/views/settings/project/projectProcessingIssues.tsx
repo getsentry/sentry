@@ -450,7 +450,7 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
     const title = t('Processing Issues');
     return (
       <div>
-        <SentryDocumentTitle title={title} objSlug={projectId} />
+        <SentryDocumentTitle title={title} projectSlug={projectId} />
         <SettingsPageHeader title={title} />
         <TextBlock>
           {t(
