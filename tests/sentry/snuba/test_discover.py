@@ -1351,8 +1351,8 @@ class QueryTransformTest(TestCase):
             dataset=Dataset.Discover,
             aggregations=[
                 ["avgOrNull", "duration", "avg_transaction_duration"],
-                ["maxOrNull", "timestamp", "max_timestamp"],
                 ["stddevSamp", "duration", "stddev_transaction_duration"],
+                ["maxOrNull", "timestamp", "max_timestamp"],
             ],
             having=[["max_timestamp", ">", 1575158400]],
             end=end_time,
@@ -1398,8 +1398,8 @@ class QueryTransformTest(TestCase):
                 dataset=Dataset.Discover,
                 aggregations=[
                     ["avgOrNull", "duration", "avg_transaction_duration"],
-                    ["maxOrNull", "timestamp", "max_timestamp"],
                     ["stddevSamp", "duration", "stddev_transaction_duration"],
+                    ["maxOrNull", "timestamp", "max_timestamp"],
                 ],
                 having=[["avg_transaction_duration", ">", value]],
                 end=end_time,
