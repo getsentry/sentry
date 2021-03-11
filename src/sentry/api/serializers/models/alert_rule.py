@@ -9,7 +9,7 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.models import Rule
+from sentry.models import Actor, Rule
 from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 
@@ -32,7 +32,6 @@ class AlertRuleSerializer(Serializer):
         alert_rule_projects = AlertRule.objects.filter(
             id__in=[item.id for item in item_list]
         ).values_list("id", "snuba_query__subscriptions__project__slug")
-        alert_rules = {item.id: item for item in item_list}
         for alert_rule_id, project_slug in alert_rule_projects:
             rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
             rule_result.append(project_slug)
@@ -50,6 +49,12 @@ class AlertRuleSerializer(Serializer):
                 user = None
 
             result[alert_rules[rule_activity.alert_rule.id]].update({"created_by": user})
+
+        owned_items = {item.owner_id: item for item in item_list if item.owner_id is not None}
+        alert_rule_actors = Actor.objects.filter(id__in=[k for k in owned_items.keys()])
+        for actor in alert_rule_actors:
+            actor_tuple = actor.get_actor_tuple()
+            result[owned_items[actor.id]]["owner"] = actor_tuple.get_actor_identifier()
 
         return result
 
@@ -76,7 +81,7 @@ class AlertRuleSerializer(Serializer):
             "triggers": attrs.get("triggers", []),
             "projects": sorted(attrs.get("projects", [])),
             "includeAllProjects": obj.include_all_projects,
-            "owner": obj.owner.get_actor_identifier() if obj.owner else None,
+            "owner": attrs.get("owner", None),
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
