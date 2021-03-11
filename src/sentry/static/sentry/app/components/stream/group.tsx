@@ -395,7 +395,7 @@ class StreamGroup extends React.Component<Props, State> {
             showInboxTime={showInboxTime}
           />
         </GroupSummary>
-        {/* {hasGuideAnchor && <GuideAnchor target="issue_stream" />} */}
+        {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && !displayReprocessingLayout && (
           <ChartWrapper className="hidden-xs hidden-sm">
             {!data.filtered?.stats && !data.stats ? (
