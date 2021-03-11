@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
     - 'requirements*'
+    - '.github/workflows/python-versions.yml'
 
 jobs:
   # This workflow makes sure that Python dependencies install correctly for
