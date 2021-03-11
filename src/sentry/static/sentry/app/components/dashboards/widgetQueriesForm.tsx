@@ -166,6 +166,7 @@ class WidgetQueriesForm extends React.Component<Props> {
             flexibleControlStateSize
             stacked
             error={this.getFirstQueryError('orderby')?.orderby}
+            style={{marginBottom: space(1)}}
           >
             <SelectControl
               value={queries[0].orderby}
