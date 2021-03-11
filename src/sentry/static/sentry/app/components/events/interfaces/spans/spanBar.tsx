@@ -164,7 +164,7 @@ const MARGIN_LEFT = 0;
 
 type DurationDisplay = 'left' | 'right' | 'inset';
 
-const getDurationDisplay = ({
+export const getDurationDisplay = ({
   width,
   left,
 }: {
@@ -1151,7 +1151,7 @@ const getDurationPillAlignment = ({
   }
 };
 
-const DurationPill = styled('div')<{
+export const DurationPill = styled('div')<{
   durationDisplay: DurationDisplay;
   showDetail: boolean;
   spanBarHatch: boolean;

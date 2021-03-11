@@ -31,6 +31,9 @@ export type TraceFull = Omit<EventLite, 'generation'> & {
    */
   generation: number;
   children: TraceFull[];
+  'transaction.duration': number;
+  timestamp: number;
+  start_timestamp: number;
 };
 
 export type TraceProps = {
