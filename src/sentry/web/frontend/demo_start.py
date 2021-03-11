@@ -3,7 +3,6 @@ from django.conf import settings
 from django.db import transaction
 
 from sentry.demo.utils import NoDemoOrgReady
-from sentry.demo.demo_org_manager import assign_demo_org
 from sentry.utils import auth
 from sentry.web.frontend.base import BaseView
 
@@ -17,6 +16,10 @@ class DemoStartView(BaseView):
         # need this check for tests since the route will exist even if DEMO_MODE=False
         if not settings.DEMO_MODE:
             raise Http404
+
+        # move this import here so we Django doesn't discover the models
+        # for demo mode except when Demo mode is actually active
+        from sentry.demo.demo_org_manager import assign_demo_org
 
         # assign the demo org and get the user
         try:

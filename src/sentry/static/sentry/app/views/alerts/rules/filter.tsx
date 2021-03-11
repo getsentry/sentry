@@ -90,22 +90,31 @@ class Filter extends React.Component<Props> {
           </StyledDropdownButton>
         )}
       >
-        <Header>
-          <span>{header}</span>
-          <CheckboxFancy
-            isChecked={checkedQuantity > 0}
-            isIndeterminate={checkedQuantity > 0 && checkedQuantity !== filterList.length}
-            onClick={event => {
-              event.stopPropagation();
-              this.toggleAllFilters();
-            }}
-          />
-        </Header>
-        {children({toggleFilter: this.toggleFilter})}
+        <MenuContent>
+          <Header>
+            <span>{header}</span>
+            <CheckboxFancy
+              isChecked={checkedQuantity > 0}
+              isIndeterminate={
+                checkedQuantity > 0 && checkedQuantity !== filterList.length
+              }
+              onClick={event => {
+                event.stopPropagation();
+                this.toggleAllFilters();
+              }}
+            />
+          </Header>
+          {children({toggleFilter: this.toggleFilter})}
+        </MenuContent>
       </DropdownControl>
     );
   }
 }
+
+const MenuContent = styled('div')`
+  max-height: 250px;
+  overflow-y: auto;
+`;
 
 const Header = styled('div')`
   display: grid;

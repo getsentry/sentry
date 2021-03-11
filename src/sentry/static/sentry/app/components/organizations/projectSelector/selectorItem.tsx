@@ -186,7 +186,7 @@ const BadgeAndActionsWrapper = styled('div')<{bookmarkHasChanged: boolean}>`
   ${p =>
     p.bookmarkHasChanged &&
     css`
-      animation: 1s ${alertHighlight('info')};
+      animation: 1s ${alertHighlight('info', p.theme)};
     `};
   z-index: ${p => (p.bookmarkHasChanged ? 1 : 'inherit')};
   position: relative;

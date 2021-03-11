@@ -418,6 +418,7 @@ function EventNodeSelector({
                   maxLength={35}
                   leftTrim
                   trimRegex={/\.|\//g}
+                  expandDirection="left"
                 />
               </DropdownItemSubContainer>
               <IssueSubtext>error</IssueSubtext>

@@ -34,9 +34,13 @@ export type TraceLite = EventLite[];
  * The `events-trace` endpoint returns a tree structure that gives
  * the parent-child relationships between events.
  */
-export type QuickTraceEvent = EventLite & {
+export type QuickTraceEvent = Omit<EventLite, 'generation'> & {
   children?: QuickTraceEvent[];
   errors?: TraceError[];
+  /**
+   * In the full trace, generation is always defined.
+   */
+  generation: number;
 };
 
 export type TraceProps = {

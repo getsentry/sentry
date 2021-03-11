@@ -152,12 +152,7 @@ const GuideAnchor = createReactClass<Props, State>({
           <div>
             {lastStep ? (
               <React.Fragment>
-                <StyledButton
-                  size="small"
-                  href={currentGuide.carryAssistantForward ? '#assistant' : '#'} // to clear `#assistant` from the url
-                  to={to}
-                  onClick={this.handleFinish}
-                >
+                <StyledButton size="small" to={to} onClick={this.handleFinish}>
                   {currentStep.nextText ||
                     (hasManySteps ? t('Enough Already') : t('Got It'))}
                 </StyledButton>

@@ -12,7 +12,7 @@ class AuthLoginTest(TestCase):
         return "/demo/start/"
 
     @mock.patch("sentry.web.frontend.demo_start.auth.login")
-    @mock.patch("sentry.web.frontend.demo_start.assign_demo_org")
+    @mock.patch("sentry.demo.demo_org_manager.assign_demo_org")
     def test_basic(self, mock_assign_demo_org, mock_auth_login):
         user = self.create_user()
         org = self.create_organization()

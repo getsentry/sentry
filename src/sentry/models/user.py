@@ -50,7 +50,7 @@ class User(BaseModel, AbstractBaseUser):
     is_staff = models.BooleanField(
         _("staff status"),
         default=False,
-        help_text=_("Designates whether the user can log into this admin " "site."),
+        help_text=_("Designates whether the user can log into this admin site."),
     )
     is_active = models.BooleanField(
         _("active"),
@@ -64,7 +64,7 @@ class User(BaseModel, AbstractBaseUser):
         _("superuser status"),
         default=False,
         help_text=_(
-            "Designates that this user has all permissions without " "explicitly assigning them."
+            "Designates that this user has all permissions without explicitly assigning them."
         ),
     )
     is_managed = models.BooleanField(
