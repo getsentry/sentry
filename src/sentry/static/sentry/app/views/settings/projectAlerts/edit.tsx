@@ -47,9 +47,7 @@ class ProjectAlertsEditor extends React.Component<Props, State> {
       return defaultTitle;
     }
 
-    const title = `${ruleName}`;
-
-    return `${defaultTitle}: ${title}`;
+    return `${defaultTitle}: ${ruleName}`;
   }
 
   render() {
@@ -61,7 +59,7 @@ class ProjectAlertsEditor extends React.Component<Props, State> {
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={this.getTitle()} objSlug={projectId} />
+        <SentryDocumentTitle title={this.getTitle()} projectSlug={projectId} />
         <PageContent>
           <BuilderBreadCrumbs
             hasMetricAlerts={hasMetricAlerts}

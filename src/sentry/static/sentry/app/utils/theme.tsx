@@ -488,7 +488,6 @@ const commonTheme = {
     lineHeightBody: '1.4',
   },
 
-  alert,
   tag,
 
   charts: {

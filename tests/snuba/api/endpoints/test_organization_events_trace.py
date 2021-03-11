@@ -575,14 +575,16 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         gen1_event = response.data["children"][0]
         assert len(gen1_event["errors"]) == 2
         assert {
-            "id": error.event_id,
-            "issue": error.group.qualified_short_id,
+            "event_id": error.event_id,
             "span": self.gen1_span_ids[0],
+            "project_id": self.gen1_project.id,
+            "project_slug": self.gen1_project.slug,
         } in gen1_event["errors"]
         assert {
-            "id": error1.event_id,
-            "issue": error1.group.qualified_short_id,
+            "event_id": error1.event_id,
             "span": self.gen1_span_ids[0],
+            "project_id": self.gen1_project.id,
+            "project_slug": self.gen1_project.slug,
         } in gen1_event["errors"]
 
     def test_with_default(self):
@@ -612,7 +614,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         root_event = response.data
         assert len(root_event["errors"]) == 1
         assert {
-            "id": default_event.event_id,
-            "issue": default_event.group.qualified_short_id,
+            "event_id": default_event.event_id,
             "span": self.root_span_ids[0],
+            "project_id": self.gen1_project.id,
+            "project_slug": self.gen1_project.slug,
         } in root_event["errors"]
