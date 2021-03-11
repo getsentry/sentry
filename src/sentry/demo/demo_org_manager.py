@@ -21,7 +21,7 @@ from .models import DemoUser, DemoOrganization, DemoOrgStatus
 
 
 @transaction.atomic
-def create_demo_org() -> None:
+def create_demo_org() -> Organization:
     # TODO: add way to ensure we generate unique petnames
     name = generate_random_name()
 
@@ -47,14 +47,21 @@ def create_demo_org() -> None:
     # delete all DSNs for the org so people don't send events
     ProjectKey.objects.filter(project__organization=org).delete()
 
+    return org
+
 
 @transaction.atomic
 def assign_demo_org() -> Tuple[Organization, User]:
     from .tasks import build_up_org_buffer
 
-    demo_org = DemoOrganization.objects.filter(status=DemoOrgStatus.PENDING).first()
-    if not demo_org:
-        raise NoDemoOrgReady()
+    # option to skip the buffer when testing things out locally
+    if settings.DEMO_NO_ORG_BUFFER:
+        org = create_demo_org()
+        demo_org = DemoOrganization.objects.get(organization=org)
+    else:
+        demo_org = DemoOrganization.objects.filter(status=DemoOrgStatus.PENDING).first()
+        if not demo_org:
+            raise NoDemoOrgReady()
 
     org = demo_org.organization
 
