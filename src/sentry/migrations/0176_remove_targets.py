@@ -30,8 +30,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.SeparateDatabaseAndState(
-            database_operations=[],
-            state_operations=[
+            database_operations=[
                 migrations.AlterUniqueTogether(
                     name="notificationsetting",
                     unique_together={("scope_type", "scope_identifier", "provider", "type")},
@@ -40,6 +39,8 @@ class Migration(migrations.Migration):
                     name="notificationsetting",
                     index_together=set(),
                 ),
+            ],
+            state_operations=[
                 migrations.RemoveField(model_name="notificationsetting", name="target_identifier"),
                 migrations.RemoveField(model_name="notificationsetting", name="target_type"),
             ],
