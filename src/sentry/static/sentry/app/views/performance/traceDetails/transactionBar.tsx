@@ -135,7 +135,7 @@ class TransactionBar extends React.Component<Props> {
           }}
         >
           <Count value={children.length} />
-          {isRoot && (
+          {!isRoot && (
             <div>
               <StyledIconChevron direction={isExpanded ? 'up' : 'down'} />
             </div>
