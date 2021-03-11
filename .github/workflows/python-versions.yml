@@ -28,6 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Install prerequisites
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install libxmlsec1
+
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
         with:
