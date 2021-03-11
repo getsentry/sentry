@@ -58,7 +58,15 @@ const Content = ({
       <Header>
         <Layout>
           <Column>{t('Project Name')}</Column>
-          <AdoptionColumn>{t('Adoption')}</AdoptionColumn>
+          <AdoptionColumn>
+            <GuideAnchor
+              target="release_adoption"
+              position="bottom"
+              disabled={!(isTopRelease && window.innerWidth >= 800)}
+            >
+              {t('Adoption')}
+            </GuideAnchor>
+          </AdoptionColumn>
           {activeDisplay === DisplayOption.USERS ? (
             <React.Fragment>
               <SessionsColumn>{t('Crash Free Users')}</SessionsColumn>
@@ -101,7 +109,7 @@ const Content = ({
             </CollapseButtonWrapper>
           )}
         >
-          {projects.map((project, projectIndex) => {
+          {projects.map(project => {
             const {slug, healthData, newGroups} = project;
             const {
               hasHealthData,
@@ -133,32 +141,22 @@ const Content = ({
                       <StyledPlaceholder width="150px" />
                     ) : defined(selectedAdoption) ? (
                       <AdoptionWrapper>
-                        <GuideAnchor
-                          target="release_adoption"
-                          disabled={
-                            !(
-                              isTopRelease &&
-                              projectIndex === 0 &&
-                              window.innerWidth >= 800
-                            )
+                        <Tooltip
+                          containerDisplayMode="block"
+                          title={
+                            <AdoptionTooltip
+                              totalUsers={totalUsers}
+                              totalSessions={totalSessions}
+                              totalUsers24h={totalUsers24h}
+                              totalSessions24h={totalSessions24h}
+                            />
                           }
                         >
-                          <Tooltip
-                            containerDisplayMode="block"
-                            title={
-                              <AdoptionTooltip
-                                totalUsers={totalUsers}
-                                totalSessions={totalSessions}
-                                totalUsers24h={totalUsers24h}
-                                totalSessions24h={totalSessions24h}
-                              />
-                            }
-                          >
-                            <ProgressBarWrapper>
-                              <ProgressBar value={Math.ceil(selectedAdoption)} />
-                            </ProgressBarWrapper>
-                          </Tooltip>
-                        </GuideAnchor>
+                          <ProgressBarWrapper>
+                            <ProgressBar value={Math.ceil(selectedAdoption)} />
+                          </ProgressBarWrapper>
+                        </Tooltip>
+
                         <Count value={selected24hCount ?? 0} />
                       </AdoptionWrapper>
                     ) : (

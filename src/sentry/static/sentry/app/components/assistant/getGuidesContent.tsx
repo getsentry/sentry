@@ -197,9 +197,10 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       requiredTargets: ['release_adoption'],
       steps: [
         {
+          title: t('Recalculating Adoption'),
           target: 'release_adoption',
           description: t(
-            `This number and adoption bar now respect the Sessions/Users display option you've selected. You can hover to see the details.`
+            `Adoption now compares the sessions or users of a release with the total sessions or users for this project in the last 24 hours.`
           ),
         },
       ],
