@@ -21,6 +21,7 @@ class DemoTaskBaseClass(TestCase):
 
 
 class DeleteUsersOrgTest(DemoTaskBaseClass):
+    @override_settings(DEMO_MODE=True)
     def test_delete_success(self):
         date_assigned = before_now(hours=30)
 
@@ -46,6 +47,7 @@ class DeleteUsersOrgTest(DemoTaskBaseClass):
         assert Organization.objects.filter(id=org.id).exists()
         assert User.objects.filter(id=user.id).exists()
 
+    @override_settings(DEMO_MODE=True)
     def test_recently_created(self):
         date_assigned = before_now(hours=20)
 
@@ -58,6 +60,7 @@ class DeleteUsersOrgTest(DemoTaskBaseClass):
         assert Organization.objects.filter(id=org.id).exists()
         assert User.objects.filter(id=user.id).exists()
 
+    @override_settings(DEMO_MODE=True)
     def test_pending_org(self):
         date_assigned = before_now(hours=30)
         org = self.create_demo_org(date_assigned=date_assigned, status=DemoOrgStatus.PENDING)
@@ -69,6 +72,7 @@ class DeleteUsersOrgTest(DemoTaskBaseClass):
 
 
 class BuildUpOrgBufferTest(DemoTaskBaseClass):
+    @override_settings(DEMO_MODE=True)
     @mock.patch("sentry.demo.tasks.create_demo_org")
     def test_add_one_fill_buffer(self, mock_create_demo_org):
         for i in range(ORG_BUFFER_SIZE - 1):
@@ -87,6 +91,7 @@ class BuildUpOrgBufferTest(DemoTaskBaseClass):
         )
         mock_create_demo_org.assert_called_once_with()
 
+    @override_settings(DEMO_MODE=True)
     @mock.patch("sentry.demo.tasks.create_demo_org")
     def test_add_two_fill_buffer(self, mock_create_demo_org):
         for i in range(ORG_BUFFER_SIZE - 2):
@@ -102,6 +107,7 @@ class BuildUpOrgBufferTest(DemoTaskBaseClass):
         )
         assert mock_create_demo_org.call_count == 2
 
+    @override_settings(DEMO_MODE=True)
     @mock.patch("sentry.demo.tasks.create_demo_org")
     def test_buffer_full(self, mock_create_demo_org):
         for i in range(ORG_BUFFER_SIZE):

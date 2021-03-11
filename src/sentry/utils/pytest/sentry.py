@@ -167,9 +167,6 @@ def pytest_configure(config):
     # this isn't the real secret
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
 
-    # enable demo mode so we boot up tests with the demo routes
-    settings.DEMO_MODE = True
-
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
     patcher = mock.patch("socket.getfqdn", return_value="localhost")
