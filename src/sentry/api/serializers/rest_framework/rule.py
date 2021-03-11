@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from sentry import features
 from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
-from sentry.models import ActorTuple, Environment
+from sentry.models import ActorTuple, Environment, Team, User
 from sentry.rules import rules
 
 from . import ListField
@@ -84,7 +84,7 @@ class RuleSerializer(serializers.Serializer):
         try:
             if actor.resolve():
                 return actor
-        except Exception:
+        except (User.DoesNotExist, Team.DoesNotExist):
             raise serializers.ValidationError("Could not resolve owner to existing team or user.")
 
     def validate_environment(self, environment):
