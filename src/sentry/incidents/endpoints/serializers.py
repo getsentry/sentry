@@ -340,7 +340,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         # owner should be team:id or user:id
         try:
             actor = ActorTuple.from_actor_identifier(owner)
-        except Exception:
+        except serializers.ValidationError:
             raise serializers.ValidationError(
                 "Could not parse owner. Format should be `type:id` where type is `team` or `user`."
             )
