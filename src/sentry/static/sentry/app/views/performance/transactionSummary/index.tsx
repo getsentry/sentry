@@ -129,6 +129,14 @@ class TransactionSummary extends React.Component<Props, State> {
         kind: 'function',
         function: ['count_unique', 'user', undefined],
       },
+      {
+        kind: 'function',
+        function: ['failure_rate', '', undefined],
+      },
+      {
+        kind: 'function',
+        function: ['tpm', '', undefined],
+      },
       ...vitals.map(
         vital =>
           ({
@@ -160,13 +168,18 @@ class TransactionSummary extends React.Component<Props, State> {
     const forceProject = shouldForceProject
       ? projects.find(p => parseInt(p.id, 10) === eventView.project[0])
       : undefined;
+
     const projectSlugs = eventView.project
       .map(projectId => projects.find(p => parseInt(p.id, 10) === projectId))
       .filter((p: Project | undefined): p is Project => p !== undefined)
       .map(p => p.slug);
 
     return (
-      <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
+      <SentryDocumentTitle
+        title={this.getDocumentTitle()}
+        orgSlug={organization.slug}
+        projectSlug={forceProject?.slug}
+      >
         <GlobalSelectionHeader
           lockedMessageSubject={t('transaction')}
           shouldForceProject={shouldForceProject}

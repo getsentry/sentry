@@ -17,23 +17,26 @@ export default function Legend(
   const {truncate, theme, ...rest} = props ?? {};
   const formatter = (value: string) => truncationFormatter(value, truncate ?? 0);
 
-  return merge(rest, {
-    show: true,
-    type: 'scroll' as const,
-    padding: 0,
-    formatter,
-    icon: 'circle',
-    itemHeight: 14,
-    itemWidth: 8,
-    itemGap: 12,
-    align: 'left' as const,
-    textStyle: {
-      color: theme.textColor,
-      verticalAlign: 'top',
-      fontSize: 11,
-      fontFamily: theme.text.family,
-      lineHeight: 14,
+  return merge(
+    {
+      show: true,
+      type: 'scroll' as const,
+      padding: 0,
+      formatter,
+      icon: 'circle',
+      itemHeight: 14,
+      itemWidth: 8,
+      itemGap: 12,
+      align: 'left' as const,
+      textStyle: {
+        color: theme.textColor,
+        verticalAlign: 'top',
+        fontSize: 11,
+        fontFamily: theme.text.family,
+        lineHeight: 14,
+      },
+      inactiveColor: theme.inactive,
     },
-    inactiveColor: theme.inactive,
-  });
+    rest
+  );
 }

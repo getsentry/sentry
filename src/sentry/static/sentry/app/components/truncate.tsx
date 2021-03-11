@@ -1,15 +1,19 @@
 import React from 'react';
+import styled from '@emotion/styled';
+
+import space from 'app/styles/space';
 
 type DefaultProps = {
+  className: string;
   maxLength: number;
   leftTrim: boolean;
-  trimRegex?: RegExp;
   expandable: boolean;
+  expandDirection: 'left' | 'right';
 };
 
 type Props = DefaultProps & {
   value: string;
-  className?: string;
+  trimRegex?: RegExp;
 };
 
 type State = {
@@ -18,9 +22,11 @@ type State = {
 
 class Truncate extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
+    className: '',
     maxLength: 50,
     leftTrim: false,
     expandable: true,
+    expandDirection: 'right',
   };
 
   state = {
@@ -42,7 +48,15 @@ class Truncate extends React.Component<Props, State> {
   };
 
   render() {
-    const {leftTrim, trimRegex, maxLength, value, expandable} = this.props;
+    const {
+      className,
+      leftTrim,
+      trimRegex,
+      maxLength,
+      value,
+      expandable,
+      expandDirection,
+    } = this.props;
     const isTruncated = value.length > maxLength;
     let shortValue: React.ReactNode = '';
 
@@ -75,25 +89,50 @@ class Truncate extends React.Component<Props, State> {
       shortValue = value;
     }
 
-    let className = this.props.className || '';
-    className += ' truncated';
-    if (this.state.isExpanded) {
-      className += ' expanded';
-    }
-
     return (
-      <span
+      <Wrapper
         className={className}
         onMouseOver={expandable ? this.onFocus : undefined}
         onMouseOut={expandable ? this.onBlur : undefined}
         onFocus={expandable ? this.onFocus : undefined}
         onBlur={expandable ? this.onBlur : undefined}
       >
-        <span className="short-value">{shortValue}</span>
-        {isTruncated && <span className="full-value">{value}</span>}
-      </span>
+        <span>{shortValue}</span>
+        {isTruncated && (
+          <FullValue expanded={this.state.isExpanded} expandDirection={expandDirection}>
+            {value}
+          </FullValue>
+        )}
+      </Wrapper>
     );
   }
 }
+
+const Wrapper = styled('span')`
+  position: relative;
+`;
+
+export const FullValue = styled('span')<{
+  expanded: boolean;
+  expandDirection: 'left' | 'right';
+}>`
+  display: none;
+  position: absolute;
+  background: ${p => p.theme.background};
+  padding: ${space(0.5)};
+  border: 1px solid ${p => p.theme.innerBorder};
+  white-space: nowrap;
+  border-radius: ${space(0.5)};
+  top: -5px;
+  ${p => p.expandDirection === 'left' && 'right: -5px;'}
+  ${p => p.expandDirection === 'right' && 'left: -5px;'}
+
+  ${p =>
+    p.expanded &&
+    `
+    z-index: ${p.theme.zIndex.truncationFullValue};
+    display: block;
+    `}
+`;
 
 export default Truncate;

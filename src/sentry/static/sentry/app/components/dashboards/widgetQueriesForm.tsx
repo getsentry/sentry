@@ -80,6 +80,8 @@ class WidgetQueriesForm extends React.Component<Props> {
       onChange,
     } = this.props;
 
+    const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);
+
     return (
       <QueryWrapper>
         {queries.map((widgetQuery, queryIndex) => {
@@ -88,6 +90,7 @@ class WidgetQueriesForm extends React.Component<Props> {
               key={queryIndex}
               label={queryIndex === 0 ? t('Query') : null}
               inline={false}
+              style={{paddingBottom: `8px`}}
               flexibleControlStateSize
               stacked
               error={errors?.[queryIndex].conditions}
@@ -102,16 +105,18 @@ class WidgetQueriesForm extends React.Component<Props> {
                   onBlur={this.handleFieldChange(queryIndex, 'conditions')}
                   useFormWrapper={false}
                 />
-                <LegendAliasInput
-                  type="text"
-                  name="name"
-                  required
-                  value={widgetQuery.name}
-                  placeholder={t('Legend Alias')}
-                  onChange={event =>
-                    this.handleFieldChange(queryIndex, 'name')(event.target.value)
-                  }
-                />
+                {!hideLegendAlias && (
+                  <LegendAliasInput
+                    type="text"
+                    name="name"
+                    required
+                    value={widgetQuery.name}
+                    placeholder={t('Legend Alias')}
+                    onChange={event =>
+                      this.handleFieldChange(queryIndex, 'name')(event.target.value)
+                    }
+                  />
+                )}
                 {queries.length > 1 && (
                   <Button
                     size="zero"
@@ -130,7 +135,7 @@ class WidgetQueriesForm extends React.Component<Props> {
           );
         })}
         {canAddSearchConditions && (
-          <AddOverlayButton
+          <Button
             size="small"
             icon={<IconAdd isCircled />}
             onClick={(event: React.MouseEvent) => {
@@ -139,7 +144,7 @@ class WidgetQueriesForm extends React.Component<Props> {
             }}
           >
             {t('Add Query')}
-          </AddOverlayButton>
+          </Button>
         )}
         <WidgetQueryFields
           displayType={displayType}
@@ -181,12 +186,7 @@ class WidgetQueriesForm extends React.Component<Props> {
 }
 
 const QueryWrapper = styled('div')`
-  padding-bottom: ${space(3)};
   position: relative;
-`;
-
-const AddOverlayButton = styled(Button)`
-  margin-bottom: ${space(2)};
 `;
 
 export const SearchConditionsWrapper = styled('div')`
@@ -199,7 +199,7 @@ export const SearchConditionsWrapper = styled('div')`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  width: 67%;
+  flex-grow: 1;
 `;
 
 const LegendAliasInput = styled(Input)`
