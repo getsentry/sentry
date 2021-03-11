@@ -30,6 +30,10 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-project-release-details",
     # integrations
     "sentry-extensions-jira-issue-hook",
+    "sentry-extensions-vercel-webhook",
+    "sentry-extensions-vercel-delete",
+    "sentry-extensions-vercel-configure",
+    "sentry-extensions-vercel-ui-hook",
     "sentry-api-0-group-integration-details",
     # integration platform
     "external-issues",

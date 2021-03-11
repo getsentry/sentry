@@ -11,8 +11,6 @@ type TextProps = {
   theme: Theme;
 };
 
-type ProgressColorFunction = (opts: {percent: number; theme: Theme}) => string;
-
 type Props = React.HTMLAttributes<SVGSVGElement> & {
   value: number;
   maxValue?: number;
@@ -39,7 +37,7 @@ type Props = React.HTMLAttributes<SVGSVGElement> & {
    * The color of the ring bar. A function may be provided to compute the color
    * based on the percent value filled of the progress bar.
    */
-  progressColor?: string | ProgressColorFunction;
+  progressColor?: string;
   /**
    * The color of the ring background
    */
@@ -109,9 +107,6 @@ const ProgressRing = ({
     textNode
   );
 
-  const ringColor =
-    typeof progressColor === 'function' ? progressColor({percent, theme}) : progressColor;
-
   return (
     <RingSvg height={radius * 2 + barWidth} width={radius * 2 + barWidth} {...p}>
       <RingBackground
@@ -129,7 +124,7 @@ const ProgressRing = ({
         barWidth={barWidth}
         cx={radius + barWidth / 2}
         cy={radius + barWidth / 2}
-        color={ringColor}
+        color={progressColor}
       />
       <foreignObject height="100%" width="100%">
         {text !== undefined && textNode}

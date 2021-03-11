@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {setLastRoute} from 'app/actionCreators/navigation';
 import {setActiveProject} from 'app/actionCreators/projects';
@@ -16,13 +16,13 @@ jest.mock('app/actionCreators/navigation', () => ({
 
 describe('OrganizationRoot', function () {
   it('sets active project as null when mounted', function () {
-    mount(<OrganizationRoot location={{}}>{null}</OrganizationRoot>);
+    mountWithTheme(<OrganizationRoot location={{}}>{null}</OrganizationRoot>);
 
     expect(setActiveProject).toHaveBeenCalledWith(null);
   });
 
   it('calls `setLastRoute` when unmounted', function () {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationRoot location={{pathname: '/org-slug/dashboard/'}}>
         {null}
       </OrganizationRoot>
@@ -34,7 +34,7 @@ describe('OrganizationRoot', function () {
   });
 
   it('calls `setLastRoute` when unmounted with query string', function () {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationRoot location={{pathname: '/org-slug/dashboard/', search: '?test=1'}}>
         {null}
       </OrganizationRoot>

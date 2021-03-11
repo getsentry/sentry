@@ -64,9 +64,10 @@ jobs:
           path: |
             ${{ steps.pip.outputs.pip-cache-dir }}
             ~/.pyenv
-          key: ${{ matrix.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          key: |
+            devenv-${{ matrix.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ hashFiles('requirements-*.txt') }}
           restore-keys: |
-            ${{ matrix.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}
+            devenv-${{ matrix.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
