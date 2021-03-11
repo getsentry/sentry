@@ -11,7 +11,6 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import NotAvailable from 'app/components/notAvailable';
 import {PanelItem} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import ProgressBar from 'app/components/progressBar';
 import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -20,10 +19,10 @@ import {Organization, Release, ReleaseProject} from 'app/types';
 import {defined} from 'app/utils';
 
 import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
-import AdoptionTooltip from '../adoptionTooltip';
 import CrashFree from '../crashFree';
 import HealthStatsChart from '../healthStatsChart';
 import HealthStatsPeriod, {StatsPeriod} from '../healthStatsPeriod';
+import ReleaseAdoption from '../releaseAdoption';
 import {DisplayOption} from '../utils';
 
 import Header from './header';
@@ -102,22 +101,24 @@ const Content = ({
             const {
               hasHealthData,
               adoption,
-              sessions_adoption,
+              sessionsAdoption,
               stats,
               crashFreeUsers,
               crashFreeSessions,
               sessionsCrashed,
-              totalUsers,
               totalUsers24h,
-              totalSessions,
+              totalProjectUsers24h,
               totalSessions24h,
+              totalProjectSessions24h,
             } = healthData || {};
             const selectedAdoption =
-              activeDisplay === DisplayOption.SESSIONS ? sessions_adoption : adoption;
+              activeDisplay === DisplayOption.USERS ? adoption : sessionsAdoption;
             const selected24hCount =
-              activeDisplay === DisplayOption.SESSIONS ? totalSessions24h : totalUsers24h;
-
-            // TODO: START SENDING ADOPTION DATA FROM BACKEND
+              activeDisplay === DisplayOption.USERS ? totalUsers24h : totalSessions24h;
+            const selectedProject24hCount =
+              activeDisplay === DisplayOption.USERS
+                ? totalProjectUsers24h
+                : totalProjectSessions24h;
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
@@ -131,16 +132,12 @@ const Content = ({
                       <StyledPlaceholder width="150px" />
                     ) : defined(selectedAdoption) ? (
                       <AdoptionWrapper>
-                        <AdoptionTooltip
-                          releaseCount={null}
-                          projectCount={null}
+                        <ReleaseAdoption
+                          adoption={selectedAdoption}
+                          releaseCount={selected24hCount}
+                          projectCount={selectedProject24hCount}
                           displayOption={activeDisplay}
-                        >
-                          <ProgressBarWrapper>
-                            <ProgressBar value={Math.ceil(selectedAdoption)} />
-                          </ProgressBarWrapper>
-                        </AdoptionTooltip>
-
+                        />
                         <Count value={selected24hCount ?? 0} />
                       </AdoptionWrapper>
                     ) : (
@@ -322,9 +319,12 @@ const AdoptionColumn = styled(Column)`
 
 const AdoptionWrapper = styled('span')`
   display: inline-grid;
-  grid-auto-flow: column;
+  grid-template-columns: 70px 1fr;
   grid-gap: ${space(1)};
   align-items: center;
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: 90px 1fr;
+  }
 `;
 
 const CrashFreeRateColumn = styled(Column)`
@@ -369,11 +369,4 @@ const StyledPlaceholder = styled(Placeholder)`
   display: inline-block;
   position: relative;
   top: ${space(0.25)};
-`;
-
-const ProgressBarWrapper = styled('div')`
-  min-width: 70px;
-  max-width: 90px;
-  /* A bit of padding makes hovering for tooltip easier */
-  padding: ${space(0.5)} 0;
 `;

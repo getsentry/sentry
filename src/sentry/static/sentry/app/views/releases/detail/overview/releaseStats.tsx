@@ -8,7 +8,6 @@ import Count from 'app/components/count';
 import DeployBadge from 'app/components/deployBadge';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import NotAvailable from 'app/components/notAvailable';
-import ProgressBar from 'app/components/progressBar';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
@@ -26,8 +25,9 @@ import {
   sessionTerm,
 } from 'app/views/releases/utils/sessionTerm';
 
-import AdoptionTooltip from '../../list/adoptionTooltip';
 import CrashFree from '../../list/crashFree';
+import ReleaseAdoption from '../../list/releaseAdoption';
+import {DisplayOption} from '../../list/utils';
 import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
 import {getReleaseEventView} from '../utils';
 
@@ -45,12 +45,13 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
   const {
     sessionsCrashed,
     adoption,
+    sessionsAdoption,
     crashFreeUsers,
     crashFreeSessions,
-    totalUsers,
     totalUsers24h,
-    totalSessions,
+    totalProjectUsers24h,
     totalSessions24h,
+    totalProjectSessions24h,
   } = healthData;
 
   return (
@@ -59,14 +60,14 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
         <SectionHeading>
           {lastDeploy?.dateFinished ? t('Date Deployed') : t('Date Created')}
         </SectionHeading>
-        <div>
+        <SectionContent>
           <TimeSince date={lastDeploy?.dateFinished ?? dateCreated} />
-        </div>
+        </SectionContent>
       </div>
 
       <div>
         <SectionHeading>{t('Last Deploy')}</SectionHeading>
-        <div>
+        <SectionContent>
           {lastDeploy?.dateFinished ? (
             <DeployBadge
               deploy={lastDeploy}
@@ -77,56 +78,89 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
           ) : (
             <NotAvailable />
           )}
-        </div>
+        </SectionContent>
       </div>
 
-      <div>
-        <SectionHeading>{t('Crash Free Sessions')}</SectionHeading>
-        <div>
-          {defined(crashFreeSessions) ? (
-            <CrashFree percent={crashFreeSessions} iconSize="md" />
+      <CrashFreeSection>
+        <SectionHeading>
+          {t('Crash Free Rate')}
+          <QuestionTooltip
+            position="top"
+            title={getSessionTermDescription(SessionTerm.CRASH_FREE, project.platform)}
+            size="sm"
+          />
+        </SectionHeading>
+        <SectionContent>
+          {defined(crashFreeSessions) || defined(crashFreeUsers) ? (
+            <CrashFreeWrapper>
+              {defined(crashFreeSessions) && (
+                <div>
+                  <CrashFree
+                    percent={crashFreeSessions}
+                    iconSize="md"
+                    displayOption={DisplayOption.SESSIONS}
+                  />
+                </div>
+              )}
+
+              {defined(crashFreeUsers) && (
+                <div>
+                  <CrashFree
+                    percent={crashFreeUsers}
+                    iconSize="md"
+                    displayOption={DisplayOption.USERS}
+                  />
+                </div>
+              )}
+            </CrashFreeWrapper>
           ) : (
             <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
           )}
-        </div>
-      </div>
+        </SectionContent>
+      </CrashFreeSection>
 
-      <div>
-        <SectionHeading>{t('Crash Free Users')}</SectionHeading>
-        <div>
-          {defined(crashFreeUsers) ? (
-            <CrashFree percent={crashFreeUsers} iconSize="md" />
+      <AdoptionSection>
+        <SectionHeading>
+          {t('Adoption')}
+          <QuestionTooltip
+            position="top"
+            title={getSessionTermDescription(SessionTerm.ADOPTION, project.platform)}
+            size="sm"
+          />
+        </SectionHeading>
+        <SectionContent>
+          {defined(adoption) || defined(sessionsAdoption) ? (
+            <AdoptionWrapper>
+              {defined(adoption) && (
+                <ReleaseAdoption
+                  releaseCount={totalSessions24h}
+                  projectCount={totalProjectSessions24h}
+                  adoption={sessionsAdoption}
+                  displayOption={DisplayOption.SESSIONS}
+                  withLabels
+                />
+              )}
+
+              {defined(sessionsAdoption) && (
+                <ReleaseAdoption
+                  releaseCount={totalUsers24h}
+                  projectCount={totalProjectUsers24h}
+                  adoption={adoption}
+                  displayOption={DisplayOption.USERS}
+                  withLabels
+                />
+              )}
+            </AdoptionWrapper>
           ) : (
             <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
           )}
-        </div>
-      </div>
+        </SectionContent>
+      </AdoptionSection>
 
-      <AdoptionWrapper>
-        <SectionHeading>{t('User Adoption')}</SectionHeading>
-        {defined(adoption) ? (
-          <Tooltip
-            containerDisplayMode="block"
-            title={
-              <AdoptionTooltip
-                totalUsers={totalUsers}
-                totalSessions={totalSessions}
-                totalUsers24h={totalUsers24h}
-                totalSessions24h={totalSessions24h}
-              />
-            }
-          >
-            <ProgressBar value={Math.ceil(adoption)} />
-          </Tooltip>
-        ) : (
-          <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
-        )}
-      </AdoptionWrapper>
-
-      <LinkedStatsWrapper>
+      <LinkedStatsSection>
         <div>
           <SectionHeading>{t('New Issues')}</SectionHeading>
-          <div>
+          <SectionContent>
             <Tooltip title={t('Open in Issues')}>
               <GlobalSelectionLink
                 to={getReleaseNewIssuesUrl(organization.slug, project.id, version)}
@@ -134,7 +168,7 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
                 <Count value={newGroups} />
               </GlobalSelectionLink>
             </Tooltip>
-          </div>
+          </SectionContent>
         </div>
 
         <div>
@@ -146,7 +180,7 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
               size="sm"
             />
           </SectionHeading>
-          <div>
+          <SectionContent>
             {hasHealthData ? (
               <Tooltip title={t('Open in Issues')}>
                 <GlobalSelectionLink
@@ -162,7 +196,7 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
             ) : (
               <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
             )}
-          </div>
+          </SectionContent>
         </div>
 
         <div>
@@ -174,7 +208,7 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
               size="sm"
             />
           </SectionHeading>
-          <div>
+          <SectionContent>
             <Feature features={['performance-view']}>
               {hasFeature =>
                 hasFeature ? (
@@ -225,9 +259,9 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
                 )
               }
             </Feature>
-          </div>
+          </SectionContent>
         </div>
-      </LinkedStatsWrapper>
+      </LinkedStatsSection>
     </Container>
   );
 }
@@ -239,14 +273,31 @@ const Container = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const LinkedStatsWrapper = styled('div')`
+const SectionContent = styled('div')``;
+
+const CrashFreeSection = styled('div')`
   grid-column: 1/3;
-  display: flex;
-  justify-content: space-between;
+`;
+
+const CrashFreeWrapper = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+`;
+
+const AdoptionSection = styled('div')`
+  grid-column: 1/3;
+  margin-bottom: ${space(1)};
 `;
 
 const AdoptionWrapper = styled('div')`
+  display: grid;
+  grid-gap: ${space(1.5)};
+`;
+
+const LinkedStatsSection = styled('div')`
   grid-column: 1/3;
+  display: flex;
+  justify-content: space-between;
 `;
 
 export default ReleaseStats;
