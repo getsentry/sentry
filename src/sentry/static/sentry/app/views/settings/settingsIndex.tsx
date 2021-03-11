@@ -175,7 +175,7 @@ class SettingsIndex extends React.Component<Props> {
                 <h3>{t('Quick links')}:</h3>
                 <ul>
                   <li>
-                    <ExternalHomeLink href={LINKS.DOCUMENATATION_QUICKSTART}>
+                    <ExternalHomeLink href={LINKS.DOCUMENTATION_QUICKSTART}>
                       {t('Quickstart Guide')}
                     </ExternalHomeLink>
                   </li>
