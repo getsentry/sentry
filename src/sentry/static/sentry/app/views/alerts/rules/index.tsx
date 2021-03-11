@@ -34,8 +34,7 @@ const DEFAULT_SORT: {asc: boolean; field: 'date_added'} = {
   asc: false,
   field: 'date_added',
 };
-const DOCS_URL =
-  'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';
+const DOCS_URL = 'https://docs.sentry.io/product/alerts-notifications/metric-alerts/';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;

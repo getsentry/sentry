@@ -12,7 +12,7 @@ export function UpdateSdkAndEnableIntegrationSuggestion() {
             type: 'enableIntegration',
             enables: [],
             integrationName: 'django',
-            integrationUrl: 'https://docs.sentry.io/platforms/python/django/',
+            integrationUrl: 'https://docs.sentry.io/platforms/python/guides/django/',
           },
         ],
         newSdkVersion: '0.9.0',

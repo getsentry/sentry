@@ -7,7 +7,7 @@ import CreateAlertButton from 'app/components/createAlertButton';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 
-const DOCS_URL = 'https://docs.sentry.io/workflow/alerts-notifications/alerts/';
+const DOCS_URL = 'https://docs.sentry.io/product/alerts-notifications/metric-alerts/';
 
 type Props = {
   organization: Organization;
