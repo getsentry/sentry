@@ -139,9 +139,9 @@ class WidgetCard extends React.Component<Props> {
     }
 
     return (
-      <div style={{marginLeft: space(1)}}>
+      <ContextWrapper>
         <ContextMenu>{menuOptions}</ContextMenu>
-      </div>
+      </ContextWrapper>
     );
   }
 
@@ -315,4 +315,8 @@ const MoreOptions = styled('span')`
 
 const DropdownTarget = styled('div')`
   display: flex;
+`;
+
+const ContextWrapper = styled('div')`
+  margin-left: ${space(1)};
 `;
