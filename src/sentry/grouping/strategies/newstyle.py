@@ -403,13 +403,17 @@ def _single_stacktrace_variant(stacktrace, context, meta):
     if not context["hierarchical_grouping"]:
         return {variant: main_variant}
 
-    blaming_frame_idx = len(values) - 1
+    inverted_hierarchy = context["inverted_stacktrace_hierarchy"]
+    blaming_frame_idx = len(values) - 1 if not inverted_hierarchy else 0
 
     for idx, (component, frame) in enumerate(zip(values, frames_for_filtering)):
         if component.contributes and frame["in_app"]:
-            # don't break, find in-app frame closest to crashing frame
-            # TODO: tweakability
             blaming_frame_idx = idx
+            # For Android ANR (inverted_hierarchy=True), we take the outermost
+            # app frame as level 1, else the innermost one (closer to crashing
+            # frame)
+            if inverted_hierarchy:
+                break
 
     blaming_frame_component = values[blaming_frame_idx]
 
@@ -529,7 +533,11 @@ def single_exception(exception, context, **meta):
             )
 
     if exception.stacktrace is not None:
-        stacktrace_variants = context.get_grouping_component(exception.stacktrace, **meta)
+        with context:
+            context["inverted_stacktrace_hierarchy"] = (
+                exception.mechanism and exception.mechanism.type == "ANR"
+            )
+            stacktrace_variants = context.get_grouping_component(exception.stacktrace, **meta)
     else:
         stacktrace_variants = {
             "app": GroupingComponent(id="stacktrace"),

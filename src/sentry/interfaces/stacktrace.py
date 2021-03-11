@@ -152,6 +152,7 @@ class Frame(Interface):
             "symbol_addr",
             "trust",
             "vars",
+            "snapshot",
         ):
             data.setdefault(key, None)
         return cls(**data)
