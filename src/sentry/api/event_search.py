@@ -2168,16 +2168,14 @@ FUNCTIONS = {
             "var",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["varSamp", ArgValue("column"), None],
-            result_type_fn=reflective_result_type(),
-            default_result_type="duration",
+            default_result_type="number",
             redundant_grouping=True,
         ),
         Function(
             "stddev",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["stddevSamp", ArgValue("column"), None],
-            result_type_fn=reflective_result_type(),
-            default_result_type="duration",
+            default_result_type="number",
             redundant_grouping=True,
         ),
         Function(
