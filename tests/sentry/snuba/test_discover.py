@@ -133,7 +133,30 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
-            selected_columns=["project.id", "user", "user.email", "release", "timestamp.to_hour"],
+            selected_columns=["project.id", "user", "release", "timestamp.to_hour"],
+            query="",
+            params={"project_id": [self.project.id]},
+        )
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["project.id"] == self.project.id
+        assert data[0]["user"] == "id:99"
+        assert data[0]["release"] == "first-release"
+
+        event_hour = self.event_time.replace(minute=0, second=0)
+        assert data[0]["timestamp.to_hour"] == iso_format(event_hour) + "+00:00"
+
+        assert len(result["meta"]) == 4
+        assert result["meta"] == {
+            "project.id": "integer",
+            "user": "string",
+            "release": "string",
+            "timestamp.to_hour": "date",
+        }
+
+    def test_field_alias_with_component(self):
+        result = discover.query(
+            selected_columns=["project.id", "user", "user.email"],
             query="",
             params={"project_id": [self.project.id]},
         )
@@ -142,18 +165,12 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["project.id"] == self.project.id
         assert data[0]["user"] == "id:99"
         assert data[0]["user.email"] == "bruce@example.com"
-        assert data[0]["release"] == "first-release"
 
-        event_hour = self.event_time.replace(minute=0, second=0)
-        assert data[0]["timestamp.to_hour"] == iso_format(event_hour) + "+00:00"
-
-        assert len(result["meta"]) == 5
+        assert len(result["meta"]) == 3
         assert result["meta"] == {
             "project.id": "integer",
             "user": "string",
             "user.email": "string",
-            "release": "string",
-            "timestamp.to_hour": "date",
         }
 
     def test_field_aliasing_in_aggregate_functions_and_groupby(self):
