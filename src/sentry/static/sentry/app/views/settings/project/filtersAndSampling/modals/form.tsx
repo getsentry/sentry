@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
@@ -40,7 +40,7 @@ type Props = ModalRenderProps & {
   project: Project;
   errorRules: DynamicSamplingRules;
   transactionRules: DynamicSamplingRules;
-  onSubmitSuccess: (project: Project) => void;
+  onSubmitSuccess: (project: Project, successMessage: React.ReactNode) => void;
   rule?: DynamicSamplingRule;
 };
 
@@ -190,8 +190,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
         `/projects/${organization.slug}/${project.slug}/`,
         {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
       );
-      onSubmitSuccess(newProjectDetails);
-      addSuccessMessage(this.getSuccessMessage());
+      onSubmitSuccess(newProjectDetails, this.getSuccessMessage());
       closeModal();
     } catch (error) {
       this.convertErrorXhrResponse(handleXhrErrorResponse(error, currentRuleIndex));

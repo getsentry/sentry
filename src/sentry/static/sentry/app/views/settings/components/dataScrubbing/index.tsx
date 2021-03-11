@@ -20,7 +20,7 @@ import submitRules from './submitRules';
 import {ProjectId, Rule} from './types';
 
 const ADVANCED_DATASCRUBBING_LINK =
-  'https://docs.sentry.io/data-management/advanced-datascrubbing/';
+  'https://docs.sentry.io/product/data-management-settings/advanced-datascrubbing/';
 
 type Props<T extends ProjectId> = {
   endpoint: string;

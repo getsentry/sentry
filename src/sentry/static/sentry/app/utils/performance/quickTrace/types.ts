@@ -25,7 +25,11 @@ export type TraceLite = EventLite[];
  * The `events-trace` endpoint returns a tree structure that gives
  * the parent-child relationships between events.
  */
-export type TraceFull = EventLite & {
+export type TraceFull = Omit<EventLite, 'generation'> & {
+  /**
+   * In the full trace, generation is always defined.
+   */
+  generation: number;
   children: TraceFull[];
 };
 

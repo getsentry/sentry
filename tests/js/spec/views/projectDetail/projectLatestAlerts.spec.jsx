@@ -132,7 +132,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
 
     expect(learnMoreButton.text()).toBe('Learn More');
     expect(learnMoreButton.prop('href')).toBe(
-      'https://docs.sentry.io/workflow/alerts-notifications/alerts/'
+      'https://docs.sentry.io/product/alerts-notifications/metric-alerts/'
     );
   });
 

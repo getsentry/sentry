@@ -28,6 +28,10 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         # integrations and all linked issues.
         org_integration = self.get_organization_integration(organization, integration_id)
 
+        integration = org_integration.integration
+        # do any integration specific deleting steps
+        integration.get_installation(organization.id).uninstall()
+
         updated = OrganizationIntegration.objects.filter(
             id=org_integration.id, status=ObjectStatus.VISIBLE
         ).update(status=ObjectStatus.PENDING_DELETION)
@@ -41,7 +45,6 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
                 },
                 countdown=0,
             )
-            integration = org_integration.integration
             create_audit_entry(
                 request=request,
                 organization=organization,
