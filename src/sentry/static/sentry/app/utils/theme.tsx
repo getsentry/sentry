@@ -21,7 +21,7 @@ const colors = {
   purple300: '#6C5FC7',
 
   blue100: '#D2DFF7',
-  blue200: '#92A8EA',
+  blue200: '#6e9ef7',
   blue300: '#3D74DB',
 
   orange100: '#FFF1ED',
@@ -124,7 +124,8 @@ const aliases = {
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: colors.purple300,
+  linkColor: colors.blue300,
+  linkHoverColor: colors.blue300,
 
   /**
    * Secondary button colors
@@ -185,46 +186,57 @@ const aliases = {
    * Default Progressbar color
    */
   progressBackground: colors.gray100,
+
+  /**
+   * Background of alerts
+   */
+  alertBackgroundAlpha: 0.3,
+
+  /**
+   * Background of default badge (mainly used in NavTabs)
+   */
+  badgeBackground: colors.gray200,
 } as const;
 
-const warning = {
-  background: colors.yellow300,
-  backgroundLight: color(colors.yellow100).alpha(0.3).string(),
-  border: colors.yellow300,
-  iconColor: colors.yellow300,
-} as const;
-
-const alert = {
+const generateAlertTheme = alias => ({
   muted: {
     background: colors.gray200,
-    backgroundLight: aliases.backgroundSecondary,
-    border: aliases.border,
+    backgroundLight: alias.backgroundSecondary,
+    border: alias.border,
     iconColor: 'inherit',
   },
   info: {
     background: colors.blue300,
-    backgroundLight: color(colors.blue100).alpha(0.3).string(),
+    backgroundLight: color(colors.blue100).alpha(alias.alertBackgroundAlpha).string(),
     border: colors.blue200,
     iconColor: colors.blue300,
   },
-  warning,
-  warn: warning,
+  warning: {
+    background: colors.yellow300,
+    backgroundLight: color(colors.yellow100).alpha(alias.alertBackgroundAlpha).string(),
+    border: colors.yellow300,
+    iconColor: colors.yellow300,
+  },
   success: {
     background: colors.green300,
-    backgroundLight: color(colors.green100).alpha(0.3).string(),
+    backgroundLight: color(colors.green100).alpha(alias.alertBackgroundAlpha).string(),
     border: colors.green200,
     iconColor: colors.green300,
   },
   error: {
     background: colors.red300,
-    backgroundLight: color(colors.red100).alpha(0.3).string(),
+    backgroundLight: color(colors.red100).alpha(alias.alertBackgroundAlpha).string(),
     border: colors.red200,
     iconColor: colors.red300,
     textLight: colors.red200,
   },
-} as const;
+});
 
-const badge = {
+const generateBadgeTheme = alias => ({
+  default: {
+    background: alias.badgeBackground,
+    indicatorColor: alias.badgeBackground,
+  },
   alpha: {
     background: colors.orange400,
     indicatorColor: colors.orange400,
@@ -237,7 +249,7 @@ const badge = {
     background: colors.green300,
     indicatorColor: colors.green300,
   },
-};
+});
 
 const tag = {
   default: {
@@ -380,6 +392,9 @@ const commonTheme = {
       gridCellError: 1,
       iconWrapper: 1,
     },
+
+    truncationFullValue: 10,
+
     traceView: {
       spanTreeToggler: 900,
       dividerLine: 909,
@@ -474,7 +489,6 @@ const commonTheme = {
   },
 
   alert,
-  badge,
   tag,
 
   charts: {
@@ -514,7 +528,8 @@ const darkAliases = {
   innerBorder: colors.gray500,
   textColor: colors.white,
   subText: colors.gray200,
-  linkColor: colors.purple200,
+  linkColor: colors.blue200,
+  linkHoverColor: colors.blue300,
   disabled: colors.gray400,
   active: colors.pink300,
   focus: colors.gray500,
@@ -534,26 +549,32 @@ const darkAliases = {
   chartLabel: colors.gray400,
   progressBar: colors.purple200,
   progressBackground: colors.gray500,
+  badgeBackground: colors.gray400,
+  alertBackgroundAlpha: 0.1,
 } as const;
 
-const theme = {
+export const lightTheme = {
   ...commonTheme,
   ...aliases,
+  alert: generateAlertTheme(aliases),
+  badge: generateBadgeTheme(aliases),
   button: generateButtonTheme(aliases),
 } as const;
 
 export const darkTheme = {
   ...commonTheme,
   ...darkAliases,
+  alert: generateAlertTheme(darkAliases),
+  badge: generateBadgeTheme(darkAliases),
   button: generateButtonTheme(darkAliases),
 } as const;
 
-export type Theme = typeof theme | typeof darkTheme;
+export type Theme = typeof lightTheme | typeof darkTheme;
 export type Color = keyof typeof colors;
 export type IconSize = keyof typeof iconSizes;
 export type Aliases = typeof aliases;
 
-export default theme;
+export default commonTheme;
 
 // This should never be used directly (except in storybook)
 export {aliases};

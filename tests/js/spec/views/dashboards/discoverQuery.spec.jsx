@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 
@@ -45,7 +45,7 @@ describe('DiscoverQuery', function () {
         timing: {},
       },
     });
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <DiscoverQuery
         widget={widget}
         selection={{datetime: {period: '14d'}}}
@@ -136,7 +136,7 @@ describe('DiscoverQuery', function () {
 
   it('has the right period and rollup queries when we include previous period', function () {
     renderMock.mockClear();
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <DiscoverQuery
         selection={{datetime: {period: '12h'}}}
         organization={organization}
@@ -163,7 +163,7 @@ describe('DiscoverQuery', function () {
   it('queries using "recentReleases" constraint', function () {
     const release = TestStubs.Release();
     renderMock.mockClear();
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <DiscoverQuery
         selection={{datetime: {period: '12h'}}}
         organization={organization}

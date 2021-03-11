@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import EventView from 'app/utils/discover/eventView';
@@ -56,7 +56,7 @@ describe('HistogramQuery', function () {
           .map((_, i) => ({bin: i * 1000, count: i})),
       },
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <HistogramQuery
         api={api}
         location={location}

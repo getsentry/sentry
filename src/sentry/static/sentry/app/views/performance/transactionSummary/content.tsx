@@ -38,14 +38,14 @@ import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
 import UserStats from './userStats';
-import {TransactionFilterOptions} from './utils';
+import {SidebarSpacer, TransactionFilterOptions} from './utils';
 
 type Props = {
   location: Location;
   eventView: EventView;
   transactionName: string;
   organization: Organization;
-  totalValues: Record<string, number>;
+  totalValues: Record<string, number> | null;
   projects: Project[];
 };
 
@@ -157,21 +157,18 @@ class SummaryContent extends React.Component<Props, State> {
     } = this.props;
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query, '');
-    const totalCount = totalValues.count;
-    const slowDuration = totalValues?.p95;
+    const totalCount = totalValues === null ? null : totalValues.count;
 
     // NOTE: This is not a robust check for whether or not a transaction is a front end
     // transaction, however it will suffice for now.
-    const hasWebVitals = VITAL_GROUPS.some(group =>
-      group.vitals.some(vital => {
-        const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
-        return Number.isFinite(totalValues[alias]);
-      })
-    );
-
-    const {selectedSort, sortOptions} = getTransactionsListSort(location, {
-      p95: slowDuration,
-    });
+    const hasWebVitals =
+      totalValues !== null &&
+      VITAL_GROUPS.some(group =>
+        group.vitals.some(vital => {
+          const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
+          return Number.isFinite(totalValues[alias]);
+        })
+      );
 
     return (
       <React.Fragment>
@@ -208,8 +205,6 @@ class SummaryContent extends React.Component<Props, State> {
               location={location}
               organization={organization}
               eventView={eventView}
-              selected={selectedSort}
-              options={sortOptions}
               titles={[t('id'), t('user'), t('duration'), t('timestamp')]}
               handleDropdownChange={this.handleTransactionsListSortChange}
               generateLink={{
@@ -219,6 +214,10 @@ class SummaryContent extends React.Component<Props, State> {
               handleBaselineClick={this.handleViewDetailsClick}
               handleCellAction={this.handleCellAction}
               handleOpenInDiscoverClick={this.handleDiscoverViewClick}
+              {...getTransactionsListSort(location, {
+                p95: totalValues?.p95 ?? 0,
+              })}
+              forceLoading={!totalValues}
             />
             <RelatedIssues
               organization={organization}
@@ -237,12 +236,19 @@ class SummaryContent extends React.Component<Props, State> {
               transactionName={transactionName}
               eventView={eventView}
             />
-            <SidebarCharts organization={organization} eventView={eventView} />
+            <SidebarSpacer />
+            <SidebarCharts
+              organization={organization}
+              totals={totalValues}
+              eventView={eventView}
+            />
+            <SidebarSpacer />
             <StatusBreakdown
               eventView={eventView}
               organization={organization}
               location={location}
             />
+            <SidebarSpacer />
             <Tags
               generateUrl={this.generateTagUrl}
               totalValues={totalCount}
@@ -297,14 +303,14 @@ function getFilterOptions({p95}: {p95: number}): DropdownOption[] {
 function getTransactionsListSort(
   location: Location,
   options: {p95: number}
-): {selectedSort: DropdownOption; sortOptions: DropdownOption[]} {
+): {selected: DropdownOption; options: DropdownOption[]} {
   const sortOptions = getFilterOptions(options);
   const urlParam = decodeScalar(
     location.query.showTransactions,
     TransactionFilterOptions.SLOW
   );
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
-  return {selectedSort, sortOptions};
+  return {selected: selectedSort, options: sortOptions};
 }
 
 const StyledSearchBar = styled(SearchBar)`

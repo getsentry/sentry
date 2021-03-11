@@ -61,6 +61,8 @@ class ErrorRuleModal extends Form<Props, State> {
     const {rule, errorRules, transactionRules} = this.props;
 
     const newRule: DynamicSamplingRule = {
+      // All new/updated rules must have id equal to 0
+      id: 0,
       type: DynamicSamplingRuleType.ERROR,
       condition: {
         op: DynamicSamplingConditionOperator.AND,
