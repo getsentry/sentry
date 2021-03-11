@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0172_rule_owner_fields"),
+        ("sentry", "0173_remove_demo_flag"),
     ]
 
     operations = [
