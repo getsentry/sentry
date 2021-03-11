@@ -347,7 +347,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         try:
             if actor.resolve():
                 return actor
-        except Exception:
+        except (User.DoesNotExist, Team.DoesNotExist):
             raise serializers.ValidationError("Could not resolve owner to existing team or user.")
 
     def validate_query(self, query):

@@ -13,6 +13,8 @@ from sentry.models import (
     RuleActivity,
     RuleActivityType,
     RuleStatus,
+    Team,
+    User,
 )
 from sentry.web.decorators import transaction_start
 
@@ -91,8 +93,8 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             owner = data.get("owner")
             if owner:
                 try:
-                    kwargs.update({"owner": owner.resolve_to_actor()})
-                except Exception:
+                    kwargs["owner"] = owner.resolve_to_actor()
+                except (User.DoesNotExist, Team.DoesNotExist):
                     return Response(
                         "Could not resolve owner",
                         status=status.HTTP_400_BAD_REQUEST,

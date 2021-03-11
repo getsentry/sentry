@@ -608,7 +608,7 @@ def create_alert_rule(
     if `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project
-    :param owner: Actor (sentry.api.field.actor) namedtuple consisting of id and type (User or Team) or None
+    :param owner: ActorTuple (sentry.models.actor.ActorTuple) or None
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes
@@ -742,7 +742,7 @@ def update_alert_rule(
     `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project.
-    :param owner: Actor (sentry.api.field.actor) namedtuple consisting of id and type (User or Team) or None
+    :param owner: ActorTuple (sentry.models.actor.ActorTuple) or None
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes.

@@ -44,7 +44,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
-                "owner": f"user:{self.user.id}",
+                "owner": self.user.actor.get_actor_identifier(),
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
@@ -56,6 +56,7 @@ class CreateProjectRuleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["id"]
+        assert response.data["owner"] == self.user.actor.get_actor_identifier()
         assert response.data["createdBy"] == {
             "id": self.user.id,
             "name": self.user.get_display_name(),
@@ -93,7 +94,6 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
-                "owner": f"user:{self.user.id}",
                 "environment": "production",
                 "conditions": conditions,
                 "actions": actions,
@@ -210,33 +210,6 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "owner": f"user:{self.user.id}",
-                "actionMatch": "any",
-                "filterMatch": "any",
-                "actions": actions,
-                "conditions": conditions,
-            },
-            format="json",
-        )
-
-        assert response.status_code == 400, response.content
-
-    def test_missing_owner(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
-
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.post(
-            url,
-            data={
-                "name": "hello world",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
