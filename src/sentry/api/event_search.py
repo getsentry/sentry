@@ -2170,6 +2170,20 @@ FUNCTIONS = {
             redundant_grouping=True,
         ),
         Function(
+            "var",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["varSamp", ArgValue("column"), None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
+            "stddev",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["stddevSamp", ArgValue("column"), None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
             "sum",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["sumOrNull", ArgValue("column"), None],

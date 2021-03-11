@@ -1333,7 +1333,12 @@ class QueryTransformTest(TestCase):
         end_time = before_now(seconds=1)
 
         discover.query(
-            selected_columns=["transaction", "avg(transaction.duration)", "max(timestamp)"],
+            selected_columns=[
+                "transaction",
+                "avg(transaction.duration)",
+                "stddev(transaction.duration)",
+                "max(timestamp)",
+            ],
             query="http.method:GET max(timestamp):>2019-12-01",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
@@ -1347,6 +1352,7 @@ class QueryTransformTest(TestCase):
             aggregations=[
                 ["avgOrNull", "duration", "avg_transaction_duration"],
                 ["maxOrNull", "timestamp", "max_timestamp"],
+                ["stddevSamp", "duration", "stddev_transaction_duration"],
             ],
             having=[["max_timestamp", ">", 1575158400]],
             end=end_time,
@@ -1374,7 +1380,12 @@ class QueryTransformTest(TestCase):
                 "data": [{"transaction": "api.do_things", "duration": 200}],
             }
             discover.query(
-                selected_columns=["transaction", "avg(transaction.duration)", "max(timestamp)"],
+                selected_columns=[
+                    "transaction",
+                    "avg(transaction.duration)",
+                    "stddev(transaction.duration)",
+                    "max(timestamp)",
+                ],
                 query=f"http.method:GET avg(transaction.duration):>{query_string}",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
@@ -1388,6 +1399,7 @@ class QueryTransformTest(TestCase):
                 aggregations=[
                     ["avgOrNull", "duration", "avg_transaction_duration"],
                     ["maxOrNull", "timestamp", "max_timestamp"],
+                    ["stddevSamp", "duration", "stddev_transaction_duration"],
                 ],
                 having=[["avg_transaction_duration", ">", value]],
                 end=end_time,
