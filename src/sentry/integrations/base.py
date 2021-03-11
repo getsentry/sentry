@@ -96,6 +96,7 @@ class IntegrationFeatures(Enum):
     MOBILE = "mobile"
     SERVERLESS = "serverless"
     TICKET_RULES = "ticket-rules"
+    STACKTRACE_LINK = "stacktrace-link"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
@@ -161,10 +162,6 @@ class IntegrationProvider(PipelineProvider):
 
     # if this is hidden without the feature flag
     requires_feature_flag = False
-
-    # whether this integration can be used for stacktrace linking
-    # will eventually be replaced with a feature flag
-    has_stacktrace_linking = False
 
     @classmethod
     def get_installation(cls, model, organization_id, **kwargs):
