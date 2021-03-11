@@ -50,11 +50,13 @@ class AlertRuleSerializer(Serializer):
 
             result[alert_rules[rule_activity.alert_rule.id]].update({"created_by": user})
 
-        owned_items = {item.owner_id: item for item in item_list if item.owner_id is not None}
-        alert_rule_actors = Actor.objects.filter(id__in=[k for k in owned_items.keys()])
-        for actor in alert_rule_actors:
-            actor_tuple = actor.get_actor_tuple()
-            result[owned_items[actor.id]]["owner"] = actor_tuple.get_actor_identifier()
+        alert_rule_actors = Actor.objects.filter(
+            id__in=[item.owner_id for item in item_list if item.owner_id is not None]
+        )
+        actor_map = {actor.id: actor for actor in alert_rule_actors}
+        for alert_rule_id, alert_rule in alert_rules.items():
+            if alert_rule.owner_id:
+                result[alert_rule]["owner"] = actor_map[alert_rule.owner_id].get_actor_identifier()
 
         return result
 

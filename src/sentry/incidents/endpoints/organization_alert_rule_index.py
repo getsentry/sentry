@@ -30,7 +30,24 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         """
         Fetches alert rules and legacy rules for an organization
         """
+        project_ids = self.get_requested_project_ids(request) or None
+        if project_ids == {-1}:  # All projects for org:
+            project_ids = Project.objects.filter(organization=organization).values_list(
+                "id", flat=True
+            )
+        elif project_ids is None:  # All projects for user
+            org_team_list = Team.objects.filter(organization=organization).values_list(
+                "id", flat=True
+            )
+            user_team_list = OrganizationMemberTeam.objects.filter(
+                organizationmember__user=request.user, team__in=org_team_list
+            ).values_list("team", flat=True)
+            project_ids = Project.objects.filter(teams__in=user_team_list).values_list(
+                "id", flat=True
+            )
+
         teams = request.GET.getlist("team", [])
+        team_filter_query = None
         if teams:
             unassigned = None
             if "unassigned" in teams:
@@ -49,55 +66,33 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 ):
                     teams.append(t.id)
 
-            # Verify each Team id is numeric
-            for team_id in teams:
+            for team_id in teams:  # Verify each Team id is numeric
                 if type(team_id) is not int and not team_id.isdigit():
                     return Response(
                         f"Invalid Team ID: {team_id}", status=status.HTTP_400_BAD_REQUEST
                     )
 
-            # Verify user has access to each team
-            teams_qs = Team.objects.filter(id__in=set(map(int, teams)))
-            for team in teams_qs:
+            teams = Team.objects.filter(id__in=set(map(int, teams)))
+            for team in teams:  # Verify user has access to each team
                 if not team.has_access(request.user):
                     return Response(
                         f"Error: You do not have permission to access {team.name}",
                         status=status.HTTP_400_BAD_REQUEST,
                     )
-
-        project_ids = self.get_requested_project_ids(request) or None
-        if project_ids == {-1}:  # All projects for org:
-            project_ids = Project.objects.filter(organization=organization).values_list(
-                "id", flat=True
-            )
-        elif project_ids is None:  # All projects for user
-            org_team_list = Team.objects.filter(organization=organization).values_list(
-                "id", flat=True
-            )
-            user_team_list = OrganizationMemberTeam.objects.filter(
-                organizationmember__user=request.user, team__in=org_team_list
-            ).values_list("team", flat=True)
-            project_ids = Project.objects.filter(teams__in=user_team_list).values_list(
-                "id", flat=True
-            )
+            team_filter_query = Q(owner_id__in=teams.values_list("actor_id", flat=True))
+            if unassigned:
+                team_filter_query = team_filter_query | unassigned
 
         alert_rules = AlertRule.objects.fetch_for_organization(organization, project_ids)
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
-
         issue_rules = Rule.objects.filter(
             status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=project_ids
         )
-
-        if teams:
-            teams_query = Q(owner_id__in=teams_qs.values_list("actor_id", flat=True))
-            filter_query = teams_query
-            if unassigned:
-                filter_query = filter_query | unassigned
-
-            alert_rules = alert_rules.filter(filter_query)
-            issue_rules = issue_rules.filter(filter_query)
+        if team_filter_query:
+            alert_rules = alert_rules.filter(team_filter_query)
+            issue_rules = issue_rules.filter(team_filter_query)
 
         is_asc = request.GET.get("asc", False) == "1"
         sort_key = request.GET.get("sort", "date_added")

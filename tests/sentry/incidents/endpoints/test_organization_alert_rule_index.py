@@ -7,7 +7,6 @@ from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType
-from sentry.models import ActorTuple
 from sentry.models.organizationmember import OrganizationMember
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import APITestCase
@@ -352,20 +351,24 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.team2 = self.create_team(organization=self.org, name="Folk Band", members=[self.user])
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
-        self.project2 = self.create_project(organization=self.org)
+        self.project2 = self.create_project(
+            organization=self.org, teams=[self.team], name="Elephant"
+        )
         self.projects = [self.project, self.project2]
         self.project_ids = [self.project.id, self.project2.id]
         self.alert_rule = self.create_alert_rule(
+            name="alert rule",
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC),
-            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
+            owner=self.team.actor.get_actor_tuple(),
         )
         self.other_alert_rule = self.create_alert_rule(
+            name="other alert rule",
             organization=self.org,
             projects=[self.project2],
             date_added=before_now(minutes=5).replace(tzinfo=pytz.UTC),
-            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
+            owner=self.team.actor.get_actor_tuple(),
         )
         self.issue_rule = self.create_issue_alert_rule(
             data={
@@ -378,10 +381,11 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             }
         )
         self.yet_another_alert_rule = self.create_alert_rule(
+            name="yet another alert rule",
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC),
-            owner=ActorTuple.from_actor_identifier(f"team:{self.team2.id}"),
+            owner=self.team2.actor.get_actor_tuple(),
         )
         self.combined_rules_url = f"/api/0/organizations/{self.org.slug}/combined-rules/"
 

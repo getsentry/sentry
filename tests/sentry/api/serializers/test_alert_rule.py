@@ -45,10 +45,11 @@ class BaseAlertRuleSerializerTest:
             assert result["environment"] == alert_rule.snuba_query.environment.name
         else:
             assert result["environment"] is None
+
         if alert_rule.owner:
             assert result["owner"] == alert_rule.owner.get_actor_identifier()
         else:
-            assert alert_rule.owner is None
+            assert result["owner"] is None
 
     def create_issue_alert_rule(self, data):
         """data format
@@ -121,7 +122,6 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
 
     def test_owner(self):
         user = self.create_user("foo@example.com")
-        print(self.team.actor.get_actor_tuple())
         alert_rule = self.create_alert_rule(
             environment=self.environment, user=user, owner=self.team.actor.get_actor_tuple()
         )
