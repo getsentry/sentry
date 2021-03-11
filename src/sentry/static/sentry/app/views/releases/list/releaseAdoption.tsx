@@ -15,20 +15,20 @@ import {releaseDisplayLabel} from '../utils';
 import {DisplayOption} from './utils';
 
 type Props = {
-  adoption: number | null;
+  adoption: number;
+  releaseCount: number;
+  projectCount: number;
   displayOption: DisplayOption;
   theme: Theme;
-  releaseCount?: number | null;
-  projectCount?: number | null;
   withLabels?: boolean;
 };
 
 function ReleaseAdoption({
   adoption,
-  displayOption,
-  theme,
   releaseCount,
   projectCount,
+  displayOption,
+  theme,
   withLabels,
 }: Props) {
   return (
@@ -36,7 +36,7 @@ function ReleaseAdoption({
       {withLabels && (
         <Labels>
           <TextOverflow>
-            <Count value={releaseCount ?? 0} />/<Count value={projectCount ?? 0} />{' '}
+            <Count value={releaseCount} />/<Count value={projectCount} />{' '}
             {releaseDisplayLabel(displayOption, projectCount)}
           </TextOverflow>
 
@@ -58,7 +58,7 @@ function ReleaseAdoption({
                 {t('This Release')}
               </Title>
               <Value>
-                <Count value={releaseCount ?? 0} />{' '}
+                <Count value={releaseCount} />{' '}
                 {releaseDisplayLabel(displayOption, releaseCount)}
               </Value>
             </TooltipRow>
@@ -68,7 +68,7 @@ function ReleaseAdoption({
                 {t('Total Project')}
               </Title>
               <Value>
-                <Count value={projectCount ?? 0} />{' '}
+                <Count value={projectCount} />{' '}
                 {releaseDisplayLabel(displayOption, projectCount)}
               </Value>
             </TooltipRow>
@@ -80,7 +80,7 @@ function ReleaseAdoption({
         }
       >
         <ProgressBarWrapper>
-          <ProgressBar value={Math.ceil(adoption ?? 0)} />
+          <ProgressBar value={Math.ceil(adoption)} />
         </ProgressBarWrapper>
       </Tooltip>
     </div>

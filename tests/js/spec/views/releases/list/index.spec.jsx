@@ -69,9 +69,9 @@ describe('ReleasesList', function () {
 
     expect(items).toHaveLength(3);
     expect(items.at(0).text()).toContain('1.0.0');
-    expect(items.at(0).text()).toContain('User Adoption');
+    expect(items.at(0).text()).toContain('Adoption');
     expect(items.at(1).text()).toContain('1.0.1');
-    expect(items.at(1).find('DailyColumn').at(1).text()).toContain('\u2014');
+    expect(items.at(1).find('CountColumn').at(1).text()).toContain('\u2014');
     expect(items.at(2).text()).toContain('af4f231ec9a8');
     expect(items.at(2).find('Header').text()).toContain('Project');
   });
@@ -164,8 +164,8 @@ describe('ReleasesList', function () {
     expect(sortByOptions).toHaveLength(5);
     expect(dateCreatedOption.text()).toEqual('Date Created');
 
-    const healthStatsControls = wrapper.find('DailyColumn span').first();
-    expect(healthStatsControls.text()).toEqual('Sessions');
+    const healthStatsControls = wrapper.find('CountColumn span').first();
+    expect(healthStatsControls.text()).toEqual('Count');
 
     dateCreatedOption.simulate('click');
 
@@ -266,7 +266,7 @@ describe('ReleasesList', function () {
       })
     );
 
-    const healthStatsControls = wrapper.find('DailyColumn').first();
+    const healthStatsControls = wrapper.find('CountColumn').first();
 
     expect(healthStatsControls.find('Period[selected=true]').text()).toEqual('24h');
 

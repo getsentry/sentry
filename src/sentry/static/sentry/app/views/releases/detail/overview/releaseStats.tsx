@@ -131,20 +131,20 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
         <SectionContent>
           {defined(adoption) || defined(sessionsAdoption) ? (
             <AdoptionWrapper>
-              {defined(adoption) && (
+              {defined(sessionsAdoption) && (
                 <ReleaseAdoption
-                  releaseCount={totalSessions24h}
-                  projectCount={totalProjectSessions24h}
+                  releaseCount={totalSessions24h ?? 0}
+                  projectCount={totalProjectSessions24h ?? 0}
                   adoption={sessionsAdoption}
                   displayOption={DisplayOption.SESSIONS}
                   withLabels
                 />
               )}
 
-              {defined(sessionsAdoption) && (
+              {defined(adoption) && (
                 <ReleaseAdoption
-                  releaseCount={totalUsers24h}
-                  projectCount={totalProjectUsers24h}
+                  releaseCount={totalUsers24h ?? 0}
+                  projectCount={totalProjectUsers24h ?? 0}
                   adoption={adoption}
                   displayOption={DisplayOption.USERS}
                   withLabels

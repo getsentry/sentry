@@ -134,8 +134,8 @@ const Content = ({
                       <AdoptionWrapper>
                         <ReleaseAdoption
                           adoption={selectedAdoption}
-                          releaseCount={selected24hCount}
-                          projectCount={selectedProject24hCount}
+                          releaseCount={selected24hCount ?? 0}
+                          projectCount={selectedProject24hCount ?? 0}
                           displayOption={activeDisplay}
                         />
                         <Count value={selected24hCount ?? 0} />
