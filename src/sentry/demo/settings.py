@@ -18,3 +18,4 @@ CELERYBEAT_SCHEDULE["demo_delete_users_orgs"] = {
     "schedule": timedelta(hours=1),
     "options": {"expires": 3600, "queue": "cleanup"},
 }
+INSTALLED_APPS = INSTALLED_APPS + ("sentry.demo.apps.Config",)
