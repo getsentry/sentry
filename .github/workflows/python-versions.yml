@@ -30,7 +30,7 @@ jobs:
 
       - name: Install prerequisites
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install libxmlsec1
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install --no-upgrade libxmlsec1 libxslt
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
@@ -55,4 +55,5 @@ jobs:
         run: |
           python -m venv .venv
           source .venv/bin/activate
+          pip install wheel
           make install-py-dev
