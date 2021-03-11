@@ -49,3 +49,24 @@ class ZeroFillTest(unittest.TestCase):
             rollup=rollup,
             zerofilled_buckets=[2, 3, 4, 5],
         )
+
+    def test_last_bucket(self):
+        # the start does NOT align the first bucket due to the zerofill
+        start = timezone.now().replace(minute=5, second=0, microsecond=0)
+        rollup = timedelta(minutes=10)
+        buckets = [
+            (to_timestamp(start + timedelta(minutes=1)), [9]),
+            (to_timestamp(start + timedelta(minutes=16)), [3]),
+        ]
+        zerofilled_buckets = zerofill(
+            buckets,
+            start,
+            start + timedelta(minutes=20),
+            int(rollup.total_seconds())
+        )
+        assert zerofilled_buckets == [
+            (to_timestamp(start - timedelta(minutes=5)), []),
+            (to_timestamp(start + timedelta(minutes=1)), [9]),
+            (to_timestamp(start + timedelta(minutes=5)), []),
+            (to_timestamp(start + timedelta(minutes=16)), [3]),
+        ]
