@@ -339,9 +339,6 @@ function EventNodeSelector({
       errors.push({
         ...error,
         transaction: e.transaction,
-        project_slug: e.project_slug,
-        // TODO(wmak) return event_id from the API so we don't need to do this
-        event_id: error.id,
       });
     });
   });
