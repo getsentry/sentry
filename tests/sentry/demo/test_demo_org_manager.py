@@ -24,8 +24,8 @@ org_owner_email = "james@example.com"
 org_name = "Org Name"
 
 
+@override_settings(DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email)
 class DemoOrgManagerTeest(TestCase):
-    @override_settings(DEMO_ORG_OWNER_EMAIL=org_owner_email)
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
     def test_create_demo_org(self, mock_generate_name):
         owner = User.objects.create(email=org_owner_email)
@@ -44,7 +44,6 @@ class DemoOrgManagerTeest(TestCase):
         assert len(Project.objects.filter(organization=org)) == 2
         assert not ProjectKey.objects.filter(project__organization=org).exists()
 
-    @override_settings(DEMO_ORG_OWNER_EMAIL=org_owner_email)
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
     def test_no_owner(self, mock_generate_name):
         with pytest.raises(User.DoesNotExist):
