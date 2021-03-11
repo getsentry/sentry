@@ -1,6 +1,7 @@
 import React from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
@@ -11,7 +12,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 import {inputStyles} from 'app/styles/input';
 import {Organization, Project, Team} from 'app/types';
 import {defined} from 'app/utils';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 import RuleBuilder from './ruleBuilder';
 
@@ -22,6 +23,7 @@ const defaultProps = {
 };
 
 type Props = {
+  theme: Theme;
   organization: Organization;
   project: Project;
   initialText: string;
@@ -144,7 +146,7 @@ class OwnerInput extends React.Component<Props, State> {
   };
 
   render() {
-    const {project, organization, disabled, urls, paths, initialText} = this.props;
+    const {theme, project, organization, disabled, urls, paths, initialText} = this.props;
     const {hasChanges, text, error} = this.state;
 
     return (
@@ -246,4 +248,4 @@ const InvalidOwners = styled('div')`
   margin-top: 12px;
 `;
 
-export default OwnerInput;
+export default withTheme(OwnerInput);

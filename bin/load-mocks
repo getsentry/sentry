@@ -362,6 +362,8 @@ def main(num_events=1, extra_events=False, load_trends=False, slow=False):
     dummy_member, _ = OrganizationMember.objects.get_or_create(
         user=dummy_user, organization=org, defaults={"role": roles.get_default().id}
     )
+    # Allow for 0 events, if you only want transactions
+    event1 = event2 = event3 = event4 = event5 = None
 
     for team_name, project_names in mocks:
         print(f"> Mocking team {team_name}")  # NOQA
@@ -690,11 +692,16 @@ def main(num_events=1, extra_events=False, load_trends=False, slow=False):
                 pass
 
             print(f"    > Loading time series data")  # NOQA
-            create_sample_time_series(event1, release=release)
-            create_sample_time_series(event2, release=release)
-            create_sample_time_series(event3)
-            create_sample_time_series(event4, release=release)
-            create_sample_time_series(event5, release=release)
+            if event1:
+                create_sample_time_series(event1, release=release)
+            if event2:
+                create_sample_time_series(event2, release=release)
+            if event3:
+                create_sample_time_series(event3)
+            if event4:
+                create_sample_time_series(event4, release=release)
+            if event5:
+                create_sample_time_series(event5, release=release)
 
             if hasattr(buffer, "process_pending"):
                 print("    > Processing pending buffers")  # NOQA
@@ -782,6 +789,19 @@ def create_mock_transactions(project_map, load_trends=False, slow=False):
                     }
                 ],
             )
+            create_sample_event(
+                project=backend_project,
+                platform="javascript",
+                user=transaction_user,
+                transaction="/plants/:plantId/",
+                contexts={
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": frontend_span_id,
+                    }
+                },
+            )
             # try to give clickhouse some breathing room
             if slow:
                 time.sleep(0.05)
@@ -819,6 +839,19 @@ def create_mock_transactions(project_map, load_trends=False, slow=False):
                     }
                     for name, backend_span_id in backend_span_ids
                 ],
+            )
+            create_sample_event(
+                project=backend_project,
+                platform="python",
+                user=transaction_user,
+                transaction="/api/plants/",
+                contexts={
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": backend_span_ids[0][1],
+                    }
+                },
             )
             for service_project, (name, backend_span_id) in zip(service_projects, backend_span_ids):
                 if slow:

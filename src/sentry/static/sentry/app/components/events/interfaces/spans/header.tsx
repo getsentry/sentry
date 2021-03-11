@@ -1,7 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import OpsBreakdown from 'app/components/events/opsBreakdown';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
@@ -38,6 +40,7 @@ export const MINIMAP_CONTAINER_HEIGHT =
   MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + SECONDARY_HEADER_HEIGHT + 1;
 
 type PropType = {
+  organization: Organization;
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
   virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
   dragProps: DragManagerChildrenProps;
@@ -390,6 +393,10 @@ class TraceViewHeader extends React.Component<PropType, State> {
   }
 
   render() {
+    const hasQuickTraceView =
+      this.props.organization.features.includes('trace-view-quick') ||
+      this.props.organization.features.includes('trace-view-summary');
+
     return (
       <HeaderContainer>
         <DividerHandlerManager.Consumer>
@@ -401,7 +408,11 @@ class TraceViewHeader extends React.Component<PropType, State> {
                   style={{
                     width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
                   }}
-                />
+                >
+                  {hasQuickTraceView && this.props.event && (
+                    <OpsBreakdown event={this.props.event} topN={3} hideHeader />
+                  )}
+                </OperationsBreakdown>
                 <DividerSpacer
                   style={{
                     position: 'absolute',
@@ -882,6 +893,7 @@ const OperationsBreakdown = styled('div')`
   position: absolute;
   left: 0;
   top: 0;
+  overflow: hidden;
 `;
 
 const RightSidePane = styled('div')`

@@ -84,7 +84,7 @@ from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.retries import TimedRetryPolicy
-
+from sentry.utils.snuba import _snuba_pool
 from .fixtures import Fixtures
 from .factories import Factories
 from .skips import requires_snuba
@@ -670,6 +670,20 @@ class SnubaTestCase(BaseTestCase):
     def initialize(self, reset_snuba, call_snuba):
         self.call_snuba = call_snuba
 
+    @contextmanager
+    def disable_snuba_query_cache(self):
+        self.snuba_update_config({"use_readthrough_query_cache": 0, "use_cache": 0})
+        yield
+        self.snuba_update_config({"use_readthrough_query_cache": None, "use_cache": None})
+
+    @classmethod
+    def snuba_get_config(cls):
+        return _snuba_pool.request("GET", "/config.json").data
+
+    @classmethod
+    def snuba_update_config(cls, config_vals):
+        return _snuba_pool.request("POST", "/config.json", body=json.dumps(config_vals))
+
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
@@ -693,14 +707,19 @@ class SnubaTestCase(BaseTestCase):
         # While snuba is synchronous, clickhouse isn't entirely synchronous.
         attempt = 0
         snuba_filter = eventstore.Filter(project_ids=[project_id])
+        last_events_seen = 0
+
         while attempt < attempts:
             events = eventstore.get_events(snuba_filter)
+            last_events_seen = len(events)
             if len(events) >= total:
                 break
             attempt += 1
             time.sleep(0.05)
         if attempt == attempts:
-            assert False, f"Could not ensure event was persisted within {attempt} attempt(s)"
+            assert (
+                False
+            ), f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
 
     def store_session(self, session):
         assert (

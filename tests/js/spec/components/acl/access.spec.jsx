@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Access from 'app/components/acl/access';
 import ConfigStore from 'app/stores/configStore';
@@ -18,7 +18,7 @@ describe('Access', function () {
     });
 
     it('has access when requireAll is false', function () {
-      mount(
+      mountWithTheme(
         <Access access={['project:write', 'project:read', 'org:read']} requireAll={false}>
           {childrenMock}
         </Access>,
@@ -32,7 +32,7 @@ describe('Access', function () {
     });
 
     it('has access', function () {
-      mount(
+      mountWithTheme(
         <Access access={['project:write', 'project:read']}>{childrenMock}</Access>,
         routerContext
       );
@@ -44,7 +44,10 @@ describe('Access', function () {
     });
 
     it('has no access', function () {
-      mount(<Access access={['org:write']}>{childrenMock}</Access>, routerContext);
+      mountWithTheme(
+        <Access access={['org:write']}>{childrenMock}</Access>,
+        routerContext
+      );
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasAccess: false,
@@ -54,7 +57,7 @@ describe('Access', function () {
 
     it('calls render function when no access', function () {
       const noAccessRenderer = jest.fn(() => null);
-      mount(
+      mountWithTheme(
         <Access access={['org:write']} renderNoAccessMessage={noAccessRenderer}>
           {childrenMock}
         </Access>,
@@ -66,7 +69,7 @@ describe('Access', function () {
     });
 
     it('can specify org from props', function () {
-      mount(
+      mountWithTheme(
         <Access
           organization={TestStubs.Organization({access: ['org:write']})}
           access={['org:write']}
@@ -83,7 +86,10 @@ describe('Access', function () {
     });
 
     it('handles no org/project', function () {
-      mount(<Access access={['org:write']}>{childrenMock}</Access>, routerContext);
+      mountWithTheme(
+        <Access access={['org:write']}>{childrenMock}</Access>,
+        routerContext
+      );
 
       expect(childrenMock).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -99,7 +105,7 @@ describe('Access', function () {
         user: null,
       };
 
-      mount(<Access>{childrenMock}</Access>, routerContext);
+      mountWithTheme(<Access>{childrenMock}</Access>, routerContext);
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasAccess: true,
@@ -111,7 +117,7 @@ describe('Access', function () {
       ConfigStore.config = {
         user: {isSuperuser: true},
       };
-      mount(<Access isSuperuser>{childrenMock}</Access>, routerContext);
+      mountWithTheme(<Access isSuperuser>{childrenMock}</Access>, routerContext);
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasAccess: true,
@@ -123,7 +129,7 @@ describe('Access', function () {
       ConfigStore.config = {
         user: {isSuperuser: false},
       };
-      mount(<Access isSuperuser>{childrenMock}</Access>, routerContext);
+      mountWithTheme(<Access isSuperuser>{childrenMock}</Access>, routerContext);
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasAccess: true,
@@ -136,7 +142,7 @@ describe('Access', function () {
     let wrapper;
 
     it('has access', function () {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Access access={['project:write']}>
           <div>The Child</div>
         </Access>,
@@ -150,7 +156,7 @@ describe('Access', function () {
       ConfigStore.config = {
         user: {isSuperuser: true},
       };
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Access isSuperuser>
           <div>The Child</div>
         </Access>,
@@ -161,7 +167,7 @@ describe('Access', function () {
     });
 
     it('has no access', function () {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Access access={['org:write']}>
           <div>The Child</div>
         </Access>,
@@ -175,7 +181,7 @@ describe('Access', function () {
       ConfigStore.config = {
         user: {isSuperuser: false},
       };
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Access isSuperuser>
           <div>The Child</div>
         </Access>,

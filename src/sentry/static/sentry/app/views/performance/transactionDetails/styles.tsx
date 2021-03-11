@@ -36,18 +36,6 @@ export function MetaData({headingText, tooltipText, bodyText, subtext}: MetaData
 
 const HeaderInfo = styled('div')`
   height: 78px;
-
-  &:last-child {
-    grid-column: 1/4;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    &:last-child {
-      justify-self: flex-end;
-      min-width: 325px;
-      grid-column: unset;
-    }
-  }
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
@@ -113,12 +101,4 @@ export const DropdownItemSubContainer = styled('div')`
 
 export const StyledTruncate = styled(Truncate)`
   margin-left: ${space(1)};
-
-  /**
-   * This is the class added to the element that is shown on hover.
-   */
-  .full-value {
-    left: auto;
-    right: -5px;
-  }
 `;

@@ -146,7 +146,7 @@ function QuickTracePills({
   try {
     parsedQuickTrace = parseQuickTrace(quickTrace, event);
   } catch (error) {
-    Sentry.setTag('currentEventID', event.id);
+    Sentry.setTag('current.event_id', event.id);
     Sentry.captureException(new Error('Current event not in quick trace'));
     return <React.Fragment>{'\u2014'}</React.Fragment>;
   }
@@ -165,6 +165,7 @@ function QuickTracePills({
         text={t('Root')}
         hoverText={singleEventHoverText(root)}
         pad="right"
+        nodeKey="root"
       />
     );
     nodes.push(<TraceConnector key="root-connector" />);
@@ -191,6 +192,7 @@ function QuickTracePills({
           'Ancestor'
         )}
         pad="right"
+        nodeKey="ancestors"
       />
     );
     nodes.push(<TraceConnector key="ancestors-connector" />);
@@ -206,6 +208,7 @@ function QuickTracePills({
         text={t('Parent')}
         hoverText={singleEventHoverText(parent)}
         pad="right"
+        nodeKey="parent"
       />
     );
     nodes.push(<TraceConnector key="parent-connector" />);
@@ -239,6 +242,7 @@ function QuickTracePills({
           'Children'
         )}
         pad="left"
+        nodeKey="children"
       />
     );
   }
@@ -265,6 +269,7 @@ function QuickTracePills({
           'Descendant'
         )}
         pad="left"
+        nodeKey="descendants"
       />
     );
   }
@@ -272,8 +277,18 @@ function QuickTracePills({
   return <QuickTraceContainer>{nodes}</QuickTraceContainer>;
 }
 
+function handleNode(key: string, organization: OrganizationSummary) {
+  trackAnalyticsEvent({
+    eventKey: 'quick_trace.node.clicked',
+    eventName: 'Quick Trace: Node clicked',
+    organization_id: parseInt(organization.id, 10),
+    node_key: key,
+  });
+}
+
 function handleDropdownItem(
   target: LocationDescriptor,
+  key: string,
   organization: OrganizationSummary,
   extra: boolean
 ) {
@@ -281,6 +296,7 @@ function handleDropdownItem(
     eventKey: 'quick_trace.dropdown.clicked' + (extra ? '_extra' : ''),
     eventName: 'Quick Trace: Dropdown clicked',
     organization_id: parseInt(organization.id, 10),
+    node_key: key,
   });
   ReactRouter.browserHistory.push(target);
 }
@@ -294,6 +310,7 @@ type EventNodeSelectorProps = {
   hoverText?: React.ReactNode;
   extrasTarget?: LocationDescriptor;
   numEvents?: number;
+  nodeKey: string;
 };
 
 function EventNodeSelector({
@@ -304,6 +321,7 @@ function EventNodeSelector({
   pad,
   hoverText,
   extrasTarget,
+  nodeKey,
   numEvents = 5,
 }: EventNodeSelectorProps) {
   if (events.length === 1) {
@@ -312,7 +330,15 @@ function EventNodeSelector({
      * the event without additional steps.
      */
     const target = generateSingleEventTarget(events[0], organization, location);
-    return <StyledEventNode text={text} pad={pad} hoverText={hoverText} to={target} />;
+    return (
+      <StyledEventNode
+        text={text}
+        pad={pad}
+        hoverText={hoverText}
+        to={target}
+        onClick={() => handleNode(nodeKey, organization)}
+      />
+    );
   } else {
     /**
      * When there is more than 1 event, clicking the node should expand a dropdown to
@@ -329,7 +355,7 @@ function EventNodeSelector({
           return (
             <DropdownItem
               key={event.event_id}
-              onSelect={() => handleDropdownItem(target, organization, false)}
+              onSelect={() => handleDropdownItem(target, nodeKey, organization, false)}
               first={i === 0}
             >
               <DropdownItemSubContainer>
@@ -350,6 +376,7 @@ function EventNodeSelector({
                   maxLength={35}
                   leftTrim
                   trimRegex={/\.|\//g}
+                  expandDirection="left"
                 />
               </DropdownItemSubContainer>
               <SectionSubtext>
@@ -364,7 +391,7 @@ function EventNodeSelector({
         })}
         {events.length > numEvents && hoverText && extrasTarget && (
           <DropdownItem
-            onSelect={() => handleDropdownItem(extrasTarget, organization, true)}
+            onSelect={() => handleDropdownItem(extrasTarget, nodeKey, organization, true)}
           >
             {hoverText}
           </DropdownItem>
@@ -379,13 +406,21 @@ type EventNodeProps = {
   pad: 'left' | 'right';
   hoverText: React.ReactNode;
   to?: LocationDescriptor;
+  onClick?: (eventKey: any) => void;
   type?: keyof Theme['tag'];
 };
 
-function StyledEventNode({text, hoverText, pad, to, type = 'white'}: EventNodeProps) {
+function StyledEventNode({
+  text,
+  hoverText,
+  pad,
+  to,
+  onClick,
+  type = 'white',
+}: EventNodeProps) {
   return (
     <Tooltip position="top" containerDisplayMode="inline-flex" title={hoverText}>
-      <EventNode type={type} pad={pad} icon={null} to={to}>
+      <EventNode type={type} pad={pad} icon={null} to={to} onClick={onClick}>
         {text}
       </EventNode>
     </Tooltip>

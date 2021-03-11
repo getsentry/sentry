@@ -1,5 +1,6 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
+import {Location} from 'history';
 
 import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -9,6 +10,7 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
+import {makeRuleDetailsQuery} from 'app/views/alerts/list/row';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
 import {
@@ -24,6 +26,7 @@ import DetailsHeader from './header';
 
 type Props = {
   api: Client;
+  location: Location;
   organization: Organization;
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
@@ -57,11 +60,25 @@ class IncidentDetails extends React.Component<Props, State> {
 
     const {
       api,
+      location,
       params: {orgId, alertId},
     } = this.props;
 
     try {
       const incidentPromise = fetchIncident(api, orgId, alertId).then(incident => {
+        const hasRedesign =
+          incident.alertRule &&
+          this.props.organization.features.includes('alert-details-redesign');
+        // only stop redirect if param is explicitly set to false
+        const stopRedirect =
+          location && location.query && location.query.redirect === 'false';
+        if (hasRedesign && !stopRedirect) {
+          browserHistory.replace({
+            pathname: `/organizations/${orgId}/alerts/rules/details/${incident.alertRule?.id}/`,
+            query: makeRuleDetailsQuery(incident),
+          });
+        }
+
         this.setState({incident});
         markIncidentAsSeen(api, orgId, incident);
       });

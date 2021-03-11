@@ -29,7 +29,7 @@ class EventDetails extends React.Component<Props> {
     const documentTitle = t('Performance Details');
 
     return (
-      <SentryDocumentTitle title={documentTitle} objSlug={organization.slug}>
+      <SentryDocumentTitle title={documentTitle} orgSlug={organization.slug}>
         <StyledPageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <EventDetailsContent

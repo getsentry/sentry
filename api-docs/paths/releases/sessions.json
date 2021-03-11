@@ -1,8 +1,8 @@
 {
   "get": {
-    "tags": ["Organizations"],
-    "description": "Returns a time series of release health session statistics for projects bound to an organization.",
-    "operationId": "EXPERIMENTAL: Retrieve Release Health Session Statistics",
+    "tags": ["Releases"],
+    "description": "Returns a time series of release health session statistics for projects bound to an organization.\n\nThe interval and date range are subject to certain restrictions and rounding rules.\n\nThe date range is rounded to align with the interval, and is rounded to at least one hour. The interval can at most be one day and at least one hour currently. It has to cleanly divide one day, for rounding reasons.",
+    "operationId": "Retrieve Release Health Session Statistics",
     "parameters": [
       {
         "name": "organization_slug",
@@ -16,7 +16,7 @@
       {
         "name": "project",
         "in": "query",
-        "description": "The ID of the projects to filter by.\nUse `-1` to include all accessible projects.",
+        "description": "The ID of the projects to filter by.\n\nUse `-1` to include all accessible projects.",
         "required": true,
         "schema": {
           "type": "array",
@@ -44,7 +44,7 @@
       {
         "name": "field",
         "in": "query",
-        "description": "The list of fields to query.\nThe available fields are `sum(session)`, `count_unique(user)`, and the following functions applied to the `session.duration` metric: `avg`, `p50`, `p75`, `p90`, `p95`, `p99` and `max`.\nFor example, `p99(session.duration)`.",
+        "description": "The list of fields to query.\n\nThe available fields are `sum(session)`, `count_unique(user)`, and the following functions applied to the `session.duration` metric: `avg`, `p50`, `p75`, `p90`, `p95`, `p99` and `max`.\n\nFor example, `p99(session.duration)`.",
         "required": false,
         "schema": {
           "type": "array",
@@ -58,7 +58,7 @@
       {
         "name": "groupBy",
         "in": "query",
-        "description": "The list of properties to group by.\nThe available groupBy conditions are `project`, `release`, `environment` and `session.status`.",
+        "description": "The list of properties to group by.\n\nThe available groupBy conditions are `project`, `release`, `environment` and `session.status`.",
         "required": false,
         "schema": {
           "type": "array",
@@ -72,23 +72,23 @@
       {
         "name": "query",
         "in": "query",
-        "description": "A free-form query that is applied as a filter.\nAn example query could be `release:\"1.1.0\" or release:\"1.2.0\"`.",
+        "description": "A free-form query that is applied as a filter.\n\nAn example query could be `release:\"1.1.0\" or release:\"1.2.0\"`.",
         "required": false,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "interval",
+        "name": "statsPeriod",
         "in": "query",
-        "description": "This is the resolution of the time series, given in a `\"<number><unit>\"` format.\nFor example `1h` for a one hour resolution. Possible units are `m` for minutes, `h` for hours, `d` for days and `w` for weeks.\nThe default resolution is `1h` and the minimum resolution is currently restricted to `1h` as well.\nIntervals larger than `1d` are not recommended.",
+        "description": "This defines the range of the time series, relative to now.\n\nThe range is given in a `\"<number><unit>\"` format.\n\nFor example `1d` for a one day range. Possible units are `m` for minutes, `h` for hours, `d` for days and `w` for weeks.\n\nIt defaults to `90d`.",
         "required": false,
         "schema": {"type": "string"}
       },
       {
-        "name": "statsPeriod",
+        "name": "interval",
         "in": "query",
-        "description": "This defines the range of the time series, in the same format as the `interval`, relative to now.\nIt defaults to `90d`.",
+        "description": "This is the resolution of the time series, given in the same format as `statsPeriod`.\n\nThe default resolution is `1h` and the minimum resolution is currently restricted to `1h` as well.\n\nIntervals larger than `1d` are not supported, and the interval has to cleanly divide one day.",
         "required": false,
         "schema": {"type": "string"}
       },

@@ -10,6 +10,7 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 import TextareaField from 'app/views/settings/components/forms/textareaField';
 
 import LegacyBrowsersField from './legacyBrowsersField';
+import {getMatchFieldPlaceholder} from './utils';
 
 type Condition = {
   category: DynamicSamplingInnerName;
@@ -80,16 +81,13 @@ function ConditionFields({
               <TextareaField
                 label={t('Matches')}
                 // help={t('This is a description')} // TODO(PRISCILA): Add correct description
-                placeholder={
-                  isMatchesDisabled
-                    ? t('No match')
-                    : t('%s (Multiline)', 'ex. 1* or [I3].[0-9].*')
-                }
+                placeholder={getMatchFieldPlaceholder(category)}
                 name={`match-${index}`}
                 value={match}
                 onChange={value => onChange(index, 'match', value)}
                 disabled={isMatchesDisabled}
                 inline={false}
+                rows={1}
                 autosize
                 hideControlState
                 showHelpInTooltip

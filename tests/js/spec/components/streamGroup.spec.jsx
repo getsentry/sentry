@@ -38,7 +38,7 @@ describe('StreamGroup', function () {
     trackAnalyticsEvent.mockClear();
   });
 
-  it('renders with anchors', function () {
+  it('renders with anchors', async function () {
     const {routerContext} = initializeOrg();
     const component = mountWithTheme(
       <StreamGroup
@@ -52,9 +52,11 @@ describe('StreamGroup', function () {
       />,
       routerContext
     );
+    component.update();
+    await tick();
 
     expect(component.find('GuideAnchor').exists()).toBe(true);
-    expect(component.find('GuideAnchor')).toHaveLength(4);
+    expect(component.find('GuideAnchor')).toHaveLength(3);
     expect(component).toSnapshot();
   });
 
