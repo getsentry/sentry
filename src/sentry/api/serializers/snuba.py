@@ -150,7 +150,7 @@ def zerofill(data, start, end, rollup):
     # Add any remaining rows that are not aligned to the rollup and are lower than the
     # end date.
     if i < len(data):
-        rv.extend(row for row in data[i:] if row[0] < rollup_end)
+        rv.extend(row for row in data[i:] if row[0] < end)
 
     return rv
 
