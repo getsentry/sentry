@@ -97,10 +97,10 @@ class NotificationSetting(Model):
             (NotificationTargetType.USER, "user"),
             (NotificationTargetType.TEAM, "team"),
         ),
-        null=False,
+        null=True,
     )
     # user_id, team_id
-    target_identifier = BoundedBigIntegerField(null=False)
+    target_identifier = BoundedBigIntegerField(null=True)
 
     provider = BoundedPositiveIntegerField(
         choices=(
