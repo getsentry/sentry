@@ -1,5 +1,6 @@
 import React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
+import {Location} from 'history';
 
 import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -25,6 +26,7 @@ import DetailsHeader from './header';
 
 type Props = {
   api: Client;
+  location: Location;
   organization: Organization;
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
@@ -58,6 +60,7 @@ class IncidentDetails extends React.Component<Props, State> {
 
     const {
       api,
+      location,
       params: {orgId, alertId},
     } = this.props;
 
@@ -66,7 +69,10 @@ class IncidentDetails extends React.Component<Props, State> {
         const hasRedesign =
           incident.alertRule &&
           this.props.organization.features.includes('alert-details-redesign');
-        if (hasRedesign) {
+        // only stop redirect if param is explicitly set to false
+        const stopRedirect =
+          location && location.query && location.query.redirect === 'false';
+        if (hasRedesign && !stopRedirect) {
           browserHistory.replace({
             pathname: `/organizations/${orgId}/alerts/rules/details/${incident.alertRule?.id}/`,
             query: makeRuleDetailsQuery(incident),
