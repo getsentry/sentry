@@ -59,10 +59,7 @@ class ZeroFillTest(unittest.TestCase):
             (to_timestamp(start + timedelta(minutes=16)), [3]),
         ]
         zerofilled_buckets = zerofill(
-            buckets,
-            start,
-            start + timedelta(minutes=20),
-            int(rollup.total_seconds())
+            buckets, start, start + timedelta(minutes=20), int(rollup.total_seconds())
         )
         assert zerofilled_buckets == [
             (to_timestamp(start - timedelta(minutes=5)), []),
