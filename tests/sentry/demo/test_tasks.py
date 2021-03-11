@@ -8,6 +8,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.compat import mock
 
 
+@override_settings(DEMO_MODE=True)
 class DemoTaskBaseClass(TestCase):
     def create_demo_org(self, org_args=None, **kwargs):
         org = self.create_organization(**(org_args or {}))
