@@ -96,7 +96,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
             raise serializers.ValidationError("Unable to resolve actor identifier")
 
     def resolve(self):
-        return self.type.objects.get(id=self.id).select_related("actor")
+        return self.type.objects.select_related("actor").get(id=self.id)
 
     def resolve_to_actor(self):
         return self.resolve().actor
