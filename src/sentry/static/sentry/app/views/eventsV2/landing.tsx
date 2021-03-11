@@ -345,7 +345,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         features={['discover-query']}
         renderDisabled={this.renderNoAccess}
       >
-        <SentryDocumentTitle title={t('Discover')} objSlug={organization.slug}>
+        <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
           <StyledPageContent>
             <LightWeightNoProjectMessage organization={organization}>
               <PageContent>

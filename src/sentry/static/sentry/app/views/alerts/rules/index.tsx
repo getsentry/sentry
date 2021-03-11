@@ -246,7 +246,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     const {orgId} = params;
 
     return (
-      <SentryDocumentTitle title={t('Alerts')} objSlug={orgId}>
+      <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
         <GlobalSelectionHeader organization={organization} showDateSelector={false}>
           <AlertHeader organization={organization} router={router} activeTab="rules" />
           {this.renderList()}

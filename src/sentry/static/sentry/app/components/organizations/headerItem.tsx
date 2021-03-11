@@ -6,6 +6,7 @@ import omit from 'lodash/omit';
 
 import Tooltip from 'app/components/tooltip';
 import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 type DefaultProps = {
@@ -95,7 +96,10 @@ class HeaderItem extends React.Component<Props> {
           </ChevronWrapper>
         )}
         {locked && (
-          <Tooltip title={lockedMessage || 'This selection is locked'} position="bottom">
+          <Tooltip
+            title={lockedMessage || t('This selection is locked')}
+            position="bottom"
+          >
             <StyledLock color="gray300" />
           </Tooltip>
         )}

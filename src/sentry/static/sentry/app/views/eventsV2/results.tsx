@@ -387,7 +387,7 @@ class Results extends React.Component<Props, State> {
     const title = this.getDocumentTitle();
 
     return (
-      <SentryDocumentTitle title={title} objSlug={organization.slug}>
+      <SentryDocumentTitle title={title} orgSlug={organization.slug}>
         <StyledPageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <ResultsHeader

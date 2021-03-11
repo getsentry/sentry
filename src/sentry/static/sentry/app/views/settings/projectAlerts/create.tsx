@@ -85,7 +85,7 @@ class Create extends React.Component<Props, State> {
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={title} objSlug={projectId} />
+        <SentryDocumentTitle title={title} projectSlug={projectId} />
         <PageContent>
           <BuilderBreadCrumbs
             hasMetricAlerts={hasMetricAlerts}

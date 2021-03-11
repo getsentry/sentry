@@ -33,7 +33,7 @@ class TraceSummary extends React.Component<Props> {
     this.getTraceSlug();
 
     return (
-      <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
+      <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
         <StyledPageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <TraceDetailsContent

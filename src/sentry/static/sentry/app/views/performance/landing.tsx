@@ -306,7 +306,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     const showOnboarding = this.shouldShowOnboarding();
 
     return (
-      <SentryDocumentTitle title={t('Performance')} objSlug={organization.slug}>
+      <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
         <GlobalSelectionHeader
           defaultSelection={{
             datetime: {

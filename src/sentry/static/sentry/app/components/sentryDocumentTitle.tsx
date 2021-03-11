@@ -1,19 +1,34 @@
-import React, {FunctionComponent} from 'react';
+import React from 'react';
 import DocumentTitle from 'react-document-title';
 
-type DocumentTitleProps = {
+type Props = {
   // Main page title
   title: string;
-  // Organization or project slug to give title some context
-  objSlug: string;
+  orgSlug?: string;
+  projectSlug?: string;
   children?: React.ReactNode;
 };
 
-const SentryDocumentTitle: FunctionComponent<DocumentTitleProps> = (
-  props: DocumentTitleProps
-) => {
-  const _title = `${props.title} - ${props.objSlug} - Sentry`;
-  return <DocumentTitle title={_title}>{props.children}</DocumentTitle>;
-};
+function SentryDocumentTitle({title, orgSlug, projectSlug, children}: Props) {
+  function getDocTitle() {
+    if (!orgSlug && !projectSlug) {
+      return title;
+    }
+
+    if (orgSlug && projectSlug) {
+      return `${title} - ${orgSlug} - ${projectSlug}`;
+    }
+
+    if (orgSlug) {
+      return `${title} - ${orgSlug}`;
+    }
+
+    return `${title} - ${projectSlug}`;
+  }
+
+  const docTitle = getDocTitle();
+
+  return <DocumentTitle title={`${docTitle} - Sentry`}>{children}</DocumentTitle>;
+}
 
 export default SentryDocumentTitle;

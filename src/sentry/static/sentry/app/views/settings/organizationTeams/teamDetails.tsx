@@ -172,7 +172,7 @@ class TeamDetails extends React.Component<Props, State> {
     const routePrefix = recreateRoute('', {routes, params, stepBack: -1}); //`/organizations/${orgId}/teams/${teamId}`;
     return (
       <div>
-        <SentryDocumentTitle title={t('Team Details')} objSlug={params.orgId} />
+        <SentryDocumentTitle title={t('Team Details')} orgSlug={params.orgId} />
         <h3>
           <IdBadge hideAvatar team={team} avatarSize={36} />
         </h3>

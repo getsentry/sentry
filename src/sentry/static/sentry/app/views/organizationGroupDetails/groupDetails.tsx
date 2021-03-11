@@ -331,11 +331,14 @@ class GroupDetails extends React.Component<Props, State> {
     const {title} = getTitle(group, organization);
     const message = getMessage(group);
 
+    const {project} = group;
+    const eventDetails = `${organization.slug} - ${project.slug}`;
+
     if (title && message) {
-      return `${title}: ${message}`;
+      return `${title}: ${message} - ${eventDetails}`;
     }
 
-    return title || message || defaultTitle;
+    return `${title || message || defaultTitle} - ${eventDetails}`;
   }
 
   renderError() {

@@ -34,6 +34,7 @@ import {
 } from 'app/types/alerts';
 import {getDisplayName} from 'app/utils/environment';
 import recreateRoute from 'app/utils/recreateRoute';
+import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import AsyncView from 'app/views/asyncView';
@@ -96,7 +97,6 @@ type Props = {
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
-  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   detailedError: null | {
     [key: string]: string[];
   };
@@ -107,6 +107,7 @@ type State = AsyncView['state'] & {
     conditions: IssueAlertRuleConditionTemplate[];
   } | null;
   uuid: null | string;
+  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
 };
 
 function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
@@ -114,6 +115,19 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 }
 
 class IssueRuleEditor extends AsyncView<Props, State> {
+  getTitle() {
+    const {organization, project} = this.props;
+    const {rule} = this.state;
+    const ruleName = rule?.name;
+
+    return routeTitleGen(
+      ruleName ? t('Alert %s', ruleName) : '',
+      organization.slug,
+      false,
+      project?.slug
+    );
+  }
+
   getDefaultState() {
     return {
       ...super.getDefaultState(),
