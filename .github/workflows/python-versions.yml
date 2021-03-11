@@ -1,0 +1,48 @@
+name: python versions
+on:
+  pull_request:
+    paths:
+    - 'requirements*'
+
+jobs:
+  # This workflow makes sure that Python dependencies install correctly for
+  # a) our current version b) the next version we're targetting and
+  # optionally c) a team request
+  python-versions:
+    name: set up
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        # macosx-10.15 is Catalina
+        os: [ macos-10.15, ubuntu-20.04 ]
+        python-version: [ 3.6, 3.8, 3.9 ]
+      fail-fast: false
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: on
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+
+      - name: Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ${{ steps.pip.outputs.pip-cache-dir }}
+          key: |
+            ${{ matrix.os }}-py${{ matrix.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ hashFiles('requirements-*.txt') }}
+          restore-keys: |
+            ${{ matrix.os }}-py${{ matrix.python-version }}-pip${{ steps.pip.outputs.pip-version }}
+
+      - name: Install dependencies
+        run: |
+          make install-py-dev
