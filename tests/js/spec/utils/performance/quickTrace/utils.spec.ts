@@ -70,6 +70,7 @@ function generateTransactionLite({
     project_slug: generateProjectSlug(position),
     parent_event_id: generation <= 0 ? null : generateEventId(parentPosition),
     parent_span_id: generation <= 0 ? null : generateSpanId(parentPosition),
+    errors: [],
   };
 }
 
@@ -79,6 +80,7 @@ function generateTransaction(opts: {index: number; depth: number}): TraceFull {
 
   return {
     ...generateTransactionLite({generation, offset}),
+    errors: [],
     children: Array(depth <= 0 || generation >= depth - 1 ? 0 : 2)
       .fill(null)
       .map((_, i) =>

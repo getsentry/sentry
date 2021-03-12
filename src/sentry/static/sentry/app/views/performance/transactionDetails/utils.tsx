@@ -6,14 +6,14 @@ import {OrganizationSummary} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
 import {generateEventSlug} from 'app/utils/discover/urls';
-import {EventLite} from 'app/utils/performance/quickTrace/types';
+import {EventLite, TraceError} from 'app/utils/performance/quickTrace/types';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 import {getTraceDetailsUrl} from '../traceDetails/utils';
 import {getTransactionDetailsUrl} from '../utils';
 
 export function generateSingleEventTarget(
-  event: EventLite,
+  event: EventLite | TraceError,
   organization: OrganizationSummary,
   location: Location
 ): LocationDescriptor {
