@@ -6,6 +6,7 @@ import {Location} from 'history';
 import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
+import {MAX_QUERY_LENGTH} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -128,6 +129,7 @@ class LandingContent extends React.Component<Props, State> {
               ['epm()', 'eps()']
             )}
             onSearch={handleSearch}
+            maxQueryLength={MAX_QUERY_LENGTH}
           />
           <ProjectTypeDropdown>
             <DropdownControl
@@ -296,6 +298,7 @@ class LandingContent extends React.Component<Props, State> {
             ['epm()', 'eps()']
           )}
           onSearch={handleSearch}
+          maxQueryLength={MAX_QUERY_LENGTH}
         />
         <Feature features={['performance-vitals-overview']}>
           <FrontendCards

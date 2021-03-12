@@ -216,6 +216,10 @@ export const MAX_AUTOCOMPLETE_RELEASES = 5;
 export const DEFAULT_PER_PAGE = 50;
 export const TEAMS_PER_PAGE = 25;
 
+// Limit query length so paginated response headers don't
+// go over HTTP header size limits (4Kb)
+export const MAX_QUERY_LENGTH = 400;
+
 // Webpack configures DEPLOY_PREVIEW_CONFIG for deploy preview builds.
 export const DEPLOY_PREVIEW_CONFIG = (process.env.DEPLOY_PREVIEW_CONFIG as unknown) as
   | undefined
