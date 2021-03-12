@@ -23,11 +23,18 @@ UNSAFE_FILES = (
 
 # URLs that should always be sampled
 SAMPLED_URL_NAMES = {
-    # releases
-    "sentry-api-0-organization-releases",
-    "sentry-api-0-organization-release-details",
-    "sentry-api-0-project-releases",
-    "sentry-api-0-project-release-details",
+    # codeowners
+    "sentry-api-0-project-codeowners",
+    "sentry-api-0-project-codeowners-details",
+    # external teams POST, PUT, DELETE
+    "sentry-api-0-external-team",
+    "sentry-api-0-external-team-details",
+    # external users POST, PUT, DELETE
+    "sentry-api-0-organization-external-user",
+    "sentry-api-0-organization-external-user-details",
+    # integration platform
+    "external-issues",
+    "sentry-api-0-sentry-app-authorizations",
     # integrations
     "sentry-extensions-jira-issue-hook",
     "sentry-extensions-vercel-webhook",
@@ -35,9 +42,11 @@ SAMPLED_URL_NAMES = {
     "sentry-extensions-vercel-configure",
     "sentry-extensions-vercel-ui-hook",
     "sentry-api-0-group-integration-details",
-    # integration platform
-    "external-issues",
-    "sentry-api-0-sentry-app-authorizations",
+    # releases
+    "sentry-api-0-organization-releases",
+    "sentry-api-0-organization-release-details",
+    "sentry-api-0-project-releases",
+    "sentry-api-0-project-release-details",
 }
 
 UNSAFE_TAG = "_unsafe"
