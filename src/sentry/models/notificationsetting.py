@@ -1,8 +1,10 @@
+from django.db import models
 from enum import Enum
 
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    FlexibleForeignKey,
     Model,
     sane_repr,
 )
@@ -91,7 +93,9 @@ class NotificationSetting(Model):
     )
     # user_id, organization_id, project_id
     scope_identifier = BoundedBigIntegerField(null=False)
-
+    target = FlexibleForeignKey(
+        "sentry.Actor", db_index=True, unique=False, null=False, on_delete=models.CASCADE
+    )
     provider = BoundedPositiveIntegerField(
         choices=(
             (ExternalProviders.EMAIL, "email"),
@@ -126,6 +130,7 @@ class NotificationSetting(Model):
             (
                 "scope_type",
                 "scope_identifier",
+                "target",
                 "provider",
                 "type",
             ),
@@ -134,6 +139,7 @@ class NotificationSetting(Model):
     __repr__ = sane_repr(
         "scope_type",
         "scope_identifier",
+        "target",
         "provider",
         "type",
         "value",
