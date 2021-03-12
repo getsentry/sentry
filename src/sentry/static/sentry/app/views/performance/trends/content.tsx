@@ -45,6 +45,7 @@ type State = {
 
 class TrendsContent extends React.Component<Props, State> {
   state: State = {};
+
   handleSearch = (searchQuery: string) => {
     const {location} = this.props;
 
