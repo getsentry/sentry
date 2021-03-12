@@ -5,7 +5,6 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import OptionManager
 from sentry.models.integration import ExternalProviders
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.notifications.legacy_mappings import get_key_value_from_legacy, get_key_from_legacy
 
 
@@ -50,6 +49,8 @@ class UserOptionManager(OptionManager):
         """
         This isn't implemented for user-organization scoped options yet, because it hasn't been needed.
         """
+        from sentry.models.notificationsetting import NotificationSetting
+
         with transaction.atomic():
             if key in [
                 "workflow:notifications",
@@ -77,6 +78,8 @@ class UserOptionManager(OptionManager):
         self._option_cache[metakey].pop(key, None)
 
     def set_value(self, user, key, value, **kwargs):
+        from sentry.models.notificationsetting import NotificationSetting
+
         project = kwargs.get("project")
         organization = kwargs.get("organization")
 
