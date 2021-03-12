@@ -29,8 +29,10 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install prerequisites
+        # HOMEBREW_NO_AUTO_UPDATE=1 brew install libxmlsec1 libxslt pkgconfig
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install libxmlsec1 libxslt
+          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade || \
+            brew update && HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
