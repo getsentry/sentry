@@ -1,10 +1,20 @@
-from sentry.models.useroption import UserOptionValue
 from sentry.notifications.types import (
     FineTuningAPIKey,
     NotificationSettingTypes,
     NotificationSettingOptionValues,
     UserOptionsSettingsKey,
 )
+
+
+class UserOptionValue:
+    # 'workflow:notifications'
+    all_conversations = "0"
+    participating_only = "1"
+    no_conversations = "2"
+    # 'deploy-emails
+    all_deploys = "2"
+    committed_deploys_only = "3"
+    no_deploys = "4"
 
 
 USER_OPTION_SETTINGS = {

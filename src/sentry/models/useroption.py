@@ -8,17 +8,6 @@ from sentry.models.integration import ExternalProviders
 from sentry.notifications.legacy_mappings import get_key_value_from_legacy, get_key_from_legacy
 
 
-class UserOptionValue:
-    # 'workflow:notifications'
-    all_conversations = "0"
-    participating_only = "1"
-    no_conversations = "2"
-    # 'deploy-emails
-    all_deploys = "2"
-    committed_deploys_only = "3"
-    no_deploys = "4"
-
-
 option_scope_error = "this is not a supported use case, scope to project OR organization"
 
 
