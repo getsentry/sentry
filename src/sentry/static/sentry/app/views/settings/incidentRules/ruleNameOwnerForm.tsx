@@ -31,7 +31,7 @@ class RuleNameOwnerForm extends React.PureComponent<Props> {
             placeholder={t('Something really bad happened')}
             required
           />
-          <Feature features={['organization:team-alerts-ownership']}>
+          <Feature features={['organizations:team-alerts-ownership']}>
             <FormField
               name="owner"
               label={t('Team')}
