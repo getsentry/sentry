@@ -1,5 +1,6 @@
 import React from 'react';
 
+import Feature from 'app/components/acl/feature';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SelectMembers from 'app/components/selectMembers';
 import {t} from 'app/locale';
@@ -30,30 +31,32 @@ class RuleNameOwnerForm extends React.PureComponent<Props> {
             placeholder={t('Something really bad happened')}
             required
           />
-          <FormField
-            name="owner"
-            label={t('Team')}
-            help={t('The team that owns this alert')}
-          >
-            {({model}) => {
-              const owner = model.getValue('owner');
-              const ownerId = owner && owner.split(':')[1];
-              return (
-                <SelectMembers
-                  showTeam
-                  project={project}
-                  organization={organization}
-                  value={ownerId}
-                  onChange={({value}) => {
-                    const ownerValue = value && `team:${value}`;
-                    model.setValue('owner', ownerValue);
-                  }}
-                  filteredTeamIds={userTeamIds}
-                  includeUnassigned
-                />
-              );
-            }}
-          </FormField>
+          <Feature features={['organization:team-alerts-ownership']}>
+            <FormField
+              name="owner"
+              label={t('Team')}
+              help={t('The team that owns this alert')}
+            >
+              {({model}) => {
+                const owner = model.getValue('owner');
+                const ownerId = owner && owner.split(':')[1];
+                return (
+                  <SelectMembers
+                    showTeam
+                    project={project}
+                    organization={organization}
+                    value={ownerId}
+                    onChange={({value}) => {
+                      const ownerValue = value && `team:${value}`;
+                      model.setValue('owner', ownerValue);
+                    }}
+                    filteredTeamIds={userTeamIds}
+                    includeUnassigned
+                  />
+                );
+              }}
+            </FormField>
+          </Feature>
         </PanelBody>
       </Panel>
     );
