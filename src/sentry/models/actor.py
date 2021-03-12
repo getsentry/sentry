@@ -1,8 +1,8 @@
 from collections import defaultdict, namedtuple
-from rest_framework import serializers
 
 from django.db import models
 from django.db.models.signals import pre_save
+from rest_framework import serializers
 
 from sentry.db.models import Model
 from sentry.utils.compat import filter
@@ -16,7 +16,16 @@ def actor_type_to_class(type):
     from sentry.models import Team, User
 
     ACTOR_TYPE_TO_CLASS = {ACTOR_TYPES["team"]: Team, ACTOR_TYPES["user"]: User}
+
     return ACTOR_TYPE_TO_CLASS[type]
+
+
+def actor_type_to_string(type):
+    # type will be 0 or 1 and we want to get "team" or "user"
+    for k, v in ACTOR_TYPES.items():
+        if v == type:
+            return k
+    return None
 
 
 class Actor(Model):

@@ -9,7 +9,12 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.models import Actor, Rule
+from sentry.models import (
+    ACTOR_TYPES,
+    actor_type_to_class,
+    actor_type_to_string,
+    Rule,
+)
 from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 
@@ -50,11 +55,22 @@ class AlertRuleSerializer(Serializer):
 
             result[alert_rules[rule_activity.alert_rule.id]].update({"created_by": user})
 
-        owned_items = {item.owner_id: item for item in item_list if item.owner_id is not None}
-        alert_rule_actors = Actor.objects.filter(id__in=[k for k in owned_items.keys()])
-        for actor in alert_rule_actors:
-            actor_tuple = actor.get_actor_tuple()
-            result[owned_items[actor.id]]["owner"] = actor_tuple.get_actor_identifier()
+        actors_by_type = defaultdict(list)
+        for item in item_list:
+            if item.owner_id is not None:
+                actors_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
+
+        resolved_actors = {}
+        for k, v in ACTOR_TYPES.items():
+            resolved_actors[k] = actor_type_to_class(v).objects.filter(
+                actor_id__in=actors_by_type[k]
+            )
+
+        for alert_rule in alert_rules.values():
+            if alert_rule.owner_id:
+                type = actor_type_to_string(alert_rule.owner.type)
+                resolved_owner = resolved_actors[type].get(actor_id=alert_rule.owner_id)
+                result[alert_rule]["owner"] = f"{type}:{resolved_owner.id}"
 
         return result
 
