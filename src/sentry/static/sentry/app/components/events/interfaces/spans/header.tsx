@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import OpsBreakdown from 'app/components/events/opsBreakdown';
+import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
@@ -398,7 +399,7 @@ class TraceViewHeader extends React.Component<PropType, State> {
       this.props.organization.features.includes('trace-view-summary');
 
     return (
-      <HeaderContainer>
+      <HeaderContainer demoMode={ConfigStore.get('demoMode')}>
         <DividerHandlerManager.Consumer>
           {dividerHandlerChildrenProps => {
             const {dividerPosition} = dividerHandlerChildrenProps;
@@ -745,11 +746,11 @@ const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   }};
 `;
 
-const HeaderContainer = styled('div')`
+const HeaderContainer = styled('div')<{demoMode: boolean}>`
   width: 100%;
   position: sticky;
   left: 0;
-  top: 0;
+  top: ${p => (p.demoMode ? p.theme.demo.headerSize : 0)};
   z-index: ${zIndex.minimapContainer};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};

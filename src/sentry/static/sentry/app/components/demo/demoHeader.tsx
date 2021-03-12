@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import sentry from 'sentry-images/logos/logo-sentry.svg';
-
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import InlineSvg from 'app/components/inlineSvg';
 import ExternalLink from 'app/components/links/externalLink';
 import {t} from 'app/locale';
 import OrganizationStore from 'app/stores/organizationStore';
@@ -18,11 +17,8 @@ type Props = {organization?: Organization};
 function DemoHeader({organization}: Props) {
   return (
     <Wrapper>
-      <ImageAndName>
-        <Image />
-        <SentryWrapper>Sentry</SentryWrapper>
-      </ImageAndName>
-      <StyledButtonBar gap={1}>
+      <LogoSvg src="logo" />
+      <StyledButtonBar gap={4}>
         <StyledExternalLink href="https://docs.sentry.io">
           {t('Documentation')}
         </StyledExternalLink>
@@ -70,21 +66,14 @@ const Wrapper = styled('div')`
   }
 `;
 
-const ImageAndName = styled('div')`
+const LogoSvg = styled(InlineSvg)`
   margin-top: auto;
   margin-bottom: auto;
   margin-left: 20px;
-  display: flex;
-`;
-
-const Image = styled('div')`
   display: inline-block;
-  background-size: contain;
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-image: url(${sentry});
+  width: 130px;
   height: 30px;
-  width: 30px;
+  color: ${p => p.theme.textColor};
 `;
 
 const GetStarted = styled(Button)`
@@ -94,10 +83,6 @@ const GetStarted = styled(Button)`
   border-color: transparent;
   border-radius: 2rem;
   text-transform: uppercase;
-`;
-
-const SentryWrapper = styled('div')`
-  margin: auto;
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
