@@ -21,11 +21,8 @@ def update_legacy_discover_saved_query_timestamps(apps, schema_editor):
     for saved_query in saved_queries:
         query = saved_query.query
         for key in ["start", "end"]:
-            try:
+            if key in query:
                 value = query[key]
-            except KeyError:
-                pass
-            else:
                 try:
                     parsed = datetime.strptime(value, LEGACY_DATETIME_FORMAT).astimezone(pytz.utc)
                 except ValueError:
