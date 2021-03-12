@@ -510,7 +510,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         ).update(status=OrganizationStatus.PENDING_DELETION)
         if updated:
             transaction_id = uuid4().hex
-            countdown = 86400
+            countdown = 0
             entry = self.create_audit_entry(
                 request=request,
                 organization=organization,
