@@ -102,7 +102,7 @@ class DetailsBody extends React.Component<Props> {
     return tct(' [metric] over [window]', {
       metric: aggregate,
       window: <Duration seconds={timeWindow * 60} />,
-    })
+    });
   }
 
   getInterval() {
@@ -165,29 +165,43 @@ class DetailsBody extends React.Component<Props> {
       return null;
     }
 
-    const icon = trigger.label === 'critical'
-      ? <IconFire color="red300" size="sm" />
-      : trigger.label === 'warning'
-        ? <IconWarning color="yellow300" size="sm" />
-        : <IconCheckmark color="green300" size="sm" isCircled />;
+    const icon =
+      trigger.label === 'critical' ? (
+        <IconFire color="red300" size="sm" />
+      ) : trigger.label === 'warning' ? (
+        <IconWarning color="yellow300" size="sm" />
+      ) : (
+        <IconCheckmark color="green300" size="sm" isCircled />
+      );
 
-    const thresholdTypeText = rule.thresholdType === AlertRuleThresholdType.ABOVE
-      ? t('Above') : t('Below');
+    const thresholdTypeText =
+      rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('Above') : t('Below');
 
-    return <TriggerCondition>
-      <TriggerDesc>
-        {icon}
-        <TriggerText>{`${thresholdTypeText} ${trigger.alertThreshold} / ${getDuration(rule.timeWindow * 60, 0, true, true)}`}</TriggerText>
-        {trigger.actions.length > 0 && <IconArrow direction="right" color="gray200" size="sm" />}
-      </TriggerDesc>
-      <Actions>
-        {trigger.actions.map(action => (
-          <ActionDesc key={action.id}>
-            {`${ActionLabel[action.type]}: ${action.targetType === TargetType.TEAM ? '#': ''}${action.targetDisplay}`}
-          </ActionDesc>
-        ))}
-      </Actions>
-    </TriggerCondition>;
+    return (
+      <TriggerCondition>
+        <TriggerDesc>
+          {icon}
+          <TriggerText>{`${thresholdTypeText} ${trigger.alertThreshold} / ${getDuration(
+            rule.timeWindow * 60,
+            0,
+            true,
+            true
+          )}`}</TriggerText>
+          {trigger.actions.length > 0 && (
+            <IconArrow direction="right" color="gray200" size="sm" />
+          )}
+        </TriggerDesc>
+        <Actions>
+          {trigger.actions.map(action => (
+            <ActionDesc key={action.id}>
+              {`${ActionLabel[action.type]}: ${
+                action.targetType === TargetType.TEAM ? '#' : ''
+              }${action.targetDisplay}`}
+            </ActionDesc>
+          ))}
+        </Actions>
+      </TriggerCondition>
+    );
   }
 
   renderRuleDetails() {
@@ -210,22 +224,20 @@ class DetailsBody extends React.Component<Props> {
         <SidebarHeading>
           <span>{t('Metric')}</span>
         </SidebarHeading>
-        <RuleText>
-          {this.getMetricText()}
-        </RuleText>
+        <RuleText>{this.getMetricText()}</RuleText>
 
         <SidebarHeading>
           <span>{t('Environment')}</span>
         </SidebarHeading>
-        <RuleText>
-          {rule.environment ?? 'All'}
-        </RuleText>
+        <RuleText>{rule.environment ?? 'All'}</RuleText>
 
         <SidebarHeading>
           <span>{t('Filters')}</span>
         </SidebarHeading>
         <Filters>
-          <span>{rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}</span>
+          <span>
+            {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
+          </span>
           <span>{rule?.query && <code>{rule?.query}</code>}</span>
         </Filters>
 
@@ -251,12 +263,18 @@ class DetailsBody extends React.Component<Props> {
           </Feature>
 
           <span>{t('Created By')}</span>
-          <span><CreatedBy>{rule.createdBy?.name ?? '-'}</CreatedBy></span>
+          <span>
+            <CreatedBy>{rule.createdBy?.name ?? '-'}</CreatedBy>
+          </span>
 
-          {rule.dateModified && <React.Fragment>
-            <span>{t('Alert Last Modified')}</span>
-            <span><TimeSince date={rule.dateModified} suffix={t('ago')} /></span>
-          </React.Fragment>}
+          {rule.dateModified && (
+            <React.Fragment>
+              <span>{t('Alert Last Modified')}</span>
+              <span>
+                <TimeSince date={rule.dateModified} suffix={t('ago')} />
+              </span>
+            </React.Fragment>
+          )}
         </RuleDetails>
       </React.Fragment>
     );
@@ -408,13 +426,7 @@ class DetailsBody extends React.Component<Props> {
       return this.renderLoading();
     }
 
-    const {
-      query,
-      environment,
-      aggregate,
-      projects: projectSlugs,
-      triggers,
-    } = rule;
+    const {query, environment, aggregate, projects: projectSlugs, triggers} = rule;
 
     const criticalTrigger = triggers.find(({label}) => label === 'critical');
     const warningTrigger = triggers.find(({label}) => label === 'warning');
