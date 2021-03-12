@@ -94,7 +94,7 @@ class NotificationSetting(Model):
     # user_id, organization_id, project_id
     scope_identifier = BoundedBigIntegerField(null=False)
     target = FlexibleForeignKey(
-        "sentry.Actor", db_index=True, unique=False, null=False, on_delete=models.PROTECT
+        "sentry.Actor", db_index=True, unique=False, null=False, on_delete=models.CASCADE
     )
     provider = BoundedPositiveIntegerField(
         choices=(
