@@ -237,11 +237,8 @@ export function reduceTrace<T>(
   const events = [trace];
   while (events.length) {
     const current = events.pop()!;
-    const children = current?.children;
-    if (children) {
-      for (const child of children) {
-        events.push(child);
-      }
+    for (const child of current.children) {
+      events.push(child);
     }
     result = visitor(result, current);
   }
