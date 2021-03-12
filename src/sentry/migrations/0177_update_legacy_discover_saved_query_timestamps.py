@@ -3,10 +3,10 @@ import pytz
 from datetime import datetime
 
 from django.db import migrations
-from django.db.models import Q
+
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
-LEGACY_DATETIME_REGEX = r"(20[12]\d{1})-([0][1-9]|[1][0-2])-([0][1-9]|[12][0-9]|[3][01])T([01][0-9]|[2][0-3]):([0-5][0-9]):([0-5][0-9])\+(\d{4})"
 LEGACY_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
@@ -14,25 +14,26 @@ DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 def update_legacy_discover_saved_query_timestamps(apps, schema_editor):
     DiscoverSavedQuery = apps.get_model("sentry", "DiscoverSavedQuery")
 
-    saved_queries = DiscoverSavedQuery.objects.filter(
-        Q(query__contains="start") | Q(query__contains="end"),
-        Q(query__regex=LEGACY_DATETIME_REGEX),
-    )
-    for saved_query in saved_queries:
+    for saved_query in RangeQuerySetWrapperWithProgressBar(DiscoverSavedQuery.objects.all()):
         query = saved_query.query
+        updated = False
         for key in ["start", "end"]:
-            if key in query:
-                value = query[key]
-                try:
-                    parsed = datetime.strptime(value, LEGACY_DATETIME_FORMAT).astimezone(pytz.utc)
-                except ValueError:
-                    pass
-                else:
-                    value = datetime.strftime(parsed, DATETIME_FORMAT)
-                    query[key] = value
+            if key not in query:
+                continue
 
-        saved_query.query = query
-        saved_query.save()
+            value = query[key]
+            try:
+                parsed = datetime.strptime(value, LEGACY_DATETIME_FORMAT).astimezone(pytz.utc)
+            except ValueError:
+                pass
+            else:
+                value = datetime.strftime(parsed, DATETIME_FORMAT)
+                query[key] = value
+                updated = True
+
+        if updated:
+            saved_query.query = query
+            saved_query.save()
 
 
 class Migration(migrations.Migration):
