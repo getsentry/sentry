@@ -62,15 +62,15 @@ class AlertRuleSerializer(Serializer):
 
         resolved_actors = {}
         for k, v in ACTOR_TYPES.items():
-            resolved_actors[k] = actor_type_to_class(v).objects.filter(
-                actor_id__in=actors_by_type[k]
-            )
+            resolved_actors[k] = {
+                a.actor_id: a.id
+                for a in actor_type_to_class(v).objects.filter(actor_id__in=actors_by_type[k])
+            }
 
         for alert_rule in alert_rules.values():
             if alert_rule.owner_id:
                 type = actor_type_to_string(alert_rule.owner.type)
-                resolved_owner = resolved_actors[type].get(actor_id=alert_rule.owner_id)
-                result[alert_rule]["owner"] = f"{type}:{resolved_owner.id}"
+                result[alert_rule]["owner"] = f"{type}:{resolved_actors[type][alert_rule.owner_id]}"
 
         return result
 
