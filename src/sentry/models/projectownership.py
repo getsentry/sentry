@@ -12,6 +12,7 @@ from sentry.ownership.grammar import load_schema
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from functools import reduce
+from .projectcodeowners import ProjectCodeOwners
 
 READ_CACHE_DURATION = 3600
 
@@ -78,7 +79,22 @@ class ProjectOwnership(Model):
         if not ownership:
             ownership = cls(project_id=project_id)
 
+        codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
+        if codeowners and codeowners.schema:
+            ownership.schema = (
+                codeowners.schema
+                if not ownership.schema
+                else {
+                    **ownership.schema,
+                    "rules": [
+                        *codeowners.schema["rules"],
+                        *ownership.schema["rules"],
+                    ],
+                }
+            )
+
         rules = cls._matching_ownership_rules(ownership, project_id, data)
+
         if not rules:
             return cls.Everyone if ownership.fallthrough else [], None
 
@@ -102,8 +118,26 @@ class ProjectOwnership(Model):
         """
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
-            if not ownership:
+            codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
+
+            if not (ownership or codeowners):
                 return False, []
+
+            if not ownership:
+                ownership = cls(project_id=project_id)
+
+            if codeowners and codeowners.schema:
+                ownership.schema = (
+                    codeowners.schema
+                    if not ownership.schema
+                    else {
+                        **ownership.schema,
+                        "rules": [
+                            *codeowners.schema["rules"],
+                            *ownership.schema["rules"],
+                        ],
+                    }
+                )
 
             rules = cls._matching_ownership_rules(ownership, project_id, data)
             if not rules:
