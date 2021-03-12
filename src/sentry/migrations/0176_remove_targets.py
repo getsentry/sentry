@@ -29,20 +29,19 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AlterUniqueTogether(
+            name="notificationsetting",
+            unique_together={("scope_type", "scope_identifier", "provider", "type")},
+        ),
+        migrations.AlterIndexTogether(
+            name="notificationsetting",
+            index_together=set(),
+        ),
         migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.AlterUniqueTogether(
-                    name="notificationsetting",
-                    unique_together={("scope_type", "scope_identifier", "provider", "type")},
-                ),
-                migrations.AlterIndexTogether(
-                    name="notificationsetting",
-                    index_together=set(),
-                ),
-            ],
+            database_operations=[],
             state_operations=[
                 migrations.RemoveField(model_name="notificationsetting", name="target_identifier"),
                 migrations.RemoveField(model_name="notificationsetting", name="target_type"),
             ],
-        )
+        ),
     ]
