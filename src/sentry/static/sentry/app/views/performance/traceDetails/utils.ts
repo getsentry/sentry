@@ -1,6 +1,7 @@
 import {LocationDescriptor, Query} from 'history';
 
 import {OrganizationSummary} from 'app/types';
+import {TraceFull} from 'app/utils/performance/quickTrace/types';
 import {reduceTrace} from 'app/utils/performance/quickTrace/utils';
 
 import {TraceInfo} from './types';
@@ -19,20 +20,38 @@ export function getTraceDetailsUrl(
 }
 
 function traceVisitor() {
-  const projectIds = new Set();
-  const eventIds = new Set();
+  const errorProjectSlugs = new Set();
+  const errorIds = new Set();
+  const transactionProjectSlugs = new Set();
+  const transactionIds = new Set();
 
-  return (accumulator, event) => {
-    if (!projectIds.has(event.project_id)) {
-      projectIds.add(event.project_id);
-      accumulator.totalProjects += 1;
+  return (accumulator: TraceInfo, event: TraceFull) => {
+    for (const error of event.errors ?? []) {
+      if (!errorProjectSlugs.has(error.project_slug)) {
+        errorProjectSlugs.add(error.project_slug);
 
-      // No user conditions yet, so all projects are relevant.
-      accumulator.relevantProjects += 1;
+        // No user conditions yet, so all projects are relevant to the error.
+        accumulator.relevantProjectsWithErrors += 1;
+      }
+
+      if (!errorIds.has(error.event_id)) {
+        errorIds.add(event.event_id);
+        accumulator.totalErrors += 1;
+
+        // No user conditions yet, so all errors are relevant.
+        accumulator.relevantErrors += 1;
+      }
     }
 
-    if (!eventIds.has(event.event_id)) {
-      eventIds.add(event.event_id);
+    if (!transactionProjectSlugs.has(event.project_slug)) {
+      transactionProjectSlugs.add(event.project_slug);
+
+      // No user conditions yet, so all projects are relevant to the transaction.
+      accumulator.relevantProjectsWithTransactions += 1;
+    }
+
+    if (!transactionIds.has(event.event_id)) {
+      transactionIds.add(event.event_id);
       accumulator.totalTransactions += 1;
 
       // No user conditions yet, so all transactions are relevant.
@@ -55,10 +74,12 @@ function traceVisitor() {
   };
 }
 
-export function getTraceInfo(trace) {
+export function getTraceInfo(trace: TraceFull) {
   return reduceTrace<TraceInfo>(trace, traceVisitor(), {
-    totalProjects: 0,
-    relevantProjects: 0,
+    relevantProjectsWithErrors: 0,
+    relevantProjectsWithTransactions: 0,
+    totalErrors: 0,
+    relevantErrors: 0,
     totalTransactions: 0,
     relevantTransactions: 0,
     startTimestamp: Number.MAX_SAFE_INTEGER,
