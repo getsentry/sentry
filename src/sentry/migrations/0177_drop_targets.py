@@ -37,7 +37,7 @@ class Migration(migrations.Migration):
                         ALTER TABLE "sentry_notificationsetting" DROP COLUMN "target_type";
                         """,
                     reverse_sql="""
-                        ALTER TABLE "sentry_notificationsetting" ADD COLUMN "target_identifier" int NULL;
+                        ALTER TABLE "sentry_notificationsetting" ADD COLUMN "target_identifier" bigint NULL;
                         ALTER TABLE "sentry_notificationsetting" ADD COLUMN "target_type" int NULL;
 
                         """,
