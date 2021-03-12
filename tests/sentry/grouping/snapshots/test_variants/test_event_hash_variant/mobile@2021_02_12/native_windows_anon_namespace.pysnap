@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:10.586205Z'
+created: '2021-03-12T14:08:31.268274Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "417de9b3a8cc314067366db722a116ca"
-  tree_label: "`anonymous namespace'::start"
+  tree_label: "`anonymous namespace'::start | ..."
   component:
     app-depth-2*
       exception*
@@ -44,7 +44,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "46b84e4da51648cc9f9741abd2bdad51"
-  tree_label: "main"
+  tree_label: "main | `anonymous namespace'::start | ..."
   component:
     app-depth-3*
       exception*
@@ -71,7 +71,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "2e93ec0f91f97f5211a422d1ab6f7a28"
-  tree_label: "invoke_main"
+  tree_label: "invoke_main | main | `anonymous namespace'::start | ..."
   component:
     app-depth-4*
       exception*
@@ -103,7 +103,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "15d397771f229af8dc42783542f81dd4"
-  tree_label: "__scrt_common_main_seh"
+  tree_label: "__scrt_common_main_seh | invoke_main | main | `anonymous namespace'::start | ..."
   component:
     app-depth-5*
       exception*
@@ -140,7 +140,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "15d397771f229af8dc42783542f81dd4"
-  tree_label: "__scrt_common_main_seh"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
@@ -177,7 +177,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "15d397771f229af8dc42783542f81dd4"
-  tree_label: "__scrt_common_main_seh"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

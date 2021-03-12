@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:08.707742Z'
+created: '2021-03-12T14:08:29.688504Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -20,7 +20,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "60f7e9027ea3d1d8bf2a7745a8f91a06"
-  tree_label: "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
+  tree_label: "Scaleform::GFx::AS3::IMEManager::DispatchEvent | ..."
   component:
     app-depth-2*
       exception*
@@ -38,7 +38,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "61d21e6d53c0837718af047c20e5e7ea"
-  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated | Scaleform::GFx::AS3::IMEManager::DispatchEvent | ..."
   component:
     app-depth-3*
       exception*
@@ -59,7 +59,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "61d21e6d53c0837718af047c20e5e7ea"
-  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated | Scaleform::GFx::AS3::IMEManager::DispatchEvent | ..."
   component:
     app-depth-4*
       exception*
@@ -80,7 +80,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "61d21e6d53c0837718af047c20e5e7ea"
-  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated | Scaleform::GFx::AS3::IMEManager::DispatchEvent | ..."
   component:
     app-depth-5*
       exception*
@@ -101,7 +101,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "61d21e6d53c0837718af047c20e5e7ea"
-  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
@@ -122,7 +122,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "61d21e6d53c0837718af047c20e5e7ea"
-  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:09.024198Z'
+created: '2021-03-12T14:08:29.981187Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "52ca913fefb2c66702771b60e2b678ff"
-  tree_label: "actix_web::pipeline::ProcessResponse<T>::poll_io"
+  tree_label: "actix_web::pipeline::ProcessResponse<T>::poll_io | ... | sentry::integrations::log::Logger::log"
   component:
     app-depth-2*
       exception*
@@ -49,7 +49,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "5dadb24b31c49fd3bb6daa7940632d58"
-  tree_label: "actix_web::pipeline::Pipeline<T>::poll_io"
+  tree_label: "actix_web::pipeline::Pipeline<T>::poll_io | actix_web::pipeline::ProcessResponse<T>::poll_io | ... | sentry::integrations::log::Logger::log | sentry::hub::Hub::with_active"
   component:
     app-depth-3*
       exception*
@@ -86,7 +86,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "4d7ea748c4b6651559d5fa3d2a40f1ee"
-  tree_label: "actix_web::server::h1::Http1Dispatcher<T>::parse"
+  tree_label: "actix_web::server::h1::Http1Dispatcher<T>::parse | actix_web::pipeline::Pipeline<T>::poll_io | actix_web::pipeline::ProcessResponse<T>::poll_io | ... | sentry::integrations::log::Logger::log | sentry::hub::Hub::with_active | sentry::hub::Hub::with"
   component:
     app-depth-4*
       exception*
@@ -133,7 +133,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "1d6d3181680fd992d672f28200fcd0ea"
-  tree_label: "actix_web::server::h1::Http1Dispatcher<T>::poll_io"
+  tree_label: "actix_web::server::h1::Http1Dispatcher<T>::poll_io | actix_web::server::h1::Http1Dispatcher<T>::parse | actix_web::pipeline::Pipeline<T>::poll_io | actix_web::pipeline::ProcessResponse<T>::poll_io | ... | sentry::integrations::log::Logger::log | sentry::hub::Hub::with_active | sentry::hub::Hub::with | std::thread::local::LocalKey<T>::with"
   component:
     app-depth-5*
       exception*
@@ -190,7 +190,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "1df163ce3be65319df4fcc9cb34b60c1"
-  tree_label: "__pthread_start"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
@@ -583,7 +583,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "1df163ce3be65319df4fcc9cb34b60c1"
-  tree_label: "__pthread_start"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

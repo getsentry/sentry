@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:09.373446Z'
+created: '2021-03-12T14:08:30.364777Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -26,7 +26,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "133db3f366b1327dab4e661f66dfb961"
-  tree_label: "safe_execute"
+  tree_label: "safe_execute | ... | raise_for_status"
   component:
     app-depth-2*
       exception*
@@ -65,7 +65,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "133db3f366b1327dab4e661f66dfb961"
-  tree_label: "safe_execute"
+  tree_label: "safe_execute | ... | raise_for_status"
   component:
     app-depth-3*
       exception*
@@ -104,7 +104,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "133db3f366b1327dab4e661f66dfb961"
-  tree_label: "safe_execute"
+  tree_label: "safe_execute | ... | raise_for_status"
   component:
     app-depth-4*
       exception*
@@ -143,7 +143,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "133db3f366b1327dab4e661f66dfb961"
-  tree_label: "safe_execute"
+  tree_label: "safe_execute | ... | raise_for_status"
   component:
     app-depth-5*
       exception*
@@ -182,7 +182,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "133db3f366b1327dab4e661f66dfb961"
-  tree_label: "safe_execute"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
@@ -228,7 +228,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "133db3f366b1327dab4e661f66dfb961"
-  tree_label: "safe_execute"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

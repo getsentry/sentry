@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:10.396229Z'
+created: '2021-03-12T14:08:31.098560Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -17,7 +17,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "9bc326575875422d0d4ced3c35d9f916"
-  tree_label: "invoke"
+  tree_label: "invoke | ..."
   component:
     app-depth-2*
       stacktrace*
@@ -34,7 +34,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "9bc326575875422d0d4ced3c35d9f916"
-  tree_label: "invoke"
+  tree_label: "invoke | ..."
   component:
     app-depth-3*
       stacktrace*
@@ -51,7 +51,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "9bc326575875422d0d4ced3c35d9f916"
-  tree_label: "invoke"
+  tree_label: "invoke | ..."
   component:
     app-depth-4*
       stacktrace*
@@ -68,7 +68,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "9bc326575875422d0d4ced3c35d9f916"
-  tree_label: "invoke"
+  tree_label: "invoke | ..."
   component:
     app-depth-5*
       stacktrace*
@@ -85,7 +85,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "9bc326575875422d0d4ced3c35d9f916"
-  tree_label: "invoke"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       stacktrace*
@@ -102,7 +102,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "9bc326575875422d0d4ced3c35d9f916"
-  tree_label: "invoke"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       stacktrace*

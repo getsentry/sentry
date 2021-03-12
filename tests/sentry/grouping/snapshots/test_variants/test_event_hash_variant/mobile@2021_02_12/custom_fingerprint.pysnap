@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:09.352791Z'
+created: '2021-03-12T14:08:30.350050Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -26,7 +26,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: null
-  tree_label: "__init__"
+  tree_label: "__init__ | ... | __exit__"
   component:
     app-depth-2 (custom fingerprint takes precedence)
       exception*
@@ -65,7 +65,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: null
-  tree_label: "_get_chunked_blob"
+  tree_label: "_get_chunked_blob | __init__ | ... | __exit__ | shutdown"
   component:
     app-depth-3 (custom fingerprint takes precedence)
       exception*
@@ -122,7 +122,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: null
-  tree_label: "save_to"
+  tree_label: "save_to | _get_chunked_blob | __init__ | ... | __exit__ | shutdown | join"
   component:
     app-depth-4 (custom fingerprint takes precedence)
       exception*
@@ -197,7 +197,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: null
-  tree_label: "_load_cachefiles_via_fs"
+  tree_label: "_load_cachefiles_via_fs | save_to | _get_chunked_blob | __init__ | ... | __exit__ | shutdown | join | wait"
   component:
     app-depth-5 (custom fingerprint takes precedence)
       exception*
@@ -290,7 +290,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: null
-  tree_label: "_wrapped"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max (custom fingerprint takes precedence)
       exception*
@@ -460,7 +460,7 @@ custom-fingerprint:
 --------------------------------------------------------------------------
 system:
   hash: null
-  tree_label: "_wrapped"
+  tree_label: "<entire stacktrace>"
   component:
     system (custom fingerprint takes precedence)
       exception*

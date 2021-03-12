@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:08.685461Z'
+created: '2021-03-12T14:08:29.671988Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "2ec04cf0cdd511a30492d2ef0a2e8f57"
-  tree_label: "UnityEngine.Events.InvokableCall.Invoke ()"
+  tree_label: "UnityEngine.Events.InvokableCall.Invoke () | ..."
   component:
     app-depth-2*
       exception*
@@ -44,7 +44,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "cc2160edfd340d734321a9bf33eb91e3"
-  tree_label: "UnityEngine.Events.UnityEvent.Invoke ()"
+  tree_label: "UnityEngine.Events.UnityEvent.Invoke () | UnityEngine.Events.InvokableCall.Invoke () | ..."
   component:
     app-depth-3*
       exception*
@@ -71,7 +71,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "8b1f3b176a539129232c8cc8d94be95c"
-  tree_label: "UnityEngine.UI.Button.Press ()"
+  tree_label: "UnityEngine.UI.Button.Press () | UnityEngine.Events.UnityEvent.Invoke () | UnityEngine.Events.InvokableCall.Invoke () | ..."
   component:
     app-depth-4*
       exception*
@@ -103,7 +103,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "b7a54608ccd4adaa5b40fe92c155d3e0"
-  tree_label: "UnityEngine.UI.Button.OnPointerClick (UnityEngine.EventSystems.PointerEventData eventData)"
+  tree_label: "UnityEngine.UI.Button.OnPointerClick (UnityEngine.EventSystems.PointerEventData eventData) | UnityEngine.UI.Button.Press () | UnityEngine.Events.UnityEvent.Invoke () | UnityEngine.Events.InvokableCall.Invoke () | ..."
   component:
     app-depth-5*
       exception*
@@ -140,7 +140,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "c0dbeebf0430b3310ad1f7ceb48553a6"
-  tree_label: "UnityEngine.EventSystems.EventSystem:Update()"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
@@ -192,7 +192,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "c0dbeebf0430b3310ad1f7ceb48553a6"
-  tree_label: "UnityEngine.EventSystems.EventSystem:Update()"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:09.326354Z'
+created: '2021-03-12T14:08:30.329820Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -26,7 +26,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "ac1a85601e0656df67b159e882145099"
-  tree_label: "is_rate_limited"
+  tree_label: "is_rate_limited | ... | __call__"
   component:
     app-depth-2*
       exception*
@@ -65,7 +65,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "8538e8eb15b0b93e3355cf9d08268131"
-  tree_label: "is_rate_limited"
+  tree_label: "is_rate_limited | is_rate_limited | ... | __call__ | evalsha"
   component:
     app-depth-3*
       exception*
@@ -122,7 +122,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "a4f739f3240d6c4fc5ed50428442abc1"
-  tree_label: "<lambda>"
+  tree_label: "<lambda> | is_rate_limited | is_rate_limited | ... | __call__ | evalsha | execute_command"
   component:
     app-depth-4*
       exception*
@@ -197,7 +197,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "acb23d293e6a73416ad00df1bb35d8a8"
-  tree_label: "safe_execute"
+  tree_label: "safe_execute | <lambda> | is_rate_limited | is_rate_limited | ... | __call__ | evalsha | execute_command | parse_response"
   component:
     app-depth-5*
       exception*
@@ -290,7 +290,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "013d3477a774fe20c468dc8accd516f1"
-  tree_label: "safe_execute"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
@@ -408,7 +408,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "013d3477a774fe20c468dc8accd516f1"
-  tree_label: "safe_execute"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

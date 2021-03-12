@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:10.482818Z'
+created: '2021-03-12T14:08:31.174756Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -26,7 +26,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "a5af2577d4caca8f983657c5d1919e14"
-  tree_label: "post"
+  tree_label: "post | ... | __getitem__"
   component:
     app-depth-2*
       exception*
@@ -65,7 +65,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "a5af2577d4caca8f983657c5d1919e14"
-  tree_label: "post"
+  tree_label: "post | ... | __getitem__"
   component:
     app-depth-3*
       exception*
@@ -104,7 +104,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "a5af2577d4caca8f983657c5d1919e14"
-  tree_label: "post"
+  tree_label: "post | ... | __getitem__"
   component:
     app-depth-4*
       exception*
@@ -143,7 +143,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "a5af2577d4caca8f983657c5d1919e14"
-  tree_label: "post"
+  tree_label: "post | ... | __getitem__"
   component:
     app-depth-5*
       exception*
@@ -182,7 +182,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "a5af2577d4caca8f983657c5d1919e14"
-  tree_label: "post"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
@@ -284,7 +284,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "a5af2577d4caca8f983657c5d1919e14"
-  tree_label: "post"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:08.667968Z'
+created: '2021-03-12T14:08:29.657641Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -24,7 +24,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "59ef3cab7ba66f62b79d29aa80090c5c"
-  tree_label: "invoke0"
+  tree_label: "invoke0 | ..."
   component:
     app-depth-2*
       exception*
@@ -50,7 +50,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "1415060f2c35db944c439d52c620310b"
-  tree_label: "invoke"
+  tree_label: "invoke | invoke0 | ..."
   component:
     app-depth-3*
       exception*
@@ -83,7 +83,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "fceae19423f2f5c139821d29c433ba4c"
-  tree_label: "invoke"
+  tree_label: "invoke | invoke | invoke0 | ..."
   component:
     app-depth-4*
       exception*
@@ -123,7 +123,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "44a7bd6bf1a716b6d20615191a4fd11e"
-  tree_label: "invoke"
+  tree_label: "invoke | invoke | invoke | invoke0 | ..."
   component:
     app-depth-5*
       exception*
@@ -170,7 +170,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "ec87dd10e4f7512ecccb4a068c5774ae"
-  tree_label: "run"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
@@ -574,7 +574,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "ec87dd10e4f7512ecccb4a068c5774ae"
-  tree_label: "run"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

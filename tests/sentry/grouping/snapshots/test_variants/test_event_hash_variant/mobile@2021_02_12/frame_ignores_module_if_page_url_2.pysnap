@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:09.440376Z'
+created: '2021-03-12T14:08:30.400456Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -19,7 +19,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "0cc175b9c0f1b6a831c399e269772661"
-  tree_label: "a"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-2*
       stacktrace*
@@ -33,7 +33,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 system:
   hash: "0cc175b9c0f1b6a831c399e269772661"
-  tree_label: "a"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       stacktrace*

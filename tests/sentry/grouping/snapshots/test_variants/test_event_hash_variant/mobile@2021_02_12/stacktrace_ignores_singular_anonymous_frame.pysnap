@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:08.586618Z'
+created: '2021-03-12T14:08:29.580585Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -17,7 +17,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "c"
+  tree_label: "c | ..."
   component:
     app-depth-2*
       stacktrace*
@@ -34,7 +34,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "c"
+  tree_label: "c | ..."
   component:
     app-depth-3*
       stacktrace*
@@ -51,7 +51,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "c"
+  tree_label: "c | ..."
   component:
     app-depth-4*
       stacktrace*
@@ -68,7 +68,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "c"
+  tree_label: "c | ..."
   component:
     app-depth-5*
       stacktrace*
@@ -85,7 +85,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "c"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       stacktrace*
@@ -105,7 +105,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "c"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       stacktrace*

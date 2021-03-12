@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:09.826292Z'
+created: '2021-03-12T14:08:30.639852Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -20,7 +20,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "00cf41c4907b1c15c20189007fd0cffd"
-  tree_label: "std::rt::lang_start::{{closure}}"
+  tree_label: "std::rt::lang_start::{{closure}} | ... | log::__private_api_log"
   component:
     app-depth-2*
       exception*
@@ -41,7 +41,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "804fe59ad967ff79f51148c2fc1e1c2c"
-  tree_label: "std::panicking::try::do_call"
+  tree_label: "std::panicking::try::do_call | std::rt::lang_start::{{closure}} | ... | log::__private_api_log"
   component:
     app-depth-3*
       exception*
@@ -65,7 +65,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "7c63b39cc8c54948f95871205ac3aeb5"
-  tree_label: "___rust_maybe_catch_panic"
+  tree_label: "___rust_maybe_catch_panic | std::panicking::try::do_call | std::rt::lang_start::{{closure}} | ... | log::__private_api_log"
   component:
     app-depth-4*
       exception*
@@ -92,7 +92,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "7ea99ce5ec82e43f7b68aa44d57c0ee7"
-  tree_label: "std::rt::lang_start_internal"
+  tree_label: "std::rt::lang_start_internal | ___rust_maybe_catch_panic | std::panicking::try::do_call | std::rt::lang_start::{{closure}} | ... | log::__private_api_log"
   component:
     app-depth-5*
       exception*
@@ -122,7 +122,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "e0b4eea234ff891472cb927c00153bbe"
-  tree_label: "_main"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
@@ -155,7 +155,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "e0b4eea234ff891472cb927c00153bbe"
-  tree_label: "_main"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

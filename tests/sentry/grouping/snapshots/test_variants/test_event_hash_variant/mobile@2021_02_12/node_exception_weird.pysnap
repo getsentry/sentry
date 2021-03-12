@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:09.712353Z'
+created: '2021-03-12T14:08:30.552146Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -24,7 +24,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "d5ccedb70f6a8e9203070b7239258834"
-  tree_label: "captureException"
+  tree_label: "captureException | ..."
   component:
     app-depth-2*
       exception*
@@ -52,7 +52,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "c35317b0e34b5148a5be409a656af7ff"
-  tree_label: "invokeClient"
+  tree_label: "invokeClient | captureException | ..."
   component:
     app-depth-3*
       exception*
@@ -89,7 +89,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "0824915a9819f48054d20b6003199d87"
-  tree_label: "captureException"
+  tree_label: "captureException | invokeClient | captureException | ..."
   component:
     app-depth-4*
       exception*
@@ -135,7 +135,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "20741a4530d240adb9910aefac03e4b1"
-  tree_label: "<anonymous>"
+  tree_label: "<anonymous> | captureException | invokeClient | captureException | ..."
   component:
     app-depth-5*
       exception*
@@ -190,7 +190,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "252dc79eb5653bf822e2684d90734cb8"
-  tree_label: "withScope"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
@@ -288,7 +288,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "252dc79eb5653bf822e2684d90734cb8"
-  tree_label: "withScope"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

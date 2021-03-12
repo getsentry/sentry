@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:09.909153Z'
+created: '2021-03-12T14:08:30.712103Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -20,7 +20,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "8cd9c779e1522f718e9270004d2029ed"
-  tree_label: "log_demo::main"
+  tree_label: "log_demo::main | ... | sentry::integrations::log::Logger::log"
   component:
     app-depth-2*
       exception*
@@ -41,7 +41,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "7b1c864b21801cc624a3734761cfbc48"
-  tree_label: "std::rt::lang_start::{{closure}}"
+  tree_label: "std::rt::lang_start::{{closure}} | log_demo::main | ... | sentry::integrations::log::Logger::log | sentry::hub::Hub::with_active"
   component:
     app-depth-3*
       exception*
@@ -68,7 +68,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "8484da08545a2177db5f2d6cc56ef47a"
-  tree_label: "std::panicking::try::do_call"
+  tree_label: "std::panicking::try::do_call | std::rt::lang_start::{{closure}} | log_demo::main | ... | sentry::integrations::log::Logger::log | sentry::hub::Hub::with_active | sentry::hub::Hub::with"
   component:
     app-depth-4*
       exception*
@@ -101,7 +101,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "88d63e9701c93e98832eb50d7e5e9d4a"
-  tree_label: "___rust_maybe_catch_panic"
+  tree_label: "___rust_maybe_catch_panic | std::panicking::try::do_call | std::rt::lang_start::{{closure}} | log_demo::main | ... | sentry::integrations::log::Logger::log | sentry::hub::Hub::with_active | sentry::hub::Hub::with | sentry::hub::Hub::with_active::{{closure}}"
   component:
     app-depth-5*
       exception*
@@ -140,7 +140,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "00719910980352c06ba93641057012e0"
-  tree_label: "_main"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
@@ -194,7 +194,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "00719910980352c06ba93641057012e0"
-  tree_label: "_main"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

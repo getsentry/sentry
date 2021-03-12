@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:10.276546Z'
+created: '2021-03-12T14:08:30.988726Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -20,7 +20,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "cf2e217f9a96e8d6d5b02948d03b3777"
-  tree_label: "std::rt::lang_start::{{closure}}"
+  tree_label: "std::rt::lang_start::{{closure}} | ..."
   component:
     app-depth-2*
       exception*
@@ -38,7 +38,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "373856b1c55212a75148583dc47bb567"
-  tree_label: "std::panicking::try::do_call"
+  tree_label: "std::panicking::try::do_call | std::rt::lang_start::{{closure}} | ..."
   component:
     app-depth-3*
       exception*
@@ -59,7 +59,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "e2c887dcc42359579d7d6842f3c3284c"
-  tree_label: "std::rt::lang_start_internal"
+  tree_label: "std::rt::lang_start_internal | std::panicking::try::do_call | std::rt::lang_start::{{closure}} | ..."
   component:
     app-depth-4*
       exception*
@@ -83,7 +83,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "9b33b65a645c66239cafcd276fcd0659"
-  tree_label: "_main"
+  tree_label: "_main | std::rt::lang_start_internal | std::panicking::try::do_call | std::rt::lang_start::{{closure}} | ..."
   component:
     app-depth-5*
       exception*
@@ -110,7 +110,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "9b33b65a645c66239cafcd276fcd0659"
-  tree_label: "_main"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
@@ -143,7 +143,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "9b33b65a645c66239cafcd276fcd0659"
-  tree_label: "_main"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

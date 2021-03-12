@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:08.755231Z'
+created: '2021-03-12T14:08:29.736390Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "78acc30fe8d8e2064308f28393383e51"
-  tree_label: "callAnotherThing"
+  tree_label: "callAnotherThing | ..."
   component:
     app-depth-2*
       exception*
@@ -44,7 +44,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "ec9def2a5325597f5b348f141b83b261"
-  tree_label: "callback"
+  tree_label: "callback | callAnotherThing | ..."
   component:
     app-depth-3*
       exception*
@@ -71,7 +71,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "01b5dfbc3a7cf58591f53b2da01832da"
-  tree_label: "callback"
+  tree_label: "callback | callAnotherThing | ..."
   component:
     app-depth-4*
       exception*
@@ -101,7 +101,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "4b0afdab89c9fdf5c0ddcfa2098bd6e8"
-  tree_label: "test"
+  tree_label: "test | callback | callAnotherThing | ..."
   component:
     app-depth-5*
       exception*
@@ -136,7 +136,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "c63e8727af1a8fe75872b6a762797113"
-  tree_label: "testMethod"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
@@ -194,7 +194,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "c63e8727af1a8fe75872b6a762797113"
-  tree_label: "testMethod"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

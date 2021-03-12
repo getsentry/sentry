@@ -1,5 +1,5 @@
 ---
-created: '2021-03-09T19:19:09.394668Z'
+created: '2021-03-12T14:08:30.379405Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,6 +25,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "26552f86ca2368e708afa1df6effc1c5"
+  tree_label: "..."
   component:
     app-depth-2*
       exception*
@@ -52,6 +53,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "26552f86ca2368e708afa1df6effc1c5"
+  tree_label: "..."
   component:
     app-depth-3*
       exception*
@@ -79,6 +81,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "26552f86ca2368e708afa1df6effc1c5"
+  tree_label: "..."
   component:
     app-depth-4*
       exception*
@@ -106,6 +109,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "26552f86ca2368e708afa1df6effc1c5"
+  tree_label: "..."
   component:
     app-depth-5*
       exception*
@@ -133,6 +137,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "26552f86ca2368e708afa1df6effc1c5"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
@@ -160,6 +165,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "26552f86ca2368e708afa1df6effc1c5"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

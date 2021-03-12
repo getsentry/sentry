@@ -403,6 +403,8 @@ def _single_stacktrace_variant(stacktrace, context, meta):
     if not context["hierarchical_grouping"]:
         return {variant: main_variant}
 
+    main_variant.update(tree_label="<entire stacktrace>")
+
     inverted_hierarchy = context["inverted_stacktrace_hierarchy"]
     blaming_frame_idx = len(values) - 1 if not inverted_hierarchy else 0
 
@@ -429,15 +431,31 @@ def _single_stacktrace_variant(stacktrace, context, meta):
         pre_frames = _accumulate_frame_levels(values, blaming_frame_idx, depth, -1)
         post_frames = _accumulate_frame_levels(values, blaming_frame_idx, depth, 1)
 
-        pre_frames.reverse()
-        pre_frames.append(blaming_frame_component)
-        pre_frames.extend(post_frames)
+        frames = pre_frames
+        frames.reverse()
+        frames.append(blaming_frame_component)
+        frames.extend(post_frames)
 
-        if len(prev_variant.values) == len(pre_frames):
+        if len(prev_variant.values) == len(frames):
             all_variants[key] = main_variant
             break
 
-        all_variants[key] = GroupingComponent(id="stacktrace", values=pre_frames)
+        tree_label = []
+        prev_i = 0
+
+        for frame in frames:
+            if prev_i < len(prev_variant.values) and frame is prev_variant.values[prev_i]:
+                if not tree_label or tree_label[-1] != "...":
+                    tree_label.append("...")
+                prev_i += 1
+            elif frame.tree_label:
+                tree_label.append(frame.tree_label)
+
+        all_variants[key] = GroupingComponent(
+            id="stacktrace",
+            values=pre_frames,
+            tree_label=" | ".join(tree_label),
+        )
 
     else:
         all_variants["app-depth-max"] = main_variant
