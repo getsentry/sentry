@@ -1,3 +1,5 @@
+import {t} from 'app/locale';
+
 export enum AlertRuleThreshold {
   INCIDENT,
   RESOLUTION,
@@ -71,6 +73,7 @@ export type SavedIncidentRule = UnsavedIncidentRule & {
   id: string;
   status: number;
   name: string;
+  createdBy: {id: number; email: string; name: string} | null;
 };
 
 export type IncidentRule = Partial<SavedIncidentRule> & UnsavedIncidentRule;
@@ -110,6 +113,14 @@ export enum ActionType {
   SENTRY_APP = 'sentry_app',
 }
 
+export const ActionLabel = {
+  [ActionType.EMAIL]: t('Email'),
+  [ActionType.SLACK]: t('Slack'),
+  [ActionType.PAGERDUTY]: t('Pagerduty'),
+  [ActionType.MSTEAMS]: t('MS Teams'),
+  [ActionType.SENTRY_APP]: t('Notification'),
+};
+
 export enum TargetType {
   // A direct reference, like an email address, Slack channel, or PagerDuty service
   SPECIFIC = 'specific',
@@ -123,6 +134,11 @@ export enum TargetType {
   // A Sentry App instead of any of the above.
   SENTRY_APP = 'sentry_app',
 }
+
+export const TargetLabel = {
+  [TargetType.USER]: t('Member'),
+  [TargetType.TEAM]: t('Team'),
+};
 
 /**
  * This is an available action template that is associated to a Trigger in a
@@ -196,6 +212,12 @@ type SavedActionFields = {
    * date created
    */
   dateCreated: string;
+
+  /**
+   * Human readable name of the target, Can be user name/email, team name, slack channel,
+   * pagerduty service name, ms teams name, etc.
+   */
+  targetDisplay: string | null;
 };
 
 export type UnsavedAction = {
