@@ -12,7 +12,7 @@ jobs:
   python-versions:
     name: set up
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 15
     strategy:
       matrix:
         # macosx-10.15 is Catalina
