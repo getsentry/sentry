@@ -3,7 +3,7 @@ boto3==1.10.49
 botocore==1.13.50
 celery==4.4.7
 click==7.1.2
-confluent-kafka==1.5.0; python_version < '3.9'
+confluent-kafka==1.5.0; python_version <= '3.8'
 confluent-kafka==1.6.0; python_version == '3.9'
 croniter==0.3.34
 datadog==0.15.0
@@ -30,6 +30,7 @@ petname==2.6
 phonenumberslite==8.11.3
 Pillow==8.1.0
 progressbar2==3.32.0
+# If we bump it to 2.8.4 or greater then Python 3.6 & 3.8 would use the same version
 psycopg2-binary==2.7.7; python_version == '3.6'
 psycopg2-binary==2.8.6; python_version > '3.6'
 PyJWT==1.5.3
@@ -75,8 +76,8 @@ grpcio==1.35.0
 hiredis==0.3.1
 
 # not directly used, but pinned for at least semaphore/symbolic
-cffi==1.12.2; python_version == '3.6'
-cffi==1.14.4; python_version > '3.6'
+cffi==1.12.2; python_version <= '3.8'
+cffi==1.14.4; python_version == '3.9'
 
 # not directly used, but pinned for toronado because it doesn't pin these
 cssutils==1.0.2
