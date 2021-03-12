@@ -18,15 +18,15 @@ import {
   Organization,
 } from 'app/types';
 import {Series} from 'app/types/echarts';
-import {getUtcDateString, parsePeriodToHours} from 'app/utils/dates';
+import {parsePeriodToHours} from 'app/utils/dates';
 import {TableData} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
 } from 'app/utils/discover/genericDiscoverQuery';
 
 import {Widget, WidgetQuery} from './types';
+import {eventViewFromWidget} from './utils';
 
 // Don't fetch more than 4000 bins as we're plotting on a small area.
 const MAX_BIN_COUNT = 4000;
@@ -179,27 +179,13 @@ class WidgetQueries extends React.Component<Props, State> {
   fetchEventData(queryFetchID: symbol) {
     const {selection, api, organization, widget} = this.props;
 
-    const {start, end, period: statsPeriod} = selection.datetime;
-    const {projects} = selection;
-
     let tableResults: TableDataWithTitle[] = [];
     // Table, world map, and stat widgets use table results and need
     // to do a discover 'table' query instead of a 'timeseries' query.
     this.setState({tableResults: []});
 
     const promises = widget.queries.map(query => {
-      const eventView = EventView.fromSavedQuery({
-        id: undefined,
-        name: query.name,
-        version: 2,
-        fields: query.fields,
-        query: query.conditions,
-        orderby: query.orderby,
-        projects,
-        range: statsPeriod,
-        start: start ? getUtcDateString(start) : undefined,
-        end: end ? getUtcDateString(end) : undefined,
-      });
+      const eventView = eventViewFromWidget(widget.title, query, selection);
 
       let url: string = '';
       const params: DiscoverQueryRequestParams = {
