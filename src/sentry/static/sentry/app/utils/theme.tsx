@@ -547,7 +547,7 @@ const darkAliases = {
   chartLineColor: colors.gray500,
   chartLabel: colors.gray400,
   progressBar: colors.purple200,
-  progressBackground: colors.gray500,
+  progressBackground: colors.gray400,
   badgeBackground: colors.gray400,
   alertBackgroundAlpha: 0.1,
 } as const;
