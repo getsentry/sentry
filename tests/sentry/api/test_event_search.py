@@ -2321,6 +2321,8 @@ class ResolveFieldListTest(unittest.TestCase):
             "issue",
             "user.display",
             "message",
+            "timestamp.to_hour",
+            "timestamp.to_day",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["selected_columns"] == [
@@ -2328,6 +2330,8 @@ class ResolveFieldListTest(unittest.TestCase):
             "issue.id",
             ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
             "message",
+            ["toStartOfHour", ["timestamp"], "timestamp.to_hour"],
+            ["toStartOfDay", ["timestamp"], "timestamp.to_day"],
             "project.id",
             [
                 "transform",
@@ -2344,6 +2348,8 @@ class ResolveFieldListTest(unittest.TestCase):
             "issue.id",
             ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
             "message",
+            "timestamp.to_hour",
+            "timestamp.to_day",
             "project.id",
         ]
 

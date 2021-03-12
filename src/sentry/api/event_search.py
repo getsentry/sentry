@@ -1398,6 +1398,12 @@ FIELD_ALIASES = {
     for field in [
         PseudoField("project", "project.id"),
         PseudoField("issue", "issue.id"),
+        PseudoField(
+            "timestamp.to_hour", "timestamp.to_hour", expression=["toStartOfHour", ["timestamp"]]
+        ),
+        PseudoField(
+            "timestamp.to_day", "timestamp.to_day", expression=["toStartOfDay", ["timestamp"]]
+        ),
         PseudoField(ERROR_UNHANDLED_ALIAS, ERROR_UNHANDLED_ALIAS, expression=["notHandled", []]),
         PseudoField(
             USER_DISPLAY_ALIAS,
