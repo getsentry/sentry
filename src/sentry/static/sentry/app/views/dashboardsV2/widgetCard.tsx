@@ -116,6 +116,7 @@ class WidgetCard extends React.Component<Props> {
       // Open table widget in Discover
 
       if (widget.queries.length) {
+        // We expect Table widgets to have only one query.
         const query = widget.queries[0];
 
         const eventView = eventViewFromWidget(widget.title, query, selection);
