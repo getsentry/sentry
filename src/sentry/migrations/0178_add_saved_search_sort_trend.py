@@ -26,13 +26,25 @@ class Migration(migrations.Migration):
     atomic = True
 
     dependencies = [
-        ('sentry', '0177_drop_targets'),
+        ("sentry", "0177_drop_targets"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='savedsearch',
-            name='sort',
-            field=sentry.db.models.fields.text.CharField(choices=[('date', 'Last Seen'), ('new', 'First Seen'), ('priority', 'Priority'), ('freq', 'Events'), ('user', 'Users'), ('trend', 'Relative Change')], default='date', max_length=16, null=True),
+            model_name="savedsearch",
+            name="sort",
+            field=sentry.db.models.fields.text.CharField(
+                choices=[
+                    ("date", "Last Seen"),
+                    ("new", "First Seen"),
+                    ("priority", "Priority"),
+                    ("freq", "Events"),
+                    ("user", "Users"),
+                    ("trend", "Relative Change"),
+                ],
+                default="date",
+                max_length=16,
+                null=True,
+            ),
         ),
     ]
