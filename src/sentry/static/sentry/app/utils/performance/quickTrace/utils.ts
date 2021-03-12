@@ -6,8 +6,8 @@ import {Event, EventTransaction} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
 import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
 import {
-  EventLite,
   QuickTrace,
+  QuickTraceEvent,
   TraceFull,
   TraceLite,
 } from 'app/utils/performance/quickTrace/types';
@@ -79,35 +79,35 @@ export function flattenRelevantPaths(
   return relevantPath;
 }
 
-function simplifyEvent(event: TraceFull): EventLite {
-  return omit(event, 'children');
+function simplifyEvent(event: TraceFull): QuickTraceEvent {
+  return omit(event, ['children', 'start_timestamp', 'timestamp']);
 }
 
 type ParsedQuickTrace = {
   /**
    * `null` represents the lack of a root. It may still have a parent
    */
-  root: EventLite | null;
+  root: QuickTraceEvent | null;
   /**
    * `[]` represents the lack of ancestors in a full quick trace
    * `null` represents the uncertainty of ancestors in a lite quick trace
    */
-  ancestors: TraceLite | null;
+  ancestors: QuickTraceEvent[] | null;
   /**
    * `null` represents either the lack of a direct parent or the uncertainty
    * of what the parent is
    */
-  parent: EventLite | null;
-  current: EventLite;
+  parent: QuickTraceEvent | null;
+  current: QuickTraceEvent;
   /**
    * `[]` represents the lack of children in a full/lite quick trace
    */
-  children: TraceLite;
+  children: QuickTraceEvent[];
   /**
    * `[]` represents the lack of descendants in a full quick trace
    * `null` represents the uncertainty of descendants in a lite quick trace
    */
-  descendants: TraceLite | null;
+  descendants: QuickTraceEvent[] | null;
 };
 
 export function parseQuickTrace(

@@ -1398,6 +1398,12 @@ FIELD_ALIASES = {
     for field in [
         PseudoField("project", "project.id"),
         PseudoField("issue", "issue.id"),
+        PseudoField(
+            "timestamp.to_hour", "timestamp.to_hour", expression=["toStartOfHour", ["timestamp"]]
+        ),
+        PseudoField(
+            "timestamp.to_day", "timestamp.to_day", expression=["toStartOfDay", ["timestamp"]]
+        ),
         PseudoField(ERROR_UNHANDLED_ALIAS, ERROR_UNHANDLED_ALIAS, expression=["notHandled", []]),
         PseudoField(
             USER_DISPLAY_ALIAS,
@@ -2167,6 +2173,20 @@ FUNCTIONS = {
             aggregate=["avg", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
+        ),
+        Function(
+            "var",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["varSamp", ArgValue("column"), None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
+            "stddev",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["stddevSamp", ArgValue("column"), None],
+            default_result_type="number",
             redundant_grouping=True,
         ),
         Function(
