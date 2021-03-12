@@ -1130,6 +1130,8 @@ JSON_TYPE_MAP = {
     "Float32": "number",
     "Float64": "number",
     "DateTime": "date",
+    # toStartOf{Hour,Day} return this, used for timestamp.to_{hour,day}
+    "DateTime('UTC')": "date",
 }
 
 

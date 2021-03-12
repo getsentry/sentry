@@ -27,16 +27,22 @@ class EventDetails extends React.Component<Props> {
   render() {
     const {organization, location, params} = this.props;
     const documentTitle = t('Performance Details');
+    const eventSlug = this.getEventSlug();
+    const projectSlug = eventSlug.split(':')[0];
 
     return (
-      <SentryDocumentTitle title={documentTitle} orgSlug={organization.slug}>
+      <SentryDocumentTitle
+        title={documentTitle}
+        orgSlug={organization.slug}
+        projectSlug={projectSlug}
+      >
         <StyledPageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <EventDetailsContent
               organization={organization}
               location={location}
               params={params}
-              eventSlug={this.getEventSlug()}
+              eventSlug={eventSlug}
             />
           </LightWeightNoProjectMessage>
         </StyledPageContent>

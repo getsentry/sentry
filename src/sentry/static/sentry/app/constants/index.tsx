@@ -163,8 +163,6 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
 export const DEFAULT_TOAST_DURATION = 6000;
 export const DEFAULT_DEBOUNCE_DURATION = 300;
 
-export const CSRF_COOKIE_NAME = window.csrfCookieName ?? 'sc';
-
 export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
 
 // See http://fusejs.io/ for more information
