@@ -20,127 +20,89 @@ from sentry.testutils import TestCase
 
 
 class ReleaseTestCase(TestCase):
+    def another_user(self, email_string, team=None, alt_email_string=None):
+        user = self.create_user(email_string)
+        if alt_email_string:
+            UserEmail.objects.create(email=alt_email_string, user=user)
+
+            assert UserEmail.objects.filter(user=user, email=alt_email_string).update(
+                is_verified=True
+            )
+
+        assert UserEmail.objects.filter(user=user, email=user.email).update(is_verified=True)
+
+        if team:
+            self.create_member(user=user, organization=self.org, teams=[team])
+
+        return user
+
+    def another_commit(self, order, name, user, repository, alt_email_string=None):
+        commit = Commit.objects.create(
+            key=name * 40,
+            repository_id=repository.id,
+            organization_id=self.org.id,
+            author=CommitAuthor.objects.create(
+                organization_id=self.org.id,
+                name=user.name,
+                email=alt_email_string or user.email,
+            ),
+        )
+        ReleaseCommit.objects.create(
+            organization_id=self.org.id,
+            release=self.release,
+            commit=commit,
+            order=order,
+        )
+
+        return commit
+
+    def another_release(self, name):
+        release = Release.objects.create(
+            version=name * 40,
+            organization_id=self.project.organization_id,
+            date_released=timezone.now(),
+        )
+        release.add_project(self.project)
+        release.add_project(self.project2)
+        deploy = Deploy.objects.create(
+            release=release, organization_id=self.org.id, environment_id=self.environment.id
+        )
+
+        return release, deploy
+
     def setUp(self):
         super().setUp()
-        self.user = self.create_user("foo@example.com")
 
-        assert UserEmail.objects.filter(user=self.user, email=self.user.email).update(
-            is_verified=True
-        )
-
-        self.user2 = self.create_user("bar@example.com")
-        assert UserEmail.objects.filter(user=self.user2, email=self.user2.email).update(
-            is_verified=True
-        )
-
-        self.user3 = self.create_user("baz@example.com")
-        assert UserEmail.objects.filter(user=self.user3, email=self.user3.email).update(
-            is_verified=True
-        )
-
-        self.user4 = self.create_user("floop@example.com")
-        assert UserEmail.objects.filter(user=self.user4, email=self.user4.email).update(
-            is_verified=True
-        )
-
-        self.user5 = self.create_user("companyemail@example.com")
         user5_alt_email = "privateEmail@gmail.com"
-        UserEmail.objects.create(email=user5_alt_email, user=self.user5)
-
-        assert UserEmail.objects.filter(user=self.user5, email=self.user5.email).update(
-            is_verified=True
-        )
-
-        assert UserEmail.objects.filter(user=self.user5, email=user5_alt_email).update(
-            is_verified=True
-        )
 
         self.org = self.create_organization(owner=None)
         self.org.flags.allow_joinleave = False
         self.org.save()
+
         self.team = self.create_team(organization=self.org)
         self.team2 = self.create_team(organization=self.org)
-        self.create_member(user=self.user, organization=self.org, teams=[self.team])
-        self.create_member(user=self.user2, organization=self.org)
-        self.create_member(user=self.user3, organization=self.org, teams=[self.team])
-        self.create_member(user=self.user4, organization=self.org, teams=[self.team])
-        self.create_member(user=self.user5, organization=self.org, teams=[self.team])
+
+        self.user1 = self.another_user("user1@example.com", self.team)
+        self.user2 = self.another_user("user2@example.com")
+        self.user3 = self.another_user("user3@example.com", self.team)
+        self.user4 = self.another_user("user4@example.com", self.team)
+        self.user5 = self.another_user("companyemail@example.com", self.team, user5_alt_email)
 
         self.project = self.create_project(organization=self.org, teams=[self.team])
         self.project2 = self.create_project(organization=self.org, teams=[self.team2])
-        self.release = Release.objects.create(
-            version="a" * 40,
-            organization_id=self.project.organization_id,
-            date_released=timezone.now(),
-        )
-        self.release.add_project(self.project)
-        self.release.add_project(self.project2)
+
         self.environment = Environment.objects.create(
             name="production", organization_id=self.org.id
         )
-        self.deploy = Deploy.objects.create(
-            release=self.release, organization_id=self.org.id, environment_id=self.environment.id
-        )
+
+        self.release, self.deploy = self.another_release("a")
+
         repository = Repository.objects.create(organization_id=self.org.id, name=self.project.name)
 
-        self.commit = Commit.objects.create(
-            key="a" * 40,
-            repository_id=repository.id,
-            organization_id=self.org.id,
-            author=CommitAuthor.objects.create(
-                organization_id=self.org.id, name=self.user.name, email=self.user.email
-            ),
-        )
-        self.commit2 = Commit.objects.create(
-            key="b" * 40,
-            repository_id=repository.id,
-            organization_id=self.org.id,
-            author=CommitAuthor.objects.create(
-                organization_id=self.org.id, name=self.user2.name, email=self.user2.email
-            ),
-        )
-        self.commit3 = Commit.objects.create(
-            key="c" * 40,
-            repository_id=repository.id,
-            organization_id=self.org.id,
-            author=CommitAuthor.objects.create(
-                organization_id=self.org.id, name=self.user4.name, email=self.user4.email
-            ),
-        )
-        self.commit4 = Commit.objects.create(
-            key="e" * 40,
-            repository_id=repository.id,
-            organization_id=self.org.id,
-            author=CommitAuthor.objects.create(
-                organization_id=self.org.id, name=self.user5.name, email=user5_alt_email
-            ),
-        )
-
-        ReleaseCommit.objects.create(
-            organization_id=self.project.organization_id,
-            release=self.release,
-            commit=self.commit,
-            order=0,
-        )
-        ReleaseCommit.objects.create(
-            organization_id=self.project.organization_id,
-            release=self.release,
-            commit=self.commit2,
-            order=1,
-        )
-        ReleaseCommit.objects.create(
-            organization_id=self.project.organization_id,
-            release=self.release,
-            commit=self.commit3,
-            order=2,
-        )
-
-        ReleaseCommit.objects.create(
-            organization_id=self.project.organization_id,
-            release=self.release,
-            commit=self.commit4,
-            order=3,
-        )
+        self.commit1 = self.another_commit(0, "a", self.user1, repository)
+        self.commit2 = self.another_commit(1, "b", self.user2, repository)
+        self.commit3 = self.another_commit(2, "c", self.user4, repository)
+        self.commit4 = self.another_commit(3, "e", self.user5, repository, user5_alt_email)
 
         UserOption.objects.set_value(
             user=self.user3,
@@ -168,12 +130,12 @@ class ReleaseTestCase(TestCase):
         email = ReleaseActivityEmail(
             Activity(
                 project=self.project,
-                user=self.user,
+                user=self.user1,
                 type=Activity.RELEASE,
                 data={"version": self.release.version, "deploy_id": self.deploy.id},
             )
         )
-        # user is included because they committed
+        # user1 is included because they committed
         # user2 committed but isn't in a team associated with the project.
         # user3 is included because they oped into all deploy emails
         # user4 committed but isn't included because they opted out of all deploy emails
@@ -183,7 +145,7 @@ class ReleaseTestCase(TestCase):
         assert len(email.get_participants()) == 3
 
         assert email.get_participants() == {
-            self.user: GroupSubscriptionReason.committed,
+            self.user1: GroupSubscriptionReason.committed,
             self.user3: GroupSubscriptionReason.deploy_setting,
             self.user5: GroupSubscriptionReason.committed,
         }
@@ -191,13 +153,13 @@ class ReleaseTestCase(TestCase):
         context = email.get_context()
         assert context["environment"] == "production"
         assert context["repos"][0]["commits"] == [
-            (self.commit, self.user),
+            (self.commit1, self.user1),
             (self.commit2, self.user2),
             (self.commit3, self.user4),
             (self.commit4, self.user5),
         ]
 
-        user_context = email.get_user_context(self.user)
+        user_context = email.get_user_context(self.user1)
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
@@ -209,13 +171,13 @@ class ReleaseTestCase(TestCase):
 
         sent_email_addresses = {msg.to[0] for msg in mail.outbox}
 
-        assert sent_email_addresses == {self.user.email, self.user3.email, self.user5.email}
+        assert sent_email_addresses == {self.user1.email, self.user3.email, self.user5.email}
 
-    def test_doesnt_generate_on_no_release(self):
+    def test_does_not_generate_on_no_release(self):
         email = ReleaseActivityEmail(
             Activity(
                 project=self.project,
-                user=self.user,
+                user=self.user1,
                 type=Activity.RELEASE,
                 data={"version": "a", "deploy_id": 5},
             )
@@ -225,27 +187,18 @@ class ReleaseTestCase(TestCase):
         assert not email.should_email()
 
     def test_no_committers(self):
-        release = Release.objects.create(
-            version="b" * 40,
-            organization_id=self.project.organization_id,
-            date_released=timezone.now(),
-        )
-        release.add_project(self.project)
-        release.add_project(self.project2)
-        deploy = Deploy.objects.create(
-            release=release, organization_id=self.org.id, environment_id=self.environment.id
-        )
+        release, deploy = self.another_release("b")
 
         email = ReleaseActivityEmail(
             Activity(
                 project=self.project,
-                user=self.user,
+                user=self.user1,
                 type=Activity.RELEASE,
                 data={"version": release.version, "deploy_id": deploy.id},
             )
         )
 
-        # only user3 is included because they oped into all deploy emails
+        # only user3 is included because they opted into all deploy emails
         assert len(email.get_participants()) == 1
 
         assert email.get_participants() == {self.user3: GroupSubscriptionReason.deploy_setting}
@@ -254,7 +207,7 @@ class ReleaseTestCase(TestCase):
         assert context["environment"] == "production"
         assert context["repos"] == []
 
-        user_context = email.get_user_context(self.user)
+        user_context = email.get_user_context(self.user1)
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
@@ -275,22 +228,12 @@ class ReleaseTestCase(TestCase):
         UserOption.objects.set_value(
             user=user6, organization=None, key="deploy-emails", value=UserOptionValue.all_deploys
         )
-
-        release = Release.objects.create(
-            version="b" * 40,
-            organization_id=self.project.organization_id,
-            date_released=timezone.now(),
-        )
-        release.add_project(self.project)
-        release.add_project(self.project2)
-        deploy = Deploy.objects.create(
-            release=release, organization_id=self.org.id, environment_id=self.environment.id
-        )
+        release, deploy = self.another_release("b")
 
         email = ReleaseActivityEmail(
             Activity(
                 project=self.project,
-                user=self.user,
+                user=self.user1,
                 type=Activity.RELEASE,
                 data={"version": release.version, "deploy_id": deploy.id},
             )
