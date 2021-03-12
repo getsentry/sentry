@@ -262,10 +262,14 @@ class DetailsBody extends React.Component<Props> {
             </span>
           </Feature>
 
-          <span>{t('Created By')}</span>
-          <span>
-            <CreatedBy>{rule.createdBy?.name ?? '-'}</CreatedBy>
-          </span>
+          {rule.createdBy && (
+            <React.Fragment>
+              <span>{t('Created By')}</span>
+              <span>
+                <CreatedBy>{rule.createdBy.name ?? '-'}</CreatedBy>
+              </span>
+            </React.Fragment>
+          )}
 
           {rule.dateModified && (
             <React.Fragment>
