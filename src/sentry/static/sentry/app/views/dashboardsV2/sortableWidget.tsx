@@ -94,6 +94,7 @@ function SortableWidget(props: Props) {
           attributes,
           listeners,
         }}
+        showContextMenu
       />
     </WidgetWrapper>
   );
