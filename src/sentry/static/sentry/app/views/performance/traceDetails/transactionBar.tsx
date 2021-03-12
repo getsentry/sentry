@@ -236,11 +236,13 @@ class TransactionBar extends React.Component<Props> {
 
     const palette = theme.charts.getColorPalette(traceInfo.maxGeneration);
 
-    // TODO(tonyx) Does this need to handle any unexpected data? (e.g. start > end)
-    const delta = traceInfo.endTimestamp - traceInfo.startTimestamp;
-    const startPercentage =
-      (transaction.start_timestamp - traceInfo.startTimestamp) / delta;
-    const duration = transaction.timestamp - transaction.start_timestamp;
+    // Use 1 as the difference in the event that startTimestamp === endTimestamp
+    const delta = Math.abs(traceInfo.endTimestamp - traceInfo.startTimestamp) || 1;
+    const startPosition = Math.abs(
+      transaction.start_timestamp - traceInfo.startTimestamp
+    );
+    const startPercentage = startPosition / delta;
+    const duration = Math.abs(transaction.timestamp - transaction.start_timestamp);
     const widthPercentage = duration / delta;
 
     return (
