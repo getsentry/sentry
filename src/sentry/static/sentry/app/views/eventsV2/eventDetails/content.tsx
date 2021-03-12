@@ -305,14 +305,30 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return super.renderError(error, true, true);
   }
 
+  getEventSlug = (): string => {
+    const {eventSlug} = this.props.params;
+
+    if (typeof eventSlug === 'string') {
+      return eventSlug.trim();
+    }
+
+    return '';
+  };
+
   renderComponent() {
     const {eventView, organization} = this.props;
     const {event} = this.state;
+    const eventSlug = this.getEventSlug();
+    const projectSlug = eventSlug.split(':')[0];
 
     const title = generateTitle({eventView, event, organization});
 
     return (
-      <SentryDocumentTitle title={title} orgSlug={organization.slug}>
+      <SentryDocumentTitle
+        title={title}
+        orgSlug={organization.slug}
+        projectSlug={projectSlug}
+      >
         {super.renderComponent()}
       </SentryDocumentTitle>
     );

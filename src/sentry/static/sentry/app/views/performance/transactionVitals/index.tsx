@@ -95,7 +95,11 @@ class TransactionVitals extends React.Component<Props> {
       .map(p => p.slug);
 
     return (
-      <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
+      <SentryDocumentTitle
+        title={this.getDocumentTitle()}
+        orgSlug={organization.slug}
+        projectSlug={forceProject?.slug}
+      >
         <Feature
           features={['performance-view']}
           organization={organization}

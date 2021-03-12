@@ -6,6 +6,7 @@ import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -82,6 +83,7 @@ class IncidentDetails extends React.Component<Props, State> {
         this.setState({incident});
         markIncidentAsSeen(api, orgId, incident);
       });
+
       const statsPromise = fetchIncidentStats(api, orgId, alertId).then(stats =>
         this.setState({stats})
       );
@@ -157,10 +159,18 @@ class IncidentDetails extends React.Component<Props, State> {
 
   render() {
     const {incident, stats, hasError} = this.state;
-    const {params} = this.props;
+    const {params, organization} = this.props;
+    const {alertId} = params;
+
+    const project = incident?.projects?.[0];
 
     return (
       <React.Fragment>
+        <SentryDocumentTitle
+          title={t('Alert %s', alertId)}
+          orgSlug={organization.slug}
+          projectSlug={project}
+        />
         <DetailsHeader
           hasIncidentDetailsError={hasError}
           params={params}

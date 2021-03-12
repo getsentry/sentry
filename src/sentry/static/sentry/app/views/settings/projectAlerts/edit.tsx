@@ -51,15 +51,18 @@ class ProjectAlertsEditor extends React.Component<Props, State> {
   }
 
   render() {
-    const {hasMetricAlerts, location, params, organization, project} = this.props;
-    const {projectId} = params;
+    const {hasMetricAlerts, location, organization, project} = this.props;
+
     const alertType = location.pathname.includes('/alerts/metric-rules/')
       ? 'metric'
       : 'issue';
 
     return (
-      <React.Fragment>
-        <SentryDocumentTitle title={this.getTitle()} projectSlug={projectId} />
+      <SentryDocumentTitle
+        title={this.getTitle()}
+        orgSlug={organization.slug}
+        projectSlug={project.slug}
+      >
         <PageContent>
           <BuilderBreadCrumbs
             hasMetricAlerts={hasMetricAlerts}
@@ -84,7 +87,7 @@ class ProjectAlertsEditor extends React.Component<Props, State> {
             />
           )}
         </PageContent>
-      </React.Fragment>
+      </SentryDocumentTitle>
     );
   }
 }
