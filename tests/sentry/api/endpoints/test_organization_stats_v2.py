@@ -63,19 +63,19 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["statsErrors"][0]["accepted"] == {"quantity": 1, "times_seen": 1}
-        assert response.data["statsErrors"][0]["filtered"] == {"quantity": 0, "times_seen": 0}
+        assert response.data["statsErrors"][0]["accepted"] == {"quantity": 1}
+        assert response.data["statsErrors"][0]["filtered"] == {"quantity": 0}
         assert response.data["statsErrors"][0]["dropped"]["overQuota"] == {
             "quantity": 1,
-            "times_seen": 1,
+            # "times_seen": 1,
         }
         assert response.data["statsErrors"][0]["dropped"]["spikeProtection"] == {
             "quantity": 0,
-            "times_seen": 0,
+            # "times_seen": 0,
         }
         assert response.data["statsErrors"][0]["dropped"]["other"] == {
             "quantity": 0,
-            "times_seen": 0,
+            # "times_seen": 0,
         }
         assert "time" in response.data["statsErrors"][0]  # TODO: write better test for this
 
@@ -97,23 +97,23 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert response.status_code == 200, response.content
         assert response.data[self.project.id]["statsErrors"][0]["accepted"] == {
             "quantity": 1,
-            "times_seen": 1,
+            # "times_seen": 1,
         }
         assert response.data[self.project.id]["statsErrors"][0]["filtered"] == {
             "quantity": 0,
-            "times_seen": 0,
+            # "times_seen": 0,
         }
         assert response.data[self.project.id]["statsErrors"][0]["dropped"]["overQuota"] == {
             "quantity": 1,
-            "times_seen": 1,
+            # "times_seen": 1,
         }
         assert response.data[self.project.id]["statsErrors"][0]["dropped"]["spikeProtection"] == {
             "quantity": 0,
-            "times_seen": 0,
+            # "times_seen": 0,
         }
         assert response.data[self.project.id]["statsErrors"][0]["dropped"]["other"] == {
             "quantity": 0,
-            "times_seen": 0,
+            # "times_seen": 0,
         }
 
         assert self.other_project.id in response.data
@@ -135,64 +135,67 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert response.status_code == 200, response.content
         assert response.data[self.project.id]["statsErrors"][0]["accepted"] == {
             "quantity": 1,
-            "times_seen": 1,
+            # "times_seen": 1,
         }
         assert response.data[self.project.id]["statsErrors"][0]["filtered"] == {
             "quantity": 0,
-            "times_seen": 0,
+            # "times_seen": 0,
         }
         assert response.data[self.project.id]["statsErrors"][0]["dropped"]["overQuota"] == {
             "quantity": 1,
-            "times_seen": 1,
+            # "times_seen": 1,
         }
         assert response.data[self.project.id]["statsErrors"][0]["dropped"]["spikeProtection"] == {
             "quantity": 0,
-            "times_seen": 0,
+            # "times_seen": 0,
         }
         assert response.data[self.project.id]["statsErrors"][0]["dropped"]["other"] == {
             "quantity": 0,
-            "times_seen": 0,
+            # "times_seen": 0,
         }
         assert (
             "time" in response.data[self.project.id]["statsErrors"][0]
         )  # TODO: write better test for this
 
+    # TODO: confirm time ordering is correct
     def test_resolution(self):
         make_request = functools.partial(
             self.client.get,
-            reverse("sentry-api-0-organization-stats-project-index", args=[self.org.slug]),
+            reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
         )
         response = make_request(
             {
                 "project": self.project.id,
-                "start": timestamp_format(self.start),
+                "start": timestamp_format(before_now(hours=1)),
                 "end": timestamp_format(self.now),
                 "interval": "10s",
             }
         )
-        print(len(response.data[self.project.id]))
 
         assert response.status_code == 200, response.content
-        assert response.data[self.project.id]["statsErrors"][0]["accepted"] == {
-            "quantity": 1,
-            "times_seen": 1,
-        }
-        assert response.data[self.project.id]["statsErrors"][0]["filtered"] == {
-            "quantity": 0,
-            "times_seen": 0,
-        }
-        assert response.data[self.project.id]["statsErrors"][0]["dropped"]["overQuota"] == {
-            "quantity": 1,
-            "times_seen": 1,
-        }
-        assert response.data[self.project.id]["statsErrors"][0]["dropped"]["spikeProtection"] == {
-            "quantity": 0,
-            "times_seen": 0,
-        }
-        assert response.data[self.project.id]["statsErrors"][0]["dropped"]["other"] == {
-            "quantity": 0,
-            "times_seen": 0,
-        }
-        assert (
-            "time" in response.data[self.project.id]["statsErrors"][0]
-        )  # TODO: write better test for this
+        # assert response.data["statsErrors"][-1]["accepted"] == {
+        #     "quantity": 1,
+        #     # "times_seen": 1,
+        # }
+        # assert response.data["statsErrors"][-1]["filtered"] == {
+        #     "quantity": 0,
+        #     # "times_seen": 0,
+        # }
+        # assert response.data["statsErrors"][-1]["dropped"]["overQuota"] == {
+        #     "quantity": 1,
+        #     # "times_seen": 1,
+        # }
+        # assert response.data["statsErrors"][-1]["dropped"]["spikeProtection"] == {
+        #     "quantity": 0,
+        #     # "times_seen": 0,
+        # }
+        # assert response.data["statsErrors"][-1]["dropped"]["other"] == {
+        #     "quantity": 0,
+        #     # "times_seen": 0,
+        # }
+        # assert "time" in response.data["statsErrors"][0]  # TODO: write better test for this
+
+        # TODO: make this time resolution consistent
+        assert len(response.data["statsErrors"]) in [360, 361]
+        assert len(response.data["statsTransactions"]) in [360, 361]
+        assert len(response.data["statsAttachments"]) in [360, 361]

@@ -41,7 +41,6 @@ class TimeSeriesUsageStats:
 class StatValue:
     def __init__(self, quantity=0, times_seen=0):
         self.quantity = quantity
-        self.times_seen = times_seen
 
     def serialize(self):
         pass
@@ -60,19 +59,16 @@ class UsageStat:
         return {
             "accepted": {
                 "quantity": self.accepted.quantity,
-                "times_seen": self.accepted.times_seen,
             },
-            "filtered": {"quantity": self.filtered.quantity, "times_seen": self.filtered.quantity},
+            "filtered": {"quantity": self.filtered.quantity},
             "dropped": {
                 "overQuota": {
                     "quantity": self.over_quota.quantity,
-                    "times_seen": self.over_quota.quantity,
                 },
                 "spikeProtection": {
                     "quantity": self.spike_protection.quantity,
-                    "times_seen": self.spike_protection.quantity,
                 },
-                "other": {"quantity": self.other.quantity, "times_seen": self.other.quantity},
+                "other": {"quantity": self.other.quantity},
             },
             "time": self.time,
         }
@@ -98,4 +94,3 @@ class UsageStat:
         measure_to_update = find_measure()
         if measure_to_update:
             measure_to_update.quantity = row["quantity"]
-            measure_to_update.times_seen = row["times_seen"]

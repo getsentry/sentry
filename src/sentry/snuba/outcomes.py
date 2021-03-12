@@ -5,6 +5,7 @@ from sentry.snuba.dataset import Dataset
 from sentry_relay import DataCategory
 from .discover import zerofill
 from collections import defaultdict
+from sentry.api.utils import get_date_range_rollup_from_params
 
 
 def group_by_project(result):
@@ -34,11 +35,14 @@ def _outcomes_dataset(rollup):
         return Dataset.OutcomesRaw
 
 
-def query(groupby, start, end, rollup, aggregations, orderby, fields=None, filter_keys=None):
+def query(groupby, aggregations, orderby, request, filter_keys=None):
 
     # TODO: if roll up >= 1hr use hourly, else use raw
     # TODO: add rollup constraint here
     # add spans
+    start, end, rollup = get_date_range_rollup_from_params(
+        request, minimum_interval="10s", default_interval="1h", round_range=True
+    )
     result = raw_query(
         start=start,
         end=end,
@@ -59,4 +63,5 @@ def query(groupby, start, end, rollup, aggregations, orderby, fields=None, filte
         }
     else:
         result = zerofill(result, start, end, rollup, "time")
+
     return result
