@@ -196,7 +196,7 @@ class TransactionSummary extends React.Component<Props, State> {
                 location={location}
               >
                 {({isLoading, error, tableData}) => {
-                  const totals = tableData?.data?.[0] ?? null;
+                  const totals: TotalValues | null = tableData?.data?.[0] ?? null;
                   return (
                     <SummaryContent
                       location={location}

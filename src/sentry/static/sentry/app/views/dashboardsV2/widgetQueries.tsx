@@ -238,7 +238,6 @@ class WidgetQueries extends React.Component<Props, State> {
         // Overwrite the local var to work around state being stale in tests.
         tableResults = [...tableResults, tableData];
 
-        completed++;
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
@@ -248,12 +247,24 @@ class WidgetQueries extends React.Component<Props, State> {
           return {
             ...prevState,
             tableResults,
-            loading: completed === promises.length ? false : true,
           };
         });
       } catch (err) {
         const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({errorMessage});
+      } finally {
+        completed++;
+        this.setState(prevState => {
+          if (prevState.queryFetchID !== queryFetchID) {
+            // invariant: a different request was initiated after this request
+            return prevState;
+          }
+
+          return {
+            ...prevState,
+            loading: completed === promises.length ? false : true,
+          };
+        });
       }
     });
   }
@@ -291,7 +302,6 @@ class WidgetQueries extends React.Component<Props, State> {
     promises.forEach(async (promise, i) => {
       try {
         const rawResults = await promise;
-        completed++;
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
@@ -306,12 +316,24 @@ class WidgetQueries extends React.Component<Props, State> {
             ...prevState,
             timeseriesResults,
             rawResults: (prevState.rawResults ?? []).concat(rawResults),
-            loading: completed === promises.length ? false : true,
           };
         });
       } catch (err) {
         const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({errorMessage});
+      } finally {
+        completed++;
+        this.setState(prevState => {
+          if (prevState.queryFetchID !== queryFetchID) {
+            // invariant: a different request was initiated after this request
+            return prevState;
+          }
+
+          return {
+            ...prevState,
+            loading: completed === promises.length ? false : true,
+          };
+        });
       }
     });
   }
