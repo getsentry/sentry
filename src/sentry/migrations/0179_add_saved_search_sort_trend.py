@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
     atomic = True
 
     dependencies = [
-        ("sentry", "0177_drop_targets"),
+        ("sentry", "0178_add_new_target_column"),
     ]
 
     operations = [
