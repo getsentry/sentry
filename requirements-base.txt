@@ -3,7 +3,7 @@ boto3==1.10.49
 botocore==1.13.50
 celery==4.4.7
 click==7.1.2
-confluent-kafka==1.5.0; python_version <= '3.9'
+confluent-kafka==1.5.0; python_version < '3.9'
 confluent-kafka==1.6.0; python_version == '3.9'
 croniter==0.3.34
 datadog==0.15.0
