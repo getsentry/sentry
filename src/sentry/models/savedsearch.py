@@ -13,6 +13,7 @@ class SortOptions:
     PRIORITY = "priority"
     FREQ = "freq"
     USER = "user"
+    TREND = "trend"
 
     @classmethod
     def as_choices(cls):
@@ -22,6 +23,7 @@ class SortOptions:
             (cls.PRIORITY, _("Priority")),
             (cls.FREQ, _("Events")),
             (cls.USER, _("Users")),
+            (cls.TREND, _("Relative Change")),
         )
 
 
