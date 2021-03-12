@@ -7,8 +7,8 @@ import {Client} from 'app/api';
 import {SectionHeading} from 'app/components/charts/styles';
 import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
-import {Panel, PanelBody} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {Panel, PanelBody} from 'app/components/panels';
 import SeenByList from 'app/components/seenByList';
 import TimeSince from 'app/components/timeSince';
 import {IconEllipse} from 'app/icons';
@@ -215,9 +215,11 @@ type Props = {
 
 class Timeline extends React.Component<Props> {
   renderEmptyMessage = () => {
-    return <EmptyStateWarning small withIcon={false} noPadding>
-      <p>{t('No alerts triggered during this time')}</p>
-    </EmptyStateWarning>;
+    return (
+      <EmptyStateWarning small withIcon={false} noPadding>
+        <p>{t('No alerts triggered during this time')}</p>
+      </EmptyStateWarning>
+    );
   };
 
   render() {
