@@ -266,7 +266,9 @@ class SearchKey(namedtuple("SearchKey", "name")):
     @cached_property
     def is_tag(self):
         return TAG_KEY_RE.match(self.name) or (
-            self.name not in SEARCH_MAP and not self.is_measurement
+            self.name not in SEARCH_MAP
+            and self.name not in FIELD_ALIASES
+            and not self.is_measurement
         )
 
     @cached_property
@@ -324,6 +326,8 @@ class SearchVisitor(NodeVisitor):
         "last_seen",
         "time",
         "timestamp",
+        "timestamp.to_hour",
+        "timestamp.to_day",
         "transaction.start_time",
         "transaction.end_time",
     }
@@ -926,11 +930,16 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
         return [["notEmpty", [name]], "=", 1 if search_filter.operator == "!=" else 0]
     else:
-        value = (
-            int(to_timestamp(value)) * 1000
-            if isinstance(value, datetime) and name != "timestamp"
-            else value
-        )
+        # timestamp{,.to_{hour,day}} need a datetime string
+        # last_seen needs an integer
+        if isinstance(value, datetime) and not name.startswith("timestamp"):
+            value = int(to_timestamp(value)) * 1000
+
+        # most field aliases are handled above but timestamp.to_{hour,day} are
+        # handled here
+        if name in FIELD_ALIASES:
+            name = FIELD_ALIASES[name].get_expression(params)
+
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
@@ -1390,9 +1399,9 @@ def key_transaction_expression(user_id, organization_id, project_ids):
     ]
 
 
-# When adding aliases to this list please also update
-# static/app/utils/discover/fields.tsx so that
-# the UI builder stays in sync.
+# When updating this list, also check if the following need to be updated:
+# - convert_search_filter_to_snuba_query
+# - static/app/utils/discover/fields.tsx FIELDS
 FIELD_ALIASES = {
     field.name: field
     for field in [
@@ -1952,9 +1961,9 @@ def reflective_result_type(index=0):
     return result_type_fn
 
 
-# When adding functions to this list please also update
-# static/sentry/app/utils/discover/fields.tsx so that
-# the UI builder stays in sync.
+# When updating this list, also check if the following need to be updated:
+# - convert_search_filter_to_snuba_query
+# - static/app/utils/discover/fields.tsx FIELDS
 FUNCTIONS = {
     function.name: function
     for function in [
