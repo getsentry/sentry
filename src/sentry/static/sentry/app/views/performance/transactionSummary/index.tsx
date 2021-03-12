@@ -195,16 +195,16 @@ class TransactionSummary extends React.Component<Props, State> {
                 orgSlug={organization.slug}
                 location={location}
               >
-                {({tableData}) => {
-                  const totals = (tableData && tableData.data.length
-                    ? tableData.data[0]
-                    : null) as TotalValues | null;
+                {({isLoading, error, tableData}) => {
+                  const totals = tableData?.data?.[0] ?? null;
                   return (
                     <SummaryContent
                       location={location}
                       organization={organization}
                       eventView={eventView}
                       transactionName={transactionName}
+                      isLoading={isLoading}
+                      error={error}
                       totalValues={totals}
                     />
                   );

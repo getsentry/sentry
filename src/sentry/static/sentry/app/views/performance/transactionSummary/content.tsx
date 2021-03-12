@@ -45,6 +45,8 @@ type Props = {
   eventView: EventView;
   transactionName: string;
   organization: Organization;
+  isLoading: boolean;
+  error: string | null;
   totalValues: Record<string, number> | null;
   projects: Project[];
 };
@@ -153,6 +155,8 @@ class SummaryContent extends React.Component<Props, State> {
       eventView,
       organization,
       projects,
+      isLoading,
+      error,
       totalValues,
     } = this.props;
     const {incompatibleAlertNotice} = this.state;
@@ -217,7 +221,7 @@ class SummaryContent extends React.Component<Props, State> {
               {...getTransactionsListSort(location, {
                 p95: totalValues?.p95 ?? 0,
               })}
-              forceLoading={!totalValues}
+              forceLoading={isLoading}
             />
             <RelatedIssues
               organization={organization}
@@ -232,6 +236,8 @@ class SummaryContent extends React.Component<Props, State> {
             <UserStats
               organization={organization}
               location={location}
+              isLoading={isLoading}
+              error={error}
               totals={totalValues}
               transactionName={transactionName}
               eventView={eventView}
@@ -239,6 +245,8 @@ class SummaryContent extends React.Component<Props, State> {
             <SidebarSpacer />
             <SidebarCharts
               organization={organization}
+              isLoading={isLoading}
+              error={error}
               totals={totalValues}
               eventView={eventView}
             />

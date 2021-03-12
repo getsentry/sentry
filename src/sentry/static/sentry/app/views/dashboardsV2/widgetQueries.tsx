@@ -1,5 +1,4 @@
 import React from 'react';
-import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import {doEventsRequest} from 'app/actionCreators/events';
@@ -255,11 +254,6 @@ class WidgetQueries extends React.Component<Props, State> {
       } catch (err) {
         const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({errorMessage});
-
-        // We always want to make sure an useful error message is set.
-        if (!err?.responseJSON?.detail) {
-          Sentry.captureException(err);
-        }
       }
     });
   }
