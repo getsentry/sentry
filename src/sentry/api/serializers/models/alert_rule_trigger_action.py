@@ -13,11 +13,17 @@ class AlertRuleTriggerActionSerializer(Serializer):
                 elif action.target_type == action.TargetType.TEAM.value:
                     return "Send an email to members of #" + action.target.slug, action.target.slug
         elif action.type == action.Type.PAGERDUTY.value:
-            return "Send a PagerDuty notification to " + action.target_display, action.target_display
+            return (
+                "Send a PagerDuty notification to " + action.target_display,
+                action.target_display,
+            )
         elif action.type == action.Type.SLACK.value:
             return "Send a Slack notification to " + action.target_display, action.target_display
         elif action.type == action.Type.MSTEAMS.value:
-            return "Send a Microsoft Teams notification to " + action.target_display, action.target_display
+            return (
+                "Send a Microsoft Teams notification to " + action.target_display,
+                action.target_display,
+            )
         elif action.type == action.Type.SENTRY_APP.value:
             return "Send a notification via " + action.target_display, action.target_display
 
