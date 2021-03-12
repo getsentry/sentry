@@ -7,6 +7,8 @@ export {
   ConnectorBar,
   DividerLine,
   DividerLineGhostContainer,
+  DurationPill,
+  SpanBarRectangle as TransactionBarRectangle,
   SpanBarTitle as TransactionBarTitle,
   SpanBarTitleContainer as TransactionBarTitleContainer,
   SpanRowCell as TransactionRowCell,

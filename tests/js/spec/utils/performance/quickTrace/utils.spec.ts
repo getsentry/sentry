@@ -89,6 +89,13 @@ function generateTransaction(opts: {index: number; depth: number}): TraceFull {
           depth,
         })
       ),
+    /**
+     * These timestamps aren't used in tests here, just adding them to pass
+     * the type checking.
+     */
+    'transaction.duration': 0,
+    timestamp: 0,
+    start_timestamp: 0,
   };
 }
 
@@ -120,14 +127,16 @@ describe('Quick Trace Utils', function () {
       const trace = generateTrace(1);
       const current = generateEventSelector({generation: 0, offset: 0});
       const relevantPath = flattenRelevantPaths(current, trace);
-      expect(relevantPath).toEqual([generateTransactionLite({generation: 0, offset: 0})]);
+      expect(relevantPath).toMatchObject([
+        generateTransactionLite({generation: 0, offset: 0}),
+      ]);
     });
 
     it('flattens trace from the leaf', function () {
       const trace = generateTrace(3);
       const current = generateEventSelector({generation: 2, offset: 3});
       const relevantPath = flattenRelevantPaths(current, trace);
-      expect(relevantPath).toEqual([
+      expect(relevantPath).toMatchObject([
         generateTransactionLite({generation: 0, offset: 0}),
         generateTransactionLite({generation: 1, offset: 1}),
         generateTransactionLite({generation: 2, offset: 3}),
@@ -138,7 +147,7 @@ describe('Quick Trace Utils', function () {
       const trace = generateTrace(3);
       const current = generateEventSelector({generation: 1, offset: 1});
       const relevantPath = flattenRelevantPaths(current, trace);
-      expect(relevantPath).toEqual([
+      expect(relevantPath).toMatchObject([
         generateTransactionLite({generation: 0, offset: 0}),
         generateTransactionLite({generation: 1, offset: 1}),
         generateTransactionLite({generation: 2, offset: 2}),
@@ -150,7 +159,7 @@ describe('Quick Trace Utils', function () {
       const trace = generateTrace(3);
       const current = generateEventSelector({generation: 0, offset: 0});
       const relevantPath = flattenRelevantPaths(current, trace);
-      expect(relevantPath).toEqual([
+      expect(relevantPath).toMatchObject([
         generateTransactionLite({generation: 0, offset: 0}),
         generateTransactionLite({generation: 1, offset: 0}),
         generateTransactionLite({generation: 1, offset: 1}),
@@ -316,7 +325,7 @@ describe('Quick Trace Utils', function () {
           {type: 'full', trace: relevantPath},
           current
         );
-        expect(parsedQuickTrace).toEqual({
+        expect(parsedQuickTrace).toMatchObject({
           root: generateTransactionLite({generation: 0, offset: 0}),
           ancestors: [generateTransactionLite({generation: 1, offset: 0})],
           parent: generateTransactionLite({generation: 2, offset: 0}),
@@ -342,7 +351,7 @@ describe('Quick Trace Utils', function () {
           {type: 'full', trace: relevantPath},
           current
         );
-        expect(parsedQuickTrace).toEqual({
+        expect(parsedQuickTrace).toMatchObject({
           root: generateTransactionLite({generation: 0, offset: 0}),
           ancestors: [],
           parent: generateTransactionLite({generation: 1, offset: 0}),
@@ -368,7 +377,7 @@ describe('Quick Trace Utils', function () {
           {type: 'full', trace: relevantPath},
           current
         );
-        expect(parsedQuickTrace).toEqual({
+        expect(parsedQuickTrace).toMatchObject({
           root: generateTransactionLite({generation: 0, offset: 0}),
           ancestors: [generateTransactionLite({generation: 1, offset: 0})],
           parent: generateTransactionLite({generation: 2, offset: 0}),
@@ -389,7 +398,7 @@ describe('Quick Trace Utils', function () {
           {type: 'full', trace: relevantPath},
           current
         );
-        expect(parsedQuickTrace).toEqual({
+        expect(parsedQuickTrace).toMatchObject({
           root: generateTransactionLite({generation: 0, offset: 0}),
           ancestors: [generateTransactionLite({generation: 1, offset: 0})],
           parent: generateTransactionLite({generation: 2, offset: 0}),

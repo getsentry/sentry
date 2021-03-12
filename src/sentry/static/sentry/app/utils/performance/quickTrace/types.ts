@@ -44,6 +44,8 @@ export type TraceFull = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
   children: TraceFull[];
   errors: TraceError[];
   generation: number;
+  start_timestamp: number;
+  timestamp: number;
 };
 
 export type TraceProps = {

@@ -15,4 +15,16 @@ export type TraceInfo = {
    * The number of transactions in the trace that matched the user condition.
    */
   relevantTransactions: number;
+  /**
+   * The very earliest start timestamp in the trace.
+   */
+  startTimestamp: number;
+  /**
+   * The very latest end timestamp in the trace.
+   */
+  endTimestamp: number;
+  /**
+   *
+   */
+  maxGeneration: number;
 };
