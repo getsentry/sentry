@@ -264,7 +264,7 @@ class RuleNode extends React.Component<Props> {
               'If there are no matching [issueOwners], ownership is determined by the [ownershipSettings].',
               {
                 issueOwners: (
-                  <ExternalLink href="https://docs.sentry.io/workflow/issue-owners/">
+                  <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
                     {t('issue owners')}
                   </ExternalLink>
                 ),

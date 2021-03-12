@@ -17,6 +17,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
 
+        self.event_time = before_now(minutes=1)
         self.event = self.store_event(
             data={
                 "message": "oh no",
@@ -24,7 +25,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": iso_format(self.event_time),
             },
             project_id=self.project.id,
         )
@@ -132,7 +133,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
-            selected_columns=["project.id", "user", "release"],
+            selected_columns=["project.id", "user", "release", "timestamp.to_hour"],
             query="",
             params={"project_id": [self.project.id]},
         )
@@ -142,11 +143,15 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["user"] == "id:99"
         assert data[0]["release"] == "first-release"
 
-        assert len(result["meta"]) == 3
+        event_hour = self.event_time.replace(minute=0, second=0)
+        assert data[0]["timestamp.to_hour"] == iso_format(event_hour) + "+00:00"
+
+        assert len(result["meta"]) == 4
         assert result["meta"] == {
             "project.id": "integer",
             "user": "string",
             "release": "string",
+            "timestamp.to_hour": "date",
         }
 
     def test_field_alias_with_component(self):
@@ -1331,7 +1336,12 @@ class QueryTransformTest(TestCase):
         end_time = before_now(seconds=1)
 
         discover.query(
-            selected_columns=["transaction", "avg(transaction.duration)", "max(timestamp)"],
+            selected_columns=[
+                "transaction",
+                "avg(transaction.duration)",
+                "stddev(transaction.duration)",
+                "max(timestamp)",
+            ],
             query="http.method:GET max(timestamp):>2019-12-01",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
@@ -1344,6 +1354,7 @@ class QueryTransformTest(TestCase):
             dataset=Dataset.Discover,
             aggregations=[
                 ["avg", "duration", "avg_transaction_duration"],
+                ["stddevSamp", "duration", "stddev_transaction_duration"],
                 ["max", "timestamp", "max_timestamp"],
             ],
             having=[["max_timestamp", ">", 1575158400]],
@@ -1372,7 +1383,12 @@ class QueryTransformTest(TestCase):
                 "data": [{"transaction": "api.do_things", "duration": 200}],
             }
             discover.query(
-                selected_columns=["transaction", "avg(transaction.duration)", "max(timestamp)"],
+                selected_columns=[
+                    "transaction",
+                    "avg(transaction.duration)",
+                    "stddev(transaction.duration)",
+                    "max(timestamp)",
+                ],
                 query=f"http.method:GET avg(transaction.duration):>{query_string}",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
@@ -1385,6 +1401,7 @@ class QueryTransformTest(TestCase):
                 dataset=Dataset.Discover,
                 aggregations=[
                     ["avg", "duration", "avg_transaction_duration"],
+                    ["stddevSamp", "duration", "stddev_transaction_duration"],
                     ["max", "timestamp", "max_timestamp"],
                 ],
                 having=[["avg_transaction_duration", ">", value]],
