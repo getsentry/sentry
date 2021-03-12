@@ -55,16 +55,16 @@ class AlertRuleSerializer(Serializer):
 
             result[alert_rules[rule_activity.alert_rule.id]].update({"created_by": user})
 
-        actors_by_type = defaultdict(list)
+        resolved_actors = {}
+        owners_by_type = defaultdict(list)
         for item in item_list:
             if item.owner_id is not None:
-                actors_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
+                owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
 
-        resolved_actors = {}
         for k, v in ACTOR_TYPES.items():
             resolved_actors[k] = {
                 a.actor_id: a.id
-                for a in actor_type_to_class(v).objects.filter(actor_id__in=actors_by_type[k])
+                for a in actor_type_to_class(v).objects.filter(actor_id__in=owners_by_type[k])
             }
 
         for alert_rule in alert_rules.values():
