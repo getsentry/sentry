@@ -209,7 +209,6 @@ class EventManager:
         project_config=None,
         sent_at=None,
     ):
-
         self._data = CanonicalKeyDict(data)
         self.version = version
         self._project = project
