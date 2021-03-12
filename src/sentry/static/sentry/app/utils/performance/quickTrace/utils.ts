@@ -80,7 +80,7 @@ export function flattenRelevantPaths(
 }
 
 function simplifyEvent(event: TraceFull): QuickTraceEvent {
-  return omit(event, 'children');
+  return omit(event, ['children', 'start_timestamp', 'timestamp']);
 }
 
 type ParsedQuickTrace = {

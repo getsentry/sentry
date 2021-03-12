@@ -38,9 +38,7 @@ class TraceDetailsContent extends React.Component<Props> {
     return <LoadingError message={t('The trace you are looking for was not found.')} />;
   }
 
-  renderTraceHeader(trace) {
-    const traceInfo = getTraceInfo(trace);
-
+  renderTraceHeader(traceInfo) {
     return (
       <TraceDetailHeader>
         <MetaData
@@ -61,10 +59,10 @@ class TraceDetailsContent extends React.Component<Props> {
     );
   }
 
-  renderTraceView(trace) {
+  renderTraceView(trace, traceInfo) {
     return (
       <TraceDetailBody>
-        <TraceView trace={trace} />
+        <TraceView trace={trace} traceInfo={traceInfo} />
       </TraceDetailBody>
     );
   }
@@ -95,10 +93,12 @@ class TraceDetailsContent extends React.Component<Props> {
           } else if (error !== null || trace === null) {
             return this.renderTraceNotFound();
           } else {
+            const traceInfo = getTraceInfo(trace);
+
             return (
               <React.Fragment>
-                {this.renderTraceHeader(trace)}
-                {this.renderTraceView(trace)}
+                {this.renderTraceHeader(traceInfo)}
+                {this.renderTraceView(trace, traceInfo)}
               </React.Fragment>
             );
           }
