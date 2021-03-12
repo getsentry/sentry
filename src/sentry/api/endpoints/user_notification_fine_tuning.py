@@ -71,7 +71,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         key = get_legacy_key_from_fine_tuning_key(notification_type)
         filter_args = {"user": user, "key": key}
 
-        if notification_type == "reports":
+        if notification_type == FineTuningAPIKey.REPORTS:
             (user_option, created) = UserOption.objects.get_or_create(**filter_args)
 
             value = set(user_option.value or [])
@@ -105,7 +105,11 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             user_option.update(value=list(value))
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        if notification_type in ["alerts", "workflow", "email"]:
+        if notification_type in [
+            FineTuningAPIKey.ALERTS,
+            FineTuningAPIKey.WORKFLOW,
+            FineTuningAPIKey.EMAIL,
+        ]:
             update_key = "project"
             parent_ids = set(self.get_project_ids(user))
         else:
@@ -134,7 +138,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if notification_type == "email":
+        if notification_type == FineTuningAPIKey.EMAIL:
             # make sure target emails exist and are verified
             emails_to_check = set(request.data.values())
             emails = UserEmail.objects.filter(
@@ -154,7 +158,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         with transaction.atomic():
             for id in request.data:
                 val = request.data[id]
-                int_val = int(val) if notification_type != "email" else None
+                int_val = int(val) if notification_type != FineTuningAPIKey.EMAIL else None
 
                 filter_args["%s_id" % update_key] = id
 
