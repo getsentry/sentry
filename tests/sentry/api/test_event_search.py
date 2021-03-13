@@ -525,39 +525,39 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_quoted_val(self):
-        # assert parse_search_query('release:"a release"') == [
-        #     SearchFilter(
-        #         key=SearchKey(name="release"),
-        #         operator="=",
-        #         value=SearchValue(raw_value="a release"),
-        #     )
-        # ]
-        # assert parse_search_query('!release:"a release"') == [
-        #     SearchFilter(
-        #         key=SearchKey(name="release"), operator="!=", value=SearchValue("a release")
-        #     )
-        # ]
-        # assert parse_search_query('release:["a release"]') == [
-        #     SearchFilter(
-        #         key=SearchKey(name="release"),
-        #         operator="IN",
-        #         value=SearchValue(raw_value=["a release"]),
-        #     )
-        # ]
-        # assert parse_search_query('release:["a release","b release"]') == [
-        #     SearchFilter(
-        #         key=SearchKey(name="release"),
-        #         operator="IN",
-        #         value=SearchValue(raw_value=["a release", "b release"]),
-        #     )
-        # ]
-        # assert parse_search_query('!release:["a release","b release"]') == [
-        #     SearchFilter(
-        #         key=SearchKey(name="release"),
-        #         operator="NOT IN",
-        #         value=SearchValue(raw_value=["a release", "b release"]),
-        #     )
-        # ]
+        assert parse_search_query('release:"a release"') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="=",
+                value=SearchValue(raw_value="a release"),
+            )
+        ]
+        assert parse_search_query('!release:"a release"') == [
+            SearchFilter(
+                key=SearchKey(name="release"), operator="!=", value=SearchValue("a release")
+            )
+        ]
+        assert parse_search_query('release:["a release"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(raw_value=["a release"]),
+            )
+        ]
+        assert parse_search_query('release:["a release","b release"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(raw_value=["a release", "b release"]),
+            )
+        ]
+        assert parse_search_query('!release:["a release","b release"]') == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="NOT IN",
+                value=SearchValue(raw_value=["a release", "b release"]),
+            )
+        ]
         assert parse_search_query('release:["a release"] hello:["123"]') == [
             SearchFilter(
                 key=SearchKey(name="release"),
@@ -840,13 +840,13 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_numeric_in_filter(self):
-        # assert parse_search_query("project_id:[500,501,502]") == [
-        #     SearchFilter(
-        #         key=SearchKey(name="project_id"),
-        #         operator="IN",
-        #         value=SearchValue(raw_value=[500, 501, 502]),
-        #     )
-        # ]
+        assert parse_search_query("project_id:[500,501,502]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            )
+        ]
         assert parse_search_query("project_id:[500,501,502] issue.id:[100]") == [
             SearchFilter(
                 key=SearchKey(name="project_id"),
@@ -861,13 +861,18 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
         # Numeric format should still return a string if field isn't
         # allowed
-        # assert parse_search_query("random_field:[500,501,502]") == [
-        #     SearchFilter(
-        #         key=SearchKey(name="random_field"),
-        #         operator="IN",
-        #         value=SearchValue(raw_value=["500", "501", "502"]),
-        #     )
-        # ]
+        assert parse_search_query("project_id:[500,501,502] random_field:[500,501,502]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            ),
+            SearchFilter(
+                key=SearchKey(name="random_field"),
+                operator="IN",
+                value=SearchValue(raw_value=["500", "501", "502"]),
+            ),
+        ]
 
     def test_numeric_filter_with_decimals(self):
         assert parse_search_query("transaction.duration:>3.1415") == [

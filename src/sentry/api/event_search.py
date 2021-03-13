@@ -158,7 +158,7 @@ tag_filter           = negation? "tags[" search_key "]" sep search_value
 aggregate_key        = key open_paren function_arg* closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
-value                = ~r"[^()\s]*[^\]\s]" / ~r"[^()\s]*"
+value                = ~r"[^()\s]*[^\]\s)]" / ~r"[^()\s]*"
 numeric_value        = ~r"([-]?[0-9\.]+)([kmb])?(?=\s|\)|$|,|])"
 boolean_value        = ~r"(true|1|false|0)(?=\s|\)|$)"i
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
@@ -502,6 +502,8 @@ class SearchVisitor(NodeVisitor):
         else:
             if operator != "IN":
                 search_value = search_value.text
+            else:
+                search_value = [v.text for v in search_value]
             search_value = SearchValue(
                 operator + search_value if operator not in ("=", "IN") else search_value
             )
