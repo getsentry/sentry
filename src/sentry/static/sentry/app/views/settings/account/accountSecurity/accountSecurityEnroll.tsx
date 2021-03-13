@@ -252,8 +252,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
 
   // Handle u2f device tap
   handleU2fTap = async (tapData: any) => {
-    const data = {...tapData, ...this.formModel.fields.toJS()};
-
+    const data = {deviceName: this.formModel.fields.get('deviceName'), ...tapData};
     this.setState({loading: true});
 
     try {
