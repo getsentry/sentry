@@ -100,6 +100,7 @@ class IssueListFilters extends React.Component<Props> {
                 onSavedSearchSelect={this.handleSavedSearchSelect}
                 onSavedSearchDelete={onSavedSearchDelete}
                 query={query}
+                sort={sort}
               />
             )}
 

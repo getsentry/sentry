@@ -53,9 +53,13 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
             if saved_searches[0].is_pinned:
                 pinned_search = saved_searches[0]
             for saved_search in saved_searches[1:]:
-                # If a search has the same query as the pinned search we
+                # If a search has the same query and sort as the pinned search we
                 # want to use that search as the pinned search
-                if pinned_search and saved_search.query == pinned_search.query:
+                if (
+                    pinned_search
+                    and saved_search.query == pinned_search.query
+                    and saved_search.sort == pinned_search.sort
+                ):
                     saved_search.is_pinned = True
                     results[0] = saved_search
                 else:

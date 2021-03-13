@@ -1042,6 +1042,7 @@ class IssueListOverview extends React.Component<Props, State> {
               <IssueListHeader
                 organization={organization}
                 query={query}
+                sort={this.getSort()}
                 queryCount={queryCount}
                 queryCounts={queryCounts}
                 realtimeActive={realtimeActive}

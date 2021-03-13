@@ -147,18 +147,20 @@ export function pinSearch(
   api: Client,
   orgSlug: string,
   type: SavedSearchType,
-  query: string
+  query: string,
+  sort?: string
 ): Promise<SavedSearch> {
   const url = getPinSearchUrl(orgSlug);
 
   // Optimistically update store
-  SavedSearchesActions.pinSearch(type, query);
+  SavedSearchesActions.pinSearch(type, query, sort);
 
   const promise = api.requestPromise(url, {
     method: 'PUT',
     data: {
       query,
       type,
+      sort,
     },
   });
 
