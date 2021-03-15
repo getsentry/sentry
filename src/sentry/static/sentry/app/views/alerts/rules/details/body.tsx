@@ -294,7 +294,7 @@ class DetailsBody extends React.Component<Props> {
       : null;
 
     return (
-      <Container>
+      <StatusContainer>
         <div>
           <SidebarHeading>{t('Status')}</SidebarHeading>
           <ItemValue>
@@ -312,7 +312,7 @@ class DetailsBody extends React.Component<Props> {
           </SidebarHeading>
           <ItemValue>{activityDate ? <TimeSince date={activityDate} /> : '-'}</ItemValue>
         </div>
-      </Container>
+      </StatusContainer>
     );
   }
 
@@ -539,7 +539,7 @@ const AlertIconWrapper = styled('div')`
   }
 `;
 
-const Container = styled('div')`
+const StatusContainer = styled('div')`
   display: grid;
   grid-template-columns: 50% 50%;
   grid-row-gap: 16px;
