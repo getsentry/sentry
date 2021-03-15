@@ -70,8 +70,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                     return Response(
                         f"Invalid Team ID: {team_id}", status=status.HTTP_400_BAD_REQUEST
                     )
-            filter_values = Team.objects.filter(id__in=teams).values_list("actor_id", flat=True)
-            team_filter_query = Q(owner_id__in=filter_values)
+            team_filter_query = Q(
+                owner_id__in=Team.objects.filter(id__in=teams).values_list("actor_id", flat=True)
+            )
             if unassigned:
                 team_filter_query = team_filter_query | unassigned
 
