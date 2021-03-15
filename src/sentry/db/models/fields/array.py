@@ -1,7 +1,9 @@
+import ast
+
 from django.db import models
 
 from sentry.db.models.utils import Creator
-from sentry.utils import json
+from sentry.utils import json, JSONDecodeError
 from sentry.utils.compat import map
 
 
@@ -36,9 +38,26 @@ class ArrayField(models.Field):
     def get_internal_type(self):
         return "TextField"
 
+    def get_prep_value(self, value):
+        """Iterate over each item in the array, and run it
+        through the `get_prep_value` of this array's type.
+        """
+        # If no valid value was given, return an empty list.
+        if not value:
+            return []
+
+        # Appropriately coerce each individual value within
+        # our array.
+        return [self.of.get_prep_value(item) for item in value]
+
     def to_python(self, value):
         if not value:
             value = []
         if isinstance(value, str):
-            value = json.loads(value)
+            try:
+                value = json.loads(value)
+            except JSONDecodeError:
+                # This is to accomodate the erronous exports pre 21.4.0
+                # See getsentry/sentry#23843 for more details
+                value = ast.literal_eval(value)
         return map(self.of.to_python, value)
