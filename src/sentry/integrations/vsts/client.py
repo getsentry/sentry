@@ -14,7 +14,7 @@ FIELD_MAP = {
 INVALID_ACCESS_TOKEN = "HTTP 400 (invalid_request): The access token is not valid"
 
 
-class VstsApiPath(object):
+class VstsApiPath:
     commit = "{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}"
     commits = "{instance}_apis/git/repositories/{repo_id}/commits"
     commits_batch = "{instance}_apis/git/repositories/{repo_id}/commitsBatch"
@@ -43,7 +43,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     integration_name = "vsts"
 
     def __init__(self, identity, oauth_redirect_url, *args, **kwargs):
-        super(VstsApiClient, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.identity = identity
         self.oauth_redirect_url = oauth_redirect_url
         if "access_token" not in self.identity.data:
@@ -164,7 +164,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         return self.get(
             VstsApiPath.repository.format(
                 instance=instance,
-                project="{}/".format(project) if project else "",
+                project=f"{project}/" if project else "",
                 repo_id=name_or_id,
             )
         )
@@ -172,7 +172,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def get_repos(self, instance, project=None):
         return self.get(
             VstsApiPath.repositories.format(
-                instance=instance, project="{}/".format(project) if project else ""
+                instance=instance, project=f"{project}/" if project else ""
             ),
             timeout=5,
         )

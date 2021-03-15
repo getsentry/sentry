@@ -5,7 +5,6 @@ __all__ = (
     "EncryptedTextField",
 )
 
-import six
 
 from django.db.models import CharField, TextField
 from picklefield.fields import PickledObjectField, dbsafe_decode, PickledObject, _ObjectWrapper
@@ -20,39 +19,39 @@ class EncryptedCharField(CharField):
         Add a descriptor for backwards compatibility
         with previous Django behavior.
         """
-        super(EncryptedCharField, self).contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name)
         setattr(cls, name, Creator(self))
 
     def get_db_prep_value(self, value, *args, **kwargs):
-        value = super(EncryptedCharField, self).get_db_prep_value(value, *args, **kwargs)
+        value = super().get_db_prep_value(value, *args, **kwargs)
         return encrypt(value)
 
     def to_python(self, value):
-        if value is not None and isinstance(value, six.string_types):
+        if value is not None and isinstance(value, str):
             value = decrypt(value)
-        return super(EncryptedCharField, self).to_python(value)
+        return super().to_python(value)
 
 
 class EncryptedJsonField(JSONField):
     def get_db_prep_value(self, value, *args, **kwargs):
-        value = super(EncryptedJsonField, self).get_db_prep_value(value, *args, **kwargs)
+        value = super().get_db_prep_value(value, *args, **kwargs)
         return encrypt(value)
 
     def to_python(self, value):
-        if value is not None and isinstance(value, six.string_types):
+        if value is not None and isinstance(value, str):
             value = decrypt(value)
-        return super(EncryptedJsonField, self).to_python(value)
+        return super().to_python(value)
 
 
 class EncryptedPickledObjectField(PickledObjectField):
     def get_db_prep_value(self, value, *args, **kwargs):
-        if isinstance(value, six.binary_type):
+        if isinstance(value, bytes):
             value = value.decode("utf-8")
-        value = super(EncryptedPickledObjectField, self).get_db_prep_value(value, *args, **kwargs)
+        value = super().get_db_prep_value(value, *args, **kwargs)
         return encrypt(value)
 
     def to_python(self, value):
-        if value is not None and isinstance(value, six.string_types):
+        if value is not None and isinstance(value, str):
             value = decrypt(value)
 
         # The following below is a copypaste of PickledObjectField.to_python of
@@ -80,14 +79,14 @@ class EncryptedTextField(TextField):
         Add a descriptor for backwards compatibility
         with previous Django behavior.
         """
-        super(EncryptedTextField, self).contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name)
         setattr(cls, name, Creator(self))
 
     def get_db_prep_value(self, value, *args, **kwargs):
-        value = super(EncryptedTextField, self).get_db_prep_value(value, *args, **kwargs)
+        value = super().get_db_prep_value(value, *args, **kwargs)
         return encrypt(value)
 
     def to_python(self, value):
-        if value is not None and isinstance(value, six.string_types):
+        if value is not None and isinstance(value, str):
             value = decrypt(value)
-        return super(EncryptedTextField, self).to_python(value)
+        return super().to_python(value)

@@ -2,7 +2,6 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.functional import lazy
 from django.utils.html import format_html
-from django.utils.six import text_type
 from django.utils.translation import ugettext as _, ungettext
 
 from sentry.utils.imports import import_string
@@ -71,10 +70,10 @@ def _password_validators_help_text_html(password_validators=None):
     return "<ul>%s</ul>" % "".join(help_items) if help_items else ""
 
 
-password_validators_help_text_html = lazy(_password_validators_help_text_html, text_type)
+password_validators_help_text_html = lazy(_password_validators_help_text_html, str)
 
 
-class MinimumLengthValidator(object):
+class MinimumLengthValidator:
     """
     Validate whether the password is of a minimum length.
     """
@@ -105,7 +104,7 @@ class MinimumLengthValidator(object):
         )
 
 
-class MaximumLengthValidator(object):
+class MaximumLengthValidator:
     """
     Validate whether the password is of a maximum length.
     """
@@ -136,7 +135,7 @@ class MaximumLengthValidator(object):
         )
 
 
-class NumericPasswordValidator(object):
+class NumericPasswordValidator:
     """
     Validate whether the password is alphanumeric.
     """

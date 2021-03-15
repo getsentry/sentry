@@ -3,7 +3,7 @@ import logging
 from django.db import transaction
 from django.core.urlresolvers import reverse
 from django.utils import timezone
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry.auth.access import from_user
 from sentry.incidents.models import (
@@ -66,7 +66,7 @@ def send_subscriber_notifications(activity_id):
 def generate_incident_activity_email(activity, user):
     incident = activity.incident
     return MessageBuilder(
-        subject="Activity on Alert {} (#{})".format(incident.title, incident.identifier),
+        subject=f"Activity on Alert {incident.title} (#{incident.identifier})",
         template="sentry/emails/incidents/activity.txt",
         html_template="sentry/emails/incidents/activity.html",
         type="incident.activity",
@@ -78,13 +78,13 @@ def build_activity_context(activity, user):
     if activity.type == IncidentActivityType.COMMENT.value:
         action = "left a comment"
     else:
-        action = "changed status from %s to %s" % (
+        action = "changed status from {} to {}".format(
             INCIDENT_STATUS[IncidentStatus(int(activity.previous_value))],
             INCIDENT_STATUS[IncidentStatus(int(activity.value))],
         )
     incident = activity.incident
 
-    action = "%s on alert %s (#%s)" % (action, incident.title, incident.identifier)
+    action = f"{action} on alert {incident.title} (#{incident.identifier})"
 
     return {
         "user_name": activity.user.name if activity.user else "Sentry",
@@ -133,6 +133,7 @@ def handle_trigger_action(action_id, incident_id, project_id, method, metric_val
     except AlertRuleTriggerAction.DoesNotExist:
         metrics.incr("incidents.alert_rules.action.skipping_missing_action")
         return
+
     try:
         incident = Incident.objects.select_related("organization").get(id=incident_id)
     except Incident.DoesNotExist:
@@ -150,7 +151,7 @@ def handle_trigger_action(action_id, incident_id, project_id, method, metric_val
             AlertRuleTriggerAction.Type(action.type).name.lower(), method
         )
     )
-    getattr(action, method)(incident, project, metric_value=metric_value)
+    getattr(action, method)(action, incident, project, metric_value=metric_value)
 
 
 @instrumented_task(

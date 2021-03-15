@@ -221,3 +221,31 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["id"] == "a" * 32
         assert response.data["projectSlug"] == self.project.slug
+
+    def test_out_of_retention(self):
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "message": "oh no",
+                "timestamp": iso_format(before_now(days=2)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": "d" * 32,
+            },
+        )
+
+        with self.options({"system.event-retention-days": 1}):
+            response = self.client.get(
+                url,
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content

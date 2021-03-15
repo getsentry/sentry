@@ -1,6 +1,5 @@
 import logging
 
-import six
 from django.db import models, IntegrityError, transaction
 from django.utils import timezone
 
@@ -160,7 +159,7 @@ class FeatureAdoptionManager(BaseManager):
         features = []
 
         try:
-            feature_ids = set([manager.get_by_slug(slug).id for slug in feature_slugs])
+            feature_ids = {manager.get_by_slug(slug).id for slug in feature_slugs}
         except UnknownFeature as e:
             logger.exception(e)
             return False
@@ -201,9 +200,7 @@ class FeatureAdoption(Model):
     __core__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
-    feature_id = models.PositiveIntegerField(
-        choices=[(f.id, six.text_type(f.name)) for f in manager.all()]
-    )
+    feature_id = models.PositiveIntegerField(choices=[(f.id, str(f.name)) for f in manager.all()])
     date_completed = models.DateTimeField(default=timezone.now)
     complete = models.BooleanField(default=False)
     applicable = models.BooleanField(default=True)  # Is this feature applicable to this team?

@@ -21,6 +21,7 @@ import {fetchTagValues, loadOrganizationTags} from 'app/actionCreators/tags';
 import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
@@ -44,10 +45,11 @@ import {
   TagCollection,
 } from 'app/types';
 import {defined} from 'app/utils';
-import {analytics, metric, trackAnalyticsEvent} from 'app/utils/analytics';
+import {analytics, logExperiment, metric, trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import CursorPoller from 'app/utils/cursorPoller';
 import {getUtcDateString} from 'app/utils/dates';
+import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import StreamManager from 'app/utils/streamManager';
@@ -62,10 +64,18 @@ import IssueListFilters from './filters';
 import IssueListHeader from './header';
 import NoGroupsHandler from './noGroupsHandler';
 import IssueListSidebar from './sidebar';
-import {getTabs, getTabsWithCounts, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import {
+  getTabs,
+  getTabsWithCounts,
+  isForReviewQuery,
+  IssueSortOptions,
+  Query,
+  QueryCounts,
+  TAB_MAX_COUNT,
+} from './utils';
 
 const MAX_ITEMS = 25;
-const DEFAULT_SORT = 'date';
+const DEFAULT_SORT = IssueSortOptions.DATE;
 // the default period for the graph in each issue row
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
@@ -170,6 +180,7 @@ class IssueListOverview extends React.Component<Props, State> {
     this.fetchSavedSearches();
     this.fetchTags();
     this.fetchMemberList();
+    this.logInboxExperiment();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -271,6 +282,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
   private _poller: any;
   private _lastRequest: any;
+  private _lastStatsRequest: any;
   private _streamManager = new StreamManager(GroupStore);
 
   getQuery(): string {
@@ -300,7 +312,25 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   getSort(): string {
-    return (this.props.location.query.sort as string) || DEFAULT_SORT;
+    const {location, savedSearch} = this.props;
+    if (!location.query.sort && savedSearch?.id) {
+      return savedSearch.sort;
+    }
+
+    if (location.query.sort) {
+      return location.query.sort as string;
+    }
+
+    const {organization} = this.props;
+    if (
+      organization.features.includes('inbox') &&
+      organization.features.includes('inbox-tab-default') &&
+      isForReviewQuery(this.getQuery())
+    ) {
+      return IssueSortOptions.INBOX;
+    }
+
+    return DEFAULT_SORT;
   }
 
   getGroupStatsPeriod(): string {
@@ -372,7 +402,7 @@ class IssueListOverview extends React.Component<Props, State> {
     );
   }
 
-  fetchStats = async (groups: string[]) => {
+  fetchStats = (groups: string[]) => {
     // If we have no groups to fetch, just skip stats
     if (!groups.length) {
       return;
@@ -385,17 +415,26 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!requestParams.statsPeriod && !requestParams.start) {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
     }
-    try {
-      const response = await this.props.api.requestPromise(this.getGroupStatsEndpoint(), {
-        method: 'GET',
-        data: qs.stringify(requestParams),
-      });
-      GroupActions.populateStats(groups, response);
-    } catch (e) {
-      this.setState({
-        error: parseApiError(e),
-      });
-    }
+
+    this._lastStatsRequest = this.props.api.request(this.getGroupStatsEndpoint(), {
+      method: 'GET',
+      data: qs.stringify(requestParams),
+      success: data => {
+        if (!data) {
+          return;
+        }
+
+        GroupActions.populateStats(groups, data);
+      },
+      error: err => {
+        this.setState({
+          error: parseApiError(err),
+        });
+      },
+      complete: () => {
+        this._lastStatsRequest = null;
+      },
+    });
   };
 
   fetchCounts = async (currentQueryCount: number, fetchAllCounts: boolean) => {
@@ -476,6 +515,9 @@ class IssueListOverview extends React.Component<Props, State> {
 
   fetchData = (selectionChanged?: boolean) => {
     GroupStore.loadInitialData([]);
+    this._streamManager.reset();
+    const transaction = getCurrentSentryReactTransaction();
+    transaction?.setTag('query.sort', this.getSort());
 
     this.setState({
       issuesLoading: true,
@@ -512,6 +554,9 @@ class IssueListOverview extends React.Component<Props, State> {
 
     if (this._lastRequest) {
       this._lastRequest.cancel();
+    }
+    if (this._lastStatsRequest) {
+      this._lastStatsRequest.cancel();
     }
 
     this._poller.disable();
@@ -615,6 +660,14 @@ class IssueListOverview extends React.Component<Props, State> {
     const {orgId} = this.props.params;
 
     return `/organizations/${orgId}/issues-stats/`;
+  }
+
+  logInboxExperiment() {
+    const {organization} = this.props;
+    // Only log users in experiment
+    if ([0, 1].includes(organization.experiments?.InboxExperiment!)) {
+      logExperiment({organization, key: 'InboxExperiment'});
+    }
   }
 
   onRealtimeChange = (realtime: boolean) => {
@@ -733,8 +786,16 @@ class IssueListOverview extends React.Component<Props, State> {
       if (!query.cursor && savedSearch.projectId) {
         query.project = [savedSearch.projectId];
       }
+      if (!query.cursor && !newParams.sort && savedSearch.sort) {
+        query.sort = savedSearch.sort;
+      }
     } else {
       path = `/organizations/${organization.slug}/issues/`;
+    }
+
+    // Remove inbox tab specific sort
+    if (query.sort === IssueSortOptions.INBOX && !isForReviewQuery(query.query)) {
+      delete query.sort;
     }
 
     if (
@@ -767,6 +828,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const topIssue = ids[0];
     const {memberList} = this.state;
     const query = this.getQuery();
+    const showInboxTime = this.getSort() === 'inbox';
 
     return ids.map(id => {
       const hasGuideAnchor = id === topIssue;
@@ -793,6 +855,7 @@ class IssueListOverview extends React.Component<Props, State> {
           displayReprocessingLayout={displayReprocessingLayout}
           onMarkReviewed={this.onMarkReviewed}
           useFilteredStats
+          showInboxTime={showInboxTime}
         />
       );
     });
@@ -863,7 +926,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
   onMarkReviewed = (itemIds: string[]) => {
     const query = this.getQuery();
-    if (query !== Query.FOR_REVIEW && query !== Query.FOR_REVIEW_OWNER) {
+    if (!isForReviewQuery(query)) {
       return;
     }
 
@@ -1068,6 +1131,10 @@ class IssueListOverview extends React.Component<Props, State> {
                 )}
               </SidebarContainer>
             </StyledPageContent>
+
+            {hasFeature && isForReviewQuery(query) && (
+              <GuideAnchor target="is_inbox_tab" />
+            )}
           </React.Fragment>
         )}
       </Feature>

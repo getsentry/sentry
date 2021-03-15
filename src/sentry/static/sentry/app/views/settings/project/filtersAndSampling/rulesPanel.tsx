@@ -6,20 +6,25 @@ import ButtonBar from 'app/components/buttonBar';
 import {Panel, PanelFooter} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {DynamicSamplingRule} from 'app/types/dynamicSampling';
 
 import Rules from './rules';
 import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
 
-type Props = {
-  rules: Array<DynamicSamplingRule>;
-  onEditRule: (rule: DynamicSamplingRule) => () => void;
-  onDeleteRule: (rule: DynamicSamplingRule) => () => void;
+type Props = Omit<React.ComponentProps<typeof Rules>, 'emptyMessage'> & {
   onAddRule: () => void;
-  disabled: boolean;
+  isErrorPanel?: boolean;
 };
 
-function RulesPanel({rules, onAddRule, onEditRule, onDeleteRule, disabled}: Props) {
+function RulesPanel({
+  rules,
+  onAddRule,
+  onEditRule,
+  onDeleteRule,
+  disabled,
+  onUpdateRules,
+  isErrorPanel,
+}: Props) {
+  const panelType = isErrorPanel ? t('error') : t('transaction');
   return (
     <Panel>
       <Rules
@@ -27,14 +32,25 @@ function RulesPanel({rules, onAddRule, onEditRule, onDeleteRule, disabled}: Prop
         onEditRule={onEditRule}
         onDeleteRule={onDeleteRule}
         disabled={disabled}
+        onUpdateRules={onUpdateRules}
+        emptyMessage={t('There are no %s rules to display', panelType)}
       />
       <StyledPanelFooter>
         <ButtonBar gap={1}>
           <Button href={DYNAMIC_SAMPLING_DOC_LINK} external>
             {t('Read the docs')}
           </Button>
-          <Button priority="primary" onClick={onAddRule} disabled={disabled}>
-            {t('Add rule')}
+          <Button
+            priority="primary"
+            onClick={onAddRule}
+            disabled={disabled}
+            title={
+              disabled
+                ? t('You do not have permission to add dynamic sampling rules.')
+                : undefined
+            }
+          >
+            {t('Add %s rule', panelType)}
           </Button>
         </ButtonBar>
       </StyledPanelFooter>

@@ -38,6 +38,10 @@ export enum DynamicSamplingInnerOperator {
    * It uses simple equality for checking
    */
   EQUAL = 'eq',
+  /**
+   * Custom Operation
+   */
+  CUSTOM = 'custom',
 }
 
 export enum DynamicSamplingInnerName {
@@ -47,41 +51,77 @@ export enum DynamicSamplingInnerName {
   EVENT_RELEASE = 'event.release',
   EVENT_ENVIRONMENT = 'event.environment',
   EVENT_USER = 'event.user',
-  LEGACY_BROWSERS = 'legacy-browsers',
+  EVENT_LOCALHOST = 'event.is_local_ip',
+  EVENT_WEB_CRAWLERS = 'event.web_crawlers',
+  EVENT_BROWSER_EXTENSIONS = 'event.has_bad_browser_extensions',
+  EVENT_LEGACY_BROWSER = 'event.legacy_browser',
+}
+
+export enum LegacyBrowser {
+  IE_PRE_9 = 'ie_pre_9',
+  IE9 = 'ie9',
+  IE10 = 'ie10',
+  IE11 = 'ie11',
+  SAFARI_PRE_6 = 'safari_pre_6',
+  OPERA_PRE_15 = 'opera_pre_15',
+  OPERA_MINI_PRE_8 = 'opera_mini_pre_8',
+  ANDROID_PRE_4 = 'android_pre_4',
 }
 
 type DynamicSamplingConditionLogicalInnerGlob = {
   op: DynamicSamplingInnerOperator.GLOB_MATCH;
-  name: DynamicSamplingInnerName;
+  name: DynamicSamplingInnerName.EVENT_RELEASE | DynamicSamplingInnerName.TRACE_RELEASE;
   value: Array<string>;
 };
 
 type DynamicSamplingConditionLogicalInnerEq = {
   op: DynamicSamplingInnerOperator.EQUAL;
-  name: DynamicSamplingInnerName;
+  name:
+    | DynamicSamplingInnerName.EVENT_ENVIRONMENT
+    | DynamicSamplingInnerName.TRACE_ENVIRONMENT
+    | DynamicSamplingInnerName.EVENT_USER
+    | DynamicSamplingInnerName.TRACE_USER;
   value: Array<string>;
-  ignoreCase: boolean;
+  options: {
+    ignoreCase: boolean;
+  };
+};
+
+type DynamicSamplingConditionLogicalInnerEqBoolean = {
+  op: DynamicSamplingInnerOperator.EQUAL;
+  name:
+    | DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS
+    | DynamicSamplingInnerName.EVENT_LOCALHOST
+    | DynamicSamplingInnerName.EVENT_WEB_CRAWLERS;
+  value: boolean;
+};
+
+type DynamicSamplingConditionLogicalInnerCustom = {
+  op: DynamicSamplingInnerOperator.CUSTOM;
+  name: DynamicSamplingInnerName.EVENT_LEGACY_BROWSER;
+  value: Array<LegacyBrowser>;
 };
 
 export type DynamicSamplingConditionLogicalInner =
   | DynamicSamplingConditionLogicalInnerGlob
-  | DynamicSamplingConditionLogicalInnerEq;
+  | DynamicSamplingConditionLogicalInnerEq
+  | DynamicSamplingConditionLogicalInnerEqBoolean
+  | DynamicSamplingConditionLogicalInnerCustom;
 
-export type DynamicSamplingConditionNegation = {
-  op: DynamicSamplingConditionOperator.NOT;
-  inner: DynamicSamplingConditionLogicalInner;
-};
-
-export type DynamicSamplingConditionMultiple = {
-  op: DynamicSamplingConditionOperator.AND | DynamicSamplingConditionOperator.OR;
+export type DynamicSamplingCondition = {
+  op: DynamicSamplingConditionOperator.AND;
   inner: Array<DynamicSamplingConditionLogicalInner>;
 };
 
-export type DynamicSamplingCondition =
-  | DynamicSamplingConditionNegation
-  | DynamicSamplingConditionMultiple;
-
 export type DynamicSamplingRule = {
+  /**
+   * This is a unique number within a project
+   */
+  id: number;
+  /**
+   * Describes the type of rule
+   */
+  type: DynamicSamplingRuleType;
   /**
    * It is a possibly empty list of conditions to which the rule applies.
    * The conditions are combined using the and operator (so all the conditions must be satisfied for the rule to apply).
@@ -92,10 +132,6 @@ export type DynamicSamplingRule = {
    * It is the sampling rate that will be applied if the rule is selected
    */
   sampleRate: number;
-  /**
-   * Describes the type of rule
-   */
-  type: DynamicSamplingRuleType;
 };
 
 export type DynamicSamplingRules = Array<DynamicSamplingRule>;

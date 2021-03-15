@@ -1,4 +1,4 @@
-name: development environment
+name: dev env
 on:
   pull_request:
     paths:
@@ -11,42 +11,47 @@ on:
 
 jobs:
   dev-environment:
-    name: python set up
+    name: set up
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 35
     strategy:
       matrix:
-        os: [ macos-11.0 ]
+        # macosx-10.15 is Catalina
+        # macosx-11.0 is Big Sur, however, it takes long for jobs to get started
+        # Using Ubuntu 18 until I figure out this error:
+        # -> ImportError: libffi.so.6: cannot open shared object file: No such file or directory
+        os: [ macos-10.15, macos-11.0, ubuntu-18.04 ]
+      fail-fast: false
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: on
+      # Make the environment more similar to what Mac defaults to
+      SHELL: /bin/zsh
 
     steps:
       - uses: actions/checkout@v2
 
+      - name: Set environment variables & others
+        run: |
+          echo "VOLTA_HOME=$HOME/.volta" >> $GITHUB_ENV
+          echo "PATH=$HOME/.volta/bin:$PATH" >> $GITHUB_ENV
+          touch "$HOME/.zshrc"
+
       - name: Install prerequisites
-        if: ${{ runner.os == 'macOS' }}
-        # Depending on the host watchman will not install (read: intermittent issue),
-        # thus, we mark this as continue-on-error
-        continue-on-error: true
         # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
         # XXX: Can the Brew set up be cached?
+        # Sometimes, brew needs to be updated before brew bundle would work
+        # If you want to speed up the CI for your PR, you can use --no-upgrade and HOMEBREW_NO_AUTO_UPDATE=1
         run: |
-          brew bundle
-
-      - name: Set environment variables
-        shell: bash
-        run: |
-          echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
-          echo "VOLTA_HOME=$HOME/.volta" >> $GITHUB_ENV
-          echo "PATH=$HOME/.pyenv/shims:$HOME/.volta/bin:$PATH" >> $GITHUB_ENV
+          brew bundle || brew update && brew bundle
 
       - name: Install Python (via Pyenv)
         id: python-version
-        shell: bash
-        # XXX: Locally, pyenv makes 3.6.10 be the selected version in use,
-        # however, in here it selects /usr/local/bin/python. I'm using `pyenv global` to work around it
         # XXX: Can we cache the installed Python environments?
+        # We echo to $GITHUB_ENV to make the PATH changes by pyenv init permanent for the rest of the execution
         run: |
           make setup-pyenv
-          pyenv global 3.6.10
+          eval "$(pyenv init -)"
+          echo "PATH=$PATH" >> $GITHUB_ENV
           echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
 
       - name: Setup pip
@@ -59,9 +64,22 @@ jobs:
           path: |
             ${{ steps.pip.outputs.pip-cache-dir }}
             ~/.pyenv
-          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          key: |
+            devenv-${{ matrix.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ hashFiles('requirements-*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
+            devenv-${{ matrix.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - uses: actions/cache@v2
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ matrix.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+          restore-keys: |
+            ${{ matrix.os }}-yarn-
 
       - name: Set up development environment (as per docs)
         run: |

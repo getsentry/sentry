@@ -5,6 +5,7 @@ import {Location} from 'history';
 import Feature from 'app/components/acl/feature';
 import {SectionHeading} from 'app/components/charts/styles';
 import Link from 'app/components/links/link';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import UserMisery from 'app/components/userMisery';
 import {IconOpen} from 'app/icons';
@@ -14,12 +15,13 @@ import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {decodeScalar} from 'app/utils/queryString';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
+import {SidebarSpacer} from 'app/views/performance/transactionSummary/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
-  WEB_VITAL_DETAILS,
 } from 'app/views/performance/transactionVitals/constants';
 import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 
@@ -27,16 +29,16 @@ import VitalInfo from '../vitalDetail/vitalInfo';
 
 type Props = {
   eventView: EventView;
-  totals: Record<string, number>;
+  totals: Record<string, number> | null;
   location: Location;
   organization: Organization;
   transactionName: string;
 };
 
 function UserStats({eventView, totals, location, organization, transactionName}: Props) {
-  let userMisery = <StatNumber>{'\u2014'}</StatNumber>;
+  let userMisery = <Placeholder height="34px" />;
   const threshold = organization.apdexThreshold;
-  let apdex: React.ReactNode = <StatNumber>{'\u2014'}</StatNumber>;
+  let apdex: React.ReactNode = <Placeholder height="24px" />;
   let vitalsPassRate: React.ReactNode = null;
 
   if (totals) {
@@ -64,7 +66,7 @@ function UserStats({eventView, totals, location, organization, transactionName}:
           const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
           if (Number.isFinite(totals[alias])) {
             total += 1;
-            if (totals[alias] < WEB_VITAL_DETAILS[vital].failureThreshold) {
+            if (totals[alias] < WEB_VITAL_DETAILS[vital].poorThreshold) {
               passed += 1;
             }
           }
@@ -86,30 +88,31 @@ function UserStats({eventView, totals, location, organization, transactionName}:
   });
 
   return (
-    <div>
-      <SidebarWrapper>
-        <SectionHeading>
-          {t('Apdex Score')}
-          <QuestionTooltip
-            position="top"
-            title={t(
-              'Apdex is the ratio of both satisfactory and tolerable response time to all response times.'
-            )}
-            size="sm"
-          />
-        </SectionHeading>
-        <StatNumber>{apdex}</StatNumber>
-        <Link to={`/settings/${organization.slug}/performance/`}>
-          <SectionValue>
-            {threshold}ms {t('threshold')}
-          </SectionValue>
-        </Link>
-      </SidebarWrapper>
+    <React.Fragment>
+      <SectionHeading>
+        {t('Apdex Score')}
+        <QuestionTooltip
+          position="top"
+          title={t(
+            'Apdex is the ratio of both satisfactory and tolerable response time to all response times.'
+          )}
+          size="sm"
+        />
+      </SectionHeading>
+      <StatNumber>{apdex}</StatNumber>
+      <Link to={`/settings/${organization.slug}/performance/`}>
+        <SectionValue>
+          {threshold}ms {t('threshold')}
+        </SectionValue>
+      </Link>
+
+      <SidebarSpacer />
+
       <Feature features={['organizations:performance-vitals-overview']}>
         {({hasFeature}) => {
           if (vitalsPassRate !== null && hasFeature) {
             return (
-              <SidebarWrapper>
+              <React.Fragment>
                 <VitalsHeading>
                   <SectionHeading>
                     {t('Web Vitals')}
@@ -133,12 +136,14 @@ function UserStats({eventView, totals, location, organization, transactionName}:
                   hideVitalPercentNames
                   hideDurationDetail
                 />
-              </SidebarWrapper>
+
+                <SidebarSpacer />
+              </React.Fragment>
             );
           } else {
             return (
               vitalsPassRate !== null && (
-                <div>
+                <React.Fragment>
                   <SectionHeading>
                     {t('Web Vitals')}
                     <QuestionTooltip
@@ -153,39 +158,32 @@ function UserStats({eventView, totals, location, organization, transactionName}:
                   <Link to={webVitalsTarget}>
                     <SectionValue>{t('Passed')}</SectionValue>
                   </Link>
-                </div>
+
+                  <SidebarSpacer />
+                </React.Fragment>
               )
             );
           }
         }}
       </Feature>
-      <UserMiseryContainer>
-        <SectionHeading>
-          {t('User Misery')}
-          <QuestionTooltip
-            position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY)}
-            size="sm"
-          />
-        </SectionHeading>
-        {userMisery}
-      </UserMiseryContainer>
-    </div>
+
+      <SectionHeading>
+        {t('User Misery')}
+        <QuestionTooltip
+          position="top"
+          title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY)}
+          size="sm"
+        />
+      </SectionHeading>
+      {userMisery}
+    </React.Fragment>
   );
 }
-
-const SidebarWrapper = styled('div')`
-  margin-bottom: ${space(3)};
-`;
 
 const VitalsHeading = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-`;
-
-const UserMiseryContainer = styled('div')`
-  margin-bottom: ${space(4)};
 `;
 
 const StatNumber = styled('div')`

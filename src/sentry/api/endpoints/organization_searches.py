@@ -1,12 +1,11 @@
 from rest_framework import serializers
 from rest_framework.response import Response
 from django.db.models import Q
-from django.utils import six
 
 from sentry import analytics
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.serializers import serialize
-from sentry.models.savedsearch import SavedSearch
+from sentry.models.savedsearch import SavedSearch, SortOptions
 from sentry.models.search_common import SearchType
 
 
@@ -14,6 +13,9 @@ class OrganizationSearchSerializer(serializers.Serializer):
     type = serializers.IntegerField(required=True)
     name = serializers.CharField(required=True)
     query = serializers.CharField(required=True, min_length=1)
+    sort = serializers.ChoiceField(
+        choices=SortOptions.as_choices(), default=SortOptions.DATE, required=False
+    )
 
 
 class OrganizationSearchesEndpoint(OrganizationEndpoint):
@@ -33,9 +35,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
         try:
             search_type = SearchType(int(request.GET.get("type", 0)))
         except ValueError as e:
-            return Response(
-                {"detail": "Invalid input for `type`. Error: %s" % six.text_type(e)}, status=400
-            )
+            return Response({"detail": "Invalid input for `type`. Error: %s" % str(e)}, status=400)
         org_searches_q = Q(Q(owner=request.user) | Q(owner__isnull=True), organization=organization)
         global_searches_q = Q(is_global=True)
         saved_searches = list(
@@ -82,6 +82,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
                 type=result["type"],
                 name=result["name"],
                 query=result["query"],
+                sort=result["sort"],
             )
             analytics.record(
                 "organization_saved_search.created",

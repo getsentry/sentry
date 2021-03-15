@@ -1,7 +1,4 @@
 from collections import defaultdict
-
-import six
-
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.incidents.models import (
     AlertRule,
@@ -12,8 +9,12 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.snuba.models import SnubaQueryEventType
-
-from sentry.models import Rule
+from sentry.models import (
+    ACTOR_TYPES,
+    actor_type_to_class,
+    actor_type_to_string,
+    Rule,
+)
 from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 
@@ -36,7 +37,6 @@ class AlertRuleSerializer(Serializer):
         alert_rule_projects = AlertRule.objects.filter(
             id__in=[item.id for item in item_list]
         ).values_list("id", "snuba_query__subscriptions__project__slug")
-        alert_rules = {item.id: item for item in item_list}
         for alert_rule_id, project_slug in alert_rule_projects:
             rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
             rule_result.append(project_slug)
@@ -55,6 +55,23 @@ class AlertRuleSerializer(Serializer):
 
             result[alert_rules[rule_activity.alert_rule.id]].update({"created_by": user})
 
+        resolved_actors = {}
+        owners_by_type = defaultdict(list)
+        for item in item_list:
+            if item.owner_id is not None:
+                owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
+
+        for k, v in ACTOR_TYPES.items():
+            resolved_actors[k] = {
+                a.actor_id: a.id
+                for a in actor_type_to_class(v).objects.filter(actor_id__in=owners_by_type[k])
+            }
+
+        for alert_rule in alert_rules.values():
+            if alert_rule.owner_id:
+                type = actor_type_to_string(alert_rule.owner.type)
+                result[alert_rule]["owner"] = f"{type}:{resolved_actors[type][alert_rule.owner_id]}"
+
         return result
 
     def serialize(self, obj, attrs, user):
@@ -62,9 +79,9 @@ class AlertRuleSerializer(Serializer):
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "name": obj.name,
-            "organizationId": six.text_type(obj.organization_id),
+            "organizationId": str(obj.organization_id),
             "status": obj.status,
             "dataset": obj.snuba_query.dataset,
             "query": obj.snuba_query.query,
@@ -80,6 +97,7 @@ class AlertRuleSerializer(Serializer):
             "triggers": attrs.get("triggers", []),
             "projects": sorted(attrs.get("projects", [])),
             "includeAllProjects": obj.include_all_projects,
+            "owner": attrs.get("owner", None),
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
@@ -88,7 +106,7 @@ class AlertRuleSerializer(Serializer):
 
 class DetailedAlertRuleSerializer(AlertRuleSerializer):
     def get_attrs(self, item_list, user, **kwargs):
-        result = super(DetailedAlertRuleSerializer, self).get_attrs(item_list, user, **kwargs)
+        result = super().get_attrs(item_list, user, **kwargs)
         alert_rules = {item.id: item for item in item_list}
         for alert_rule_id, project_slug in AlertRuleExcludedProjects.objects.filter(
             alert_rule__in=item_list
@@ -109,7 +127,7 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         return result
 
     def serialize(self, obj, attrs, user):
-        data = super(DetailedAlertRuleSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         data["excludedProjects"] = sorted(attrs.get("excluded_projects", []))
         data["eventTypes"] = sorted(attrs.get("event_types", []))
         return data
@@ -117,7 +135,7 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
 
 class CombinedRuleSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        results = super(CombinedRuleSerializer, self).get_attrs(item_list, user)
+        results = super().get_attrs(item_list, user)
 
         alert_rules = serialize([x for x in item_list if isinstance(x, AlertRule)], user=user)
         rules = serialize([x for x in item_list if isinstance(x, Rule)], user=user)

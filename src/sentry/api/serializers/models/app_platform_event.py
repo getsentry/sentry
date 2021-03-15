@@ -1,10 +1,9 @@
-import six
 from time import time
 from uuid import uuid4
 from sentry.utils import json
 
 
-class AppPlatformEvent(object):
+class AppPlatformEvent:
     """
     This data structure encapsulates the payload sent to a SentryApp's webhook.
     """
@@ -50,6 +49,6 @@ class AppPlatformEvent(object):
             "Content-Type": "application/json",
             "Request-ID": request_uuid,
             "Sentry-Hook-Resource": self.resource,
-            "Sentry-Hook-Timestamp": six.text_type(int(time())),
+            "Sentry-Hook-Timestamp": str(int(time())),
             "Sentry-Hook-Signature": self.install.sentry_app.build_signature(self.body),
         }

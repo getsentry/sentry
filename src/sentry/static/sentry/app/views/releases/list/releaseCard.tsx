@@ -10,7 +10,7 @@ import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {GlobalSelection, Release} from 'app/types';
+import {GlobalSelection, Organization, Release} from 'app/types';
 
 import ReleaseHealth from './releaseHealth';
 import {DisplayOption} from './utils';
@@ -35,22 +35,24 @@ function getReleaseProjectId(release: Release, selection: GlobalSelection) {
 
 type Props = {
   release: Release;
-  orgSlug: string;
+  organization: Organization;
   activeDisplay: DisplayOption;
   location: Location;
   selection: GlobalSelection;
   reloading: boolean;
   showHealthPlaceholders: boolean;
+  isTopRelease: boolean;
 };
 
 const ReleaseCard = ({
   release,
-  orgSlug,
+  organization,
   activeDisplay,
   location,
   reloading,
   selection,
   showHealthPlaceholders,
+  isTopRelease,
 }: Props) => {
   const {version, commitCount, lastDeploy, dateCreated, versionInfo} = release;
 
@@ -60,9 +62,9 @@ const ReleaseCard = ({
         <ReleaseInfoHeader>
           <GlobalSelectionLink
             to={{
-              pathname: `/organizations/${orgSlug}/releases/${encodeURIComponent(
-                version
-              )}/`,
+              pathname: `/organizations/${
+                organization.slug
+              }/releases/${encodeURIComponent(version)}/`,
               query: {project: getReleaseProjectId(release, selection)},
             }}
           >
@@ -84,12 +86,13 @@ const ReleaseCard = ({
       <ReleaseProjects>
         <ReleaseHealth
           release={release}
-          orgSlug={orgSlug}
+          organization={organization}
           activeDisplay={activeDisplay}
           location={location}
           showPlaceholders={showHealthPlaceholders}
           reloading={reloading}
           selection={selection}
+          isTopRelease={isTopRelease}
         />
       </ReleaseProjects>
     </StyledPanel>
@@ -133,7 +136,7 @@ const ReleaseInfoSubheader = styled('div')`
 
 const PackageName = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 `;
 
 const ReleaseProjects = styled('div')`

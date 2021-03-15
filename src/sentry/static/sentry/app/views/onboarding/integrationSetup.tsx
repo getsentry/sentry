@@ -8,18 +8,23 @@ import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import LoadingError from 'app/components/loadingError';
 import {PlatformKey} from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 import {IntegrationProvider, Organization, Project} from 'app/types';
 import {analytics} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 
 import FirstEventFooter from './components/firstEventFooter';
+import AddInstallationInstructions from './components/integrations/addInstallationInstructions';
+import PostInstallCodeSnippet from './components/integrations/postInstallCodeSnippet';
 import SetupIntroduction from './components/setupIntroduction';
 import {StepProps} from './types';
 
@@ -106,6 +111,19 @@ class IntegrationSetup extends React.Component<Props, State> {
     recordAnalyticsDocsClicked({organization, project, platform});
   };
 
+  trackSwitchToManual = () => {
+    const {organization, integrationSlug} = this.props;
+    trackIntegrationEvent(
+      'integrations.switch_manual_sdk_setup',
+      {
+        integration_type: 'first_party',
+        integration: integrationSlug,
+        view: 'onboarding',
+      },
+      organization
+    );
+  };
+
   handleAddIntegration = () => {
     this.setState({installed: true});
   };
@@ -126,9 +144,9 @@ class IntegrationSetup extends React.Component<Props, State> {
   };
 
   renderIntegrationInstructions() {
-    const {organization} = this.props;
+    const {organization, project} = this.props;
     const {provider} = this.state;
-    if (!provider) {
+    if (!provider || !project) {
       return null;
     }
 
@@ -149,97 +167,53 @@ class IntegrationSetup extends React.Component<Props, State> {
             }
           )}
         </motion.p>
-        <motion.p
+        <motion.div
           variants={{
             initial: {opacity: 0},
             animate: {opacity: 1},
             exit: {opacity: 0},
           }}
         >
-          {tct(
-            'Want to manually install the SDK instead? [link:See SDK instruction docs].',
-            {
-              link: <Button priority="link" href={this.manualSetupUrl} />,
-            }
-          )}
-        </motion.p>
-        <motion.p
-          variants={{
-            initial: {opacity: 0},
-            animate: {opacity: 1},
-            exit: {opacity: 0},
-          }}
-        >
-          {t(
-            'Instrument Sentry without any code changes! Just press the "Add Integration" button below and complete the steps in the popup that opens.'
-          )}
-        </motion.p>
+          <AddInstallationInstructions />
+        </motion.div>
 
         <DocsWrapper>
-          <AddIntegrationButton
-            provider={provider}
-            onAddIntegration={this.handleAddIntegration}
-            organization={organization}
-            priority="primary"
-            size="small"
-            analyticsParams={{view: 'onboarding', already_installed: false}}
-          />
+          <StyledButtonBar gap={1}>
+            <AddIntegrationButton
+              provider={provider}
+              onAddIntegration={this.handleAddIntegration}
+              organization={organization}
+              priority="primary"
+              size="small"
+              analyticsParams={{view: 'onboarding', already_installed: false}}
+              modalParams={{projectId: project.id}}
+            />
+            <Button
+              size="small"
+              to={{
+                pathname: window.location.pathname,
+                query: {manual: '1'},
+              }}
+              onClick={this.trackSwitchToManual}
+            >
+              {t('Manual Setup')}
+            </Button>
+          </StyledButtonBar>
         </DocsWrapper>
       </React.Fragment>
     );
   }
 
-  renderPostInstallText() {
-    const {provider} = this.state;
-    if (!provider) {
-      return null;
-    }
-    //TODO: dyanically determine the snippet based on the language
-    return (
-      <div>
-        <p>
-          {t(
-            "Congrats, you just installed the %s integration! Now that it's is installed, the next time you trigger an error it will go to your Sentry.",
-            provider.name
-          )}
-        </p>
-        <p>
-          {t(
-            'This snippet includes an intentional error, so you can test that everything is working as soon as you set it up:'
-          )}
-        </p>
-        <div>
-          <CodeWrapper>
-            <code>
-              <TokenFunction>myUndefinedFunction</TokenFunction>
-              <TokenPunctuation>();</TokenPunctuation>
-            </code>
-          </CodeWrapper>
-        </div>
-        <p>
-          {t(
-            "If you're new to Sentry, use the email alert to access your account and complete a product tour."
-          )}
-        </p>
-        <p>
-          {t(
-            "If you're an existing user and have disabled alerts, you won't receive this email."
-          )}
-        </p>
-      </div>
-    );
-  }
-
   renderPostInstallInstructions() {
-    const {organization, project} = this.props;
+    const {organization, project, platform} = this.props;
     const {provider} = this.state;
-    if (!project || !provider) {
+    if (!project || !provider || !platform) {
       return null;
     }
     return (
       <React.Fragment>
         {this.renderSetupInstructions()}
-        {this.renderPostInstallText()}
+        <PostInstallCodeSnippet provider={provider} platform={platform} isOnboarding />
         <FirstEventFooter
           project={project}
           organization={organization}
@@ -280,20 +254,6 @@ class IntegrationSetup extends React.Component<Props, State> {
     );
   }
 }
-const CodeWrapper = styled('pre')`
-  padding: 1em;
-  overflow: auto;
-  background: #251f3d;
-  font-size: 15px;
-`;
-
-const TokenFunction = styled('span')`
-  color: #7cc5c4;
-`;
-
-const TokenPunctuation = styled('span')`
-  color: #b3acc1;
-`;
 
 const DocsWrapper = styled(motion.div)``;
 
@@ -302,5 +262,16 @@ DocsWrapper.defaultProps = {
   animate: {opacity: 1, y: 0},
   exit: {opacity: 0},
 };
+
+const StyledButtonBar = styled(ButtonBar)`
+  margin-top: ${space(3)};
+  width: max-content;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: auto;
+    grid-row-gap: ${space(1)};
+    grid-auto-flow: row;
+  }
+`;
 
 export default withOrganization(withApi(IntegrationSetup));

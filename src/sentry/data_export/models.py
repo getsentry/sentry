@@ -59,7 +59,7 @@ class ExportedData(Model):
         date = self.date_added.strftime("%Y-%B-%d")
         export_type = ExportQueryType.as_str(self.query_type)
         # Example: Discover_2020-July-21_27.csv
-        return "{}_{}_{}.csv".format(export_type, date, self.id)
+        return f"{export_type}_{date}_{self.id}.csv"
 
     @staticmethod
     def format_date(date):
@@ -72,7 +72,7 @@ class ExportedData(Model):
 
     def delete(self, *args, **kwargs):
         self.delete_file()
-        super(ExportedData, self).delete(*args, **kwargs)
+        super().delete(*args, **kwargs)
 
     def finalize_upload(self, file, expiration=DEFAULT_EXPIRATION):
         self.delete_file()  # If a file is present, remove it

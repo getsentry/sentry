@@ -1,23 +1,25 @@
 import React from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
 import {withTheme} from 'emotion-theming';
+import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
 import ChartZoom, {ZoomRenderProps} from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import {RELEASE_LINES_THRESHOLD} from 'app/components/charts/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization} from 'app/types';
-import {Series} from 'app/types/echarts';
+import {EChartEventHandler, Series} from 'app/types/echarts';
 import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {HeaderTitleLegend} from 'app/views/performance/styles';
 import {displayCrashFreePercent} from 'app/views/releases/utils';
 import {
   getSessionTermDescription,
@@ -84,16 +86,12 @@ function ProjectStabilityChart({
 
                       onTotalValuesChange(totalSessions);
 
-                      if (totalSessions === 0) {
-                        return <ErrorPanel>{t('No session data')}</ErrorPanel>;
-                      }
-
                       return (
                         <TransitionChart loading={loading} reloading={reloading}>
                           <TransparentLoadingMask visible={reloading} />
 
                           <HeaderTitleLegend>
-                            {t('Crash Free Rate')}
+                            {t('Crash Free Sessions')}
                             <QuestionTooltip
                               size="sm"
                               position="top"
@@ -125,7 +123,7 @@ function ProjectStabilityChart({
             )}
           </ChartZoom>
         ),
-        fixed: t('Crash Free Rate Chart'),
+        fixed: t('Crash Free Sessions Chart'),
       })}
     </React.Fragment>
   );
@@ -140,8 +138,26 @@ type ChartProps = {
   previousTimeSeries?: Series[];
 };
 
-class Chart extends React.Component<ChartProps> {
-  shouldComponentUpdate(nextProps: ChartProps) {
+type ChartState = {
+  seriesSelection: Record<string, boolean>;
+  forceUpdate: boolean;
+};
+
+class Chart extends React.Component<ChartProps, ChartState> {
+  state: ChartState = {
+    seriesSelection: {},
+    forceUpdate: false,
+  };
+
+  shouldComponentUpdate(nextProps: ChartProps, nextState: ChartState) {
+    if (nextState.forceUpdate) {
+      return true;
+    }
+
+    if (!isEqual(this.state.seriesSelection, nextState.seriesSelection)) {
+      return true;
+    }
+
     if (
       nextProps.releaseSeries !== this.props.releaseSeries &&
       !nextProps.reloading &&
@@ -161,8 +177,35 @@ class Chart extends React.Component<ChartProps> {
     return false;
   }
 
+  // inspired by app/components/charts/eventsChart.tsx@handleLegendSelectChanged
+  handleLegendSelectChanged: EChartEventHandler<{
+    name: string;
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }> = ({selected}) => {
+    const seriesSelection = Object.keys(selected).reduce((state, key) => {
+      state[key] = selected[key];
+      return state;
+    }, {});
+
+    // we have to force an update here otherwise ECharts will
+    // update its internal state and disable the series
+    this.setState({seriesSelection, forceUpdate: true}, () =>
+      this.setState({forceUpdate: false})
+    );
+  };
+
   get legend() {
-    const {theme} = this.props;
+    const {theme, releaseSeries} = this.props;
+    const {seriesSelection} = this.state;
+
+    const hideReleasesByDefault =
+      (releaseSeries[0] as any)?.markLine?.data.length >= RELEASE_LINES_THRESHOLD;
+
+    const selected =
+      Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
+        ? {[t('Releases')]: false}
+        : seriesSelection;
 
     return {
       right: 10,
@@ -178,6 +221,8 @@ class Chart extends React.Component<ChartProps> {
         fontSize: 11,
         fontFamily: theme.text.family,
       },
+      data: [t('This Period'), t('Previous Period'), t('Releases')],
+      selected,
     };
   }
 
@@ -193,12 +238,18 @@ class Chart extends React.Component<ChartProps> {
       tooltip: {
         trigger: 'axis' as const,
         truncate: 80,
-        valueFormatter: (value: number) => displayCrashFreePercent(value, 0, 3),
+        valueFormatter: (value: number | null) => {
+          if (value === null) {
+            return '\u2014';
+          }
+
+          return displayCrashFreePercent(value, 0, 3);
+        },
       },
       yAxis: {
         axisLabel: {
           color: theme.gray200,
-          formatter: (value: number) => `${value.toFixed(value === 100 ? 0 : 2)}%`,
+          formatter: (value: number) => displayCrashFreePercent(value),
         },
         scale: true,
         max: 100,
@@ -218,6 +269,8 @@ class Chart extends React.Component<ChartProps> {
           Array.isArray(releaseSeries) ? [...timeSeries, ...releaseSeries] : timeSeries
         }
         previousPeriod={previousTimeSeries}
+        onLegendSelectChanged={this.handleLegendSelectChanged}
+        transformSinglePointToBar
       />
     );
   }

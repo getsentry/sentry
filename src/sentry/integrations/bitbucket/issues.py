@@ -22,16 +22,14 @@ PRIORITIES = (
 class BitbucketIssueBasicMixin(IssueBasicMixin):
     def get_issue_url(self, key):
         repo, issue_id = key.split("#")
-        return "https://bitbucket.org/{}/issues/{}".format(repo, issue_id)
+        return f"https://bitbucket.org/{repo}/issues/{issue_id}"
 
     def get_persisted_default_config_fields(self):
         return ["repo"]
 
     def get_create_issue_config(self, group, user, **kwargs):
         kwargs["link_referrer"] = "bitbucket_integration"
-        fields = super(BitbucketIssueBasicMixin, self).get_create_issue_config(
-            group, user, **kwargs
-        )
+        fields = super().get_create_issue_config(group, user, **kwargs)
         default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
         org = group.organization

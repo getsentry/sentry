@@ -1,4 +1,11 @@
 import click
+
+from django.apps import apps
+from django.core import management, serializers
+from django.db import connection
+
+from io import StringIO
+
 from sentry.runner.decorators import configuration
 
 
@@ -8,10 +15,16 @@ from sentry.runner.decorators import configuration
 def import_(src):
     "Imports data from a Sentry export."
 
-    from django.core import serializers
-
     for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
         obj.save()
+
+    sequence_reset_sql = StringIO()
+
+    for app in apps.get_app_configs():
+        management.call_command("sqlsequencereset", app.label, stdout=sequence_reset_sql)
+
+    with connection.cursor() as cursor:
+        cursor.execute(sequence_reset_sql.getvalue())
 
 
 def sort_dependencies():
@@ -86,7 +99,7 @@ def sort_dependencies():
             raise RuntimeError(
                 "Can't resolve dependencies for %s in serialized app list."
                 % ", ".join(
-                    "%s.%s" % (model._meta.app_label, model._meta.object_name)
+                    f"{model._meta.app_label}.{model._meta.object_name}"
                     for model, deps in sorted(skipped, key=lambda obj: obj[0].__name__)
                 )
             )
@@ -111,8 +124,6 @@ def export(dest, silent, indent, exclude):
     else:
         exclude = exclude.lower().split(",")
 
-    from django.core import serializers
-
     def yield_objects():
         # Collate the objects to be serialized.
         for model in sort_dependencies():
@@ -122,12 +133,11 @@ def export(dest, silent, indent, exclude):
                 or model._meta.proxy
             ):
                 if not silent:
-                    click.echo(">> Skipping model <%s>" % (model.__name__,), err=True)
+                    click.echo(f">> Skipping model <{model.__name__}>", err=True)
                 continue
 
             queryset = model._base_manager.order_by(model._meta.pk.name)
-            for obj in queryset.iterator():
-                yield obj
+            yield from queryset.iterator()
 
     if not silent:
         click.echo(">> Beginning export", err=True)

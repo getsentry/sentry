@@ -85,15 +85,17 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
     );
   }
 
-  const showAddOverlay = !(
-    ['world_map', 'big_number'].includes(displayType) && fields.length === 1
-  );
+  const hideAddYAxisButton =
+    (['world_map', 'big_number'].includes(displayType) && fields.length === 1) ||
+    (['line', 'area', 'stacked_area', 'bar'].includes(displayType) &&
+      fields.length === 3);
 
   return (
     <Field
       data-test-id="y-axis"
       label={t('Y-Axis')}
       inline={false}
+      style={{padding: `16px 0 24px 0`}}
       flexibleControlStateSize
       stacked
       error={errors?.fields}
@@ -115,19 +117,19 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
               borderless
               onClick={event => handleRemove(event, i)}
               icon={<IconDelete />}
-              title={t('Remove this overlay')}
-              label={t('Remove this overlay')}
+              title={t('Remove this Y-Axis')}
+              label={t('Remove this Y-Axis')}
             />
           )}
         </QueryFieldWrapper>
       ))}
-      <div>
-        {showAddOverlay && (
-          <Button size="small" onClick={handleAdd} icon={<IconAdd isCircled />}>
-            {t('Add an overlay')}
+      {!hideAddYAxisButton && (
+        <div>
+          <Button size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
+            {t('Add Overlay')}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </Field>
   );
 }

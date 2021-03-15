@@ -81,7 +81,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     default_project,
     get_test_message,
 ):
-    group_id = "test-consumer-{}".format(random.randint(0, 2 ** 16))
+    group_id = f"test-consumer-{random.randint(0, 2 ** 16)}"
     topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
 
     admin = kafka_admin(settings)
@@ -130,7 +130,7 @@ def test_ingest_consumer_fails_when_not_autocreating_topics(
     kafka_admin,
     requires_kafka,
 ):
-    group_id = "test-consumer-{}".format(random.randint(0, 2 ** 16))
+    group_id = f"test-consumer-{random.randint(0, 2 ** 16)}"
     topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
 
     admin = kafka_admin(settings)

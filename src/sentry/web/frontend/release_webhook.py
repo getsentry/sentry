@@ -1,7 +1,6 @@
 from hashlib import sha256
 import hmac
 import logging
-import six
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -24,24 +23,24 @@ class ReleaseWebhookView(View):
             signature,
             hmac.new(
                 key=token.encode("utf-8"),
-                msg=("{}-{}".format(plugin_id, project_id)).encode("utf-8"),
+                msg=(f"{plugin_id}-{project_id}").encode("utf-8"),
                 digestmod=sha256,
             ).hexdigest(),
         )
 
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
-        return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)
+        return super().dispatch(*args, **kwargs)
 
     def _handle_builtin(self, request, project):
-        endpoint = "/projects/{}/{}/releases/".format(project.organization.slug, project.slug)
+        endpoint = f"/projects/{project.organization.slug}/{project.slug}/releases/"
 
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError as exc:
             return HttpResponse(
                 status=400,
-                content=json.dumps({"error": six.text_type(exc)}),
+                content=json.dumps({"error": str(exc)}),
                 content_type="application/json",
             )
 
@@ -110,7 +109,7 @@ class ReleaseWebhookView(View):
         except HookValidationError as exc:
             return HttpResponse(
                 status=400,
-                content=json.dumps({"error": six.text_type(exc)}),
+                content=json.dumps({"error": str(exc)}),
                 content_type="application/json",
             )
 

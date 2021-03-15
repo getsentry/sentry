@@ -2,11 +2,10 @@ import re
 import time
 import logging
 import random
-import six
 
 from django.conf import settings
 from django.core.cache import cache
-from six.moves.urllib.parse import parse_qsl
+from urllib.parse import parse_qsl
 
 from sentry import http
 from sentry.utils import json
@@ -30,7 +29,7 @@ def is_expired(ts):
     return ts > (time.time() - SOFT_TIMEOUT - random.random() * SOFT_TIMEOUT_FUZZINESS)
 
 
-class Processor(object):
+class Processor:
     def __init__(self, vendor, mapping_url, regex, func):
         self.vendor = vendor
         self.mapping_url = mapping_url
@@ -93,7 +92,7 @@ def process_react_exception(exc, match, mapping):
     args = []
     for k, v in parse_qsl(qs, keep_blank_values=True):
         if k == "args[]":
-            if isinstance(v, six.binary_type):
+            if isinstance(v, bytes):
                 v = v.decode("utf-8", "replace")
             args.append(v)
 
@@ -113,7 +112,7 @@ def rewrite_exception(data):
     """
     rv = False
     for exc in get_path(data, "exception", "values", filter=True, default=()):
-        for processor in six.itervalues(error_processors):
+        for processor in error_processors.values():
             try:
                 if processor.try_process(exc):
                     rv = True

@@ -1,6 +1,7 @@
 import React from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
 import {EChartOption} from 'echarts/lib/echarts';
+import {withTheme} from 'emotion-theming';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -13,18 +14,19 @@ import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import {getInterval} from 'app/components/charts/utils';
+import {getInterval, RELEASE_LINES_THRESHOLD} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {DateString, OrganizationSummary} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {aggregateMultiPlotType} from 'app/utils/discover/fields';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 import EventsRequest from './eventsRequest';
 
 type ChartProps = {
+  theme: Theme;
   loading: boolean;
   reloading: boolean;
   zoomRenderProps: ZoomRenderProps;
@@ -129,6 +131,7 @@ class Chart extends React.Component<ChartProps, State> {
 
   render() {
     const {
+      theme,
       loading: _loading,
       reloading: _reloading,
       yAxis,
@@ -148,16 +151,31 @@ class Chart extends React.Component<ChartProps, State> {
     const {seriesSelection} = this.state;
 
     const data = [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous')];
+
+    const releasesLegend = t('Releases');
     if (Array.isArray(releaseSeries)) {
-      data.push(t('Releases'));
+      data.push(releasesLegend);
     }
+
+    // Temporary fix to improve performance on pages with a high number of releases.
+    const releases = releaseSeries && releaseSeries[0];
+    const hideReleasesByDefault =
+      Array.isArray(releaseSeries) &&
+      (releases as any)?.markLine?.data &&
+      (releases as any).markLine.data.length >= RELEASE_LINES_THRESHOLD;
+
+    const selected = !Array.isArray(releaseSeries)
+      ? seriesSelection
+      : Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
+      ? {[releasesLegend]: false}
+      : seriesSelection;
 
     const legend = showLegend
       ? {
           right: 16,
           top: 12,
           data,
-          selected: seriesSelection,
+          selected,
           ...(legendOptions ?? {}),
         }
       : undefined;
@@ -215,7 +233,9 @@ class Chart extends React.Component<ChartProps, State> {
   }
 }
 
-type Props = {
+const ThemedChart = withTheme(Chart);
+
+export type EventsChartProps = {
   api: Client;
   router: InjectedRouter;
   organization: OrganizationSummary;
@@ -317,7 +337,7 @@ type ChartDataProps = {
   releaseSeries?: Series[];
 };
 
-class EventsChart extends React.Component<Props> {
+class EventsChart extends React.Component<EventsChartProps> {
   render() {
     const {
       api,
@@ -349,6 +369,7 @@ class EventsChart extends React.Component<Props> {
       chartOptions,
       preserveReleaseQueryParams,
       releaseQueryExtra,
+      disableableSeries,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -385,7 +406,7 @@ class EventsChart extends React.Component<Props> {
 
           {React.isValidElement(chartHeader) && chartHeader}
 
-          <Chart
+          <ThemedChart
             zoomRenderProps={zoomRenderProps}
             loading={loading}
             reloading={reloading}
@@ -402,6 +423,7 @@ class EventsChart extends React.Component<Props> {
             colors={colors}
             legendOptions={legendOptions}
             chartOptions={chartOptions}
+            disableableSeries={disableableSeries}
           />
         </TransitionChart>
       );

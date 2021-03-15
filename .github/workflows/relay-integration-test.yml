@@ -9,10 +9,15 @@ on:
 jobs:
   test:
     name: relay test
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
+
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
 
       - name: Check for python file changes
         uses: getsentry/paths-filter@v2
@@ -42,9 +47,10 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+          key: |
+            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry

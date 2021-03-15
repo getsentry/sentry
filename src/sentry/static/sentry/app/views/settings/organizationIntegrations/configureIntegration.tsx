@@ -62,9 +62,8 @@ class ConfigureIntegration extends AsyncView<Props, State> {
       return;
     }
     trackIntegrationEvent(
+      'integrations.details_viewed',
       {
-        eventKey: 'integrations.details_viewed',
-        eventName: 'Integrations: Details Viewed',
         integration: data.provider.key,
         integration_type: 'first_party',
       },
@@ -137,7 +136,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
             saveOnBlur
             allowUndo
             apiMethod="POST"
-            initialData={integration.configData}
+            initialData={integration.configData || {}}
             apiEndpoint={`/organizations/${orgId}/integrations/${integration.id}/`}
           >
             <JsonForm

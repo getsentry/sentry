@@ -148,6 +148,17 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'area',
   },
+  any: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['string', 'integer', 'number', 'duration', 'date', 'boolean'],
+        required: true,
+      },
+    ],
+    outputType: null,
+    isSortable: true,
+  },
   last_seen: {
     parameters: [],
     outputType: 'date',
@@ -385,8 +396,9 @@ enum FieldKey {
   STACK_MODULE = 'stack.module',
   STACK_PACKAGE = 'stack.package',
   STACK_STACK_LEVEL = 'stack.stack_level',
-  TIME = 'time',
   TIMESTAMP = 'timestamp',
+  TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
+  TIMESTAMP_TO_DAY = 'timestamp.to_day',
   TITLE = 'title',
   TRACE = 'trace',
   TRACE_PARENT_SPAN = 'trace.parent_span',
@@ -410,7 +422,10 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   // issue.id and project.id are omitted on purpose.
   // Customers should use `issue` and `project` instead.
   [FieldKey.TIMESTAMP]: 'date',
-  [FieldKey.TIME]: 'date',
+  // time is omitted on purpose.
+  // Customers should use `timestamp` or `timestamp.to_hour`.
+  [FieldKey.TIMESTAMP_TO_HOUR]: 'date',
+  [FieldKey.TIMESTAMP_TO_DAY]: 'date',
 
   [FieldKey.CULPRIT]: 'string',
   [FieldKey.LOCATION]: 'string',
@@ -491,26 +506,6 @@ export const FIELD_TAGS = Object.freeze(
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
-// This list contains fields/functions that are available with performance-view feature.
-export const TRACING_FIELDS = [
-  'avg',
-  'sum',
-  'transaction.duration',
-  'transaction.op',
-  'transaction.status',
-  'p50',
-  'p75',
-  'p95',
-  'p99',
-  'p100',
-  'percentile',
-  'failure_rate',
-  'apdex',
-  'user_misery',
-  'eps',
-  'epm',
-];
-
 export enum WebVital {
   FP = 'measurements.fp',
   FCP = 'measurements.fcp',
@@ -530,6 +525,27 @@ const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
   [WebVital.TTFB]: 'duration',
   [WebVital.RequestTime]: 'duration',
 };
+
+// This list contains fields/functions that are available with performance-view feature.
+export const TRACING_FIELDS = [
+  'avg',
+  'sum',
+  'transaction.duration',
+  'transaction.op',
+  'transaction.status',
+  'p50',
+  'p75',
+  'p95',
+  'p99',
+  'p100',
+  'percentile',
+  'failure_rate',
+  'apdex',
+  'user_misery',
+  'eps',
+  'epm',
+  ...Object.keys(MEASUREMENTS),
+];
 
 export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
 

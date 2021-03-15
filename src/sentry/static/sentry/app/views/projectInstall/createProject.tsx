@@ -2,6 +2,7 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {withTheme} from 'emotion-theming';
 import {PlatformIcon} from 'platformicons';
 import PropTypes from 'prop-types';
 
@@ -13,6 +14,7 @@ import SelectControl from 'app/components/forms/selectControl';
 import PageHeading from 'app/components/pageHeading';
 import PlatformPicker from 'app/components/platformPicker';
 import Tooltip from 'app/components/tooltip';
+import categoryList from 'app/data/platformCategories';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import {inputStyles} from 'app/styles/input';
@@ -21,11 +23,14 @@ import {Organization, Project, Team} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getPlatformName from 'app/utils/getPlatformName';
 import slugify from 'app/utils/slugify';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
+
+const getCategoryName = (category?: string) =>
+  categoryList.find(({id}) => id === category)?.id;
 
 type RuleEventData = {
   eventKey: string;
@@ -37,6 +42,7 @@ type RuleEventData = {
 };
 
 type Props = {
+  theme: Theme;
   api: any;
   organization: Organization;
   teams: Team[];
@@ -81,8 +87,13 @@ class CreateProject extends React.Component<Props, State> {
     };
   }
 
+  get defaultCategory() {
+    const {query} = this.context.location;
+    return getCategoryName(query.category);
+  }
+
   renderProjectForm() {
-    const {organization} = this.props;
+    const {theme, organization} = this.props;
     const {projectName, platform, team} = this.state;
 
     const teams = this.props.teams.filter(filterTeam => filterTeam.hasAccess);
@@ -301,7 +312,12 @@ class CreateProject extends React.Component<Props, State> {
             )}
           </HelpText>
           <PageHeading withMargins>{t('Choose a platform')}</PageHeading>
-          <PlatformPicker platform={platform} setPlatform={this.setPlatform} showOther />
+          <PlatformPicker
+            platform={platform}
+            defaultCategory={this.defaultCategory}
+            setPlatform={this.setPlatform}
+            showOther
+          />
           <IssueAlertOptions
             onChange={updatedData => {
               this.setState({dataFragment: updatedData});
@@ -314,7 +330,7 @@ class CreateProject extends React.Component<Props, State> {
   }
 }
 
-export default withApi(withTeams(withOrganization(CreateProject)));
+export default withApi(withOrganization(withTeams(withTheme(CreateProject))));
 export {CreateProject};
 
 const CreateProjectForm = styled('form')`

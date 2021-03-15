@@ -2,7 +2,6 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 
 import logging
 import time
-import six
 import sentry_sdk
 from datetime import datetime, timedelta
 from hashlib import md5
@@ -44,8 +43,7 @@ def get_search_filter(search_filters, name, operator):
     return found_val
 
 
-@six.add_metaclass(ABCMeta)
-class AbstractQueryExecutor:
+class AbstractQueryExecutor(metaclass=ABCMeta):
     """This class serves as a template for Query Executors.
     We subclass it in order to implement query methods (we use it to implement two classes: joined Postgres+Snuba queries, and Snuba only queries)
     It's used to keep the query logic out of the actual search backend,
@@ -169,9 +167,7 @@ class AbstractQueryExecutor:
         selected_columns = []
         if get_sample:
             query_hash = md5(json.dumps(conditions).encode("utf-8")).hexdigest()[:8]
-            selected_columns.append(
-                ("cityHash64", ("'{}'".format(query_hash), "group_id"), "sample")
-            )
+            selected_columns.append(("cityHash64", (f"'{query_hash}'", "group_id"), "sample"))
             sort_field = "sample"
             orderby = [sort_field]
             referrer = "search_sample"
@@ -179,7 +175,7 @@ class AbstractQueryExecutor:
             # Get the top matching groups by score, i.e. the actual search results
             # in the order that we want them.
             orderby = [
-                "-{}".format(sort_field),
+                f"-{sort_field}",
                 "group_id",
             ]  # ensure stable sort within the same score
             referrer = "search"
@@ -228,10 +224,10 @@ def trend_aggregation(start, end):
     middle = start + timedelta(seconds=(end - start).total_seconds() * 0.5)
     middle = datetime.strftime(middle, DateArg.date_format)
 
-    agg_range_1 = "countIf(greater(toDateTime('{}'), timestamp))".format(middle)
-    agg_range_2 = "countIf(lessOrEquals(toDateTime('{}'), timestamp))".format(middle)
+    agg_range_1 = f"countIf(greater(toDateTime('{middle}'), timestamp))"
+    agg_range_2 = f"countIf(lessOrEquals(toDateTime('{middle}'), timestamp))"
     return [
-        "if(greater({}, 0), divide({}, {}), 0)".format(agg_range_1, agg_range_2, agg_range_1),
+        f"if(greater({agg_range_1}, 0), divide({agg_range_2}, {agg_range_1}), 0)",
         "",
     ]
 
@@ -241,22 +237,20 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
     logger = logging.getLogger("sentry.search.postgressnuba")
     dependency_aggregations = {"priority": ["last_seen", "times_seen"]}
-    postgres_only_fields = set(
-        [
-            "query",
-            "status",
-            "for_review",
-            "assigned_or_suggested",
-            "bookmarked_by",
-            "assigned_to",
-            "unassigned",
-            "linked",
-            "subscribed_by",
-            "active_at",
-            "first_release",
-            "first_seen",
-        ]
-    )
+    postgres_only_fields = {
+        "query",
+        "status",
+        "for_review",
+        "assigned_or_suggested",
+        "bookmarked_by",
+        "assigned_to",
+        "unassigned",
+        "linked",
+        "subscribed_by",
+        "active_at",
+        "first_release",
+        "first_seen",
+    }
     sort_strategies = {
         "date": "last_seen",
         "freq": "times_seen",

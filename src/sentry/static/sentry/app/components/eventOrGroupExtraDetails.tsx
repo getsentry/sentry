@@ -25,6 +25,7 @@ type Props = WithRouterProps<{orgId: string}> & {
   showAssignee?: boolean;
   organization: Organization;
   hasGuideAnchor?: boolean;
+  showInboxTime?: boolean;
 };
 
 function EventOrGroupExtraDetails({
@@ -33,6 +34,7 @@ function EventOrGroupExtraDetails({
   params,
   organization,
   hasGuideAnchor,
+  showInboxTime,
 }: Props) {
   const {
     id,
@@ -52,14 +54,19 @@ function EventOrGroupExtraDetails({
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
   const hasInbox = organization.features.includes('inbox');
+  const inboxReason = inbox && (
+    <InboxReason inbox={inbox} showDateAdded={showInboxTime} />
+  );
 
   return (
     <GroupExtra hasInbox={hasInbox}>
-      {hasInbox && inbox && (
-        <GuideAnchor target="inbox_guide_reason" disabled={!hasGuideAnchor}>
-          <InboxReason inbox={inbox} />
-        </GuideAnchor>
-      )}
+      {hasInbox &&
+        inbox &&
+        (hasGuideAnchor ? (
+          <GuideAnchor target="inbox_guide_reason">{inboxReason}</GuideAnchor>
+        ) : (
+          inboxReason
+        ))}
       {shortId &&
         (hasInbox ? (
           <InboxShortId
@@ -82,7 +89,7 @@ function EventOrGroupExtraDetails({
             }}
           />
         ))}
-      {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
+      {isUnhandled && hasInbox && <UnhandledTag />}
       {!lifetime && !firstSeen && !lastSeen ? (
         <Placeholder height="14px" width="100px" />
       ) : hasInbox ? (

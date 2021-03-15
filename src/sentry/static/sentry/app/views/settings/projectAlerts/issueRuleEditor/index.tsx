@@ -19,11 +19,12 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import LoadingMask from 'app/components/loadingMask';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SelectMembers from 'app/components/selectMembers';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {IconChevron, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Environment, OnboardingTaskKey, Organization, Project} from 'app/types';
+import {Environment, OnboardingTaskKey, Organization, Project, Team} from 'app/types';
 import {
   IssueAlertRule,
   IssueAlertRuleAction,
@@ -33,7 +34,9 @@ import {
 } from 'app/types/alerts';
 import {getDisplayName} from 'app/utils/environment';
 import recreateRoute from 'app/utils/recreateRoute';
+import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
+import withTeams from 'app/utils/withTeams';
 import AsyncView from 'app/views/asyncView';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
@@ -89,11 +92,11 @@ type RuleTaskResponse = {
 type Props = {
   project: Project;
   organization: Organization;
+  teams: Team[];
   onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
-  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   detailedError: null | {
     [key: string]: string[];
   };
@@ -104,6 +107,7 @@ type State = AsyncView['state'] & {
     conditions: IssueAlertRuleConditionTemplate[];
   } | null;
   uuid: null | string;
+  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
 };
 
 function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
@@ -111,8 +115,22 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 }
 
 class IssueRuleEditor extends AsyncView<Props, State> {
+  getTitle() {
+    const {organization, project} = this.props;
+    const {rule} = this.state;
+    const ruleName = rule?.name;
+
+    return routeTitleGen(
+      ruleName ? t('Alert %s', ruleName) : '',
+      organization.slug,
+      false,
+      project?.slug
+    );
+  }
+
   getDefaultState() {
-    return {
+    const {teams} = this.props;
+    const defaultState = {
       ...super.getDefaultState(),
       configs: null,
       detailedError: null,
@@ -120,6 +138,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       environments: [],
       uuid: null,
     };
+    const userTeam = teams.find(({isMember}) => !!isMember);
+    defaultState.rule.owner = userTeam ? `team:${userTeam.id}` : undefined;
+    return defaultState;
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -427,6 +448,23 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }));
   };
 
+  getTeamId = () => {
+    const {rule} = this.state;
+    const owner = rule?.owner ?? '';
+    // ownership follows the format team:<id>, just grab the id
+    return owner.split(':')[1];
+  };
+
+  handleOwnerChange = ({value}: {value?: string; label: string}) => {
+    if (value) {
+      // currently only supporting teams as owners
+      this.handleChange('owner', `team:${value}`);
+    } else {
+      // allow owner to be set to undefined (unassigned option)
+      this.handleChange('owner', value);
+    }
+  };
+
   renderLoading() {
     return this.renderBody();
   }
@@ -442,7 +480,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {project, organization} = this.props;
+    const {project, organization, teams} = this.props;
     const {environments} = this.state;
     const environmentChoices = [
       [ALL_ENVIRONMENTS_KEY, t('All Environments')],
@@ -454,6 +492,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     const environment =
       !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
+
+    const userTeams = new Set(teams.filter(({isMember}) => isMember).map(({id}) => id));
+    const ownerId = rule?.owner?.split(':')[1];
+    const canEdit = ownerId ? userTeams.has(ownerId) : true;
 
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using
@@ -470,12 +512,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               environment,
               frequency: `${frequency}`,
             }}
-            submitDisabled={!hasAccess}
+            submitDisabled={!hasAccess || !canEdit}
             submitLabel={isSavedAlertRule(rule) ? t('Save Rule') : t('Create Alert Rule')}
             extraButton={
               isSavedAlertRule(rule) ? (
                 <Confirm
-                  disabled={!hasAccess}
+                  disabled={!hasAccess || !canEdit}
                   priority="danger"
                   confirmText={t('Delete Rule')}
                   onConfirm={this.handleDeleteRule}
@@ -504,14 +546,32 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   name="environment"
                   choices={environmentChoices}
                   onChange={val => this.handleEnvironmentChange(val)}
-                  disabled={!hasAccess}
+                  disabled={!hasAccess || !canEdit}
                 />
+
+                <Feature features={['organizations:team-alerts-ownership']}>
+                  <StyledField
+                    label={t('Team')}
+                    help={t('The team that owns this alert.')}
+                    disabled={!hasAccess || !canEdit}
+                  >
+                    <SelectMembers
+                      showTeam
+                      project={project}
+                      organization={organization}
+                      value={this.getTeamId()}
+                      onChange={this.handleOwnerChange}
+                      filteredTeamIds={userTeams}
+                      includeUnassigned
+                    />
+                  </StyledField>
+                </Feature>
 
                 <StyledField
                   label={t('Alert name')}
                   help={t('Add a name for this alert')}
                   error={detailedError?.name?.[0]}
-                  disabled={!hasAccess}
+                  disabled={!hasAccess || !canEdit}
                   required
                   stacked
                 >
@@ -580,7 +640,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                       onChange={val =>
                                         this.handleChange('actionMatch', val)
                                       }
-                                      disabled={!hasAccess}
+                                      disabled={!hasAccess || !canEdit}
                                     />
                                   </EmbeddedWrapper>
                                 ),
@@ -601,7 +661,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                             onDeleteRow={this.handleDeleteCondition}
                             organization={organization}
                             project={project}
-                            disabled={!hasAccess}
+                            disabled={!hasAccess || !canEdit}
                             error={
                               this.hasError('conditions') && (
                                 <StyledAlert type="error">
@@ -660,7 +720,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                   flexibleControlStateSize
                                   choices={ACTION_MATCH_CHOICES}
                                   onChange={val => this.handleChange('filterMatch', val)}
-                                  disabled={!hasAccess}
+                                  disabled={!hasAccess || !canEdit}
                                 />
                               </EmbeddedWrapper>
                             ),
@@ -676,7 +736,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                           onDeleteRow={this.handleDeleteFilter}
                           organization={organization}
                           project={project}
-                          disabled={!hasAccess}
+                          disabled={!hasAccess || !canEdit}
                           error={
                             this.hasError('filters') && (
                               <StyledAlert type="error">
@@ -718,7 +778,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                         onDeleteRow={this.handleDeleteAction}
                         organization={organization}
                         project={project}
-                        disabled={!hasAccess}
+                        disabled={!hasAccess || !canEdit}
                         error={
                           this.hasError('actions') && (
                             <StyledAlert type="error">
@@ -746,7 +806,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   required
                   choices={FREQUENCY_CHOICES}
                   onChange={val => this.handleChange('frequency', val)}
-                  disabled={!hasAccess}
+                  disabled={!hasAccess || !canEdit}
                 />
               </PanelBody>
             </Panel>
@@ -757,7 +817,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 }
 
-export default withOrganization(IssueRuleEditor);
+export default withOrganization(withTeams(IssueRuleEditor));
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
 const StyledForm = styled(Form)<Form['props']>`

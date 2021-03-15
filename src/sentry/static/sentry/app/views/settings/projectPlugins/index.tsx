@@ -33,12 +33,10 @@ class ProjectPluginsContainer extends React.Component<Props> {
       plugin => plugin.hasConfiguration && plugin.enabled
     ).length;
     trackIntegrationEvent(
+      'integrations.index_viewed',
       {
-        eventKey: 'integrations.index_viewed',
-        eventName: 'Integrations: Index Page Viewed',
         integrations_installed: installCount,
         view: 'legacy_integrations',
-        project_id: this.props.project.id,
       },
       this.props.organization,
       {startSession: true}
@@ -59,7 +57,7 @@ class ProjectPluginsContainer extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={title} objSlug={orgId} />
+        <SentryDocumentTitle title={title} orgSlug={orgId} />
         <SettingsPageHeader title={title} />
         <PermissionAlert />
 

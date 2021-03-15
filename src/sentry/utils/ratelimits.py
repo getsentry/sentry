@@ -1,5 +1,3 @@
-import six
-
 from sentry import features
 from sentry.app import ratelimiter
 from sentry.utils.hashlib import md5_text
@@ -28,16 +26,14 @@ def for_organization_member_invite(organization, email, user=None, auth=None, co
     limits = (
         ratelimiter.is_limited(
             "members:invite-by-user:{}".format(
-                md5_text(
-                    user.id if user and user.is_authenticated() else six.text_type(auth)
-                ).hexdigest()
+                md5_text(user.id if user and user.is_authenticated() else str(auth)).hexdigest()
             ),
             **config["members:invite-by-user"],
         )
         if (user or auth)
         else None,
         ratelimiter.is_limited(
-            "members:invite-by-org:{}".format(md5_text(organization.id).hexdigest()),
+            f"members:invite-by-org:{md5_text(organization.id).hexdigest()}",
             **config["members:invite-by-org"],
         ),
         ratelimiter.is_limited(

@@ -1,4 +1,3 @@
-import six
 import uuid
 
 from sentry_sdk import Hub
@@ -57,11 +56,11 @@ def get_filter_settings(project):
         filter_settings[filter_id] = settings
 
     if features.has("projects:custom-inbound-filters", project):
-        invalid_releases = project.get_option("sentry:{}".format(FilterTypes.RELEASES))
+        invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}
 
-        error_messages = project.get_option("sentry:{}".format(FilterTypes.ERROR_MESSAGES))
+        error_messages = project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}")
         if error_messages:
             filter_settings["errorMessages"] = {"patterns": error_messages}
 
@@ -155,7 +154,7 @@ def get_project_config(project, full_config=True, project_keys=None):
     return ProjectConfig(project, **cfg)
 
 
-class _ConfigBase(object):
+class _ConfigBase:
     """
     Base class for configuration objects
 
@@ -176,7 +175,7 @@ class _ConfigBase(object):
     def __init__(self, **kwargs):
         data = {}
         object.__setattr__(self, "data", data)
-        for (key, val) in six.iteritems(kwargs):
+        for (key, val) in kwargs.items():
             if val is not None:
                 data[key] = val
 
@@ -200,7 +199,7 @@ class _ConfigBase(object):
         data = self.__get_data()
         return {
             key: value.to_dict() if isinstance(value, _ConfigBase) else value
-            for (key, value) in six.iteritems(data)
+            for (key, value) in data.items()
         }
 
     def to_json_string(self):
@@ -255,10 +254,10 @@ class _ConfigBase(object):
         try:
             return utils.json.dumps(self.to_dict(), sort_keys=True)
         except Exception as e:
-            return "Content Error:{}".format(e)
+            return f"Content Error:{e}"
 
     def __repr__(self):
-        return "({0}){1}".format(self.__class__.__name__, self)
+        return f"({self.__class__.__name__}){self}"
 
 
 class ProjectConfig(_ConfigBase):
@@ -269,7 +268,7 @@ class ProjectConfig(_ConfigBase):
     def __init__(self, project, **kwargs):
         object.__setattr__(self, "project", project)
 
-        super(ProjectConfig, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 def _load_filter_settings(flt, project):
@@ -283,7 +282,7 @@ def _load_filter_settings(flt, project):
         default options for the filter will be returned
     """
     filter_id = flt.id
-    filter_key = "filters:{}".format(filter_id)
+    filter_key = f"filters:{filter_id}"
     setting = project.get_option(filter_key)
 
     return _filter_option_to_config_setting(flt, setting)
@@ -299,7 +298,7 @@ def _filter_option_to_config_setting(flt, setting):
     """
     if setting is None:
         raise ValueError(
-            "Could not find filter state for filter {0}."
+            "Could not find filter state for filter {}."
             " You need to register default filter state in projectoptions.defaults.".format(flt.id)
         )
 

@@ -12,6 +12,8 @@ import {
   getVitalDetailTablePoorStatusFunction,
   vitalNameFromLocation,
 } from './vitalDetail/utils';
+import {FilterViews} from './landing';
+import {getCurrentPerformanceView} from './utils';
 
 export const DEFAULT_STATS_PERIOD = '24h';
 
@@ -83,6 +85,7 @@ export function getAxisOptions(organization: LightWeightOrganization): TooltipOp
 
 export type AxisOption = TooltipOption & {
   field: string;
+  label: string;
   isDistribution?: boolean;
   isLeftDefault?: boolean;
   isRightDefault?: boolean;
@@ -462,7 +465,11 @@ function generateFrontendOtherPerformanceEventView(
 
 export function generatePerformanceEventView(organization, location, projects) {
   const eventView = generateGenericPerformanceEventView(organization, location);
-  if (!organization.features.includes('performance-landing-v2')) {
+  const currentPerformanceView = getCurrentPerformanceView(location);
+  if (
+    !organization.features.includes('performance-landing-v2') ||
+    currentPerformanceView === FilterViews.TRENDS
+  ) {
     return eventView;
   }
 

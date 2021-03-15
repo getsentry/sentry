@@ -10,6 +10,7 @@ import ErrorRobot from 'app/components/errorRobot';
 import StreamGroup from 'app/components/stream/group';
 import GroupStore from 'app/stores/groupStore';
 import TagStore from 'app/stores/tagStore';
+import {logExperiment} from 'app/utils/analytics';
 import * as parseLinkHeader from 'app/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
 
@@ -20,6 +21,7 @@ jest.mock('app/components/stream/group', () => jest.fn(() => null));
 jest.mock('app/views/issueList/noGroupsHandler/congratsRobots', () =>
   jest.fn(() => null)
 );
+jest.mock('app/utils/analytics');
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -144,6 +146,7 @@ describe('IssueList', function () {
   });
 
   afterEach(function () {
+    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     if (wrapper) {
       wrapper.unmount();
@@ -369,6 +372,7 @@ describe('IssueList', function () {
             isPinned: false,
             isGlobal: true,
             query: 'assigned:me',
+            sort: 'priority',
             projectId: null,
             type: 0,
           }),
@@ -384,7 +388,9 @@ describe('IssueList', function () {
         expect.anything(),
         expect.objectContaining({
           // Should be called with default query
-          data: expect.stringContaining('assigned%3Ame'),
+          data:
+            expect.stringContaining('assigned%3Ame') &&
+            expect.stringContaining('sort=priority'),
         })
       );
 
@@ -500,7 +506,7 @@ describe('IssueList', function () {
       wrapper.update();
 
       wrapper.find('IssueListSortOptions DropdownButton').simulate('click');
-      wrapper.find('IssueListSortOptions MenuItem span').at(3).simulate('click');
+      wrapper.find('DropdownItem').at(3).find('MenuItem span').at(1).simulate('click');
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -1086,7 +1092,7 @@ describe('IssueList', function () {
         projectId: 99,
         query: 'foo:bar',
       };
-      instance.transitionTo(null, savedSearch);
+      instance.transitionTo(undefined, savedSearch);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/searches/123/',
@@ -1098,6 +1104,26 @@ describe('IssueList', function () {
       });
     });
 
+    it('transitions to saved search with a sort', function () {
+      savedSearch = {
+        id: 123,
+        project: null,
+        query: 'foo:bar',
+        sort: 'freq',
+      };
+      instance.transitionTo(undefined, savedSearch);
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/searches/123/',
+        query: {
+          environment: [],
+          project: [parseInt(project.id, 10)],
+          statsPeriod: '14d',
+          sort: savedSearch.sort,
+        },
+      });
+    });
+
     it('goes to all projects when using a basic saved search and global-views feature', function () {
       organization.features = ['global-views'];
       savedSearch = {
@@ -1105,7 +1131,7 @@ describe('IssueList', function () {
         project: null,
         query: 'is:unresolved',
       };
-      instance.transitionTo(null, savedSearch);
+      instance.transitionTo(undefined, savedSearch);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/searches/1/',
@@ -1124,7 +1150,7 @@ describe('IssueList', function () {
         projectId: null,
         query: 'is:unresolved',
       };
-      instance.transitionTo(null, savedSearch);
+      instance.transitionTo(undefined, savedSearch);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/searches/1/',
@@ -1648,8 +1674,10 @@ describe('IssueList', function () {
     const parseLinkHeaderSpy = jest.spyOn(parseLinkHeader, 'default');
     it('renders inbox layout', function () {
       organization.features = ['inbox'];
+      organization.experiments = {InboxExperiment: 1};
       wrapper = mountWithTheme(<IssueListOverview {...props} />);
       expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
+      expect(logExperiment).toHaveBeenCalledTimes(1);
     });
 
     it('displays a count that represents the current page', function () {

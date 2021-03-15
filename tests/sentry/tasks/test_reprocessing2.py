@@ -80,7 +80,7 @@ def test_basic(
     def event_preprocessor(data):
         tags = data.setdefault("tags", [])
         assert all(not x or x[0] != "processing_counter" for x in tags)
-        tags.append(("processing_counter", "x{}".format(len(abs_count))))
+        tags.append(("processing_counter", f"x{len(abs_count)}"))
         abs_count.append(None)
 
         if change_groups:

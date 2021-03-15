@@ -1,7 +1,7 @@
 from time import time
 
 
-class FunctionWrapper(object):
+class FunctionWrapper:
     def __init__(self, collector):
         self.collector = collector
 

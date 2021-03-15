@@ -2,9 +2,10 @@ import React from 'react';
 
 import {GuidesContent} from 'app/components/assistant/types';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import {t, tct} from 'app/locale';
 
-export default function getGuidesContent(): GuidesContent {
+export default function getGuidesContent(orgSlug: string | null): GuidesContent {
   return [
     {
       guide: 'issue',
@@ -40,7 +41,7 @@ export default function getGuidesContent(): GuidesContent {
           description: tct(
             `You've got a lot of Issues. That's fine. Use the Issue number in your commit message,
                 and we'll automatically resolve the Issue when your code is deployed. [link:Learn more]`,
-            {link: <ExternalLink href="https://docs.sentry.io/learn/releases/" />}
+            {link: <ExternalLink href="https://docs.sentry.io/product/releases/" />}
           ),
         },
         {
@@ -51,7 +52,9 @@ export default function getGuidesContent(): GuidesContent {
                 Define who is responsible for what, so alerts reach the right people and your
                 devices stay on dry land. [link:Learn more]`,
             {
-              link: <ExternalLink href="https://docs.sentry.io/learn/issue-owners/" />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
+              ),
             }
           ),
         },
@@ -93,7 +96,7 @@ export default function getGuidesContent(): GuidesContent {
             determined by stack trace and other factors. [link:Learn more].`,
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/data-management/rollups/" />
+                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/data-management/event-grouping/" />
               ),
             }
           ),
@@ -116,11 +119,7 @@ export default function getGuidesContent(): GuidesContent {
     },
     {
       guide: 'for_review_guide',
-      requiredTargets: [
-        'for_review_guide_tab',
-        'inbox_guide_reason',
-        'inbox_guide_issue',
-      ],
+      requiredTargets: ['for_review_guide_tab', 'inbox_guide_reason', 'is_inbox_tab'],
       steps: [
         {
           target: 'for_review_guide_tab',
@@ -149,12 +148,63 @@ export default function getGuidesContent(): GuidesContent {
           cantDismiss: true,
         },
         {
-          target: 'inbox_guide_issue',
+          target: 'for_review_guide_tab',
           description: t(
             `Everything is automatically reviewed after seven days, preventing
             issues from piling up and you from losing your damn mind.`
           ),
           nextText: t(`Make It Stop Already`),
+        },
+      ],
+    },
+    {
+      guide: 'assigned_or_suggested_guide',
+      requiredTargets: ['assigned_or_suggested_query'],
+      steps: [
+        {
+          target: 'assigned_or_suggested_query',
+          description: tct(
+            "Tip: use [assignedOrSuggested] to include search results based on your [ownership:ownership rules] and [committed:code you've committed].",
+            {
+              assignedOrSuggested: <code>assigned_or_suggested</code>,
+              ownership: (
+                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
+              ),
+              committed: (
+                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/guides/integrate-frontend/configure-scms/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+    {
+      guide: 'alerts_write_owner',
+      requiredTargets: ['alerts_write_owner'],
+      steps: [
+        {
+          target: 'alerts_write_owner',
+          description: tct(
+            `Today only admins in your organization can create alert rules but we recommend [link:allowing members to create alerts], too.`,
+            {
+              link: <Link to={orgSlug ? `/settings/${orgSlug}` : `/settings`} />,
+            }
+          ),
+          nextText: t(`Allow`),
+          hasNextGuide: true,
+        },
+      ],
+    },
+    {
+      guide: 'release_adoption',
+      requiredTargets: ['release_adoption'],
+      steps: [
+        {
+          title: t('Recalculating Adoption'),
+          target: 'release_adoption',
+          description: t(
+            `Adoption now compares the sessions or users of a release with the total sessions or users for this project in the last 24 hours.`
+          ),
         },
       ],
     },

@@ -4,27 +4,35 @@ import {Location} from 'history';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import NotFound from 'app/components/errors/notFound';
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import EventMetadata from 'app/components/events/eventMetadata';
+import EventVitals from 'app/components/events/eventVitals';
 import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
-import RealUserMonitoring from 'app/components/events/realUserMonitoring';
 import RootSpanStatus from 'app/components/events/rootSpanStatus';
+import FileSize from 'app/components/fileSize';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingError from 'app/components/loadingError';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import TagsTable from 'app/components/tagsTable';
+import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {Event, EventTag} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
+import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
+import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
 import {appendTagCondition, decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {getTransactionDetailsUrl} from '../utils';
+
+import EventMetas from './eventMetas';
 
 type Props = {
   organization: Organization;
@@ -112,7 +120,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const transactionName = event.title;
     const query = decodeScalar(location.query.query, '');
 
-    return (
+    const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
+
+    const renderContent = (results?: QuickTraceQueryChildrenProps) => (
       <React.Fragment>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -125,12 +135,30 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <Button onClick={this.toggleSidebar}>
-              {isSidebarVisible ? 'Hide Details' : 'Show Details'}
-            </Button>
+            <ButtonBar gap={1}>
+              <Button onClick={this.toggleSidebar}>
+                {isSidebarVisible ? 'Hide Details' : 'Show Details'}
+              </Button>
+              {results && (
+                <Button icon={<IconOpen />} href={eventJsonUrl} external>
+                  {t('JSON')} (<FileSize bytes={event.size} />)
+                </Button>
+              )}
+            </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
+          {results && (
+            <Layout.Main fullWidth>
+              <EventMetas
+                quickTrace={results}
+                event={event}
+                organization={organization}
+                projectId={this.projectId}
+                location={location}
+              />
+            </Layout.Main>
+          )}
           <Layout.Main fullWidth={!isSidebarVisible}>
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
@@ -146,34 +174,55 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     },
                   }}
                 >
-                  <BorderlessEventEntries
-                    organization={organization}
-                    event={event}
-                    project={projects[0] as Project}
-                    showExampleCommit={false}
-                    showTagSummary={false}
-                    location={location}
-                  />
+                  <QuickTraceContext.Provider value={results}>
+                    <BorderlessEventEntries
+                      organization={organization}
+                      event={event}
+                      project={projects[0] as Project}
+                      showExampleCommit={false}
+                      showTagSummary={false}
+                      location={location}
+                      api={this.api}
+                    />
+                  </QuickTraceContext.Provider>
                 </SpanEntryContext.Provider>
               )}
             </Projects>
           </Layout.Main>
           {isSidebarVisible && (
             <Layout.Side>
-              <EventMetadata
-                event={event}
-                organization={organization}
-                projectId={this.projectId}
-              />
-              <RootSpanStatus event={event} />
-              <OpsBreakdown event={event} />
-              <RealUserMonitoring event={event} />
+              {results === undefined && (
+                <React.Fragment>
+                  <EventMetadata
+                    event={event}
+                    organization={organization}
+                    projectId={this.projectId}
+                  />
+                  <RootSpanStatus event={event} />
+                  <OpsBreakdown event={event} />
+                </React.Fragment>
+              )}
+              <EventVitals event={event} />
               <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
             </Layout.Side>
           )}
         </Layout.Body>
       </React.Fragment>
     );
+
+    const hasQuickTraceView =
+      organization.features.includes('trace-view-quick') ||
+      organization.features.includes('trace-view-summary');
+
+    if (hasQuickTraceView) {
+      return (
+        <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
+          {results => renderContent(results)}
+        </QuickTraceQuery>
+      );
+    }
+
+    return renderContent();
   }
 
   renderError(error: Error) {
@@ -202,7 +251,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return (
       <SentryDocumentTitle
         title={t('Performance - Event Details')}
-        objSlug={organization.slug}
+        orgSlug={organization.slug}
       >
         {super.renderComponent()}
       </SentryDocumentTitle>

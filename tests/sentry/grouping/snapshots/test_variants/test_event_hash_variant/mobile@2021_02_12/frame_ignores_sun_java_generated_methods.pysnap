@@ -1,0 +1,37 @@
+---
+created: '2021-03-08T16:39:06.865518Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-max:
+  hash: null
+  component:
+    app-depth-max (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          module* (removed reflection marker)
+            "sun.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+        frame (non app frame)
+          module* (removed reflection marker)
+            "jdk.internal.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+system:
+  hash: "9bc326575875422d0d4ced3c35d9f916"
+  tree_label: "invoke"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (removed reflection marker)
+            "sun.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+        frame*
+          module* (removed reflection marker)
+            "jdk.internal.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"

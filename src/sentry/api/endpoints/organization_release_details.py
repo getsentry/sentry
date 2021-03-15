@@ -1,4 +1,3 @@
-import six
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
@@ -17,7 +16,6 @@ from sentry.models.release import UnsafeReleaseDeletion
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.api.endpoints.organization_releases import get_stats_period_detail
 from sentry.utils.sdk import configure_scope, bind_organization_context
-from sentry.web.decorators import transaction_start
 
 
 class OrganizationReleaseSerializer(ReleaseSerializer):
@@ -28,7 +26,6 @@ class OrganizationReleaseSerializer(ReleaseSerializer):
 
 
 class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
-    @transaction_start("OrganizationReleaseDetailsEndpoint.get")
     def get(self, request, organization, version):
         """
         Retrieve an Organization's Release
@@ -75,7 +72,6 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, Relea
             )
         )
 
-    @transaction_start("OrganizationReleaseDetailsEndpoint.put")
     def put(self, request, organization, version):
         """
         Update an Organization's Release
@@ -183,7 +179,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, Relea
                     release.set_refs(refs, request.user, fetch=fetch_commits)
                 except InvalidRepository as e:
                     scope.set_tag("failure_reason", "InvalidRepository")
-                    return Response({"refs": [six.text_type(e)]}, status=400)
+                    return Response({"refs": [str(e)]}, status=400)
 
             if not was_released and release.date_released:
                 for project in projects:
@@ -197,7 +193,6 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, Relea
 
             return Response(serialize(release, request.user))
 
-    @transaction_start("OrganizationReleaseDetailsEndpoint.delete")
     def delete(self, request, organization, version):
         """
         Delete an Organization's Release
@@ -221,6 +216,6 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, Relea
         try:
             release.safe_delete()
         except UnsafeReleaseDeletion as e:
-            return Response({"detail": six.text_type(e)}, status=400)
+            return Response({"detail": str(e)}, status=400)
 
         return Response(status=204)

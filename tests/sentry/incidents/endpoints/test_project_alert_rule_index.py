@@ -109,6 +109,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 },
             ],
             "projects": [self.project.slug],
+            "owner": self.user.id,
             "name": "JustAValidTestRule",
         }
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -181,6 +182,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 },
             ],
             "projects": [self.project.slug],
+            "owner": self.user.id,
             "name": "JustAValidTestRule",
         }
         with self.feature(["organizations:incidents"]):
@@ -193,6 +195,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "organization_id": self.organization.id,
             "uuid": "abc123",
             "data": valid_alert_rule,
+            "user_id": self.user.id,
         }
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 

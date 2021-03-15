@@ -1,10 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
@@ -15,16 +17,17 @@ import {Organization} from 'app/types';
 import {Series} from 'app/types/echarts';
 import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
-import theme from 'app/utils/theme';
+import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
+import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
+import {Theme} from 'app/utils/theme';
 
-import {computeBuckets, formatHistogramData} from '../../charts/utils';
-import {DoubleHeaderContainer, HeaderTitleLegend} from '../../styles';
-import HistogramQuery from '../../transactionVitals/histogramQuery';
+import {DoubleHeaderContainer} from '../../styles';
 
 const NUM_BUCKETS = 50;
 const PRECISION = 0;
 
 type Props = {
+  theme: Theme;
   location: Location;
   organization: Organization;
   eventView: EventView;
@@ -36,6 +39,7 @@ type Props = {
 
 export function HistogramChart(props: Props) {
   const {
+    theme,
     location,
     onFilterChange,
     organization,
@@ -166,4 +170,4 @@ const MaskContainer = styled('div')`
   position: relative;
 `;
 
-export default HistogramChart;
+export default withTheme(HistogramChart);

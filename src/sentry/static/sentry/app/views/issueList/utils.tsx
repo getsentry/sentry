@@ -38,8 +38,7 @@ export function getTabs(organization: Organization) {
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
-        tooltipTitle: t(`All unresolved issues, including those that need review.
-        If an issue doesn’t occur for seven days it’s automatically resolved.`),
+        tooltipTitle: t(`All unresolved issues, including those that need review.`),
       },
     ],
     [
@@ -49,7 +48,7 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: organization.features.includes('inbox-owners-query'),
-        tooltipTitle: t(`New and reopened issues. You can review, ignore, or resolve
+        tooltipTitle: t(`New and reopened issues that you can review, ignore, or resolve
         to move them out of this list. After seven days these issues are
         automatically marked as reviewed.`),
       },
@@ -61,7 +60,7 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: !organization.features.includes('inbox-owners-query'),
-        tooltipTitle: t(`New and reopened issues. You can review, ignore, or resolve
+        tooltipTitle: t(`New and reopened issues that you can review, ignore, or resolve
         to move them out of this list. After seven days these issues are
         automatically marked as reviewed.`),
       },
@@ -109,6 +108,13 @@ export function getTabsWithCounts(organization: Organization) {
   return tabs.filter(([_query, tab]) => tab.count).map(([query]) => query);
 }
 
+export function isForReviewQuery(query: string | undefined) {
+  return (
+    query !== undefined &&
+    (query === Query.FOR_REVIEW || query === Query.FOR_REVIEW_OWNER)
+  );
+}
+
 // the tab counts will look like 99+
 export const TAB_MAX_COUNT = 99;
 
@@ -118,3 +124,33 @@ type QueryCount = {
 };
 
 export type QueryCounts = Partial<Record<Query, QueryCount>>;
+
+export enum IssueSortOptions {
+  DATE = 'date',
+  NEW = 'new',
+  PRIORITY = 'priority',
+  FREQ = 'freq',
+  USER = 'user',
+  TREND = 'trend',
+  INBOX = 'inbox',
+}
+
+export function getSortLabel(key: string) {
+  switch (key) {
+    case IssueSortOptions.NEW:
+      return t('First Seen');
+    case IssueSortOptions.PRIORITY:
+      return t('Priority');
+    case IssueSortOptions.FREQ:
+      return t('Events');
+    case IssueSortOptions.USER:
+      return t('Users');
+    case IssueSortOptions.TREND:
+      return t('Relative Change');
+    case IssueSortOptions.INBOX:
+      return t('Date Added');
+    case IssueSortOptions.DATE:
+    default:
+      return t('Last Seen');
+  }
+}

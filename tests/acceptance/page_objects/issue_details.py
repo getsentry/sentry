@@ -78,9 +78,13 @@ class IssueDetailsPage(BasePage):
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
-        self.browser.wait_until_test_id("event-entries")
+        self.browser.wait_until_test_id("event-entries-loading-false")
         self.browser.wait_until_test_id("linked-issues")
         self.browser.wait_until_test_id("loaded-device-name")
         if self.browser.element_exists("#grouping-info"):
             self.browser.wait_until_test_id("loaded-grouping-info")
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+
+    def mark_reviewed(self):
+        self.browser.click('[aria-label="Mark Reviewed"]')
+        self.browser.wait_until('.disabled[aria-label="Mark Reviewed"]')

@@ -1,6 +1,6 @@
-import six
-
 from django.db.models import Q
+from django.db.models.query import EmptyQuerySet
+from rest_framework.exceptions import AuthenticationFailed
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
@@ -45,13 +45,15 @@ class ProjectIndexEndpoint(Endpoint):
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
             if request.user.is_sentry_app:
                 queryset = SentryAppInstallationToken.get_projects(request.auth)
+                if isinstance(queryset, EmptyQuerySet):
+                    raise AuthenticationFailed("Token not found")
             else:
                 queryset = queryset.filter(teams__organizationmember__user=request.user)
 
         query = request.GET.get("query")
         if query:
             tokens = tokenize_query(query)
-            for key, value in six.iteritems(tokens):
+            for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))

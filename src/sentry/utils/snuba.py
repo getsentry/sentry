@@ -2,13 +2,15 @@ from collections import namedtuple, OrderedDict
 from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
+from hashlib import sha1
+from operator import itemgetter
+
 from dateutil.parser import parse as parse_datetime
 import logging
 import functools
 import os
 import pytz
 import re
-import six
 import time
 import urllib3
 import sentry_sdk
@@ -16,9 +18,9 @@ from sentry_sdk import Hub
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
-from six.moves.urllib.parse import urlparse
+from django.core.cache import cache
+from urllib.parse import urlparse
 
-from sentry import quotas
 from sentry.models import (
     Environment,
     Group,
@@ -31,7 +33,7 @@ from sentry.models import (
 )
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_timestamp, outside_retention_with_modified_start
 from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
 from sentry.utils.compat import map
@@ -241,7 +243,7 @@ def timer(name, prefix="snuba.client"):
     try:
         yield
     finally:
-        metrics.timing("{}.{}".format(prefix, name), time.time() - t)
+        metrics.timing(f"{prefix}.{name}", time.time() - t)
 
 
 @contextmanager
@@ -286,13 +288,13 @@ class RetrySkipTimeout(urllib3.Retry):
         immediately give up
         """
         if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
-            raise six.reraise(type(error), error, _stacktrace)
+            raise error.with_traceback(_stacktrace)
 
         metrics.incr(
             "snuba.client.retry",
             tags={"method": method, "path": urlparse(url).path if url else None},
         )
-        return super(RetrySkipTimeout, self).increment(
+        return super().increment(
             method=method,
             url=url,
             response=response,
@@ -335,7 +337,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     the column is assumed to be a tag. If name is falsy or name is a quoted literal
     (e.g. "'name'"), leave unchanged.
     """
-    no_conversion = set(["group_id", "project_id", "start", "end"])
+    no_conversion = {"group_id", "project_id", "start", "end"}
 
     if name in no_conversion:
         return name
@@ -345,9 +347,9 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
 
     measurement_name = get_measurement_name(name)
     if "measurements_key" in DATASETS[dataset] and measurement_name:
-        default = "measurements[{}]".format(measurement_name)
+        default = f"measurements[{measurement_name}]"
     else:
-        default = "tags[{}]".format(name)
+        default = f"tags[{name}]"
 
     return DATASETS[dataset].get(name, default)
 
@@ -375,9 +377,7 @@ def get_function_index(column_expr, depth=0):
         while i < len(column_expr) - 1:
             # The assumption here is that a list that follows a string means
             # the string is a function name
-            if isinstance(column_expr[i], six.string_types) and isinstance(
-                column_expr[i + 1], (tuple, list)
-            ):
+            if isinstance(column_expr[i], str) and isinstance(column_expr[i + 1], (tuple, list)):
                 assert SAFE_FUNCTION_RE.match(column_expr[i])
                 index = i
                 break
@@ -500,20 +500,18 @@ def _prepare_query_params(query_params):
 
     query_params.kwargs.update(params_to_update)
 
-    for col, keys in six.iteritems(forward(deepcopy(query_params.filter_keys))):
+    for col, keys in forward(deepcopy(query_params.filter_keys)).items():
         if keys:
             if len(keys) == 1 and None in keys:
                 query_params.conditions.append((col, "IS NULL", None))
             else:
                 query_params.conditions.append((col, "IN", keys))
 
-    retention = quotas.get_event_retention(organization=Organization(organization_id))
-    if retention:
-        start = max(start, datetime.utcnow() - timedelta(days=retention))
-        if start > end:
-            raise QueryOutsideRetentionError(
-                "Invalid date range. Please try a more recent date range."
-            )
+    expired, start = outside_retention_with_modified_start(
+        start, end, Organization(organization_id)
+    )
+    if expired:
+        raise QueryOutsideRetentionError("Invalid date range. Please try a more recent date range.")
 
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
@@ -542,13 +540,13 @@ def _prepare_query_params(query_params):
             "granularity": query_params.rollup,  # TODO name these things the same
         }
     )
-    kwargs = {k: v for k, v in six.iteritems(query_params.kwargs) if v is not None}
+    kwargs = {k: v for k, v in query_params.kwargs.items() if v is not None}
 
     kwargs.update(OVERRIDE_OPTIONS)
     return kwargs, forward, reverse
 
 
-class SnubaQueryParams(object):
+class SnubaQueryParams:
     """
     Represents the information needed to make a query to Snuba.
 
@@ -618,6 +616,7 @@ def raw_query(
     rollup=None,
     referrer=None,
     is_grouprelease=False,
+    use_cache=False,
     **kwargs,
 ):
     """
@@ -636,54 +635,69 @@ def raw_query(
         is_grouprelease=is_grouprelease,
         **kwargs,
     )
-    return bulk_raw_query([snuba_params], referrer=referrer)[0]
+    return bulk_raw_query([snuba_params], referrer=referrer, use_cache=use_cache)[0]
 
 
-def bulk_raw_query(snuba_param_list, referrer=None):
+def bulk_raw_query(snuba_param_list, referrer=None, use_cache=False):
     headers = {}
     if referrer:
         headers["referer"] = referrer
 
-    query_param_list = map(_prepare_query_params, snuba_param_list)
+    # Store the original position of the query so that we can maintain the order
+    query_param_list = list(enumerate(map(_prepare_query_params, snuba_param_list)))
 
-    def snuba_query(params):
-        query_params, forward, reverse, thread_hub = params
-        try:
-            with timer("snuba_query"):
-                referrer = headers.get("referer", "<unknown>")
-                if SNUBA_INFO:
-                    logger.info("{}.body: {}".format(referrer, json.dumps(query_params)))
-                    query_params["debug"] = True
-                body = json.dumps(query_params)
-                with thread_hub.start_span(
-                    op="snuba", description="query {}".format(referrer)
-                ) as span:
-                    span.set_tag("referrer", referrer)
-                    for param_key, param_data in six.iteritems(query_params):
-                        span.set_data(param_key, param_data)
-                    return (
-                        _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
-                        forward,
-                        reverse,
-                    )
-        except urllib3.exceptions.HTTPError as err:
-            raise SnubaError(err)
+    results = []
 
+    if use_cache:
+        # sqc - Snuba Query Cache
+        cache_keys = [
+            f"sqc:{sha1(json.dumps(query_params[0], sort_keys=True).encode('utf-8')).hexdigest()}"
+            for _, query_params in query_param_list
+        ]
+        cache_data = cache.get_many(cache_keys)
+        to_query = []
+        for (query_pos, query_params), cache_key in zip(query_param_list, cache_keys):
+            cached_result = cache_data.get(cache_key)
+            metric_tags = {"referrer": referrer} if referrer else None
+            if cached_result is None:
+                metrics.incr("snuba.query_cache.miss", tags=metric_tags)
+                to_query.append((query_pos, query_params, cache_key))
+            else:
+                metrics.incr("snuba.query_cache.hit", tags=metric_tags)
+                results.append((query_pos, json.loads(cached_result)))
+    else:
+        to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
+
+    if to_query:
+        query_results = _bulk_snuba_query(map(itemgetter(1), to_query), headers)
+        for result, (query_pos, _, cache_key) in zip(query_results, to_query):
+            if cache_key:
+                cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
+            results.append((query_pos, result))
+
+    # Sort so that we get the results back in the original param list order
+    results.sort()
+    # Drop the sort order val
+    return map(itemgetter(1), results)
+
+
+def _bulk_snuba_query(snuba_param_list, headers):
     with sentry_sdk.start_span(
         op="start_snuba_query",
-        description="running {} snuba queries".format(len(snuba_param_list)),
+        description=f"running {len(snuba_param_list)} snuba queries",
     ) as span:
         span.set_tag("referrer", headers.get("referer", "<unknown>"))
         if len(snuba_param_list) > 1:
             query_results = list(
                 _query_thread_pool.map(
-                    snuba_query, [params + (Hub(Hub.current),) for params in query_param_list]
+                    _snuba_query,
+                    [params + (Hub(Hub.current), headers) for params in snuba_param_list],
                 )
             )
         else:
             # No need to submit to the thread pool if we're just performing a
             # single query
-            query_results = [snuba_query(query_param_list[0] + (Hub(Hub.current),))]
+            query_results = [_snuba_query(snuba_param_list[0] + (Hub(Hub.current), headers))]
 
     results = []
     for response, _, reverse in query_results:
@@ -702,9 +716,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
             if response.status != 200:
                 logger.error("snuba.query.invalid-json")
                 raise SnubaError("Failed to parse snuba error response")
-            raise UnexpectedResponseError(
-                "Could not decode JSON response: {}".format(response.data)
-            )
+            raise UnexpectedResponseError(f"Could not decode JSON response: {response.data}")
 
         if response.status != 200:
             if body.get("error"):
@@ -720,13 +732,36 @@ def bulk_raw_query(snuba_param_list, referrer=None):
                 else:
                     raise SnubaError(error["message"])
             else:
-                raise SnubaError("HTTP {}".format(response.status))
+                raise SnubaError(f"HTTP {response.status}")
 
         # Forward and reverse translation maps from model ids to snuba keys, per column
         body["data"] = [reverse(d) for d in body["data"]]
         results.append(body)
 
     return results
+
+
+def _snuba_query(params):
+    query_params, forward, reverse, thread_hub, headers = params
+    try:
+        with timer("snuba_query"):
+            referrer = headers.get("referer", "<unknown>")
+            if SNUBA_INFO:
+                # We want debug in the body, but not in the logger, so dump the json twice
+                logger.info(f"{referrer}.body: {json.dumps(query_params)}")
+                query_params["debug"] = True
+            body = json.dumps(query_params)
+            with thread_hub.start_span(op="snuba", description=f"query {referrer}") as span:
+                span.set_tag("referrer", referrer)
+                for param_key, param_data in query_params.items():
+                    span.set_data(param_key, param_data)
+                return (
+                    _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
+                    forward,
+                    reverse,
+                )
+    except urllib3.exceptions.HTTPError as err:
+        raise SnubaError(err)
 
 
 def query(
@@ -739,6 +774,7 @@ def query(
     aggregations=None,
     selected_columns=None,
     totals=None,
+    use_cache=False,
     **kwargs,
 ):
 
@@ -758,6 +794,7 @@ def query(
             aggregations=aggregations,
             selected_columns=selected_columns,
             totals=totals,
+            use_cache=use_cache,
             **kwargs,
         )
     except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):
@@ -770,9 +807,9 @@ def query(
     aggregate_names = [a[2] for a in aggregations]
     selected_names = [c[2] if isinstance(c, (list, tuple)) else c for c in selected_columns]
     expected_cols = set(groupby + aggregate_names + selected_names)
-    got_cols = set(c["name"] for c in body["meta"])
+    got_cols = {c["name"] for c in body["meta"]}
 
-    assert expected_cols == got_cols, "expected {}, got {}".format(expected_cols, got_cols)
+    assert expected_cols == got_cols, f"expected {expected_cols}, got {got_cols}"
 
     with timer("process_result"):
         if totals:
@@ -801,20 +838,16 @@ def nest_groups(data, groups, aggregate_cols):
         inter = OrderedDict()
         for d in data:
             inter.setdefault(d[g], []).append(d)
-        return OrderedDict(
-            (k, nest_groups(v, rest, aggregate_cols)) for k, v in six.iteritems(inter)
-        )
+        return OrderedDict((k, nest_groups(v, rest, aggregate_cols)) for k, v in inter.items())
 
 
 def resolve_column(dataset):
     def _resolve_column(col):
         if col is None:
             return col
-        if isinstance(col, six.integer_types) or isinstance(col, float):
+        if isinstance(col, int) or isinstance(col, float):
             return col
-        if isinstance(col, six.string_types) and (
-            col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)
-        ):
+        if isinstance(col, str) and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)):
             return col
 
         # Some dataset specific logic:
@@ -832,9 +865,9 @@ def resolve_column(dataset):
 
         measurement_name = get_measurement_name(col)
         if "measurements_key" in DATASETS[dataset] and measurement_name:
-            return "measurements[{}]".format(measurement_name)
+            return f"measurements[{measurement_name}]"
 
-        return "tags[{}]".format(col)
+        return f"tags[{col}]"
 
     return _resolve_column
 
@@ -868,10 +901,10 @@ def resolve_condition(cond, column_resolver):
                     else:
                         func_args[i] = column_resolver(arg)
                 else:
-                    if isinstance(arg, six.string_types):
-                        func_args[i] = "'{}'".format(arg)
+                    if isinstance(arg, str):
+                        func_args[i] = f"'{arg}'"
                     elif isinstance(arg, datetime):
-                        func_args[i] = "'{}'".format(arg.isoformat())
+                        func_args[i] = f"'{arg.isoformat()}'"
                     else:
                         func_args[i] = arg
 
@@ -891,7 +924,7 @@ def resolve_condition(cond, column_resolver):
     # No function name found
     if isinstance(cond, (list, tuple)) and len(cond):
         # Condition is [col, operator, value]
-        if isinstance(cond[0], six.string_types) and len(cond) == 3:
+        if isinstance(cond[0], str) and len(cond) == 3:
             cond[0] = column_resolver(cond[0])
             return cond
         if isinstance(cond[0], (list, tuple)):
@@ -998,7 +1031,7 @@ def resolve_complex_column(col, resolve_func):
     for i in range(len(args)):
         if isinstance(args[i], (list, tuple)):
             resolve_complex_column(args[i], resolve_func)
-        elif isinstance(args[i], six.string_types):
+        elif isinstance(args[i], str):
             args[i] = resolve_func(args[i])
 
 
@@ -1007,7 +1040,7 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
     translated_columns = {}
     derived_columns = set()
     if function_translations:
-        for snuba_name, sentry_name in six.iteritems(function_translations):
+        for snuba_name, sentry_name in function_translations.items():
             derived_columns.add(snuba_name)
             translated_columns[snuba_name] = sentry_name
 
@@ -1043,7 +1076,7 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
     # need to get derived_columns first, so that they don't get resolved as functions
     derived_columns = derived_columns.union([aggregation[2] for aggregation in aggregations])
     for aggregation in aggregations or []:
-        if isinstance(aggregation[1], six.string_types):
+        if isinstance(aggregation[1], str):
             aggregation[1] = resolve_func(aggregation[1])
         elif isinstance(aggregation[1], (set, tuple, list)):
             formatted = []
@@ -1097,6 +1130,8 @@ JSON_TYPE_MAP = {
     "Float32": "number",
     "Float64": "number",
     "DateTime": "date",
+    # toStartOf{Hour,Day} return this, used for timestamp.to_{hour,day}
+    "DateTime('UTC')": "date",
 }
 
 
@@ -1164,7 +1199,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
         "release": (Release, "version", identity),
     }
 
-    for col, (model, field, fmt) in six.iteritems(map_columns):
+    for col, (model, field, fmt) in map_columns.items():
         fwd, rev = None, None
         ids = filter_keys.get(col)
         if not ids:
@@ -1184,7 +1219,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
                 Release.objects.filter(id__in=[x[2] for x in gr_map]).values_list("id", "version")
             )
             fwd_map = {gr: (group, ver[release]) for (gr, group, release) in gr_map}
-            rev_map = dict(reversed(t) for t in six.iteritems(fwd_map))
+            rev_map = dict(reversed(t) for t in fwd_map.items())
             fwd = (
                 lambda col, trans: lambda filters: replace(
                     filters, col, [trans[k][1] for k in filters[col]]
@@ -1204,7 +1239,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
             fwd_map = {
                 k: fmt(v) for k, v in model.objects.filter(id__in=ids).values_list("id", field)
             }
-            rev_map = dict(reversed(t) for t in six.iteritems(fwd_map))
+            rev_map = dict(reversed(t) for t in fwd_map.items())
             fwd = (
                 lambda col, trans: lambda filters: replace(
                     filters, col, [trans[k] for k in filters[col] if k]
@@ -1318,7 +1353,7 @@ def quantize_time(time, key_hash, duration=300):
 
 
 def is_measurement(key):
-    return isinstance(key, six.string_types) and MEASUREMENTS_KEY_RE.match(key)
+    return isinstance(key, str) and MEASUREMENTS_KEY_RE.match(key)
 
 
 def is_duration_measurement(key):

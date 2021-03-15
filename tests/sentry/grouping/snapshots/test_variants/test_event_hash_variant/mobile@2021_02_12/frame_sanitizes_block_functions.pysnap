@@ -1,0 +1,27 @@
+---
+created: '2021-03-08T16:39:05.981958Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-max:
+  hash: null
+  component:
+    app-depth-max (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          filename*
+            "foo.py"
+          function* (ruby block)
+            "block"
+--------------------------------------------------------------------------
+system:
+  hash: "27eed4125fc13d42163ddb0b8f357b48"
+  tree_label: "block"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+          function* (ruby block)
+            "block"

@@ -26,12 +26,12 @@ class SentryLocaleMiddleware(LocaleMiddleware):
             try:
                 language = _trans.get_supported_language_variant(lang_code)
             except LookupError:
-                super(SentryLocaleMiddleware, self).process_request(request)
+                super().process_request(request)
             else:
                 _trans.activate(language)
                 request.LANGUAGE_CODE = _trans.get_language()
         else:
-            super(SentryLocaleMiddleware, self).process_request(request)
+            super().process_request(request)
 
     def load_user_conf(self, request):
         if not request.user.is_authenticated():
@@ -56,4 +56,4 @@ class SentryLocaleMiddleware(LocaleMiddleware):
             # catch ourselves in case __skip_caching never got set.
             # It's possible that process_request never ran.
             pass
-        return super(SentryLocaleMiddleware, self).process_response(request, response)
+        return super().process_response(request, response)

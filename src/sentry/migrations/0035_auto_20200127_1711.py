@@ -63,6 +63,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name="alertruleenvironment",
-            unique_together=set([("alert_rule", "environment")]),
+            unique_together={("alert_rule", "environment")},
         ),
     ]

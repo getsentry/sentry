@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from django.db.models import Max
 from rest_framework import serializers
 
@@ -65,10 +67,20 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 
         # Validate the query that would be created when run.
         conditions = self._get_attr(data, "conditions", "")
-        fields = self._get_attr(data, "fields", [])
+        fields = self._get_attr(data, "fields", []).copy()
         orderby = self._get_attr(data, "orderby", "")
         try:
-            snuba_filter = get_filter(conditions)
+            # When using the eps/epm functions, they require an interval argument
+            # or to provide the start/end so that the interval can be computed.
+            # This uses a hard coded start/end to ensure the validation succeeds
+            # since the values themselves don't matter.
+            params = {
+                "start": datetime.now() - timedelta(days=1),
+                "end": datetime.now(),
+                "project_id": [p.id for p in self.context.get("projects")],
+            }
+
+            snuba_filter = get_filter(conditions, params=params)
         except InvalidSearchQuery as err:
             raise serializers.ValidationError({"conditions": f"Invalid conditions: {err}"})
 

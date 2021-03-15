@@ -132,7 +132,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
   renderComponent() {
     const {organization, location} = this.props;
 
-    if (!organization.features.includes('dashboards-v2')) {
+    if (!organization.features.includes('dashboards-basic')) {
       // Redirect to Dashboards v1
       browserHistory.replace({
         pathname: `/organizations/${organization.slug}/dashboards/`,
@@ -144,7 +144,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     }
 
     return (
-      <SentryDocumentTitle title={t('Dashboards')} objSlug={organization.slug}>
+      <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
         {super.renderComponent()}
       </SentryDocumentTitle>
     );

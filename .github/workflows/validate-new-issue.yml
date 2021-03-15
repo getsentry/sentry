@@ -12,7 +12,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          echo "Validating issue #${{ github.event.issue.number }}."
+          issue_number=${{ github.event.issue.number }}
+          echo "Validating issue #${issue_number}."
 
           # Trust users who belong to the getsentry org.
           if gh api "https://api.github.com/orgs/getsentry/members/${{ github.actor }}" >/dev/null 2>&1; then
@@ -22,12 +23,22 @@ jobs:
             echo "${{ github.actor }} is not a member of the getsentry org. 🧐"
           fi
 
+          # Helper
+          function gh-issue-label() {
+            gh api "/repos/:owner/:repo/issues/${1}/labels" \
+              -X POST \
+              --input <(echo "{\"labels\":[\"$2\"]}")
+          }
+
           # Prep reasons for error message comment.
           REASON="your issue does not properly use one of this repo's available issue templates"
           REASON_EXACT_MATCH="you created an issue from a template without filling in anything"
           REASON_EMPTY="you created an empty issue"
 
+          BASE_CASE_TITLE="validation bot is confused"
+
           # Definition of valid:
+          # - is a report about buggy validation 😅 or ...
           # - not empty (ignoring whitespace)
           # - matches a template
           #   - all the headings are also in this issue
@@ -35,6 +46,13 @@ jobs:
           #   - order doesn't matter
           #   - case-sensitive tho
           # - not an *exact* match for a template (ignoring whitespace)
+
+          jq -r .issue.title "$GITHUB_EVENT_PATH" > issue-title
+          if diff issue-title <(echo "$BASE_CASE_TITLE") > /dev/null; then
+            echo "Infinite recursion avoided."
+            exit 0
+          fi
+
           function extract-headings { { sed 's/\r$//' "$1" | grep '^#' || echo -n ''; } | sort; }
           jq -r .issue.body "$GITHUB_EVENT_PATH" > issue
           if ! grep -q '[^[:space:]]' issue; then
@@ -55,6 +73,7 @@ jobs:
                   REASON="${REASON_EXACT_MATCH}"
                   break
                 else
+                  gh-issue-label "${issue_number}" "Status: Unrouted"
                   exit 0
                 fi
               else
@@ -63,9 +82,9 @@ jobs:
             done
           fi
 
-          # Failed validation! Close the issue with a comment.
+          # Failed validation! Close the issue with a comment and a label.
           cat << EOF > comment
-          Sorry, friend. As far as this ol' bot can tell, ${REASON}. Please [try again](https://github.com/${{ github.repository }}/issues/new/choose), if you like. (And if I'm confused, please [let us know](https://github.com/getsentry/.github/issues/new?title=template+enforcer+is+confused&body=${{ github.event.issue.html_url }}). 😬)
+          Sorry, friend. As far as this ol' bot can tell, ${REASON}. Please [try again](https://github.com/${{ github.repository }}/issues/new/choose), if you like. (And if I'm confused, please [let us know](https://github.com/getsentry/.github/issues/new?title=$(echo "$BASE_CASE_TITLE" | tr ' ' '+')&body=${{ github.event.issue.html_url }}). 😬)
 
           ----
 
@@ -75,6 +94,7 @@ jobs:
           EOF
 
           echo -n "Commented: "
-          gh issue comment ${{ github.event.issue.number }} --body "$(cat comment)"
-          gh issue close ${{ github.event.issue.number }}
+          gh issue comment "${issue_number}" --body "$(cat comment)"
+          gh-issue-label "${issue_number}" "Status: Invalid"
+          gh issue close "${issue_number}"
           echo "Closed with: \"${REASON}.\""

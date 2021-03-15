@@ -13,7 +13,7 @@ from sentry.incidents.endpoints.serializers import (
 )
 from sentry.incidents.logic import create_alert_rule_trigger, ChannelLookupTimeoutError
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
-from sentry.models import Integration, Environment
+from sentry.models import ACTOR_TYPES, Integration, Environment
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import TestCase
 
@@ -23,6 +23,7 @@ class TestAlertRuleSerializer(TestCase):
     def valid_params(self):
         return {
             "name": "hello",
+            "owner": self.user.id,
             "time_window": 10,
             "dataset": QueryDatasets.EVENTS.value,
             "query": "level:error",
@@ -191,6 +192,12 @@ class TestAlertRuleSerializer(TestCase):
         alert_rule = serializer.save()
         assert alert_rule.snuba_query.dataset == QueryDatasets.TRANSACTIONS.value
         assert alert_rule.snuba_query.aggregate == "count()"
+
+    def test_query_project(self):
+        self.run_fail_validation_test(
+            {"query": f"project:{self.project.slug}"},
+            {"query": ["Project is an invalid search term"]},
+        )
 
     def test_decimal(self):
         params = self.valid_transaction_params.copy()
@@ -484,6 +491,38 @@ class TestAlertRuleSerializer(TestCase):
             {"name": "Aun1qu3n4m3", "query": "release:latest"},
             {"query": ["Unsupported Query: We do not currently support the release:latest query"]},
         )
+
+    def test_owner_validation(self):
+        self.run_fail_validation_test(
+            {"owner": f"meow:{self.user.id}"},
+            {
+                "owner": [
+                    "Could not parse owner. Format should be `type:id` where type is `team` or `user`."
+                ]
+            },
+        )
+        self.run_fail_validation_test(
+            {"owner": "user:1234567"},
+            {"owner": ["Could not resolve owner to existing team or user."]},
+        )
+        self.run_fail_validation_test(
+            {"owner": "team:1234567"},
+            {"owner": ["Could not resolve owner to existing team or user."]},
+        )
+        base_params = self.valid_params.copy()
+        base_params.update({"owner": f"team:{self.team.id}"})
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.owner == self.team.actor
+        assert alert_rule.owner.type == ACTOR_TYPES["team"]
+
+        base_params.update({"name": "another_test", "owner": f"user:{self.user.id}"})
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.owner == self.user.actor
+        assert alert_rule.owner.type == ACTOR_TYPES["user"]
 
 
 class TestAlertRuleTriggerSerializer(TestCase):

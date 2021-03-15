@@ -3,14 +3,14 @@ from functools import partial, update_wrapper
 
 from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate
-from django.template.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponseRedirect, Http404, HttpResponse
-from django.views.decorators.http import require_http_methods
+from django.template.context_processors import csrf
+from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
-from django.utils.translation import ugettext as _
+from django.views.decorators.http import require_http_methods
 
 from sentry.models import UserEmail, LostPasswordHash, Project, UserOption, Authenticator
 from sentry.security import capture_security_activity
@@ -24,7 +24,7 @@ logger = logging.getLogger("sentry.accounts")
 
 
 def get_template(mode, name):
-    return "sentry/account/{}/{}.html".format(mode, name)
+    return f"sentry/account/{mode}/{name}.html"
 
 
 @login_required
@@ -146,7 +146,7 @@ def start_confirm_email(request):
     from sentry.app import ratelimiter
 
     if ratelimiter.is_limited(
-        "auth:confirm-email:{}".format(request.user.id),
+        f"auth:confirm-email:{request.user.id}",
         limit=10,
         window=60,  # 10 per minute should be enough for anyone
     ):

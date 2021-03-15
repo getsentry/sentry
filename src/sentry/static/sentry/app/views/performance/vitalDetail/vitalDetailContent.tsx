@@ -6,11 +6,15 @@ import omit from 'lodash/omit';
 
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
+import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import SearchBar from 'app/components/events/searchBar';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {IconChevron} from 'app/icons';
 import {IconFlag} from 'app/icons/iconFlag';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
@@ -19,7 +23,6 @@ import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
-import SearchBar from 'app/views/events/searchBar';
 
 import Breadcrumb from '../breadcrumb';
 import {getTransactionSearchQuery} from '../utils';
@@ -28,6 +31,8 @@ import Table from './table';
 import {vitalDescription, vitalMap} from './utils';
 import VitalChart from './vitalChart';
 import VitalInfo from './vitalInfo';
+
+const FRONTEND_VITALS = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
 
 type Props = {
   location: Location;
@@ -108,6 +113,48 @@ class VitalDetailContent extends React.Component<Props, State> {
     );
   }
 
+  renderVitalSwitcher() {
+    const {vitalName, location} = this.props;
+
+    const position = FRONTEND_VITALS.indexOf(vitalName);
+
+    if (position < 0) {
+      return null;
+    }
+
+    const previousDisabled = position === 0;
+    const nextDisabled = position === FRONTEND_VITALS.length - 1;
+
+    const switchVital = newVitalName => {
+      return () => {
+        browserHistory.push({
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            vitalName: newVitalName,
+          },
+        });
+      };
+    };
+
+    return (
+      <ButtonBar merged>
+        <Button
+          icon={<IconChevron direction="left" size="sm" />}
+          aria-label={t('Previous')}
+          disabled={previousDisabled}
+          onClick={switchVital(FRONTEND_VITALS[position - 1])}
+        />
+        <Button
+          icon={<IconChevron direction="right" size="sm" />}
+          aria-label={t('Next')}
+          disabled={nextDisabled}
+          onClick={switchVital(FRONTEND_VITALS[position + 1])}
+        />
+      </ButtonBar>
+    );
+  }
+
   setError = (error: string | undefined) => {
     this.setState({error});
   };
@@ -153,6 +200,7 @@ class VitalDetailContent extends React.Component<Props, State> {
               <Feature organization={organization} features={['incidents']}>
                 {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
               </Feature>
+              {this.renderVitalSwitcher()}
             </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>

@@ -85,8 +85,12 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     this.setState({errorRules, transactionRules});
   }
 
-  successfullySubmitted = (projectDetails: Project) => {
+  successfullySubmitted = (projectDetails: Project, successMessage?: React.ReactNode) => {
     this.setState({projectDetails});
+
+    if (successMessage) {
+      addSuccessMessage(successMessage);
+    }
   };
 
   handleOpenErrorRule = (rule?: DynamicSamplingRule) => () => {
@@ -153,34 +157,61 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     this.handleOpenTransactionRule(rule)();
   };
 
-  handleDeleteRule = (rule: DynamicSamplingRule) => async () => {
-    const {organization, project} = this.props;
+  handleDeleteRule = (rule: DynamicSamplingRule) => () => {
     const {errorRules, transactionRules} = this.state;
 
     const newErrorRules =
       rule.type === DynamicSamplingRuleType.ERROR
-        ? errorRules.filter(errorRule => errorRule !== rule)
+        ? errorRules.filter(errorRule => errorRule.id !== rule.id)
         : errorRules;
 
     const newTransactionRules =
       rule.type !== DynamicSamplingRuleType.ERROR
-        ? transactionRules.filter(transactionRule => transactionRule !== rule)
+        ? transactionRules.filter(transactionRule => transactionRule.id !== rule.id)
         : transactionRules;
 
     const newRules = [...newErrorRules, ...newTransactionRules];
 
+    this.submitRules(
+      newRules,
+      t('Successfully deleted dynamic sampling rule'),
+      t('An error occurred while deleting dynamic sampling rule')
+    );
+  };
+
+  handleUpdateRules = (rules: Array<DynamicSamplingRule>) => {
+    if (!rules.length) {
+      return;
+    }
+
+    const {errorRules, transactionRules} = this.state;
+
+    if (rules[0]?.type === DynamicSamplingRuleType.ERROR) {
+      this.submitRules([...rules, ...transactionRules]);
+      return;
+    }
+    this.submitRules([...errorRules, ...rules]);
+  };
+
+  async submitRules(
+    newRules: DynamicSamplingRules,
+    successMessage?: string,
+    errorMessage?: string
+  ) {
+    const {organization, project} = this.props;
     try {
       const projectDetails = await this.api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
         {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
       );
-      this.setState({projectDetails});
-      addSuccessMessage(t('Successfully deleted dynamic sampling rule'));
+      this.successfullySubmitted(projectDetails, successMessage);
     } catch (error) {
       this.getRules();
-      addErrorMessage(t('An error occurred while deleting dynamic sampling rule'));
+      if (errorMessage) {
+        addErrorMessage(errorMessage);
+      }
     }
-  };
+  }
 
   renderBody() {
     const {errorRules, transactionRules} = this.state;
@@ -213,10 +244,12 @@ class FiltersAndSampling extends AsyncView<Props, State> {
         </TextBlock>
         <RulesPanel
           rules={errorRules}
+          disabled={disabled}
           onAddRule={this.handleAddRule('errorRules')}
           onEditRule={this.handleEditRule}
           onDeleteRule={this.handleDeleteRule}
-          disabled={disabled}
+          onUpdateRules={this.handleUpdateRules}
+          isErrorPanel
         />
         <TextBlock>
           {t(
@@ -225,10 +258,11 @@ class FiltersAndSampling extends AsyncView<Props, State> {
         </TextBlock>
         <RulesPanel
           rules={transactionRules}
+          disabled={disabled}
           onAddRule={this.handleAddRule('transactionRules')}
           onEditRule={this.handleEditRule}
           onDeleteRule={this.handleDeleteRule}
-          disabled={disabled}
+          onUpdateRules={this.handleUpdateRules}
         />
       </React.Fragment>
     );

@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
@@ -27,11 +28,13 @@ import {
   getDuration,
 } from 'app/utils/formatters';
 import getDynamicText from 'app/utils/getDynamicText';
-import theme from 'app/utils/theme';
+import {HistogramData} from 'app/utils/performance/histogram/types';
+import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
+import {Vital} from 'app/utils/performance/vitals/types';
+import {VitalData} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {Theme} from 'app/utils/theme';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
-import {VitalData} from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
-import {computeBuckets, formatHistogramData} from '../charts/utils';
 import {VitalBar} from '../landing/vitalsCards';
 import {
   VitalState,
@@ -42,10 +45,11 @@ import {
 
 import {NUM_BUCKETS, PERCENTILE} from './constants';
 import {Card, CardSectionHeading, CardSummary, Description, StatNumber} from './styles';
-import {HistogramData, Rectangle, Vital} from './types';
+import {Rectangle} from './types';
 import {asPixelRect, findNearestBucketIndex, getRefRect, mapPoint} from './utils';
 
 type Props = {
+  theme: Theme;
   location: Location;
   organization: Organization;
   isLoading: boolean;
@@ -53,7 +57,7 @@ type Props = {
   vital: WebVital;
   vitalDetails: Vital;
   summaryData: VitalData | null;
-  chartData: HistogramData[];
+  chartData: HistogramData;
   colors: [string];
   eventView: EventView;
   min?: number;
@@ -94,7 +98,7 @@ class VitalCard extends React.Component<Props, State> {
     refPixelRect: null,
   };
 
-  static getDerivedStateFromProps(nextProps: Props, prevState: State) {
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State) {
     const {isLoading, error, chartData} = nextProps;
 
     if (isLoading || error === null) {
@@ -158,7 +162,7 @@ class VitalCard extends React.Component<Props, State> {
   renderSummary() {
     const {vitalDetails: vital, colors, eventView, organization, min, max} = this.props;
     const summary = this.summary;
-    const {slug, name, description, failureThreshold} = vital;
+    const {slug, name, description, poorThreshold} = vital;
 
     const column = `measurements.${slug}`;
 
@@ -194,7 +198,7 @@ class VitalCard extends React.Component<Props, State> {
         <SummaryHeading>
           <CardSectionHeading>{`${name} (${slug.toUpperCase()})`}</CardSectionHeading>
           {summary === null || this.showVitalColours() ? null : summary <
-            failureThreshold ? (
+            poorThreshold ? (
             <Tag>{t('Pass')}</Tag>
           ) : (
             <StyledTag>{t('Fail')}</StyledTag>
@@ -250,6 +254,7 @@ class VitalCard extends React.Component<Props, State> {
 
   renderHistogram() {
     const {
+      theme,
       location,
       isLoading,
       chartData,
@@ -362,12 +367,12 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   getSeries() {
-    const {chartData, precision, vitalDetails, vital} = this.props;
+    const {theme, chartData, precision, vitalDetails, vital} = this.props;
 
     const additionalFieldsFn = bucket => {
       if (this.showVitalColours()) {
         return {
-          itemStyle: {color: this.getVitalsColor(vital, bucket)},
+          itemStyle: {color: theme[this.getVitalsColor(vital, bucket)]},
         };
       }
       return {};
@@ -399,7 +404,7 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   getBaselineSeries() {
-    const {chartData} = this.props;
+    const {theme, chartData} = this.props;
     const summary = this.summary;
     if (summary === null || this.state.refPixelRect === null) {
       return null;
@@ -456,7 +461,7 @@ class VitalCard extends React.Component<Props, State> {
         return [
           '<div class="tooltip-series tooltip-series-solo">',
           '<span class="tooltip-label">',
-          `<strong>${t('Baseline')}</strong>`,
+          `<strong>${t('p75')}</strong>`,
           '</span>',
           '</div>',
           '<div class="tooltip-arrow"></div>',
@@ -465,21 +470,21 @@ class VitalCard extends React.Component<Props, State> {
     };
 
     return {
-      seriesName: t('Baseline'),
+      seriesName: t('p75'),
       data: [],
       markLine,
     };
   }
 
   getFailureSeries() {
-    const {chartData, vitalDetails: vital} = this.props;
+    const {theme, chartData, vitalDetails: vital} = this.props;
     const failureRate = this.failureRate;
-    const {failureThreshold, type} = vital;
+    const {poorThreshold, type} = vital;
     if (this.state.refDataRect === null || this.state.refPixelRect === null) {
       return null;
     }
 
-    let failureBucket = findNearestBucketIndex(chartData, failureThreshold);
+    let failureBucket = findNearestBucketIndex(chartData, poorThreshold);
     if (failureBucket === null) {
       return null;
     }
@@ -567,8 +572,8 @@ class VitalCard extends React.Component<Props, State> {
           t(
             'Fails threshold at %s.',
             type === 'duration'
-              ? getDuration(failureThreshold / 1000, 2, true)
-              : formatFloat(failureThreshold, 2)
+              ? getDuration(poorThreshold / 1000, 2, true)
+              : formatFloat(poorThreshold, 2)
           ),
           '</strong>',
           '</span>',
@@ -648,4 +653,4 @@ const StyledTag = styled(Tag)`
   }
 `;
 
-export default VitalCard;
+export default withTheme(VitalCard);

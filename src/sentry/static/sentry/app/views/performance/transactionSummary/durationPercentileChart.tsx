@@ -1,4 +1,5 @@
 import React from 'react';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -7,6 +8,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import AreaChart from 'app/components/charts/areaChart';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LoadingPanel from 'app/components/charts/loadingPanel';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -14,9 +16,7 @@ import {OrganizationSummary} from 'app/types';
 import {axisLabelFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
-import theme from 'app/utils/theme';
-
-import {HeaderTitleLegend} from '../styles';
+import {Theme} from 'app/utils/theme';
 
 const QUERY_KEYS = [
   'environment',
@@ -35,6 +35,7 @@ type ApiResult = {
 
 type Props = AsyncComponent['props'] &
   ViewProps & {
+    theme: Theme;
     organization: OrganizationSummary;
     location: Location;
   };
@@ -122,6 +123,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
+    const {theme} = this.props;
     const {chartData} = this.state;
     if (chartData === null) {
       return null;
@@ -221,4 +223,4 @@ function transformData(data: ApiResult[]) {
   ];
 }
 
-export default DurationPercentileChart;
+export default withTheme(DurationPercentileChart);

@@ -1,16 +1,19 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {
   DynamicSamplingConditionLogicalInner,
-  DynamicSamplingConditionMultiple,
   DynamicSamplingInnerName,
   DynamicSamplingInnerOperator,
   DynamicSamplingRule,
@@ -22,11 +25,7 @@ import RadioField from 'app/views/settings/components/forms/radioField';
 
 import ConditionFields from './conditionFields';
 import handleXhrErrorResponse from './handleXhrErrorResponse';
-
-enum Transaction {
-  ALL = 'all',
-  MATCH_CONDITIONS = 'match-conditions',
-}
+import {isLegacyBrowser, Transaction} from './utils';
 
 const transactionChoices = [
   [Transaction.ALL, t('All')],
@@ -41,7 +40,7 @@ type Props = ModalRenderProps & {
   project: Project;
   errorRules: DynamicSamplingRules;
   transactionRules: DynamicSamplingRules;
-  onSubmitSuccess: (project: Project) => void;
+  onSubmitSuccess: (project: Project, successMessage: React.ReactNode) => void;
   rule?: DynamicSamplingRule;
 };
 
@@ -70,20 +69,31 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
     }
   }
 
-  getDefaultState(): State {
+  getDefaultState() {
     const {rule} = this.props;
 
     if (rule) {
       const {condition: conditions, sampleRate} = rule as DynamicSamplingRule;
 
-      const {inner} = conditions as DynamicSamplingConditionMultiple;
+      const {inner} = conditions;
 
       return {
         transaction: !inner.length ? Transaction.ALL : Transaction.MATCH_CONDITIONS,
-        conditions: inner.map(({name, value}) => ({
-          category: name,
-          match: value.join(' '),
-        })),
+        conditions: inner.map(({name, value}) => {
+          if (Array.isArray(value)) {
+            if (isLegacyBrowser(value)) {
+              return {
+                category: name,
+                legacyBrowsers: value,
+              };
+            }
+            return {
+              category: name,
+              match: value.join('\n'),
+            };
+          }
+          return {category: name};
+        }),
         sampleRate: sampleRate * 100,
         errors: {},
       };
@@ -97,25 +107,53 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
   }
 
   getNewCondition(condition: Conditions[0]): DynamicSamplingConditionLogicalInner {
-    const commonValues = {
-      name: condition.category,
-      value: condition.match.split(' ').filter(match => !!match),
-    };
+    // DynamicSamplingConditionLogicalInnerCustom
+    if (condition.category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER) {
+      return {
+        op: DynamicSamplingInnerOperator.CUSTOM,
+        name: condition.category,
+        value: condition.legacyBrowsers ?? [],
+      };
+    }
 
+    // DynamicSamplingConditionLogicalInnerEqBoolean
+    if (
+      condition.category === DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
+      condition.category === DynamicSamplingInnerName.EVENT_WEB_CRAWLERS ||
+      condition.category === DynamicSamplingInnerName.EVENT_LOCALHOST
+    ) {
+      return {
+        op: DynamicSamplingInnerOperator.EQUAL,
+        name: condition.category,
+        value: true,
+      };
+    }
+
+    const newValue = condition.match
+      .split('\n')
+      .filter(match => !!match.trim())
+      .map(match => match.trim());
+
+    // DynamicSamplingConditionLogicalInnerGlob
     if (
       condition.category === DynamicSamplingInnerName.EVENT_RELEASE ||
       condition.category === DynamicSamplingInnerName.TRACE_RELEASE
     ) {
       return {
-        ...commonValues,
         op: DynamicSamplingInnerOperator.GLOB_MATCH,
+        name: condition.category,
+        value: newValue,
       };
     }
 
+    // DynamicSamplingConditionLogicalInnerEq
     return {
-      ...commonValues,
       op: DynamicSamplingInnerOperator.EQUAL,
-      ignoreCase: true,
+      name: condition.category,
+      value: newValue,
+      options: {
+        ignoreCase: true,
+      },
     };
   }
 
@@ -152,8 +190,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
         `/projects/${organization.slug}/${project.slug}/`,
         {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
       );
-      onSubmitSuccess(newProjectDetails);
-      addSuccessMessage(this.getSuccessMessage());
+      onSubmitSuccess(newProjectDetails, this.getSuccessMessage());
       closeModal();
     } catch (error) {
       this.convertErrorXhrResponse(handleXhrErrorResponse(error, currentRuleIndex));
@@ -169,9 +206,40 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
     throw new Error('Not implemented');
   };
 
-  handleAddCondition = (): never | void => {
-    // Children have to implement this
-    throw new Error('Not implemented');
+  handleAddCondition = () => {
+    const {conditions} = this.state;
+    const categoryOptions = this.getCategoryOptions();
+
+    if (!conditions.length) {
+      this.setState({
+        conditions: [
+          {
+            category: categoryOptions[0][0],
+            match: '',
+          },
+        ],
+      });
+      return;
+    }
+
+    const nextCategory = categoryOptions.find(
+      categoryOption =>
+        !conditions.find(condition => condition.category === categoryOption[0])
+    );
+
+    if (!nextCategory) {
+      return;
+    }
+
+    this.setState({
+      conditions: [
+        ...conditions,
+        {
+          category: nextCategory[0],
+          match: '',
+        },
+      ],
+    });
   };
 
   handleChangeCondition = <T extends keyof Conditions[0]>(
@@ -205,7 +273,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
   geTransactionFieldDescription() {
     return {
       label: '',
-      help: '',
+      // help: '', TODO(Priscila): Add correct descriptions
     };
   }
 
@@ -229,10 +297,19 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
       !defined(sampleRate) ||
       (!!conditions.length &&
         !!conditions.find(condition => {
-          if (condition.category !== DynamicSamplingInnerName.LEGACY_BROWSERS) {
-            return !condition.match;
+          if (condition.category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER) {
+            return !(condition.legacyBrowsers ?? []).length;
           }
-          return false;
+
+          if (
+            condition.category === DynamicSamplingInnerName.EVENT_LOCALHOST ||
+            condition.category === DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
+            condition.category === DynamicSamplingInnerName.EVENT_WEB_CRAWLERS
+          ) {
+            return false;
+          }
+
+          return !condition.match;
         }));
 
     return (
@@ -241,44 +318,50 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
           {this.getModalTitle()}
         </Header>
         <Body>
-          {this.getExtraFields()}
-          <RadioField
-            {...transactionField}
-            name="transaction"
-            choices={transactionChoices}
-            onChange={value => this.handleChange('transaction', value)}
-            value={transaction}
-            inline={false}
-            hideControlState
-            showHelpInTooltip
-            stacked
-          />
-          {transaction !== Transaction.ALL && (
-            <ConditionFields
-              conditions={conditions}
-              categoryOptions={categoryOptions}
-              onAdd={this.handleAddCondition}
-              onChange={this.handleChangeCondition}
-              onDelete={this.handleDeleteCondition}
+          <Alert type="info" icon={<IconInfo size="md" />}>
+            {t('A new rule may take a few minutes to propagate.')}
+          </Alert>
+          <Fields>
+            {this.getExtraFields()}
+            <RadioField
+              {...transactionField}
+              name="transaction"
+              choices={transactionChoices}
+              onChange={value => this.handleChange('transaction', value)}
+              value={transaction}
+              inline={false}
+              hideControlState
+              showHelpInTooltip
+              stacked
             />
-          )}
-          <NumberField
-            label={t('Sampling Rate')}
-            help={t('this is a description')}
-            name="sampleRate"
-            onChange={value => {
-              this.handleChange('sampleRate', value ? Number(value) : undefined);
-              if (!!errors.sampleRate) {
-                this.clearError('sampleRate');
-              }
-            }}
-            value={sampleRate}
-            inline={false}
-            hideControlState={!errors.sampleRate}
-            error={errors.sampleRate}
-            showHelpInTooltip
-            stacked
-          />
+            {transaction !== Transaction.ALL && (
+              <ConditionFields
+                conditions={conditions}
+                categoryOptions={categoryOptions}
+                onAdd={this.handleAddCondition}
+                onChange={this.handleChangeCondition}
+                onDelete={this.handleDeleteCondition}
+              />
+            )}
+            <NumberField
+              label={t('Sampling Rate')}
+              // help={t('this is a description')}  TODO(Priscila): Add correct descriptions
+              name="sampleRate"
+              onChange={value => {
+                this.handleChange('sampleRate', value ? Number(value) : undefined);
+                if (!!errors.sampleRate) {
+                  this.clearError('sampleRate');
+                }
+              }}
+              placeholder={'\u0025'}
+              value={!sampleRate ? undefined : sampleRate}
+              inline={false}
+              hideControlState={!errors.sampleRate}
+              error={errors.sampleRate}
+              showHelpInTooltip
+              stacked
+            />
+          </Fields>
         </Body>
         <Footer>
           <ButtonBar gap={1}>
@@ -298,3 +381,8 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
 }
 
 export default Form;
+
+const Fields = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+`;

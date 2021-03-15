@@ -36,10 +36,6 @@ describe('Sidebar', function () {
       url: '/broadcasts/',
       method: 'PUT',
     });
-    apiMocks.savedQueries = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/discover/saved/`,
-      body: [],
-    });
     apiMocks.sdkUpdates = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sdk-updates/`,
       body: [],
@@ -111,41 +107,6 @@ describe('Sidebar', function () {
     expect(wrapper.find('OnboardingStatus TaskSidebarPanel').exists()).toBe(true);
   });
 
-  it('handles discover-basic feature', function () {
-    wrapper = mountWithTheme(
-      <SidebarContainer
-        organization={{
-          ...organization,
-          features: ['discover-basic', 'events', 'discover'],
-        }}
-        user={user}
-        router={router}
-      />,
-      routerContext
-    );
-
-    // Should only show discover2 tab
-    expect(wrapper.find('SidebarItem[id="discover-v2"]')).toHaveLength(1);
-    expect(wrapper.find('SidebarItem[id="events"]')).toHaveLength(0);
-    expect(wrapper.find('SidebarItem[id="discover"]')).toHaveLength(0);
-  });
-
-  it('handles discover feature', function () {
-    wrapper = mountWithTheme(
-      <SidebarContainer
-        organization={{...organization, features: ['discover', 'events']}}
-        user={user}
-        router={router}
-      />,
-      routerContext
-    );
-
-    // Should show events and discover1 as those features are on.
-    expect(wrapper.find('SidebarItem[id="discover-v2"]')).toHaveLength(0);
-    expect(wrapper.find('SidebarItem[id="events"]')).toHaveLength(1);
-    expect(wrapper.find('SidebarItem[id="discover"]')).toHaveLength(1);
-  });
-
   describe('SidebarHelp', function () {
     it('can toggle help menu', function () {
       wrapper = createWrapper();
@@ -153,7 +114,7 @@ describe('Sidebar', function () {
       const menu = wrapper.find('HelpMenu');
       expect(menu).toHaveLength(1);
       expect(menu).toSnapshot();
-      expect(menu.find('SidebarMenuItem')).toHaveLength(3);
+      expect(menu.find('SidebarMenuItem')).toHaveLength(4);
       wrapper.find('HelpActor').simulate('click');
       expect(wrapper.find('HelpMenu')).toHaveLength(0);
     });

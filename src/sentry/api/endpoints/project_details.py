@@ -1,4 +1,3 @@
-import six
 import logging
 from itertools import chain
 from uuid import uuid4
@@ -16,8 +15,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
-from sentry.api.serializers.rest_framework.list import EmptyListField
-from sentry.api.serializers.rest_framework.list import ListField
+from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
@@ -39,6 +37,7 @@ from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerpri
 from sentry.tasks.deletion import delete_project
 from sentry.utils import json
 from sentry.utils.compat import filter
+from sentry_relay.processing import validate_sampling_condition, validate_sampling_configuration
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -62,62 +61,16 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
         return data
 
     def validate(self, data):
-        """
-        Conditions are quite heterogeneous so we validate manually
-        This validation needs to evolve with the new types of conditions supported in
-        the dynamic-sampling conditions
-        """
         if data is None:
-            raise serializers.ValidationError("Invalid dynamic rule condition")
+            raise serializers.ValidationError("Invalid sampling rule condition")
 
-        op = data.get("op")
+        try:
+            condition_string = json.dumps(data)
+            validate_sampling_condition(condition_string)
 
-        if op in ["and", "or", "not"]:
-            inner = data.get("inner")
-            if inner is None:
-                raise serializers.ValidationError(
-                    "Missing inner field from  rule condition '{}' ".format(op)
-                )
-            if op == "not":
-                self.validate(inner)
-            else:
-                for child in inner:
-                    self.validate(child)
-        elif op == "eq":
-            for key in six.iterkeys(data):
-                if key not in ["op", "name", "value", "ignoreCase"]:
-                    raise serializers.ValidationError(
-                        "Invalid filed {} for eq condition".format(key)
-                    )
-            name = data.get("name")
-            if type(name) not in six.string_types:
-                raise serializers.ValidationError(
-                    "Invalid field value {} for name, expected string", format(name)
-                )
-            ignore_case = data.get("ignoreCase", False)
-            if type(ignore_case) != bool:
-                raise serializers.ValidationError(
-                    "Invalid field value {} for ignoreCase, expected bool", format(name)
-                )
-            if data.get("value") is None:
-                raise serializers.ValidationError("Missing field 'value'")
-        elif op == "glob":
-            for key in six.iterkeys(data):
-                if key not in ["op", "name", "value", "ignoreCase"]:
-                    raise serializers.ValidationError(
-                        "Invalid filed {} for eq condition".format(key)
-                    )
-            name = data.get("name")
-            if type(name) not in six.string_types:
-                raise serializers.ValidationError(
-                    "Invalid field value {} for name, expected string", format(name)
-                )
-            if data.get("value") is None:
-                raise serializers.ValidationError("Missing field 'value'")
-        else:
-            raise serializers.ValidationError(
-                "Invalid dynamic rule condition operator:'{}'".format(op)
-            )
+        except ValueError as err:
+            reason = err.args[0] if len(err.args) > 0 else "invalid condition"
+            raise serializers.ValidationError(reason)
 
         return data
 
@@ -129,10 +82,28 @@ class DynamicSamplingRuleSerializer(serializers.Serializer):
         required=True,
     )
     condition = DynamicSamplingConditionSerializer()
+    id = serializers.IntegerField(min_value=0, required=False)
 
 
 class DynamicSamplingSerializer(serializers.Serializer):
     rules = serializers.ListSerializer(child=DynamicSamplingRuleSerializer())
+    next_id = serializers.IntegerField(min_value=0, required=False)
+
+    def validate(self, data):
+        """
+        Additional validation using sentry-relay to make sure that
+        the config is kept in sync with Relay
+        :param data: the input data
+        :return: the validated data or raise in case of error
+        """
+        try:
+            config_str = json.dumps(data)
+            validate_sampling_configuration(config_str)
+        except ValueError as err:
+            reason = err.args[0] if len(err.args) > 0 else "invalid configuration"
+            raise serializers.ValidationError(reason)
+
+        return data
 
 
 class ProjectMemberSerializer(serializers.Serializer):
@@ -210,9 +181,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
     def validate_slug(self, slug):
         if slug in RESERVED_PROJECT_SLUGS:
-            raise serializers.ValidationError(
-                'The slug "%s" is reserved and not allowed.' % (slug,)
-            )
+            raise serializers.ValidationError(f'The slug "{slug}" is reserved and not allowed.')
         project = self.context["project"]
         other = (
             Project.objects.filter(slug=slug, organization=project.organization)
@@ -265,7 +234,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             sources = parse_sources(sources_json.strip())
             sources_json = json.dumps(sources) if sources else ""
         except InvalidSourcesError as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return sources_json
 
@@ -276,7 +245,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             Enhancements.from_config_string(value)
         except InvalidEnhancerConfig as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return value
 
@@ -287,7 +256,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             FingerprintingRules.from_config_string(value)
         except InvalidFingerprintingConfig as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return value
 
@@ -418,7 +387,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if not has_project_write:
             # options isn't part of the serializer, but should not be editable by members
-            for key in chain(six.iterkeys(ProjectAdminSerializer().fields), ["options"]):
+            for key in chain(ProjectAdminSerializer().fields.keys(), ["options"]):
                 if request.data.get(key) and not result.get(key):
                     return Response(
                         {"detail": ["You do not have permission to perform this action."]},
@@ -573,7 +542,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             )
 
         if "dynamicSampling" in result:
-            project.update_option("sentry:dynamic_sampling", result["dynamicSampling"])
+            raw_dynamic_sampling = result["dynamicSampling"]
+            fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
+            project.update_option("sentry:dynamic_sampling", fixed_rules)
 
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
@@ -654,22 +625,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:blacklisted_ips",
                     clean_newline_inputs(options["filters:blacklisted_ips"]),
                 )
-            if "filters:{}".format(FilterTypes.RELEASES) in options:
+            if f"filters:{FilterTypes.RELEASES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(
-                        "sentry:{}".format(FilterTypes.RELEASES),
-                        clean_newline_inputs(options["filters:{}".format(FilterTypes.RELEASES)]),
+                        f"sentry:{FilterTypes.RELEASES}",
+                        clean_newline_inputs(options[f"filters:{FilterTypes.RELEASES}"]),
                     )
                 else:
                     return Response(
                         {"detail": ["You do not have that feature enabled"]}, status=400
                     )
-            if "filters:{}".format(FilterTypes.ERROR_MESSAGES) in options:
+            if f"filters:{FilterTypes.ERROR_MESSAGES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(
-                        "sentry:{}".format(FilterTypes.ERROR_MESSAGES),
+                        f"sentry:{FilterTypes.ERROR_MESSAGES}",
                         clean_newline_inputs(
-                            options["filters:{}".format(FilterTypes.ERROR_MESSAGES)],
+                            options[f"filters:{FilterTypes.ERROR_MESSAGES}"],
                             case_insensitive=False,
                         ),
                     )
@@ -746,3 +717,45 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
         return Response(status=204)
+
+    def _fix_rule_ids(self, project, raw_dynamic_sampling):
+        """
+        Fixes rule ids in sampling configuration
+
+        When rules are changed or new rules are introduced they will get
+        new ids
+        :pparam raw_dynamic_sampling: the dynamic sampling config coming from UI
+            validated but without adjusted rule ids
+        :return: the dynamic sampling config with the rule ids adjusted to be
+        unique and with the next_id updated
+        """
+        # get the existing configuration for comparison.
+        original = project.get_option("sentry:dynamic_sampling")
+        original_rules = []
+
+        if original is None:
+            next_id = 1
+        else:
+            next_id = original.get("next_id", 1)
+            original_rules = original.get("rules", [])
+
+        # make a dictionary with the old rules to compare for changes
+        original_rules_dict = {rule["id"]: rule for rule in original_rules}
+
+        if raw_dynamic_sampling is not None:
+            rules = raw_dynamic_sampling.get("rules", [])
+            for rule in rules:
+                rid = rule.get("id", 0)
+                original_rule = original_rules_dict.get(rid)
+                if rid == 0 or original_rule is None:
+                    # a new or unknown rule give it a new id
+                    rule["id"] = next_id
+                    next_id += 1
+                else:
+                    if original_rule != rule:
+                        # something changed in this rule, give it a new id
+                        rule["id"] = next_id
+                        next_id += 1
+
+        raw_dynamic_sampling["next_id"] = next_id
+        return raw_dynamic_sampling

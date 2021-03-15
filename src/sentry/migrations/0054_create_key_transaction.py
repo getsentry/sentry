@@ -69,6 +69,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name="keytransaction",
-            unique_together=set([("project", "transaction")]),
+            unique_together={("project", "transaction")},
         ),
     ]

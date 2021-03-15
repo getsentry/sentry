@@ -1,6 +1,7 @@
+import styled from '@emotion/styled';
 import {Query} from 'history';
 
-import {TrendFunctionField} from '../trends/types';
+import space from 'app/styles/space';
 
 import {DisplayModes} from './charts';
 
@@ -22,14 +23,16 @@ export function transactionSummaryRouteWithQuery({
   query,
   unselectedSeries = 'p100()',
   display,
-  trendDisplay,
+  trendFunction,
+  trendColumn,
   showTransactions,
 }: {
   orgSlug: string;
   transaction: string;
   query: Query;
   display?: DisplayModes;
-  trendDisplay?: TrendFunctionField;
+  trendFunction?: string;
+  trendColumn?: string;
   unselectedSeries?: string | string[];
   projectID?: string | string[];
   showTransactions?: TransactionFilterOptions;
@@ -51,7 +54,12 @@ export function transactionSummaryRouteWithQuery({
       unselectedSeries,
       showTransactions,
       display,
-      trendDisplay,
+      trendFunction,
+      trendColumn,
     },
   };
 }
+
+export const SidebarSpacer = styled('div')`
+  margin-top: ${space(3)};
+`;

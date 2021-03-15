@@ -1,4 +1,4 @@
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 
@@ -81,7 +81,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=GitHub%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=GitHub%20Enterprise%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/github_enterprise",
     aspects={
         "disable_dialog": disable_dialog,
@@ -140,7 +140,7 @@ class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, Rep
             message = API_ERRORS.get(exc.code)
             if message is None:
                 message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
-            return "Error Communicating with GitHub Enterprise (HTTP %s): %s" % (exc.code, message)
+            return f"Error Communicating with GitHub Enterprise (HTTP {exc.code}): {message}"
         else:
             return ERR_INTERNAL
 
@@ -209,7 +209,7 @@ class InstallationForm(forms.Form):
     )
 
     def __init__(self, *args, **kwargs):
-        super(InstallationForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["verify_ssl"].initial = True
 
 
@@ -379,7 +379,7 @@ class GitHubEnterpriseInstallationRedirect(PipelineView):
     def get_app_url(self, installation_data):
         url = installation_data.get("url")
         name = installation_data.get("name")
-        return "https://{}/github-apps/{}".format(url, name)
+        return f"https://{url}/github-apps/{name}"
 
     def dispatch(self, request, pipeline):
         installation_data = pipeline.fetch_state(key="installation_data")

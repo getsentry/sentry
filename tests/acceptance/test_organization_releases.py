@@ -49,7 +49,7 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         release = self.create_release(
             project=self.project, additional_projects=[self.project2], version="1.0"
         )
-        self.browser.get("{}?project={}".format(self.path + release.version, self.project.id))
+        self.browser.get(f"{self.path + release.version}?project={self.project.id}")
         self.browser.wait_until_not(".loading")
         self.browser.click('[data-test-id="global-header-project-selector"]')
         self.browser.wait_until_test_id("release-wrapper")

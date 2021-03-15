@@ -61,7 +61,7 @@ class GlobalModal extends React.Component<Props> {
     const renderedChild =
       typeof children === 'function'
         ? children({
-            closeModal,
+            closeModal: this.handleCloseModal,
             Header: Modal.Header,
             Body: Modal.Body,
             Footer: Modal.Footer,
@@ -84,6 +84,7 @@ class GlobalModal extends React.Component<Props> {
             show={visible}
             animation={false}
             onHide={this.handleCloseModal}
+            backdrop={options?.backdrop}
           >
             {renderedChild}
           </Modal>

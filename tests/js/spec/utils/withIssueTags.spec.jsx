@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import MemberListStore from 'app/stores/memberListStore';
 import TagStore from 'app/stores/tagStore';
@@ -16,7 +16,7 @@ describe('withIssueTags HoC', function () {
   it('forwards loaded tags to the wrapped component', async function () {
     const MyComponent = () => null;
     const Container = withIssueTags(MyComponent);
-    const wrapper = mount(<Container other="value" />);
+    const wrapper = mountWithTheme(<Container other="value" />);
 
     // Should forward props.
     expect(wrapper.find('MyComponent').prop('other')).toEqual('value');
@@ -41,7 +41,7 @@ describe('withIssueTags HoC', function () {
   it('updates the assigned tags with users and teams, and bookmark tags with users', async function () {
     const MyComponent = () => null;
     const Container = withIssueTags(MyComponent);
-    const wrapper = mount(<Container other="value" />);
+    const wrapper = mountWithTheme(<Container other="value" />);
 
     // Should forward props.
     expect(wrapper.find('MyComponent').prop('other')).toEqual('value');
@@ -51,7 +51,10 @@ describe('withIssueTags HoC', function () {
 
     let tagsProp = wrapper.find('MyComponent').prop('tags');
     expect(tagsProp.assigned).toBeTruthy();
-    expect(tagsProp.assigned.values).toEqual(['me']);
+    expect(tagsProp.assigned.values).toEqual(['me', 'me_or_none']);
+
+    expect(tagsProp.assigned_or_suggested).toBeTruthy();
+    expect(tagsProp.assigned_or_suggested.values).toEqual(['me', 'me_or_none']);
 
     const users = [TestStubs.User(), TestStubs.User({username: 'joe@example.com'})];
     TeamStore.loadInitialData([
@@ -63,13 +66,14 @@ describe('withIssueTags HoC', function () {
     tagsProp = wrapper.find('MyComponent').prop('tags');
     expect(tagsProp.assigned.values).toEqual([
       'me',
+      'me_or_none',
       'foo@example.com',
       'joe@example.com',
       '#best-team-na',
     ]);
     expect(tagsProp.assigned_or_suggested.values).toEqual([
-      'me_or_none',
       'me',
+      'me_or_none',
       'foo@example.com',
       'joe@example.com',
       '#best-team-na',

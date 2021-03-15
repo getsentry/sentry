@@ -192,8 +192,8 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   renderList() {
     const {loading, incidentList, incidentListPageLinks, hasAlertRule} = this.state;
     const {
-      organization,
       params: {orgId},
+      organization,
     } = this.props;
 
     const allProjectsFromIncidents = new Set(
@@ -238,8 +238,8 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                           projects={projects as Project[]}
                           incident={incident}
                           orgId={orgId}
-                          organization={organization}
                           filteredStatus={status}
+                          organization={organization}
                         />
                       ))
                     }
@@ -265,7 +265,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const status = getQueryStatus(query.status);
 
     return (
-      <SentryDocumentTitle title={t('Alerts')} objSlug={orgId}>
+      <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
         <GlobalSelectionHeader organization={organization} showDateSelector={false}>
           <AlertHeader organization={organization} router={router} activeTab="stream" />
           <Layout.Body>

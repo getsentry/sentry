@@ -1,4 +1,4 @@
-from sentry.utils.compat import pickle
+import pickle
 from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
 
 

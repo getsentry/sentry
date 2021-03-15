@@ -46,7 +46,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun="example",
-    issue_url="https://github.com/getsentry/sentry/issues/new",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Integration%20Problem",
     source_url="https://github.com/getsentry/sentry",
     aspects={},
 )
@@ -60,14 +60,14 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     inbound_assignee_key = "sync_assignee_inbound"
 
     def get_issue_url(self, key):
-        return "https://example/issues/{}".format(key)
+        return f"https://example/issues/{key}"
 
     def create_comment(self, issue_id, user_id, group_note):
         user = User.objects.get(id=user_id)
         attribution = "%s wrote:\n\n" % user.name
         comment = {
             "id": "123456789",
-            "text": "%s<blockquote>%s</blockquote>" % (attribution, group_note.data["text"]),
+            "text": "{}<blockquote>{}</blockquote>".format(attribution, group_note.data["text"]),
         }
         return comment
 
@@ -79,7 +79,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_create_issue_config(self, group, user, **kwargs):
         kwargs["link_referrer"] = "example_integration"
-        fields = super(ExampleIntegration, self).get_create_issue_config(group, user, **kwargs)
+        fields = super().get_create_issue_config(group, user, **kwargs)
         default = self.get_project_defaults(group.project_id)
         example_project_field = self.generate_example_project_field(default)
         return fields + [example_project_field]
@@ -99,7 +99,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
         return project_field
 
     def get_link_issue_config(self, group, **kwargs):
-        fields = super(ExampleIntegration, self).get_link_issue_config(group, **kwargs)
+        fields = super().get_link_issue_config(group, **kwargs)
         default = self.get_project_defaults(group.project_id)
         example_project_field = self.generate_example_project_field(default)
         return fields + [example_project_field]
@@ -143,6 +143,9 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_stacktrace_link(self, repo, path, default, version):
         pass
+
+    def format_source_url(self, repo, filepath, branch):
+        return f"https://example.com/{repo.name}/blob/{branch}/{filepath}"
 
 
 class ExampleIntegrationProvider(IntegrationProvider):

@@ -1,3 +1,5 @@
+import isEqual from 'lodash/isEqual';
+
 import {t} from 'app/locale';
 import {
   DynamicSamplingConditionOperator,
@@ -7,6 +9,7 @@ import {
 } from 'app/types/dynamicSampling';
 
 import Form from './form';
+import {Transaction} from './utils';
 
 type Props = Form['props'];
 
@@ -32,7 +35,7 @@ class ErrorRuleModal extends Form<Props, State> {
   geTransactionFieldDescription() {
     return {
       label: t('Error'),
-      help: t('This is a description'),
+      // help: t('This is a description'), TODO(PRISCILA): Add correct description
     };
   }
 
@@ -41,23 +44,15 @@ class ErrorRuleModal extends Form<Props, State> {
       [DynamicSamplingInnerName.EVENT_RELEASE, t('Releases')],
       [DynamicSamplingInnerName.EVENT_ENVIRONMENT, t('Environments')],
       [DynamicSamplingInnerName.EVENT_USER, t('Users')],
+      [DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS, t('Browser Extensions')],
+      [DynamicSamplingInnerName.EVENT_LOCALHOST, t('Localhost')],
+      [DynamicSamplingInnerName.EVENT_LEGACY_BROWSER, t('Legacy Browsers')],
+      [DynamicSamplingInnerName.EVENT_WEB_CRAWLERS, t('Web Crawlers')],
     ];
   }
 
-  handleAddCondition = () => {
-    this.setState(state => ({
-      conditions: [
-        ...state.conditions,
-        {
-          category: DynamicSamplingInnerName.EVENT_RELEASE,
-          match: '',
-        },
-      ],
-    }));
-  };
-
   handleSubmit = () => {
-    const {sampleRate, conditions} = this.state;
+    const {sampleRate, conditions, transaction} = this.state;
 
     if (!sampleRate) {
       return;
@@ -66,17 +61,22 @@ class ErrorRuleModal extends Form<Props, State> {
     const {rule, errorRules, transactionRules} = this.props;
 
     const newRule: DynamicSamplingRule = {
+      // All new/updated rules must have id equal to 0
+      id: 0,
       type: DynamicSamplingRuleType.ERROR,
       condition: {
         op: DynamicSamplingConditionOperator.AND,
-        inner: conditions.map(this.getNewCondition),
+        inner:
+          transaction === Transaction.ALL ? [] : conditions.map(this.getNewCondition),
       },
       sampleRate: sampleRate / 100,
     };
 
     const newRules = rule
       ? [
-          ...errorRules.map(errorRule => (errorRule === rule ? newRule : errorRule)),
+          ...errorRules.map(errorRule =>
+            isEqual(errorRule, rule) ? newRule : errorRule
+          ),
           ...transactionRules,
         ]
       : [...errorRules, newRule, ...transactionRules];

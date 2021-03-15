@@ -1,11 +1,10 @@
 import logging
-import six
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.safestring import mark_safe
-from six.moves.urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from sentry.models import ApiApplication, ApiApplicationStatus, ApiAuthorization, ApiGrant, ApiToken
 from sentry.web.frontend.auth_login import AuthLoginView
@@ -24,13 +23,13 @@ class OAuthAuthorizeView(AuthLoginView):
             return self.redirect(
                 "{}#{}".format(
                     redirect_uri,
-                    urlencode([(k, v) for k, v in six.iteritems(params) if v is not None]),
+                    urlencode([(k, v) for k, v in params.items() if v is not None]),
                 )
             )
 
         parts = list(urlparse(redirect_uri))
         query = parse_qsl(parts[4])
-        for key, value in six.iteritems(params):
+        for key, value in params.items():
             if value is not None:
                 query.append((key, value))
         parts[4] = urlencode(query)
@@ -58,18 +57,14 @@ class OAuthAuthorizeView(AuthLoginView):
         if err_response:
             return self.respond(
                 "sentry/oauth-error.html",
-                {
-                    "error": mark_safe(
-                        "Missing or invalid <em>{}</em> parameter.".format(err_response)
-                    )
-                },
+                {"error": mark_safe(f"Missing or invalid <em>{err_response}</em> parameter.")},
                 status=400,
             )
 
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
 
     def respond_login(self, request, context, application, **kwargs):
-        context["banner"] = "Connect Sentry to {}".format(application.name)
+        context["banner"] = f"Connect Sentry to {application.name}"
         return self.respond("sentry/login.html", context)
 
     def get(self, request, **kwargs):
@@ -152,7 +147,7 @@ class OAuthAuthorizeView(AuthLoginView):
         request.session["oa2"] = payload
 
         if not request.user.is_authenticated():
-            return super(OAuthAuthorizeView, self).get(request, application=application)
+            return super().get(request, application=application)
 
         if not force_prompt:
             try:
@@ -198,9 +193,7 @@ class OAuthAuthorizeView(AuthLoginView):
                         pending_scopes.remove(scope)
 
             if pending_scopes:
-                raise NotImplementedError(
-                    "{} scopes did not have descriptions".format(pending_scopes)
-                )
+                raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
 
         context = {
             "user": request.user,
@@ -232,9 +225,7 @@ class OAuthAuthorizeView(AuthLoginView):
             )
 
         if not request.user.is_authenticated():
-            response = super(OAuthAuthorizeView, self).post(
-                request, application=application, **kwargs
-            )
+            response = super().post(request, application=application, **kwargs)
             # once they login, bind their user ID
             if request.user.is_authenticated():
                 request.session["oa2"]["uid"] = request.user.id

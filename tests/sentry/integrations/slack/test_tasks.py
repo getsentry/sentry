@@ -67,6 +67,7 @@ class SlackTasksTest(TestCase):
                 },
             ],
             "projects": [self.project1.slug],
+            "owner": self.user.id,
             "name": "New Rule",
             "organization_id": self.org.id,
         }
@@ -94,6 +95,7 @@ class SlackTasksTest(TestCase):
             ],
             "frequency": 5,
             "uuid": self.uuid,
+            "user_id": self.user.id,
         }
 
         with self.tasks():
@@ -113,6 +115,7 @@ class SlackTasksTest(TestCase):
                 "workspace": self.integration.id,
             }
         ]
+        assert rule.created_by == self.user
 
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
@@ -165,15 +168,6 @@ class SlackTasksTest(TestCase):
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     def test_task_failed_channel_id_lookup(self, mock_set_value):
-        groups = {"ok": "true", "groups": [{"name": "my-private-channel", "id": "chan-id"}]}
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/groups.list",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(groups),
-        )
-
         members = {"ok": "true", "members": [{"name": "morty", "id": "morty-id"}]}
         responses.add(
             method=responses.GET,
@@ -220,6 +214,7 @@ class SlackTasksTest(TestCase):
             "data": alert_rule_data,
             "uuid": self.uuid,
             "organization_id": self.org.id,
+            "user_id": self.user.id,
         }
 
         with self.tasks():
@@ -227,6 +222,7 @@ class SlackTasksTest(TestCase):
                 find_channel_id_for_alert_rule(**data)
 
         rule = AlertRule.objects.get(name="New Rule")
+        assert rule.created_by == self.user
         mock_set_value.assert_called_with("success", rule.id)
         mock_get_channel_id.assert_called_with(self.integration, "my-channel", 180)
 

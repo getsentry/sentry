@@ -1,6 +1,7 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -12,10 +13,10 @@ import {SectionHeading} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval} from 'app/components/charts/utils';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import {t, tct} from 'app/locale';
 import {LightWeightOrganization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {tooltipFormatter} from 'app/utils/discover/charts';
@@ -26,18 +27,20 @@ import {
   formatPercentage,
 } from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 type Props = ReactRouter.WithRouterProps & {
+  theme: Theme;
   api: Client;
   organization: LightWeightOrganization;
   location: Location;
   eventView: EventView;
+  totals: Record<string, number> | null;
 };
 
-function SidebarCharts({api, eventView, organization, router}: Props) {
+function SidebarCharts({theme, api, eventView, organization, router, totals}: Props) {
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
@@ -57,22 +60,22 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
     },
   };
   const chartOptions = {
-    height: 580,
+    height: 480,
     grid: [
       {
-        top: '40px',
+        top: '60px',
         left: '10px',
         right: '10px',
-        height: '120px',
+        height: '100px',
       },
       {
-        top: '230px',
+        top: '220px',
         left: '10px',
         right: '10px',
-        height: '150px',
+        height: '100px',
       },
       {
-        top: '450px',
+        top: '380px',
         left: '10px',
         right: '10px',
         height: '120px',
@@ -142,35 +145,57 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
   };
   const project = eventView.project;
   const environment = eventView.environment;
+  const threshold = organization.apdexThreshold;
 
   return (
     <RelativeBox>
-      <ChartTitle top="0px" key="apdex">
-        {t('Apdex')}
-        <QuestionTooltip
-          position="top"
-          title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
-          size="sm"
-        />
-      </ChartTitle>
+      <ChartLabel top="0px">
+        <ChartTitle>
+          {t('Apdex')}
+          <QuestionTooltip
+            position="top"
+            title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
+            size="sm"
+          />
+        </ChartTitle>
+        {totals ? (
+          <ChartValue>{formatFloat(totals[`apdex_${threshold}`], 4)}</ChartValue>
+        ) : (
+          <Placeholder height="24px" />
+        )}
+      </ChartLabel>
 
-      <ChartTitle top="190px" key="failure-rate">
-        {t('Failure Rate')}
-        <QuestionTooltip
-          position="top"
-          title={getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)}
-          size="sm"
-        />
-      </ChartTitle>
+      <ChartLabel top="160px">
+        <ChartTitle>
+          {t('Failure Rate')}
+          <QuestionTooltip
+            position="top"
+            title={getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)}
+            size="sm"
+          />
+        </ChartTitle>
+        {totals ? (
+          <ChartValue>{formatPercentage(totals.failure_rate)}</ChartValue>
+        ) : (
+          <Placeholder height="24px" />
+        )}
+      </ChartLabel>
 
-      <ChartTitle top="410px" key="throughput">
-        {t('TPM')}
-        <QuestionTooltip
-          position="top"
-          title={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
-          size="sm"
-        />
-      </ChartTitle>
+      <ChartLabel top="320px">
+        <ChartTitle>
+          {t('TPM')}
+          <QuestionTooltip
+            position="top"
+            title={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
+            size="sm"
+          />
+        </ChartTitle>
+        {totals ? (
+          <ChartValue>{tct('[tpm] tpm', {tpm: formatFloat(totals.tpm, 4)})}</ChartValue>
+        ) : (
+          <Placeholder height="24px" />
+        )}
+      </ChartLabel>
 
       <ChartZoom
         router={router}
@@ -227,15 +252,20 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
 
 const RelativeBox = styled('div')`
   position: relative;
-  margin-bottom: ${space(1)};
 `;
 
-const ChartTitle = styled(SectionHeading)<{top: string}>`
-  background: ${p => p.theme.background};
+const ChartTitle = styled(SectionHeading)`
+  margin: 0;
+`;
+
+const ChartLabel = styled('div')<{top: string}>`
   position: absolute;
   top: ${p => p.top};
-  margin: 0;
   z-index: 1;
 `;
 
-export default withApi(ReactRouter.withRouter(SidebarCharts));
+const ChartValue = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+export default withApi(withTheme(ReactRouter.withRouter(SidebarCharts)));

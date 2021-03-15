@@ -41,9 +41,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
             if len(request.GET.getlist("field")) > MAX_FIELDS:
                 raise ParseError(
-                    detail="You can view up to {0} fields at a time. Please delete some and try again.".format(
-                        MAX_FIELDS
-                    )
+                    detail=f"You can view up to {MAX_FIELDS} fields at a time. Please delete some and try again."
                 )
 
             params = self.get_filter_params(request, organization)
@@ -156,7 +154,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.
         querystring = "&".join(
-            "{0}={1}".format(urlquote(query[0]), urlquote(value))
+            f"{urlquote(query[0])}={urlquote(value)}"
             for query in request.GET.lists()
             if query[0] != "cursor"
             for value in query[1]
@@ -164,7 +162,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
-            base_url = "{0}?{1}".format(base_url, querystring)
+            base_url = f"{base_url}?{querystring}"
         else:
             base_url = base_url + "?"
 
@@ -195,25 +193,25 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
 
         fields = request.GET.getlist("field")
-        has_issues = "issue" in fields
-        if has_issues:  # Look up the short ID and return that in the results
-            if has_issues:
-                issue_ids = set(row.get("issue.id") for row in results)
-                issues = Group.issues_mapping(issue_ids, project_ids, organization)
-            for result in results:
-                if has_issues and "issue.id" in result:
-                    result["issue"] = issues.get(result["issue.id"], "unknown")
+        if "issue" in fields:  # Look up the short ID and return that in the results
+            self.handle_issues(results, project_ids, organization)
 
         if not ("project.id" in first_row or "projectid" in first_row):
             return results
 
         for result in results:
             for key in ("projectid", "project.id"):
-                if key in result:
-                    if key not in fields:
-                        del result[key]
+                if key in result and key not in fields:
+                    del result[key]
 
         return results
+
+    def handle_issues(self, results, project_ids, organization):
+        issue_ids = {row.get("issue.id") for row in results}
+        issues = Group.issues_mapping(issue_ids, project_ids, organization)
+        for result in results:
+            if "issue.id" in result:
+                result["issue"] = issues.get(result["issue.id"], "unknown")
 
     def get_event_stats_data(
         self,
