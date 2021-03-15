@@ -124,6 +124,7 @@ default_manager.add("organizations:performance-vitals-overview", OrganizationFea
 default_manager.add("organizations:performance-ops-breakdown", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-tag-explorer", OrganizationFeature)  # NOQA
 default_manager.add("organizations:team-alerts-ownership", OrganizationFeature)  # NOQA
+default_manager.add("organizations:alert-wizard", OrganizationFeature)  # NOQA
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 
