@@ -86,7 +86,7 @@ const GetStarted = styled(Button)`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  margin-right: 20px;
+  margin-right: ${space(3)};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
