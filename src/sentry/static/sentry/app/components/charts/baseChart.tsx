@@ -29,20 +29,7 @@ import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
-import {getColorPalette} from './utils';
-
-// If dimension is a number convert it to pixels, otherwise use dimension without transform
-const getDimensionValue = (dimension?: ReactEChartOpts['height']) => {
-  if (typeof dimension === 'number') {
-    return `${dimension}px`;
-  }
-
-  if (dimension === null) {
-    return undefined;
-  }
-
-  return dimension;
-};
+import {getColorPalette, getDimensionValue} from './utils';
 
 // TODO(ts): What is the series type? EChartOption.Series's data cannot have
 // `onClick` since it's typically an array.
@@ -353,9 +340,7 @@ function BaseChartUnwrapped({
 
   // Maybe changing the series type to types/echarts Series[] would be a better
   // solution and can't use ignore for multiline blocks
-  // @ts-expect-error
   const seriesValid = series && series[0]?.data && series[0].data.length > 1;
-  // @ts-expect-error
   const seriesData = seriesValid ? series[0].data : undefined;
   const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
 
