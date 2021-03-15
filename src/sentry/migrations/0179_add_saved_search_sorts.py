@@ -41,6 +41,7 @@ class Migration(migrations.Migration):
                     ("freq", "Events"),
                     ("user", "Users"),
                     ("trend", "Relative Change"),
+                    ("inbox", "Date Added"),
                 ],
                 default="date",
                 max_length=16,

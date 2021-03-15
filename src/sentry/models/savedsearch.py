@@ -14,6 +14,7 @@ class SortOptions:
     FREQ = "freq"
     USER = "user"
     TREND = "trend"
+    INBOX = "inbox"
 
     @classmethod
     def as_choices(cls):
@@ -24,6 +25,7 @@ class SortOptions:
             (cls.FREQ, _("Events")),
             (cls.USER, _("Users")),
             (cls.TREND, _("Relative Change")),
+            (cls.INBOX, _("Date Added")),
         )
 
 
