@@ -19,7 +19,7 @@ function DemoHeader({organization}: Props) {
   return (
     <Wrapper>
       <LogoSvg src="logo" />
-      <StyledButtonBar gap={4}>
+      <ButtonBar gap={4}>
         <StyledExternalLink href="https://docs.sentry.io">
           {t('Documentation')}
         </StyledExternalLink>
@@ -31,7 +31,7 @@ function DemoHeader({organization}: Props) {
         >
           {t('Get Started')}
         </GetStarted>
-      </StyledButtonBar>
+      </ButtonBar>
     </Wrapper>
   );
 }
@@ -50,6 +50,7 @@ export default createReactClass<Omit<Props, 'organization'>>({
 
 //Note many of the colors don't come from the theme as they come from the marketing site
 const Wrapper = styled('div')`
+  padding-right: ${space(3)};
   background-color: ${p => p.theme.white};
   height: ${p => p.theme.demo.headerSize};
   display: flex;
@@ -83,10 +84,6 @@ const GetStarted = styled(Button)`
   border-color: transparent;
   border-radius: 2rem;
   text-transform: uppercase;
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  margin-right: ${space(3)};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
