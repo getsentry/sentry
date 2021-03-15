@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -145,11 +144,6 @@ class Table extends React.PureComponent<TableProps, TableState> {
           tableData: null,
         });
         setError(message, err.status);
-
-        // We always want to make sure an useful error message is set.
-        if (!err?.responseJSON?.detail) {
-          Sentry.captureException(err);
-        }
       });
   };
 
