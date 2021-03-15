@@ -4,38 +4,41 @@
 const path = require('path');
 const childProcess = require('child_process');
 const webpack = require('webpack');
-const CompressionPlugin = require('compression-webpack-plugin');
 
 const baseConfig = require('../webpack.config');
 
-const commitHash = childProcess.execSync('git rev-parse HEAD').toString();
+const commitHash = childProcess.execSync('git rev-parse HEAD').toString().trim();
 
-const basePlugins = baseConfig.plugins.filter(
-  plugin => !(plugin instanceof CompressionPlugin)
-);
+const findLoader = loaderName =>
+  baseConfig.module.rules.find(rule => rule.use.loader === loaderName);
 
 const config = {
-  ...baseConfig,
+  context: baseConfig.context,
+  resolve: baseConfig.resolve,
 
   target: 'node',
   entry: {
     config: 'app/chartcuterieConfig',
   },
 
-  optimization: {},
+  module: {
+    rules: [findLoader('babel-loader'), findLoader('po-catalog-loader')],
+    noParse: baseConfig.module.noParse,
+  },
 
   plugins: [
-    ...basePlugins,
     new webpack.DefinePlugin({
       'process.env': {COMMIT_SHA: JSON.stringify(commitHash)},
     }),
   ],
 
   output: {
-    ...baseConfig.output,
     path: path.join(__dirname, 'chartcuterie'),
-    libraryTarget: 'commonjs',
+    libraryTarget: 'commonjs2',
   },
+
+  devtool: 'none',
+  optimization: {minimize: false},
 };
 
 module.exports = config;
