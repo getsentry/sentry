@@ -1,9 +1,10 @@
 from django.db.models import Case, When
 from rest_framework.response import Response
+from rest_framework.exceptions import ParseError
 
 from sentry import features
 from sentry.api.serializers import serialize
-from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases import OrganizationEndpoint, NoProjects
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
@@ -88,13 +89,16 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
+        try:
+            params = self.get_filter_params(
+                request, organization, project_ids=request.data.get("projects")
+            )
+        except NoProjects:
+            raise ParseError(detail="NoProjects: Join a Team.")
+
         serializer = DiscoverSavedQuerySerializer(
             data=request.data,
-            context={
-                "params": self.get_filter_params(
-                    request, organization, project_ids=request.data.get("projects")
-                )
-            },
+            context={"params": params},
         )
 
         if not serializer.is_valid():
