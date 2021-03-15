@@ -200,6 +200,10 @@ class AlertRuleCreateEndpointTest(APITestCase):
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
     def test_no_owner(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
         rule_data = {
             "aggregate": "count()",
             "query": "",
