@@ -3,7 +3,7 @@ import ast
 from django.db import models
 
 from sentry.db.models.utils import Creator
-from sentry.utils import json, JSONDecodeError
+from sentry.utils import json
 from sentry.utils.compat import map
 
 
@@ -56,7 +56,7 @@ class ArrayField(models.Field):
         if isinstance(value, str):
             try:
                 value = json.loads(value)
-            except JSONDecodeError:
+            except json.JSONDecodeError:
                 # This is to accomodate the erronous exports pre 21.4.0
                 # See getsentry/sentry#23843 for more details
                 value = ast.literal_eval(value)
