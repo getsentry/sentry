@@ -6,13 +6,13 @@ from django.http import Http404
 from urllib.parse import urlparse, urlencode, parse_qs
 
 from sentry import tagstore
-from sentry.api.fields.actor import Actor
 from sentry.constants import ObjectStatus
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 from sentry.models import (
+    ActorTuple,
     GroupStatus,
     GroupAssignee,
     OrganizationMember,
@@ -124,7 +124,7 @@ def build_attachment_text(group, event=None):
 
 
 def build_assigned_text(group, identity, assignee):
-    actor = Actor.from_actor_identifier(assignee)
+    actor = ActorTuple.from_actor_identifier(assignee)
 
     try:
         assigned_actor = actor.resolve()

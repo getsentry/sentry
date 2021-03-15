@@ -37,6 +37,8 @@ type Props = ReactRouter.WithRouterProps & {
   organization: LightWeightOrganization;
   location: Location;
   eventView: EventView;
+  isLoading: boolean;
+  error: string | null;
   totals: Record<string, number> | null;
 };
 
@@ -47,6 +49,8 @@ function SidebarCharts({
   eventView,
   organization,
   router,
+  isLoading,
+  error,
   totals,
 }: Props) {
   const statsPeriod = eventView.statsPeriod;
@@ -166,11 +170,11 @@ function SidebarCharts({
             size="sm"
           />
         </ChartTitle>
-        {totals ? (
-          <ChartValue>{formatFloat(totals[`apdex_${threshold}`], 4)}</ChartValue>
-        ) : (
-          <Placeholder height="24px" />
-        )}
+        <ChartSummaryValue
+          isLoading={isLoading}
+          error={error}
+          value={totals ? formatFloat(totals[`apdex_${threshold}`], 4) : null}
+        />
       </ChartLabel>
 
       <ChartLabel top="160px">
@@ -182,11 +186,11 @@ function SidebarCharts({
             size="sm"
           />
         </ChartTitle>
-        {totals ? (
-          <ChartValue>{formatPercentage(totals.failure_rate)}</ChartValue>
-        ) : (
-          <Placeholder height="24px" />
-        )}
+        <ChartSummaryValue
+          isLoading={isLoading}
+          error={error}
+          value={totals ? formatPercentage(totals.failure_rate) : null}
+        />
       </ChartLabel>
 
       <ChartLabel top="320px">
@@ -198,11 +202,11 @@ function SidebarCharts({
             size="sm"
           />
         </ChartTitle>
-        {totals ? (
-          <ChartValue>{tct('[tpm] tpm', {tpm: formatFloat(totals.tpm, 4)})}</ChartValue>
-        ) : (
-          <Placeholder height="24px" />
-        )}
+        <ChartSummaryValue
+          isLoading={isLoading}
+          error={error}
+          value={totals ? tct('[tpm] tpm', {tpm: formatFloat(totals.tpm, 4)}) : null}
+        />
       </ChartLabel>
 
       <ChartZoom
@@ -256,6 +260,22 @@ function SidebarCharts({
       </ChartZoom>
     </RelativeBox>
   );
+}
+
+type ChartValueProps = {
+  isLoading: boolean;
+  error: string | null;
+  value: React.ReactNode;
+};
+
+function ChartSummaryValue({error, isLoading, value}: ChartValueProps) {
+  if (error) {
+    return <div>{'\u2014'}</div>;
+  } else if (isLoading) {
+    return <Placeholder height="24px" />;
+  } else {
+    return <ChartValue>{value}</ChartValue>;
+  }
 }
 
 const RelativeBox = styled('div')`

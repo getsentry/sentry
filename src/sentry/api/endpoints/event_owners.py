@@ -2,10 +2,9 @@ from rest_framework.response import Response
 
 from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.fields.actor import Actor
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.models import ProjectOwnership, Team
+from sentry.models import ActorTuple, ProjectOwnership, Team
 
 
 class EventOwnersEndpoint(ProjectEndpoint):
@@ -30,7 +29,9 @@ class EventOwnersEndpoint(ProjectEndpoint):
         if owners == ProjectOwnership.Everyone:
             owners = []
 
-        serialized_owners = serialize(Actor.resolve_many(owners), request.user, ActorSerializer())
+        serialized_owners = serialize(
+            ActorTuple.resolve_many(owners), request.user, ActorSerializer()
+        )
 
         # Make sure the serialized owners are in the correct order
         ordered_owners = []
