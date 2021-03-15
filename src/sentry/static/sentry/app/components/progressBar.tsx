@@ -68,7 +68,7 @@ const ProgressBar = styled(({className, value}: Props) => (
   :before {
     content: ' ';
     width: ${p => p.value}%;
-    background-color: ${p => p.theme.purple300};
+    background-color: ${p => p.theme.progressBar};
     position: absolute;
   }
 

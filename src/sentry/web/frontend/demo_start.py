@@ -1,6 +1,5 @@
 from django.http import Http404
 from django.conf import settings
-from django.db import transaction
 
 from sentry.demo.utils import NoDemoOrgReady
 from sentry.utils import auth
@@ -11,7 +10,6 @@ class DemoStartView(BaseView):
     csrf_protect = False
     auth_required = False
 
-    @transaction.atomic
     def post(self, request):
         # need this check for tests since the route will exist even if DEMO_MODE=False
         if not settings.DEMO_MODE:
