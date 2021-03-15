@@ -1,56 +1,57 @@
 from rest_framework.response import Response
-from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.snuba import outcomes
-from sentry.api.serializers.models.organization_stats import StatsResponse
+from sentry.snuba.outcomes import (
+    run_outcomes_query,
+    QueryDefinition,
+    massage_outcomes_result,
+    InvalidField,
+)
+
+from rest_framework.exceptions import ParseError
+from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
+from sentry.api.utils import InvalidParams
+
+from contextlib import contextmanager
 
 
-class OrganizationStatsEndpointV2(OrganizationEndpoint):
+# TODO: see if there's a better way to do parameter validation, or just not?
+VALID_PARAMETERS = {
+    "project",
+    "statsPeriod",
+    "interval",
+    "field",
+    "start",
+    "end",
+    "outcome",
+    "category",
+    "reason",
+    "groupBy",
+}
+
+
+class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
     def get(self, request, organization):
+        with self.handle_query_errors():
+            query = self.build_outcomes_query(request, organization)
+            result_totals, result_timeseries = run_outcomes_query(query)
+            result = massage_outcomes_result(query, result_totals, result_timeseries)
+            return Response(result, status=200)
 
-        result = outcomes.query(
-            groupby=["category", "time", "outcome", "reason"],
-            aggregations=[["sum", "quantity", "quantity"]],
-            filter_keys={"org_id": [organization.id]},
-            orderby=["time"],
-            request=request.GET,
-        )
+    def build_outcomes_query(self, request, organization):
+        for param in request.GET:
+            if param not in VALID_PARAMETERS:
+                raise InvalidParams(f'Invalid parameter: "{param}"')
+        try:
+            params = self.get_filter_params(request, organization, date_filter_optional=True)
+        except NoProjects:
+            raise NoProjects("No projects available")
 
-        response = StatsResponse()
-        for row in result:
-            if "category" in row:
-                stat_to_update = response.get(row["category"])
-                stat_to_update.update(row)
-            else:
-                # if its a zerofill row, make sure all statcategories have it
-                for _, category_stat in response:
-                    category_stat.update(row)
-        return Response(response.build_fields())
+        return QueryDefinition(request.GET, params)
 
-
-class OrganizationProjectStatsIndex(OrganizationEndpoint):
-    def get(self, request, organization):
-
-        projects = self.get_projects(request, organization)
-        project_ids = list({p.id for p in projects})
-
-        result = outcomes.query(
-            groupby=["project_id", "category", "time", "outcome", "reason"],
-            aggregations=[["sum", "quantity", "quantity"]],
-            filter_keys={"org_id": [organization.id], "project_id": project_ids},
-            orderby=["quantity", "time"],
-            request=request.GET,
-        )
-        response = {project_id: StatsResponse() for project_id in project_ids}
-        for project_id, rows in result.items():
-            for row in rows:
-                if "category" in row:
-                    stat_to_update = response[project_id].get(row["category"])
-                    stat_to_update.update(row)
-                else:
-                    # make sure all categories have zerofilled
-                    for _, category_stat in response[project_id]:
-                        category_stat.update(row)
-
-        return Response(
-            {project_id: stat_res.build_fields() for project_id, stat_res in response.items()}
-        )
+    @contextmanager
+    def handle_query_errors(self):
+        try:
+            # TODO: this context manager should be decoupled from `OrganizationEventsEndpointBase`?
+            with super().handle_query_errors():
+                yield
+        except (InvalidField, NoProjects, InvalidParams) as error:
+            raise ParseError(detail=str(error))

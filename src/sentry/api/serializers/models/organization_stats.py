@@ -43,7 +43,7 @@ class StatValue:
         self.quantity = quantity
 
     def serialize(self):
-        pass
+        return {"quantity": self.quantity}
 
 
 class UsageStat:
@@ -57,18 +57,12 @@ class UsageStat:
 
     def serialize(self):
         return {
-            "accepted": {
-                "quantity": self.accepted.quantity,
-            },
-            "filtered": {"quantity": self.filtered.quantity},
+            "accepted": self.accepted.serialize(),
+            "filtered": self.filtered.serialize(),
             "dropped": {
-                "overQuota": {
-                    "quantity": self.over_quota.quantity,
-                },
-                "spikeProtection": {
-                    "quantity": self.spike_protection.quantity,
-                },
-                "other": {"quantity": self.other.quantity},
+                "overQuota": self.over_quota.serialize(),
+                "spikeProtection": self.spike_protection.serialize(),
+                "other": self.other.serialize(),
             },
             "time": self.time,
         }

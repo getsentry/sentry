@@ -31,7 +31,6 @@ def test_timestamps():
 
     expected_timestamps = ["2020-12-17T12:00:00Z", "2020-12-18T00:00:00Z"]
     actual_timestamps = _get_timestamps(query)
-
     assert actual_timestamps == expected_timestamps
 
 

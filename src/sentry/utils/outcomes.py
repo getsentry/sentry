@@ -21,6 +21,10 @@ class Outcome(IntEnum):
     def api_name(self):
         return self.name.lower()
 
+    @classmethod
+    def parse(cls, name):
+        return Outcome[name.upper()]
+
 
 outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
 outcomes_publisher = None

@@ -288,7 +288,7 @@ def run_sessions_query(query):
     """
     result_totals = raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=query.query_columns,
+        selected_columns=query.query_columns,  # TODO: what does this do?
         groupby=query.query_groupby,
         aggregations=query.aggregations,
         conditions=query.conditions,

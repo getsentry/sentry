@@ -1311,7 +1311,6 @@ def get_filter(query=None, params=None):
         # Deprecated alias, use `group_ids` instead
         if ISSUE_ID_ALIAS in params:
             kwargs["group_ids"] = to_list(params["issue.id"])
-
     return eventstore.Filter(**kwargs)
 
 

@@ -189,10 +189,7 @@ from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
-from .endpoints.organization_stats_v2 import (
-    OrganizationStatsEndpointV2,
-    OrganizationProjectStatsIndex,
-)
+from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
@@ -1225,11 +1222,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/stats_v2/$",
                     OrganizationStatsEndpointV2.as_view(),
                     name="sentry-api-0-organization-stats-v2",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/stats_v2/projects/$",
-                    OrganizationProjectStatsIndex.as_view(),
-                    name="sentry-api-0-organization-stats-project-index",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/teams/$",
