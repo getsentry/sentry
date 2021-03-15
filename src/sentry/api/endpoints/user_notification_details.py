@@ -62,11 +62,12 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
         serializer = UserNotificationDetailsSerializer(data=request.data)
 
         if serializer.is_valid():
-            for key, value in serializer.validated_data:
+            for key, value in serializer.validated_data.items():
                 db_key = USER_OPTION_SETTINGS[UserOptionsSettingsKey(key)]["key"]
                 (uo, created) = UserOption.objects.get_or_create(
                     user=user, key=db_key, project=None, organization=None
                 )
+                # Convert integers and booleans to string representations of ints.
                 uo.update(value=str(int(value)))
 
             return self.get(request, user)

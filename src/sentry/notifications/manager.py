@@ -211,9 +211,10 @@ class NotificationsManager(BaseManager):
         self,
         provider: ExternalProviders,
         type: NotificationSettingTypes,
-        user_id=None,
-        team_id=None,
-        **kwargs,
+        user=None,
+        team=None,
+        project=None,
+        organization=None,
     ):
         """
         We don't anticipate this function will be used by the API but is useful
@@ -221,17 +222,16 @@ class NotificationsManager(BaseManager):
         to set a notification preference to DEFAULT.
         :param provider: ExternalProviders enum
         :param type: NotificationSettingTypes enum
-        :param user_id: User object's ID
-        :param team_id: Team object's ID
-        :param kwargs: (deprecated) User object
+        :param user: (Optional) User object
+        :param team: (Optional) Team object
+        :param project: (Optional) Project object
+        :param organization: (Optional) Organization object
         """
-
-        kwargs = kwargs or {}
-        project_option = kwargs.get("project")
-        user_id_option = user_id or getattr(kwargs.get("user"), "id", None)
-        team_id_option = team_id or getattr(kwargs.get("team"), "id", None)
-        scope_type, scope_identifier = _get_scope(user_id_option, project=project_option)
-        target = _get_target(user_id_option, team_id_option)
+        user_id_option = getattr(user, "id", None)
+        scope_type, scope_identifier = _get_scope(
+            user_id_option, project=project, organization=organization
+        )
+        target = _get_target(user, team)
 
         self.filter(
             provider=provider.value,
