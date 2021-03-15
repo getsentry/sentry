@@ -7,7 +7,12 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from enum import Enum
 
-from sentry.db.models import FlexibleForeignKey, Model, UUIDField, OneToOneCascadeDeletes
+from sentry.db.models import (
+    FlexibleForeignKey,
+    Model,
+    UUIDField,
+    OneToOneCascadeDeletes,
+)
 from sentry.db.models import ArrayField, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User

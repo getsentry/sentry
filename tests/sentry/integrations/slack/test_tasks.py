@@ -67,6 +67,7 @@ class SlackTasksTest(TestCase):
                 },
             ],
             "projects": [self.project1.slug],
+            "owner": self.user.id,
             "name": "New Rule",
             "organization_id": self.org.id,
         }

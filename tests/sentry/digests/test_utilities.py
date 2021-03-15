@@ -1,4 +1,3 @@
-from sentry.api.fields.actor import Actor
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.digests.utilities import (
     build_events_by_actor,
@@ -8,7 +7,7 @@ from sentry.digests.utilities import (
     team_actors_to_user_ids,
 )
 from sentry.mail.adapter import ActionTargetType
-from sentry.models import OrganizationMemberTeam, ProjectOwnership, Team, User
+from sentry.models import ActorTuple, OrganizationMemberTeam, ProjectOwnership, Team, User
 from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -93,7 +92,11 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         # Member without teams
         self.create_member(user=users[7], organization=self.organization, teams=[])
 
-        team_actors = [Actor(team1.id, Team), Actor(team2.id, Team), Actor(team3.id, Team)]
+        team_actors = [
+            ActorTuple(team1.id, Team),
+            ActorTuple(team2.id, Team),
+            ActorTuple(team3.id, Team),
+        ]
         user_ids = [user.id for user in users]
 
         assert team_actors_to_user_ids(team_actors, user_ids) == {
@@ -129,10 +132,10 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         }
         user4_events = {self.create_event(self.project.id), self.create_event(self.project.id)}
         events_by_actor = {
-            Actor(team1.id, Team): team1_events,
-            Actor(team2.id, Team): team2_events,
-            Actor(user3.id, User): team1_events.union(team2_events),
-            Actor(user4.id, User): user4_events,
+            ActorTuple(team1.id, Team): team1_events,
+            ActorTuple(team2.id, Team): team2_events,
+            ActorTuple(user3.id, User): team1_events.union(team2_events),
+            ActorTuple(user4.id, User): user4_events,
         }
         user_by_events = {
             user1.id: team1_events,
@@ -246,10 +249,10 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         events = self.team1_events + self.team2_events + self.user4_events
 
         events_by_actor = {
-            Actor(self.team1.id, Team): set(self.team1_events),
-            Actor(self.team2.id, Team): set(self.team2_events),
-            Actor(self.user3.id, User): set(self.team1_events),
-            Actor(self.user4.id, User): set(self.user4_events),
+            ActorTuple(self.team1.id, Team): set(self.team1_events),
+            ActorTuple(self.team2.id, Team): set(self.team2_events),
+            ActorTuple(self.user3.id, User): set(self.team1_events),
+            ActorTuple(self.user4.id, User): set(self.user4_events),
         }
         assert build_events_by_actor(self.project.id, events, self.user_ids) == events_by_actor
 

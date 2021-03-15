@@ -109,6 +109,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 },
             ],
             "projects": [self.project.slug],
+            "owner": self.user.id,
             "name": "JustAValidTestRule",
         }
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -181,6 +182,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 },
             ],
             "projects": [self.project.slug],
+            "owner": self.user.id,
             "name": "JustAValidTestRule",
         }
         with self.feature(["organizations:incidents"]):

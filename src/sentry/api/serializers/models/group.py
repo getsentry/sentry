@@ -17,10 +17,10 @@ from sentry.app import env
 from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.api.fields.actor import Actor
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
+    ActorTuple,
     ApiToken,
     Commit,
     Environment,
@@ -263,7 +263,7 @@ class GroupSerializerBase(Serializer):
             a.group_id: a.assigned_actor()
             for a in GroupAssignee.objects.filter(group__in=item_list)
         }
-        resolved_assignees = Actor.resolve_dict(assignees)
+        resolved_assignees = ActorTuple.resolve_dict(assignees)
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(group__in=item_list)}
 

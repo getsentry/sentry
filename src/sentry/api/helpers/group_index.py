@@ -14,13 +14,14 @@ from rest_framework.response import Response
 from sentry import eventstream, features
 from sentry.app import ratelimiter
 from sentry.api.base import audit_logger
-from sentry.api.fields import Actor, ActorField
+from sentry.api.fields import ActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.group import SUBSCRIPTION_REASON_MAP
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
+    ActorTuple,
     Activity,
     Commit,
     Group,
@@ -425,7 +426,7 @@ def self_subscribe_and_assign_issue(acting_user, group):
             user=acting_user, key="self_assign_issue", default="0"
         )
         if self_assign_issue == "1" and not group.assignee_set.exists():
-            return Actor(type=User, id=acting_user.id)
+            return ActorTuple(type=User, id=acting_user.id)
 
 
 def track_update_groups(function):

@@ -124,9 +124,9 @@ class ProjectOwnership(Model):
             if not actors:
                 return ownership.auto_assignment, []
 
-            from sentry.api.fields.actor import Actor
+            from sentry.models import ActorTuple
 
-            return ownership.auto_assignment, Actor.resolve_many(actors)
+            return ownership.auto_assignment, ActorTuple.resolve_many(actors)
 
     @classmethod
     def _matching_ownership_rules(cls, ownership, project_id, data):
@@ -143,7 +143,7 @@ def resolve_actors(owners, project_id):
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
-    from sentry.api.fields.actor import Actor
+    from sentry.models import ActorTuple
     from sentry.models import User, Team
 
     if not owners:
@@ -166,7 +166,7 @@ def resolve_actors(owners, project_id):
     if users:
         actors.update(
             {
-                ("user", email.lower()): Actor(u_id, User)
+                ("user", email.lower()): ActorTuple(u_id, User)
                 for u_id, email in User.objects.filter(
                     reduce(operator.or_, [Q(emails__email__iexact=o.identifier) for o in users]),
                     # We don't require verified emails
@@ -182,7 +182,7 @@ def resolve_actors(owners, project_id):
     if teams:
         actors.update(
             {
-                ("team", slug): Actor(t_id, Team)
+                ("team", slug): ActorTuple(t_id, Team)
                 for t_id, slug in Team.objects.filter(
                     slug__in=[o.identifier for o in teams], projectteam__project_id=project_id
                 ).values_list("id", "slug")
