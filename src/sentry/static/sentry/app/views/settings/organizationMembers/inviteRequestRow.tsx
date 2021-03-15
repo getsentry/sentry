@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import SelectControl from 'app/components/forms/selectControl';
+import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
 import HookOrDefault from 'app/components/hookOrDefault';
 import {PanelItem} from 'app/components/panels';
 import RoleSelectControl from 'app/components/roleSelectControl';
@@ -23,6 +23,8 @@ type Props = {
   allTeams: Team[];
   allRoles: MemberRole[];
 };
+
+type OnChangeArgs = Parameters<ControlProps['onChange']>[0];
 
 const InviteModalHook = HookOrDefault({
   hookName: 'member-invite-modal:customization',
@@ -86,7 +88,9 @@ const InviteRequestRow = ({
       <TeamSelectControl
         name="teams"
         placeholder={t('Add to teams\u2026')}
-        onChange={teams => onUpdate({teams: teams.map(team => team.value)})}
+        onChange={(teams: OnChangeArgs) =>
+          onUpdate({teams: (teams || []).map(team => team.value)})
+        }
         value={inviteRequest.teams}
         options={allTeams.map(({slug}) => ({
           value: slug,
