@@ -6,7 +6,6 @@ from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
-    NotificationTargetType,
 )
 from sentry.models.useroption import UserOption
 from sentry.notifications.legacy_mappings import KEYS_TO_LEGACY_KEYS, KEY_VALUE_TO_LEGACY_VALUE
@@ -41,17 +40,17 @@ def _get_scope(user_id, project=None, organization=None):
     raise Exception("scope must be either user, organization, or project")
 
 
-def _get_target(user_id=None, team_id=None):
+def _get_target(user=None, team=None):
     """
     Figure out the target from parameters and return it as a tuple.
     :return: (int, int): (target_type, target_identifier)
     """
 
-    if user_id:
-        return NotificationTargetType.USER.value, user_id
+    if user:
+        return user.actor
 
-    if team_id:
-        return NotificationTargetType.TEAM.value, team_id
+    if team:
+        return team.actor
 
     raise Exception("target must be either a user or a team")
 
@@ -126,13 +125,11 @@ class NotificationsManager(BaseManager):
         :param organization: (optional) An Organization object
         :return: NotificationSettingOptionValues enum
         """
-
         user_id_option = getattr(user, "id", None)
-        team_id_option = getattr(team, "id", None)
         scope_type, scope_identifier = _get_scope(
             user_id_option, project=project, organization=organization
         )
-        target_type, target_identifier = _get_target(user_id_option, team_id_option)
+        target = _get_target(user, team)
 
         value = (  # NOQA
             self.filter(
@@ -140,8 +137,7 @@ class NotificationsManager(BaseManager):
                 type=type.value,
                 scope_type=scope_type,
                 scope_identifier=scope_identifier,
-                target_type=target_type,
-                target_identifier=target_identifier,
+                target=target,
             ).first()
             or NotificationSettingOptionValues.DEFAULT
         )
@@ -160,9 +156,10 @@ class NotificationsManager(BaseManager):
         provider: ExternalProviders,
         type: NotificationSettingTypes,
         value: NotificationSettingOptionValues,
-        user_id=None,
-        team_id=None,
-        **kwargs,
+        user=None,
+        team=None,
+        project=None,
+        organization=None,
     ):
         """
         Save a target's notification preferences.
@@ -173,27 +170,30 @@ class NotificationsManager(BaseManager):
         :param provider: ExternalProviders enum
         :param type: NotificationSettingTypes enum
         :param value: NotificationSettingOptionValues enum
-        :param user_id: User object's ID
-        :param team_id: Team object's ID
-        :param kwargs: (deprecated) User object
+        :param user: (Optional) User object
+        :param team: (Optional) Team object
+        :param project: (Optional) Project object
+        :param organization: (Optional) Organization object
         """
         # A missing DB row is equivalent to DEFAULT.
         if value == NotificationSettingOptionValues.DEFAULT:
-            return self.remove_settings(provider, type, user_id=user_id, team_id=team_id, **kwargs)
-
-        kwargs = kwargs or {}
-        project_option = kwargs.get("project")
-        organization_option = kwargs.get("organization")
-        user_id_option = user_id or getattr(kwargs.get("user"), "id", None)
-        team_id_option = team_id or getattr(kwargs.get("team"), "id", None)
+            return self.remove_settings(
+                provider,
+                type,
+                user=user,
+                team=team,
+                project=project,
+                organization=organization,
+            )
 
         if not validate(type, value):
             raise Exception(f"value '{value}' is not valid for type '{type}'")
 
+        user_id_option = getattr(user, "id", None)
         scope_type, scope_identifier = _get_scope(
-            user_id_option, project=project_option, organization=organization_option
+            user_id_option, project=project, organization=organization
         )
-        target_type, target_identifier = _get_target(user_id_option, team_id_option)
+        target = _get_target(user, team)
 
         with transaction.atomic():
             setting, created = self.get_or_create(
@@ -201,8 +201,7 @@ class NotificationsManager(BaseManager):
                 type=type.value,
                 scope_type=scope_type,
                 scope_identifier=scope_identifier,
-                target_type=target_type,
-                target_identifier=target_identifier,
+                target=target,
                 defaults={"value": value.value},
             )
             if not created and setting.value != value.value:
@@ -232,32 +231,24 @@ class NotificationsManager(BaseManager):
         user_id_option = user_id or getattr(kwargs.get("user"), "id", None)
         team_id_option = team_id or getattr(kwargs.get("team"), "id", None)
         scope_type, scope_identifier = _get_scope(user_id_option, project=project_option)
-        target_type, target_identifier = _get_target(user_id_option, team_id_option)
+        target = _get_target(user_id_option, team_id_option)
 
         self.filter(
             provider=provider.value,
             type=type.value,
             scope_type=scope_type,
             scope_identifier=scope_identifier,
-            target_type=target_type,
-            target_identifier=target_identifier,
+            target=target,
         ).delete()
 
     def remove_settings_for_user(self, user, type: NotificationSettingTypes = None):
         if type:
             # We don't need a transaction because this is only used in tests.
             UserOption.objects.filter(user=user, key=_get_legacy_key(type)).delete()
-            self.filter(
-                target_type=NotificationTargetType.USER.value,
-                target_identifier=user.id,
-                type=type.value,
-            ).delete()
+            self.filter(target=user, type=type.value).delete()
         else:
             UserOption.objects.filter(user=user, key__in=KEYS_TO_LEGACY_KEYS.values()).delete()
-            self.filter(
-                target_type=NotificationTargetType.USER.value,
-                target_identifier=user.id,
-            ).delete()
+            self.filter(target=user).delete()
 
     @staticmethod
     def remove_settings_for_team():
