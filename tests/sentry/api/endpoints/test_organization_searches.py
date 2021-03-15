@@ -80,6 +80,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
             owner=self.user,
             name="My Pinned Query",
             query="pinned junk",
+            sort="date",
             date_added=timezone.now(),
         )
         included.append(pinned_query)
