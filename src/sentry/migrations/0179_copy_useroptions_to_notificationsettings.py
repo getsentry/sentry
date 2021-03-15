@@ -29,8 +29,6 @@ def copy_useroption_to_notificationsetting(apps, schema_editor):
             # all_conversations = "0"
             # participating_only = "1"
             # no_conversations = "2"
-            if user_option.value == -1:
-                value = NotificationSettingOptionValues.DEFAULT
             if user_option.value == UserOptionValue.all_conversations:
                 value = NotificationSettingOptionValues.ALWAYS
             if user_option.value == UserOptionValue.participating_only:
@@ -46,8 +44,6 @@ def copy_useroption_to_notificationsetting(apps, schema_editor):
                 scope_type = NotificationScopeType.USER
             type = NotificationSettingTypes.ISSUE_ALERTS
             # value ###
-            if user_option.value == -1:
-                value = NotificationSettingOptionValues.DEFAULT
             if user_option.value == 0:
                 value = NotificationSettingOptionValues.NEVER
             if user_option.value == 1:
@@ -72,11 +68,10 @@ def copy_useroption_to_notificationsetting(apps, schema_editor):
             # all_deploys = "2"
             # committed_deploys_only = "3"
             # no_deploys = "4"
-            # if you've not explicitly set anything, there is no db row
+            # if you've not explicitly set anything OR set it to default, there is no db row
             # by default deploy notifications are set to committed_deploys_only,
-            # but there will be an entry if you change it to something else
-            if user_option.value == -1:
-                value = NotificationSettingOptionValues.DEFAULT
+            # but there will be an entry for the top level alert option
+            # if you change the value to something else
             if user_option.value == UserOptionValue.all_deploys:
                 value = NotificationSettingOptionValues.ALWAYS
             if user_option.value == UserOptionValue.no_deploys:
