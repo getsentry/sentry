@@ -31,17 +31,6 @@ MAX_URL_LENGTH = 150
 # UrlResult.body **must** be bytes
 UrlResult = namedtuple("UrlResult", ["url", "headers", "body", "status", "encoding"])
 
-# In case SSL is unavailable (light builds) we can't import this here.
-try:
-    from OpenSSL.SSL import ZeroReturnError, Error as OpenSSLError
-except ImportError:
-
-    class ZeroReturnError(Exception):
-        pass
-
-    class OpenSSLError(Exception):
-        pass
-
 
 class BadSource(Exception):
     error_type = EventError.UNKNOWN_ERROR
@@ -216,14 +205,14 @@ def fetch_file(
                         # We want size in megabytes to format nicely
                         "max_size": float(settings.SENTRY_SOURCE_FETCH_MAX_SIZE) / 1024 / 1024,
                     }
-                elif isinstance(exc, (RequestException, ZeroReturnError, OpenSSLError)):
+                elif isinstance(exc, RequestException):
                     error = {
                         "type": EventError.FETCH_GENERIC_ERROR,
-                        "value": str(type(exc)),
+                        "value": f"{type(exc)}",
                         "url": expose_url(url),
                     }
                 else:
-                    logger.exception(str(exc))
+                    logger.exception(f"{exc}")
                     error = {"type": EventError.UNKNOWN_ERROR, "url": expose_url(url)}
 
                 # TODO(dcramer): we want to be less aggressive on disabling domains

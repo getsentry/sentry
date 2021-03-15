@@ -15,15 +15,6 @@ from urllib.parse import urlsplit
 from symbolic import SourceMapView
 import sentry_sdk
 
-# In case SSL is unavailable (light builds) we can't import this here.
-try:
-    from OpenSSL.SSL import ZeroReturnError
-except ImportError:
-
-    class ZeroReturnError(Exception):
-        pass
-
-
 from sentry import http
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, ReleaseFile, Organization

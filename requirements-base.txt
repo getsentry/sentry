@@ -40,7 +40,7 @@ rb==1.9.0
 redis-py-cluster==2.1.0
 redis==3.4.1
 requests-oauthlib==1.2.0
-requests[security]==2.20.1
+requests==2.25.1
 # [start] jsonschema format validators
 rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
@@ -54,7 +54,7 @@ symbolic==8.0.3
 toronado==0.1.0
 ua-parser==0.10.0
 unidiff==0.5.5
-urllib3==1.24.2
+urllib3==1.25.11
 uWSGI==2.0.18
 zstandard==0.14.1
 
