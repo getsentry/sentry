@@ -326,6 +326,25 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 403
 
+    def test_no_owner(self):
+        self.login_as(self.user)
+        rule_data = {
+            "aggregate": "count()",
+            "query": "",
+            "timeWindow": "300",
+            "projects": [self.project.slug],
+            "name": "JustATestRule",
+            "resolveThreshold": 100,
+            "thresholdType": 1,
+            "triggers": [{"label": "critical", "alertThreshold": 75}],
+        }
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(self.organization.slug, status_code=201, **rule_data)
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
 
 class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
     endpoint = "sentry-api-0-organization-combined-rules"
