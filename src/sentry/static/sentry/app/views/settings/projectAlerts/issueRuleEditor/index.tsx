@@ -129,7 +129,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   getDefaultState() {
-    const {teams} = this.props;
+    const {organization, teams} = this.props;
     const defaultState = {
       ...super.getDefaultState(),
       configs: null,
@@ -138,8 +138,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       environments: [],
       uuid: null,
     };
-    const userTeam = teams.find(({isMember}) => !!isMember);
-    defaultState.rule.owner = userTeam ? `team:${userTeam.id}` : undefined;
+    if (organization.features.includes('team-alerts-ownership')) {
+      const userTeam = teams.find(({isMember}) => !!isMember);
+      defaultState.rule.owner = userTeam ? `team:${userTeam.id}` : undefined;
+    }
     return defaultState;
   }
 
