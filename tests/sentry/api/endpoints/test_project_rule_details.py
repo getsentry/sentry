@@ -167,6 +167,7 @@ class UpdateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": self.user.id,
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
@@ -180,6 +181,7 @@ class UpdateProjectRuleTest(APITestCase):
 
         rule = Rule.objects.get(id=rule.id)
         assert rule.label == "hello world"
+        assert rule.owner == self.user.actor
         assert rule.environment_id is None
         assert rule.data["action_match"] == "any"
         assert rule.data["filter_match"] == "any"
