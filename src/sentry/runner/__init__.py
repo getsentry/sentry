@@ -3,8 +3,17 @@ import click
 import sys
 import sentry
 import datetime
+import sentry_sdk
 from sentry.utils.imports import import_string
 from sentry.utils.compat import map
+
+if not os.environ.get("SENTRY_DEVENV_NO_REPORT"):
+    # This reports to the project sentry-dev-env
+    sentry_sdk.init(
+        dsn="https://23670f54c6254bfd9b7de106637808e9@o1.ingest.sentry.io/1492057",
+    )
+    if os.environ.get("USER"):
+        sentry_sdk.set_user({"username": os.environ.get("USER")})
 
 # We need to run this here because of a concurrency bug in Python's locale
 # with the lazy initialization.
