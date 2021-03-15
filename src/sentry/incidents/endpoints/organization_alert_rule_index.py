@@ -48,14 +48,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         teams = set(request.GET.getlist("team", []))
         team_filter_query = None
         if teams:
-            request_teams = request.access.teams
-            for team in request_teams:
-                if not request.access.has_team_access(team):
-                    return Response(
-                        f"Error: You do not have permission to access {team.name}",
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
+            verified_ids = set()
             unassigned = None
             if "unassigned" in teams:
                 teams.remove("unassigned")
@@ -63,16 +56,28 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
             if "myteams" in teams:
                 teams.remove("myteams")
-                teams.update([t.id for t in request_teams])
+                myteams = [t.id for t in request.access.teams]
+                verified_ids.update(myteams)
 
-            for team_id in teams:  # Verify each Team id is numeric
+            for team_id in teams:  # Verify each passed Team id is numeric
                 if type(team_id) is not int and not team_id.isdigit():
                     return Response(
                         f"Invalid Team ID: {team_id}", status=status.HTTP_400_BAD_REQUEST
                     )
-            team_filter_query = Q(
-                owner_id__in=Team.objects.filter(id__in=teams).values_list("actor_id", flat=True)
-            )
+            teams.update(verified_ids)
+
+            teams = Team.objects.filter(id__in=teams)
+            for team in teams:
+                if team.id in verified_ids:
+                    continue
+
+                if not request.access.has_team_access(team):
+                    return Response(
+                        f"Error: You do not have permission to access {team.name}",
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            team_filter_query = Q(owner_id__in=teams.values_list("actor_id", flat=True))
             if unassigned:
                 team_filter_query = team_filter_query | unassigned
 
