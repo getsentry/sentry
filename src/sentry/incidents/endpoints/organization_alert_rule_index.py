@@ -56,14 +56,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-            for team_id in teams:  # Verify each Team id is numeric
-                if team_id in ["unassigned", "myteams"]:
-                    continue
-                if type(team_id) is not int and not team_id.isdigit():
-                    return Response(
-                        f"Invalid Team ID: {team_id}", status=status.HTTP_400_BAD_REQUEST
-                    )
-
             unassigned = None
             if "unassigned" in teams:
                 teams.remove("unassigned")
@@ -73,7 +65,13 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 teams.remove("myteams")
                 teams.update([t.id for t in request_teams])
 
-            team_filter_query = Q(owner_id__in=request_teams.values_list("actor_id", flat=True))
+            for team_id in teams:  # Verify each Team id is numeric
+                if type(team_id) is not int and not team_id.isdigit():
+                    return Response(
+                        f"Invalid Team ID: {team_id}", status=status.HTTP_400_BAD_REQUEST
+                    )
+            filter_values = Team.objects.filter(id__in=teams).values_list("actor_id", flat=True)
+            team_filter_query = Q(owner_id__in=filter_values)
             if unassigned:
                 team_filter_query = team_filter_query | unassigned
 
