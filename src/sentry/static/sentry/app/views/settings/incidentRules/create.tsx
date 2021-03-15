@@ -45,7 +45,9 @@ class IncidentRulesCreate extends React.Component<Props> {
     const userTeamIdArr = teams.filter(({isMember}) => isMember).map(({id}) => id);
     const userTeamIds = new Set(userTeamIdArr);
 
-    defaultRule.owner = userTeamIdArr[0] && `team:${userTeamIdArr[0]}`;
+    if (props.organization.features.includes('team-alerts-ownership')) {
+      defaultRule.owner = userTeamIdArr[0] && `team:${userTeamIdArr[0]}`;
+    }
 
     return (
       <RuleForm
