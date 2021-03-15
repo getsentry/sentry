@@ -35,7 +35,7 @@ class PromptsActivityEndpoint(Endpoint):
 
         # always return dismissed if we are in demo mode
         if settings.DEMO_MODE:
-            return Response({"dismissed_ts": 1})
+            return Response({"data": {"dismissed_ts": 1}})
 
         feature = request.GET.get("feature")
 
