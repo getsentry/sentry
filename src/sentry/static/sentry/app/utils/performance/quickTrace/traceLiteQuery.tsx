@@ -17,6 +17,7 @@ import withApi from 'app/utils/withApi';
 
 type QueryProps = Omit<TraceRequestProps, 'eventView'> & {
   children: (props: TraceLiteQueryChildrenProps) => React.ReactNode;
+  isTransaction: boolean;
 };
 
 function getQuickTraceLiteRequestPayload({
@@ -40,8 +41,15 @@ function EmptyTrace({children}: Pick<QueryProps, 'children'>) {
   );
 }
 
-function TraceLiteQuery({traceId, start, end, children, ...props}: QueryProps) {
-  if (!traceId) {
+function TraceLiteQuery({
+  traceId,
+  start,
+  end,
+  children,
+  isTransaction,
+  ...props
+}: QueryProps) {
+  if (!traceId || !isTransaction) {
     return <EmptyTrace>{children}</EmptyTrace>;
   }
 

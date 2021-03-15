@@ -2,12 +2,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import DateTime from 'app/components/dateTime';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
-import {Event} from 'app/types/event';
+import {Event, EventTransaction} from 'app/types/event';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
 import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
@@ -26,9 +27,8 @@ type Props = {
 };
 
 function EventMetas({event, organization, projectId, location, quickTrace}: Props) {
-  if (!isTransaction(event)) {
-    return null;
-  }
+  const type = isTransaction(event) ? 'transaction' : 'event';
+  const transaction = event as EventTransaction;
 
   const projectBadge = (
     <Projects orgId={organization.slug} slugs={[projectId]}>
@@ -48,29 +48,44 @@ function EventMetas({event, organization, projectId, location, quickTrace}: Prop
   const httpStatus = <HttpStatus event={event} />;
 
   return (
-    <EventDetailHeader>
+    <EventDetailHeader type={type}>
       <MetaData
         headingText={t('Event ID')}
-        tooltipText={t('The unique ID assigned to this transaction.')}
+        tooltipText={t('The unique ID assigned to this %s.', type)}
         bodyText={getShortEventId(event.eventID)}
         subtext={projectBadge}
       />
-      <MetaData
-        headingText={t('Total Duration')}
-        tooltipText={t(
-          'The total time elapsed between the start and end of this transaction.'
-        )}
-        bodyText={getDuration(event.endTimestamp - event.startTimestamp, 2, true)}
-        subtext={timestamp}
-      />
-      <MetaData
-        headingText={t('Status')}
-        tooltipText={t(
-          'The status of this transaction indicating if it succeeded or otherwise.'
-        )}
-        bodyText={event.contexts?.trace?.status ?? '\u2014'}
-        subtext={httpStatus}
-      />
+      {type === 'transaction' ? (
+        <MetaData
+          headingText={t('Total Duration')}
+          tooltipText={t(
+            'The total time elapsed between the start and end of this transaction.'
+          )}
+          bodyText={getDuration(
+            transaction.endTimestamp - transaction.startTimestamp,
+            2,
+            true
+          )}
+          subtext={timestamp}
+        />
+      ) : (
+        <MetaData
+          headingText={t('Created')}
+          tooltipText={t('The time at which this event was created.')}
+          bodyText={timestamp}
+          subtext={<DateTime date={event.dateCreated} />}
+        />
+      )}
+      {type === 'transaction' && (
+        <MetaData
+          headingText={t('Status')}
+          tooltipText={t(
+            'The status of this transaction indicating if it succeeded or otherwise.'
+          )}
+          bodyText={event.contexts?.trace?.status ?? '\u2014'}
+          subtext={httpStatus}
+        />
+      )}
       <QuickTraceContainer>
         <QuickTrace
           event={event}
@@ -83,15 +98,16 @@ function EventMetas({event, organization, projectId, location, quickTrace}: Prop
   );
 }
 
-const EventDetailHeader = styled('div')`
+const EventDetailHeader = styled('div')<{type?: 'transaction' | 'event'}>`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(${p => (p.type === 'transaction' ? 3 : 2)}, 1fr);
   grid-template-rows: repeat(2, auto);
   grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;
+    grid-template-columns: minmax(160px, 1fr) ${p =>
+        p.type === 'transaction' ? 'minmax(160px, 1fr)' : ''} minmax(160px, 1fr) 6fr;
     grid-row-gap: 0;
     margin-bottom: 0;
   }
