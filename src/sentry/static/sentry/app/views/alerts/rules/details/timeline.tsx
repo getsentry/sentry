@@ -269,7 +269,7 @@ const ScrollPanel = styled(Panel)`
 `;
 
 const IncidentSection = styled('div')`
-  &:is(:not(:first-of-type)) {
+  &:not(:first-of-type) {
     margin-top: 15px;
   }
 `;
