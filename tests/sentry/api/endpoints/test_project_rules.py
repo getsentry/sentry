@@ -488,7 +488,7 @@ class CreateProjectRuleTest(APITestCase):
         assert not Rule.objects.filter(label="hello world").exists()
         kwargs = {
             "name": data["name"],
-            "owner": self.user.actor,
+            "owner": self.user.actor.id,
             "environment": data.get("environment"),
             "action_match": data["actionMatch"],
             "filter_match": data.get("filterMatch"),
