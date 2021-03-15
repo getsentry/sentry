@@ -19,5 +19,6 @@ CELERYBEAT_SCHEDULE["demo_delete_users_orgs"] = {
     "schedule": timedelta(hours=1),
     "options": {"expires": 3600, "queue": "cleanup"},
 }
+MIDDLEWARE_CLASSES = MIDDLEWARE_CLASSES + ("sentry.demo.middleware.DemoMiddleware",)
 INSTALLED_APPS = INSTALLED_APPS + ("sentry.demo.apps.Config",)
 ROOT_URLCONF = "sentry.demo.urls"
