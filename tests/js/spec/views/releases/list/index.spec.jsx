@@ -69,9 +69,9 @@ describe('ReleasesList', function () {
 
     expect(items).toHaveLength(3);
     expect(items.at(0).text()).toContain('1.0.0');
-    expect(items.at(0).text()).toContain('User Adoption');
+    expect(items.at(0).text()).toContain('Adoption');
     expect(items.at(1).text()).toContain('1.0.1');
-    expect(items.at(1).find('DailyColumn').at(1).text()).toContain('\u2014');
+    expect(items.at(1).find('CountColumn').at(1).text()).toContain('\u2014');
     expect(items.at(2).text()).toContain('af4f231ec9a8');
     expect(items.at(2).find('Header').text()).toContain('Project');
   });
@@ -164,8 +164,8 @@ describe('ReleasesList', function () {
     expect(sortByOptions).toHaveLength(5);
     expect(dateCreatedOption.text()).toEqual('Date Created');
 
-    const healthStatsControls = wrapper.find('DailyColumn span').first();
-    expect(healthStatsControls.text()).toEqual('Sessions');
+    const healthStatsControls = wrapper.find('CountColumn span').first();
+    expect(healthStatsControls.text()).toEqual('Count');
 
     dateCreatedOption.simulate('click');
 
@@ -180,24 +180,24 @@ describe('ReleasesList', function () {
     const displayDropdown = wrapper.find('ReleaseListDisplayOptions');
 
     const activeDisplay = displayDropdown.find('DropdownButton button');
-    expect(activeDisplay.text()).toEqual('DisplayCrash Free Sessions');
+    expect(activeDisplay.text()).toEqual('DisplaySessions');
 
     const displayOptions = displayDropdown.find('DropdownItem');
     expect(displayOptions).toHaveLength(2);
 
     const crashFreeSessionsOption = displayOptions.at(0);
     expect(crashFreeSessionsOption.props().isActive).toEqual(true);
-    expect(crashFreeSessionsOption.text()).toEqual('Crash Free Sessions');
+    expect(crashFreeSessionsOption.text()).toEqual('Sessions');
 
     const crashFreeUsersOption = displayOptions.at(1);
-    expect(crashFreeUsersOption.text()).toEqual('Crash Free Users');
+    expect(crashFreeUsersOption.text()).toEqual('Users');
     expect(crashFreeUsersOption.props().isActive).toEqual(false);
 
     crashFreeUsersOption.find('span').simulate('click');
 
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
-        display: DisplayOption.CRASH_FREE_USERS,
+        display: DisplayOption.USERS,
       }),
     });
   });
@@ -266,7 +266,7 @@ describe('ReleasesList', function () {
       })
     );
 
-    const healthStatsControls = wrapper.find('DailyColumn').first();
+    const healthStatsControls = wrapper.find('CountColumn').first();
 
     expect(healthStatsControls.find('Period[selected=true]').text()).toEqual('24h');
 

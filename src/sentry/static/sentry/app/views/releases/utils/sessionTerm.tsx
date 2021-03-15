@@ -5,12 +5,14 @@ export enum SessionTerm {
   CRASHES = 'crashes',
   CRASHED = 'crashed',
   ABNORMAL = 'abnormal',
+  CRASH_FREE = 'crashFree',
   CRASH_FREE_USERS = 'crash-free-users',
   CRASH_FREE_SESSIONS = 'crash-free-sessions',
   HEALTHY = 'healthy',
   ERRORED = 'errored',
   UNHANDLED = 'unhandled',
   STABILITY = 'stability',
+  ADOPTION = 'adoption',
 }
 
 export const sessionTerm = {
@@ -22,6 +24,7 @@ export const sessionTerm = {
   [SessionTerm.HEALTHY]: t('Healthy'),
   [SessionTerm.ERRORED]: t('Errored'),
   [SessionTerm.UNHANDLED]: t('Unhandled'),
+  [SessionTerm.ADOPTION]: t('Adoption'),
   duration: t('Session Duration'),
   otherCrashed: t('Other Crashed'),
   otherAbnormal: t('Other Abnormal'),
@@ -35,11 +38,17 @@ export const sessionTerm = {
 // This should never be used directly (except in tests)
 export const commonTermsDescription = {
   [SessionTerm.CRASHES]: t('Number of sessions with a crashed state'),
+  [SessionTerm.CRASH_FREE]: t(
+    'Percentage of sessions/users who did not experience a crash.'
+  ),
   [SessionTerm.CRASH_FREE_USERS]: t(
     'Percentage of unique users with non-crashed sessions'
   ),
   [SessionTerm.CRASH_FREE_SESSIONS]: t('Percentage of non-crashed sessions'),
   [SessionTerm.STABILITY]: t('The percentage of crash free sessions.'),
+  [SessionTerm.ADOPTION]: t(
+    'Adoption compares the sessions or users of a release with the total sessions or users for this project in the last 24 hours.'
+  ),
 };
 
 // This should never be used directly (except in tests)

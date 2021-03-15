@@ -75,7 +75,7 @@ class ReleasesList extends AsyncView<Props, State> {
       summaryStatsPeriod: statsPeriod,
       per_page: 25,
       health: 1,
-      healthStat: activeDisplay === DisplayOption.CRASH_FREE_USERS ? 'users' : 'sessions',
+      healthStat: activeDisplay === DisplayOption.USERS ? 'users' : 'sessions',
       flatten: activeSort === SortOption.DATE ? 0 : 1,
       status:
         activeStatus === StatusOption.ARCHIVED
@@ -158,10 +158,10 @@ class ReleasesList extends AsyncView<Props, State> {
     const {display} = this.props.location.query;
 
     switch (display) {
-      case DisplayOption.CRASH_FREE_USERS:
-        return DisplayOption.CRASH_FREE_USERS;
+      case DisplayOption.USERS:
+        return DisplayOption.USERS;
       default:
-        return DisplayOption.CRASH_FREE_SESSIONS;
+        return DisplayOption.SESSIONS;
     }
   }
 
@@ -291,7 +291,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        {releases.map(release => (
+        {releases.map((release, index) => (
           <ReleaseCard
             key={`${release.version}-${release.projects[0].slug}`}
             activeDisplay={activeDisplay}
@@ -301,6 +301,7 @@ class ReleasesList extends AsyncView<Props, State> {
             selection={selection}
             reloading={reloading}
             showHealthPlaceholders={loadingHealth}
+            isTopRelease={index === 0}
           />
         ))}
         <Pagination pageLinks={releasesPageLinks} />

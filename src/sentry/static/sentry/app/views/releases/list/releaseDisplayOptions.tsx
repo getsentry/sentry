@@ -7,8 +7,8 @@ import ReleaseListDropdown from './releaseListDropdown';
 import {DisplayOption} from './utils';
 
 const displayOptions = {
-  [DisplayOption.CRASH_FREE_SESSIONS]: t('Crash Free Sessions'),
-  [DisplayOption.CRASH_FREE_USERS]: t('Crash Free Users'),
+  [DisplayOption.SESSIONS]: t('Sessions'),
+  [DisplayOption.USERS]: t('Users'),
 };
 
 type Props = {

@@ -21,6 +21,7 @@ type Props = {
   showPlaceholders: boolean;
   selection: GlobalSelection;
   reloading: boolean;
+  isTopRelease: boolean;
 };
 
 class ReleaseHealth extends React.Component<Props> {
@@ -41,6 +42,7 @@ class ReleaseHealth extends React.Component<Props> {
       location,
       showPlaceholders,
       selection,
+      isTopRelease,
     } = this.props;
 
     // sort health rows inside release card alphabetically by project name,
@@ -74,6 +76,7 @@ class ReleaseHealth extends React.Component<Props> {
           projects={projectsToShow}
           location={location}
           showPlaceholders={showPlaceholders}
+          isTopRelease={isTopRelease}
         />
 
         {projectsToHide.length > 0 && (

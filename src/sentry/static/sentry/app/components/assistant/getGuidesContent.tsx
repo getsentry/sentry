@@ -195,5 +195,18 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'release_adoption',
+      requiredTargets: ['release_adoption'],
+      steps: [
+        {
+          title: t('Recalculating Adoption'),
+          target: 'release_adoption',
+          description: t(
+            `Adoption now compares the sessions or users of a release with the total sessions or users for this project in the last 24 hours.`
+          ),
+        },
+      ],
+    },
   ];
 }

@@ -425,10 +425,12 @@ class ReleaseSerializer(Serializer):
                 "sessionsErrored": data["sessions_errored"],
                 "totalUsers": data["total_users"],
                 "totalUsers24h": data["total_users_24h"],
+                "totalProjectUsers24h": data["total_project_users_24h"],
                 "totalSessions": data["total_sessions"],
                 "totalSessions24h": data["total_sessions_24h"],
+                "totalProjectSessions24h": data["total_project_sessions_24h"],
                 "adoption": data["adoption"],
-                "sessions_adoption": data["sessions_adoption"],
+                "sessionsAdoption": data["sessions_adoption"],
                 "stats": data.get("stats"),
                 # XXX: legacy key, should be removed later.
                 "hasHealthData": data["has_health_data"],
