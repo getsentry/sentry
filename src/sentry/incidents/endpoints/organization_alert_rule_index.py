@@ -19,7 +19,6 @@ from sentry.models import (
     Rule,
     RuleStatus,
     Project,
-    OrganizationMember,
     OrganizationMemberTeam,
     Team,
 )
@@ -46,9 +45,25 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 "id", flat=True
             )
 
-        teams = request.GET.getlist("team", [])
+        teams = set(request.GET.getlist("team", []))
         team_filter_query = None
         if teams:
+            request_teams = request.access.teams
+            for team in request_teams:
+                if not request.access.has_team_access(team):
+                    return Response(
+                        f"Error: You do not have permission to access {team.name}",
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            for team_id in teams:  # Verify each Team id is numeric
+                if team_id in ["unassigned", "myteams"]:
+                    continue
+                if type(team_id) is not int and not team_id.isdigit():
+                    return Response(
+                        f"Invalid Team ID: {team_id}", status=status.HTTP_400_BAD_REQUEST
+                    )
+
             unassigned = None
             if "unassigned" in teams:
                 teams.remove("unassigned")
@@ -56,30 +71,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
             if "myteams" in teams:
                 teams.remove("myteams")
-                for t in Team.objects.filter(
-                    id__in=OrganizationMemberTeam.objects.filter(
-                        organizationmember__in=OrganizationMember.objects.filter(
-                            user=request.user, organization_id=organization.id
-                        ),
-                        is_active=True,
-                    ).values("team")
-                ):
-                    teams.append(t.id)
+                teams.update([t.id for t in request_teams])
 
-            for team_id in teams:  # Verify each Team id is numeric
-                if type(team_id) is not int and not team_id.isdigit():
-                    return Response(
-                        f"Invalid Team ID: {team_id}", status=status.HTTP_400_BAD_REQUEST
-                    )
-
-            teams = Team.objects.filter(id__in=set(map(int, teams)))
-            for team in teams:  # Verify user has access to each team
-                if not team.has_access(request.user):
-                    return Response(
-                        f"Error: You do not have permission to access {team.name}",
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-            team_filter_query = Q(owner_id__in=teams.values_list("actor_id", flat=True))
+            team_filter_query = Q(owner_id__in=request_teams.values_list("actor_id", flat=True))
             if unassigned:
                 team_filter_query = team_filter_query | unassigned
 
