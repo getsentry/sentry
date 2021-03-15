@@ -1,36 +1,21 @@
-from django.core.urlresolvers import reverse
-
 from sentry.models import Organization, OrganizationStatus, User, UserOption
 from sentry.testutils import APITestCase
 
 
 class UserDetailsTest(APITestCase):
-    # TODO(dcramer): theres currently no way to look up other users
-    # def test_simple(self):
-    #     user = self.create_user(email='a@example.com')
-    #     user2 = self.create_user(email='b@example.com')
+    endpoint = "sentry-api-0-user-details"
 
-    #     self.login_as(user=user)
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user(email="a@example.com", is_managed=False, name="example name")
+        self.login_as(user=self.user)
 
-    #     url = reverse('sentry-api-0-user-details', kwargs={
-    #         'user_id': user2.id,
-    #     })
-    #     resp = self.client.get(url, format='json')
 
-    #     assert resp.status_code == 200, resp.content
-    #     assert resp.data['id'] == str(user.id)
-    #     assert 'identities' not in resp.data
-
+class UserDetailsGetTest(UserDetailsTest):
     def test_lookup_self(self):
-        user = self.create_user(email="a@example.com")
+        resp = self.get_valid_response("me")
 
-        self.login_as(user=user)
-
-        url = reverse("sentry-api-0-user-details", kwargs={"user_id": "me"})
-        resp = self.client.get(url, format="json")
-
-        assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == str(user.id)
+        assert resp.data["id"] == str(self.user.id)
         assert resp.data["options"]["theme"] == "light"
         assert resp.data["options"]["timezone"] == "UTC"
         assert resp.data["options"]["language"] == "en"
@@ -38,42 +23,33 @@ class UserDetailsTest(APITestCase):
         assert not resp.data["options"]["clock24Hours"]
 
     def test_superuser(self):
-        user = self.create_user(email="a@example.com")
         superuser = self.create_user(email="b@example.com", is_superuser=True)
-
         self.login_as(user=superuser, superuser=True)
 
-        url = reverse("sentry-api-0-user-details", kwargs={"user_id": user.id})
+        resp = self.get_valid_response(self.user.id)
 
-        resp = self.client.get(url)
-        assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == str(user.id)
+        assert resp.data["id"] == str(self.user.id)
         assert "identities" in resp.data
         assert len(resp.data["identities"]) == 0
 
 
-class UserUpdateTest(APITestCase):
-    def setUp(self):
-        self.user = self.create_user(email="a@example.com", is_managed=False, name="example name")
-        self.login_as(user=self.user)
-        self.url = reverse("sentry-api-0-user-details", kwargs={"user_id": "me"})
+class UserDetailsUpdateTest(UserDetailsTest):
+    method = "put"
 
     def test_simple(self):
-        resp = self.client.put(
-            self.url,
-            data={
-                "name": "hello world",
-                "options": {
-                    "theme": "system",
-                    "timezone": "UTC",
-                    "stacktraceOrder": "2",
-                    "language": "fr",
-                    "clock24Hours": True,
-                    "extra": True,
-                },
+        resp = self.get_valid_response(
+            "me",
+            name="hello world",
+            options={
+                "theme": "system",
+                "timezone": "UTC",
+                "stacktraceOrder": "2",
+                "language": "fr",
+                "clock24Hours": True,
+                "extra": True,
             },
         )
-        assert resp.status_code == 200, resp.content
+
         assert resp.data["id"] == str(self.user.id)
 
         user = User.objects.get(id=self.user.id)
@@ -89,7 +65,10 @@ class UserUpdateTest(APITestCase):
         assert not UserOption.objects.get_value(user=self.user, key="extra")
 
     def test_saving_changes_value(self):
-        """Even when saving on an option directly, we should still be able to use get_value to retrieve updated options"""
+        """
+        Even when saving on an option directly, we should still be able to use
+        `get_value` to retrieve updated options.
+        """
         UserOption.objects.set_value(user=self.user, key="language", value="fr")
 
         uo = UserOption.objects.get(user=self.user, key="language")
@@ -103,12 +82,12 @@ class UserUpdateTest(APITestCase):
         superuser = self.create_user(email="b@example.com", is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
-        url = reverse("sentry-api-0-user-details", kwargs={"user_id": self.user.id})
-
-        resp = self.client.put(
-            url, data={"name": "hello world", "email": "c@example.com", "isActive": "false"}
+        resp = self.get_valid_response(
+            self.user.id,
+            name="hello world",
+            email="c@example.com",
+            isActive="false",
         )
-        assert resp.status_code == 200, resp.content
         assert resp.data["id"] == str(self.user.id)
 
         user = User.objects.get(id=self.user.id)
@@ -121,8 +100,7 @@ class UserUpdateTest(APITestCase):
     def test_managed_fields(self):
         assert self.user.name == "example name"
         with self.settings(SENTRY_MANAGED_USER_FIELDS=("name",)):
-            resp = self.client.put(self.url, data={"name": "new name"})
-            assert resp.status_code == 200
+            self.get_valid_response("me", name="new name")
 
             # name remains unchanged
             user = User.objects.get(id=self.user.id)
@@ -133,8 +111,7 @@ class UserUpdateTest(APITestCase):
         user = self.create_user(email="c@example.com", username="diff@example.com")
         self.login_as(user=user, superuser=False)
 
-        resp = self.client.put(self.url, data={"username": "new@example.com"})
-        assert resp.status_code == 200, resp.content
+        self.get_valid_response("me", username="new@example.com")
 
         user = User.objects.get(id=user.id)
 
@@ -147,8 +124,7 @@ class UserUpdateTest(APITestCase):
         user = self.create_user(email="c@example.com", username="c@example.com")
         self.login_as(user=user)
 
-        resp = self.client.put(self.url, data={"username": "new@example.com"})
-        assert resp.status_code == 200, resp.content
+        self.get_valid_response("me", username="new@example.com")
 
         user = User.objects.get(id=user.id)
 
@@ -156,13 +132,10 @@ class UserUpdateTest(APITestCase):
         assert user.username == "new@example.com"
 
 
-class UserDeleteTest(APITestCase):
-    def setUp(self):
-        super().setUp()
-        self.path = f"/api/0/users/{self.user.id}/"
+class UserDetailsDeleteTest(UserDetailsTest):
+    method = "delete"
 
     def test_close_account(self):
-        self.login_as(user=self.user)
         org_single_owner = self.create_organization(name="A", owner=self.user)
         user2 = self.create_user(email="user2@example.com")
         org_with_other_owner = self.create_organization(name="B", owner=self.user)
@@ -170,28 +143,22 @@ class UserDeleteTest(APITestCase):
         not_owned_org = self.create_organization(name="D", owner=user2)
 
         self.create_member(user=user2, organization=org_with_other_owner, role="owner")
-
         self.create_member(user=self.user, organization=org_as_other_owner, role="owner")
 
         # test validations
-        response = self.client.delete(self.path)
-        assert response.status_code == 400
-        response = self.client.delete(self.path, data={"organizations": None})
-        assert response.status_code == 400
+        self.get_valid_response(self.user.id, status_code=400)
+        self.get_valid_response(self.user.id, organizations=None, status_code=400)
 
         # test actual delete
-        response = self.client.delete(
-            self.path,
-            data={
-                "organizations": [
-                    org_with_other_owner.slug,
-                    org_as_other_owner.slug,
-                    not_owned_org.slug,
-                ]
-            },
+        self.get_valid_response(
+            self.user.id,
+            organizations=[
+                org_with_other_owner.slug,
+                org_as_other_owner.slug,
+                not_owned_org.slug,
+            ],
+            status_code=204,
         )
-
-        assert response.status_code == 204
 
         # deletes org_single_owner even though it wasn't specified in array
         # because it has a single owner
@@ -215,7 +182,6 @@ class UserDeleteTest(APITestCase):
         assert not user.is_active
 
     def test_close_account_no_orgs(self):
-        self.login_as(user=self.user)
         org_single_owner = self.create_organization(name="A", owner=self.user)
         user2 = self.create_user(email="user2@example.com")
         org_with_other_owner = self.create_organization(name="B", owner=self.user)
@@ -223,11 +189,9 @@ class UserDeleteTest(APITestCase):
         not_owned_org = self.create_organization(name="D", owner=user2)
 
         self.create_member(user=user2, organization=org_with_other_owner, role="owner")
-
         self.create_member(user=self.user, organization=org_as_other_owner, role="owner")
 
-        response = self.client.delete(self.path, data={"organizations": []})
-        assert response.status_code == 204
+        self.get_valid_response(self.user.id, organizations=[], status_code=204)
 
         # deletes org_single_owner even though it wasn't specified in array
         # because it has a single owner
@@ -242,28 +206,19 @@ class UserDeleteTest(APITestCase):
         assert not user.is_active
 
     def test_cannot_hard_delete_self(self):
-        self.login_as(user=self.user)
-
         # Cannot hard delete your own account
-        response = self.client.delete(self.path, data={"hardDelete": True, "organizations": []})
-        assert response.status_code == 403
+        self.get_valid_response(self.user.id, hardDelete=True, organizations=[], status_code=403)
 
     def test_hard_delete_account(self):
-        self.login_as(user=self.user)
         user2 = self.create_user(email="user2@example.com")
 
-        path = reverse("sentry-api-0-user-details", kwargs={"user_id": user2.id})
-
-        # failed authorization, user does not have permissions to delete another
-        # user
-        response = self.client.delete(path, data={"hardDelete": True, "organizations": []})
-        assert response.status_code == 403
+        # failed authorization, user does not have permissions to delete another user
+        self.get_valid_response(user2.id, hardDelete=True, organizations=[], status_code=403)
 
         # Reauthenticate as super user to hard delete an account
         self.user.update(is_superuser=True)
         self.login_as(user=self.user, superuser=True)
 
-        response = self.client.delete(path, data={"hardDelete": True, "organizations": []})
-        assert response.status_code == 204
+        self.get_valid_response(user2.id, hardDelete=True, organizations=[], status_code=204)
 
         assert not User.objects.filter(id=user2.id).exists()
