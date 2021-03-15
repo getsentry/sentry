@@ -472,7 +472,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 format="json",
             )
         assert response.status_code == 200, response.content
-        self.assert_trace_data(response.data)
+        self.assert_trace_data(response.data[0])
 
     def test_bad_span_loop(self):
         """Maliciously create a loop in the span structure
@@ -510,9 +510,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
         assert response.status_code == 200, response.content
         # Should be the same as the simple testcase
-        self.assert_trace_data(response.data, gen2_no_children=False)
+        self.assert_trace_data(response.data[0], gen2_no_children=False)
         # The difference is that gen3-1 should exist with no children
-        gen2_1 = response.data["children"][1]["children"][0]
+        gen2_1 = response.data[0]["children"][1]["children"][0]
         assert len(gen2_1["children"]) == 1
         gen3_1 = gen2_1["children"][0]
         assert gen3_1["event_id"] == gen3_loop_event.event_id
@@ -549,8 +549,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
         assert response.status_code == 200, response.content
         # Should be the same as the simple testcase, but skip checking gen2 children
-        self.assert_trace_data(response.data, gen2_no_children=False)
-        gen2_parent = response.data["children"][1]["children"][0]
+        self.assert_trace_data(response.data[0], gen2_no_children=False)
+        gen2_parent = response.data[0]["children"][1]["children"][0]
         assert len(gen2_parent["children"]) == 2
         for child in gen2_parent["children"]:
             assert child["event_id"] in gen3_event_siblings
@@ -577,8 +577,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
 
         assert response.status_code == 200, response.content
-        self.assert_trace_data(response.data)
-        gen1_event = response.data["children"][0]
+        self.assert_trace_data(response.data[0])
+        gen1_event = response.data[0]["children"][0]
         assert len(gen1_event["errors"]) == 2
         assert {
             "event_id": error.event_id,
@@ -616,8 +616,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
 
         assert response.status_code == 200, response.content
-        self.assert_trace_data(response.data)
-        root_event = response.data
+        self.assert_trace_data(response.data[0])
+        root_event = response.data[0]
         assert len(root_event["errors"]) == 1
         assert {
             "event_id": default_event.event_id,
