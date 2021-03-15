@@ -2,7 +2,6 @@
 
 from django.db import migrations
 from sentry.models import UserOptionValue
-from sentry.models.actor import ACTOR_TYPES
 from sentry.models.integration import ExternalProviders
 from sentry.models.notificationsetting import (
     NotificationScopeType,
@@ -14,6 +13,7 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 def copy_useroption_to_notificationsetting(apps, schema_editor):
     UserOption = apps.get_model("sentry", "UserOption")
+    User = apps.get_model("sentry", "User")
     NotificationSetting = apps.get_model("sentry", "NotificationSetting")
     for user_option in RangeQuerySetWrapperWithProgressBar(UserOption.objects.all()):
         if user_option.key == "workflow:notifications":
@@ -80,11 +80,11 @@ def copy_useroption_to_notificationsetting(apps, schema_editor):
                 value = NotificationSettingOptionValues.COMMITTED_ONLY
         else:
             continue
-
+        user = User.objects.get(id=user_option.user_id)
         notification_setting = NotificationSetting.objects.create(
             scope_type=scope_type,  # user, org, or project
             scope_identifier=scope_identifier,  # user_id, organization_id, or project_id
-            target=ACTOR_TYPES["user"],  # 1 for user, 0 for team
+            target=user.actor,
             provider=ExternalProviders.EMAIL,  # 100
             type=type,
             value=value,  # NotificationSettingOptionValues
