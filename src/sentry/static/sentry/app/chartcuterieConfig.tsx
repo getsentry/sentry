@@ -63,7 +63,7 @@ register({
     return {
       useUTC: true,
       color,
-      backgroundColor: theme.white,
+      backgroundColor: theme.background,
       grid: Grid({left: 5, right: 5, bottom: 5}),
       legend: Legend({theme, itemHeight: 6, top: 2, right: 10}),
       yAxis: YAxis({
