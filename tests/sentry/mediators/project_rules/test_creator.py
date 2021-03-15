@@ -12,7 +12,7 @@ class TestCreator(TestCase):
         )
         self.creator = Creator(
             name="New Cool Rule",
-            owner=self.user.actor,
+            owner=self.user.actor.id,
             project=self.project,
             action_match="all",
             filter_match="any",

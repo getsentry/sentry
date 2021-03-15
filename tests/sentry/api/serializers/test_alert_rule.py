@@ -127,7 +127,7 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
-        # assert alert_rule.owner == self.team.actor.get_actor_identifier()
+        assert alert_rule.owner == self.team.actor
 
 
 class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):

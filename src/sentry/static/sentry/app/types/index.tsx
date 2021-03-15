@@ -276,15 +276,17 @@ export type ProjectKey = {
 export type Health = {
   totalUsers: number;
   totalUsers24h: number | null;
+  totalProjectUsers24h: number | null;
   totalSessions: number;
   totalSessions24h: number | null;
+  totalProjectSessions24h: number | null;
   crashFreeUsers: number | null;
   crashFreeSessions: number | null;
   stats: HealthGraphData;
   sessionsCrashed: number;
   sessionsErrored: number;
   adoption: number | null;
-  sessions_adoption: number | null;
+  sessionsAdoption: number | null;
   hasHealthData: boolean;
   durationP50: number | null;
   durationP90: number | null;

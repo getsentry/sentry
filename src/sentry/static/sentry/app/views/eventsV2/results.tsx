@@ -19,6 +19,7 @@ import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMess
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {MAX_QUERY_LENGTH} from 'app/constants';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
@@ -387,7 +388,7 @@ class Results extends React.Component<Props, State> {
     const title = this.getDocumentTitle();
 
     return (
-      <SentryDocumentTitle title={title} objSlug={organization.slug}>
+      <SentryDocumentTitle title={title} orgSlug={organization.slug}>
         <StyledPageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <ResultsHeader
@@ -407,6 +408,7 @@ class Results extends React.Component<Props, State> {
                   query={query}
                   fields={fields}
                   onSearch={this.handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
                 />
                 <ResultsChart
                   router={router}

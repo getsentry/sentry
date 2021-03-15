@@ -10,6 +10,7 @@ import SearchBar from 'app/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {MAX_QUERY_LENGTH} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -194,6 +195,7 @@ class SummaryContent extends React.Component<Props, State> {
               query={query}
               fields={eventView.fields}
               onSearch={this.handleSearch}
+              maxQueryLength={MAX_QUERY_LENGTH}
             />
             <TransactionSummaryCharts
               organization={organization}

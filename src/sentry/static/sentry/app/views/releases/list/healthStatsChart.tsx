@@ -37,7 +37,7 @@ class HealthStatsChart extends React.Component<Props> {
 
   getChartLabel() {
     const {activeDisplay} = this.props;
-    if (activeDisplay === DisplayOption.CRASH_FREE_USERS) {
+    if (activeDisplay === DisplayOption.USERS) {
       return t('Users');
     }
 

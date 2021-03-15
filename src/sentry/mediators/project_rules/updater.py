@@ -1,6 +1,7 @@
 from collections import Iterable
 from sentry.mediators import Mediator, Param
 from sentry.mediators.param import if_param
+from sentry.models import Actor
 
 
 class Updater(Mediator):
@@ -34,7 +35,7 @@ class Updater(Mediator):
         self.rule.label = self.name
 
     def _update_owner(self):
-        self.rule.owner = self.owner
+        self.rule.owner = Actor.objects.get(id=self.owner) if self.owner else None
 
     def _update_environment(self):
         # environment can be None so we don't use the if_param decorator

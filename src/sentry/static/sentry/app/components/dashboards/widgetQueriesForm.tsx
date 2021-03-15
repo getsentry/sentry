@@ -80,6 +80,8 @@ class WidgetQueriesForm extends React.Component<Props> {
       onChange,
     } = this.props;
 
+    const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);
+
     return (
       <QueryWrapper>
         {queries.map((widgetQuery, queryIndex) => {
@@ -103,16 +105,18 @@ class WidgetQueriesForm extends React.Component<Props> {
                   onBlur={this.handleFieldChange(queryIndex, 'conditions')}
                   useFormWrapper={false}
                 />
-                <LegendAliasInput
-                  type="text"
-                  name="name"
-                  required
-                  value={widgetQuery.name}
-                  placeholder={t('Legend Alias')}
-                  onChange={event =>
-                    this.handleFieldChange(queryIndex, 'name')(event.target.value)
-                  }
-                />
+                {!hideLegendAlias && (
+                  <LegendAliasInput
+                    type="text"
+                    name="name"
+                    required
+                    value={widgetQuery.name}
+                    placeholder={t('Legend Alias')}
+                    onChange={event =>
+                      this.handleFieldChange(queryIndex, 'name')(event.target.value)
+                    }
+                  />
+                )}
                 {queries.length > 1 && (
                   <Button
                     size="zero"
@@ -162,6 +166,7 @@ class WidgetQueriesForm extends React.Component<Props> {
             flexibleControlStateSize
             stacked
             error={this.getFirstQueryError('orderby')?.orderby}
+            style={{marginBottom: space(1)}}
           >
             <SelectControl
               value={queries[0].orderby}
@@ -195,7 +200,7 @@ export const SearchConditionsWrapper = styled('div')`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  width: 67%;
+  flex-grow: 1;
 `;
 
 const LegendAliasInput = styled(Input)`

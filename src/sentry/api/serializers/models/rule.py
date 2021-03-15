@@ -1,5 +1,14 @@
+from collections import defaultdict
 from sentry.api.serializers import Serializer, register
-from sentry.models import Actor, Environment, Rule, RuleActivity, RuleActivityType
+from sentry.models import (
+    ACTOR_TYPES,
+    actor_type_to_class,
+    actor_type_to_string,
+    Environment,
+    Rule,
+    RuleActivity,
+    RuleActivityType,
+)
 from sentry.utils.compat import filter
 
 
@@ -43,11 +52,22 @@ class RuleSerializer(Serializer):
 
             result[rule_activity.rule].update({"created_by": user})
 
-        owned_items = {item.owner_id: item for item in item_list if item.owner_id is not None}
-        alert_rule_actors = Actor.objects.filter(id__in=[k for k in owned_items.keys()])
-        for actor in alert_rule_actors:
-            actor_tuple = actor.get_actor_tuple()
-            result[owned_items[actor.id]]["owner"] = actor_tuple.get_actor_identifier()
+        rules = {item.id: item for item in item_list}
+        resolved_actors = {}
+        owners_by_type = defaultdict(list)
+        for item in item_list:
+            if item.owner_id is not None:
+                owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
+
+        for k, v in ACTOR_TYPES.items():
+            resolved_actors[k] = {
+                a.actor_id: a.id
+                for a in actor_type_to_class(v).objects.filter(actor_id__in=owners_by_type[k])
+            }
+        for rule in rules.values():
+            if rule.owner_id:
+                type = actor_type_to_string(rule.owner.type)
+                result[rule]["owner"] = f"{type}:{resolved_actors[type][rule.owner_id]}"
 
         return result
 
