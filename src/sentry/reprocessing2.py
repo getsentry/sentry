@@ -227,7 +227,12 @@ def delete_old_primary_hash(event):
         from sentry import eventstream
 
         eventstream.tombstone_events_unsafe(
-            event.project_id, [event.event_id], for_primary_hash_change=old_primary_hash
+            event.project_id,
+            [event.event_id],
+            # XXX: Snuba only considers the boolean value right now, this is
+            # just the hash instead of `True` so we can debug Kafka messages if
+            # we have to.
+            for_primary_hash_change=old_primary_hash,
         )
 
 
