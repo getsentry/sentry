@@ -230,6 +230,7 @@ function SidebarCharts({
             query={eventView.query}
             includePrevious={false}
             yAxis={[`apdex(${organization.apdexThreshold})`, 'failure_rate()', 'epm()']}
+            partial
           >
             {({results, errored, loading, reloading}) => {
               if (errored) {
