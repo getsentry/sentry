@@ -120,9 +120,11 @@ export function generateTitle({
   }
 
   const eventTitle = event ? getTitle(event, organization).title : undefined;
+
   if (eventTitle) {
     titles.push(eventTitle);
   }
+
   titles.reverse();
 
   return titles.join(' - ');

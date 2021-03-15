@@ -251,7 +251,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return (
       <SentryDocumentTitle
         title={t('Performance - Event Details')}
-        objSlug={organization.slug}
+        orgSlug={organization.slug}
       >
         {super.renderComponent()}
       </SentryDocumentTitle>

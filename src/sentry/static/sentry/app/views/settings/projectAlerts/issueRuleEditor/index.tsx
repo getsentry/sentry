@@ -34,6 +34,7 @@ import {
 } from 'app/types/alerts';
 import {getDisplayName} from 'app/utils/environment';
 import recreateRoute from 'app/utils/recreateRoute';
+import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import AsyncView from 'app/views/asyncView';
@@ -96,7 +97,6 @@ type Props = {
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
-  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   detailedError: null | {
     [key: string]: string[];
   };
@@ -107,6 +107,7 @@ type State = AsyncView['state'] & {
     conditions: IssueAlertRuleConditionTemplate[];
   } | null;
   uuid: null | string;
+  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
 };
 
 function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
@@ -114,8 +115,22 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 }
 
 class IssueRuleEditor extends AsyncView<Props, State> {
+  getTitle() {
+    const {organization, project} = this.props;
+    const {rule} = this.state;
+    const ruleName = rule?.name;
+
+    return routeTitleGen(
+      ruleName ? t('Alert %s', ruleName) : '',
+      organization.slug,
+      false,
+      project?.slug
+    );
+  }
+
   getDefaultState() {
-    return {
+    const {teams} = this.props;
+    const defaultState = {
       ...super.getDefaultState(),
       configs: null,
       detailedError: null,
@@ -123,6 +138,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       environments: [],
       uuid: null,
     };
+    const userTeam = teams.find(({isMember}) => !!isMember);
+    defaultState.rule.owner = userTeam ? `team:${userTeam.id}` : undefined;
+    return defaultState;
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -437,9 +455,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return owner.split(':')[1];
   };
 
-  handleOwnerChange = (optionRecord: {value: string; label: string}) => {
-    // currently only supporting teams as owners
-    this.handleChange('owner', `team:${optionRecord.value}`);
+  handleOwnerChange = ({value}: {value?: string; label: string}) => {
+    if (value) {
+      // currently only supporting teams as owners
+      this.handleChange('owner', `team:${value}`);
+    } else {
+      // allow owner to be set to undefined (unassigned option)
+      this.handleChange('owner', value);
+    }
   };
 
   renderLoading() {
@@ -538,6 +561,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                       organization={organization}
                       value={this.getTeamId()}
                       onChange={this.handleOwnerChange}
+                      filteredTeamIds={userTeams}
+                      includeUnassigned
                     />
                   </StyledField>
                 </Feature>

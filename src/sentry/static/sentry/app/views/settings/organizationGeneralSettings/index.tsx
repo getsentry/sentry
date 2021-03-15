@@ -65,7 +65,7 @@ class OrganizationGeneralSettings extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={t('General Settings')} objSlug={orgId} />
+        <SentryDocumentTitle title={t('General Settings')} orgSlug={orgId} />
         <div>
           <SettingsPageHeader title={t('Organization Settings')} />
           <PermissionAlert />

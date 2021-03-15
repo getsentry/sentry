@@ -52,10 +52,10 @@ export const projectProcessingIssuesMessages = {
 };
 
 const HELP_LINKS = {
-  native_missing_dsym: 'https://docs.sentry.io/clients/cocoa/dsym/',
-  native_bad_dsym: 'https://docs.sentry.io/clients/cocoa/dsym/',
-  native_missing_system_dsym: 'https://docs.sentry.io/server/dsym/',
-  native_missing_symbol: 'https://docs.sentry.io/server/dsym/',
+  native_missing_dsym: 'https://docs.sentry.io/platforms/apple/dsym/',
+  native_bad_dsym: 'https://docs.sentry.io/platforms/apple/dsym/',
+  native_missing_system_dsym: 'https://develop.sentry.dev/self-hosted/',
+  native_missing_symbol: 'https://develop.sentry.dev/self-hosted/',
 };
 
 type Props = {
@@ -450,7 +450,7 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
     const title = t('Processing Issues');
     return (
       <div>
-        <SentryDocumentTitle title={title} objSlug={projectId} />
+        <SentryDocumentTitle title={title} projectSlug={projectId} />
         <SettingsPageHeader title={title} />
         <TextBlock>
           {t(

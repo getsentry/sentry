@@ -397,6 +397,8 @@ enum FieldKey {
   STACK_PACKAGE = 'stack.package',
   STACK_STACK_LEVEL = 'stack.stack_level',
   TIMESTAMP = 'timestamp',
+  TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
+  TIMESTAMP_TO_DAY = 'timestamp.to_day',
   TITLE = 'title',
   TRACE = 'trace',
   TRACE_PARENT_SPAN = 'trace.parent_span',
@@ -420,10 +422,10 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   // issue.id and project.id are omitted on purpose.
   // Customers should use `issue` and `project` instead.
   [FieldKey.TIMESTAMP]: 'date',
-  // time is omitted on purpose. time is timestamp rounded down
-  // to the rollup period (usually 3600 seconds) and presented as
-  // seconds since epoch.
-  // Customers should almost always use `timestamp`.
+  // time is omitted on purpose.
+  // Customers should use `timestamp` or `timestamp.to_hour`.
+  [FieldKey.TIMESTAMP_TO_HOUR]: 'date',
+  [FieldKey.TIMESTAMP_TO_DAY]: 'date',
 
   [FieldKey.CULPRIT]: 'string',
   [FieldKey.LOCATION]: 'string',
