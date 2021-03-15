@@ -327,10 +327,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         assert resp.status_code == 403
 
     def test_no_owner(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-
         self.login_as(self.user)
         rule_data = {
             "aggregate": "count()",
