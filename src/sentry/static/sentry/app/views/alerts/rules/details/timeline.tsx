@@ -122,7 +122,7 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
         });
     } else if (isClosed && incident?.statusMethod === IncidentStatusMethod.RULE_UPDATED) {
       title = t('Alert auto-resolved');
-      subtext = t('Alert rule has been modified or deleted');
+      subtext = t('Alert rule modified or deleted');
     } else if (isClosed && incident?.statusMethod !== IncidentStatusMethod.RULE_UPDATED) {
       title = t('Resolved');
       subtext = tct('by [authorName]', {authorName});
