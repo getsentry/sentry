@@ -502,10 +502,10 @@ const commonTheme = {
   },
 
   diff: {
-    removedRow: '#fcefee',
-    addedRow: '#f5fbf8',
-    removed: '#f7ceca',
-    added: '#d8f0e4',
+    removedRow: 'hsl(358deg 89% 65% / 15%)',
+    removed: 'hsl(358deg 89% 65% / 30%)',
+    addedRow: 'hsl(100deg 100% 87% / 18%)',
+    added: 'hsl(166deg 58% 47% / 32%)',
   },
 
   // Similarity spectrum used in "Similar Issues" in group details
@@ -547,7 +547,7 @@ const darkAliases = {
   chartLineColor: colors.gray500,
   chartLabel: colors.gray400,
   progressBar: colors.purple200,
-  progressBackground: colors.gray500,
+  progressBackground: colors.gray400,
   badgeBackground: colors.gray400,
   alertBackgroundAlpha: 0.1,
 } as const;
