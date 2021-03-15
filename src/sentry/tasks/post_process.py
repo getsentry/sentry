@@ -180,20 +180,18 @@ def post_process_group(
     from sentry.utils import snuba
     from sentry.reprocessing2 import is_reprocessed_event
 
-    super_important_non_generic_ass_event_processing_store_cache_key = cache_key
+    processing_cache_key = cache_key
 
     with snuba.options_override({"consistent": True}):
         # We use the data being present/missing in the processing store
         # to ensure that we don't duplicate work should the forwarding consumers
         # need to rewind history.
-        data = event_processing_store.get(
-            super_important_non_generic_ass_event_processing_store_cache_key
-        )
+        data = event_processing_store.get(processing_cache_key)
         if not data:
             logger.info(
                 "post_process.skipped",
                 extra={
-                    "cache_key": super_important_non_generic_ass_event_processing_store_cache_key,
+                    "cache_key": processing_cache_key,
                     "reason": "missing_cache",
                 },
             )
@@ -356,9 +354,7 @@ def post_process_group(
             )
 
         with metrics.timer("tasks.post_process.delete_event_cache"):
-            event_processing_store.delete_by_key(
-                super_important_non_generic_ass_event_processing_store_cache_key
-            )
+            event_processing_store.delete_by_key(processing_cache_key)
 
 
 def process_snoozes(group):
