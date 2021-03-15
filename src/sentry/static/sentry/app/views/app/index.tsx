@@ -216,11 +216,7 @@ class App extends React.Component<Props, State> {
     }
 
     return (
-      <MainContainer
-        demoMode={ConfigStore.get('demoMode')}
-        tabIndex={-1}
-        ref={this.mainContainerRef}
-      >
+      <MainContainer tabIndex={-1} ref={this.mainContainerRef}>
         <GlobalModal onClose={this.handleGlobalModalClose} />
         <SystemAlerts className="messages-container" />
         <Indicators className="indicators-container" />
@@ -232,10 +228,10 @@ class App extends React.Component<Props, State> {
 
 export default withApi(withConfig(App));
 
-const MainContainer = styled('div')<{demoMode: boolean}>`
+const MainContainer = styled('div')`
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   outline: none;
-  padding-top: ${p => (p.demoMode ? p.theme.demo.headerSize : 0)};
+  padding-top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
 `;

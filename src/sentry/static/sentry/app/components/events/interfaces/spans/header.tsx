@@ -399,7 +399,7 @@ class TraceViewHeader extends React.Component<PropType, State> {
       this.props.organization.features.includes('trace-view-summary');
 
     return (
-      <HeaderContainer demoMode={ConfigStore.get('demoMode')}>
+      <HeaderContainer>
         <DividerHandlerManager.Consumer>
           {dividerHandlerChildrenProps => {
             const {dividerPosition} = dividerHandlerChildrenProps;
@@ -746,11 +746,11 @@ const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   }};
 `;
 
-const HeaderContainer = styled('div')<{demoMode: boolean}>`
+const HeaderContainer = styled('div')`
   width: 100%;
   position: sticky;
   left: 0;
-  top: ${p => (p.demoMode ? p.theme.demo.headerSize : 0)};
+  top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   z-index: ${zIndex.minimapContainer};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};

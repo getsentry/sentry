@@ -9,6 +9,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import ExternalLink from 'app/components/links/externalLink';
 import {t} from 'app/locale';
 import OrganizationStore from 'app/stores/organizationStore';
+import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 
@@ -70,7 +71,6 @@ const LogoSvg = styled(InlineSvg)`
   margin-top: auto;
   margin-bottom: auto;
   margin-left: 20px;
-  display: inline-block;
   width: 130px;
   height: 30px;
   color: ${p => p.theme.textColor};
