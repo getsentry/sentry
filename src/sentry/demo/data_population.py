@@ -63,9 +63,11 @@ def get_list_of_names() -> List[str]:
         return json.load(f)
 
 
-def generate_user():
+# create a cache by user id so we can can consistent
+# ip addresses and geos for a user
+@functools.lru_cache(maxsize=10 * 1000)
+def get_user_by_id(id_0_offset):
     name_list = get_list_of_names()
-    id_0_offset = random.randrange(0, len(name_list), NAME_STEP_SIZE)
     name = name_list[id_0_offset]
     email = f"{name.lower()}@example.com"
     return UserInterface.to_python(
@@ -77,6 +79,12 @@ def generate_user():
             "geo": random_geo(),
         }
     ).to_json()
+
+
+def generate_user():
+    name_list = get_list_of_names()
+    id_0_offset = random.randrange(0, len(name_list), NAME_STEP_SIZE)
+    return get_user_by_id(id_0_offset)
 
 
 def populate_event_on_project(
