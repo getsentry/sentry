@@ -31,6 +31,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
             data=data,
             partial=True,
         )
+
         if serializer.is_valid():
             try:
                 alert_rule = serializer.save()

@@ -338,20 +338,20 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def validate_owner(self, owner):
         # owner should be team:id or user:id
-        if owner is not None:
-            try:
-                actor = ActorTuple.from_actor_identifier(owner)
-            except serializers.ValidationError:
-                raise serializers.ValidationError(
-                    "Could not parse owner. Format should be `type:id` where type is `team` or `user`."
-                )
-            try:
-                if actor.resolve():
-                    return actor
-            except (User.DoesNotExist, Team.DoesNotExist):
-                raise serializers.ValidationError(
-                    "Could not resolve owner to existing team or user."
-                )
+        if owner is None:
+            return
+
+        try:
+            actor = ActorTuple.from_actor_identifier(owner)
+        except serializers.ValidationError:
+            raise serializers.ValidationError(
+                "Could not parse owner. Format should be `type:id` where type is `team` or `user`."
+            )
+        try:
+            if actor.resolve():
+                return actor
+        except (User.DoesNotExist, Team.DoesNotExist):
+            raise serializers.ValidationError("Could not resolve owner to existing team or user.")
 
     def validate_query(self, query):
         query_terms = query.split()
