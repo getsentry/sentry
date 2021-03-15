@@ -216,9 +216,9 @@ type Props = {
 class Timeline extends React.Component<Props> {
   renderEmptyMessage = () => {
     return (
-      <EmptyStateWarning small withIcon={false} noPadding>
+      <StyledEmptyStateWarning small withIcon={false}>
         <p>{t('No alerts triggered during this time')}</p>
-      </EmptyStateWarning>
+      </StyledEmptyStateWarning>
     );
   };
 
@@ -266,6 +266,10 @@ const ScrollPanel = styled(Panel)`
   p {
     font-size: ${p => p.theme.fontSizeMedium};
   }
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  padding: 0;
 `;
 
 const IncidentSection = styled('div')`

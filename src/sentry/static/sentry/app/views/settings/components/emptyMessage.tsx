@@ -12,7 +12,6 @@ type Props = {
   action?: React.ReactElement;
   size?: 'large' | 'medium';
   leftAligned?: boolean;
-  noPadding?: boolean;
 };
 
 type EmptyMessageProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
@@ -43,12 +42,12 @@ const EmptyMessage = styled(
       ? css`
           max-width: 70%;
           align-items: flex-start;
-          padding: ${p.noPadding ? 0 : space(4)};
+          padding: ${space(4)};
         `
       : css`
           text-align: center;
           align-items: center;
-          padding: ${p.noPadding ? 0 : `${space(4)} 15%`};
+          padding: ${space(4)} 15%;
         `};
   flex-direction: column;
   color: ${p => p.theme.textColor};

@@ -7,7 +7,6 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type Props = {
   small?: boolean;
-  noPadding?: boolean;
   children?: React.ReactNode;
   withIcon?: boolean;
   className?: string;
@@ -15,13 +14,12 @@ type Props = {
 
 const EmptyStateWarning = ({
   small = false,
-  noPadding = false,
   withIcon = true,
   children,
   className,
 }: Props) =>
   small ? (
-    <EmptyMessage className={className} noPadding={noPadding}>
+    <EmptyMessage className={className}>
       <SmallMessage>
         {withIcon && <StyledIconSearch color="gray300" size="lg" />}
         {children}
