@@ -193,7 +193,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     }
 
     const {location, router, selection} = this.props;
-    const {start, end, period} = selection.datetime;
+    const {start, end, period, utc} = selection.datetime;
 
     if (widget.displayType === 'world_map') {
       const DEFAULT_GEO_DATA = {
@@ -296,7 +296,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     };
 
     return (
-      <ChartZoom router={router} period={period} start={start} end={end}>
+      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
           if (errorMessage) {
             return (
