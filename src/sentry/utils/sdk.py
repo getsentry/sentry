@@ -166,8 +166,6 @@ def configure_sdk():
     from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
 
-    assert sentry_sdk.Hub.main.client is None
-
     sdk_options = dict(settings.SENTRY_SDK_CONFIG)
 
     relay_dsn = sdk_options.pop("relay_dsn", None)

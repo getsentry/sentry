@@ -7,10 +7,12 @@ import sentry_sdk
 from sentry.utils.imports import import_string
 from sentry.utils.compat import map
 
-if not os.environ.get("SENTRY_DEVENV_NO_REPORT"):
+# SENTRY_DEVENV_DSN gets set up automatically by direnv/.envrc
+# This check prevents executing this code unintentionally (e.g. CI or production)
+if os.environ.get("SENTRY_DEVENV_DSN") and not os.environ.get("SENTRY_DEVENV_NO_REPORT"):
     # This reports to the project sentry-dev-env
     sentry_sdk.init(
-        dsn="https://23670f54c6254bfd9b7de106637808e9@o1.ingest.sentry.io/1492057",
+        dsn=os.environ["SENTRY_DEVENV_DSN"],
     )
     if os.environ.get("USER"):
         sentry_sdk.set_user({"username": os.environ.get("USER")})
