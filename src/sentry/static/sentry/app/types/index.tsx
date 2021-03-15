@@ -685,6 +685,12 @@ export interface Config {
   demoMode: boolean;
 }
 
+export enum DataCategory {
+  ERRORS = 'errors',
+  TRANSACTIONS = 'transactions',
+  ATTACHMENTS = 'attachments',
+}
+
 export type EventOrGroupType =
   | 'error'
   | 'csp'
