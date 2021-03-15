@@ -1,8 +1,8 @@
 /*eslint-env node*/
 module.exports = {
   presets: [
-    '@babel/react',
-    '@babel/env',
+    '@babel/preset-react',
+    '@babel/preset-env',
     '@babel/preset-typescript',
     [
       '@emotion/babel-preset-css-prop',
