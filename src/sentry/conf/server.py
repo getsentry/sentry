@@ -131,6 +131,10 @@ RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
 
 SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
 
+# XXX(epurkhiser): The generated chartucterie config.js file will be stored
+# here. This directory may not exist until that file is generated.
+CHARTCUTERIE_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "chartcuterie")
+
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -1681,6 +1685,17 @@ SENTRY_DEVSERVICES = {
         "command": ["run", "--config", "/etc/relay"],
         "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
         "with_devserver": True,
+    },
+    "chartcuterie": {
+        "image": "us.gcr.io/sentryio/chartcuterie:nightly",
+        "pull": True,
+        "volumes": {CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
+        "environment": {
+            "CHARTCUTERIE_CONFIG": "/etc/chartcuterie/config.js",
+            "CHARTCUTERIE_CONFIG_POLLING": "true",
+        },
+        "ports": {"9090/tcp": 7901},
+        "only_if": lambda settings, options: options.get("chart-rendering.enabled"),
     },
 }
 
