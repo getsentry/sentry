@@ -223,13 +223,6 @@ export default class MultipleProjectSelector extends React.PureComponent<Props, 
             `/settings/${organization.slug}/projects/${forceProject.slug}/`) ||
           undefined
         }
-        detailsLink={
-          (organization.features.includes('project-detail') &&
-            forceProject &&
-            showProjectSettingsLink &&
-            `/organizations/${organization.slug}/projects/${forceProject.slug}/?project=${forceProject.id}`) ||
-          undefined
-        }
       >
         {this.renderProjectName()}
       </StyledHeaderItem>
@@ -303,12 +296,6 @@ export default class MultipleProjectSelector extends React.PureComponent<Props, 
                     selectedProjects.length === 1
                       ? `/settings/${organization.slug}/projects/${selected[0]?.slug}/`
                       : ''
-                  }
-                  detailsLink={
-                    organization.features.includes('project-detail') &&
-                    selectedProjects.length === 1
-                      ? `/organizations/${organization.slug}/projects/${selected[0]?.slug}/?project=${selected[0]?.id}`
-                      : undefined
                   }
                   {...getActorProps()}
                 >

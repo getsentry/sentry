@@ -5,14 +5,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import Tooltip from 'app/components/tooltip';
-import {
-  IconChevron,
-  IconClose,
-  IconInfo,
-  IconLock,
-  IconOpen,
-  IconSettings,
-} from 'app/icons';
+import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'app/icons';
 import space from 'app/styles/space';
 
 type DefaultProps = {
@@ -28,7 +21,6 @@ type Props = {
   loading?: boolean;
   hint?: string;
   settingsLink?: string;
-  detailsLink?: string;
   lockedMessage?: React.ReactNode;
   forwardRef?: React.Ref<HTMLDivElement>;
   onClear?: () => void;
@@ -55,7 +47,6 @@ class HeaderItem extends React.Component<Props> {
       locked,
       lockedMessage,
       settingsLink,
-      detailsLink,
       hint,
       loading,
       forwardRef,
@@ -78,16 +69,11 @@ class HeaderItem extends React.Component<Props> {
         <IconContainer {...textColorProps}>{icon}</IconContainer>
         <Content>
           <StyledContent>{children}</StyledContent>
-          {detailsLink && (
-            <IconLink to={detailsLink}>
-              <IconOpen />
-            </IconLink>
-          )}
 
           {settingsLink && (
-            <IconLink to={settingsLink}>
+            <SettingsIconLink to={settingsLink}>
               <IconSettings />
-            </IconLink>
+            </SettingsIconLink>
           )}
         </Content>
         {hint && (
@@ -199,11 +185,12 @@ const StyledChevron = styled(IconChevron, {shouldForwardProp: isPropValid})<{
   color: ${getColor};
 `;
 
-const IconLink = styled(Link)`
+const SettingsIconLink = styled(Link)`
   color: ${p => p.theme.gray300};
   align-items: center;
   display: inline-flex;
   justify-content: space-between;
+  margin-right: ${space(1.5)};
   margin-left: ${space(1.0)};
   transition: 0.5s opacity ease-out;
 
