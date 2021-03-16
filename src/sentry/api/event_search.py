@@ -941,7 +941,7 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
-        if search_filter.key.is_tag:
+        elif search_filter.key.is_tag:
             name = ["ifNull", [name, "''"]]
 
         # Handle checks for existence
