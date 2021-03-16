@@ -77,6 +77,13 @@ class ConfigureIntegration extends AsyncView<Props, State> {
       : 'Configure Integration';
   }
 
+  hasStacktraceLinking(provider: IntegrationProvider) {
+    return (
+      provider.features.includes('stacktrace-link') &&
+      this.props.organization.features.includes('integrations-stacktrace-link')
+    );
+  }
+
   onTabChange = (value: Tab) => {
     this.setState({tab: value});
   };
@@ -204,7 +211,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
   renderMainContent(provider: IntegrationProvider) {
     const {integration} = this.state;
     //if no code mappings, render the single tab
-    if (!provider.features.includes('stacktrace-link')) {
+    if (!this.hasStacktraceLinking(provider)) {
       return this.renderMainTab(provider);
     }
     //otherwise render the tab view
