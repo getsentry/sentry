@@ -3,7 +3,6 @@ import {formatBytesBase10} from 'app/utils';
 
 export const MILLION = 10 ** 6;
 export const BILLION = 10 ** 9;
-
 export const GIGABYTE = 10 ** 9;
 
 type FormatOptions = {
