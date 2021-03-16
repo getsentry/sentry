@@ -41,8 +41,6 @@ type State = {
   dataCategory: DataCategory;
 };
 
-// TODO: Move over from getsentry
-
 class OrganizationStats extends React.Component<Props, State> {
   state: State = {
     dataCategory: DataCategory.ERRORS,
@@ -56,6 +54,10 @@ class OrganizationStats extends React.Component<Props, State> {
     return capitalize(this.state.dataCategory);
   }
 
+  /**
+   * Ignore this method. API response is being changed so this will be amended
+   * in a few days.
+   */
   get formattedOrgStats(): {
     stats: any[];
     total: string;
@@ -92,26 +94,26 @@ class OrganizationStats extends React.Component<Props, State> {
         let dropped = 0;
         if (m.dropped) {
           Object.keys(m.dropped).forEach(k => {
-            dropped += m.dropped[k].times_seen;
+            dropped += m.dropped[k].timesSeen;
           });
         }
 
-        const total = m.accepted.times_seen + m.filtered.times_seen + dropped;
+        const total = m.accepted.timesSeen + m.filtered.timesSeen + dropped;
 
         // Calculate tallies for the entire time period
         acc.total += total;
-        acc.accepted += m.accepted.times_seen;
+        acc.accepted += m.accepted.timesSeen;
         acc.dropped += dropped;
-        acc.filtered += m.filtered.times_seen;
-        acc.overQuota += m.dropped.overQuota?.times_seen || 0;
+        acc.filtered += m.filtered.timesSeen;
+        acc.overQuota += m.dropped.overQuota?.timesSeen || 0;
 
         acc.stats.push({
           date: moment.unix((m as any).time).format('MMM D'),
           total,
-          accepted: m.accepted.times_seen,
+          accepted: m.accepted.timesSeen,
           dropped,
-          filtered: m.filtered.times_seen,
-          rateLimited: m.dropped.overQuota?.times_seen || 0,
+          filtered: m.filtered.timesSeen,
+          rateLimited: m.dropped.overQuota?.timesSeen || 0,
         });
 
         return acc;

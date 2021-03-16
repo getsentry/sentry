@@ -2,7 +2,7 @@ import {MinimalProject} from 'app/types';
 
 export type RawStat = {
   quantity: number; // Counting for attachment size
-  times_seen: number; // Counting for errors or transactions  // FIXME
+  timesSeen: number; // Counting for errors or transactions
 };
 
 export type UsageStat = {
