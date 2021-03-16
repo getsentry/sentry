@@ -278,6 +278,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
 
             with self.feature("organizations:incidents"), self.tasks():
                 resp = self.get_response(self.organization.slug, self.project.slug, **test_params)
+            print("resp:", resp.data)
             assert resp.data["uuid"] == "abc123"
             assert mock_get_channel_id.call_count == 1
             # Using get deliberately as there should only be one. Test should fail otherwise.

@@ -327,6 +327,24 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                             "targetType": "specific",
                             "integration": self.integration.id,
                         },
+                        {
+                            "type": "slack",
+                            "targetIdentifier": "another-channel",
+                            "targetType": "specific",
+                            "integration": self.integration.id,
+                        },
+                    ],
+                },
+                {
+                    "label": "warning",
+                    "alertThreshold": 200,
+                    "actions": [
+                        {
+                            "type": "slack",
+                            "targetIdentifier": "my-channel",  # same channel, but only one lookup made per channel
+                            "targetType": "specific",
+                            "integration": self.integration.id,
+                        },
                     ],
                 },
             ]
@@ -341,14 +359,21 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             )  # just made 2 calls, plus the call from the single action test
 
             # Using get deliberately as there should only be one. Test should fail otherwise.
-            trigger = AlertRuleTrigger.objects.get(alert_rule_id=self.alert_rule.id)
-            actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger).order_by(
-                "id"
-            )
+            triggers = AlertRuleTrigger.objects.filter(alert_rule_id=self.alert_rule.id)
+            actions = AlertRuleTriggerAction.objects.filter(
+                alert_rule_trigger__in=triggers
+            ).order_by("id")
+            # The 3 critical trigger actions:
             assert actions[0].target_identifier == "10"
             assert actions[0].target_display == "my-channel"
             assert actions[1].target_identifier == "20"
             assert actions[1].target_display == "another-channel"
+            assert actions[2].target_identifier == "20"
+            assert actions[2].target_display == "another-channel"
+
+            # This is the warning trigger action:
+            assert actions[3].target_identifier == "10"
+            assert actions[3].target_display == "my-channel"
 
     def test_no_owner(self):
         self.create_member(

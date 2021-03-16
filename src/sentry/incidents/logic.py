@@ -1455,10 +1455,11 @@ def translate_aggregate_field(aggregate, reverse=False):
     return aggregate
 
 
-def alert_rule_data_requires_async_lookup(organization, user, data, write_input_channel_id=False):
+def alert_rule_data_requires_async_lookup(organization, user, data, return_input_channel_id=False):
     try:
         from sentry.incidents.endpoints.serializers import AlertRuleTriggerActionSerializer
 
+        mapped_ids = {}
         for trigger in data["triggers"]:
             for action in trigger["actions"]:
                 a_s = AlertRuleTriggerActionSerializer(
@@ -1471,29 +1472,30 @@ def alert_rule_data_requires_async_lookup(organization, user, data, write_input_
                     data=action,
                 )
                 if a_s.is_valid():
-                    if a_s.validated_data["type"].value in AlertRuleTriggerAction.INTEGRATION_TYPES:
-                        if (
-                            a_s.validated_data["type"].value
-                            == AlertRuleTriggerAction.Type.SLACK.value
-                            and not a_s.validated_data["input_channel_id"]
-                        ):
-                            if not write_input_channel_id:
-                                return True
-                            else:
-                                (
-                                    target_identifier,
-                                    target_display,
-                                ) = get_target_identifier_display_for_integration(
-                                    a_s.validated_data["type"].value,
-                                    a_s.validated_data["target_identifier"],
-                                    organization,
-                                    a_s.validated_data["integration"].id,
-                                    use_async_lookup=True,
-                                    input_channel_id=None,
-                                )
-                            if target_identifier:
-                                action["input_channel_id"] = target_identifier
-    except Exception:
+                    if (
+                        a_s.validated_data["type"].value == AlertRuleTriggerAction.Type.SLACK.value
+                        and not a_s.validated_data["input_channel_id"]
+                    ):
+                        if not return_input_channel_id:
+                            return True
+                        elif not a_s.validated_data["target_identifier"] in mapped_ids:
+                            (
+                                mapped_ids[a_s.validated_data["target_identifier"]],
+                                _,
+                            ) = get_target_identifier_display_for_integration(
+                                a_s.validated_data["type"].value,
+                                a_s.validated_data["target_identifier"],
+                                organization,
+                                a_s.validated_data["integration"].id,
+                                use_async_lookup=True,
+                                input_channel_id=None,
+                            )
+    except KeyError:
+        # Maybe data is invalid, no triggers/actions.
+        # Just return False - we'll serialize it, get the validation error, and give it to the user.
         pass
+
+    if return_input_channel_id:
+        return mapped_ids
 
     return False

@@ -177,7 +177,13 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
 
     # This function call will write "input_channel_id" to the appropriate actions before we create the serializer
     # I wasn't sure of a way to use the same loop to return True in the endpoints and to also do the lookup and didn't want to duplicate the loop
-    alert_rule_data_requires_async_lookup(organization, user, data, write_input_channel_id=True)
+    mapped_ids = alert_rule_data_requires_async_lookup(
+        organization, user, data, return_input_channel_id=True
+    )
+    for trigger in data["triggers"]:
+        for action in trigger["actions"]:
+            if action["targetIdentifier"] in mapped_ids:
+                action["input_channel_id"] = mapped_ids[action["targetIdentifier"]]
 
     # we use SystemAccess here because we can't pass the access instance from the request into the task
     # this means at this point we won't raise any validation errors associated with permissions
