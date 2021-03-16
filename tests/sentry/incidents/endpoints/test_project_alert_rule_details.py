@@ -364,6 +364,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         test_params = self.valid_params.copy()
         test_params["resolve_threshold"] = self.alert_rule.resolve_threshold
+        test_params["owner"] = None
+
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
                 self.organization.slug, self.project.slug, alert_rule.id, **test_params
@@ -372,7 +374,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert resp.data == serialize(alert_rule, self.user)
         assert (
             resp.data["owner"] == self.user.actor.get_actor_identifier()
-        )  # Doesn't unassign because we didn't pass
+        )  # Doesn't unassign yet - TDB in future though
 
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
