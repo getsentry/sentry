@@ -33,9 +33,8 @@ import {FIELD_TAGS} from 'app/utils/discover/fields';
 import {eventDetailsRoute} from 'app/utils/discover/urls';
 import {getMessage} from 'app/utils/events';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
-import QuickTraceQuery, {
-  QuickTraceQueryChildrenProps,
-} from 'app/utils/performance/quickTrace/quickTraceQuery';
+import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
+import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
 import EventMetas from 'app/views/performance/transactionDetails/eventMetas';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
@@ -232,6 +231,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         location={location}
                         showExampleCommit={false}
                         showTagSummary={false}
+                        api={this.api}
                       />
                     </QuickTraceContext.Provider>
                   </SpanEntryContext.Provider>
@@ -251,9 +251,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     projectId={this.projectId}
                   />
                   <RootSpanStatus event={event} />
+                  <OpsBreakdown event={event} />
                 </React.Fragment>
               )}
-              <OpsBreakdown event={event} />
               <EventVitals event={event} />
               {event.groupID && (
                 <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
@@ -271,8 +271,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const hasQuickTraceView =
       event.type === 'transaction' &&
-      organization.features.includes('trace-view-quick') &&
-      organization.features.includes('trace-view-summary');
+      (organization.features.includes('trace-view-quick') ||
+        organization.features.includes('trace-view-summary'));
 
     if (hasQuickTraceView) {
       return (
@@ -305,14 +305,30 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return super.renderError(error, true, true);
   }
 
+  getEventSlug = (): string => {
+    const {eventSlug} = this.props.params;
+
+    if (typeof eventSlug === 'string') {
+      return eventSlug.trim();
+    }
+
+    return '';
+  };
+
   renderComponent() {
     const {eventView, organization} = this.props;
     const {event} = this.state;
+    const eventSlug = this.getEventSlug();
+    const projectSlug = eventSlug.split(':')[0];
 
     const title = generateTitle({eventView, event, organization});
 
     return (
-      <SentryDocumentTitle title={title} objSlug={organization.slug}>
+      <SentryDocumentTitle
+        title={title}
+        orgSlug={organization.slug}
+        projectSlug={projectSlug}
+      >
         {super.renderComponent()}
       </SentryDocumentTitle>
     );

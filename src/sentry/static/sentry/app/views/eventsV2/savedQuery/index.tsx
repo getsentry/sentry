@@ -59,7 +59,7 @@ type State = {
 };
 
 class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
-  static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     const {eventView: nextEventView, savedQuery, savedQueryLoading} = nextProps;
 
     // For a new unsaved query

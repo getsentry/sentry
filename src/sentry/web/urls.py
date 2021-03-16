@@ -67,13 +67,6 @@ if settings.DEBUG:
         )
     ]
 
-if settings.DEMO_MODE:
-    from sentry.web.frontend.demo_start import DemoStartView
-
-    urlpatterns += [
-        url(r"^demo/start/$", DemoStartView.as_view(), name="sentry-demo-start"),
-    ]
-
 urlpatterns += [
     url(
         r"^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$",

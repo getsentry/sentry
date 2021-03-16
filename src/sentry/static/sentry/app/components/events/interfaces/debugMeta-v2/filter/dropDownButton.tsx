@@ -46,6 +46,13 @@ const StyledDropdownButton = styled(DropdownButton)`
   max-width: 200px;
   white-space: nowrap;
 
+  ${p =>
+    p.isOpen &&
+    `
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    `}
+
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     border-right: 0;
     border-top-right-radius: 0;

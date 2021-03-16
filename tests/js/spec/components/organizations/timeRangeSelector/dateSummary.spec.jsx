@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
 
@@ -12,7 +12,7 @@ describe('DateSummary', function () {
   const routerContext = TestStubs.routerContext();
 
   const createWrapper = (props = {}) =>
-    mount(<DateSummary start={start} end={end} {...props} />, routerContext);
+    mountWithTheme(<DateSummary start={start} end={end} {...props} />, routerContext);
 
   it('renders', async function () {
     wrapper = createWrapper();

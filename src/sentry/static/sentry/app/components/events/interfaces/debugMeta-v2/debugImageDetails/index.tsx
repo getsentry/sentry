@@ -229,6 +229,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
       arch: architecture,
       unwind_status,
       debug_status,
+      status,
     } = image ?? {};
 
     const candidates = this.getCandidates();
@@ -291,6 +292,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
               </SearchInSettingsAction>
             )}
             <Candidates
+              imageStatus={status}
               candidates={candidates}
               organization={organization}
               projectId={projectId}
@@ -339,7 +341,7 @@ const Label = styled('div')<{coloredBg?: boolean}>`
 `;
 
 const Value = styled(Label)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
   padding: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};

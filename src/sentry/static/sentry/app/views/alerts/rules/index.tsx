@@ -4,7 +4,9 @@ import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
+import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
@@ -14,26 +16,29 @@ import {PanelTable, PanelTableHeader} from 'app/components/panels';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {IconArrow, IconCheckmark} from 'app/icons';
 import {t, tct} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Organization, Project, Team} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Projects from 'app/utils/projects';
+import withTeams from 'app/utils/withTeams';
 
 import AlertHeader from '../list/header';
 import {isIssueAlert} from '../utils';
 
+import Filter from './filter';
 import RuleListRow from './row';
 
 const DEFAULT_SORT: {asc: boolean; field: 'date_added'} = {
   asc: false,
   field: 'date_added',
 };
-const DOCS_URL =
-  'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';
+const DOCS_URL = 'https://docs.sentry.io/product/alerts-notifications/metric-alerts/';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
+  teams: Team[];
 };
 
 type State = {
@@ -81,6 +86,17 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     );
   }
 
+  handleChangeFilter = (activeFilters: Set<string>) => {
+    const {router, location} = this.props;
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        team: [...activeFilters],
+      },
+    });
+  };
+
   handleDeleteRule = async (projectId: string, rule: IssueAlertRule) => {
     const {params} = this.props;
     const {orgId} = params;
@@ -103,11 +119,48 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return this.renderBody();
   }
 
+  renderFilterBar() {
+    const {teams, location} = this.props;
+    const teamQuery = location.query?.team;
+    const filteredTeams: Set<string> =
+      typeof teamQuery === 'string' ? new Set([teamQuery]) : new Set(teamQuery);
+    const teamIds = teams.map(({id}) => id);
+    return (
+      <FilterWrapper>
+        <Filter
+          header={t('Team')}
+          onFilterChange={this.handleChangeFilter}
+          filterList={teamIds}
+          selection={filteredTeams}
+        >
+          {({toggleFilter}) => (
+            <List>
+              {teams.map(({id, name}) => (
+                <ListItem
+                  key={id}
+                  isChecked={filteredTeams.has(id)}
+                  onClick={event => {
+                    event.stopPropagation();
+                    toggleFilter(id);
+                  }}
+                >
+                  <TeamName>{name}</TeamName>
+                  <CheckboxFancy isChecked={filteredTeams.has(id)} />
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </Filter>
+      </FilterWrapper>
+    );
+  }
+
   renderList() {
     const {
       params: {orgId},
       location: {query},
       organization,
+      teams,
     } = this.props;
     const {loading, ruleList = [], ruleListPageLinks} = this.state;
 
@@ -121,55 +174,66 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       // Currently only supported sorting field is 'date_added'
     };
 
+    const userTeams = new Set(teams.filter(({isMember}) => isMember).map(({id}) => id));
     return (
       <StyledLayoutBody>
         <Layout.Main fullWidth>
-          <StyledPanelTable
-            headers={[
-              t('Type'),
-              t('Alert Name'),
-              t('Project'),
-              t('Created By'),
-              // eslint-disable-next-line react/jsx-key
-              <StyledSortLink
-                to={{
-                  pathname: `/organizations/${orgId}/alerts/rules/`,
-                  query: {
-                    ...query,
-                    asc: sort.asc ? undefined : '1',
-                  },
-                }}
-              >
-                {t('Created')}{' '}
-                <IconArrow
-                  color="gray300"
-                  size="xs"
-                  direction={sort.asc ? 'up' : 'down'}
-                />
-              </StyledSortLink>,
-              t('Actions'),
-            ]}
-            isLoading={loading}
-            isEmpty={ruleList?.length === 0}
-            emptyMessage={this.tryRenderEmpty()}
-          >
-            <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
-              {({initiallyLoaded, projects}) =>
-                ruleList.map(rule => (
-                  <RuleListRow
-                    // Metric and issue alerts can have the same id
-                    key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
-                    projectsLoaded={initiallyLoaded}
-                    projects={projects as Project[]}
-                    rule={rule}
-                    orgId={orgId}
-                    onDelete={this.handleDeleteRule}
-                    organization={organization}
-                  />
-                ))
-              }
-            </Projects>
-          </StyledPanelTable>
+          <Feature features={['organizations:team-alerts-ownership']}>
+            {({hasFeature}) => (
+              <React.Fragment>
+                {hasFeature && this.renderFilterBar()}
+                <StyledPanelTable
+                  headers={[
+                    t('Type'),
+                    t('Alert Name'),
+                    t('Project'),
+                    ...(hasFeature ? [t('Team')] : []),
+                    t('Created By'),
+                    // eslint-disable-next-line react/jsx-key
+                    <StyledSortLink
+                      to={{
+                        pathname: `/organizations/${orgId}/alerts/rules/`,
+                        query: {
+                          ...query,
+                          asc: sort.asc ? undefined : '1',
+                        },
+                      }}
+                    >
+                      {t('Created')}{' '}
+                      <IconArrow
+                        color="gray300"
+                        size="xs"
+                        direction={sort.asc ? 'up' : 'down'}
+                      />
+                    </StyledSortLink>,
+                    t('Actions'),
+                  ]}
+                  isLoading={loading}
+                  isEmpty={ruleList?.length === 0}
+                  emptyMessage={this.tryRenderEmpty()}
+                  showTeamCol={hasFeature}
+                >
+                  <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+                    {({initiallyLoaded, projects}) =>
+                      ruleList.map(rule => (
+                        <RuleListRow
+                          // Metric and issue alerts can have the same id
+                          key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
+                          projectsLoaded={initiallyLoaded}
+                          projects={projects as Project[]}
+                          rule={rule}
+                          orgId={orgId}
+                          onDelete={this.handleDeleteRule}
+                          organization={organization}
+                          userTeams={userTeams}
+                        />
+                      ))
+                    }
+                  </Projects>
+                </StyledPanelTable>
+              </React.Fragment>
+            )}
+          </Feature>
           <Pagination pageLinks={ruleListPageLinks} />
         </Layout.Main>
       </StyledLayoutBody>
@@ -181,7 +245,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     const {orgId} = params;
 
     return (
-      <SentryDocumentTitle title={t('Alerts')} objSlug={orgId}>
+      <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
         <GlobalSelectionHeader organization={organization} showDateSelector={false}>
           <AlertHeader organization={organization} router={router} activeTab="rules" />
           {this.renderList()}
@@ -218,7 +282,7 @@ class AlertRulesListContainer extends React.Component<Props> {
   }
 }
 
-export default AlertRulesListContainer;
+export default withTeams(AlertRulesListContainer);
 
 const StyledLayoutBody = styled(Layout.Body)`
   margin-bottom: -20px;
@@ -232,12 +296,51 @@ const StyledSortLink = styled(Link)`
   }
 `;
 
-const StyledPanelTable = styled(PanelTable)`
+const TeamName = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  ${overflowEllipsis};
+`;
+
+const FilterWrapper = styled('div')`
+  margin-bottom: ${space(1.5)};
+`;
+
+const List = styled('ul')`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+`;
+
+const ListItem = styled('li')<{isChecked?: boolean}>`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  grid-column-gap: ${space(1)};
+  align-items: center;
+  padding: ${space(1)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  :hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+  ${CheckboxFancy} {
+    opacity: ${p => (p.isChecked ? 1 : 0.3)};
+  }
+
+  &:hover ${CheckboxFancy} {
+    opacity: 1;
+  }
+
+  &:hover span {
+    color: ${p => p.theme.blue300};
+    text-decoration: underline;
+  }
+`;
+
+const StyledPanelTable = styled(PanelTable)<{showTeamCol: boolean}>`
   ${PanelTableHeader} {
     line-height: normal;
   }
   font-size: ${p => p.theme.fontSizeMedium};
-  grid-template-columns: auto 1.5fr 1fr 1fr 1fr auto;
+  grid-template-columns: auto 1.5fr 1fr 1fr 1fr ${p => (p.showTeamCol ? '1fr' : '')} auto;
   margin-bottom: 0;
   white-space: nowrap;
   ${p =>

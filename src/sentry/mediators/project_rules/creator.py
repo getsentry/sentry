@@ -1,11 +1,12 @@
 from collections import Iterable
 from sentry.mediators import Mediator, Param
-from sentry.models import Rule
+from sentry.models import Actor, Rule
 
 
 class Creator(Mediator):
     name = Param((str,))
     environment = Param(int, required=False)
+    owner = Param("sentry.models.Actor", required=False)
     project = Param("sentry.models.Project")
     action_match = Param((str,))
     filter_match = Param((str,), required=False)
@@ -33,6 +34,7 @@ class Creator(Mediator):
         }
         _kwargs = {
             "label": self.name,
+            "owner": Actor.objects.get(id=self.owner) if self.owner else None,
             "environment_id": self.environment or None,
             "project": self.project,
             "data": data,

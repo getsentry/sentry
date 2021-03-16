@@ -2,11 +2,10 @@ import React from 'react';
 
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import {CSRF_COOKIE_NAME} from 'app/constants';
 import {t, tct} from 'app/locale';
 import {AuthProvider, Organization} from 'app/types';
 import {descopeFeatureName} from 'app/utils';
-import getCookie from 'app/utils/getCookie';
+import getCsrfToken from 'app/utils/getCsrfToken';
 import withOrganization from 'app/utils/withOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -76,7 +75,9 @@ const OrganizationAuthList = ({organization, providerList, activeProvider}: Prop
               {tct(
                 'Get started with Single Sign-on for your organization by selecting a provider. Read more in our [link:SSO documentation].',
                 {
-                  link: <ExternalLink href="https://docs.sentry.io/learn/sso/" />,
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/accounts/sso/" />
+                  ),
                 }
               )}
             </PanelAlert>
@@ -92,11 +93,7 @@ const OrganizationAuthList = ({organization, providerList, activeProvider}: Prop
             action={`/organizations/${organization.slug}/auth/configure/`}
             method="POST"
           >
-            <input
-              type="hidden"
-              name="csrfmiddlewaretoken"
-              value={getCookie(CSRF_COOKIE_NAME) || ''}
-            />
+            <input type="hidden" name="csrfmiddlewaretoken" value={getCsrfToken()} />
             <input type="hidden" name="init" value="1" />
 
             {list.map(provider => (

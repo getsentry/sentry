@@ -58,13 +58,13 @@ type DateTimeObject = {
 /**
  * Cast project ids to strings, as everything is assumed to be a string in URL params
  *
- * Discover v1 uses a different interface, and passes slightly different datatypes e.g. Date for dates
+ * We also handle internal types so Dates and booleans can show up in the start/end/utc
+ * keys. Long term it would be good to narrow down these types.
  */
 type UrlParams = {
   project?: ProjectId[] | null;
   environment?: EnvironmentId[] | null;
 } & DateTimeObject & {
-    // TODO(discoverv1): This can be back to `ParamValue` when we remove Discover
     [others: string]: any;
   };
 

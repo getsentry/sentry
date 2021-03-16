@@ -73,6 +73,24 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
+    def test_misaligned_last_bucket(self):
+        response = self.client.get(
+            self.url,
+            data={
+                "start": iso_format(self.day_ago - timedelta(minutes=30)),
+                "end": iso_format(self.day_ago + timedelta(hours=1, minutes=30)),
+                "interval": "1h",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": 0}],
+            [{"count": 1}],
+            [{"count": 2}],
+        ]
+
     def test_no_projects(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)

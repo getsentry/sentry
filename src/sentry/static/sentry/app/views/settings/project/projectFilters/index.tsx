@@ -29,7 +29,7 @@ class ProjectFilters extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={t('Inbound Filters')} objSlug={projectId} />
+        <SentryDocumentTitle title={t('Inbound Filters')} projectSlug={projectId} />
         <SettingsPageHeader title={t('Inbound Data Filters')} />
         <PermissionAlert />
 

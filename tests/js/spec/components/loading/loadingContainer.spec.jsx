@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import LoadingContainer from 'app/components/loading/loadingContainer';
 
 describe('LoadingContainer', function () {
   let wrapper;
   beforeEach(() => {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <LoadingContainer>
         <div>hello!</div>
       </LoadingContainer>

@@ -70,6 +70,8 @@ from sentry.models import (
     RepositoryProjectPathConfig,
     Rule,
     ExternalUser,
+    ExternalTeam,
+    ProjectCodeOwners,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
@@ -880,6 +882,7 @@ class Factories:
         organization,
         projects,
         name=None,
+        owner=None,
         query="level:error",
         aggregate="count()",
         time_window=10,
@@ -906,6 +909,7 @@ class Factories:
             time_window,
             threshold_type,
             threshold_period,
+            owner=owner,
             resolve_threshold=resolve_threshold,
             dataset=dataset,
             environment=environment,
@@ -955,3 +959,18 @@ class Factories:
         kwargs.setdefault("external_name", "")
 
         return ExternalUser.objects.create(organizationmember=organizationmember, **kwargs)
+
+    @staticmethod
+    def create_external_team(team, **kwargs):
+        kwargs.setdefault("provider", ExternalTeam.get_provider_enum("github"))
+        kwargs.setdefault("external_name", "@getsentry/ecosystem")
+
+        return ExternalTeam.objects.create(team=team, **kwargs)
+
+    @staticmethod
+    def create_codeowners(project, code_mapping, **kwargs):
+        kwargs.setdefault("raw", "")
+
+        return ProjectCodeOwners.objects.create(
+            project=project, repository_project_path_config=code_mapping, **kwargs
+        )

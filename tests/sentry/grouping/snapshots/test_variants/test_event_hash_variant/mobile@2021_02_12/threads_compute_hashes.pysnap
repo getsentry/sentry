@@ -1,15 +1,16 @@
 ---
-created: '2021-02-15T18:20:10.557878Z'
+created: '2021-03-08T16:39:06.832557Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-max:
-  hash: null
+  hash: "1a11687556cf74559f0ae90b1c87e2fd"
+  tree_label: "main"
   component:
-    app-depth-max (threads of system take precedence)
-      threads (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
+    app-depth-max*
+      threads*
+        stacktrace*
+          frame*
             filename*
               "baz.c"
             function*
@@ -17,6 +18,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "1a11687556cf74559f0ae90b1c87e2fd"
+  tree_label: "main"
   component:
     system*
       threads*
