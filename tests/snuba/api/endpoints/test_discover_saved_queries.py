@@ -427,6 +427,44 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert response.status_code == 201, response.content
         assert DiscoverSavedQuery.objects.filter(name="project query").exists()
 
+    def test_save_without_team(self):
+        team = self.create_team(organization=self.org, members=[])
+        self.create_project(organization=self.org, teams=[team])
+        with self.feature(self.feature_name):
+            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "name": "without team query",
+                    "projects": [],
+                    "fields": ["title", "count()"],
+                    "range": "24h",
+                    "version": 2,
+                },
+            )
+
+        assert response.status_code == 400
+        assert "No Projects found, join a Team" == response.data["detail"]
+
+    def test_save_with_team_and_without_project(self):
+        team = self.create_team(organization=self.org, members=[self.user])
+        self.create_project(organization=self.org, teams=[team])
+        with self.feature(self.feature_name):
+            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "name": "with team query",
+                    "projects": [],
+                    "fields": ["title", "count()"],
+                    "range": "24h",
+                    "version": 2,
+                },
+            )
+
+        assert response.status_code == 201, response.content
+        assert DiscoverSavedQuery.objects.filter(name="with team query").exists()
+
     def test_save_with_wrong_projects(self):
         other_org = self.create_organization(owner=self.user)
         project = self.create_project(organization=other_org)
