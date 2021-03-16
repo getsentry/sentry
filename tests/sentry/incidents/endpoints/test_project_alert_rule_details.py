@@ -300,8 +300,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 resp = self.get_response(
                     self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
                 )
-            print("resp:", resp)
-            print("resp.data:", resp.data)
             assert resp.data["uuid"] == "abc123"
             assert mock_get_channel_id.call_count == 1
             # Using get deliberately as there should only be one. Test should fail otherwise.
@@ -337,8 +335,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 resp = self.get_response(
                     self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
                 )
-            print("resp:", resp)
-            print("resp.data:", resp.data)
             assert resp.data["uuid"] == "abc123"
             assert (
                 mock_get_channel_id.call_count == 3
