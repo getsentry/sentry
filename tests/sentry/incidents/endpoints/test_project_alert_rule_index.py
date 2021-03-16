@@ -7,7 +7,7 @@ from sentry.utils.compat.mock import patch
 
 from sentry.utils import json
 from sentry.api.serializers import serialize
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 from sentry.models import Integration
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils import APITestCase
@@ -222,6 +222,111 @@ class AlertRuleCreateEndpointTest(APITestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
+
+    @patch(
+        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        side_effect=[("#", 10, False), ("#", 10, False), ("#", 20, False)],
+    )
+    @patch("sentry.integrations.slack.tasks.uuid4")
+    def test_async_slack_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
+        class uuid:
+            hex = "abc123"
+
+        mock_uuid4.return_value = uuid
+
+        from sentry.integrations.slack.utils import get_channel_id_with_timeout
+
+        with patch(
+            "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+            wraps=get_channel_id_with_timeout,
+        ) as mock_get_channel_id:
+            self.create_member(
+                user=self.user, organization=self.organization, role="owner", teams=[self.team]
+            )
+            self.login_as(self.user)
+            self.integration = Integration.objects.create(
+                provider="slack",
+                name="Team A",
+                external_id="TXXXXXXX1",
+                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            )
+            self.integration.add_organization(self.organization, self.user)
+            name = "MySpecialAsyncTestRule"
+            test_params = {
+                "aggregate": "count()",
+                "query": "",
+                "timeWindow": "300",
+                "projects": [self.project.slug],
+                "name": name,
+                "resolveThreshold": 100,
+                "thresholdType": 1,
+                "triggers": [
+                    {
+                        "label": "critical",
+                        "alertThreshold": 75,
+                        "actions": [
+                            {
+                                "type": "slack",
+                                "targetIdentifier": "my-channel",
+                                "targetType": "specific",
+                                "integration": self.integration.id,
+                            },
+                        ],
+                    },
+                ],
+            }
+
+            with self.feature("organizations:incidents"), self.tasks():
+                resp = self.get_response(self.organization.slug, self.project.slug, **test_params)
+            assert resp.data["uuid"] == "abc123"
+            assert mock_get_channel_id.call_count == 1
+            # Using get deliberately as there should only be one. Test should fail otherwise.
+            alert_rule = AlertRule.objects.get(name=name)
+            trigger = AlertRuleTrigger.objects.get(alert_rule_id=alert_rule.id)
+            action = AlertRuleTriggerAction.objects.get(alert_rule_trigger=trigger)
+            assert action.target_identifier == "10"
+            assert action.target_display == "my-channel"
+
+            # Now two actions with slack:
+            name = "MySpecialAsyncTestRuleTakeTwo"
+            test_params["name"] = name
+            test_params["triggers"] = [
+                {
+                    "label": "critical",
+                    "alertThreshold": 75,
+                    "actions": [
+                        {
+                            "type": "slack",
+                            "targetIdentifier": "my-channel",
+                            "targetType": "specific",
+                            "integration": self.integration.id,
+                        },
+                        {
+                            "type": "slack",
+                            "targetIdentifier": "another-channel",
+                            "targetType": "specific",
+                            "integration": self.integration.id,
+                        },
+                    ],
+                },
+            ]
+            with self.feature("organizations:incidents"), self.tasks():
+                resp = self.get_response(self.organization.slug, self.project.slug, **test_params)
+            assert resp.data["uuid"] == "abc123"
+            assert (
+                mock_get_channel_id.call_count == 3
+            )  # just made 2 calls, plus the call from the single action test
+            # # Using get deliberately as there should only be one. Test should fail otherwise.
+            alert_rule = AlertRule.objects.get(name=name)
+
+            trigger = AlertRuleTrigger.objects.get(alert_rule_id=alert_rule.id)
+            actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger).order_by(
+                "id"
+            )
+            assert actions[0].target_identifier == "10"
+            assert actions[0].target_display == "my-channel"
+            assert actions[1].target_identifier == "20"
+            assert actions[1].target_display == "another-channel"
 
 
 class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):

@@ -16,9 +16,14 @@ from sentry.models import (
     Organization,
     User,
 )
-from sentry.incidents.endpoints.serializers import AlertRuleSerializer
+from sentry.incidents.endpoints.serializers import (
+    AlertRuleSerializer,
+)
 from sentry.incidents.models import AlertRule
-from sentry.incidents.logic import ChannelLookupTimeoutError
+from sentry.incidents.logic import (
+    alert_rule_data_requires_async_lookup,
+    ChannelLookupTimeoutError,
+)
 from sentry.integrations.slack.utils import get_channel_id_with_timeout, strip_channel_name
 from sentry.utils.redis import redis_clusters
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
@@ -169,6 +174,10 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
         except AlertRule.DoesNotExist:
             redis_rule_status.set_value("failed")
             return
+
+    # This function call will write "input_channel_id" to the appropriate actions before we create the serializer
+    # I wasn't sure of a way to use the same loop to return True in the endpoints and to also do the lookup and didn't want to duplicate the loop
+    alert_rule_data_requires_async_lookup(organization, user, data, write_input_channel_id=True)
 
     # we use SystemAccess here because we can't pass the access instance from the request into the task
     # this means at this point we won't raise any validation errors associated with permissions

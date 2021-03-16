@@ -361,9 +361,7 @@ def get_channel_id(organization, integration, name, use_async_lookup=False):
         2. channel_id: string or `None`
         3. timed_out: boolean (whether we hit our self-imposed time limit)
     """
-
     name = strip_channel_name(name)
-
     # longer lookup for the async job
     if use_async_lookup:
         timeout = 3 * 60
@@ -389,7 +387,6 @@ def get_channel_id_with_timeout(integration, name, timeout):
         2. channel_id: string or `None`
         3. timed_out: boolean (whether we hit our self-imposed time limit)
     """
-
     headers = {"Authorization": "Bearer %s" % integration.metadata["access_token"]}
 
     payload = {

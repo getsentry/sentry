@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from sentry import analytics, quotas
 from sentry.api.event_search import get_filter, resolve_field
+from sentry.auth.access import SystemAccess
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.incidents import tasks
 from sentry.incidents.models import (
@@ -1452,3 +1453,47 @@ def translate_aggregate_field(aggregate, reverse=False):
                 if translated_field == column:
                     return aggregate.replace(column, field)
     return aggregate
+
+
+def alert_rule_data_requires_async_lookup(organization, user, data, write_input_channel_id=False):
+    try:
+        from sentry.incidents.endpoints.serializers import AlertRuleTriggerActionSerializer
+
+        for trigger in data["triggers"]:
+            for action in trigger["actions"]:
+                a_s = AlertRuleTriggerActionSerializer(
+                    context={
+                        "organization": organization,
+                        "access": SystemAccess(),
+                        "user": user,
+                        "use_async_lookup": True,
+                    },
+                    data=action,
+                )
+                if a_s.is_valid():
+                    if a_s.validated_data["type"].value in AlertRuleTriggerAction.INTEGRATION_TYPES:
+                        if (
+                            a_s.validated_data["type"].value
+                            == AlertRuleTriggerAction.Type.SLACK.value
+                            and not a_s.validated_data["input_channel_id"]
+                        ):
+                            if not write_input_channel_id:
+                                return True
+                            else:
+                                (
+                                    target_identifier,
+                                    target_display,
+                                ) = get_target_identifier_display_for_integration(
+                                    a_s.validated_data["type"].value,
+                                    a_s.validated_data["target_identifier"],
+                                    organization,
+                                    a_s.validated_data["integration"].id,
+                                    use_async_lookup=True,
+                                    input_channel_id=None,
+                                )
+                            if target_identifier:
+                                action["input_channel_id"] = target_identifier
+    except Exception:
+        pass
+
+    return False
