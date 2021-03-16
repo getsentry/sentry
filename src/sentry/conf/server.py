@@ -931,6 +931,8 @@ SENTRY_FEATURES = {
     "organizations:performance-tag-explorer": False,
     # Enable the new Project Detail page
     "organizations:project-detail": False,
+    # Enable links to Project Detail page from all over the app
+    "organizations:project-detail-links": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -940,8 +942,6 @@ SENTRY_FEATURES = {
     "organizations:releases-top-charts": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
-    # Enable calculating release adoption based on sessions
-    "organizations:session-adoption": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -2125,6 +2125,9 @@ SENTRY_EXTRA_WORKERS = None
 # This controls whether Sentry is run in a demo mode.
 # Enabling this will allow users to create accounts without an email or password.
 DEMO_MODE = False
+
+# if set to true, create demo organizations on-demand instead of using a buffer
+DEMO_NO_ORG_BUFFER = False
 
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None

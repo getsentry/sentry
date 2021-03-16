@@ -291,21 +291,25 @@ class DetailsBody extends React.Component<Props> {
       : null;
 
     return (
-      <GroupedHeaderItems>
-        <SidebarHeading>{t('Status')}</SidebarHeading>
-        <SidebarHeading>
-          {activeIncident ? t('Last Triggered') : t('Last Resolved')}
-        </SidebarHeading>
-        <ItemValue>
-          <AlertBadge color={color} icon={Icon}>
-            <AlertIconWrapper>
-              <Icon color="white" />
-            </AlertIconWrapper>
-          </AlertBadge>
-          <IncidentStatusValue color={color}>{statusText}</IncidentStatusValue>
-        </ItemValue>
-        <ItemValue>{activityDate ? <TimeSince date={activityDate} /> : '-'}</ItemValue>
-      </GroupedHeaderItems>
+      <StatusContainer>
+        <div>
+          <SidebarHeading>{t('Status')}</SidebarHeading>
+          <ItemValue>
+            <AlertBadge color={color} icon={Icon}>
+              <AlertIconWrapper>
+                <Icon color="white" />
+              </AlertIconWrapper>
+            </AlertBadge>
+            <IncidentStatusValue color={color}>{statusText}</IncidentStatusValue>
+          </ItemValue>
+        </div>
+        <div>
+          <SidebarHeading>
+            {activeIncident ? t('Last Triggered') : t('Last Resolved')}
+          </SidebarHeading>
+          <ItemValue>{activityDate ? <TimeSince date={activityDate} /> : '-'}</ItemValue>
+        </div>
+      </StatusContainer>
     );
   }
 
@@ -452,12 +456,12 @@ class DetailsBody extends React.Component<Props> {
                         filter={DATASET_EVENT_TYPE_FILTERS[rule.dataset]}
                       />
                     )}
-                    <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
                   </ActivityWrapper>
                 </DetailWrapper>
               </Layout.Main>
               <Layout.Side>
                 {this.renderMetricStatus()}
+                <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
                 <SidebarHeading>
                   <span>{t('Alert Rule')}</span>
                 </SidebarHeading>
@@ -489,39 +493,33 @@ const ActivityWrapper = styled('div')`
   width: 100%;
 `;
 
-const GroupedHeaderItems = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
-  grid-gap: ${space(1)} ${space(4)};
-  text-align: right;
-  margin-top: ${space(1)};
-  margin-bottom: ${space(4)};
-`;
-
 const ItemValue = styled('div')`
   display: flex;
   justify-content: flex-start;
   align-items: center;
+  position: relative;
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 const IncidentStatusValue = styled('div')<{color: string}>`
-  margin-left: ${space(1.5)};
+  margin-left: 30px;
   color: ${p => p.color};
 `;
 
 const AlertBadge = styled('div')<{color: string; icon: React.ReactNode}>`
   display: flex;
+  position: absolute;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   /* icon warning needs to be treated differently to look visually centered */
   line-height: ${p => (p.icon === IconWarning ? undefined : 1)};
+  left: 3px;
 
   &:before {
     content: '';
-    width: 30px;
-    height: 30px;
+    width: 20px;
+    height: 20px;
     border-radius: ${p => p.theme.borderRadius};
     background-color: ${p => p.color};
     transform: rotate(45deg);
@@ -530,11 +528,26 @@ const AlertBadge = styled('div')<{color: string; icon: React.ReactNode}>`
 
 const AlertIconWrapper = styled('div')`
   position: absolute;
+
+  svg {
+    width: 13px;
+    position: relative;
+    top: 1px;
+  }
+`;
+
+const StatusContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 50% 50%;
+  grid-row-gap: 16px;
+  margin-bottom: 20px;
 `;
 
 const SidebarHeading = styled(SectionHeading)`
   display: flex;
   justify-content: space-between;
+  margin-top: 0;
+  line-height: 1;
 `;
 
 const ChartControls = styled('div')`

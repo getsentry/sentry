@@ -6,25 +6,24 @@ import {TraceFull} from 'app/utils/performance/quickTrace/types';
 
 import {TraceViewContainer} from './styles';
 import TransactionGroup from './transactionGroup';
+import {TraceInfo} from './types';
 
 type Props = {
   trace: TraceFull;
+  traceInfo: TraceInfo;
 };
 
 class TraceView extends React.Component<Props> {
   traceViewRef = React.createRef<HTMLDivElement>();
 
-  renderTrace() {
-    const {trace} = this.props;
-    return <TransactionGroup transaction={trace} />;
-  }
-
   render() {
+    const {trace, traceInfo} = this.props;
+
     return (
       <Panel>
         <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
           <TraceViewContainer ref={this.traceViewRef}>
-            {this.renderTrace()}
+            <TransactionGroup transaction={trace} traceInfo={traceInfo} />
           </TraceViewContainer>
         </DividerHandlerManager.Provider>
       </Panel>
