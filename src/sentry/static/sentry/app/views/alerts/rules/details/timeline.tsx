@@ -4,17 +4,16 @@ import moment from 'moment-timezone';
 
 import {fetchIncidentActivities} from 'app/actionCreators/incident';
 import {Client} from 'app/api';
+import {SectionHeading} from 'app/components/charts/styles';
 import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import NavTabs from 'app/components/navTabs';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelBody} from 'app/components/panels';
 import SeenByList from 'app/components/seenByList';
 import TimeSince from 'app/components/timeSince';
-import {IconCheckmark, IconEllipse, IconFire, IconWarning} from 'app/icons';
+import {IconEllipse} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
 import {getTriggerName} from 'app/views/alerts/details/activity/statusItem';
 import {
   ActivityType,
@@ -123,9 +122,9 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
         });
     } else if (isClosed && incident?.statusMethod === IncidentStatusMethod.RULE_UPDATED) {
       title = t('Alert auto-resolved');
-      subtext = t('Alert rule has been modified or deleted');
+      subtext = t('Alert rule modified or deleted');
     } else if (isClosed && incident?.statusMethod !== IncidentStatusMethod.RULE_UPDATED) {
-      title = t('Alert resolved');
+      title = t('Resolved');
       subtext = tct('by [authorName]', {authorName});
     } else if (isDetected) {
       title = incident?.alertRule
@@ -181,41 +180,10 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
   render() {
     const {incident} = this.props;
     const {activities} = this.state;
-
-    let Icon = IconCheckmark;
-    let color: string = theme.green300;
-
-    if (
-      // incident was at max critical
-      activities?.find(
-        ({type, value}) =>
-          type === IncidentActivityType.STATUS_CHANGE &&
-          value === `${IncidentStatus.CRITICAL}`
-      )
-    ) {
-      Icon = IconFire;
-      color = theme.red300;
-    } else if (
-      // incident was at max warning
-      activities?.find(
-        ({type, value}) =>
-          type === IncidentActivityType.STATUS_CHANGE &&
-          value === `${IncidentStatus.WARNING}`
-      )
-    ) {
-      Icon = IconWarning;
-      color = theme.yellow300;
-    }
-
     return (
-      <StyledNavTabs key={incident.identifier}>
+      <IncidentSection key={incident.identifier}>
         <IncidentHeader>
-          <AlertBadge color={color} icon={Icon}>
-            <IconWrapper>
-              <Icon color="white" size="xs" />
-            </IconWrapper>
-          </AlertBadge>
-          <li>{tct('Alert #[id]', {id: incident.identifier})}</li>
+          {tct('Alert #[id]', {id: incident.identifier})}
           <SeenByTab>
             {incident && (
               <StyledSeenByList
@@ -233,7 +201,7 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
               .map((activity, idx) => this.renderActivity(activity, idx))}
           </IncidentBody>
         )}
-      </StyledNavTabs>
+      </IncidentSection>
     );
   }
 }
@@ -248,9 +216,9 @@ type Props = {
 class Timeline extends React.Component<Props> {
   renderEmptyMessage = () => {
     return (
-      <EmptyStateWarning small withIcon={false}>
-        {t('No alerts have been triggered yet')}
-      </EmptyStateWarning>
+      <StyledEmptyStateWarning small withIcon={false}>
+        <p>{t('No alerts triggered during this time')}</p>
+      </StyledEmptyStateWarning>
     );
   };
 
@@ -258,32 +226,56 @@ class Timeline extends React.Component<Props> {
     const {api, incidents, orgId, rule} = this.props;
 
     return (
-      <Panel>
-        <PanelHeader>{t('Timeline')}</PanelHeader>
-        <PanelBody>
-          {incidents && rule && incidents.length
-            ? incidents.map(incident => (
-                <TimelineIncident
-                  key={incident.identifier}
-                  api={api}
-                  orgId={orgId}
-                  incident={incident}
-                  rule={rule}
-                />
-              ))
-            : this.renderEmptyMessage()}
-        </PanelBody>
-      </Panel>
+      <History>
+        <SectionHeading>{t('History')}</SectionHeading>
+        <ScrollPanel>
+          <PanelBody withPadding>
+            {incidents && rule && incidents.length
+              ? incidents.map(incident => (
+                  <TimelineIncident
+                    key={incident.identifier}
+                    api={api}
+                    orgId={orgId}
+                    incident={incident}
+                    rule={rule}
+                  />
+                ))
+              : this.renderEmptyMessage()}
+          </PanelBody>
+        </ScrollPanel>
+      </History>
     );
   }
 }
 
 export default Timeline;
 
-const StyledNavTabs = styled(NavTabs)`
-  display: flex;
-  flex-direction: column;
-  margin: ${space(2)};
+const History = styled('div')`
+  margin-bottom: 30px;
+`;
+
+const ScrollPanel = styled(Panel)`
+  max-height: 500px;
+  overflow: scroll;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  p {
+    font-size: ${p => p.theme.fontSizeMedium};
+  }
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  padding: 0;
+`;
+
+const IncidentSection = styled('div')`
+  &:not(:first-of-type) {
+    margin-top: 15px;
+  }
 `;
 
 const IncidentHeader = styled('div')`
@@ -291,30 +283,7 @@ const IncidentHeader = styled('div')`
   margin-bottom: ${space(1.5)};
 `;
 
-const AlertBadge = styled('div')<{color: string; icon: React.ReactNode}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  /* icon warning needs to be treated differently to look visually centered */
-  line-height: ${p => (p.icon === IconWarning ? undefined : 1)};
-  margin-right: ${space(1.5)};
-
-  &:before {
-    content: '';
-    width: 16px;
-    height: 16px;
-    border-radius: ${p => p.theme.borderRadius};
-    background-color: ${p => p.color};
-    transform: rotate(45deg);
-  }
-`;
-
-const IconWrapper = styled('div')`
-  position: absolute;
-`;
-
-const SeenByTab = styled('li')`
+const SeenByTab = styled('div')`
   flex: 1;
   margin-left: ${space(2)};
   margin-right: 0;
@@ -341,7 +310,7 @@ const ActivityTrack = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-right: ${space(1.5)};
+  margin-right: ${space(1)};
 `;
 
 const ActivityBody = styled('div')`
@@ -355,7 +324,7 @@ const ActivityTime = styled('li')`
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: ${space(0.75)};
+  line-height: 1.4;
 `;
 
 const StyledTimeSince = styled(TimeSince)`
@@ -365,6 +334,7 @@ const StyledTimeSince = styled(TimeSince)`
 const ActivityText = styled('div')`
   flex-direction: row;
   margin-bottom: ${space(1.5)};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const ActivitySubText = styled('span')`
