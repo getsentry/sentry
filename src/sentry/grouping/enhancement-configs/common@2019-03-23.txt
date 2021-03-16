@@ -66,3 +66,14 @@ family:native function:"?[[]RNSentry*"                            -app -group
 # Projects shipping their own class called "SentryFoo" can then easily override this in their
 # own grouping enhancers.
 family:native function:"?[[]Sentry*"                              -app -group
+
+
+# Android ANR: Exception stack is a snapshot of the UI/main thread. The
+# *outermost* in-app frame is most indicative of which user action has led to ANR,
+# and that's what we want to group by.
+#
+# (innermost=crashing frame)
+error.mechanism:ANR invert-stacktrace=1
+
+# NSError iOS: Stacktrace is a thread snapshot as well.
+error.mechanism:NSError invert-stacktrace=1

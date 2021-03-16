@@ -56,8 +56,8 @@ BASE_STRATEGY = create_strategy_configuration(
         # considered for hierarchical grouping (see HIERARCHICAL_VARIANTS
         # constant)
         "hierarchical_grouping": False,
-        # Stacktrace hierarchy should be flipped
-        "inverted_stacktrace_hierarchy": False,
+        # Stacktrace is produced in the context of this exception
+        "exception_data": None,
     },
 )
 

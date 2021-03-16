@@ -240,11 +240,15 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
     """
 
     stacktraces = []
+    stacktrace_exceptions = []
 
     for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
         frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
         if frames:
             stacktraces.append(frames)
+            stacktrace_exceptions.append(
+                stacktrace_info.container if stacktrace_info.is_exception else None
+            )
 
     if not stacktraces:
         return
@@ -276,8 +280,10 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
-        for frames in stacktraces:
-            grouping_config.enhancements.apply_modifications_to_frame(frames, platform)
+        for frames, exception_data in zip(stacktraces, stacktrace_exceptions):
+            grouping_config.enhancements.apply_modifications_to_frame(
+                frames, platform, exception_data
+            )
 
     # normalize in-app
     for stacktrace in stacktraces:

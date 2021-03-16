@@ -38,7 +38,7 @@ quoted_key       = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 actions          = action+
 action           = flag_action / var_action
 var_action       = _ var_name _ "=" _ expr
-var_name         = "max-frames" / "min-frames"
+var_name         = "max-frames" / "min-frames" / "invert-stacktrace"
 flag_action      = _ range? flag flag_action_name
 flag_action_name = "group" / "app" / "prefix"
 flag             = "+" / "-"
@@ -328,7 +328,7 @@ class VarAction(Action):
 
 class StacktraceState:
     def __init__(self):
-        self.vars = {"max-frames": 0, "min-frames": 0}
+        self.vars = {"max-frames": 0, "min-frames": 0, "invert-stacktrace": 0}
         self.setters = {}
 
     def set(self, var, value, rule=None):
@@ -432,9 +432,12 @@ class Enhancements:
                 hint = stacktrace_state.add_to_hint(hint, var="min-frames")
                 contributes = False
 
-        return GroupingComponent(
+        inverted_hierarchy = bool(stacktrace_state.get("invert-stacktrace"))
+        component = GroupingComponent(
             id="stacktrace", values=components, hint=hint, contributes=contributes, **kw
         )
+
+        return component, inverted_hierarchy
 
     def as_dict(self, with_rules=False):
         rv = {

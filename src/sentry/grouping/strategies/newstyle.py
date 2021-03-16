@@ -393,10 +393,11 @@ def _single_stacktrace_variant(stacktrace, context, meta):
     ):
         values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
 
-    main_variant = context.config.enhancements.assemble_stacktrace_component(
+    main_variant, inverted_hierarchy = context.config.enhancements.assemble_stacktrace_component(
         values,
         frames_for_filtering,
         meta["event"].platform,
+        exception_data=context["exception_data"],
         similarity_self_encoder=_stacktrace_encoder,
     )
 
@@ -405,7 +406,6 @@ def _single_stacktrace_variant(stacktrace, context, meta):
 
     main_variant.update(tree_label="<entire stacktrace>")
 
-    inverted_hierarchy = context["inverted_stacktrace_hierarchy"]
     blaming_frame_idx = len(values) - 1 if not inverted_hierarchy else 0
 
     for idx, (component, frame) in enumerate(zip(values, frames_for_filtering)):
@@ -552,9 +552,7 @@ def single_exception(exception, context, **meta):
 
     if exception.stacktrace is not None:
         with context:
-            context["inverted_stacktrace_hierarchy"] = (
-                exception.mechanism and exception.mechanism.type == "ANR"
-            )
+            context["exception_data"] = exception.to_json()
             stacktrace_variants = context.get_grouping_component(exception.stacktrace, **meta)
     else:
         stacktrace_variants = {
