@@ -49,7 +49,7 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
                 request, organization, project_ids=request.data.get("projects")
             )
         except NoProjects:
-            raise ParseError(detail="NoProjects: Join a Team.")
+            raise ParseError(detail="No Projects found, join a Team")
 
         serializer = DiscoverSavedQuerySerializer(
             data=request.data,
