@@ -221,19 +221,19 @@ class DetailsBody extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <SidebarHeading>
+        <SidebarTitle>
           <span>{t('Metric')}</span>
-        </SidebarHeading>
+        </SidebarTitle>
         <RuleText>{this.getMetricText()}</RuleText>
 
-        <SidebarHeading>
+        <SidebarTitle>
           <span>{t('Environment')}</span>
-        </SidebarHeading>
+        </SidebarTitle>
         <RuleText>{rule.environment ?? 'All'}</RuleText>
 
-        <SidebarHeading>
+        <SidebarTitle>
           <span>{t('Filters')}</span>
-        </SidebarHeading>
+        </SidebarTitle>
         <Filters>
           <span>
             {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
@@ -241,15 +241,15 @@ class DetailsBody extends React.Component<Props> {
           <span>{rule?.query && <code>{rule?.query}</code>}</span>
         </Filters>
 
-        <SidebarHeading>
+        <SidebarTitle>
           <span>{t('Conditions')}</span>
-        </SidebarHeading>
+        </SidebarTitle>
         {criticalTrigger && this.renderTrigger(criticalTrigger)}
         {warningTrigger && this.renderTrigger(warningTrigger)}
 
-        <SidebarHeading>
+        <SidebarTitle>
           <span>{t('Other Details')}</span>
-        </SidebarHeading>
+        </SidebarTitle>
         <RuleDetails>
           <Feature features={['organizations:team-alerts-ownership']}>
             <span>{t('Team')}</span>
@@ -273,7 +273,7 @@ class DetailsBody extends React.Component<Props> {
 
           {rule.dateModified && (
             <React.Fragment>
-              <span>{t('Alert Last Modified')}</span>
+              <span>{t('Last Modified')}</span>
               <span>
                 <TimeSince date={rule.dateModified} suffix={t('ago')} />
               </span>
@@ -619,6 +619,13 @@ const SidebarHeading = styled(SectionHeading)`
   line-height: 1;
 `;
 
+const SidebarTitle = styled(SectionHeading)`
+  display: flex;
+  justify-content: space-between;
+  margin-top: ${space(2)};
+  line-height: 1;
+`;
+
 const ChartControls = styled('div')`
   display: flex;
   flex-direction: row;
@@ -715,7 +722,7 @@ const RuleDetails = styled('div')`
 const Filters = styled('div')`
   width: 100%;
   overflow-wrap: break-word;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const TriggerCondition = styled('div')`
