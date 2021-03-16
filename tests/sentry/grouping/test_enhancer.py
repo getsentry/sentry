@@ -17,7 +17,8 @@ def dump_obj(obj):
     return rv
 
 
-def test_basic_parsing(insta_snapshot):
+@pytest.mark.parametrize("version", [1, 2])
+def test_basic_parsing(insta_snapshot, version):
     enhancement = Enhancements.from_config_string(
         """
 # This is a config
@@ -34,6 +35,8 @@ family:native                                   max-frames=3
 """,
         bases=["common:v1"],
     )
+
+    enhancement.version = version
 
     dumped = enhancement.dumps()
     insta_snapshot(dump_obj(enhancement))

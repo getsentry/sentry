@@ -66,7 +66,8 @@ _        = space*
 FAMILIES = {"native": "N", "javascript": "J", "all": "a"}
 REVERSE_FAMILIES = {v: k for k, v in FAMILIES.items()}
 
-VERSION = 1
+VERSIONS = [1, 2]
+LATEST_VERSION = VERSIONS[-1]
 MATCH_KEYS = {
     "path": "p",
     "function": "f",
@@ -78,8 +79,12 @@ MATCH_KEYS = {
 SHORT_MATCH_KEYS = {v: k for k, v in MATCH_KEYS.items()}
 
 ACTIONS = ["group", "app", "prefix"]
-ACTION_BITSIZE = 4
-assert len(ACTIONS) < 1 << ACTION_BITSIZE
+ACTION_BITSIZE = {
+    # version -> bit-size
+    1: 4,
+    2: 8,
+}
+assert len(ACTIONS) < 1 << max(ACTION_BITSIZE.values())
 ACTION_FLAGS = {
     (True, None): 0,
     (True, "up"): 1,
@@ -176,7 +181,7 @@ class Match:
             value = "<unknown>"
         return glob_match(value, self.pattern)
 
-    def _to_config_structure(self):
+    def _to_config_structure(self, version):
         if self.key == "family":
             arg = "".join([_f for _f in [FAMILIES.get(x) for x in self.pattern.split(",")] if _f])
         elif self.key == "app":
@@ -186,7 +191,7 @@ class Match:
         return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg
 
     @classmethod
-    def _from_config_structure(cls, obj):
+    def _from_config_structure(cls, obj, version):
         val = obj
         if val.startswith("!"):
             negated = True
@@ -212,10 +217,10 @@ class Action:
         pass
 
     @classmethod
-    def _from_config_structure(cls, val):
+    def _from_config_structure(cls, val, version):
         if isinstance(val, list):
             return VarAction(val[0], val[1])
-        flag, range = REVERSE_ACTION_FLAGS[val >> 4]
+        flag, range = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE[version]]
         return FlagAction(ACTIONS[val & 0xF], flag, range)
 
 
@@ -232,8 +237,10 @@ class FlagAction(Action):
             self.key,
         )
 
-    def _to_config_structure(self):
-        return ACTIONS.index(self.key) | (ACTION_FLAGS[self.flag, self.range] << ACTION_BITSIZE)
+    def _to_config_structure(self, version):
+        return ACTIONS.index(self.key) | (
+            ACTION_FLAGS[self.flag, self.range] << ACTION_BITSIZE[version]
+        )
 
     def _slice_to_range(self, seq, idx):
         if self.range is None:
@@ -298,7 +305,7 @@ class VarAction(Action):
     def __str__(self):
         return f"{self.var}={self.value}"
 
-    def _to_config_structure(self):
+    def _to_config_structure(self, version):
         return [self.var, self.value]
 
     def modify_stacktrace_state(self, state, rule):
@@ -336,7 +343,7 @@ class Enhancements:
         self.rules = rules
         self.changelog = changelog
         if version is None:
-            version = VERSION
+            version = LATEST_VERSION
         self.version = version
         if bases is None:
             bases = []
@@ -430,7 +437,11 @@ class Enhancements:
         return rv
 
     def _to_config_structure(self):
-        return [self.version, self.bases, [x._to_config_structure() for x in self.rules]]
+        return [
+            self.version,
+            self.bases,
+            [x._to_config_structure(self.version) for x in self.rules],
+        ]
 
     def dumps(self):
         return (
@@ -449,10 +460,12 @@ class Enhancements:
     @classmethod
     def _from_config_structure(cls, data):
         version, bases, rules = data
-        if version != VERSION:
+        if version not in VERSIONS:
             raise ValueError("Unknown version")
         return cls(
-            rules=[Rule._from_config_structure(x) for x in rules], version=version, bases=bases
+            rules=[Rule._from_config_structure(x, version=version) for x in rules],
+            version=version,
+            bases=bases,
         )
 
     @classmethod
@@ -506,17 +519,17 @@ class Rule:
         if self.matchers and all(m.matches_frame(frame_data, platform) for m in self.matchers):
             return self.actions
 
-    def _to_config_structure(self):
+    def _to_config_structure(self, version):
         return [
-            [x._to_config_structure() for x in self.matchers],
-            [x._to_config_structure() for x in self.actions],
+            [x._to_config_structure(version) for x in self.matchers],
+            [x._to_config_structure(version) for x in self.actions],
         ]
 
     @classmethod
-    def _from_config_structure(cls, tuple):
+    def _from_config_structure(cls, tuple, version):
         return Rule(
-            [Match._from_config_structure(x) for x in tuple[0]],
-            [Action._from_config_structure(x) for x in tuple[1]],
+            [Match._from_config_structure(x, version) for x in tuple[0]],
+            [Action._from_config_structure(x, version) for x in tuple[1]],
         )
 
 
