@@ -55,7 +55,7 @@ function EventMetas({event, organization, projectId, location, quickTrace}: Prop
         bodyText={getShortEventId(event.eventID)}
         subtext={projectBadge}
       />
-      {type === 'transaction' ? (
+      {isTransaction(event) ? (
         <MetaData
           headingText={t('Total Duration')}
           tooltipText={t(
@@ -76,7 +76,7 @@ function EventMetas({event, organization, projectId, location, quickTrace}: Prop
           subtext={<DateTime date={event.dateCreated} />}
         />
       )}
-      {type === 'transaction' && (
+      {isTransaction(event) && (
         <MetaData
           headingText={t('Status')}
           tooltipText={t(
@@ -106,8 +106,10 @@ const EventDetailHeader = styled('div')<{type?: 'transaction' | 'event'}>`
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: minmax(160px, 1fr) ${p =>
-        p.type === 'transaction' ? 'minmax(160px, 1fr)' : ''} minmax(160px, 1fr) 6fr;
+    ${p =>
+      p.type === 'transaction'
+        ? 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;'
+        : 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) 6fr;'};
     grid-row-gap: 0;
     margin-bottom: 0;
   }

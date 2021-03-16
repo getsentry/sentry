@@ -42,7 +42,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
       start={start}
       end={end}
       // TODO(wmak): Trace Lite doesn't return errors
-      isTransaction={isTransaction(event)}
+      shouldSkipQuery={!isTransaction(event)}
       {...props}
     >
       {traceLiteResults => (

@@ -27,7 +27,8 @@ function isCurrentEvent(
 ): boolean {
   return (
     event.event_id === currentEvent.id ||
-    (event.errors !== undefined &&
+    (!isTransaction(currentEvent) &&
+      event.errors !== undefined &&
       event.errors.filter(e => e.event_id === currentEvent.id).length > 0)
   );
 }
