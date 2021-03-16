@@ -66,7 +66,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
-                "features": ["commits", "issue-basic"],
+                "features": ["commits", "issue-basic", "stacktrace-link"],
                 "name": "GitHub",
                 "canDisable": False,
                 "key": "github",
@@ -87,7 +87,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
-                "features": ["commits", "issue-basic"],
+                "features": ["commits", "issue-basic", "stacktrace-link"],
                 "name": "GitHub",
                 "canDisable": False,
                 "key": "github",
@@ -123,7 +123,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
-                "features": ["commits", "issue-basic"],
+                "features": ["commits", "issue-basic", "stacktrace-link"],
                 "name": "GitHub",
                 "canDisable": False,
                 "key": "github",
@@ -185,7 +185,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
-                "features": ["commits", "issue-basic"],
+                "features": ["commits", "issue-basic", "stacktrace-link"],
                 "name": "GitHub",
                 "canDisable": False,
                 "key": "github",
