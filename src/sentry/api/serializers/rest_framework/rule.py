@@ -70,10 +70,13 @@ class RuleSerializer(serializers.Serializer):
     conditions = ListField(child=RuleNodeField(type="condition/event"), required=False)
     filters = ListField(child=RuleNodeField(type="filter/event"), required=False)
     frequency = serializers.IntegerField(min_value=5, max_value=60 * 24 * 30)
-    owner = serializers.CharField(required=False)
+    owner = serializers.CharField(required=False, allow_null=True)
 
     def validate_owner(self, owner):
         # owner_id should be team:id or user:id
+        if owner is None:
+            return
+
         try:
             actor = ActorTuple.from_actor_identifier(owner)
         except Exception:

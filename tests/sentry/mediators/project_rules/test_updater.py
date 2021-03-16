@@ -27,6 +27,10 @@ class TestUpdater(TestCase):
         self.updater.call()
         assert self.rule.owner == team.actor
 
+        self.updater.owner = None
+        self.updater.call()
+        assert self.rule.owner is None
+
     def test_update_environment(self):
         self.updater.environment = 3
         self.updater.call()
