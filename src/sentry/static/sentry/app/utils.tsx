@@ -153,8 +153,43 @@ export function toTitleCase(str: string): string {
   );
 }
 
-export function formatBytes(bytes: number): string {
-  const units = ['KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+/**
+ * Note the difference between *a-bytes (base 10) vs *i-bytes (base 2), which
+ * means that:
+ * - 1000 megabytes is equal to 1 gigabyte
+ * - 1024 mebibytes is equal to 1024 gibibytes
+ *
+ * We will use base 10 throughout billing for attachments. This function formats
+ * quota/usage values for display.
+ *
+ * For storage/memory/file sizes, please take a look at formatBytesBase2
+ */
+export function formatBytesBase10(bytes: number, u: number = 0) {
+  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const threshold = 1000;
+
+  while (bytes >= threshold) {
+    bytes /= threshold;
+    u += 1;
+  }
+
+  return bytes.toLocaleString(undefined, {maximumFractionDigits: 2}) + ' ' + units[u];
+}
+
+/**
+ * Note the difference between *a-bytes (base 10) vs *i-bytes (base 2), which
+ * means that:
+ * - 1000 megabytes is equal to 1 gigabyte
+ * - 1024 mebibytes is equal to 1024 gibibytes
+ *
+ * We will use base 2 to display storage/memory/file sizes as that is commonly
+ * used by Windows or RAM or CPU cache sizes, and it is more familiar to the user
+ *
+ * For billing-related code around attachments. please take a look at
+ * formatBytesBase10
+ */
+export function formatBytesBase2(bytes: number): string {
+  const units = ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
   const thresh = 1024;
   if (bytes < thresh) {
     return bytes + ' B';
