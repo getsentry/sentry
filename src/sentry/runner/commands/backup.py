@@ -9,6 +9,9 @@ from io import StringIO
 from sentry.runner.decorators import configuration
 
 
+EXCLUDED_APPS = frozenset(("auth", "contenttypes"))
+
+
 @click.command(name="import")
 @click.argument("src", type=click.File("rb"))
 @configuration
@@ -16,7 +19,8 @@ def import_(src):
     "Imports data from a Sentry export."
 
     for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
-        obj.save()
+        if obj.object._meta.app_label not in EXCLUDED_APPS:
+            obj.save()
 
     sequence_reset_sql = StringIO()
 
@@ -38,6 +42,9 @@ def sort_dependencies():
     model_dependencies = []
     models = set()
     for app_config in apps.get_app_configs():
+        if app_config.label in EXCLUDED_APPS:
+            continue
+
         model_list = app_config.get_models()
 
         for model in model_list:
