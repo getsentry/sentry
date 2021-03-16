@@ -459,7 +459,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return owner && owner.split(':')[1];
   };
 
-  handleOwnerChange = ({value}: {value?: string; label: string}) => {
+  handleOwnerChange = ({value}: {value: string; label: string}) => {
     const ownerValue = value && `team:${value}`;
     this.handleChange('owner', ownerValue);
   };
