@@ -46,7 +46,7 @@ describe('DateRange', function () {
     beforeEach(function () {
       onChange.mockReset();
     });
-    beforeEach(function () {
+    beforeEach(async function () {
       wrapper = mountWithTheme(
         <DateRange
           start={start}
@@ -58,6 +58,10 @@ describe('DateRange', function () {
         />,
         routerContext
       );
+
+      await tick();
+      await tick();
+      wrapper.update();
     });
 
     it('has the right max date', function () {
