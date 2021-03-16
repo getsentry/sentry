@@ -1,6 +1,7 @@
 import React from 'react';
 import type {OnChangeProps, RangeWithKey} from 'react-date-range';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 
@@ -20,7 +21,7 @@ import {
   setDateToTime,
 } from 'app/utils/dates';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 const DateRangePicker = React.lazy(
   () => import(/* webpackChunkName: "DateRangePicker" */ './dateRangeWrapper')
@@ -47,6 +48,7 @@ const defaultProps = {
 };
 
 type Props = {
+  theme: Theme;
   /**
    * Just used for metrics
    */
@@ -181,7 +183,14 @@ class DateRange extends React.Component<Props, State> {
   };
 
   render() {
-    const {className, maxPickableDays, utc, showTimePicker, onChangeUtc} = this.props;
+    const {
+      className,
+      maxPickableDays,
+      utc,
+      showTimePicker,
+      onChangeUtc,
+      theme,
+    } = this.props;
     const start = this.props.start ?? '';
     const end = this.props.end ?? '';
 
@@ -246,7 +255,7 @@ class DateRange extends React.Component<Props, State> {
   }
 }
 
-const StyledDateRange = styled(DateRange)`
+const StyledDateRange = styled(withTheme(DateRange))`
   display: flex;
   flex-direction: column;
   border-left: 1px solid ${p => p.theme.border};

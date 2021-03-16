@@ -107,7 +107,7 @@ const StyledDateRangePicker = styled(DateRangePicker)`
   .rdrYearPicker select {
     background: none;
     font-weight: normal;
-    font-size: 16px;
+    font-size: ${p => p.theme.fontSizeLarge};
     padding: 0;
   }
 

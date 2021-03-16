@@ -28,7 +28,7 @@ function handleChangeDate(
 }
 
 const Calendar = React.lazy(
-  () => import(/* webpackChunkName: "Calendar" */ './calendarWrapper')
+  () => import(/* webpackChunkName: "CalendarField" */ './calendarField')
 );
 
 export default function DatePickerField(props: Props) {
