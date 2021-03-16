@@ -25,7 +25,9 @@ def import_(src):
     sequence_reset_sql = StringIO()
 
     for app in apps.get_app_configs():
-        management.call_command("sqlsequencereset", app.label, stdout=sequence_reset_sql)
+        management.call_command(
+            "sqlsequencereset", app.label, "--no-color", stdout=sequence_reset_sql
+        )
 
     with connection.cursor() as cursor:
         cursor.execute(sequence_reset_sql.getvalue())
