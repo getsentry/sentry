@@ -1,46 +1,27 @@
-/* eslint-disable react/prop-types */
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Key, KeyValueTable, KeyValueTable2, Value} from 'app/components/keyValueTable';
+import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
 
 const Wrapper = styled('div')`
   width: 250px;
 `;
 
 export default {
-  title: 'Core/KeyValueTable',
+  title: 'Core/Tables/KeyValueTable',
   component: KeyValueTable,
 };
 
-export const First = () => (
+export const Default = () => (
   <Wrapper>
     <KeyValueTable>
-      <Key>Coffee</Key> <Value>Black hot drink</Value>
-      <Key>Milk</Key> <Value>White cold drink</Value>
-      <Key>Coffee</Key> <Value>Black hot drink</Value>
-      <Key>Milk</Key> <Value>White cold drink</Value>
-      <Key>Coffee</Key> <Value>Black hot drink</Value>
-      <Key>Milk</Key> <Value>White cold drink</Value>
+      <KeyValueTableRow keyName="Coffee" value="Black hot drink" />
+      <KeyValueTableRow keyName="Milk" value={<a href="#">White cold drink</a>} />
+      <KeyValueTableRow keyName="Coffee" value="Black hot drink" />
+      <KeyValueTableRow keyName="Milk" value="White cold drink" />
+      <KeyValueTableRow keyName="Coffee" value="Black hot drink" />
+      <KeyValueTableRow keyName="Milk" value="White cold drink" />
     </KeyValueTable>
   </Wrapper>
 );
-First.storyName = 'First';
-
-export const Second = () => (
-  <Wrapper>
-    <KeyValueTable2
-      data={[
-        ['Coffee', 'Black hot drink'],
-        ['Milk', 'White cold drink'],
-        ['Coffee', 'Black hot drink'],
-        ['Milk', 'White cold drink'],
-        ['Coffee', 'Black hot drink'],
-        ['Milk', 'White cold drink'],
-        ['Coffee', 'Black hot drink'],
-        ['Milk', 'White cold drink'],
-      ]}
-    />
-  </Wrapper>
-);
-Second.storyName = 'Second';
+Default.storyName = 'default';
