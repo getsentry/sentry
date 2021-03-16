@@ -59,7 +59,7 @@ def is_current_event_safe():
         if scope._tags.get(UNSAFE_TAG):
             return False
 
-        project_id = scope._tags.get("project")
+        project_id = scope._tags.get("processing_event_for_project")
 
         if project_id and project_id == settings.SENTRY_PROJECT:
             return False
@@ -82,7 +82,7 @@ def mark_scope_as_unsafe():
         scope.set_tag(UNSAFE_TAG, True)
 
 
-def set_current_project(project_id):
+def set_current_event_project(project_id):
     """
     Set the current project on the SDK scope for outgoing crash reports.
 
@@ -92,6 +92,7 @@ def set_current_project(project_id):
     sentry-internal errors, causing infinite recursion.
     """
     with configure_scope() as scope:
+        scope.set_tag("processing_event_for_project", project_id)
         scope.set_tag("project", project_id)
 
 

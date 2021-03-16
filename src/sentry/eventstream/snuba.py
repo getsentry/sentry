@@ -9,7 +9,7 @@ from sentry import quotas
 from sentry.eventstream.base import EventStream
 from sentry.utils import snuba, json
 from sentry.utils.safe import get_path
-from sentry.utils.sdk import set_current_project
+from sentry.utils.sdk import set_current_event_project
 
 
 logger = logging.getLogger(__name__)
@@ -86,7 +86,7 @@ class SnubaProtocolEventStream(EventStream):
         skip_consume=False,
     ):
         project = event.project
-        set_current_project(project.id)
+        set_current_event_project(project.id)
         retention_days = quotas.get_event_retention(organization=project.organization)
 
         event_data = event.get_raw_data(for_stream=True)
