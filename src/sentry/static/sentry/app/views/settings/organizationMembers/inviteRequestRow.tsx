@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import SelectControl from 'app/components/forms/selectControl';
+import MultiSelectControl, {
+  MultiControlProps,
+} from 'app/components/forms/multiSelectControl';
 import HookOrDefault from 'app/components/hookOrDefault';
 import {PanelItem} from 'app/components/panels';
 import RoleSelectControl from 'app/components/roleSelectControl';
@@ -31,6 +33,7 @@ const InviteModalHook = HookOrDefault({
 });
 
 type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
+type OnChangeArgs = Parameters<NonNullable<MultiControlProps['onChange']>>[0];
 
 const InviteRequestRow = ({
   inviteRequest,
@@ -86,13 +89,14 @@ const InviteRequestRow = ({
       <TeamSelectControl
         name="teams"
         placeholder={t('Add to teams\u2026')}
-        onChange={teams => onUpdate({teams: teams.map(team => team.value)})}
+        onChange={(teams: OnChangeArgs) =>
+          onUpdate({teams: (teams || []).map(team => team.value)})
+        }
         value={inviteRequest.teams}
         options={allTeams.map(({slug}) => ({
           value: slug,
           label: `#${slug}`,
         }))}
-        multiple
         clearable
       />
 
@@ -177,7 +181,7 @@ const StyledRoleSelectControl = styled(RoleSelectControl)`
   max-width: 140px;
 `;
 
-const TeamSelectControl = styled(SelectControl)`
+const TeamSelectControl = styled(MultiSelectControl)`
   max-width: 220px;
   .Select-value-label {
     max-width: 150px;
