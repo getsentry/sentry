@@ -47,7 +47,6 @@ const ProjectBadge = ({
     organization?.features.includes('project-detail') &&
     organization?.features.includes('project-detail-links')
   ) {
-    // TODO: check new feature flag for allowing these links
     return (
       <StyledLink
         to={`/organizations/${organization.slug}/projects/${slug}/${
