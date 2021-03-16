@@ -244,6 +244,32 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         }
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
+    def test_no_owner(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+
+        alert_rule = self.alert_rule
+        alert_rule.owner = self.user.actor
+        alert_rule.save()
+        assert alert_rule.owner == self.user.actor
+
+        test_params = self.valid_params.copy()
+        test_params["resolve_threshold"] = self.alert_rule.resolve_threshold
+        test_params["owner"] = None
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, self.project.slug, alert_rule.id, **test_params
+            )
+
+        assert resp.data == serialize(alert_rule, self.user)
+        assert (
+            resp.data["owner"] == self.user.actor.get_actor_identifier()
+        )  # Doesn't unassign yet - TDB in future though
+
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
     method = "delete"
