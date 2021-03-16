@@ -20,55 +20,22 @@ export function getTraceDetailsUrl(
 }
 
 function traceVisitor() {
-  const errorProjectSlugs = new Set();
-  const errorIds = new Set();
-  const transactionProjectSlugs = new Set();
-  const transactionIds = new Set();
-
   return (accumulator: TraceInfo, event: TraceFull) => {
     for (const error of event.errors ?? []) {
-      if (!errorProjectSlugs.has(error.project_slug)) {
-        errorProjectSlugs.add(error.project_slug);
-
-        // No user conditions yet, so all projects are relevant to the error.
-        accumulator.relevantProjectsWithErrors += 1;
-      }
-
-      if (!errorIds.has(error.event_id)) {
-        errorIds.add(event.event_id);
-        accumulator.totalErrors += 1;
-
-        // No user conditions yet, so all errors are relevant.
-        accumulator.relevantErrors += 1;
-      }
+      accumulator.errors.add(error.project_slug);
+      accumulator.relevantProjectsWithErrors.add(error.project_slug);
     }
 
-    if (!transactionProjectSlugs.has(event.project_slug)) {
-      transactionProjectSlugs.add(event.project_slug);
+    accumulator.transactions.add(event.event_id);
+    accumulator.relevantProjectsWithTransactions.add(event.project_slug);
 
-      // No user conditions yet, so all projects are relevant to the transaction.
-      accumulator.relevantProjectsWithTransactions += 1;
-    }
+    accumulator.startTimestamp = Math.min(
+      accumulator.startTimestamp,
+      event.start_timestamp
+    );
+    accumulator.endTimestamp = Math.max(accumulator.endTimestamp, event.timestamp);
 
-    if (!transactionIds.has(event.event_id)) {
-      transactionIds.add(event.event_id);
-      accumulator.totalTransactions += 1;
-
-      // No user conditions yet, so all transactions are relevant.
-      accumulator.relevantTransactions += 1;
-    }
-
-    if (accumulator.startTimestamp > event.start_timestamp) {
-      accumulator.startTimestamp = event.start_timestamp;
-    }
-
-    if (accumulator.endTimestamp < event.timestamp) {
-      accumulator.endTimestamp = event.timestamp;
-    }
-
-    if (accumulator.maxGeneration < event.generation) {
-      accumulator.maxGeneration = event.generation;
-    }
+    accumulator.maxGeneration = Math.max(accumulator.maxGeneration, event.generation);
 
     return accumulator;
   };
@@ -76,12 +43,10 @@ function traceVisitor() {
 
 export function getTraceInfo(trace: TraceFull) {
   return reduceTrace<TraceInfo>(trace, traceVisitor(), {
-    relevantProjectsWithErrors: 0,
-    relevantProjectsWithTransactions: 0,
-    totalErrors: 0,
-    relevantErrors: 0,
-    totalTransactions: 0,
-    relevantTransactions: 0,
+    relevantProjectsWithErrors: new Set<string>(),
+    relevantProjectsWithTransactions: new Set<string>(),
+    errors: new Set<string>(),
+    transactions: new Set<string>(),
     startTimestamp: Number.MAX_SAFE_INTEGER,
     endTimestamp: 0,
     maxGeneration: 0,

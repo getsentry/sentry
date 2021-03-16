@@ -48,23 +48,23 @@ class TraceDetailsContent extends React.Component<Props> {
           tooltipText={t('All the transactions that are a part of this trace.')}
           bodyText={t(
             '%s of %s',
-            traceInfo.relevantTransactions,
-            traceInfo.totalTransactions
+            traceInfo.transactions.size,
+            traceInfo.transactions.size
           )}
           subtext={tn(
             'Across %s project',
             'Across %s projects',
-            traceInfo.relevantProjectsWithTransactions
+            traceInfo.relevantProjectsWithTransactions.size
           )}
         />
         <MetaData
           headingText={t('Errors')}
           tooltipText={t('All the errors that are a part of this trace.')}
-          bodyText={t('%s of %s', traceInfo.relevantErrors, traceInfo.totalErrors)}
+          bodyText={t('%s of %s', traceInfo.errors.size, traceInfo.errors.size)}
           subtext={tn(
             'Across %s project',
             'Across %s projects',
-            traceInfo.relevantProjectsWithErrors
+            traceInfo.relevantProjectsWithErrors.size
           )}
         />
       </TraceDetailHeader>

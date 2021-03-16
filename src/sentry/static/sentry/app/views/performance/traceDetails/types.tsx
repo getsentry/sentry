@@ -1,28 +1,20 @@
 export type TraceInfo = {
   /**
-   * The number of projects in the trace with an error that matched the user condition.
+   * The projects in the trace with an error that matched the user condition.
    */
-  relevantProjectsWithErrors: number;
+  relevantProjectsWithErrors: Set<string>;
   /**
-   * The number of projects in the trace wth a transaction that matched the user condition.
+   * The projects in the trace wth a transaction that matched the user condition.
    */
-  relevantProjectsWithTransactions: number;
+  relevantProjectsWithTransactions: Set<string>;
   /**
-   * The total number errors in the trace.
+   * The errors in the trace.
    */
-  totalErrors: number;
+  errors: Set<string>;
   /**
-   * The number of errors in the trace that matched the user condition.
+   * The transactions in the trace.
    */
-  relevantErrors: number;
-  /**
-   * The total number transactions in the trace.
-   */
-  totalTransactions: number;
-  /**
-   * The number of transactions in the trace that matched the user condition.
-   */
-  relevantTransactions: number;
+  transactions: Set<string>;
   /**
    * The very earliest start timestamp in the trace.
    */
