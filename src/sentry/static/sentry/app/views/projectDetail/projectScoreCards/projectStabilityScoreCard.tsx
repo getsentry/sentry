@@ -122,7 +122,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
           project: selection.projects[0],
           field: 'sum(session)',
           statsPeriod: '90d',
-          interval: '90d',
+          interval: '1d',
         },
       }
     );
