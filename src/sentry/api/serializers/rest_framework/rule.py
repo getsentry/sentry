@@ -73,7 +73,7 @@ class RuleSerializer(serializers.Serializer):
     owner = serializers.CharField(required=False, allow_null=True)
 
     def validate_owner(self, owner):
-        # owner_id should be team:id or user:id
+        # owner should be team:id or user:id
         if owner is None:
             return
 
