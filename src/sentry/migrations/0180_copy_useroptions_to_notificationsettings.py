@@ -115,7 +115,7 @@ def copy_useroption_to_notificationsetting(apps, schema_editor):
         NotificationSetting.objects.update_or_create(
             scope_type=scope_type,  # user, org, or project
             scope_identifier=scope_identifier,  # user_id, organization_id, or project_id
-            target=user,
+            target=user.actor,
             provider=ExternalProviders.EMAIL,  # 100
             type=type,
             value=value,  # NotificationSettingOptionValues
