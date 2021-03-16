@@ -129,7 +129,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   getDefaultState() {
-    const {organization, teams} = this.props;
+    const {organization, teams, project} = this.props;
     const defaultState = {
       ...super.getDefaultState(),
       configs: null,
@@ -139,8 +139,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       uuid: null,
     };
     if (organization.features.includes('team-alerts-ownership')) {
-      const userTeam = teams.find(({isMember}) => !!isMember);
-      defaultState.rule.owner = userTeam ? `team:${userTeam.id}` : undefined;
+      const projectTeamIds = new Set(project.teams.map(({id}) => id));
+      const userTeam =
+        teams.find(({isMember, id}) => !!isMember && projectTeamIds.has(id)) ?? null;
+      defaultState.rule.owner = userTeam && `team:${userTeam.id}`;
     }
     return defaultState;
   }
@@ -452,9 +454,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   getTeamId = () => {
     const {rule} = this.state;
-    const owner = rule?.owner ?? '';
+    const owner = rule?.owner;
     // ownership follows the format team:<id>, just grab the id
-    return owner.split(':')[1];
+    return owner && owner.split(':')[1];
   };
 
   handleOwnerChange = ({value}: {value?: string; label: string}) => {

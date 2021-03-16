@@ -257,7 +257,7 @@ class SelectMembers extends React.Component<Props, State> {
     const {options} = this.state;
 
     // Copy old value
-    const oldValue = [...value];
+    const oldValue = value ? [...value] : {value};
 
     // Optimistic update
     this.props.onChange(this.createMentionableTeam(team));
