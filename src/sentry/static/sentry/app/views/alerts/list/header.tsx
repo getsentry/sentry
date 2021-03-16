@@ -38,25 +38,21 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
         </StyledLayoutHeaderContent>
         <Layout.HeaderActions>
           <Actions gap={1}>
-            <Button
-              size="small"
-              onClick={handleNavigateToSettings}
-              href="#"
-              icon={<IconSettings size="xs" />}
-            >
-              {t('Settings')}
-            </Button>
-
             <CreateAlertButton
               organization={organization}
-              iconProps={{size: 'xs'}}
-              size="small"
+              iconProps={{size: 'sm'}}
               priority="primary"
               referrer="alert_stream"
               showPermissionGuide
             >
               {t('Create Alert Rule')}
             </CreateAlertButton>
+            <Button
+              onClick={handleNavigateToSettings}
+              href="#"
+              icon={<IconSettings size="sm" />}
+              aria-label="Settings"
+            />
           </Actions>
         </Layout.HeaderActions>
       </BorderlessHeader>
