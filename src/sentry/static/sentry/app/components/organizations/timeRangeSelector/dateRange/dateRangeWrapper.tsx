@@ -16,14 +16,16 @@ const StyledDateRangePicker = styled(DateRangePicker)`
     background-color: ${p => p.theme.active};
   }
 
-  .rdrDayHovered .rdrDayStartPreview,
-  .rdrDayHovered .rdrDayEndPreview,
-  .rdrDay .rdrDayInPreview {
-    background-color: ${p => p.theme.focus};
-  }
-
   .rdrStartEdge + .rdrDayStartPreview {
     background-color: transparent;
+  }
+
+  .rdrDayNumber span {
+    color: ${p => p.theme.textColor};
+  }
+
+  .rdrDayDisabled span {
+    color: ${p => p.theme.subText};
   }
 
   .rdrDayToday .rdrDayNumber span {
