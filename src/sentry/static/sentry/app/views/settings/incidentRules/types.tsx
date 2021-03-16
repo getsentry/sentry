@@ -62,7 +62,7 @@ export type UnsavedIncidentRule = {
   thresholdType: AlertRuleThresholdType;
   resolveThreshold: number | '' | null;
   eventTypes?: EventTypes[];
-  owner?: string;
+  owner?: string | null;
 };
 
 export type SavedIncidentRule = UnsavedIncidentRule & {
