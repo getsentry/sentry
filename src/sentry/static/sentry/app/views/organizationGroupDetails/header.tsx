@@ -257,11 +257,13 @@ class GroupHeader extends React.Component<Props, State> {
             isActive={() => currentTab === TAB.ACTIVITY}
             disabled={isGroupBeingReprocessing}
           >
-            {t('Activity')} <span>{group.numComments}</span>
+            {t('Activity')} <TabCount>{group.numComments}</TabCount>
             <IconChat
               size="xs"
               color={
-                group.subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined
+                group.subscriptionDetails?.reason === 'mentioned'
+                  ? 'green300'
+                  : 'purple300'
               }
             />
           </StyledListLink>
@@ -270,7 +272,7 @@ class GroupHeader extends React.Component<Props, State> {
             isActive={() => currentTab === TAB.USER_FEEDBACK}
             disabled={isGroupBeingReprocessing}
           >
-            {t('User Feedback')} <span>{group.userReportCount}</span>
+            {t('User Feedback')} <TabCount>{group.userReportCount}</TabCount>
           </StyledListLink>
           {hasEventAttachments && (
             <ListLink
@@ -343,13 +345,13 @@ const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
 `;
 
 const StyledListLink = styled(ListLink)`
-  span {
-    color: #6c5fc7;
-  }
   svg {
-    color: #6c5fc7;
     margin-left: ${space(0.5)};
   }
+`;
+
+const TabCount = styled('span')`
+  color: ${p => p.theme.purple300};
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`
