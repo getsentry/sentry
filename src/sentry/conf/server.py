@@ -974,6 +974,8 @@ SENTRY_FEATURES = {
     "organizations:images-loaded-v2": False,
     # Enable teams to have ownership of alert rules
     "organizations:team-alerts-ownership": False,
+    # Enable the new alert creation wizard
+    "organizations:alert-wizard": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
