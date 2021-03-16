@@ -45,7 +45,7 @@ export type ThresholdControlValue = {
   threshold: number | '' | null;
 };
 
-export type SavedTrigger = Omit<UnsavedTrigger, 'actions' | 'unsavedId'> & {
+export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
   id: string;
   dateCreated: string;
   actions: Action[];
@@ -190,7 +190,7 @@ export type MetricActionTemplate = {
  * This is the user's configured action
  */
 export type Action = UnsavedAction & Partial<SavedActionFields>;
-export type SavedAction = Omit<UnsavedAction, 'unsavedId'> & SavedActionFields;
+export type SavedAction = Omit<UnsavedAction, 'unsavedDateCreated'> & SavedActionFields;
 
 type SavedActionFields = {
   /**
