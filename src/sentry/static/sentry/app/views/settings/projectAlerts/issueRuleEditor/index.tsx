@@ -458,13 +458,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   };
 
   handleOwnerChange = ({value}: {value?: string; label: string}) => {
-    if (value) {
-      // currently only supporting teams as owners
-      this.handleChange('owner', `team:${value}`);
-    } else {
-      // allow owner to be set to undefined (unassigned option)
-      this.handleChange('owner', value);
-    }
+    const ownerValue = value && `team:${value}`;
+    this.handleChange('owner', ownerValue);
   };
 
   renderLoading() {
