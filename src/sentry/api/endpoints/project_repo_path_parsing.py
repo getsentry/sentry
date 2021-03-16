@@ -41,7 +41,6 @@ class PathMappingSerializer(CamelSnakeSerializer):
 
     @property
     def providers(self):
-        # TODO: use feature flag in the future
         providers = filter(
             lambda x: x.has_feature(IntegrationFeatures.STACKTRACE_LINK), list(integrations.all())
         )
