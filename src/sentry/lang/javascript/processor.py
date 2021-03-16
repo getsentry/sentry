@@ -221,8 +221,11 @@ def get_release_file_cache_key_meta(release_id, releasefile_ident):
     return "meta:%s" % get_release_file_cache_key(release_id, releasefile_ident)
 
 
+MAX_FETCH_ATTEMPTS = 3
+
+
 def should_retry_fetch(attempt: int, e: Exception) -> bool:
-    return not attempt > 3 and isinstance(e, OSError) and e.errno == errno.ESTALE
+    return not attempt > MAX_FETCH_ATTEMPTS and isinstance(e, OSError) and e.errno == errno.ESTALE
 
 
 fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(0.05))
