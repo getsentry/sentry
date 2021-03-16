@@ -1,8 +1,12 @@
-from sentry.models import NotificationSetting, UserEmail, UserOption
+from sentry.models import (
+    NotificationSetting,
+    UserEmail,
+    UserOption,
+)
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
-    NotificationSettingTypes,
     NotificationSettingOptionValues,
+    NotificationSettingTypes,
 )
 from sentry.testutils import APITestCase
 
@@ -75,12 +79,22 @@ class UserNotificationFineTuningTest(APITestCase):
         )
 
         assert (
-            UserOption.objects.get(user=self.user, project=self.project, key="mail:alert").value
+            NotificationSetting.objects.get_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.ISSUE_ALERTS,
+                user=self.user,
+                project=self.project,
+            )
             == 1
         )
 
         assert (
-            UserOption.objects.get(user=self.user, project=self.project2, key="mail:alert").value
+            NotificationSetting.objects.get_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.ISSUE_ALERTS,
+                user=self.user,
+                project=self.project2,
+            )
             == 0
         )
 
@@ -89,12 +103,23 @@ class UserNotificationFineTuningTest(APITestCase):
             "me", "alerts", method="put", status_code=204, **{str(self.project.id): -1}
         )
 
-        assert not UserOption.objects.filter(
-            user=self.user, project=self.project, key="mail:alert"
-        ).exists()
+        assert (
+            NotificationSetting.objects.get_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.ISSUE_ALERTS,
+                user=self.user,
+                project=self.project,
+            )
+            is None
+        )
 
         assert (
-            UserOption.objects.get(user=self.user, project=self.project2, key="mail:alert").value
+            NotificationSetting.objects.get_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.ISSUE_ALERTS,
+                user=self.user,
+                project=self.project2,
+            )
             == 0
         )
 
@@ -108,16 +133,22 @@ class UserNotificationFineTuningTest(APITestCase):
         )
 
         assert (
-            UserOption.objects.get(
-                user=self.user, project=self.project, key="workflow:notifications"
-            ).value
+            NotificationSetting.objects.get_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.WORKFLOW,
+                user=self.user,
+                project=self.project,
+            )
             == "1"
         )
 
         assert (
-            UserOption.objects.get(
-                user=self.user, project=self.project2, key="workflow:notifications"
-            ).value
+            NotificationSetting.objects.get_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.WORKFLOW,
+                user=self.user,
+                project=self.project2,
+            )
             == "2"
         )
 
@@ -126,14 +157,23 @@ class UserNotificationFineTuningTest(APITestCase):
             "me", "workflow", method="put", status_code=204, **{str(self.project.id): -1}
         )
 
-        assert not UserOption.objects.filter(
-            user=self.user, project=self.project, key="workflow:notifications"
+        assert (
+            NotificationSetting.objects.get_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.WORKFLOW,
+                user=self.user,
+                project=self.project,
+            )
+            is None
         )
 
         assert (
-            UserOption.objects.get(
-                user=self.user, project=self.project2, key="workflow:notifications"
-            ).value
+            NotificationSetting.objects.get_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.WORKFLOW,
+                user=self.user,
+                project=self.project2,
+            )
             == "2"
         )
 
@@ -184,7 +224,12 @@ class UserNotificationFineTuningTest(APITestCase):
         )
 
         assert (
-            UserOption.objects.get(user=self.user, organization=self.org, key="deploy-emails").value
+            NotificationSetting.objects.get_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.DEPLOY,
+                user=self.user,
+                organization=self.org,
+            )
             == "4"
         )
 
@@ -192,7 +237,12 @@ class UserNotificationFineTuningTest(APITestCase):
             "me", "deploy", method="put", status_code=204, **{str(self.org.id): 2}
         )
         assert (
-            UserOption.objects.get(user=self.user, organization=self.org, key="deploy-emails").value
+            NotificationSetting.objects.get_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.DEPLOY,
+                user=self.user,
+                organization=self.org,
+            )
             == "2"
         )
 
@@ -281,6 +331,12 @@ class UserNotificationFineTuningTest(APITestCase):
             "me", "alerts", method="put", status_code=403, **{str(new_project.id): 1}
         )
 
-        assert not UserOption.objects.filter(
-            user=self.user, project=new_project, key="mail:alert"
-        ).exists()
+        assert (
+            NotificationSetting.objects.get_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                user=self.user,
+                project=new_project,
+            )
+            is None
+        )

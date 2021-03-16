@@ -1,5 +1,5 @@
 from sentry.notifications.legacy_mappings import UserOptionValue
-from sentry.models import NotificationSetting, UserOption
+from sentry.models import NotificationSetting
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
     NotificationSettingTypes,
@@ -88,9 +88,11 @@ class UserNotificationDetailsTest(APITestCase):
         assert response.data.get("workflowNotifications") == int(UserOptionValue.participating_only)
 
         assert (
-            UserOption.objects.get(
-                user=user, project=None, organization=None, key="deploy-emails"
-            ).value
+            NotificationSetting.objects.get_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.DEPLOY,
+                user=user,
+            )
             == "2"
         )
 
@@ -110,15 +112,20 @@ class UserNotificationDetailsTest(APITestCase):
 
         assert response.data.get("deployNotifications") == 2
         assert (
-            UserOption.objects.get(
-                user=user, project=None, organization=org, key="deploy-emails"
-            ).value
+            NotificationSetting.objects.get_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.DEPLOY,
+                user=user,
+                organization=org,
+            )
             == "4"
         )
         assert (
-            UserOption.objects.get(
-                user=user, project=None, organization=None, key="deploy-emails"
-            ).value
+            NotificationSetting.objects.get_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.DEPLOY,
+                user=user,
+            )
             == "2"
         )
 
