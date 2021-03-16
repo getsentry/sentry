@@ -7,7 +7,6 @@ import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Badge from 'app/components/badge';
 import Count from 'app/components/count';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import ErrorLevel from 'app/components/events/errorLevel';
@@ -23,6 +22,7 @@ import NavTabs from 'app/components/navTabs';
 import SeenByList from 'app/components/seenByList';
 import ShortId from 'app/components/shortId';
 import Tooltip from 'app/components/tooltip';
+import {IconChat} from 'app/icons';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -252,20 +252,26 @@ class GroupHeader extends React.Component<Props, State> {
           >
             {t('Details')}
           </ListLink>
-          <ListLink
+          <StyledListLink
             to={`${baseUrl}activity/${location.search}`}
             isActive={() => currentTab === TAB.ACTIVITY}
             disabled={isGroupBeingReprocessing}
           >
-            {t('Activity')} <Badge text={group.numComments} />
-          </ListLink>
-          <ListLink
+            {t('Activity')} <span>{group.numComments}</span>
+            <IconChat
+              size="xs"
+              color={
+                group.subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined
+              }
+            />
+          </StyledListLink>
+          <StyledListLink
             to={`${baseUrl}feedback/${location.search}`}
             isActive={() => currentTab === TAB.USER_FEEDBACK}
             disabled={isGroupBeingReprocessing}
           >
-            {t('User Feedback')} <Badge text={group.userReportCount} />
-          </ListLink>
+            {t('User Feedback')} <span>{group.userReportCount}</span>
+          </StyledListLink>
           {hasEventAttachments && (
             <ListLink
               to={`${baseUrl}attachments/${location.search}`}
@@ -333,6 +339,16 @@ const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     margin-bottom: ${space(2)};
+  }
+`;
+
+const StyledListLink = styled(ListLink)`
+  span {
+    color: #6c5fc7;
+  }
+  svg {
+    color: #6c5fc7;
+    margin-left: ${space(0.5)};
   }
 `;
 
