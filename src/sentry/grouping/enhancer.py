@@ -75,8 +75,12 @@ MATCH_KEYS = {
     "family": "F",
     "package": "P",
     "app": "a",
+    "type": "t",
+    "value": "v",
+    "mechanism": "M",
 }
 SHORT_MATCH_KEYS = {v: k for k, v in MATCH_KEYS.items()}
+assert len(SHORT_MATCH_KEYS) == len(MATCH_KEYS)  # assert short key names are not reused
 
 ACTIONS = ["group", "app", "prefix"]
 ACTION_BITSIZE = {
@@ -102,6 +106,9 @@ MATCHERS = {
     "stack.abs_path": "path",
     "stack.package": "package",
     "stack.function": "function",
+    "error.type": "type",
+    "error.value": "value",
+    "error.mechanism": "mechanism",
     # fingerprinting shortened fields
     "module": "module",
     "path": "path",
@@ -133,13 +140,13 @@ class Match:
             self.pattern.split() != [self.pattern] and '"%s"' % self.pattern or self.pattern,
         )
 
-    def matches_frame(self, frame_data, platform):
-        rv = self._positive_frame_match(frame_data, platform)
+    def matches_frame(self, frame_data, platform, exception_data):
+        rv = self._positive_frame_match(frame_data, platform, exception_data)
         if self.negated:
             rv = not rv
         return rv
 
-    def _positive_frame_match(self, frame_data, platform):
+    def _positive_frame_match(self, frame_data, platform, exception_data):
         # Path matches are always case insensitive
         if self.key in ("path", "package"):
             if self.key == "package":
@@ -176,9 +183,16 @@ class Match:
             value = get_function_name_for_frame(frame_data, platform) or "<unknown>"
         elif self.key == "module":
             value = frame_data.get("module") or "<unknown>"
+        elif self.key == "type":
+            value = get_path(exception_data, "type") or "<unknown>"
+        elif self.key == "value":
+            value = get_path(exception_data, "value") or "<unknown>"
+        elif self.key == "mechanism":
+            value = get_path(exception_data, "mechanism", "type") or "<unknown>"
         else:
             # should not happen :)
             value = "<unknown>"
+
         return glob_match(value, self.pattern)
 
     def _to_config_structure(self, version):
@@ -349,23 +363,23 @@ class Enhancements:
             bases = []
         self.bases = bases
 
-    def apply_modifications_to_frame(self, frames, platform):
+    def apply_modifications_to_frame(self, frames, platform, exception_data):
         """This applies the frame modifications to the frames itself.  This
         does not affect grouping.
         """
         for rule in self.iter_rules():
             for idx, frame in enumerate(frames):
-                actions = rule.get_matching_frame_actions(frame, platform)
+                actions = rule.get_matching_frame_actions(frame, platform, exception_data)
                 for action in actions or ():
                     action.apply_modifications_to_frame(frames, idx)
 
-    def update_frame_components_contributions(self, components, frames, platform):
+    def update_frame_components_contributions(self, components, frames, platform, exception_data):
         stacktrace_state = StacktraceState()
 
         # Apply direct frame actions and update the stack state alongside
         for rule in self.iter_rules():
             for idx, (component, frame) in enumerate(zip(components, frames)):
-                actions = rule.get_matching_frame_actions(frame, platform)
+                actions = rule.get_matching_frame_actions(frame, platform, exception_data)
                 for action in actions or ():
                     action.update_frame_components_contributions(components, frames, idx, rule=rule)
                     action.modify_stacktrace_state(stacktrace_state, rule)
@@ -392,7 +406,9 @@ class Enhancements:
 
         return stacktrace_state
 
-    def assemble_stacktrace_component(self, components, frames, platform, **kw):
+    def assemble_stacktrace_component(
+        self, components, frames, platform, exception_data=None, **kw
+    ):
         """This assembles a stacktrace grouping component out of the given
         frame components and source frames.  Internally this invokes the
         `update_frame_components_contributions` method but also handles cases
@@ -401,9 +417,7 @@ class Enhancements:
         hint = None
         contributes = None
         stacktrace_state = self.update_frame_components_contributions(
-            components,
-            frames,
-            platform,
+            components, frames, platform, exception_data
         )
 
         min_frames = stacktrace_state.get("min-frames")
@@ -512,11 +526,13 @@ class Rule:
             matchers[matcher.key] = matcher.pattern
         return {"match": matchers, "actions": [str(x) for x in self.actions]}
 
-    def get_matching_frame_actions(self, frame_data, platform):
+    def get_matching_frame_actions(self, frame_data, platform, exception_data=None):
         """Given a frame returns all the matching actions based on this rule.
         If the rule does not match `None` is returned.
         """
-        if self.matchers and all(m.matches_frame(frame_data, platform) for m in self.matchers):
+        if self.matchers and all(
+            m.matches_frame(frame_data, platform, exception_data) for m in self.matchers
+        ):
             return self.actions
 
     def _to_config_structure(self, version):

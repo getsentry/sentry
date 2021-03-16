@@ -203,3 +203,90 @@ def test_package_matching():
     assert not bool(
         bundled_rule.get_matching_frame_actions({"package": "/usr/lib/linux-gate.so"}, "native")
     )
+
+
+def test_type_matching():
+    enhancement = Enhancements.from_config_string(
+        """
+        family:other error.type:ZeroDivisionError -app
+        family:other error.type:*Error -app
+    """
+    )
+
+    zero_rule, error_rule = enhancement.rules
+
+    assert not zero_rule.get_matching_frame_actions({"function": "foo"}, "python")
+    assert not zero_rule.get_matching_frame_actions({"function": "foo"}, "python", None)
+    assert not error_rule.get_matching_frame_actions({"function": "foo"}, "python")
+    assert not error_rule.get_matching_frame_actions({"function": "foo"}, "python", None)
+
+    assert zero_rule.get_matching_frame_actions(
+        {"function": "foo"}, "python", {"type": "ZeroDivisionError"}
+    )
+
+    assert not zero_rule.get_matching_frame_actions(
+        {"function": "foo"}, "native", {"type": "FooError"}
+    )
+
+    assert error_rule.get_matching_frame_actions(
+        {"function": "foo"}, "python", {"type": "ZeroDivisionError"}
+    )
+
+    assert error_rule.get_matching_frame_actions(
+        {"function": "foo"}, "python", {"type": "FooError"}
+    )
+
+
+def test_value_matching():
+    enhancement = Enhancements.from_config_string(
+        """
+        family:other error.value:foo -app
+        family:other error.value:Failed* -app
+    """
+    )
+
+    foo_rule, failed_rule = enhancement.rules
+
+    assert not foo_rule.get_matching_frame_actions({"function": "foo"}, "python")
+    assert not foo_rule.get_matching_frame_actions({"function": "foo"}, "python", None)
+    assert not failed_rule.get_matching_frame_actions({"function": "foo"}, "python")
+    assert not failed_rule.get_matching_frame_actions({"function": "foo"}, "python", None)
+
+    assert foo_rule.get_matching_frame_actions({"function": "foo"}, "python", {"value": "foo"})
+
+    assert not foo_rule.get_matching_frame_actions(
+        {"function": "foo"}, "native", {"value": "Failed to download"}
+    )
+
+    assert not failed_rule.get_matching_frame_actions(
+        {"function": "foo"}, "python", {"value": "foo"}
+    )
+
+    assert failed_rule.get_matching_frame_actions(
+        {"function": "foo"}, "python", {"value": "Failed to download"}
+    )
+
+
+def test_mechanism_matching():
+    enhancement = Enhancements.from_config_string(
+        """
+        family:other error.mechanism:NSError -app
+    """
+    )
+
+    (rule,) = enhancement.rules
+
+    assert not rule.get_matching_frame_actions({"function": "foo"}, "python")
+    assert not rule.get_matching_frame_actions({"function": "foo"}, "python", None)
+
+    assert rule.get_matching_frame_actions(
+        {"function": "foo"}, "python", {"mechanism": {"type": "NSError"}}
+    )
+
+    assert not rule.get_matching_frame_actions(
+        {"function": "foo"}, "native", {"mechanism": {"type": "NSError"}}
+    )
+
+    assert not rule.get_matching_frame_actions(
+        {"function": "foo"}, "python", {"mechanism": {"type": "fooerror"}}
+    )
