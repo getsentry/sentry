@@ -157,7 +157,7 @@ export function toTitleCase(str: string): string {
  * Note the difference between *a-bytes (base 10) vs *i-bytes (base 2), which
  * means that:
  * - 1000 megabytes is equal to 1 gigabyte
- * - 1024 mebibytes is equal to 1024 gibibytes
+ * - 1024 mebibytes is equal to 1 gibibytes
  *
  * We will use base 10 throughout billing for attachments. This function formats
  * quota/usage values for display.
@@ -180,7 +180,7 @@ export function formatBytesBase10(bytes: number, u: number = 0) {
  * Note the difference between *a-bytes (base 10) vs *i-bytes (base 2), which
  * means that:
  * - 1000 megabytes is equal to 1 gigabyte
- * - 1024 mebibytes is equal to 1024 gibibytes
+ * - 1024 mebibytes is equal to 1 gibibytes
  *
  * We will use base 2 to display storage/memory/file sizes as that is commonly
  * used by Windows or RAM or CPU cache sizes, and it is more familiar to the user
