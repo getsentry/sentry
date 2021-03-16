@@ -173,6 +173,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             response = self.client.put(url, {"name": "New query", "projects": [], "range": "24h"})
 
             assert response.status_code == 400
+            assert "No Projects found, join a Team" == response.data["detail"]
 
     def test_put_org_without_access(self):
         with self.feature(self.feature_name):
