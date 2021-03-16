@@ -356,6 +356,8 @@ class ReleaseOverview extends AsyncView<Props> {
                   <OtherProjects
                     projects={releaseMeta.projects.filter(p => p.slug !== project.slug)}
                     location={location}
+                    version={version}
+                    organization={organization}
                   />
                 )}
                 {hasHealthData && (

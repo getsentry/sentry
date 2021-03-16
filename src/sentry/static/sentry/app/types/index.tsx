@@ -198,6 +198,7 @@ export type SharedViewOrganization = {
 export type AvatarProject = {
   slug: string;
   platform?: PlatformKey;
+  id?: string | number;
 };
 
 /**

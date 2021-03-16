@@ -61,6 +61,7 @@ export default BaseBadge;
 const Wrapper = styled('div')`
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 `;
 
 const StyledAvatar = styled(Avatar)<{hideName: boolean}>`

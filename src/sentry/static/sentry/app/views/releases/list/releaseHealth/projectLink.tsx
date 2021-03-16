@@ -23,6 +23,7 @@ const ProjectLink = ({orgSlug, releaseVersion, project, location}: Props) => (
       query: {
         ...extractSelectionParameters(location.query),
         project: project.id,
+        yAxis: undefined,
       },
     }}
   >
