@@ -4,21 +4,23 @@ import {Location} from 'history';
 
 import Button from 'app/components/button';
 import Collapsible from 'app/components/collapsible';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import Link from 'app/components/links/link';
+import IdBadge from 'app/components/idBadge';
 import {tn} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {ReleaseProject} from 'app/types';
+import {Organization, ReleaseProject} from 'app/types';
+
+import ProjectLink from '../../list/releaseHealth/projectLink';
 
 import {SectionHeading, Wrapper} from './styles';
 
 type Props = {
   projects: ReleaseProject[];
   location: Location;
+  version: string;
+  organization: Organization;
 };
 
-function OtherProjects({projects, location}: Props) {
+function OtherProjects({projects, location, version, organization}: Props) {
   return (
     <Wrapper>
       <SectionHeading>
@@ -42,14 +44,14 @@ function OtherProjects({projects, location}: Props) {
       >
         {projects.map(project => (
           <Row key={project.id}>
-            <StyledLink
-              to={{
-                pathname: location.pathname,
-                query: {...location.query, project: project.id, yAxis: undefined},
-              }}
-            >
-              <ProjectBadge project={project} avatarSize={16} />
-            </StyledLink>
+            <IdBadge project={project} avatarSize={16} />
+
+            <ProjectLink
+              location={location}
+              orgSlug={organization.slug}
+              releaseVersion={version}
+              project={project}
+            />
           </Row>
         ))}
       </Collapsible>
@@ -58,14 +60,19 @@ function OtherProjects({projects, location}: Props) {
 }
 
 const Row = styled('div')`
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${space(0.75)};
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.blue300};
-  ${overflowEllipsis}
-`;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 
-const StyledLink = styled(Link)`
-  display: inline-block;
+  display: grid;
+  grid-template-columns: 1fr max-content;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) and (max-width: ${p =>
+      p.theme.breakpoints[2]}) {
+    grid-template-columns: 200px max-content;
+  }
 `;
 
 export default OtherProjects;

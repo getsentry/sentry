@@ -123,6 +123,7 @@ class ProjectSelectorItem extends React.PureComponent<Props, State> {
               avatarSize={16}
               displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
               avatarProps={{consistentWidth: true}}
+              disableLink
             />
           </BadgeWrapper>
           <StyledBookmarkStar
