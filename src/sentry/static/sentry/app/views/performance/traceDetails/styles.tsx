@@ -8,6 +8,7 @@ export {
   DividerLine,
   DividerLineGhostContainer,
   DurationPill,
+  OperationName,
   SpanBarRectangle as TransactionBarRectangle,
   SpanBarTitle as TransactionBarTitle,
   SpanBarTitleContainer as TransactionBarTitleContainer,
