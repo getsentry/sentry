@@ -60,14 +60,12 @@ function OtherProjects({projects, location, version, organization}: Props) {
 }
 
 const Row = styled('div')`
-  margin-bottom: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeMedium};
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
   display: grid;
   grid-template-columns: 1fr max-content;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: ${space(0.75)};
+  font-size: ${p => p.theme.fontSizeMedium};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) and (max-width: ${p =>
       p.theme.breakpoints[2]}) {
