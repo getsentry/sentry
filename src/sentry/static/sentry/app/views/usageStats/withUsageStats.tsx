@@ -40,7 +40,6 @@ const withUsageStats = <P extends InjectedStatsProps>(
       const fourWeeksAgo = moment().subtract(31, 'days').unix();
       const today = moment().unix();
 
-      // TODO: Hardcoded org_slug
       try {
         const orgStats = await api.requestPromise(
           `/organizations/${organization.slug}/stats_v2/`,
@@ -69,45 +68,6 @@ const withUsageStats = <P extends InjectedStatsProps>(
     }
 
     /**
-     * Fetches aggregated stats of tne entire organization
-     */
-    /*
-    _getOrganizationStats() {
-      this.setState({orgStatsLoading: true});
-
-      const orgStats: OrganizationUsageStats = {
-        statsErrors: [],
-        statsTransactions: [],
-        statsAttachments: [],
-      };
-
-      for (let i = 0; i < 31; i++) {
-        const stats = {
-          ts: moment().subtract(i, 'days').valueOf().toString(),
-          accepted: {timesSeen: 100, quantity: 1000},
-          filtered: {timesSeen: 100, quantity: 1000},
-          dropped: {
-            overQuota: {timesSeen: 100, quantity: 1000},
-            spikeProtection: {timesSeen: 100, quantity: 1000},
-            other: {timesSeen: 100, quantity: 1000},
-          },
-        };
-
-        orgStats.statsErrors.push(stats);
-        orgStats.statsTransactions.push(stats);
-        orgStats.statsAttachments.push(stats);
-      }
-
-      setTimeout(() => {
-        this.setState({
-          orgStatsLoading: false,
-          orgStats,
-        });
-      }, 3000);
-    }
-    */
-
-    /**
      * Fetches stats of projects that the user has access to
      */
     async getProjectsStats() {
@@ -115,7 +75,6 @@ const withUsageStats = <P extends InjectedStatsProps>(
       const fourWeeksAgo = moment().subtract(31, 'days').unix();
       const today = moment().unix();
 
-      // TODO: Hardcoded org_slug
       try {
         const projectStats = await api.requestPromise(
           `/organizations/${organization.slug}/stats_v2/projects/`,
