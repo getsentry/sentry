@@ -60,7 +60,7 @@ def exponential_delay(duration: float) -> Callable[[int], float]:
     """
 
     def delay(attempt: int) -> float:
-        return 2 ** (attempt - 1) * duration
+        return float(2 ** (attempt - 1)) * duration
 
     return delay
 
