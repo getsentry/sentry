@@ -46,7 +46,7 @@ describe('DateRange', function () {
     beforeEach(function () {
       onChange.mockReset();
     });
-    beforeEach(function () {
+    beforeEach(async function () {
       wrapper = mountWithTheme(
         <DateRange
           start={start}
