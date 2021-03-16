@@ -66,6 +66,7 @@ function generateTransactionLite({
     span_id: generateSpanId(position),
     transaction: generateTransactionName(position),
     'transaction.duration': 0,
+    'transaction.op': 'op',
     project_id: generation, // just use generation as project id
     project_slug: generateProjectSlug(position),
     parent_event_id: generation <= 0 ? null : generateEventId(parentPosition),
