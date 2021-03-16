@@ -1,9 +1,8 @@
-import six
-
 import responses
 from django.core.urlresolvers import reverse
 import pytest
 
+from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.integrations.slack.utils import (
     build_group_attachment,
     build_incident_attachment,
@@ -11,97 +10,16 @@ from sentry.integrations.slack.utils import (
     get_channel_id,
     MEMBER_PREFIX,
     RESOLVED_COLOR,
+    LEVEL_TO_COLOR,
     parse_link,
 )
 from sentry.models import Integration
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
-from sentry.shared_integrations.exceptions import (
-    DuplicateDisplayNameError,
-    DeprecatedIntegrationError,
-)
-
-
-class GetChannelIdWorkspaceTest(TestCase):
-    def setUp(self):
-        self.resp = responses.mock
-        self.resp.__enter__()
-
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX2",
-            metadata={"access_token": "xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        self.integration.add_organization(self.event.project.organization, self.user)
-        self.add_list_response(
-            "channels",
-            [{"name": "my-channel", "id": "m-c"}, {"name": "other-chann", "id": "o-c"}],
-            result_name="channels",
-        )
-        self.add_list_response(
-            "groups", [{"name": "my-private-channel", "id": "m-p-c"}], result_name="groups"
-        )
-        self.add_list_response(
-            "users",
-            [
-                {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
-                {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
-                {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
-            ],
-            result_name="members",
-        )
-
-    def tearDown(self):
-        self.resp.__exit__(None, None, None)
-
-    def add_list_response(self, list_type, channels, result_name="channels"):
-        self.resp.add(
-            method=responses.GET,
-            url="https://slack.com/api/%s.list" % list_type,
-            status=200,
-            content_type="application/json",
-            body=json.dumps({"ok": "true", result_name: channels}),
-        )
-
-    def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
-        assert (expected_prefix, expected_id, timed_out) == get_channel_id(
-            self.organization, self.integration, channel
-        )
-
-    @with_feature("organizations:slack-allow-workspace")
-    def test_valid_channel_selected(self):
-        self.run_valid_test("#My-Channel", CHANNEL_PREFIX, "m-c", False)
-
-    @with_feature("organizations:slack-allow-workspace")
-    def test_valid_private_channel_selected(self):
-        self.run_valid_test("#my-private-channel", CHANNEL_PREFIX, "m-p-c", False)
-
-    @with_feature("organizations:slack-allow-workspace")
-    def test_valid_member_selected(self):
-        self.run_valid_test("@first-morty", MEMBER_PREFIX, "m", False)
-
-    @with_feature("organizations:slack-allow-workspace")
-    def test_valid_member_selected_display_name(self):
-        self.run_valid_test("@Jimbob", MEMBER_PREFIX, "o-u", False)
-
-    @with_feature("organizations:slack-allow-workspace")
-    def test_invalid_member_selected_display_name(self):
-        with pytest.raises(DuplicateDisplayNameError):
-            get_channel_id(self.organization, self.integration, "@Morty")
-
-    @with_feature("organizations:slack-allow-workspace")
-    def test_invalid_channel_selected(self):
-        assert get_channel_id(self.organization, self.integration, "#fake-channel")[1] is None
-        assert get_channel_id(self.organization, self.integration, "@fake-user")[1] is None
-
-    def test_invalid_deprecated_workspace_app(self):
-        with pytest.raises(DeprecatedIntegrationError):
-            get_channel_id(self.organization, self.integration, "#hello")
+from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 
 
 class GetChannelIdBotTest(TestCase):
@@ -181,8 +99,12 @@ class BuildIncidentAttachmentTest(TestCase):
         logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=2)
-        title = "{}: {}".format("Resolved", alert_rule.name)
-        assert build_incident_attachment(incident) == {
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        title = f"Resolved: {alert_rule.name}"
+        assert build_incident_attachment(action, incident) == {
             "fallback": title,
             "title": title,
             "title_link": absolute_uri(
@@ -208,9 +130,16 @@ class BuildIncidentAttachmentTest(TestCase):
         logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=2)
-        title = "{}: {}".format("Resolved", alert_rule.name)
+        title = f"Critical: {alert_rule.name}"  # This test will use the action/method and not the incident to build status
         metric_value = 5000
-        assert build_incident_attachment(incident, metric_value=metric_value) == {
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        # This should fail because it pulls status from `action` instead of `incident`
+        assert build_incident_attachment(
+            action, incident, metric_value=metric_value, method="fire"
+        ) == {
             "fallback": title,
             "title": title,
             "title_link": absolute_uri(
@@ -222,13 +151,13 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             ),
-            "text": "{} events in the last 10 minutes\nFilter: level:error".format(metric_value),
+            "text": f"{metric_value} events in the last 10 minutes\nFilter: level:error",
             "fields": [],
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,
             "footer": "Sentry Incident",
             "ts": to_timestamp(incident.date_started),
-            "color": RESOLVED_COLOR,
+            "color": LEVEL_TO_COLOR["fatal"],
             "actions": [],
         }
 
@@ -255,7 +184,7 @@ class BuildIncidentAttachmentTest(TestCase):
                             "options": [
                                 {
                                     "text": "#mariachi-band",
-                                    "value": "team:" + six.text_type(self.team.id),
+                                    "value": "team:" + str(self.team.id),
                                 }
                             ],
                         },
@@ -264,7 +193,7 @@ class BuildIncidentAttachmentTest(TestCase):
                             "options": [
                                 {
                                     "text": "foo@example.com",
-                                    "value": "user:" + six.text_type(self.user.id),
+                                    "value": "user:" + str(self.user.id),
                                 }
                             ],
                         },
@@ -281,10 +210,10 @@ class BuildIncidentAttachmentTest(TestCase):
             "footer": "BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
             "ts": to_timestamp(ts),
             "title_link": "http://testserver/organizations/rowdy-tiger/issues/"
-            + six.text_type(group.id)
+            + str(group.id)
             + "/?referrer=slack",
-            "callback_id": '{"issue":' + six.text_type(group.id) + "}",
-            "fallback": "[{}] {}".format(self.project.slug, group.title),
+            "callback_id": '{"issue":' + str(group.id) + "}",
+            "fallback": f"[{self.project.slug}] {group.title}",
             "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
         event = self.store_event(data={}, project_id=self.project.id)
@@ -302,7 +231,7 @@ class BuildIncidentAttachmentTest(TestCase):
                             "options": [
                                 {
                                     "text": "#mariachi-band",
-                                    "value": "team:" + six.text_type(self.team.id),
+                                    "value": "team:" + str(self.team.id),
                                 }
                             ],
                         },
@@ -311,7 +240,7 @@ class BuildIncidentAttachmentTest(TestCase):
                             "options": [
                                 {
                                     "text": "foo@example.com",
-                                    "value": "user:" + six.text_type(self.user.id),
+                                    "value": "user:" + str(self.user.id),
                                 }
                             ],
                         },
@@ -328,10 +257,10 @@ class BuildIncidentAttachmentTest(TestCase):
             "footer": "BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
             "ts": to_timestamp(ts),
             "title_link": "http://testserver/organizations/rowdy-tiger/issues/"
-            + six.text_type(group.id)
+            + str(group.id)
             + "/?referrer=slack",
-            "callback_id": '{"issue":' + six.text_type(group.id) + "}",
-            "fallback": "[{}] {}".format(self.project.slug, event.title),
+            "callback_id": '{"issue":' + str(group.id) + "}",
+            "fallback": f"[{self.project.slug}] {event.title}",
             "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
 
@@ -348,7 +277,7 @@ class BuildIncidentAttachmentTest(TestCase):
                             "options": [
                                 {
                                     "text": "#mariachi-band",
-                                    "value": "team:" + six.text_type(self.team.id),
+                                    "value": "team:" + str(self.team.id),
                                 }
                             ],
                         },
@@ -357,7 +286,7 @@ class BuildIncidentAttachmentTest(TestCase):
                             "options": [
                                 {
                                     "text": "foo@example.com",
-                                    "value": "user:" + six.text_type(self.user.id),
+                                    "value": "user:" + str(self.user.id),
                                 }
                             ],
                         },
@@ -373,12 +302,10 @@ class BuildIncidentAttachmentTest(TestCase):
             "fields": [],
             "footer": "BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
             "ts": to_timestamp(ts),
-            "title_link": "http://testserver/organizations/rowdy-tiger/issues/{}/events/{}/".format(
-                group.id, event.event_id
-            )
+            "title_link": f"http://testserver/organizations/rowdy-tiger/issues/{group.id}/events/{event.event_id}/"
             + "?referrer=slack",
-            "callback_id": '{"issue":' + six.text_type(group.id) + "}",
-            "fallback": "[{}] {}".format(self.project.slug, event.title),
+            "callback_id": '{"issue":' + str(group.id) + "}",
+            "fallback": f"[{self.project.slug}] {event.title}",
             "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
 
@@ -398,7 +325,7 @@ class BuildIncidentAttachmentTest(TestCase):
         assert build_group_attachment(warning_event.group, warning_event)["color"] == "#FFC227"
 
     def test_parse_link(self):
-        link = "https://meowlificent.ngrok.io/organizations/sentry/issues/167/?project=2&amp;query=is%3Aunresolved"
+        link = "https://meowlificent.ngrok.io/organizations/sentry/issues/167/?project=2&query=is%3Aunresolved"
         link2 = "https://meowlificent.ngrok.io/organizations/sentry/issues/1/events/2d113519854c4f7a85bae8b69c7404ad/?project=2"
         link3 = "https://meowlificent.ngrok.io/organizations/sentry/issues/9998089891/events/198e93sfa99d41b993ac8ae5dc384642/events/"
         assert (

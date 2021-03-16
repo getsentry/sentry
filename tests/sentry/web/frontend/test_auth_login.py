@@ -237,8 +237,9 @@ class AuthLoginTest(TestCase):
         assert resp.status_code == 200
 
 
-@pytest.mark.skipIf(
-    lambda x: settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter"
+@pytest.mark.skipif(
+    settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",
+    reason="Requires DummyNewsletter.",
 )
 class AuthLoginNewsletterTest(TestCase):
     @fixture
@@ -246,7 +247,7 @@ class AuthLoginNewsletterTest(TestCase):
         return reverse("sentry-login")
 
     def setUp(self):
-        super(AuthLoginNewsletterTest, self).setUp()
+        super().setUp()
 
         def disable_newsletter():
             newsletter.backend.disable()

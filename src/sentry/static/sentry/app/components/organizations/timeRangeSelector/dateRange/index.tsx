@@ -1,14 +1,14 @@
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
-
 import React from 'react';
-import {DateRangePicker} from 'react-date-range';
+import type {OnChangeProps, RangeWithKey} from 'react-date-range';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 
 import Checkbox from 'app/components/checkbox';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import TimePicker from 'app/components/organizations/timeRangeSelector/timePicker';
+import Placeholder from 'app/components/placeholder';
 import {MAX_PICKABLE_DAYS} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -21,9 +21,20 @@ import {
   setDateToTime,
 } from 'app/utils/dates';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
+
+const DateRangePicker = React.lazy(
+  () => import(/* webpackChunkName: "DateRangePicker" */ './dateRangeWrapper')
+);
 
 const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
+
+// react.date-range doesn't export this as a type.
+type RangeSelection = {selection: RangeWithKey};
+
+function isRangeSelection(maybe: OnChangeProps): maybe is RangeSelection {
+  return (maybe as RangeSelection).selection !== undefined;
+}
 
 type ChangeData = {start?: Date; end?: Date; hasDateRangeErrors?: boolean};
 
@@ -37,6 +48,7 @@ const defaultProps = {
 };
 
 type Props = {
+  theme: Theme;
   /**
    * Just used for metrics
    */
@@ -45,12 +57,12 @@ type Props = {
   /**
    * Start date value for absolute date selector
    */
-  start: Date;
+  start: Date | null;
 
   /**
    * End date value for absolute date selector
    */
-  end: Date;
+  end: Date | null;
 
   /**
    * handle UTC checkbox change
@@ -91,7 +103,11 @@ class DateRange extends React.Component<Props, State> {
     hasEndErrors: false,
   };
 
-  handleSelectDateRange = ({selection}) => {
+  handleSelectDateRange = (changeProps: OnChangeProps) => {
+    if (!isRangeSelection(changeProps)) {
+      return;
+    }
+    const {selection} = changeProps;
     const {onChange} = this.props;
     const {startDate, endDate} = selection;
 
@@ -108,7 +124,9 @@ class DateRange extends React.Component<Props, State> {
     // `e.target.valueAsDate`, must parse as string
     //
     // Time will be in 24hr e.g. "21:00"
-    const {start, end, onChange} = this.props;
+    const start = this.props.start ?? '';
+    const end = this.props.end ?? undefined;
+    const {onChange} = this.props;
     const startTime = e.target.value;
 
     if (!startTime || !isValidTime(startTime)) {
@@ -135,7 +153,9 @@ class DateRange extends React.Component<Props, State> {
   };
 
   handleChangeEnd = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const {start, end, onChange} = this.props;
+    const start = this.props.start ?? undefined;
+    const end = this.props.end ?? '';
+    const {onChange} = this.props;
     const endTime = e.target.value;
 
     if (!endTime || !isValidTime(endTime)) {
@@ -167,11 +187,12 @@ class DateRange extends React.Component<Props, State> {
       className,
       maxPickableDays,
       utc,
-      start,
-      end,
       showTimePicker,
       onChangeUtc,
+      theme,
     } = this.props;
+    const start = this.props.start ?? '';
+    const end = this.props.end ?? '';
 
     const startTime = getTimeStringFromDate(new Date(start));
     const endTime = getTimeStringFromDate(new Date(end));
@@ -188,19 +209,27 @@ class DateRange extends React.Component<Props, State> {
 
     return (
       <div className={className} data-test-id="date-range">
-        <StyledDateRangePicker
-          rangeColors={[theme.purple300]}
-          ranges={[
-            {
-              startDate: moment(start).local(),
-              endDate: moment(end).local(),
-              key: 'selection',
-            },
-          ]}
-          minDate={minDate}
-          maxDate={maxDate}
-          onChange={this.handleSelectDateRange}
-        />
+        <React.Suspense
+          fallback={
+            <Placeholder width="342px" height="254px">
+              <LoadingIndicator />
+            </Placeholder>
+          }
+        >
+          <DateRangePicker
+            rangeColors={[theme.purple300]}
+            ranges={[
+              {
+                startDate: moment(start).local().toDate(),
+                endDate: moment(end).local().toDate(),
+                key: 'selection',
+              },
+            ]}
+            minDate={minDate}
+            maxDate={maxDate}
+            onChange={this.handleSelectDateRange}
+          />
+        </React.Suspense>
         {showTimePicker && (
           <TimeAndUtcPicker>
             <TimePicker
@@ -226,137 +255,10 @@ class DateRange extends React.Component<Props, State> {
   }
 }
 
-const StyledDateRange = styled(DateRange)`
+const StyledDateRange = styled(withTheme(DateRange))`
   display: flex;
   flex-direction: column;
   border-left: 1px solid ${p => p.theme.border};
-`;
-
-const StyledDateRangePicker = styled(DateRangePicker)`
-  padding: 21px; /* this is specifically so we can align borders */
-
-  .rdrSelected,
-  .rdrInRange,
-  .rdrStartEdge,
-  .rdrEndEdge {
-    background-color: ${p => p.theme.active};
-  }
-
-  .rdrStartEdge + .rdrDayStartPreview {
-    background-color: transparent;
-  }
-
-  .rdrDayNumber span {
-    color: ${p => p.theme.textColor};
-  }
-
-  .rdrDayDisabled span {
-    color: ${p => p.theme.subText};
-  }
-
-  .rdrDayToday .rdrDayNumber span {
-    color: ${p => p.theme.active};
-  }
-
-  .rdrDayNumber span:after {
-    background-color: ${p => p.theme.active};
-  }
-
-  .rdrDefinedRangesWrapper,
-  .rdrDateDisplayWrapper,
-  .rdrWeekDays {
-    display: none;
-  }
-
-  .rdrInRange {
-    background: ${p => p.theme.active};
-  }
-
-  .rdrDayInPreview {
-    background: ${p => p.theme.focus};
-  }
-
-  .rdrMonth {
-    width: 300px;
-    font-size: 1.2em;
-    padding: 0;
-  }
-
-  .rdrStartEdge {
-    border-top-left-radius: 1.14em;
-    border-bottom-left-radius: 1.14em;
-  }
-
-  .rdrEndEdge {
-    border-top-right-radius: 1.14em;
-    border-bottom-right-radius: 1.14em;
-  }
-
-  .rdrDayStartPreview,
-  .rdrDayEndPreview,
-  .rdrDayInPreview {
-    border: 0;
-    background: rgba(200, 200, 200, 0.3);
-  }
-
-  .rdrDayStartOfMonth,
-  .rdrDayStartOfWeek {
-    .rdrInRange {
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-    }
-  }
-
-  .rdrDayEndOfMonth,
-  .rdrDayEndOfWeek {
-    .rdrInRange {
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-    }
-  }
-
-  .rdrStartEdge.rdrEndEdge {
-    border-radius: 1.14em;
-  }
-
-  .rdrMonthAndYearWrapper {
-    padding-bottom: ${space(1)};
-    padding-top: 0;
-    height: 32px;
-  }
-
-  .rdrDay {
-    height: 2.5em;
-  }
-
-  .rdrMonthPicker select,
-  .rdrYearPicker select {
-    background: none;
-    font-weight: normal;
-    font-size: 16px;
-    padding: 0;
-  }
-
-  .rdrMonthsVertical {
-    align-items: center;
-  }
-
-  .rdrCalendarWrapper {
-    flex: 1;
-  }
-
-  .rdrNextPrevButton {
-    background-color: transparent;
-    border: 1px solid ${p => p.theme.border};
-  }
-
-  .rdrPprevButton i {
-    border-right-color: ${p => p.theme.textColor};
-  }
-
-  .rdrNextButton i {
-    border-left-color: ${p => p.theme.textColor};
-  }
 `;
 
 const TimeAndUtcPicker = styled('div')`

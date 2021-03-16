@@ -48,13 +48,13 @@ def get_assignee_string(group):
         return None
 
     if actor.type == Team:
-        return "#{}".format(assigned_actor.slug)
+        return f"#{assigned_actor.slug}"
     else:
         return assigned_actor.email
 
 
 def build_welcome_card(signed_params):
-    url = "%s?signed_params=%s" % (
+    url = "{}?signed_params={}".format(
         absolute_uri("/extensions/msteams/configure/"),
         signed_params,
     )
@@ -112,7 +112,7 @@ def build_installation_confirmation_message(organization):
         "type": "TextBlock",
         "weight": "Bolder",
         "size": "Large",
-        "text": "Installation for {} is successful".format(organization.name),
+        "text": f"Installation for {organization.name} is successful",
         "wrap": True,
     }
     alert_rule_instructions = {
@@ -120,7 +120,7 @@ def build_installation_confirmation_message(organization):
         "text": "Now that setup is complete, you can continue by configuring alerts.",
         "wrap": True,
     }
-    alert_rule_url = absolute_uri("organizations/{}/rules/".format(organization.slug))
+    alert_rule_url = absolute_uri(f"organizations/{organization.slug}/rules/")
     alert_rule_button = {
         "type": "Action.OpenUrl",
         "title": "Add Alert Rules",
@@ -224,7 +224,7 @@ def build_mentioned_card():
 def build_unrecognized_command_card(command_text):
     instruction = {
         "type": "TextBlock",
-        "text": ("Sorry, I didn't understand '{}'.".format(command_text)),
+        "text": (f"Sorry, I didn't understand '{command_text}'."),
         "wrap": True,
     }
 
@@ -328,9 +328,9 @@ def build_group_title(group):
     else:
         text = group.title
 
-    link = group.get_absolute_url()
+    link = group.get_absolute_url(params={"referrer": "msteams"})
 
-    title_text = "[{}]({})".format(text, link)
+    title_text = f"[{text}]({link})"
     return {
         "type": "TextBlock",
         "size": "Large",
@@ -360,7 +360,7 @@ def build_group_descr(group):
 def build_rule_url(rule, group, project):
     org_slug = group.organization.slug
     project_slug = project.slug
-    rule_url = "/organizations/{}/alerts/rules/{}/{}/".format(org_slug, project_slug, rule.id)
+    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
     return absolute_uri(rule_url)
 
 
@@ -378,12 +378,12 @@ def build_group_footer(group, rules, project, event):
         "width": "auto",
     }
 
-    text = "{}".format(group.qualified_short_id)
+    text = f"{group.qualified_short_id}"
     if rules:
         rule_url = build_rule_url(rules[0], group, project)
-        text += " via [{}]({})".format(rules[0].label, rule_url)
+        text += f" via [{rules[0].label}]({rule_url})"
         if len(rules) > 1:
-            text += " (+{} other)".format(len(rules) - 1)
+            text += f" (+{len(rules) - 1} other)"
 
     text_column = {
         "type": "Column",
@@ -399,7 +399,7 @@ def build_group_footer(group, rules, project, event):
         date_ts = max(date_ts, event_ts)
 
     date = date_ts.replace(microsecond=0).isoformat()
-    date_text = "{{DATE(%s, SHORT)}} at {{TIME(%s)}}" % (date, date)
+    date_text = f"{{{{DATE({date}, SHORT)}}}} at {{{{TIME({date})}}}}"
     date_column = {
         "type": "Column",
         "items": [
@@ -512,9 +512,7 @@ def build_group_actions(group, event, rules, integration):
         }
     else:
         teams_list = group.project.teams.all().order_by("slug")
-        teams = [
-            {"title": "#{}".format(u.slug), "value": "team:{}".format(u.id)} for u in teams_list
-        ]
+        teams = [{"title": f"#{u.slug}", "value": f"team:{u.id}"} for u in teams_list]
         teams = [{"title": "Me", "value": ME}] + teams
         assign_action = {
             "type": "Action.ShowCard",
@@ -695,8 +693,8 @@ def build_unlinked_card():
     }
 
 
-def build_incident_attachment(incident, metric_value=None):
-    data = incident_attachment_info(incident, metric_value)
+def build_incident_attachment(action, incident, metric_value=None, method=None):
+    data = incident_attachment_info(incident, metric_value, action=action, method=method)
 
     colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}
 

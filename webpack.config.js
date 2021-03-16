@@ -228,7 +228,7 @@ let appConfig = {
     sentry: 'less/sentry.less',
 
     /**
-     * old plugins that use select2 when creating a new issue e.g. Trello, Teamwork*
+     * Old plugins that use select2 when creating a new issue e.g. Trello, Teamwork*
      */
     select2: 'less/select2.less',
   },
@@ -346,6 +346,7 @@ let appConfig = {
     alias: {
       app: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
+      'sentry-fonts': path.join(staticPrefix, 'fonts'),
       '@emotion/styled': path.join(staticPrefix, 'app', 'styled'),
       '@original-emotion/styled': path.join(
         __dirname,

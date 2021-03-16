@@ -1,4 +1,3 @@
-import six
 from sentry.testutils import APITestCase, SnubaTestCase
 from django.core.urlresolvers import reverse
 
@@ -9,7 +8,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     feature_name = "organizations:discover"
 
     def setUp(self):
-        super(DiscoverSavedQueryDetailTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.org_without_access = self.create_organization()
@@ -42,7 +41,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.query_id)
+        assert response.data["id"] == str(self.query_id)
         assert set(response.data["projects"]) == set(self.project_ids)
         assert response.data["fields"] == ["test"]
         assert response.data["conditions"] == []
@@ -56,7 +55,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.query_id)
+        assert response.data["id"] == str(self.query_id)
         assert set(response.data["projects"]) == set(self.project_ids)
         assert response.data["fields"] == ["test"]
         assert response.data["conditions"] == []
@@ -76,7 +75,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(model.id)
+        assert response.data["id"] == str(model.id)
         assert set(response.data["projects"]) == set(self.project_ids)
         assert response.data["fields"] == ["event_id"]
         assert response.data["query"] == "event.type:error"
@@ -114,7 +113,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.query_id)
+        assert response.data["id"] == str(self.query_id)
         assert set(response.data["projects"]) == set(self.project_ids)
         assert response.data["fields"] == []
         assert response.data["conditions"] == []
@@ -132,6 +131,49 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             )
 
             assert response.status_code == 404
+
+    def test_put_query_with_team(self):
+        team = self.create_team(organization=self.org, members=[self.user])
+        project = self.create_project(organization=self.org, teams=[team])
+        query = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by=self.user,
+            name="Test query",
+            query={"fields": ["test"], "conditions": [], "limit": 10},
+        )
+        query.set_projects([project.id])
+
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail",
+                args=[self.org.slug, query.id],
+            )
+
+            response = self.client.put(url, {"name": "New query", "projects": [], "range": "24h"})
+
+            assert response.status_code == 200
+
+    def test_put_query_without_team(self):
+        team = self.create_team(organization=self.org, members=[])
+        project = self.create_project(organization=self.org, teams=[team])
+        query = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by=self.user,
+            name="Test query",
+            query={"fields": ["test"], "conditions": [], "limit": 10},
+        )
+        query.set_projects([project.id])
+
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail",
+                args=[self.org.slug, query.id],
+            )
+
+            response = self.client.put(url, {"name": "New query", "projects": [], "range": "24h"})
+
+            assert response.status_code == 400
+            assert "No Projects found, join a Team" == response.data["detail"]
 
     def test_put_org_without_access(self):
         with self.feature(self.feature_name):

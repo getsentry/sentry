@@ -1,7 +1,7 @@
 import responses
 
 from django.core.urlresolvers import reverse
-from six.moves.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 
 from sentry.utils import json
 
@@ -12,7 +12,7 @@ class GitlabSearchTest(GitLabTestCase):
     provider = "gitlab"
 
     def setUp(self):
-        super(GitlabSearchTest, self).setUp()
+        super().setUp()
         self.url = reverse(
             "sentry-extensions-gitlab-search",
             kwargs={

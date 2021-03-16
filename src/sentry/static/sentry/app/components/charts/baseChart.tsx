@@ -29,18 +29,21 @@ import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
+import {getColorPalette, getDimensionValue} from './utils';
 
-// If dimension is a number convert it to pixels, otherwise use dimension without transform
-const getDimensionValue = (dimension?: ReactEChartOpts['height']) => {
-  if (typeof dimension === 'number') {
-    return `${dimension}px`;
+// TODO(ts): What is the series type? EChartOption.Series's data cannot have
+// `onClick` since it's typically an array.
+//
+// Handle series item clicks (e.g. Releases mark line or a single series
+// item) This is different than when you hover over an "axis" line on a chart
+// (e.g.  if there are 2 series for an axis and you're not directly hovered
+// over an item)
+//
+// Calls "onClick" inside of series data
+const handleClick = (clickSeries: any, instance: ECharts) => {
+  if (clickSeries.data) {
+    clickSeries.data.onClick?.(clickSeries, instance);
   }
-
-  if (dimension === null) {
-    return undefined;
-  }
-
-  return dimension;
 };
 
 type ReactEchartProps = React.ComponentProps<typeof ReactEchartsCore>;
@@ -168,7 +171,11 @@ type Props = {
   onRestore?: EChartRestoreHandler;
   onFinished?: EChartFinishedHandler;
   onRendered?: EChartRenderedHandler;
-  onLegendSelectChanged?: EChartEventHandler<{}>;
+  onLegendSelectChanged?: EChartEventHandler<{
+    name: string;
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }>;
   /**
    * Forwarded Ref
    */
@@ -223,225 +230,196 @@ type Props = {
   style?: React.CSSProperties;
 };
 
-class BaseChart extends React.Component<Props> {
-  static defaultProps = {
-    height: 200,
-    width: 'auto',
-    renderer: 'svg',
-    notMerge: true,
-    lazyUpdate: false,
-    onChartReady: () => {},
-    options: {},
+function BaseChartUnwrapped({
+  theme,
 
-    series: [],
-    xAxis: {},
-    yAxis: {},
-    isGroupedByDate: false,
-    transformSinglePointToBar: false,
-  };
+  colors,
+  grid,
+  tooltip,
+  legend,
+  dataZoom,
+  toolBox,
+  graphic,
+  axisPointer,
+  previousPeriod,
+  echartsTheme,
+  devicePixelRatio,
 
-  getEventsMap: ReactEchartProps['onEvents'] = {
-    click: (props, instance) => {
-      this.handleClick(props, instance);
-      this.props.onClick?.(props, instance);
-    },
-    highlight: (props, instance) => this.props.onHighlight?.(props, instance),
-    mouseover: (props, instance) => this.props.onMouseOver?.(props, instance),
-    datazoom: (props, instance) => this.props.onDataZoom?.(props, instance),
-    restore: (props, instance) => this.props.onRestore?.(props, instance),
-    finished: (props, instance) => this.props.onFinished?.(props, instance),
-    rendered: (props, instance) => this.props.onRendered?.(props, instance),
-    legendselectchanged: (props, instance) =>
-      this.props.onLegendSelectChanged?.(props, instance),
-  };
+  showTimeInTooltip,
+  useShortDate,
+  start,
+  end,
+  period,
+  utc,
+  yAxes,
+  xAxes,
 
-  // TODO(ts): What is the series type? EChartOption.Series's data cannot have
-  // `onClick` since it's typically an array.
-  /**
-   * Handle series item clicks (e.g. Releases mark line or a single series item)
-   * This is different than when you hover over an "axis" line on a chart (e.g.
-   * if there are 2 series for an axis and you're not directly hovered over an item)
-   *
-   * Calls "onClick" inside of series data
-   */
-  handleClick = (series: any, instance: ECharts) => {
-    if (series.data) {
-      series.data.onClick?.(series, instance);
-    }
-  };
+  style,
+  forwardedRef,
 
-  getColorPalette() {
-    const {theme, series} = this.props;
+  onClick,
+  onLegendSelectChanged,
+  onHighlight,
+  onMouseOver,
+  onDataZoom,
+  onRestore,
+  onFinished,
+  onRendered,
 
-    const palette = series?.length
-      ? theme.charts.getColorPalette(series.length)
-      : theme.charts.colors;
+  options = {},
+  series = [],
+  yAxis = {},
+  xAxis = {},
 
-    return (palette as unknown) as string[];
-  }
+  height = 200,
+  width = 'auto',
+  renderer = 'svg',
+  notMerge = true,
+  lazyUpdate = false,
+  isGroupedByDate = false,
+  transformSinglePointToBar = false,
+  onChartReady = () => {},
+}: Props) {
+  const hasSinglePoints = (series as EChartOption.SeriesLine[] | undefined)?.every(
+    s => Array.isArray(s.data) && s.data.length <= 1
+  );
 
-  getSeries() {
-    const {previousPeriod, series, theme, transformSinglePointToBar} = this.props;
+  const transformedSeries =
+    (hasSinglePoints && transformSinglePointToBar
+      ? (series as EChartOption.SeriesLine[] | undefined)?.map(s => ({
+          ...s,
+          type: 'bar',
+          barWidth: 40,
+          barGap: 0,
+          itemStyle: {...(s.areaStyle ?? {})},
+        }))
+      : series) ?? [];
 
-    const hasSinglePoints = (series as EChartOption.SeriesLine[] | undefined)?.every(
-      s => Array.isArray(s.data) && s.data.length === 1
-    );
+  const transformedPreviousPeriod =
+    previousPeriod?.map(previous =>
+      LineSeries({
+        name: previous.seriesName,
+        data: previous.data.map(({name, value}) => [name, value]),
+        lineStyle: {color: theme.gray200, type: 'dotted'},
+        itemStyle: {color: theme.gray200},
+      })
+    ) ?? [];
 
-    const transformedSeries =
-      (hasSinglePoints && transformSinglePointToBar
-        ? (series as EChartOption.SeriesLine[] | undefined)?.map(s => ({
-            ...s,
-            type: 'bar',
-            barWidth: 40,
-            barGap: 0,
-          }))
-        : series) ?? [];
+  const resolvedSeries = !previousPeriod
+    ? transformedSeries
+    : [...transformedSeries, ...transformedPreviousPeriod];
 
-    const transformedPreviousPeriod =
-      previousPeriod?.map(previous =>
-        LineSeries({
-          name: previous.seriesName,
-          data: previous.data.map(({name, value}) => [name, value]),
-          lineStyle: {
-            color: theme.gray200,
-            type: 'dotted',
-          },
-          itemStyle: {
-            color: theme.gray200,
-          },
+  const defaultAxesProps = {theme};
+
+  const yAxisOrCustom = !yAxes
+    ? yAxis !== null
+      ? YAxis({theme, ...yAxis})
+      : undefined
+    : Array.isArray(yAxes)
+    ? yAxes.map(axis => YAxis({...axis, theme}))
+    : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)];
+
+  const xAxisOrCustom = !xAxes
+    ? xAxis !== null
+      ? XAxis({
+          ...xAxis,
+          theme,
+          useShortDate,
+          start,
+          end,
+          period,
+          isGroupedByDate,
+          utc,
         })
-      ) ?? [];
+      : undefined
+    : Array.isArray(xAxes)
+    ? xAxes.map(axis =>
+        XAxis({...axis, theme, useShortDate, start, end, period, isGroupedByDate, utc})
+      )
+    : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
 
-    if (!previousPeriod) {
-      return transformedSeries;
-    }
+  // Maybe changing the series type to types/echarts Series[] would be a better
+  // solution and can't use ignore for multiline blocks
+  const seriesValid = series && series[0]?.data && series[0].data.length > 1;
+  const seriesData = seriesValid ? series[0].data : undefined;
+  const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
 
-    return [...transformedSeries, ...transformedPreviousPeriod];
-  }
+  const tooltipOrNone =
+    tooltip !== null
+      ? Tooltip({
+          showTimeInTooltip,
+          isGroupedByDate,
+          utc,
+          bucketSize,
+          ...tooltip,
+        })
+      : undefined;
 
-  render() {
-    const {
-      theme,
+  const chartOption = {
+    ...options,
+    animation: IS_ACCEPTANCE_TEST ? false : options.animation ?? true,
+    useUTC: utc,
+    color: colors || getColorPalette(theme, series?.length),
+    grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
+    tooltip: tooltipOrNone,
+    legend: legend ? Legend({theme, ...legend}) : undefined,
+    yAxis: yAxisOrCustom,
+    xAxis: xAxisOrCustom,
+    series: resolvedSeries,
+    toolbox: toolBox,
+    axisPointer,
+    dataZoom,
+    graphic,
+  };
 
-      options,
-      colors,
-      grid,
-      tooltip,
-      legend,
-      series,
-      yAxis,
-      xAxis,
-      dataZoom,
-      toolBox,
-      graphic,
-      axisPointer,
+  const chartStyles = {
+    height: getDimensionValue(height),
+    width: getDimensionValue(width),
+    ...style,
+  };
 
-      isGroupedByDate,
-      showTimeInTooltip,
-      useShortDate,
-      start,
-      end,
-      period,
-      utc,
-      yAxes,
-      xAxes,
+  // XXX(epurkhiser): Echarts can become unhappy if one of these event handlers
+  // causes the chart to re-render and be passed a whole different instance of
+  // event handlers.
+  //
+  // We use React.useMemo to keep the value across renders
+  //
+  // eslint-disable-next-line sentry/no-react-hooks
+  const eventsMap = React.useMemo(
+    () =>
+      ({
+        click: (props, instance) => {
+          handleClick(props, instance);
+          onClick?.(props, instance);
+        },
+        highlight: (props, instance) => onHighlight?.(props, instance),
+        mouseover: (props, instance) => onMouseOver?.(props, instance),
+        datazoom: (props, instance) => onDataZoom?.(props, instance),
+        restore: (props, instance) => onRestore?.(props, instance),
+        finished: (props, instance) => onFinished?.(props, instance),
+        rendered: (props, instance) => onRendered?.(props, instance),
+        legendselectchanged: (props, instance) =>
+          onLegendSelectChanged?.(props, instance),
+      } as ReactEchartProps['onEvents']),
+    [onclick, onHighlight, onMouseOver, onDataZoom, onRestore, onFinished, onRendered]
+  );
 
-      devicePixelRatio,
-      height,
-      width,
-      renderer,
-      notMerge,
-      lazyUpdate,
-      style,
-      forwardedRef,
-      onChartReady,
-    } = this.props;
-
-    const defaultAxesProps = {theme};
-    const yAxisOrCustom = !yAxes
-      ? yAxis !== null
-        ? YAxis({theme, ...yAxis})
-        : undefined
-      : Array.isArray(yAxes)
-      ? yAxes.map(axis => YAxis({...axis, theme}))
-      : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)];
-    const xAxisOrCustom = !xAxes
-      ? xAxis !== null
-        ? XAxis({
-            ...xAxis,
-            theme,
-            useShortDate,
-            start,
-            end,
-            period,
-            isGroupedByDate,
-            utc,
-          })
-        : undefined
-      : Array.isArray(xAxes)
-      ? xAxes.map(axis =>
-          XAxis({...axis, theme, useShortDate, start, end, period, isGroupedByDate, utc})
-        )
-      : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
-
-    // Maybe changing the series type to types/echarts Series[] would be a better solution
-    // and can't use ignore for multiline blocks
-    // @ts-expect-error
-    const seriesValid = series && series[0]?.data && series[0].data.length > 1;
-    // @ts-expect-error
-    const seriesData = seriesValid ? series[0].data : undefined;
-    const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
-
-    return (
-      <ChartContainer>
-        <ReactEchartsCore
-          ref={forwardedRef}
-          echarts={echarts}
-          notMerge={notMerge}
-          lazyUpdate={lazyUpdate}
-          theme={this.props.echartsTheme}
-          onChartReady={onChartReady}
-          onEvents={this.getEventsMap}
-          opts={{
-            height,
-            width,
-            renderer,
-            devicePixelRatio,
-          }}
-          style={{
-            height: getDimensionValue(height),
-            width: getDimensionValue(width),
-            ...style,
-          }}
-          option={{
-            animation: IS_ACCEPTANCE_TEST ? false : true,
-            ...options,
-            useUTC: utc,
-            color: colors || this.getColorPalette(),
-            grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
-            tooltip:
-              tooltip !== null
-                ? Tooltip({
-                    showTimeInTooltip,
-                    isGroupedByDate,
-                    utc,
-                    bucketSize,
-                    ...tooltip,
-                  })
-                : undefined,
-            legend: legend ? Legend({theme, ...legend}) : undefined,
-            yAxis: yAxisOrCustom,
-            xAxis: xAxisOrCustom,
-            series: this.getSeries(),
-            axisPointer,
-            dataZoom,
-            toolbox: toolBox,
-            graphic,
-          }}
-        />
-      </ChartContainer>
-    );
-  }
+  return (
+    <ChartContainer>
+      <ReactEchartsCore
+        ref={forwardedRef}
+        echarts={echarts}
+        notMerge={notMerge}
+        lazyUpdate={lazyUpdate}
+        theme={echartsTheme}
+        onChartReady={onChartReady}
+        onEvents={eventsMap}
+        style={chartStyles}
+        opts={{height, width, renderer, devicePixelRatio}}
+        option={chartOption}
+      />
+    </ChartContainer>
+  );
 }
 
 // Contains styling for chart elements as we can't easily style those
@@ -508,7 +486,8 @@ const ChartContainer = styled('div')`
     font-size: ${p => p.theme.fontSizeSmall};
     line-height: 1.4;
     font-family: ${p => p.theme.text.family};
-    max-width: 250px;
+    max-width: 230px;
+    min-width: 230px;
     white-space: normal;
     text-align: center;
     :after {
@@ -526,11 +505,11 @@ const ChartContainer = styled('div')`
   }
 `;
 
-const BaseChartWithTheme = withTheme(BaseChart);
+const BaseChartWithTheme = withTheme(BaseChartUnwrapped);
 
-const BaseChartRef = React.forwardRef<ReactEchartsRef, Omit<Props, 'theme'>>(
+const BaseChart = React.forwardRef<ReactEchartsRef, Omit<Props, 'theme'>>(
   (props, ref) => <BaseChartWithTheme forwardedRef={ref} {...props} />
 );
-BaseChartRef.displayName = 'forwardRef(BaseChart)';
+BaseChart.displayName = 'forwardRef(BaseChart)';
 
-export default BaseChartRef;
+export default BaseChart;

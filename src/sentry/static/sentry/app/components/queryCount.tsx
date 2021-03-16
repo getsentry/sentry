@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {defined} from 'app/utils';
 
@@ -11,6 +10,7 @@ type Props = {
   hideIfEmpty?: boolean;
   hideParens?: boolean;
   isTag?: boolean;
+  tagProps?: React.ComponentProps<typeof Tag>;
 };
 
 /**
@@ -26,6 +26,7 @@ const QueryCount = ({
   hideIfEmpty = true,
   hideParens = false,
   isTag = false,
+  tagProps = {},
 }: Props) => {
   const countOrMax = defined(count) && defined(max) && count >= max ? `${max}+` : count;
 
@@ -34,7 +35,7 @@ const QueryCount = ({
   }
 
   if (isTag) {
-    return <Tag>{countOrMax}</Tag>;
+    return <Tag {...tagProps}>{countOrMax}</Tag>;
   }
 
   return (
@@ -44,12 +45,6 @@ const QueryCount = ({
       {!hideParens && <span>)</span>}
     </span>
   );
-};
-QueryCount.propTypes = {
-  count: PropTypes.number,
-  max: PropTypes.number,
-  hideIfEmpty: PropTypes.bool,
-  hideParens: PropTypes.bool,
 };
 
 export default QueryCount;

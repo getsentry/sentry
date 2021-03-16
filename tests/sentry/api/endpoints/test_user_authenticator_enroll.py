@@ -1,7 +1,6 @@
-import io
 import os
 
-from six.moves.urllib.parse import parse_qsl
+from urllib.parse import parse_qsl
 from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.db.models import F
@@ -13,7 +12,6 @@ from sentry.models import (
     Organization,
     OrganizationMember,
 )
-from sentry.utils import json
 from sentry.utils.compat import mock
 from sentry.testutils import APITestCase
 
@@ -54,8 +52,10 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
         assert resp.status_code == 200
         assert resp.data["secret"] == "Z" * 32
-        with io.open(get_fixture_path("totp_qrcode.json")) as f:
-            assert resp.data["qrcode"] == json.loads(f.read())
+        assert (
+            resp.data["qrcode"]
+            == "otpauth://totp/a%40example.com?issuer=Sentry&secret=ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"
+        )
         assert resp.data["form"]
         assert resp.data["secret"]
 

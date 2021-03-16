@@ -32,15 +32,19 @@ export const POPULARITY_WEIGHT: {
   github_enterprise: 10,
   vercel: 10,
   msteams: 10,
+  aws_lambda: 10,
 
   // Sentry-apps
-  clubhouse: 9,
-  rookout: 9,
-  clickup: 9,
   amixr: 9,
-  split: 9,
+  clickup: 9,
+  clubhouse: 9,
   linear: 9,
+  quill: 9,
+  rookout: 9,
+  spikesh: 9,
+  split: 9,
   teamwork: 9,
+  zepel: 9,
 
   // Plugins
   webhooks: 10,

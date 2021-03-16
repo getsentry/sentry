@@ -2,7 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
@@ -76,26 +75,24 @@ class EventAttachmentActions extends React.Component<Props> {
           label={t('Download')}
         />
 
-        <Feature features={['event-attachments-viewer']}>
-          {withPreviewButton && (
-            <DownloadButton
-              size="xsmall"
-              disabled={!url || !hasPreview}
-              priority={previewIsOpen ? 'primary' : 'default'}
-              icon={<IconShow size="xs" />}
-              onClick={() => this.handlePreview()}
-              title={
-                !url
-                  ? t('Insufficient permissions to preview attachments')
-                  : !hasPreview
-                  ? t('This attachment cannot be previewed')
-                  : undefined
-              }
-            >
-              {t('Preview')}
-            </DownloadButton>
-          )}
-        </Feature>
+        {withPreviewButton && (
+          <DownloadButton
+            size="xsmall"
+            disabled={!url || !hasPreview}
+            priority={previewIsOpen ? 'primary' : 'default'}
+            icon={<IconShow size="xs" />}
+            onClick={() => this.handlePreview()}
+            title={
+              !url
+                ? t('Insufficient permissions to preview attachments')
+                : !hasPreview
+                ? t('This attachment cannot be previewed')
+                : undefined
+            }
+          >
+            {t('Preview')}
+          </DownloadButton>
+        )}
       </ButtonBar>
     );
   }

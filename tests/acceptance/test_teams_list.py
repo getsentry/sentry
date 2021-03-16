@@ -5,7 +5,7 @@ from sentry.testutils import AcceptanceTestCase
 
 class TeamsListTest(AcceptanceTestCase):
     def setUp(self):
-        super(TeamsListTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
@@ -13,7 +13,7 @@ class TeamsListTest(AcceptanceTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
         # this should redirect to /settings/{}/teams/
-        self.path = "/organizations/{}/teams/".format(self.org.slug)
+        self.path = f"/organizations/{self.org.slug}/teams/"
 
     def test_simple(self):
         self.project.update(first_event=timezone.now())

@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
@@ -47,13 +46,6 @@ const Assembly = ({name, version, culture, publicKeyToken, filePath}: Props) => 
 );
 
 // TODO(ts): we should be able to delete these after disabling react/prop-types rule in tsx functional components
-Assembly.propTypes = {
-  name: PropTypes.string.isRequired,
-  version: PropTypes.string.isRequired,
-  culture: PropTypes.string.isRequired,
-  publicKeyToken: PropTypes.string.isRequired,
-  filePath: PropTypes.string,
-};
 
 const AssemblyWrapper = styled('div')`
   font-size: 80%;

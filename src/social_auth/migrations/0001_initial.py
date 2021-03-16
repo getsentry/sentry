@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from django.db import migrations, models
 from django.conf import settings
 import social_auth.fields
@@ -29,6 +27,6 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.AlterUniqueTogether(
-            name="usersocialauth", unique_together=set([("provider", "uid", "user")])
+            name="usersocialauth", unique_together={("provider", "uid", "user")}
         ),
     ]

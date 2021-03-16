@@ -1,12 +1,9 @@
 from datetime import timedelta
 
-import math
-import six
 from django.utils import timezone
 
 from sentry.search.utils import parse_datetime_string, InvalidQuery
-from sentry.utils.dates import parse_stats_period, to_timestamp, to_datetime
-from sentry.constants import MAX_ROLLUP_POINTS
+from sentry.utils.dates import parse_stats_period
 
 MAX_STATS_PERIOD = timedelta(days=90)
 
@@ -74,58 +71,11 @@ def get_date_range_from_params(params, optional=False):
             start = parse_datetime_string(params["start"])
             end = parse_datetime_string(params["end"])
         except InvalidQuery as e:
-            raise InvalidParams(six.text_type(e))
+            raise InvalidParams(str(e))
     elif optional:
         return None, None
 
-    if start > end:
+    if start >= end:
         raise InvalidParams("start must be before end")
 
     return start, end
-
-
-def get_date_range_rollup_from_params(
-    params,
-    minimum_interval="1h",
-    default_interval="",
-    round_range=False,
-    max_points=MAX_ROLLUP_POINTS,
-):
-    """
-    Similar to `get_date_range_from_params`, but this also parses and validates
-    an `interval`, as `get_rollup_from_request` would do.
-
-    This also optionally rounds the returned range to the given `interval`.
-    The rounding uses integer arithmetic on unix timestamps, so might yield
-    unexpected results when the interval is > 1d.
-    """
-    minimum_interval = parse_stats_period(minimum_interval).total_seconds()
-    interval = parse_stats_period(params.get("interval", default_interval))
-    interval = minimum_interval if interval is None else interval.total_seconds()
-    if interval <= 0:
-        raise InvalidParams("Interval cannot result in a zero duration.")
-
-    # round the interval up to the minimum
-    interval = int(minimum_interval * math.ceil(interval / minimum_interval))
-
-    start, end = get_date_range_from_params(params)
-    date_range = end - start
-
-    # round the range up to a multiple of the interval
-    if round_range:
-        date_range = timedelta(
-            seconds=int(interval * math.ceil(date_range.total_seconds() / interval))
-        )
-
-    if date_range.total_seconds() / interval > max_points:
-        raise InvalidParams(
-            "Your interval and date range would create too many results. "
-            "Use a larger interval, or a smaller date range."
-        )
-
-    if round_range:
-        end_ts = int(interval * math.ceil(to_timestamp(end) / interval))
-        end = to_datetime(end_ts)
-        start = end - date_range
-
-    return start, end, interval

@@ -9,7 +9,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, PlatformType} from 'app/types';
-import {Event} from 'app/types/event';
+import {EntryType, Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -17,6 +17,8 @@ import withApi from 'app/utils/withApi';
 
 import findBestThread from './events/interfaces/threads/threadSelector/findBestThread';
 import getThreadStacktrace from './events/interfaces/threads/threadSelector/getThreadStacktrace';
+
+export const STACKTRACE_PREVIEW_TOOLTIP_DELAY = 1000;
 
 type Props = {
   issueId: string;
@@ -73,10 +75,10 @@ class StacktracePreview extends React.Component<Props, State> {
 
     const exceptionsWithStacktrace =
       event.entries
-        .find(e => e.type === 'exception')
+        .find(e => e.type === EntryType.EXCEPTION)
         ?.data?.values.filter(({stacktrace}) => defined(stacktrace)) ?? [];
 
-    const exceptionStacktrace = isStacktraceNewestFirst()
+    const exceptionStacktrace: StacktraceType | undefined = isStacktraceNewestFirst()
       ? exceptionsWithStacktrace[exceptionsWithStacktrace.length - 1]?.stacktrace
       : exceptionsWithStacktrace[0]?.stacktrace;
 
@@ -84,14 +86,15 @@ class StacktracePreview extends React.Component<Props, State> {
       return exceptionStacktrace;
     }
 
-    const threads = event.entries.find(e => e.type === 'threads')?.data?.values ?? [];
+    const threads =
+      event.entries.find(e => e.type === EntryType.THREADS)?.data?.values ?? [];
     const bestThread = findBestThread(threads);
 
     if (!bestThread) {
       return undefined;
     }
 
-    const bestThreadStacktrace = getThreadStacktrace(bestThread, event, false);
+    const bestThreadStacktrace = getThreadStacktrace(false, bestThread);
 
     if (bestThreadStacktrace) {
       return bestThreadStacktrace;
@@ -137,7 +140,7 @@ class StacktracePreview extends React.Component<Props, State> {
           <StacktraceContent
             data={stacktrace}
             expandFirstFrame={false}
-            includeSystemFrames={stacktrace.frames.every(frame => !frame.inApp)}
+            includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
             platform={(event.platform ?? 'other') as PlatformType}
             newestFirst={isStacktraceNewestFirst()}
             event={event}
@@ -195,6 +198,14 @@ const StyledHovercard = styled(Hovercard)`
     margin-bottom: 0;
     border: 0;
     box-shadow: none;
+  }
+
+  .loading .loading-indicator {
+    /**
+   * Overriding the .less file - for default 64px loader we have the width of border set to 6px
+   * For 48px we therefore need 4.5px to keep the same thickness ratio
+   */
+    border-width: 4.5px;
   }
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {

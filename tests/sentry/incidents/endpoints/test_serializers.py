@@ -1,5 +1,3 @@
-import six
-
 from exam import fixture
 from sentry.utils.compat.mock import patch
 from rest_framework import serializers
@@ -15,7 +13,7 @@ from sentry.incidents.endpoints.serializers import (
 )
 from sentry.incidents.logic import create_alert_rule_trigger, ChannelLookupTimeoutError
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
-from sentry.models import Integration, Environment
+from sentry.models import ACTOR_TYPES, Integration, Environment
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import TestCase
 
@@ -25,6 +23,7 @@ class TestAlertRuleSerializer(TestCase):
     def valid_params(self):
         return {
             "name": "hello",
+            "owner": self.user.id,
             "time_window": 10,
             "dataset": QueryDatasets.EVENTS.value,
             "query": "level:error",
@@ -69,7 +68,7 @@ class TestAlertRuleSerializer(TestCase):
         return {"organization": self.organization, "access": self.access}
 
     def Any(self, cls):
-        class Any(object):
+        class Any:
             def __eq__(self, other):
                 return isinstance(other, cls)
 
@@ -193,6 +192,12 @@ class TestAlertRuleSerializer(TestCase):
         alert_rule = serializer.save()
         assert alert_rule.snuba_query.dataset == QueryDatasets.TRANSACTIONS.value
         assert alert_rule.snuba_query.aggregate == "count()"
+
+    def test_query_project(self):
+        self.run_fail_validation_test(
+            {"query": f"project:{self.project.slug}"},
+            {"query": ["Project is an invalid search term"]},
+        )
 
     def test_decimal(self):
         params = self.valid_transaction_params.copy()
@@ -339,7 +344,7 @@ class TestAlertRuleSerializer(TestCase):
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "123",
-                "integration": six.text_type(integration.id),
+                "integration": str(integration.id),
             }
         )
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
@@ -418,7 +423,7 @@ class TestAlertRuleSerializer(TestCase):
         with self.assertRaises(ChannelLookupTimeoutError) as err:
             serializer.save()
         assert (
-            six.text_type(err.exception)
+            str(err.exception)
             == "Could not find channel my-channel. We have timed out trying to look for it."
         )
 
@@ -472,22 +477,52 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid()
         alert_rule = serializer.save()
-        assert set(alert_rule.snuba_query.event_types) == set(
-            [SnubaQueryEventType.EventType.DEFAULT]
-        )
+        assert set(alert_rule.snuba_query.event_types) == {SnubaQueryEventType.EventType.DEFAULT}
         params["event_types"] = [SnubaQueryEventType.EventType.ERROR.name.lower()]
         serializer = AlertRuleSerializer(
             context=self.context, instance=alert_rule, data=params, partial=True
         )
         assert serializer.is_valid()
         alert_rule = serializer.save()
-        assert set(alert_rule.snuba_query.event_types) == set([SnubaQueryEventType.EventType.ERROR])
+        assert set(alert_rule.snuba_query.event_types) == {SnubaQueryEventType.EventType.ERROR}
 
     def test_unsupported_query(self):
         self.run_fail_validation_test(
             {"name": "Aun1qu3n4m3", "query": "release:latest"},
             {"query": ["Unsupported Query: We do not currently support the release:latest query"]},
         )
+
+    def test_owner_validation(self):
+        self.run_fail_validation_test(
+            {"owner": f"meow:{self.user.id}"},
+            {
+                "owner": [
+                    "Could not parse owner. Format should be `type:id` where type is `team` or `user`."
+                ]
+            },
+        )
+        self.run_fail_validation_test(
+            {"owner": "user:1234567"},
+            {"owner": ["Could not resolve owner to existing team or user."]},
+        )
+        self.run_fail_validation_test(
+            {"owner": "team:1234567"},
+            {"owner": ["Could not resolve owner to existing team or user."]},
+        )
+        base_params = self.valid_params.copy()
+        base_params.update({"owner": f"team:{self.team.id}"})
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.owner == self.team.actor
+        assert alert_rule.owner.type == ACTOR_TYPES["team"]
+
+        base_params.update({"name": "another_test", "owner": f"user:{self.user.id}"})
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.owner == self.user.actor
+        assert alert_rule.owner.type == ACTOR_TYPES["user"]
 
 
 class TestAlertRuleTriggerSerializer(TestCase):
@@ -617,7 +652,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         self.run_fail_validation_test(
             {
                 "target_type": action_target_type_to_string[AlertRuleTriggerAction.TargetType.USER],
-                "target_identifier": six.text_type(other_user.id),
+                "target_identifier": str(other_user.id),
             },
             {"nonFieldErrors": ["User does not belong to this organization"]},
         )
@@ -662,7 +697,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "123",
-                "integration": six.text_type(integration.id),
+                "integration": str(integration.id),
             }
         )
         serializer = AlertRuleTriggerActionSerializer(context=self.context, data=base_params)

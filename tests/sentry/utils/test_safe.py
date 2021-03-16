@@ -56,7 +56,7 @@ class TrimTest(unittest.TestCase):
 
 class TrimDictTest(unittest.TestCase):
     def test_large_dict(self):
-        value = dict((k, k) for k in range(500))
+        value = {k: k for k in range(500)}
         trim_dict(value)
         assert len(value) == 50
 
@@ -78,13 +78,13 @@ class SafeExecuteTest(TestCase):
         assert safe_execute(simple, 1) is None
 
     def test_with_instance_method(self):
-        class Foo(object):
+        class Foo:
             def simple(self, a):
                 return a
 
         assert safe_execute(Foo().simple, 1) == 1
 
-        class Foo(object):
+        class Foo:
             def simple(self, a):
                 raise Exception()
 

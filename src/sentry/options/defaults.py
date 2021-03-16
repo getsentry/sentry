@@ -119,14 +119,9 @@ register("cloudflare.secret-key", default="")
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("slack.client-secret", flags=FLAG_PRIORITIZE_DISK)
+# signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_PRIORITIZE_DISK)
-register("slack.legacy-app", flags=FLAG_PRIORITIZE_DISK, type=Bool, default=True)
-
-# Slack V2 Integration
-register("slack-v2.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("slack-v2.client-secret", flags=FLAG_PRIORITIZE_DISK)
-register("slack-v2.signing-secret", flags=FLAG_PRIORITIZE_DISK)
 
 # GitHub Integration
 register("github-app.id", default=0)
@@ -139,7 +134,9 @@ register("github-app.client-secret", flags=FLAG_PRIORITIZE_DISK)
 # GitHub Auth
 register("github-login.client-id", default="", flags=FLAG_PRIORITIZE_DISK)
 register("github-login.client-secret", default="", flags=FLAG_PRIORITIZE_DISK)
-register("github-login.reqire-verified-email", type=Bool, default=False, flags=FLAG_PRIORITIZE_DISK)
+register(
+    "github-login.require-verified-email", type=Bool, default=False, flags=FLAG_PRIORITIZE_DISK
+)
 register("github-login.base-domain", default="github.com", flags=FLAG_PRIORITIZE_DISK)
 register("github-login.api-domain", default="api.github.com", flags=FLAG_PRIORITIZE_DISK)
 register("github-login.extended-permissions", type=Sequence, default=[], flags=FLAG_PRIORITIZE_DISK)
@@ -169,9 +166,11 @@ register("msteams.app-id")
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.secret-access-key", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.cloudformation-url")
-register("aws-lambda.account-number")
-register("aws-lambda.node.layer-name")
+register("aws-lambda.account-number", default="943013980633")
+register("aws-lambda.node.layer-name", default="SentryNodeServerlessSDK")
 register("aws-lambda.node.layer-version")
+register("aws-lambda.python.layer-name", default="SentryPythonServerlessSDK")
+register("aws-lambda.python.layer-version")
 # the region of the host account we use for assuming the role
 register("aws-lambda.host-region", default="us-east-2")
 
@@ -254,9 +253,6 @@ register("eventstore.use-nodestore", default=False, flags=FLAG_PRIORITIZE_DISK)
 # Alerts / Workflow incremental rollout rate. Tied to feature handlers in getsentry
 register("workflow.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 
-# Incremental rollout rate for Workflow Owners related features.
-register("workflow-owners.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
-
 # Performance metric alerts incremental rollout rate. Tied to feature handlers
 # in getsentry
 register("incidents-performance.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
@@ -266,6 +262,9 @@ register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)
 
 # Enables setting a sampling rate when producing the tag facet.
 register("discover2.tags_facet_enable_sampling", default=True, flags=FLAG_PRIORITIZE_DISK)
+
+# Enables setting a sampling rate when producing the tag facet.
+register("discover2.tags_performance_facet_sample_rate", default=0.1)
 
 # Killswitch for datascrubbing after stacktrace processing. Set to False to
 # disable datascrubbers.
@@ -281,5 +280,10 @@ register("store.use-relay-dsn-sample-rate", default=1)
 # Mock out integrations and services for tests
 register("mocks.jira", default=False)
 
-# Record statistics about event payloads and their compressability
-register("store.nodestore-stats-sample-rate", default=0.0)
+# Record statistics about event payloads and their compressibility
+register("store.nodestore-stats-sample-rate", default=0.0)  # unused
+
+# Killswitch to stop storing any reprocessing payloads.
+register("store.reprocessing-force-disable", default=False)
+
+register("store.race-free-group-creation-force-disable", default=False)

@@ -3,6 +3,7 @@ import {Link, withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import EventAnnotation from 'app/components/events/eventAnnotation';
 import InboxReason from 'app/components/group/inboxBadges/inboxReason';
 import InboxShortId from 'app/components/group/inboxBadges/shortId';
@@ -23,9 +24,18 @@ type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;
   showAssignee?: boolean;
   organization: Organization;
+  hasGuideAnchor?: boolean;
+  showInboxTime?: boolean;
 };
 
-function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Props) {
+function EventOrGroupExtraDetails({
+  data,
+  showAssignee,
+  params,
+  organization,
+  hasGuideAnchor,
+  showInboxTime,
+}: Props) {
   const {
     id,
     lastSeen,
@@ -44,10 +54,19 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
   const hasInbox = organization.features.includes('inbox');
+  const inboxReason = inbox && (
+    <InboxReason inbox={inbox} showDateAdded={showInboxTime} />
+  );
 
   return (
     <GroupExtra hasInbox={hasInbox}>
-      {hasInbox && inbox && <InboxReason inbox={inbox} />}
+      {hasInbox &&
+        inbox &&
+        (hasGuideAnchor ? (
+          <GuideAnchor target="inbox_guide_reason">{inboxReason}</GuideAnchor>
+        ) : (
+          inboxReason
+        ))}
       {shortId &&
         (hasInbox ? (
           <InboxShortId
@@ -70,7 +89,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
             }}
           />
         ))}
-      {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
+      {isUnhandled && hasInbox && <UnhandledTag />}
       {!lifetime && !firstSeen && !lastSeen ? (
         <Placeholder height="14px" width="100px" />
       ) : hasInbox ? (

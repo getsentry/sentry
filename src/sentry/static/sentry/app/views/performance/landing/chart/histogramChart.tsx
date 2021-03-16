@@ -1,26 +1,33 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
-import LoadingPanel from 'app/components/charts/loadingPanel';
+import ErrorPanel from 'app/components/charts/errorPanel';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
+import {IconWarning} from 'app/icons/iconWarning';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {Series} from 'app/types/echarts';
 import EventView from 'app/utils/discover/eventView';
-import {getDuration} from 'app/utils/formatters';
-import theme from 'app/utils/theme';
+import getDynamicText from 'app/utils/getDynamicText';
+import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
+import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
+import {Theme} from 'app/utils/theme';
 
-import {DoubleHeaderContainer, HeaderTitleLegend} from '../../styles';
-import HistogramQuery from '../../transactionVitals/histogramQuery';
+import {DoubleHeaderContainer} from '../../styles';
 
 const NUM_BUCKETS = 50;
 const PRECISION = 0;
 
 type Props = {
+  theme: Theme;
   location: Location;
   organization: Organization;
   eventView: EventView;
@@ -30,57 +37,9 @@ type Props = {
   onFilterChange: (minValue: number, maxValue: number) => void;
 };
 
-function getBucketWidth(chartData) {
-  // We can assume that all buckets are of equal width, use the first two
-  // buckets to get the width. The value of each histogram function indicates
-  // the beginning of the bucket.
-  return chartData.length >= 2 ? chartData[1].bin - chartData[0].bin : 0;
-}
-
-function computeBuckets(chartData) {
-  const bucketWidth = getBucketWidth(chartData);
-
-  return chartData.map(item => {
-    const bucket = item.bin;
-    return {
-      start: bucket,
-      end: bucket + bucketWidth,
-    };
-  });
-}
-
-function formatDuration(duration: number) {
-  if (duration <= 1000) {
-    return getDuration(duration / 1000, 2, true);
-  }
-
-  return getDuration(duration / 1000, 3, true);
-}
-
-function getSeries(chartData) {
-  const bucketWidth = getBucketWidth(chartData);
-
-  const seriesData = chartData.map(item => {
-    const bucket = item.bin;
-    const midPoint = bucketWidth > 1 ? Math.ceil(bucket + bucketWidth / 2) : bucket;
-    const name = formatDuration(midPoint);
-
-    const value = item.count;
-
-    return {
-      value,
-      name,
-    };
-  });
-
-  return {
-    seriesName: t('Count'),
-    data: seriesData,
-  };
-}
-
 export function HistogramChart(props: Props) {
   const {
+    theme,
     location,
     onFilterChange,
     organization,
@@ -100,7 +59,13 @@ export function HistogramChart(props: Props) {
   };
 
   return (
-    <HistogramContainer>
+    <div>
+      <DoubleHeaderContainer>
+        <HeaderTitleLegend>
+          {title}
+          <QuestionTooltip position="top" size="sm" title={titleTooltip} />
+        </HeaderTitleLegend>
+      </DoubleHeaderContainer>
       <HistogramQuery
         location={location}
         orgSlug={organization.slug}
@@ -115,9 +80,11 @@ export function HistogramChart(props: Props) {
           const errored = results.error !== null;
           const chartData = results.histograms?.[field];
 
-          if (loading) {
+          if (errored) {
             return (
-              <LoadingPanel height="250px" data-test-id="histogram-request-loading" />
+              <ErrorPanel height="250px">
+                <IconWarning color="gray300" size="lg" />
+              </ErrorPanel>
             );
           }
 
@@ -125,7 +92,10 @@ export function HistogramChart(props: Props) {
             return null;
           }
 
-          const series = getSeries(chartData);
+          const series = {
+            seriesName: t('Count'),
+            data: formatHistogramData(chartData, {type: 'duration'}),
+          };
           const allSeries: Series[] = [];
 
           if (!loading && !errored) {
@@ -145,12 +115,6 @@ export function HistogramChart(props: Props) {
 
           return (
             <React.Fragment>
-              <DoubleHeaderContainer>
-                <HeaderTitleLegend>
-                  {title}
-                  <QuestionTooltip position="top" size="sm" title={titleTooltip} />
-                </HeaderTitleLegend>
-              </DoubleHeaderContainer>
               <BarChartZoom
                 minZoomWidth={10 ** -PRECISION * NUM_BUCKETS}
                 location={location}
@@ -160,37 +124,50 @@ export function HistogramChart(props: Props) {
                 buckets={computeBuckets(chartData)}
                 onHistoryPush={onFilterChange}
               >
-                {zoomRenderProps => (
-                  <BarChartContainer>
-                    <BarChart
-                      height={250}
-                      series={allSeries}
-                      xAxis={xAxis}
-                      yAxis={yAxis}
-                      grid={{
-                        left: space(3),
-                        right: space(3),
-                        top: space(3),
-                        bottom: space(1.5),
-                      }}
-                      stacked
-                      {...zoomRenderProps}
-                    />
-                  </BarChartContainer>
-                )}
+                {zoomRenderProps => {
+                  return (
+                    <BarChartContainer>
+                      <MaskContainer>
+                        <TransparentLoadingMask visible={loading} />
+                        {getDynamicText({
+                          value: (
+                            <BarChart
+                              height={250}
+                              series={allSeries}
+                              xAxis={xAxis}
+                              yAxis={yAxis}
+                              grid={{
+                                left: space(3),
+                                right: space(3),
+                                top: space(3),
+                                bottom: loading ? space(4) : space(1.5),
+                              }}
+                              stacked
+                              {...zoomRenderProps}
+                            />
+                          ),
+                          fixed: <Placeholder height="250px" testId="skeleton-ui" />,
+                        })}
+                      </MaskContainer>
+                    </BarChartContainer>
+                  );
+                }}
               </BarChartZoom>
             </React.Fragment>
           );
         }}
       </HistogramQuery>
-    </HistogramContainer>
+    </div>
   );
 }
 
-const HistogramContainer = styled('div')``;
-
 const BarChartContainer = styled('div')`
   padding-top: ${space(1)};
+  position: relative;
 `;
 
-export default HistogramChart;
+const MaskContainer = styled('div')`
+  position: relative;
+`;
+
+export default withTheme(HistogramChart);

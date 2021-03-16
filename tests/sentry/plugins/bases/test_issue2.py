@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from social_auth.models import UserSocialAuth
 
 from sentry.models import GroupMeta, User
@@ -77,7 +74,7 @@ class GetAuthForUserTest(TestCase):
 
 class IssuePlugin2GroupActionTest(TestCase):
     def setUp(self):
-        super(IssuePlugin2GroupActionTest, self).setUp()
+        super().setUp()
         self.project = self.create_project()
         self.plugin_instance = plugins.get(slug="issuetrackingplugin2")
         min_ago = iso_format(before_now(minutes=1))

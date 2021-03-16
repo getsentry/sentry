@@ -1,7 +1,6 @@
 import datetime
 import itertools
 import random
-import six
 import time
 
 from django.core.management.base import BaseCommand, CommandError
@@ -28,17 +27,15 @@ def funcs():
             seconds=random.randint(0, timestamp_max)
         )
         try:
-            raise six.next(exceptions)
-        except Exception:
-            email = six.next(emails)
-            return client.captureException(
-                data={
-                    "logger": six.next(loggers),
-                    "site": "web",
-                    "user": {"id": email, "email": email},
-                },
-                date=timestamp,
-            )
+            raise next(exceptions)
+        except Exception as exc:
+            email = next(emails)
+            with client.configure_scope() as scope:
+                scope.user = {"id": email, "email": email}
+                scope.logger = next(loggers)
+                scope.site = "web"
+                scope.date = timestamp
+                return client.captureException(exc)
 
     return [exception]
 
@@ -54,7 +51,7 @@ class Command(BaseCommand):
 
     def handle(self, **options):
         from django.conf import settings
-        from raven.contrib.django.models import client
+        from sentry.app import client
         from sentry.models import Project
 
         if not options["project"]:

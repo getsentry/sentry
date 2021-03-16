@@ -5,7 +5,7 @@ from sentry import tagstore
 from sentry.rules.conditions.base import EventCondition
 
 
-class MatchType(object):
+class MatchType:
     EQUAL = "eq"
     NOT_EQUAL = "ne"
     STARTS_WITH = "sw"
@@ -36,7 +36,7 @@ class TaggedEventForm(forms.Form):
     value = forms.CharField(widget=forms.TextInput(), required=False)
 
     def clean(self):
-        super(TaggedEventForm, self).clean()
+        super().clean()
 
         match = self.cleaned_data.get("match")
         value = self.cleaned_data.get("value")

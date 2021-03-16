@@ -1,10 +1,8 @@
-import six
-
 from django.core.urlresolvers import reverse
 from sentry.utils.compat import mock
 
 from sentry.integrations.example.integration import ExampleIntegration
-from sentry.models import RepositoryProjectPathConfig, Integration, OrganizationIntegration
+from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 
 
@@ -27,14 +25,15 @@ class ProjectStacktraceLinkTest(APITestCase):
         self.repo.provider = "example"
         self.repo.save()
 
-        self.config = RepositoryProjectPathConfig.objects.create(
+        self.config = self.create_code_mapping(
             organization_integration=self.oi,
             project=self.project,
-            repository=self.repo,
-            stack_root="/usr/src/getsentry",
+            repo=self.repo,
+            stack_root="usr/src/getsentry/",
             source_root="",
         )
-        self.filepath = "/usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
+
+        self.filepath = "usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
         self.url = reverse(
             "sentry-api-0-project-stacktrace-link",
             kwargs={
@@ -62,7 +61,7 @@ class ProjectStacktraceLinkTest(APITestCase):
             "sentry-api-0-project-stacktrace-link",
             kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
         )
-        url = "{}?file={}".format(path, self.filepath)
+        url = f"{path}?file={self.filepath}"
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -74,16 +73,16 @@ class ProjectStacktraceLinkTest(APITestCase):
 
     def test_file_not_found_error(self):
         self.login_as(user=self.user)
-        url = "{}?file={}".format(self.url, self.filepath)
+        url = f"{self.url}?file={self.filepath}"
 
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
         assert response.data["config"] == {
-            "id": six.text_type(self.config.id),
-            "projectId": six.text_type(self.project.id),
+            "id": str(self.config.id),
+            "projectId": str(self.project.id),
             "projectSlug": self.project.slug,
-            "repoId": six.text_type(self.repo.id),
+            "repoId": str(self.repo.id),
             "repoName": self.repo.name,
             "provider": {
                 "aspects": {},
@@ -96,25 +95,29 @@ class ProjectStacktraceLinkTest(APITestCase):
             },
             "sourceRoot": self.config.source_root,
             "stackRoot": self.config.stack_root,
-            "integrationId": six.text_type(self.integration.id),
-            "defaultBranch": None,
+            "integrationId": str(self.integration.id),
+            "defaultBranch": "master",
         }
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "file_not_found"
         assert response.data["integrations"] == [self._serialized_integration()]
+        assert (
+            response.data["attemptedUrl"]
+            == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
+        )
 
     def test_stack_root_mismatch_error(self):
         self.login_as(user=self.user)
-        url = "{}?file={}".format(self.url, "wrong/file/path")
+        url = f"{self.url}?file=wrong/file/path"
 
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
         assert response.data["config"] == {
-            "id": six.text_type(self.config.id),
-            "projectId": six.text_type(self.project.id),
+            "id": str(self.config.id),
+            "projectId": str(self.project.id),
             "projectSlug": self.project.slug,
-            "repoId": six.text_type(self.repo.id),
+            "repoId": str(self.repo.id),
             "repoName": self.repo.name,
             "provider": {
                 "aspects": {},
@@ -127,8 +130,8 @@ class ProjectStacktraceLinkTest(APITestCase):
             },
             "sourceRoot": self.config.source_root,
             "stackRoot": self.config.stack_root,
-            "integrationId": six.text_type(self.integration.id),
-            "defaultBranch": None,
+            "integrationId": str(self.integration.id),
+            "defaultBranch": "master",
         }
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "stack_root_mismatch"
@@ -136,7 +139,7 @@ class ProjectStacktraceLinkTest(APITestCase):
 
     def test_config_and_source_url(self):
         self.login_as(user=self.user)
-        url = "{}?file={}".format(self.url, self.filepath)
+        url = f"{self.url}?file={self.filepath}"
 
         with mock.patch.object(
             ExampleIntegration, "get_stacktrace_link", return_value="https://sourceurl.com/"
@@ -144,10 +147,10 @@ class ProjectStacktraceLinkTest(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 200, response.content
             assert response.data["config"] == {
-                "id": six.text_type(self.config.id),
-                "projectId": six.text_type(self.project.id),
+                "id": str(self.config.id),
+                "projectId": str(self.project.id),
                 "projectSlug": self.project.slug,
-                "repoId": six.text_type(self.repo.id),
+                "repoId": str(self.repo.id),
                 "repoName": self.repo.name,
                 "provider": {
                     "aspects": {},
@@ -160,8 +163,8 @@ class ProjectStacktraceLinkTest(APITestCase):
                 },
                 "sourceRoot": self.config.source_root,
                 "stackRoot": self.config.stack_root,
-                "integrationId": six.text_type(self.integration.id),
-                "defaultBranch": None,
+                "integrationId": str(self.integration.id),
+                "defaultBranch": "master",
             }
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
             assert response.data["integrations"] == [self._serialized_integration()]
@@ -181,6 +184,6 @@ class ProjectStacktraceLinkTest(APITestCase):
                 "slug": "example",
                 "canAdd": True,
             },
-            "id": six.text_type(self.integration.id),
+            "id": str(self.integration.id),
             "icon": None,
         }

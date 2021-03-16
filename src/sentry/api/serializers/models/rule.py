@@ -1,7 +1,14 @@
-import six
-
+from collections import defaultdict
 from sentry.api.serializers import Serializer, register
-from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
+from sentry.models import (
+    ACTOR_TYPES,
+    actor_type_to_class,
+    actor_type_to_string,
+    Environment,
+    Rule,
+    RuleActivity,
+    RuleActivityType,
+)
 from sentry.utils.compat import filter
 
 
@@ -45,6 +52,23 @@ class RuleSerializer(Serializer):
 
             result[rule_activity.rule].update({"created_by": user})
 
+        rules = {item.id: item for item in item_list}
+        resolved_actors = {}
+        owners_by_type = defaultdict(list)
+        for item in item_list:
+            if item.owner_id is not None:
+                owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
+
+        for k, v in ACTOR_TYPES.items():
+            resolved_actors[k] = {
+                a.actor_id: a.id
+                for a in actor_type_to_class(v).objects.filter(actor_id__in=owners_by_type[k])
+            }
+        for rule in rules.values():
+            if rule.owner_id:
+                type = actor_type_to_string(rule.owner.type)
+                result[rule]["owner"] = f"{type}:{resolved_actors[type][rule.owner_id]}"
+
         return result
 
     def serialize(self, obj, attrs, user):
@@ -57,7 +81,7 @@ class RuleSerializer(Serializer):
         d = {
             # XXX(dcramer): we currently serialize unsaved rule objects
             # as part of the rule editor
-            "id": six.text_type(obj.id) if obj.id else None,
+            "id": str(obj.id) if obj.id else None,
             # conditions pertain to criteria that can trigger an alert
             "conditions": filter(lambda condition: not _is_filter(condition), all_conditions),
             # filters are not new conditions but are the subset of conditions that pertain to event attributes
@@ -71,6 +95,7 @@ class RuleSerializer(Serializer):
             "frequency": obj.data.get("frequency") or Rule.DEFAULT_FREQUENCY,
             "name": obj.label,
             "dateCreated": obj.date_added,
+            "owner": attrs.get("owner", None),
             "createdBy": attrs.get("created_by", None),
             "environment": environment.name if environment is not None else None,
             "projects": [obj.project.slug],

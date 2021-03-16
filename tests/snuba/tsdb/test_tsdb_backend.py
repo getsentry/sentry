@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 import pytz
-import six
 
 from sentry.utils.compat.mock import patch
 
@@ -51,7 +50,7 @@ def has_shape(data, shape, allow_empty=False):
 
 class SnubaTSDBTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(SnubaTSDBTest, self).setUp()
+        super().setUp()
 
         self.db = SnubaTSDB()
         self.now = (datetime.utcnow() - timedelta(hours=4)).replace(
@@ -77,7 +76,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         for r in range(0, 14400, 600):  # Every 10 min for 4 hours
             self.store_event(
                 data={
-                    "event_id": (six.text_type(r) * 32)[:32],
+                    "event_id": (str(r) * 32)[:32],
                     "message": "message 1",
                     "platform": "python",
                     "fingerprint": [["group-1"], ["group-2"]][
@@ -89,14 +88,14 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                         "baz": "quux",
                         # Switch every 2 hours
                         "environment": [env1, None][(r // 7200) % 3],
-                        "sentry:user": "id:user{}".format(r // 3300),
+                        "sentry:user": f"id:user{r // 3300}",
                     },
                     "user": {
                         # change every 55 min so some hours have 1 user, some have 2
-                        "id": "user{}".format(r // 3300),
-                        "email": "user{}@sentry.io".format(r),
+                        "id": f"user{r // 3300}",
+                        "email": f"user{r}@sentry.io",
                     },
-                    "release": six.text_type(r // 3600) * 10,  # 1 per hour,
+                    "release": str(r // 3600) * 10,  # 1 per hour,
                 },
                 project_id=self.proj1.id,
             )

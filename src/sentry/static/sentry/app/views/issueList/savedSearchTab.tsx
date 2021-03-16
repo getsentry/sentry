@@ -2,8 +2,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import DropdownLink from 'app/components/dropdownLink';
+import ExternalLink from 'app/components/links/externalLink';
 import QueryCount from 'app/components/queryCount';
-import {t} from 'app/locale';
+import Tooltip from 'app/components/tooltip';
+import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, SavedSearch} from 'app/types';
@@ -30,17 +32,30 @@ function SavedSearchTab({
   queryCount,
 }: Props) {
   const savedSearch = savedSearchList.find(search => query === search.query);
+  const tooltipTitle = tct(
+    `Create [link:saved searches] to quickly access other types of issues that you care about.`,
+    {
+      link: (
+        <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/#organization-wide-saved-searches" />
+      ),
+    }
+  );
+
   const title = (
-    <TitleWrapper>
-      {isActive ? (
-        <React.Fragment>
-          {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
-          <StyledQueryCount isTag count={queryCount} max={1000} />
-        </React.Fragment>
-      ) : (
-        t('More')
-      )}
-    </TitleWrapper>
+    <Tooltip title={tooltipTitle} position="bottom" isHoverable delay={1000}>
+      <TitleWrapper>
+        {isActive ? (
+          <React.Fragment>
+            <TitleTextOverflow>
+              {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
+            </TitleTextOverflow>
+            <StyledQueryCount isTag count={queryCount} max={1000} />
+          </React.Fragment>
+        ) : (
+          t('Saved Searches')
+        )}
+      </TitleWrapper>
+    </Tooltip>
   );
 
   return (
@@ -75,20 +90,20 @@ const TabWrapper = styled('li')<{isActive?: boolean}>`
   }
   & > span > .dropdown-menu {
     margin-top: ${space(1)};
-    min-width: 30vw;
-    max-width: 35vw;
+    min-width: 20vw;
+    max-width: 25vw;
     z-index: ${p => p.theme.zIndex.globalSelectionHeader};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[4]}) {
+    & > span > .dropdown-menu {
+      max-width: 35vw;
+    }
   }
 
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
     & > span > .dropdown-menu {
       max-width: 50vw;
-    }
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    & > span > .dropdown-menu {
-      max-width: 55vw;
     }
   }
 
@@ -100,8 +115,14 @@ const TabWrapper = styled('li')<{isActive?: boolean}>`
 
 const TitleWrapper = styled('span')`
   margin-right: ${space(0.5)};
-  max-width: 150px;
   user-select: none;
+  display: flex;
+  align-items: center;
+`;
+
+const TitleTextOverflow = styled('span')`
+  margin-right: ${space(0.5)};
+  max-width: 150px;
   ${overflowEllipsis};
 `;
 

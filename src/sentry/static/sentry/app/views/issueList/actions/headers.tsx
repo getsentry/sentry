@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import QueryCount from 'app/components/queryCount';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -11,9 +10,7 @@ import {GlobalSelection} from 'app/types';
 type Props = {
   selection: GlobalSelection;
   statsPeriod: string;
-  pageCount: number;
-  queryCount: number;
-  queryMaxCount: number;
+  displayCount: React.ReactElement;
   onSelectStatsPeriod: (statsPeriod: string) => void;
   isReprocessingQuery: boolean;
   hasInbox?: boolean;
@@ -24,9 +21,7 @@ function Headers({
   anySelected,
   selection,
   statsPeriod,
-  pageCount,
-  queryCount,
-  queryMaxCount,
+  displayCount,
   onSelectStatsPeriod,
   isReprocessingQuery,
   hasInbox,
@@ -35,17 +30,8 @@ function Headers({
     <React.Fragment>
       {hasInbox && !anySelected && (
         <ActionSetPlaceholder>
-          {/* total includes its own space */}
-          {tct('Select [count] of [total]', {
-            count: <React.Fragment>{pageCount}</React.Fragment>,
-            total: (
-              <QueryCount
-                hideParens
-                hideIfEmpty={false}
-                count={queryCount || 0}
-                max={queryMaxCount || 1}
-              />
-            ),
+          {tct('Select [displayCount]', {
+            displayCount,
           })}
         </ActionSetPlaceholder>
       )}
@@ -62,12 +48,14 @@ function Headers({
           >
             <GraphHeader>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
-              <GraphToggle
-                active={statsPeriod === '24h'}
-                onClick={() => onSelectStatsPeriod('24h')}
-              >
-                {t('24h')}
-              </GraphToggle>
+              {selection.datetime.period !== '24h' && (
+                <GraphToggle
+                  active={statsPeriod === '24h'}
+                  onClick={() => onSelectStatsPeriod('24h')}
+                >
+                  {t('24h')}
+                </GraphToggle>
+              )}
               <GraphToggle
                 active={statsPeriod === 'auto'}
                 onClick={() => onSelectStatsPeriod('auto')}

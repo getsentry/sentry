@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import ExternalLink from 'app/components/links/externalLink';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
 import {IconOpen, IconQuestion} from 'app/icons';
@@ -20,28 +21,41 @@ import OriginalSourceInfo from './originalSourceInfo';
 type Props = {
   frame: Frame;
   platform: PlatformType;
+  /**
+   * Is the stack trace being previewed in a hovercard?
+   */
+  isHoverPreviewed?: boolean;
 };
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
 
-const DefaultTitle = ({frame, platform}: Props) => {
+const DefaultTitle = ({frame, platform, isHoverPreviewed}: Props) => {
   const title: Array<React.ReactElement> = [];
   const framePlatform = getPlatform(frame.platform, platform);
+  const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
 
   const handleExternalLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.stopPropagation();
   };
 
-  const getPathName = (
+  const getModule = (): GetPathNameOutput | undefined => {
+    if (frame.module) {
+      return {
+        key: 'module',
+        value: frame.module,
+        meta: getMeta(frame, 'module'),
+      };
+    }
+
+    return undefined;
+  };
+
+  const getPathNameOrModule = (
     shouldPrioritizeModuleName: boolean
   ): GetPathNameOutput | undefined => {
     if (shouldPrioritizeModuleName) {
       if (frame.module) {
-        return {
-          key: 'module',
-          value: frame.module,
-          meta: getMeta(frame, 'module'),
-        };
+        return getModule();
       }
       if (frame.filename) {
         return {
@@ -62,11 +76,7 @@ const DefaultTitle = ({frame, platform}: Props) => {
     }
 
     if (frame.module) {
-      return {
-        key: 'module',
-        value: frame.module,
-        meta: getMeta(frame, 'module'),
-      };
+      return getModule();
     }
 
     return undefined;
@@ -79,18 +89,24 @@ const DefaultTitle = ({frame, platform}: Props) => {
     const shouldPrioritizeModuleName = framePlatform === 'java';
 
     // we do not want to show path in title on csharp platform
-    const pathName = isDotnet(framePlatform)
-      ? undefined
-      : getPathName(shouldPrioritizeModuleName);
-    const enablePathTooltip = defined(frame.absPath) && frame.absPath !== pathName?.value;
+    const pathNameOrModule = isDotnet(framePlatform)
+      ? getModule()
+      : getPathNameOrModule(shouldPrioritizeModuleName);
+    const enablePathTooltip =
+      defined(frame.absPath) && frame.absPath !== pathNameOrModule?.value;
 
-    if (pathName) {
+    if (pathNameOrModule) {
       title.push(
-        <Tooltip key={pathName.key} title={frame.absPath} disabled={!enablePathTooltip}>
+        <Tooltip
+          key={pathNameOrModule.key}
+          title={frame.absPath}
+          disabled={!enablePathTooltip}
+          delay={tooltipDelay}
+        >
           <code key="filename" className="filename">
             <AnnotatedText
-              value={<Truncate value={pathName.value} maxLength={100} leftTrim />}
-              meta={pathName.meta}
+              value={<Truncate value={pathNameOrModule.value} maxLength={100} leftTrim />}
+              meta={pathNameOrModule.meta}
             />
           </code>
         </Tooltip>
@@ -101,7 +117,7 @@ const DefaultTitle = ({frame, platform}: Props) => {
     // we want to show a litle (?) icon that on hover shows the actual filename
     if (shouldPrioritizeModuleName && frame.filename) {
       title.push(
-        <Tooltip key={frame.filename} title={frame.filename}>
+        <Tooltip key={frame.filename} title={frame.filename} delay={tooltipDelay}>
           <a className="in-at real-filename">
             <IconQuestion size="xs" />
           </a>
@@ -117,11 +133,14 @@ const DefaultTitle = ({frame, platform}: Props) => {
       );
     }
 
-    if ((defined(frame.function) || defined(frame.rawFunction)) && defined(pathName)) {
+    if (
+      (defined(frame.function) || defined(frame.rawFunction)) &&
+      defined(pathNameOrModule)
+    ) {
       title.push(
-        <span className="in-at" key="in">
+        <InFramePosition className="in-at" key="in">
           {` ${t('in')} `}
-        </span>
+        </InFramePosition>
       );
     }
   }
@@ -135,9 +154,9 @@ const DefaultTitle = ({frame, platform}: Props) => {
   // TODO(mitsuhiko): only do this for events from native platforms?
   if (defined(frame.lineNo) && frame.lineNo !== 0) {
     title.push(
-      <span className="in-at in-at-line" key="no">
+      <InFramePosition className="in-at in-at-line" key="no">
         {` ${t('at line')} `}
-      </span>
+      </InFramePosition>
     );
     title.push(
       <code key="line" className="lineno">
@@ -147,11 +166,7 @@ const DefaultTitle = ({frame, platform}: Props) => {
   }
 
   if (defined(frame.package) && !isDotnet(framePlatform)) {
-    title.push(
-      <span className="within" key="within">
-        {` ${t('within')} `}
-      </span>
-    );
+    title.push(<InFramePosition key="within">{` ${t('within')} `}</InFramePosition>);
     title.push(
       <code title={frame.package} className="package" key="package">
         {trimPackage(frame.package)}
@@ -164,6 +179,7 @@ const DefaultTitle = ({frame, platform}: Props) => {
       <Tooltip
         key="info-tooltip"
         title={<OriginalSourceInfo mapUrl={frame.mapUrl} map={frame.map} />}
+        delay={tooltipDelay}
       >
         <a className="in-at original-src">
           <IconQuestion size="xs" />
@@ -175,10 +191,15 @@ const DefaultTitle = ({frame, platform}: Props) => {
   return <React.Fragment>{title}</React.Fragment>;
 };
 
+export default DefaultTitle;
+
 const StyledExternalLink = styled(ExternalLink)`
   position: relative;
-  top: 2px;
+  top: ${space(0.25)};
   margin-left: ${space(0.5)};
 `;
 
-export default DefaultTitle;
+const InFramePosition = styled('span')`
+  color: ${p => p.theme.textColor};
+  opacity: 0.6;
+`;

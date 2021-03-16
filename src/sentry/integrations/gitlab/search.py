@@ -1,4 +1,3 @@
-import six
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
@@ -37,13 +36,13 @@ class GitlabIssueSearchEndpoint(IntegrationEndpoint):
             try:
                 response = installation.search_issues(query=query, project_id=project, iids=iids)
             except ApiError as e:
-                return Response({"detail": six.text_type(e)}, status=400)
+                return Response({"detail": str(e)}, status=400)
 
             return Response(
                 [
                     {
-                        "label": "(#%s) %s" % (i["iid"], i["title"]),
-                        "value": "%s#%s" % (i["project_id"], i["iid"]),
+                        "label": "(#{}) {}".format(i["iid"], i["title"]),
+                        "value": "{}#{}".format(i["project_id"], i["iid"]),
                     }
                     for i in response
                 ]
@@ -53,7 +52,7 @@ class GitlabIssueSearchEndpoint(IntegrationEndpoint):
             try:
                 response = installation.search_projects(query)
             except ApiError as e:
-                return Response({"detail": six.text_type(e)}, status=400)
+                return Response({"detail": str(e)}, status=400)
             return Response(
                 [
                     {"label": project["name_with_namespace"], "value": project["id"]}

@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'app/actionCreators/modal';
@@ -43,6 +44,7 @@ export type TableViewProps = {
   isLoading: boolean;
   error: string | null;
 
+  isFirstPage: boolean;
   eventView: EventView;
   tableData: TableData | null | undefined;
   tagKeys: null | string[];
@@ -126,8 +128,16 @@ class TableView extends React.Component<TableViewProps> {
       };
 
       return [
-        <Tooltip key={`eventlink${rowIndex}`} title={t('Open Stack')}>
-          <Link to={target} data-test-id="open-stack">
+        <Tooltip key={`eventlink${rowIndex}`} title={t('Open Group')}>
+          <Link
+            to={target}
+            data-test-id="open-group"
+            onClick={() => {
+              if (nextView.isEqualTo(eventView)) {
+                Sentry.captureException(new Error('Failed to drilldown'));
+              }
+            }}
+          >
             <StyledIcon size="sm" />
           </Link>
         </Tooltip>,
@@ -199,7 +209,7 @@ class TableView extends React.Component<TableViewProps> {
     rowIndex: number,
     columnIndex: number
   ): React.ReactNode => {
-    const {eventView, location, organization, tableData} = this.props;
+    const {isFirstPage, eventView, location, organization, tableData} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -236,7 +246,7 @@ class TableView extends React.Component<TableViewProps> {
 
     return (
       <React.Fragment>
-        {isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
+        {isFirstPage && isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
           <TopResultsIndicator count={count} index={rowIndex} />
         ) : null}
         <CellAction
@@ -264,7 +274,7 @@ class TableView extends React.Component<TableViewProps> {
           onApply={this.handleUpdateColumns}
         />
       ),
-      {modalCss}
+      {modalCss, backdrop: 'static'}
     );
   };
 

@@ -188,6 +188,17 @@ class SessionsRequest extends React.Component<Props, State> {
       0
     );
 
+    const previousPeriodTotalSessions = fetchedWithPrevious
+      ? responseData.groups.reduce(
+          (acc, group) =>
+            acc +
+            group.series['sum(session)']
+              .slice(0, dataMiddleIndex)
+              .reduce((value, groupAcc) => groupAcc + value, 0),
+          0
+        )
+      : 0;
+
     // TODO(project-details): refactor this to avoid duplication as we add more session charts
     const timeseriesData = [
       {
@@ -218,14 +229,19 @@ class SessionsRequest extends React.Component<Props, State> {
 
             return {
               name: interval,
-              value: getCrashFreePercent(100 - crashedSessionsPercent),
+              value:
+                totalSessions === 0 && previousPeriodTotalSessions === 0
+                  ? 0
+                  : totalIntervalSessions === 0
+                  ? null
+                  : getCrashFreePercent(100 - crashedSessionsPercent),
             };
           }),
       },
-    ];
+    ] as Series[]; // TODO(project-detail): Change SeriesDataUnit value to support null
 
     const previousTimeseriesData = fetchedWithPrevious
-      ? {
+      ? ({
           seriesName: t('Previous Period'),
           data: responseData.intervals.slice(0, dataMiddleIndex).map((_interval, i) => {
             const totalIntervalSessions = responseData.groups.reduce(
@@ -246,10 +262,15 @@ class SessionsRequest extends React.Component<Props, State> {
 
             return {
               name: responseData.intervals[i + dataMiddleIndex],
-              value: getCrashFreePercent(100 - crashedSessionsPercent),
+              value:
+                totalSessions === 0 && previousPeriodTotalSessions === 0
+                  ? 0
+                  : totalIntervalSessions === 0
+                  ? null
+                  : getCrashFreePercent(100 - crashedSessionsPercent),
             };
           }),
-        }
+        } as Series) // TODO(project-detail): Change SeriesDataUnit value to support null
       : null;
 
     return {

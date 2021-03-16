@@ -1,29 +1,28 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
-import {IconTelescope} from 'app/icons';
 import Button from 'app/components/button';
 import {
   Panel,
   PanelAlert,
-  PanelHeader,
   PanelBody,
+  PanelHeader,
   PanelItem,
   PanelTable,
 } from 'app/components/panels';
+import {IconTelescope} from 'app/icons';
 import Field from 'app/views/settings/components/forms/field';
 
 import {_BulkController} from './bulkController.stories';
 
 export default {
   title: 'Core/Tables/Panels',
+  args: {
+    dashedBorder: false,
+  },
 };
 
-export const BasicPanel = withInfo({
-  text: 'Basic Panel component used in most settings',
-  propTablesExclude: [Button],
-})(() => (
-  <Panel>
+export const BasicPanel = ({...args}) => (
+  <Panel {...args}>
     <PanelHeader>Panel Header</PanelHeader>
 
     <PanelBody>
@@ -32,13 +31,17 @@ export const BasicPanel = withInfo({
       <PanelItem>Panel Item</PanelItem>
     </PanelBody>
   </Panel>
-));
+);
+BasicPanel.parameters = {
+  docs: {
+    description: {
+      story: 'Basic Panel component used in most settings',
+    },
+  },
+};
 
-export const PanelAlerts = withInfo({
-  text: 'Alert boxes inside a panel',
-  propTablesExclude: [Button],
-})(() => (
-  <Panel>
+export const PanelAlerts = ({...args}) => (
+  <Panel {...args}>
     <PanelHeader>Panel Header</PanelHeader>
 
     <PanelBody>
@@ -52,15 +55,20 @@ export const PanelAlerts = withInfo({
       <PanelItem>Panel Item</PanelItem>
     </PanelBody>
   </Panel>
-));
+);
+PanelAlerts.parameters = {
+  docs: {
+    description: {
+      story: 'Alert boxes inside a panel',
+    },
+  },
+};
 
-export const _PanelTable = withInfo({
-  text: 'A Panel for "tabular" data',
-})(() => (
+export const _PanelTable = () => (
   <React.Fragment>
     <PanelTable
       // eslint-disable-next-line react/jsx-key
-      headers={[<div>Header #1</div>, 'Header #2', <div>Custom Header Wooooo</div>]}
+      headers={[<div>Header #1</div>, 'Header #2', <div>Custom Header Wooooo</div>, '']}
     >
       <div>Panel Item with really long content</div>
       <div>Panel Item</div>
@@ -71,6 +79,14 @@ export const _PanelTable = withInfo({
       <div>Panel Item</div>
       <div>Panel Item</div>
       <div>Panel Item</div>
+      <div>Panel Item</div>
+      <div>Panel Item</div>
+    </PanelTable>
+
+    <PanelTable headers={['Short', 'Longer heading name', '']}>
+      <div>One Row</div>
+      <div>One Row</div>
+      <div>One Row</div>
     </PanelTable>
 
     <PanelTable
@@ -95,13 +111,17 @@ export const _PanelTable = withInfo({
 
     <_BulkController />
   </React.Fragment>
-));
+);
+_PanelTable.parameters = {
+  docs: {
+    description: {
+      story: 'A Panel for "tabular" data',
+    },
+  },
+};
 
-export const WithFields = withInfo({
-  text: 'Non-connected form field item',
-  propTablesExclude: [Panel, PanelBody, PanelItem],
-})(() => (
-  <Panel>
+export const WithFields = ({...args}) => (
+  <Panel {...args}>
     <PanelHeader>Panel Header</PanelHeader>
 
     <PanelBody>
@@ -119,4 +139,11 @@ export const WithFields = withInfo({
       </Field>
     </PanelBody>
   </Panel>
-));
+);
+_PanelTable.parameters = {
+  docs: {
+    description: {
+      story: 'Non-connected form field item',
+    },
+  },
+};

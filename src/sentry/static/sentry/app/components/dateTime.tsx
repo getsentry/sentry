@@ -1,6 +1,5 @@
 import React from 'react';
 import moment from 'moment-timezone';
-import PropTypes from 'prop-types';
 
 import ConfigStore from 'app/stores/configStore';
 
@@ -19,17 +18,6 @@ type Props = DefaultProps & {
 };
 
 class DateTime extends React.Component<Props> {
-  static propTypes = {
-    date: PropTypes.any.isRequired,
-    dateOnly: PropTypes.bool,
-    timeOnly: PropTypes.bool,
-    shortDate: PropTypes.bool,
-    seconds: PropTypes.bool,
-    timeAndDate: PropTypes.bool,
-    utc: PropTypes.bool,
-    format: PropTypes.string,
-  };
-
   static defaultProps: DefaultProps = {
     seconds: true,
   };

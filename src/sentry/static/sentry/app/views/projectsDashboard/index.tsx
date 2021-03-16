@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
-import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
 import Button from 'app/components/button';
@@ -17,7 +16,6 @@ import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import space from 'app/styles/space';
 import {Organization, TeamWithProjects} from 'app/types';
@@ -38,13 +36,6 @@ type Props = {
 } & RouteComponentProps<{orgId: string}, {}>;
 
 class Dashboard extends React.Component<Props> {
-  static propTypes = {
-    teams: PropTypes.array,
-    organization: SentryTypes.Organization,
-    loadingTeams: PropTypes.bool,
-    error: PropTypes.instanceOf(Error),
-  };
-
   componentWillUnmount() {
     ProjectsStatsStore.reset();
   }
@@ -85,7 +76,7 @@ class Dashboard extends React.Component<Props> {
       <React.Fragment>
         <SentryDocumentTitle
           title={t('Projects Dashboard')}
-          objSlug={organization.slug}
+          orgSlug={organization.slug}
         />
         {projects.length > 0 && (
           <ProjectsHeader>

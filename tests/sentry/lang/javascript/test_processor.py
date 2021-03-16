@@ -1,12 +1,13 @@
+import errno
 import pytest
 import re
 import responses
-import six
 import unittest
 from symbolic import SourceMapTokenMatch
 
 from copy import deepcopy
-from sentry.utils.compat.mock import patch, ANY, call
+from io import BytesIO
+from sentry.utils.compat.mock import MagicMock, patch, ANY, call
 from requests.exceptions import RequestException
 
 from sentry import http, options
@@ -25,6 +26,7 @@ from sentry.lang.javascript.processor import (
     get_max_age,
     CACHE_CONTROL_MAX,
     CACHE_CONTROL_MIN,
+    should_retry_fetch,
 )
 from sentry.lang.javascript.errormapping import rewrite_exception, REACT_MAPPING_URL
 from sentry.models import File, Release, ReleaseFile, EventError
@@ -60,6 +62,18 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         assert not r.allow_scraping
 
 
+def test_build_fetch_retry_condition() -> None:
+    e = OSError()
+    e.errno = errno.ESTALE
+
+    assert should_retry_fetch(1, e) is True
+    assert should_retry_fetch(2, e) is True
+    assert should_retry_fetch(3, e) is True
+    assert should_retry_fetch(4, e) is False
+
+    assert should_retry_fetch(1, Exception("something else")) is False
+
+
 class FetchReleaseFileTest(TestCase):
     def test_unicode(self):
         project = self.project
@@ -73,7 +87,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="file.min.js", release=release, organization_id=project.organization_id, file=file
@@ -81,7 +95,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file("file.min.js", release)
 
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result == http.UrlResult(
             "file.min.js",
             {"content-type": "application/json; charset=utf-8"},
@@ -105,7 +119,7 @@ class FetchReleaseFileTest(TestCase):
             type="release.file",
             headers={"Content-Type": "application/json; charset=utf-8"},
         )
-        foo_file.putfile(six.BytesIO(b"foo"))
+        foo_file.putfile(BytesIO(b"foo"))
         foo_dist = release.add_dist("foo")
         ReleaseFile.objects.create(
             name="file.min.js",
@@ -120,7 +134,7 @@ class FetchReleaseFileTest(TestCase):
             type="release.file",
             headers={"Content-Type": "application/json; charset=utf-8"},
         )
-        bar_file.putfile(six.BytesIO(b"bar"))
+        bar_file.putfile(BytesIO(b"bar"))
         bar_dist = release.add_dist("bar")
         ReleaseFile.objects.create(
             name="file.min.js",
@@ -132,7 +146,7 @@ class FetchReleaseFileTest(TestCase):
 
         foo_result = fetch_release_file("file.min.js", release, foo_dist)
 
-        assert isinstance(foo_result.body, six.binary_type)
+        assert isinstance(foo_result.body, bytes)
         assert foo_result == http.UrlResult(
             "file.min.js", {"content-type": "application/json; charset=utf-8"}, b"foo", 200, "utf-8"
         )
@@ -158,7 +172,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="~/file.min.js",
@@ -169,7 +183,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file("http://example.com/file.min.js?lol", release)
 
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result == http.UrlResult(
             "http://example.com/file.min.js?lol",
             {"content-type": "application/json; charset=utf-8"},
@@ -193,7 +207,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="file.min.js", release=release, organization_id=project.organization_id, file=file
@@ -201,7 +215,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file("file.min.js", release)
 
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result == http.UrlResult(
             "file.min.js",
             {"content-type": "application/json; charset=utf-8"},
@@ -240,7 +254,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="file.min.js", release=release, organization_id=project.organization_id, file=file
@@ -333,6 +347,57 @@ class FetchReleaseFileTest(TestCase):
         assert cache.get(cache_key_meta)["compressed_size"] == len(binary_body)
         assert cache.get(cache_key)
 
+    def test_retry_file_open(self) -> None:
+        project = self.project
+
+        release = Release.objects.create(organization_id=project.organization_id, version="abc")
+        release.add_project(project)
+
+        content = b"foo"
+
+        file = File.objects.create(
+            name="file.min.js",
+            type="release.file",
+            headers={"Content-Type": "application/json; charset=utf-8"},
+        )
+        file.putfile(BytesIO(content))
+
+        ReleaseFile.objects.create(
+            name=file.name,
+            release=release,
+            organization_id=project.organization_id,
+            file=file,
+        )
+
+        stale_file_error = OSError()
+        stale_file_error.errno = errno.ESTALE
+
+        bad_file = MagicMock()
+        bad_file.chunks.side_effect = stale_file_error
+
+        bad_file_reader = MagicMock()
+        bad_file_reader.__enter__.return_value = bad_file
+
+        good_file = MagicMock()
+        good_file.chunks.return_value = iter([content])
+
+        good_file_reader = MagicMock()
+        good_file_reader.__enter__.return_value = good_file
+
+        with patch("sentry.lang.javascript.processor.ReleaseFile.cache") as cache:
+            cache.getfile.side_effect = [bad_file_reader, good_file_reader]
+
+            assert fetch_release_file(file.name, release) == http.UrlResult(
+                file.name,
+                {k.lower(): v.lower() for k, v in file.headers.items()},
+                content,
+                200,
+                "utf-8",
+            )
+
+        assert bad_file.chunks.call_count == 1
+        assert good_file.chunks.call_count == 1
+
 
 class FetchFileTest(TestCase):
     @responses.activate
@@ -378,7 +443,7 @@ class FetchFileTest(TestCase):
         for i, (header_name_option_value, expected_request_header_name) in enumerate(header_pairs):
             self.project.update_option("sentry:token_header", header_name_option_value)
 
-            url = "http://example.com/{}/".format(i)
+            url = f"http://example.com/{i}/"
             result = fetch_file(url, project=self.project)
 
             assert result.url == url
@@ -421,7 +486,7 @@ class FetchFileTest(TestCase):
         result = fetch_file("/example.js", release=release)
         assert result.url == "/example.js"
         assert result.body == b"foo"
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result.headers == {"content-type": "application/json"}
         assert result.encoding is None
 

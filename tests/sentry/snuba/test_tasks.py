@@ -6,7 +6,6 @@ import responses
 from django.utils import timezone
 from exam import patcher
 from sentry.utils.compat.mock import Mock, patch
-from six import add_metaclass
 
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
@@ -18,12 +17,12 @@ from sentry.snuba.tasks import (
     subscription_checker,
     SUBSCRIPTION_STATUS_MAX_AGE,
 )
+from sentry.utils.snuba import _snuba_pool
 from sentry.utils import json
 from sentry.testutils import TestCase
 
 
-@add_metaclass(abc.ABCMeta)
-class BaseSnubaTaskTest(object):
+class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
     metrics = patcher("sentry.snuba.tasks.metrics")
 
     status_translations = {
@@ -40,14 +39,15 @@ class BaseSnubaTaskTest(object):
     def task(self):
         pass
 
-    def create_subscription(self, status=None, subscription_id=None, dataset=None):
+    def create_subscription(self, status=None, subscription_id=None, dataset=None, query=None):
         if status is None:
             status = self.expected_status
         if dataset is None:
             dataset = QueryDatasets.EVENTS
         dataset = dataset.value
         aggregate = "count_unique(tags[sentry:user])"
-        query = "hello"
+        if query is None:
+            query = "hello"
         time_window = 60
         resolution = 60
 
@@ -104,6 +104,20 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_group_id(self):
+        group_id = 1234
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING, query=f"issue.id:{group_id}"
+        )
+        with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
+            create_subscription_in_snuba(sub.id)
+            assert ["group_id", "IN", [group_id]] in json.loads(urlopen.call_args[1]["body"])[
+                "conditions"
+            ]
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
     def test_transaction(self):
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING, dataset=QueryDatasets.TRANSACTIONS
@@ -132,7 +146,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
     task = update_subscription_in_snuba
 
     def test(self):
-        subscription_id = "1/{}".format(uuid4().hex)
+        subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.UPDATING, subscription_id=subscription_id
         )
@@ -156,7 +170,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
     task = delete_subscription_from_snuba
 
     def test(self):
-        subscription_id = "1/{}".format(uuid4().hex)
+        subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING, subscription_id=subscription_id
         )

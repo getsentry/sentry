@@ -17,7 +17,7 @@ from sentry import VERSION as SENTRY_VERSION
 from sentry.net.socket import safe_create_connection
 
 
-class SafeConnectionMixin(object):
+class SafeConnectionMixin:
     """
     HACK(mattrobenolt): Most of this is yanked out of core urllib3
     to override `_new_conn` with the ability to create our own socket.
@@ -70,7 +70,8 @@ class SafeConnectionMixin(object):
 
         except SocketTimeout:
             raise ConnectTimeoutError(
-                self, "Connection to %s timed out. (connect timeout=%s)" % (self.host, self.timeout)
+                self,
+                f"Connection to {self.host} timed out. (connect timeout={self.timeout})",
             )
 
         except SocketError as e:
@@ -139,7 +140,7 @@ class TimeoutAdapter(HTTPAdapter):
         return HTTPAdapter.send(self, *args, **kwargs)
 
 
-USER_AGENT = "sentry/{version} (https://sentry.io)".format(version=SENTRY_VERSION)
+USER_AGENT = f"sentry/{SENTRY_VERSION} (https://sentry.io)"
 
 
 class Session(_Session):
@@ -173,7 +174,7 @@ class UnixHTTPConnection(HTTPConnection):
         # So we fake this by sending along `localhost` by default as
         # other libraries do.
         self.socket_path = host
-        super(UnixHTTPConnection, self).__init__(host="localhost", **kwargs)
+        super().__init__(host="localhost", **kwargs)
 
     def _new_conn(self):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -191,7 +192,7 @@ class UnixHTTPConnectionPool(HTTPConnectionPool):
     ConnectionCls = UnixHTTPConnection
 
     def __str__(self):
-        return "%s(host=%r)" % (type(self).__name__, self.host)
+        return f"{type(self).__name__}(host={self.host!r})"
 
 
 def connection_from_url(endpoint, **kw):

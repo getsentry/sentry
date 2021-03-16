@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from sentry.runner import configure
+import time
 
 configure()
 
@@ -11,7 +12,6 @@ from hashlib import sha1
 from random import randint
 from uuid import uuid4
 
-import six
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import F
@@ -110,7 +110,7 @@ def create_sample_event(*args, **kwargs):
     try:
         event = _create_sample_event(*args, **kwargs)
     except HashDiscarded as e:
-        print("> Skipping Event: {}".format(e.message))  # NOQA
+        print(f"> Skipping Event: {e.message}")  # NOQA
     else:
         if event is not None:
             features.record([event])
@@ -135,7 +135,7 @@ def generate_commits(user):
         commits.append(
             {
                 "key": sha1(uuid4().bytes).hexdigest(),
-                "message": "feat: Do something to {}\n{}".format(filename, make_sentence()),
+                "message": f"feat: Do something to {filename}\n{make_sentence()}",
                 "author": author,
                 "files": [(filename, "M")],
             }
@@ -327,7 +327,7 @@ def create_sample_time_series(event, release=None):
         now = now - timedelta(hours=1)
 
 
-def main(num_events=1, extra_events=False, load_transactions=False):
+def main(num_events=1, extra_events=False, load_trends=False, slow=False):
     user = User.objects.filter(is_superuser=True)[0]
 
     dummy_user, _ = User.objects.get_or_create(
@@ -340,6 +340,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
         ("Massive Dynamic", ("Ludic Science",)),
         ("Captain Planet", ("Earth", "Fire", "Wind", "Water", "Heart")),
     )
+    project_map = {}
 
     Broadcast.objects.create(
         title="Learn about Source Maps",
@@ -349,7 +350,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
         org = Organization.get_default()
-        print("Mocking org {}".format(org.name))  # NOQA
+        print(f"Mocking org {org.name}")  # NOQA
     else:
         print("Mocking org {}".format("Default"))  # NOQA
         org, _ = Organization.objects.get_or_create(slug="default")
@@ -361,13 +362,15 @@ def main(num_events=1, extra_events=False, load_transactions=False):
     dummy_member, _ = OrganizationMember.objects.get_or_create(
         user=dummy_user, organization=org, defaults={"role": roles.get_default().id}
     )
+    # Allow for 0 events, if you only want transactions
+    event1 = event2 = event3 = event4 = event5 = None
 
     for team_name, project_names in mocks:
-        print("> Mocking team {}".format(team_name))  # NOQA
+        print(f"> Mocking team {team_name}")  # NOQA
         team, _ = Team.objects.get_or_create(name=team_name, defaults={"organization": org})
 
         for project_name in project_names:
-            print("  > Mocking project {}".format(project_name))  # NOQA
+            print(f"  > Mocking project {project_name}")  # NOQA
             project, _ = Project.objects.get_or_create(
                 name=project_name,
                 defaults={
@@ -376,6 +379,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     "flags": Project.flags.has_releases,
                 },
             )
+            project_map[project_name] = project
             project.add_team(team)
             if not project.first_event:
                 project.update(first_event=project.date_added)
@@ -514,7 +518,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                 data={"version": release.version},
             )
 
-            environment = Environment.get_or_create(project=project, name=six.next(ENVIRONMENTS))
+            environment = Environment.get_or_create(project=project, name=next(ENVIRONMENTS))
 
             deploy = Deploy.objects.create(
                 organization_id=project.organization_id,
@@ -527,7 +531,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                 last_commit_id=commit.id,
                 total_deploys=Deploy.objects.filter(release=release).count(),
                 last_deploy_id=deploy.id,
-                authors=[six.text_type(a.id) for a in authors],
+                authors=[str(a.id) for a in authors],
             )
 
             ReleaseProjectEnvironment.objects.create_or_update(
@@ -552,66 +556,25 @@ def main(num_events=1, extra_events=False, load_transactions=False):
             # Add a bunch of additional dummy events to support pagination
             if extra_events:
                 for _ in range(45):
-                    platform = six.next(PLATFORMS)
+                    platform = next(PLATFORMS)
 
                     create_sample_event(
                         project=project,
                         platform=platform,
                         release=release.version,
-                        level=six.next(LEVELS),
-                        environment=six.next(ENVIRONMENTS),
+                        level=next(LEVELS),
+                        environment=next(ENVIRONMENTS),
                         message="This is a mostly useless example %s exception" % platform,
-                        checksum=md5_text(platform + six.text_type(_)).hexdigest(),
+                        checksum=md5_text(platform + str(_)).hexdigest(),
                         user=generate_user(),
                     )
-
-            if load_transactions:
-                if not project.flags.has_transactions:
-                    project.update(flags=F("flags").bitor(Project.flags.has_transactions))
-
-                for day in range(14):
-                    for hour in range(24):
-                        timestamp = timezone.now() - timedelta(days=day, hours=hour)
-                        transaction_user = generate_user()
-                        transaction1 = create_sample_event(
-                            project=project,
-                            platform="javascript-transaction",
-                            event_id=uuid4().hex,
-                            user=transaction_user,
-                            timestamp=timestamp,
-                            # start_timestamp decreases based on day so that there's a trend
-                            start_timestamp=timestamp
-                            - timedelta(
-                                milliseconds=int(random.normalvariate(2000 - 50 * day, 250))
-                            ),
-                            measurements={
-                                "fp": {"value": max(random.normalvariate(2000, 200), 1000)},
-                                "fcp": {"value": max(random.normalvariate(2250, 200), 1000)},
-                                "lcp": {"value": max(random.normalvariate(2800, 400), 2000)},
-                                "fid": {"value": max(random.normalvariate(5, 2), 1)},
-                            },
-                        )
-                        create_sample_event(
-                            project=project,
-                            platform="transaction",
-                            event_id=uuid4().hex,
-                            user=transaction_user,
-                            timestamp=timestamp,
-                            # start_timestamp increases based on day so that there's a trend
-                            start_timestamp=timestamp
-                            - timedelta(
-                                milliseconds=int(random.normalvariate(2000 + 50 * day, 250))
-                            ),
-                            # match the trace from the javascript transaction
-                            trace=transaction1.get_tag("trace"),
-                        )
 
             for _ in range(num_events):
                 event1 = create_sample_event(
                     project=project,
                     platform="python",
                     release=release.version,
-                    environment=six.next(ENVIRONMENTS),
+                    environment=next(ENVIRONMENTS),
                     user=generate_user(),
                 )
 
@@ -619,19 +582,19 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     project_id=project.id,
                     event_id=event1.event_id,
                     name="example-logfile.txt",
-                    file=File.objects.get_or_create(
+                    file_id=File.objects.get_or_create(
                         name="example-logfile.txt",
                         type="text/plain",
                         checksum="abcde" * 8,
                         size=13043,
-                    )[0],
+                    )[0].id,
                 )
 
                 event2 = create_sample_event(
                     project=project,
                     platform="javascript",
                     release=release.version,
-                    environment=six.next(ENVIRONMENTS),
+                    environment=next(ENVIRONMENTS),
                     sdk={"name": "raven-js", "version": "2.1.0"},
                     user=generate_user(),
                 )
@@ -642,7 +605,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     project=project,
                     platform="ruby",
                     release=release.version,
-                    environment=six.next(ENVIRONMENTS),
+                    environment=next(ENVIRONMENTS),
                     user=generate_user(),
                 )
 
@@ -650,7 +613,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     project=project,
                     platform="cocoa",
                     release=release.version,
-                    environment=six.next(ENVIRONMENTS),
+                    environment=next(ENVIRONMENTS),
                     user=generate_user(),
                 )
 
@@ -658,7 +621,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     project=project,
                     platform="php",
                     release=release.version,
-                    environment=six.next(ENVIRONMENTS),
+                    environment=next(ENVIRONMENTS),
                     message=LONG_MESSAGE,
                     user=generate_user(),
                 )
@@ -668,7 +631,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     platform="cocoa",
                     sample_name="react-native",
                     release=release.version,
-                    environment=six.next(ENVIRONMENTS),
+                    environment=next(ENVIRONMENTS),
                     user=generate_user(),
                 )
 
@@ -676,7 +639,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     project=project,
                     platform="pii",
                     release=release.version,
-                    environment=six.next(ENVIRONMENTS),
+                    environment=next(ENVIRONMENTS),
                     user=generate_user(),
                 )
             if event5:
@@ -688,17 +651,17 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                         "author": CommitAuthor.objects.get_or_create(
                             organization_id=org.id, email=user.email, defaults={"name": user.name}
                         )[0],
-                        "message": "Ooops!\nFixes {}".format(event5.group.qualified_short_id),
+                        "message": f"Ooops!\nFixes {event5.group.qualified_short_id}",
                     },
                 )[0]
 
-            create_sample_event(project=project, environment=six.next(ENVIRONMENTS), platform="csp")
+            create_sample_event(project=project, environment=next(ENVIRONMENTS), platform="csp")
 
             if event3:
                 UserReport.objects.create(
-                    project=project,
+                    project_id=project.id,
                     event_id=event3.event_id,
-                    group=event3.group,
+                    group_id=event3.group.id,
                     name="Jane Bloggs",
                     email="jane@example.com",
                     comments=make_sentence(),
@@ -728,12 +691,17 @@ def main(num_events=1, extra_events=False, load_transactions=False):
             except AlertRuleNameAlreadyUsedError:
                 pass
 
-            print("    > Loading time series data".format(project_name))  # NOQA
-            create_sample_time_series(event1, release=release)
-            create_sample_time_series(event2, release=release)
-            create_sample_time_series(event3)
-            create_sample_time_series(event4, release=release)
-            create_sample_time_series(event5, release=release)
+            print(f"    > Loading time series data")  # NOQA
+            if event1:
+                create_sample_time_series(event1, release=release)
+            if event2:
+                create_sample_time_series(event2, release=release)
+            if event3:
+                create_sample_time_series(event3)
+            if event4:
+                create_sample_time_series(event4, release=release)
+            if event5:
+                create_sample_time_series(event5, release=release)
 
             if hasattr(buffer, "process_pending"):
                 print("    > Processing pending buffers")  # NOQA
@@ -742,6 +710,8 @@ def main(num_events=1, extra_events=False, load_transactions=False):
             mocks_loaded.send(project=project, sender=__name__)
 
         OrganizationAccessRequest.objects.create_or_update(member=dummy_member, team=team)
+
+    create_mock_transactions(project_map, load_trends, slow)
 
     Activity.objects.create(
         type=Activity.RELEASE,
@@ -754,25 +724,259 @@ def main(num_events=1, extra_events=False, load_transactions=False):
     create_system_time_series()
 
 
+def random_normal(mu, sigma, minimum, maximum=None):
+    random_value = max(random.normalvariate(mu, sigma), minimum)
+    if maximum is not None:
+        random_value = min(random_value, maximum)
+    return random_value
+
+
+def create_mock_transactions(project_map, load_trends=False, slow=False):
+    backend_project = project_map["Earth"]
+    frontend_project = project_map["Fire"]
+    service_projects = [
+        project_map["Wind"],
+        project_map["Water"],
+        project_map["Heart"],
+    ]
+
+    print(f"    > Loading transaction data")  # NOQA
+
+    for project in project_map.values():
+        if not project.flags.has_transactions:
+            project.update(flags=F("flags").bitor(Project.flags.has_transactions))
+
+    for day in range(14):
+        for hour in range(24):
+            timestamp = timezone.now() - timedelta(days=day, hours=hour)
+            transaction_user = generate_user()
+            trace_id = uuid4().hex
+
+            frontend_span_id = uuid4().hex[:16]
+            frontend_root_span_id = uuid4().hex[:16]
+            frontend_duration = random_normal(2000 - 50 * day, 250, 1000)
+
+            create_sample_event(
+                project=frontend_project,
+                platform="javascript-transaction",
+                transaction="/plants/:plantId/",
+                event_id=uuid4().hex,
+                user=transaction_user,
+                timestamp=timestamp,
+                # start_timestamp decreases based on day so that there's a trend
+                start_timestamp=timestamp - timedelta(milliseconds=frontend_duration),
+                measurements={
+                    "fp": {"value": random_normal(1250 - 50 * day, 200, 500)},
+                    "fcp": {"value": random_normal(1250 - 50 * day, 200, 500)},
+                    "lcp": {"value": random_normal(2800 - 50 * day, 400, 2000)},
+                    "fid": {"value": random_normal(5 - 0.125 * day, 2, 1)},
+                },
+                # Root
+                parent_span_id=None,
+                span_id=frontend_root_span_id,
+                trace=trace_id,
+                spans=[
+                    {
+                        "same_process_as_parent": True,
+                        "op": "http",
+                        "description": "GET /api/plants/?all_plants=1",
+                        "data": {
+                            "duration": random_normal(
+                                1 - 0.05 * day, 0.25, 0.01, frontend_duration / 1000
+                            ),
+                            "offset": 0.02,
+                        },
+                        "span_id": frontend_span_id,
+                        "trace_id": trace_id,
+                    }
+                ],
+            )
+            create_sample_event(
+                project=frontend_project,
+                platform="javascript",
+                user=transaction_user,
+                transaction="/plants/:plantId/",
+                contexts={
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": frontend_root_span_id,
+                    }
+                },
+            )
+            # try to give clickhouse some breathing room
+            if slow:
+                time.sleep(0.05)
+
+            backend_span_ids = [
+                (name, uuid4().hex[:16])
+                for name in ["/products/all/", "/analytics/", "tasks.create_invoice"]
+            ]
+            backend_duration = random_normal(1500 + 50 * day, 250, 500)
+
+            create_sample_event(
+                project=backend_project,
+                platform="transaction",
+                transaction="/api/plants/",
+                event_id=uuid4().hex,
+                user=transaction_user,
+                timestamp=timestamp,
+                start_timestamp=timestamp - timedelta(milliseconds=backend_duration),
+                # match the trace from the javascript transaction
+                trace=trace_id,
+                parent_span_id=frontend_root_span_id,
+                spans=[
+                    {
+                        "same_process_as_parent": True,
+                        "op": "http",
+                        "description": name,
+                        "data": {
+                            "duration": random_normal(
+                                0.75 - 0.05 * day, 0.25, 0.01, backend_duration / 1000
+                            ),
+                            "offset": 0.02,
+                        },
+                        "span_id": backend_span_id,
+                        "trace_id": trace_id,
+                    }
+                    for name, backend_span_id in backend_span_ids
+                ],
+            )
+            create_sample_event(
+                project=backend_project,
+                platform="python",
+                user=transaction_user,
+                transaction="/api/plants/",
+                contexts={
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": backend_span_ids[0][1],
+                    }
+                },
+            )
+            for service_project, (name, backend_span_id) in zip(service_projects, backend_span_ids):
+                if slow:
+                    time.sleep(0.05)
+
+                service_duration = random_normal(650 + 50 * day, 250, 250)
+
+                # create a flat chain of tasks that after "tasks.create_invoice" only
+                # make sure to skip this when loading trends to avoid
+                should_create_process_tasks = not load_trends and name == "tasks.create_invoice"
+                service_spans = (
+                    None
+                    if not should_create_process_tasks
+                    else [
+                        {
+                            "same_process_as_parent": True,
+                            "op": "celery.task",
+                            "description": "task.process_invoice",
+                            "data": {
+                                "duration": random_normal(
+                                    0.75 - 0.05 * day, 0.25, 0.01, service_duration / 1000
+                                ),
+                                "offset": 0.02,
+                            },
+                            "span_id": uuid4().hex[:16],
+                            "trace_id": trace_id,
+                        }
+                    ]
+                )
+
+                create_sample_event(
+                    project=service_project,
+                    platform="transaction",
+                    transaction=name,
+                    event_id=uuid4().hex,
+                    user=transaction_user,
+                    timestamp=timestamp,
+                    start_timestamp=timestamp - timedelta(milliseconds=service_duration),
+                    # match the trace from the javascript transaction
+                    trace=trace_id,
+                    parent_span_id=backend_span_id,
+                    spans=service_spans,
+                )
+
+                if service_spans is not None:
+                    depth = 4  # want a trace with >6 layers
+                    previous_spans = service_spans
+                    for i in range(depth):
+                        sub_service_spans = (
+                            None
+                            if i + 1 >= depth  # dont add spans for the last transaction
+                            else [
+                                {
+                                    "same_process_as_parent": True,
+                                    "op": "celery.task",
+                                    "description": "tasks.process_invoice",
+                                    "data": {
+                                        "duration": random_normal(
+                                            0.75 - 0.05 * day, 0.25, 0.01, service_duration / 1000
+                                        ),
+                                        "offset": 0.02,
+                                    },
+                                    "span_id": uuid4().hex[:16],
+                                    "trace_id": trace_id,
+                                }
+                            ]
+                        )
+                        if slow:
+                            time.sleep(0.05)
+                        create_sample_event(
+                            project=service_project,
+                            platform="transaction",
+                            transaction="task.process_invoice",
+                            event_id=uuid4().hex,
+                            user=transaction_user,
+                            timestamp=timestamp,
+                            start_timestamp=timestamp
+                            - timedelta(milliseconds=random_normal(650 + 50 * day, 250, 250)),
+                            trace=trace_id,
+                            parent_span_id=previous_spans[0]["span_id"],
+                            spans=sub_service_spans,
+                        )
+                        previous_spans = sub_service_spans
+
+            # Unless we want to load a 14d trend, 1 trace is enough
+            if not load_trends:
+                return
+
+
 if __name__ == "__main__":
     settings.CELERY_ALWAYS_EAGER = True
 
     from optparse import OptionParser
 
     parser = OptionParser()
-    parser.add_option("--events", dest="num_events", default=1, type=int)
-    parser.add_option("--extra-events", dest="extra_events", default=False, action="store_true")
+    parser.add_option("--events", default=1, type=int, help="number of events to generate")
     parser.add_option(
-        "--load-transactions", dest="load_transactions", default=False, action="store_true"
+        "--extra-events",
+        default=False,
+        action="store_true",
+        help="add multiple events for each error group",
+    )
+    parser.add_option(
+        "--load-trends",
+        default=False,
+        action="store_true",
+        help="load multiple transactions for each id to show trends",
+    )
+    parser.add_option(
+        "--slow",
+        default=False,
+        action="store_true",
+        help="sleep between each transaction to let clickhouse rest",
     )
 
     (options, args) = parser.parse_args()
 
     try:
         main(
-            num_events=options.num_events,
+            num_events=options.events,
             extra_events=options.extra_events,
-            load_transactions=options.load_transactions,
+            load_trends=options.load_trends,
+            slow=options.slow,
         )
     except Exception:
         # Avoid reporting any issues recursively back into Sentry

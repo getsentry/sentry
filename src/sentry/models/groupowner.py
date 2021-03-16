@@ -47,21 +47,21 @@ class GroupOwner(Model):
     def save(self, *args, **kwargs):
         keys = list(filter(None, [self.user_id, self.team_id]))
         assert len(keys) == 1, "Must have team or user, not both"
-        super(GroupOwner, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def owner_id(self):
         if self.user_id:
-            return "user:{}".format(self.user_id)
+            return f"user:{self.user_id}"
 
         if self.team_id:
-            return "team:{}".format(self.team_id)
+            return f"team:{self.team_id}"
 
         raise NotImplementedError("Unknown Owner")
 
     def owner(self):
-        from sentry.api.fields.actor import Actor
+        from sentry.models import ActorTuple
 
-        return Actor.from_actor_identifier(self.owner_id())
+        return ActorTuple.from_actor_identifier(self.owner_id())
 
 
 def get_owner_details(group_list):
@@ -72,7 +72,7 @@ def get_owner_details(group_list):
         owner_details[go.group_id].append(
             {
                 "type": GROUP_OWNER_TYPE[GroupOwnerType(go.type)],
-                "owner": go.owner().get_actor_id(),
+                "owner": go.owner().get_actor_identifier(),
                 "date_added": go.date_added,
             }
         )

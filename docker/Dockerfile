@@ -1,4 +1,4 @@
-FROM python:3.6-slim-buster
+FROM python:3.6.13-slim-buster
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
@@ -47,7 +47,8 @@ RUN set -x \
   && apt-get purge -y --auto-remove $buildDeps
 
 # Sane defaults for pip
-ENV PIP_NO_CACHE_DIR=off \
+ENV \
+  PIP_NO_CACHE_DIR=off \
   PIP_DISABLE_PIP_VERSION_CHECK=1 \
   # Sentry config params
   SENTRY_CONF=/etc/sentry \
@@ -55,7 +56,9 @@ ENV PIP_NO_CACHE_DIR=off \
   # Thank to https://stackoverflow.com/a/25260588/90297
   UWSGI_PROFILE_OVERRIDE=ssl=false;xml=false;routing=false \
   # UWSGI dogstatsd plugin
-  UWSGI_NEED_PLUGIN=/var/lib/uwsgi/dogstatsd
+  UWSGI_NEED_PLUGIN=/var/lib/uwsgi/dogstatsd \
+  # grpcio>1.30.0 requires this, see requirements.txt for more detail.
+  GRPC_POLL_STRATEGY=epoll1
 
 # Copy and install dependencies first to leverage Docker layer caching.
 COPY /dist/requirements.txt /tmp/dist/requirements.txt
@@ -64,7 +67,6 @@ RUN set -x \
   # uwsgi
   && buildDeps="$buildDeps \
   gcc \
-  g++ \
   wget \
   " \
   # maxminddb

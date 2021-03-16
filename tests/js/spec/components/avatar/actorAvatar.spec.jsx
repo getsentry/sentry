@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import MemberListStore from 'app/stores/memberListStore';
@@ -57,9 +57,7 @@ describe('ActorAvatar', function () {
     });
 
     it('should return null when actor type is a unknown', function () {
-      window.console.error = jest.fn();
-
-      const avatar = mount(
+      const avatar = mountWithTheme(
         <ActorAvatar
           actor={{
             id: '3',
@@ -70,10 +68,6 @@ describe('ActorAvatar', function () {
       );
 
       expect(avatar.html()).toBe(null);
-      //proptype warning
-      expect(window.console.error.mock.calls.length).toBeGreaterThan(0);
-
-      window.console.error.mockRestore();
     });
   });
 });

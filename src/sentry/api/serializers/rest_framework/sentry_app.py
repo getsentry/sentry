@@ -22,7 +22,7 @@ class ApiScopesField(serializers.Field):
 
         for scope in data:
             if scope not in valid_scopes:
-                raise ValidationError("{} not a valid scope".format(scope))
+                raise ValidationError(f"{scope} not a valid scope")
         return data
 
 
@@ -139,11 +139,7 @@ class SentryAppSerializer(Serializer):
                 needed_scope = REQUIRED_EVENT_PERMISSIONS[resource]
                 if needed_scope not in attrs["scopes"]:
                     raise ValidationError(
-                        {
-                            "events": "{} webhooks require the {} permission.".format(
-                                resource, needed_scope
-                            )
-                        }
+                        {"events": f"{resource} webhooks require the {needed_scope} permission."}
                     )
 
         get_current_value = self.get_current_value_wrapper(attrs)

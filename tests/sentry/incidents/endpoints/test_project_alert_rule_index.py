@@ -1,4 +1,3 @@
-import six
 import requests
 import pytz
 
@@ -110,6 +109,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 },
             ],
             "projects": [self.project.slug],
+            "owner": self.user.id,
             "name": "JustAValidTestRule",
         }
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -146,7 +146,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
     def test_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4.return_value = uuid
@@ -182,6 +182,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 },
             ],
             "projects": [self.project.slug],
+            "owner": self.user.id,
             "name": "JustAValidTestRule",
         }
         with self.feature(["organizations:incidents"]):
@@ -194,8 +195,33 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "organization_id": self.organization.id,
             "uuid": "abc123",
             "data": valid_alert_rule,
+            "user_id": self.user.id,
         }
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
+
+    def test_no_owner(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        rule_data = {
+            "aggregate": "count()",
+            "query": "",
+            "timeWindow": "300",
+            "projects": [self.project.slug],
+            "name": "JustATestRule",
+            "resolveThreshold": 100,
+            "thresholdType": 1,
+            "triggers": [{"label": "critical", "alertThreshold": 75}],
+        }
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, self.project.slug, status_code=201, **rule_data
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
 
 
 class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
@@ -239,8 +265,8 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         self.yet_another_alert_rule = self.create_alert_rule(
             projects=self.projects, date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC)
         )
-        self.combined_rules_url = "/api/0/projects/{0}/{1}/combined-rules/".format(
-            self.org.slug, self.project.slug
+        self.combined_rules_url = (
+            f"/api/0/projects/{self.org.slug}/{self.project.slug}/combined-rules/"
         )
 
     def test_invalid_limit(self):
@@ -264,7 +290,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         result = json.loads(response.content)
         assert len(result) == 4
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
-        assert result[1]["id"] == six.text_type(self.issue_rule.id)
+        assert result[1]["id"] == str(self.issue_rule.id)
         assert result[1]["type"] == "rule"
         self.assert_alert_rule_serialized(self.other_alert_rule, result[2], skip_dates=True)
         self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
@@ -298,7 +324,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 1
-        assert result[0]["id"] == six.text_type(self.issue_rule.id)
+        assert result[0]["id"] == str(self.issue_rule.id)
         assert result[0]["type"] == "rule"
 
     def test_limit_as_2_with_paging(self):
@@ -315,7 +341,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         result = json.loads(response.content)
         assert len(result) == 2
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
-        assert result[1]["id"] == six.text_type(self.issue_rule.id)
+        assert result[1]["id"] == str(self.issue_rule.id)
         assert result[1]["type"] == "rule"
 
         links = requests.utils.parse_header_links(

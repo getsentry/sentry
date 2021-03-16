@@ -1,12 +1,13 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ReleaseStore from 'app/stores/releaseStore';
 import withRelease from 'app/utils/withRelease';
 
 describe('withRelease HoC', function () {
-  const orgSlug = 'myOrg';
+  const organization = TestStubs.Organization();
+  const orgSlug = organization.slug;
   const projectSlug = 'myProject';
   const releaseVersion = 'myRelease';
 
@@ -38,10 +39,10 @@ describe('withRelease HoC', function () {
   it('adds release/deploys prop', async () => {
     const Component = () => null;
     const Container = withRelease(Component);
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Container
         api={api}
-        orgSlug={orgSlug}
+        organization={organization}
         projectSlug={projectSlug}
         releaseVersion={releaseVersion}
       />
@@ -73,10 +74,10 @@ describe('withRelease HoC', function () {
     // jest.spyOn(Container.prototype, 'fetchDeploys');
 
     // Mount and run component
-    mount(
+    mountWithTheme(
       <Container
         api={api}
-        orgSlug={orgSlug}
+        organization={organization}
         projectSlug={projectSlug}
         releaseVersion={releaseVersion}
       />
@@ -85,19 +86,19 @@ describe('withRelease HoC', function () {
     await tick();
 
     // Mount and run duplicates
-    mount(
+    mountWithTheme(
       <Container
         api={api}
-        orgSlug={orgSlug}
+        organization={organization}
         projectSlug={projectSlug}
         releaseVersion={releaseVersion}
       />
     );
     await tick();
-    mount(
+    mountWithTheme(
       <Container
         api={api}
-        orgSlug={orgSlug}
+        organization={organization}
         projectSlug={projectSlug}
         releaseVersion={releaseVersion}
       />

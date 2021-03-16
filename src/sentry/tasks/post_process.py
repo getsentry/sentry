@@ -1,14 +1,13 @@
 import logging
-import sentry_sdk
 
 from sentry import features
 from sentry.app import locks
-from sentry.utils.cache import cache
-from sentry.utils.locking import UnableToAcquireLock
 from sentry.exceptions import PluginError
 from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_project, bind_organization_context
 
@@ -18,7 +17,7 @@ logger = logging.getLogger("sentry")
 def _get_service_hooks(project_id):
     from sentry.models import ServiceHook
 
-    cache_key = "servicehooks:1:{}".format(project_id)
+    cache_key = f"servicehooks:1:{project_id}"
     result = cache.get(cache_key)
 
     if result is None:
@@ -31,7 +30,7 @@ def _get_service_hooks(project_id):
 def _should_send_error_created_hooks(project):
     from sentry.models import ServiceHook, Organization
 
-    cache_key = "servicehooks-error-created:1:{}".format(project.id)
+    cache_key = f"servicehooks-error-created:1:{project.id}"
     result = cache.get(cache_key)
 
     if result is None:
@@ -65,7 +64,7 @@ def _capture_stats(event, is_new):
         metrics.incr("events.unique", tags=tags, skip_internal=False)
 
     metrics.incr("events.processed", tags=tags, skip_internal=False)
-    metrics.incr("events.processed.{platform}".format(platform=platform), skip_internal=False)
+    metrics.incr(f"events.processed.{platform}", skip_internal=False)
     metrics.timing("events.size.data", event.size, tags=tags)
 
     # This is an experiment to understand whether we have, in production,
@@ -81,15 +80,11 @@ def handle_owner_assignment(project, group, event):
     from sentry.models import GroupAssignee, ProjectOwnership
 
     with metrics.timer("post_process.handle_owner_assignment"):
-        owners_ingestion = features.has("organizations:workflow-owners", event.project.organization)
-
         # Is the issue already assigned to a team or user?
         key = "assignee_exists:1:%s" % group.id
         owners_exists = cache.get(key)
         if owners_exists is None:
-            owners_exists = group.assignee_set.exists() and (
-                not owners_ingestion or group.groupowner_set.exists()
-            )
+            owners_exists = group.assignee_set.exists() or group.groupowner_set.exists()
             # Cache for an hour if it's assigned. We don't need to move that fast.
             cache.set(key, owners_exists, 3600 if owners_exists else 60)
         if owners_exists:
@@ -101,7 +96,7 @@ def handle_owner_assignment(project, group, event):
         if auto_assignment and owners:
             GroupAssignee.objects.assign(group, owners[0])
 
-        if owners and owners_ingestion:
+        if owners:
             try:
                 handle_group_owners(project, group, owners)
             except Exception:
@@ -244,10 +239,6 @@ def post_process_group(
 
         _capture_stats(event, is_new)
 
-        from sentry.reprocessing2 import spawn_capture_nodestore_stats
-
-        spawn_capture_nodestore_stats(cache_key, event.project_id, event.event_id)
-
         if event.group_id and is_reprocessed and is_new:
             add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
 
@@ -271,38 +262,48 @@ def post_process_group(
             # objects back and forth isn't super efficient
             for callback, futures in rp.apply():
                 has_alert = True
-                with sentry_sdk.start_transaction(
-                    op="post_process_group", name="rule_processor_apply", sampled=True
-                ):
-                    safe_execute(callback, event, futures, _with_transaction=False)
+                safe_execute(callback, event, futures, _with_transaction=False)
 
             try:
                 lock = locks.get(
-                    "w-o:{}-d-l".format(event.group_id),
+                    f"w-o:{event.group_id}-d-l",
                     duration=10,
                 )
-                try:
-                    with lock.acquire():
-                        has_commit_key = "w-o:{}-h-c".format(event.project.organization_id)
-                        org_has_commit = cache.get(has_commit_key)
-                        if org_has_commit is None:
-                            org_has_commit = Commit.objects.filter(
-                                organization_id=event.project.organization_id
-                            ).exists()
-                            cache.set(has_commit_key, org_has_commit, 3600)
+                with lock.acquire():
+                    has_commit_key = f"w-o:{event.project.organization_id}-h-c"
+                    org_has_commit = cache.get(has_commit_key)
+                    if org_has_commit is None:
+                        org_has_commit = Commit.objects.filter(
+                            organization_id=event.project.organization_id
+                        ).exists()
+                        cache.set(has_commit_key, org_has_commit, 3600)
 
-                        if org_has_commit and features.has(
-                            "organizations:workflow-owners",
-                            event.project.organization,
-                        ):
-                            process_suspect_commits(event=event)
-                except UnableToAcquireLock:
-                    pass
+                    if org_has_commit:
+                        group_cache_key = f"w-o-i:g-{event.group_id}"
+                        if cache.get(group_cache_key):
+                            metrics.incr(
+                                "sentry.tasks.process_suspect_commits.debounce",
+                                tags={"detail": "w-o-i:g debounce"},
+                            )
+                        else:
+                            from sentry.utils.committers import get_frame_paths
+
+                            cache.set(group_cache_key, True, 604800)  # 1 week in seconds
+                            event_frames = get_frame_paths(event.data)
+                            process_suspect_commits.delay(
+                                event_id=event.event_id,
+                                event_platform=event.platform,
+                                event_frames=event_frames,
+                                group_id=event.group_id,
+                                project_id=event.project_id,
+                            )
+            except UnableToAcquireLock:
+                pass
             except Exception:
                 logger.exception("Failed to process suspect commits")
 
             if features.has("projects:servicehooks", project=event.project):
-                allowed_events = set(["event.created"])
+                allowed_events = {"event.created"}
                 if has_alert:
                     allowed_events.add("event.alert")
 

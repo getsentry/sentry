@@ -7,7 +7,6 @@ import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Badge from 'app/components/badge';
 import Count from 'app/components/count';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import ErrorLevel from 'app/components/events/errorLevel';
@@ -23,10 +22,12 @@ import NavTabs from 'app/components/navTabs';
 import SeenByList from 'app/components/seenByList';
 import ShortId from 'app/components/shortId';
 import Tooltip from 'app/components/tooltip';
+import {IconChat} from 'app/icons';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Group, Project} from 'app/types';
+import {Event} from 'app/types/event';
 import {getMessage} from 'app/utils/events';
 import withApi from 'app/utils/withApi';
 
@@ -51,6 +52,7 @@ type Props = {
   group: Group;
   project: Project;
   api: Client;
+  event?: Event;
 };
 
 type MemberList = NonNullable<
@@ -81,7 +83,7 @@ class GroupHeader extends React.Component<Props, State> {
   }
 
   render() {
-    const {project, group, currentTab, baseUrl} = this.props;
+    const {project, group, currentTab, baseUrl, event} = this.props;
     const {organization, location} = this.context;
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
@@ -140,12 +142,7 @@ class GroupHeader extends React.Component<Props, State> {
             </TitleWrapper>
             <StyledTagAndMessageWrapper>
               {hasInbox && group.level && <ErrorLevel level={group.level} size="11px" />}
-              {group.isUnhandled &&
-                (hasInbox ? (
-                  <UnhandledInboxTag organization={organization} />
-                ) : (
-                  <UnhandledTag />
-                ))}
+              {group.isUnhandled && (hasInbox ? <UnhandledInboxTag /> : <UnhandledTag />)}
               <EventMessage
                 message={message}
                 level={hasInbox ? undefined : group.level}
@@ -188,7 +185,7 @@ class GroupHeader extends React.Component<Props, State> {
                         )}
                         position="bottom"
                       >
-                        <ExternalLink href="https://docs.sentry.io/learn/releases/#resolving-issues-via-commits">
+                        <ExternalLink href="https://docs.sentry.io/product/integrations/github/#resolve-via-commit-or-pull-request">
                           {t('Issue #')}
                         </ExternalLink>
                       </Tooltip>
@@ -245,6 +242,7 @@ class GroupHeader extends React.Component<Props, State> {
           group={group}
           project={project}
           disabled={isGroupBeingReprocessing}
+          event={event}
         />
         <NavTabs>
           <ListLink
@@ -254,20 +252,28 @@ class GroupHeader extends React.Component<Props, State> {
           >
             {t('Details')}
           </ListLink>
-          <ListLink
+          <StyledListLink
             to={`${baseUrl}activity/${location.search}`}
             isActive={() => currentTab === TAB.ACTIVITY}
             disabled={isGroupBeingReprocessing}
           >
-            {t('Activity')} <Badge text={group.numComments} />
-          </ListLink>
-          <ListLink
+            {t('Activity')} <TabCount>{group.numComments}</TabCount>
+            <IconChat
+              size="xs"
+              color={
+                group.subscriptionDetails?.reason === 'mentioned'
+                  ? 'green300'
+                  : 'purple300'
+              }
+            />
+          </StyledListLink>
+          <StyledListLink
             to={`${baseUrl}feedback/${location.search}`}
             isActive={() => currentTab === TAB.USER_FEEDBACK}
             disabled={isGroupBeingReprocessing}
           >
-            {t('User Feedback')} <Badge text={group.userReportCount} />
-          </ListLink>
+            {t('User Feedback')} <TabCount>{group.userReportCount}</TabCount>
+          </StyledListLink>
           {hasEventAttachments && (
             <ListLink
               to={`${baseUrl}attachments/${location.search}`}
@@ -336,6 +342,16 @@ const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     margin-bottom: ${space(2)};
   }
+`;
+
+const StyledListLink = styled(ListLink)`
+  svg {
+    margin-left: ${space(0.5)};
+  }
+`;
+
+const TabCount = styled('span')`
+  color: ${p => p.theme.purple300};
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`

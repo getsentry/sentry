@@ -2,7 +2,6 @@ import logging
 
 from uuid import uuid4
 
-import six
 from django.conf import settings
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -57,7 +56,7 @@ ERR_NOT_AUTHED = _("You must be authenticated to link accounts.")
 ERR_INVALID_IDENTITY = _("The provider did not return a valid user identity.")
 
 
-class RedisBackedState(object):
+class RedisBackedState:
     # Expire the pipeline after 10 minutes of inactivity.
     EXPIRATION_TTL = 10 * 60
 
@@ -73,7 +72,7 @@ class RedisBackedState(object):
         return self.request.session.get("auth_key")
 
     def regenerate(self, initial_state):
-        auth_key = "auth:pipeline:{}".format(uuid4().hex)
+        auth_key = f"auth:pipeline:{uuid4().hex}"
 
         self.request.session["auth_key"] = auth_key
         self.request.session.modified = True
@@ -444,6 +443,9 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
         op = None
 
     if not op:
+        # A blank character is needed to prevent the HTML span from collapsing
+        provider_name = auth_provider.get_provider().name if auth_provider else " "
+
         if request.user.is_authenticated():
             return respond(
                 "sentry/auth-confirm-link.html",
@@ -451,6 +453,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
                 request,
                 {
                     "identity": identity,
+                    "provider": provider_name,
                     "existing_user": request.user,
                     "identity_display_name": get_display_name(identity),
                     "identity_identifier": get_identifier(identity),
@@ -464,6 +467,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
             {
                 "existing_user": acting_user,
                 "identity": identity,
+                "provider": provider_name,
                 "login_form": login_form,
                 "identity_display_name": get_display_name(identity),
                 "identity_identifier": get_identifier(identity),
@@ -515,7 +519,7 @@ def handle_new_user(auth_provider, organization, request, identity):
     return auth_identity
 
 
-class AuthHelper(object):
+class AuthHelper:
     """
     Helper class which is passed into AuthView's.
 
@@ -651,7 +655,7 @@ class AuthHelper(object):
         try:
             identity = self.provider.build_identity(data)
         except IdentityNotValid as error:
-            return self.error(six.text_type(error) or ERR_INVALID_IDENTITY)
+            return self.error(str(error) or ERR_INVALID_IDENTITY)
 
         if self.state.flow == self.FLOW_LOGIN:
             # create identity and authenticate the user
@@ -679,9 +683,7 @@ class AuthHelper(object):
         auth_provider = self.auth_provider
         user_id = identity["id"]
 
-        lock = locks.get(
-            "sso:auth:{}:{}".format(auth_provider.id, md5_text(user_id).hexdigest()), duration=5
-        )
+        lock = locks.get(f"sso:auth:{auth_provider.id}:{md5_text(user_id).hexdigest()}", duration=5)
         with TimedRetryPolicy(5)(lock.acquire):
             try:
                 auth_identity = AuthIdentity.objects.select_related("user").get(
@@ -842,9 +844,7 @@ class AuthHelper(object):
             sample_rate=1.0,
         )
 
-        messages.add_message(
-            self.request, messages.ERROR, "Authentication error: {}".format(message)
-        )
+        messages.add_message(self.request, messages.ERROR, f"Authentication error: {message}")
 
         return HttpResponseRedirect(redirect_uri)
 

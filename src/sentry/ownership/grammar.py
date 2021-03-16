@@ -1,3 +1,4 @@
+import re
 from collections import namedtuple
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError  # noqa
@@ -20,7 +21,7 @@ rule = _ matcher owners
 
 matcher      = _ matcher_tag any_identifier
 matcher_tag  = (matcher_type sep)?
-matcher_type = "url" / "path" / event_tag
+matcher_type = "url" / "path" / "module" / event_tag
 
 event_tag   = ~r"tags.[^:]+"
 
@@ -88,7 +89,9 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         if self.type == "url":
             return self.test_url(data)
         elif self.type == "path":
-            return self.test_path(data)
+            return self.test_frames(data, ["filename", "abs_path"])
+        elif self.type == "module":
+            return self.test_frames(data, ["module"])
         elif self.type.startswith("tags."):
             return self.test_tag(data)
         return False
@@ -100,14 +103,14 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             return False
         return url and glob_match(url, self.pattern, ignorecase=True)
 
-    def test_path(self, data):
+    def test_frames(self, data, keys):
         for frame in _iter_frames(data):
-            filename = frame.get("filename") or frame.get("abs_path")
+            value = next((frame.get(key) for key in keys if frame.get(key)), None)
 
-            if not filename:
+            if not value:
                 continue
 
-            if glob_match(filename, self.pattern, ignorecase=True, path_normalize=True):
+            if glob_match(value, self.pattern, ignorecase=True, path_normalize=True):
                 return True
 
         return False
@@ -197,8 +200,7 @@ class OwnershipVisitor(NodeVisitor):
 
 def _iter_frames(data):
     try:
-        for frame in get_path(data, "stacktrace", "frames", filter=True) or ():
-            yield frame
+        yield from get_path(data, "stacktrace", "frames", filter=True) or ()
     except KeyError:
         pass
 
@@ -209,8 +211,7 @@ def _iter_frames(data):
 
     for value in values:
         try:
-            for frame in get_path(value, "stacktrace", "frames", filter=True) or ():
-                yield frame
+            yield from get_path(value, "stacktrace", "frames", filter=True) or ()
         except KeyError:
             continue
 
@@ -231,3 +232,50 @@ def load_schema(schema):
     if schema["$version"] != VERSION:
         raise RuntimeError("Invalid schema $version: %r" % schema["$version"])
     return [Rule.load(r) for r in schema["rules"]]
+
+
+def parse_code_owners(data):
+    """Parse a CODEOWNERS text and returns the list of team names, list of usernames"""
+    teams = []
+    usernames = []
+    emails = []
+    for rule in data.splitlines():
+        if rule.startswith("#") or not len(rule):
+            continue
+
+        _, *assignees = rule.strip().split()
+
+        for assignee in assignees:
+            if "/" not in assignee:
+                if re.match(r"[^@]+@[^@]+\.[^@]+", assignee):
+                    emails.append(assignee)
+                else:
+                    usernames.append(assignee)
+
+            else:
+                teams.append(assignee)
+
+    return teams, usernames, emails
+
+
+def convert_codeowners_syntax(data, associations, code_mapping):
+    """Converts CODEOWNERS text into IssueOwner syntax
+    data: CODEOWNERS text
+    associations: dict of {externalName: sentryName}
+    code_mapping: RepositoryProjectPathConfig object
+    """
+
+    result = ""
+
+    for rule in data.splitlines():
+        if rule.startswith("#") or not len(rule):
+            # We want to preserve comments from CODEOWNERS
+            result += f"{rule}\n"
+            continue
+
+        path, *codeowners = rule.split()
+        sentry_assignees = [associations[owner] for owner in codeowners]
+        formatted_path = path.replace(code_mapping.source_root, code_mapping.stack_root, 1)
+        result += f'path:{formatted_path} {" ".join(sentry_assignees)}\n'
+
+    return result

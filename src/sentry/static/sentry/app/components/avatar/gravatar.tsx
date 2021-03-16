@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 import * as qs from 'query-string';
 
 import ConfigStore from 'app/stores/configStore';
@@ -21,13 +20,6 @@ type State = {
 };
 
 class Gravatar extends React.Component<Props, State> {
-  static propTypes = {
-    remoteSize: PropTypes.number,
-    gravatarId: PropTypes.string,
-    placeholder: PropTypes.string,
-    round: PropTypes.bool,
-  };
-
   state = {
     MD5: undefined,
   };

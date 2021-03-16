@@ -13,7 +13,7 @@ COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
 
 def get_component_interaction_key(sentry_app, component_type):
-    return "%s:%s" % (sentry_app.slug, component_type)
+    return f"{sentry_app.slug}:{component_type}"
 
 
 class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
@@ -72,8 +72,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
             if component_type is None or component_type not in COMPONENT_TYPES:
                 return Response(
                     {
-                        "detail": "The field componentType is required and must be one of %s"
-                        % (COMPONENT_TYPES)
+                        "detail": f"The field componentType is required and must be one of {COMPONENT_TYPES}"
                     },
                     status=400,
                 )

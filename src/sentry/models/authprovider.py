@@ -40,7 +40,7 @@ class AuthProvider(Model):
 
     __repr__ = sane_repr("organization_id", "provider")
 
-    def __unicode__(self):
+    def __str__(self):
         return self.provider
 
     def get_provider(self):

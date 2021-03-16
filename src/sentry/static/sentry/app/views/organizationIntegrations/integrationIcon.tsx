@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import PluginIcon, {DEFAULT_ICON, ICON_PATHS} from 'app/plugins/components/pluginIcon';
 import {Integration} from 'app/types';
@@ -45,10 +44,5 @@ const IntegrationIcon = ({integration, size = 32}: Props) =>
   ) : (
     <PluginIcon size={size} pluginId={integration.provider.key} />
   );
-
-IntegrationIcon.propTypes = {
-  integration: PropTypes.object.isRequired,
-  size: PropTypes.number,
-};
 
 export default IntegrationIcon;

@@ -19,7 +19,7 @@ function Processings({unwind_status, debug_status}: Props) {
 
   if (debug_status) {
     items.push(
-      <ProcessingItem
+      <StyledProcessingItem
         key="symbolication"
         type="symbolication"
         icon={<ProcessingIcon status={debug_status} />}
@@ -29,7 +29,7 @@ function Processings({unwind_status, debug_status}: Props) {
 
   if (unwind_status) {
     items.push(
-      <ProcessingItem
+      <StyledProcessingItem
         key="stack_unwinding"
         type="stack_unwinding"
         icon={<ProcessingIcon status={unwind_status} />}
@@ -43,10 +43,15 @@ function Processings({unwind_status, debug_status}: Props) {
 export default Processings;
 
 const StyledProcessingList = styled(ProcessingList)`
-  grid-auto-flow: row;
-  grid-gap: ${space(1)};
+  display: flex;
+  flex-wrap: wrap;
+  grid-gap: 0;
+  margin-bottom: -${space(1)};
+`;
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-auto-flow: column;
+const StyledProcessingItem = styled(ProcessingItem)`
+  :not(:last-child) {
+    padding-right: ${space(2)};
   }
+  padding-bottom: ${space(1)};
 `;

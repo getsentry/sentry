@@ -12,15 +12,14 @@ enabled.
 
 import logging
 import requests
-import six
 import threading
 
 from requests_oauthlib import OAuth1
 from django.contrib.auth import authenticate
 from django.utils.crypto import get_random_string, constant_time_compare
-from six.moves.urllib.error import HTTPError
-from six.moves.urllib.request import Request
-from six.moves.urllib.parse import urlencode
+from urllib.error import HTTPError
+from urllib.request import Request
+from urllib.parse import urlencode
 from social_auth.models import UserSocialAuth
 from social_auth.utils import (
     setting,
@@ -64,7 +63,7 @@ PIPELINE = setting(
 logger = logging.getLogger("social_auth")
 
 
-class SocialAuthBackend(object):
+class SocialAuthBackend:
     """A django.contrib.auth backend that authenticates the user based on
     a authentication provider response"""
 
@@ -216,7 +215,7 @@ class OAuthBackend(SocialAuthBackend):
         names = (cls.EXTRA_DATA or []) + setting(name + "_EXTRA_DATA", [])
 
         for entry in names:
-            if isinstance(entry, six.string_types):
+            if isinstance(entry, str):
                 entry = (entry,)
 
             try:
@@ -235,12 +234,12 @@ class OAuthBackend(SocialAuthBackend):
                 data[alias] = value
 
             except (TypeError, ValueError):
-                raise BackendError("invalid entry: %s" % (entry,))
+                raise BackendError(f"invalid entry: {entry}")
 
         return data
 
 
-class BaseAuth(object):
+class BaseAuth:
     """Base authentication class, new authenticators should subclass
     and implement needed methods.
 
@@ -275,7 +274,7 @@ class BaseAuth(object):
             "next": next_idx,
             "backend": self.AUTH_BACKEND.name,
             "args": tuple(map(model_to_ctype, args)),
-            "kwargs": dict((key, model_to_ctype(val)) for key, val in six.iteritems(kwargs)),
+            "kwargs": {key: model_to_ctype(val) for key, val in kwargs.items()},
         }
 
     def from_session_dict(self, session_data, *args, **kwargs):
@@ -285,10 +284,8 @@ class BaseAuth(object):
         args = args[:] + tuple(map(ctype_to_model, session_data["args"]))
 
         kwargs = kwargs.copy()
-        saved_kwargs = dict(
-            (key, ctype_to_model(val)) for key, val in six.iteritems(session_data["kwargs"])
-        )
-        saved_kwargs.update((key, val) for key, val in six.iteritems(kwargs))
+        saved_kwargs = {key: ctype_to_model(val) for key, val in session_data["kwargs"].items()}
+        saved_kwargs.update((key, val) for key, val in kwargs.items())
         return (session_data["next"], args, saved_kwargs)
 
     def continue_pipeline(self, *args, **kwargs):
@@ -312,7 +309,7 @@ class BaseAuth(object):
         """
         backend_name = self.AUTH_BACKEND.name.upper().replace("-", "_")
         extra_arguments = setting(backend_name + "_AUTH_EXTRA_ARGUMENTS", {})
-        for key, value in six.iteritems(extra_arguments):
+        for key, value in extra_arguments.items():
             if key in self.data:
                 extra_arguments[key] = self.data[key]
             elif value:
@@ -371,7 +368,7 @@ class OAuthAuth(BaseAuth):
 
     def __init__(self, request, redirect):
         """Init method"""
-        super(OAuthAuth, self).__init__(request, redirect)
+        super().__init__(request, redirect)
         self.redirect_uri = self.build_absolute_uri(self.redirect)
 
     @classmethod
@@ -441,7 +438,7 @@ class BaseOAuth1(OAuthAuth):
             if not isinstance(unauthed_token, dict):
                 token = parse_qs(unauthed_token)
             if token.get("oauth_token") == self.data.get("oauth_token"):
-                unauthed_tokens = list(set(unauthed_tokens) - set([unauthed_token]))
+                unauthed_tokens = list(set(unauthed_tokens) - {unauthed_token})
                 self.request.session[name] = unauthed_tokens
                 self.request.session.modified = True
                 break
@@ -679,7 +676,7 @@ class BaseOAuth2(OAuthAuth):
         data = None
 
         if cls.REVOKE_TOKEN_METHOD == "GET":
-            url = "{}?{}".format(url, urlencode(params))
+            url = f"{url}?{urlencode(params)}"
         else:
             data = urlencode(params)
 

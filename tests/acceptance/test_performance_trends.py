@@ -1,6 +1,6 @@
 import pytz
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 from sentry.utils.compat.mock import patch
 
 from django.db.models import F
@@ -27,7 +27,7 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
             event.update(
                 {
                     "transaction": name,
-                    "event_id": "{:02x}".format(index).rjust(32, "0"),
+                    "event_id": f"{index:02x}".rjust(32, "0"),
                     "start_timestamp": iso_format(before_now(minutes=minutes, seconds=duration)),
                     "timestamp": iso_format(before_now(minutes=minutes)),
                 }
@@ -35,7 +35,7 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
             self.store_event(data=event, project_id=self.project.id)
 
     def setUp(self):
-        super(PerformanceTrendsTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
             organization=self.org, name="Mariachi Band", members=[self.user]

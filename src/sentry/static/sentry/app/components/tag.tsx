@@ -32,6 +32,10 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
    */
   to?: React.ComponentProps<typeof Link>['to'];
   /**
+   * Triggered when the item is clicked
+   */
+  onClick?: (eventKey: any) => void;
+  /**
    * Makes the tag clickable. Use for external links.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
    */
@@ -51,6 +55,7 @@ function Tag({
   icon,
   tooltipText,
   to,
+  onClick,
   href,
   onDismiss,
   children,
@@ -67,7 +72,9 @@ function Tag({
       <Background type={type}>
         {tagIcon()}
 
-        <Text maxWidth={textMaxWidth}>{children}</Text>
+        <Text type={type} maxWidth={textMaxWidth}>
+          {children}
+        </Text>
 
         {defined(onDismiss) && (
           <DismissButton
@@ -109,7 +116,13 @@ function Tag({
       return <ExternalLink href={href}>{tag}</ExternalLink>;
     }
 
-    if (defined(to)) {
+    if (defined(to) && defined(onClick)) {
+      return (
+        <Link to={to} onClick={onClick}>
+          {tag}
+        </Link>
+      );
+    } else if (defined(to)) {
       return <Link to={to}>{tag}</Link>;
     }
 
@@ -123,7 +136,7 @@ const TagWrapper = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const Background = styled('div')<{type: keyof Theme['tag']}>`
+export const Background = styled('div')<{type: keyof Theme['tag']}>`
   display: inline-flex;
   align-items: center;
   height: ${TAG_HEIGHT};
@@ -137,8 +150,8 @@ const IconWrapper = styled('span')`
   display: inline-flex;
 `;
 
-const Text = styled('span')<{maxWidth: number}>`
-  color: ${p => p.theme.gray500};
+const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
+  color: ${p => (p.type === 'black' ? p.theme.white : p.theme.gray500)};
   max-width: ${p => p.maxWidth}px;
   overflow: hidden;
   white-space: nowrap;

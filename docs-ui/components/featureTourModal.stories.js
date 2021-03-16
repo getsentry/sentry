@@ -1,14 +1,14 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
 
 import Button from 'app/components/button';
-import {IconEdit} from 'app/icons';
 import GlobalModal from 'app/components/globalModal';
 import FeatureTourModal from 'app/components/modals/featureTourModal';
+import {IconEdit} from 'app/icons';
 
 export default {
   title: 'Layouts/Modals',
+  component: FeatureTourModal,
 };
 
 const steps = [
@@ -32,21 +32,24 @@ const steps = [
   },
 ];
 
-export const FeatureTourModalBasics = withInfo('A feature tour with multiple steps')(
-  () => (
-    <div className="section">
-      <GlobalModal />
-      <FeatureTourModal
-        steps={steps}
-        onAdvance={action('onAdvance')}
-        onCloseModal={action('onCloseModal')}
-      >
-        {({showModal}) => <Button onClick={showModal}>Show tour</Button>}
-      </FeatureTourModal>
-    </div>
-  )
+export const FeatureTourModalBasics = () => (
+  <div className="section">
+    <GlobalModal />
+    <FeatureTourModal
+      steps={steps}
+      onAdvance={action('onAdvance')}
+      onCloseModal={action('onCloseModal')}
+    >
+      {({showModal}) => <Button onClick={showModal}>Show tour</Button>}
+    </FeatureTourModal>
+  </div>
 );
 
-FeatureTourModalBasics.story = {
-  name: 'FeatureTourModal',
+FeatureTourModalBasics.storyName = 'FeatureTourModal';
+FeatureTourModalBasics.parameters = {
+  docs: {
+    description: {
+      story: 'A feature tour with multiple steps',
+    },
+  },
 };

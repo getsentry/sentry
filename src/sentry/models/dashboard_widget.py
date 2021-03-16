@@ -1,4 +1,3 @@
-import six
 from django.db import models
 from django.utils import timezone
 
@@ -11,16 +10,16 @@ from sentry.db.models import (
 )
 
 
-class TypesClass(object):
+class TypesClass:
     TYPES = []
 
     @classmethod
     def as_choices(cls):
-        return [(k, six.text_type(v)) for k, v in cls.TYPES]
+        return [(k, str(v)) for k, v in cls.TYPES]
 
     @classmethod
     def as_text_choices(cls):
-        return [(six.text_type(v), six.text_type(v)) for _, v in cls.TYPES]
+        return [(str(v), str(v)) for _, v in cls.TYPES]
 
     @classmethod
     def get_type_name(cls, num):
@@ -42,6 +41,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
     BAR_CHART = 3
     TABLE = 4
     WORLD_MAP = 5
+    BIG_NUMBER = 6
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
@@ -49,6 +49,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (BAR_CHART, "bar"),
         (TABLE, "table"),
         (WORLD_MAP, "world_map"),
+        (BIG_NUMBER, "big_number"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -64,6 +65,9 @@ class DashboardWidgetQuery(Model):
     name = models.CharField(max_length=255)
     fields = ArrayField()
     conditions = models.TextField()
+    # Orderby condition for the query
+    orderby = models.TextField(default="")
+    # Order of the widget query in the widget.
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 

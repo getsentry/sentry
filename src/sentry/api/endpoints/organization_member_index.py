@@ -1,5 +1,3 @@
-import six
-
 from django.db import transaction
 from django.db.models import Q, F
 from rest_framework import serializers
@@ -11,6 +9,7 @@ from sentry import roles, features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models import organization_member as organization_member_serializers
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.validators import AllowedEmailField
 from sentry.models import (
@@ -112,10 +111,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         )
 
         query = request.GET.get("query")
-
         if query:
             tokens = tokenize_query(query)
-            for key, value in six.iteritems(tokens):
+            for key, value in tokens.items():
                 if key == "email":
                     queryset = queryset.filter(
                         Q(email__in=value)
@@ -161,10 +159,18 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 else:
                     queryset = queryset.none()
 
+        expand = request.GET.getlist("expand", [])
+
         return self.paginate(
             request=request,
             queryset=queryset,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(
+                x,
+                request.user,
+                serializer=organization_member_serializers.OrganizationMemberSerializer(
+                    expand=expand
+                ),
+            ),
             paginator_cls=OffsetPaginator,
         )
 
@@ -238,7 +244,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             om.save()
 
         if result["teams"]:
-            lock = locks.get("org:member:{}".format(om.id), duration=5)
+            lock = locks.get(f"org:member:{om.id}", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
                 save_team_assignments(om, result["teams"])
 

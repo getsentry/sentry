@@ -22,7 +22,7 @@ class TeamGroupsTrendingEndpoint(TeamEndpoint, EnvironmentMixin):
 
         project_list = Project.objects.get_for_user(user=request.user, team=team)
 
-        project_dict = dict((p.id, p) for p in project_list)
+        project_dict = {p.id: p for p in project_list}
 
         cutoff = timedelta(minutes=minutes)
         cutoff_dt = timezone.now() - cutoff
@@ -35,7 +35,7 @@ class TeamGroupsTrendingEndpoint(TeamEndpoint, EnvironmentMixin):
                 last_seen__gte=cutoff_dt,
             )
             .extra(select={"sort_value": sort_value})
-            .order_by("-{}".format(sort_value))[:limit]
+            .order_by(f"-{sort_value}")[:limit]
         )
 
         for group in group_list:

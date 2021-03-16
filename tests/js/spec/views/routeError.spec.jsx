@@ -5,8 +5,6 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {RouteError} from 'app/views/routeError';
 
-jest.mock('jquery');
-
 describe('RouteError', function () {
   afterEach(function () {
     Sentry.captureException.mockClear();

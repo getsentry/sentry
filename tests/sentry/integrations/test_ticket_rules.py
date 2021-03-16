@@ -26,7 +26,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         return self.mock_jira
 
     def setUp(self):
-        super(JiraTicketRulesTestCase, self).setUp()
+        super().setUp()
         self.project_name = "Jira Cloud"
         self.integration = Integration.objects.create(
             provider="jira",
@@ -78,6 +78,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 format="json",
                 data={
                     "name": "hello world",
+                    "owner": self.user.id,
                     "environment": None,
                     "actionMatch": "any",
                     "frequency": 5,

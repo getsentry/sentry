@@ -2,7 +2,6 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import $ from 'jquery';
 // eslint-disable-next-line no-restricted-imports
 import {Box} from 'reflexbox';
 
@@ -32,17 +31,19 @@ import {
   GlobalSelection,
   Group,
   GroupReprocessing,
+  InboxDetails,
   NewQuery,
   Organization,
   User,
 } from 'app/types';
 import {defined, percent, valueIsEqual} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import EventView from 'app/utils/discover/eventView';
 import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import {Query} from 'app/views/issueList/utils';
+import {getTabs, isForReviewQuery} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -59,8 +60,10 @@ const DiscoveryExclusionFields: string[] = [
   '__text',
 ];
 
+export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
+
 const defaultProps = {
-  statsPeriod: '24h',
+  statsPeriod: DEFAULT_STREAM_GROUP_STATS_PERIOD,
   canSelect: true,
   withChart: true,
   useFilteredStats: false,
@@ -74,6 +77,8 @@ type Props = {
   query?: string;
   hasGuideAnchor?: boolean;
   memberList?: User[];
+  onMarkReviewed?: (itemIds: string[]) => void;
+  showInboxTime?: boolean;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -144,22 +149,83 @@ class StreamGroup extends React.Component<Props, State> {
       // On the inbox tab and the inbox reason is removed
       const reviewed =
         state.reviewed ||
-        ((query === Query.FOR_REVIEW || query === Query.FOR_REVIEW_OWNER) &&
-          state.data.inbox?.reason !== undefined &&
+        (isForReviewQuery(query) &&
+          (state.data.inbox as InboxDetails)?.reason !== undefined &&
           data.inbox === false);
       return {data, reviewed};
     });
   }
 
+  /** Shared between two events */
+  sharedAnalytics() {
+    const {query, organization} = this.props;
+    const {data} = this.state;
+    const tab = getTabs(organization).find(([tabQuery]) => tabQuery === query)?.[1];
+    const owners = data?.owners || [];
+    return {
+      organization_id: organization.id,
+      group_id: data.id,
+      tab: tab?.analyticsName || 'other',
+      was_shown_suggestion: owners.length > 0,
+    };
+  }
+
+  trackClick = () => {
+    const {query, organization} = this.props;
+    const {data} = this.state;
+    if (isForReviewQuery(query)) {
+      trackAnalyticsEvent({
+        eventKey: 'inbox_tab.issue_clicked',
+        eventName: 'Clicked Issue from Inbox Tab',
+        organization_id: organization.id,
+        group_id: data.id,
+      });
+    }
+
+    if (query !== undefined) {
+      trackAnalyticsEvent({
+        eventKey: 'issues_stream.issue_clicked',
+        eventName: 'Clicked Issue from Issues Stream',
+        ...this.sharedAnalytics(),
+      });
+    }
+  };
+
+  trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] = (
+    type,
+    _assignee,
+    suggestedAssignee
+  ) => {
+    const {query} = this.props;
+    if (query !== undefined) {
+      trackAnalyticsEvent({
+        eventKey: 'issues_stream.issue_assigned',
+        eventName: 'Assigned Issue from Issues Stream',
+        ...this.sharedAnalytics(),
+        did_assign_suggestion: !!suggestedAssignee,
+        assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
+        assigned_type: type,
+      });
+    }
+  };
+
   toggleSelect = (evt: React.MouseEvent<HTMLDivElement>) => {
-    if ((evt.target as HTMLElement)?.tagName === 'A') {
+    const targetElement = evt.target as Partial<HTMLElement>;
+
+    if (targetElement?.tagName?.toLowerCase() === 'a') {
       return;
     }
-    if ((evt.target as HTMLElement)?.tagName === 'INPUT') {
+
+    if (targetElement?.tagName?.toLowerCase() === 'input') {
       return;
     }
-    if ($(evt.target).parents('a').length !== 0) {
-      return;
+
+    let e = targetElement;
+    while (e.parentElement) {
+      if (e?.tagName?.toLowerCase() === 'a') {
+        return;
+      }
+      e = e.parentElement!;
     }
 
     SelectedGroupStore.toggleSelect(this.state.data.id);
@@ -275,6 +341,8 @@ class StreamGroup extends React.Component<Props, State> {
       selection,
       organization,
       displayReprocessingLayout,
+      showInboxTime,
+      onMarkReviewed,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -318,8 +386,14 @@ class StreamGroup extends React.Component<Props, State> {
             data={data}
             query={query}
             size="normal"
+            onClick={this.trackClick}
           />
-          <EventOrGroupExtraDetails organization={organization} data={data} />
+          <EventOrGroupExtraDetails
+            hasGuideAnchor={hasGuideAnchor}
+            organization={organization}
+            data={data}
+            showInboxTime={showInboxTime}
+          />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && !displayReprocessingLayout && (
@@ -464,7 +538,11 @@ class StreamGroup extends React.Component<Props, State> {
               )}
             </EventUserWrapper>
             <AssigneeWrapper className="hidden-xs hidden-sm">
-              <AssigneeSelector id={data.id} memberList={memberList} />
+              <AssigneeSelector
+                id={data.id}
+                memberList={memberList}
+                onAssign={this.trackAssign}
+              />
             </AssigneeWrapper>
             {canSelect && hasInbox && (
               <ActionsWrapper>
@@ -472,6 +550,7 @@ class StreamGroup extends React.Component<Props, State> {
                   group={data}
                   orgId={organization.slug}
                   selection={selection}
+                  onMarkReviewed={onMarkReviewed}
                   query={query}
                 />
               </ActionsWrapper>
@@ -497,6 +576,26 @@ const Wrapper = styled(PanelItem)<{reviewed: boolean; hasInbox: boolean}>`
     p.reviewed &&
     css`
       animation: tintRow 0.2s linear forwards;
+      position: relative;
+
+      /*
+       * A mask that fills the entire row and makes the text opaque. Doing this because
+       * opacity adds a stacking context in CSS so we need to apply it to another element.
+       */
+      &:after {
+        content: '';
+        pointer-events: none;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        background-color: ${p.theme.bodyBackground};
+        opacity: 0.4;
+        z-index: 1;
+      }
 
       @keyframes tintRow {
         0% {

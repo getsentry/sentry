@@ -19,7 +19,7 @@ HistogramSpec = namedtuple("HistogramSpec", ["start", "end", "fields"])
 
 class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsHistogramEndpointTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.data = load_data("transaction")
 
@@ -38,7 +38,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                     data["timestamp"] = iso_format(start)
                     data["start_timestamp"] = iso_format(start - timedelta(seconds=i))
                     value = random.random() * (spec.end - spec.start) + spec.start
-                    data["transaction"] = "/measurement/{}/value/{}".format(measurement, value)
+                    data["transaction"] = f"/measurement/{measurement}/value/{value}"
 
                     data["measurements"] = {measurement: {"value": value}}
                     self.store_event(data, self.project.id)

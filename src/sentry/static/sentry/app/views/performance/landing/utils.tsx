@@ -2,7 +2,8 @@ import {Location} from 'history';
 
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {backend, frontend} from 'app/data/platformCategories';
-import {Organization, Project} from 'app/types';
+import {t} from 'app/locale';
+import {LightWeightOrganization, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, Column} from 'app/utils/discover/fields';
 import {
@@ -11,10 +12,11 @@ import {
   formatPercentage,
   getDuration,
 } from 'app/utils/formatters';
+import {HistogramData} from 'app/utils/performance/histogram/types';
 import {decodeScalar} from 'app/utils/queryString';
 
-import {AxisOption} from '../data';
-import {HistogramData, Rectangle} from '../transactionVitals/types';
+import {AxisOption, getTermHelp, PERFORMANCE_TERM} from '../data';
+import {Rectangle} from '../transactionVitals/types';
 
 export const LEFT_AXIS_QUERY_KEY = 'left';
 export const RIGHT_AXIS_QUERY_KEY = 'right';
@@ -27,13 +29,13 @@ type LandingDisplay = {
 export enum LandingDisplayField {
   ALL = 'all',
   FRONTEND_PAGELOAD = 'frontend_pageload',
-  FRONTEND_NAVIGATION = 'frontend_navigation',
+  FRONTEND_OTHER = 'frontend_other',
   BACKEND = 'backend',
 }
 
 export const LANDING_DISPLAYS = [
   {
-    label: 'All',
+    label: 'All Transactions',
     field: LandingDisplayField.ALL,
   },
   {
@@ -41,8 +43,8 @@ export const LANDING_DISPLAYS = [
     field: LandingDisplayField.FRONTEND_PAGELOAD,
   },
   {
-    label: 'Frontend (Navigation)',
-    field: LandingDisplayField.FRONTEND_NAVIGATION,
+    label: 'Frontend (Other)',
+    field: LandingDisplayField.FRONTEND_OTHER,
   },
   {
     label: 'Backend',
@@ -68,10 +70,7 @@ export function getCurrentLandingDisplay(
   return defaultDisplay || LANDING_DISPLAYS[0];
 }
 
-export function getChartWidth(
-  chartData: HistogramData[],
-  refPixelRect: Rectangle | null
-) {
+export function getChartWidth(chartData: HistogramData, refPixelRect: Rectangle | null) {
   const distance = refPixelRect ? refPixelRect.point2.x - refPixelRect.point1.x : 0;
   const chartWidth = chartData.length * distance;
 
@@ -139,27 +138,29 @@ export function getDefaultDisplayFieldForPlatform(
   return LandingDisplayField.ALL;
 }
 
-export const backendCardDetails = {
-  p75: {
-    title: 'Duration (p75)',
-    tooltip: 'Duration (p75)',
-    formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
-  },
-  tpm: {
-    title: 'Throughput',
-    tooltip: 'Throughput',
-    formatter: formatAbbreviatedNumber,
-  },
-  failure_rate: {
-    title: 'Failure Rate',
-    tooltip: 'Failure Rate',
-    formatter: value => formatPercentage(value, 2),
-  },
-  apdex: {
-    title: 'Apdex',
-    tooltip: 'Apdex',
-    formatter: value => formatFloat(value, 4),
-  },
+export const backendCardDetails = (organization: LightWeightOrganization) => {
+  return {
+    p75: {
+      title: t('Duration (p75)'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
+      formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
+    },
+    tpm: {
+      title: t('Throughput'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.THROUGHPUT),
+      formatter: formatAbbreviatedNumber,
+    },
+    failure_rate: {
+      title: t('Failure Rate'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
+      formatter: value => formatPercentage(value, 2),
+    },
+    apdex: {
+      title: t('Apdex'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      formatter: value => formatFloat(value, 4),
+    },
+  };
 };
 
 export function getDisplayAxes(options: AxisOption[], location: Location) {

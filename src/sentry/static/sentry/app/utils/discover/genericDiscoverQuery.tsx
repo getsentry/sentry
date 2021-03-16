@@ -3,6 +3,7 @@ import {Location} from 'history';
 
 import {EventQuery} from 'app/actionCreators/events';
 import {Client} from 'app/api';
+import {t} from 'app/locale';
 import EventView, {
   isAPIPayloadSimilar,
   LocationQuery,
@@ -185,7 +186,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
         tableData,
       }));
     } catch (err) {
-      const error = err?.responseJSON?.detail ?? null;
+      const error = err?.responseJSON?.detail || t('An unknown error occurred.');
       this.setState({
         isLoading: false,
         tableFetchID: undefined,
@@ -212,12 +213,12 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
   }
 }
 
-type RequestParameters = Partial<EventQuery & LocationQuery>;
+export type DiscoverQueryRequestParams = Partial<EventQuery & LocationQuery>;
 
 export async function doDiscoverQuery<T>(
   api: Client,
   url: string,
-  params: RequestParameters
+  params: DiscoverQueryRequestParams
 ): Promise<[T, string | undefined, JQueryXHR | undefined]> {
   return api.requestPromise(url, {
     method: 'GET',

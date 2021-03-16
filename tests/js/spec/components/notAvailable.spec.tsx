@@ -9,4 +9,10 @@ describe('NotAvailable', function () {
     const wrapper = mountWithTheme(<NotAvailable />);
     expect(wrapper.text()).toEqual('\u2014');
   });
+
+  it('renders with tooltip', function () {
+    const wrapper = mountWithTheme(<NotAvailable tooltip="Tooltip text" />);
+    expect(wrapper.text()).toEqual('\u2014');
+    expect(wrapper.find('Tooltip').prop('title')).toBe('Tooltip text');
+  });
 });

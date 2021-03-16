@@ -13,11 +13,13 @@ import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Confirm from 'app/components/confirm';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import SearchBar from 'app/components/events/searchBar';
 import * as Layout from 'app/components/layouts/thirds';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {MAX_QUERY_LENGTH} from 'app/constants';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
@@ -32,7 +34,6 @@ import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import SearchBar from 'app/views/events/searchBar';
 
 import {addRoutePerformanceContext} from '../performance/utils';
 
@@ -69,7 +70,7 @@ function readShowTagsState() {
 }
 
 class Results extends React.Component<Props, State> {
-  static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     const eventView = EventView.fromLocation(nextProps.location);
     return {...prevState, eventView};
   }
@@ -209,7 +210,7 @@ class Results extends React.Component<Props, State> {
       nextEventView.project = selection.projects;
     }
     if (location.query?.query) {
-      nextEventView.query = decodeScalar(location.query.query) || '';
+      nextEventView.query = decodeScalar(location.query.query, '');
     }
 
     ReactRouter.browserHistory.replace(
@@ -383,11 +384,11 @@ class Results extends React.Component<Props, State> {
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query, '');
     const title = this.getDocumentTitle();
 
     return (
-      <SentryDocumentTitle title={title} objSlug={organization.slug}>
+      <SentryDocumentTitle title={title} orgSlug={organization.slug}>
         <StyledPageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <ResultsHeader
@@ -407,6 +408,7 @@ class Results extends React.Component<Props, State> {
                   query={query}
                   fields={fields}
                   onSearch={this.handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
                 />
                 <ResultsChart
                   router={router}

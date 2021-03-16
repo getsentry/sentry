@@ -1,7 +1,6 @@
 import unittest
 from datetime import timedelta
 
-import six
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -413,7 +412,7 @@ class AlertRuleFetchForOrganizationTest(TestCase):
         assert [alert_rule1] == list(
             AlertRule.objects.fetch_for_organization(self.organization, [self.project])
         )
-        assert set([alert_rule1, alert_rule2]) == set(
+        assert {alert_rule1, alert_rule2} == set(
             AlertRule.objects.fetch_for_organization(self.organization, [project])
         )
 
@@ -422,7 +421,7 @@ class AlertRuleTriggerActionTargetTest(TestCase):
     def test_user(self):
         trigger = AlertRuleTriggerAction(
             target_type=AlertRuleTriggerAction.TargetType.USER.value,
-            target_identifier=six.text_type(self.user.id),
+            target_identifier=str(self.user.id),
         )
         assert trigger.target == self.user
 
@@ -435,7 +434,7 @@ class AlertRuleTriggerActionTargetTest(TestCase):
     def test_team(self):
         trigger = AlertRuleTriggerAction(
             target_type=AlertRuleTriggerAction.TargetType.TEAM.value,
-            target_identifier=six.text_type(self.team.id),
+            target_identifier=str(self.team.id),
         )
         assert trigger.target == self.team
 
@@ -453,7 +452,7 @@ class AlertRuleTriggerActionTargetTest(TestCase):
         assert trigger.target == email
 
 
-class AlertRuleTriggerActionActivateTest(object):
+class AlertRuleTriggerActionActivateTest:
     method = None
 
     def setUp(self):
@@ -465,7 +464,7 @@ class AlertRuleTriggerActionActivateTest(object):
 
     def test_no_handler(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        assert trigger.fire(Mock(), Mock(), 123) is None
+        assert trigger.fire(Mock(), Mock(), Mock(), 123) is None
 
     def test_handler(self):
         mock_handler = Mock()
@@ -474,7 +473,9 @@ class AlertRuleTriggerActionActivateTest(object):
         type = AlertRuleTriggerAction.Type.EMAIL
         AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
         trigger = AlertRuleTriggerAction(type=type.value)
-        assert getattr(trigger, self.method)(Mock(), Mock(), 123) == mock_method.return_value
+        assert (
+            getattr(trigger, self.method)(Mock(), Mock(), Mock(), 123) == mock_method.return_value
+        )
 
 
 class AlertRuleTriggerActionFireTest(AlertRuleTriggerActionActivateTest, unittest.TestCase):
@@ -497,7 +498,7 @@ class AlertRuleTriggerActionActivateTest(TestCase):
 
     def test_unhandled(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        trigger.build_handler(Mock(), Mock())
+        trigger.build_handler(Mock(), Mock(), Mock())
         self.metrics.incr.assert_called_once_with("alert_rule_trigger.unhandled_type.0")
 
     def test_handled(self):
@@ -508,7 +509,7 @@ class AlertRuleTriggerActionActivateTest(TestCase):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
         incident = Mock()
         project = Mock()
-        trigger.build_handler(incident, project)
+        trigger.build_handler(trigger, incident, project)
         mock_handler.assert_called_once_with(trigger, incident, project)
         assert not self.metrics.incr.called
 

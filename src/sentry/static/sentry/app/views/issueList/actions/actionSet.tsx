@@ -6,6 +6,7 @@ import ActionLink from 'app/components/actions/actionLink';
 import ActionButton from 'app/components/actions/button';
 import IgnoreActions from 'app/components/actions/ignore';
 import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import DropdownLink from 'app/components/dropdownLink';
 import Tooltip from 'app/components/tooltip';
 import {IconEllipsis, IconPause, IconPlay} from 'app/icons';
@@ -14,7 +15,7 @@ import space from 'app/styles/space';
 import {Organization, Project, ResolutionStatus} from 'app/types';
 import Projects from 'app/utils/projects';
 
-import {Query} from '../utils';
+import {isForReviewQuery} from '../utils';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
@@ -36,6 +37,8 @@ type Props = {
   onUpdate: (data?: any) => void;
   selectedProjectSlug?: string;
   hasInbox?: boolean;
+  inboxGuideActiveReview: boolean;
+  inboxGuideActiveIgnore: boolean;
 };
 
 function ActionSet({
@@ -54,6 +57,8 @@ function ActionSet({
   onMerge,
   selectedProjectSlug,
   hasInbox,
+  inboxGuideActiveReview,
+  inboxGuideActiveIgnore,
 }: Props) {
   const numIssues = issues.size;
   const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
@@ -66,13 +71,19 @@ function ActionSet({
   return (
     <Wrapper hasInbox={hasInbox}>
       {hasInbox && (
-        <div className="hidden-sm hidden-xs">
-          <ReviewAction
-            primary={query === Query.FOR_REVIEW || query === Query.FOR_REVIEW_OWNER}
-            disabled={!anySelected}
-            onUpdate={onUpdate}
-          />
-        </div>
+        <GuideAnchor
+          target="inbox_guide_review"
+          disabled={!inboxGuideActiveReview}
+          position="bottom"
+        >
+          <div className="hidden-sm hidden-xs">
+            <ReviewAction
+              primary={isForReviewQuery(query)}
+              disabled={!anySelected}
+              onUpdate={onUpdate}
+            />
+          </div>
+        </GuideAnchor>
       )}
       {selectedProjectSlug ? (
         <Projects orgId={orgSlug} slugs={[selectedProjectSlug]}>
@@ -117,13 +128,19 @@ function ActionSet({
         />
       )}
 
-      <IgnoreActions
-        onUpdate={onUpdate}
-        shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-        confirmMessage={confirm(ConfirmAction.IGNORE, true)}
-        confirmLabel={label('ignore')}
-        disabled={!anySelected}
-      />
+      <GuideAnchor
+        target="inbox_guide_ignore"
+        disabled={!inboxGuideActiveIgnore}
+        position="bottom"
+      >
+        <IgnoreActions
+          onUpdate={onUpdate}
+          shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
+          confirmMessage={confirm(ConfirmAction.IGNORE, true)}
+          confirmLabel={label('ignore')}
+          disabled={!anySelected}
+        />
+      </GuideAnchor>
 
       <div className="hidden-md hidden-sm hidden-xs">
         <ActionLink

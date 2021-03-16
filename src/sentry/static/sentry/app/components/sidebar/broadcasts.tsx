@@ -2,7 +2,9 @@ import React from 'react';
 
 import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadcasts';
 import {Client} from 'app/api';
+import DemoModeGate from 'app/components/acl/demoModeGate';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import BroadcastSdkUpdates from 'app/components/sidebar/broadcastSdkUpdates';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
@@ -12,7 +14,7 @@ import {t} from 'app/locale';
 import {Broadcast, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 
-import {CommonSidebarProps} from './types';
+import {CommonSidebarProps, SidebarPanelKey} from './types';
 
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 600000; // 10 minute poll (60 * 10 * 1000)
@@ -114,54 +116,57 @@ class Broadcasts extends React.Component<Props, State> {
   }
 
   render() {
-    const {orientation, collapsed, currentPanel, showPanel, hidePanel} = this.props;
+    const {orientation, collapsed, currentPanel, hidePanel} = this.props;
     const {broadcasts, loading} = this.state;
 
     const unseenPosts = this.unseenIds;
 
     return (
-      <React.Fragment>
-        <SidebarItem
-          data-test-id="sidebar-broadcasts"
-          orientation={orientation}
-          collapsed={collapsed}
-          active={currentPanel === 'broadcasts'}
-          badge={unseenPosts.length}
-          icon={<IconBroadcast size="md" />}
-          label={t("What's new")}
-          onClick={this.handleShowPanel}
-          id="broadcasts"
-        />
-
-        {showPanel && currentPanel === 'broadcasts' && (
-          <SidebarPanel
-            data-test-id="sidebar-broadcasts-panel"
+      <DemoModeGate>
+        <React.Fragment>
+          <SidebarItem
+            data-test-id="sidebar-broadcasts"
             orientation={orientation}
             collapsed={collapsed}
-            title={t("What's new in Sentry")}
-            hidePanel={hidePanel}
-          >
-            {loading ? (
-              <LoadingIndicator />
-            ) : broadcasts.length === 0 ? (
-              <SidebarPanelEmpty>
-                {t('No recent updates from the Sentry team.')}
-              </SidebarPanelEmpty>
-            ) : (
-              broadcasts.map(item => (
-                <SidebarPanelItem
-                  key={item.id}
-                  hasSeen={item.hasSeen}
-                  title={item.title}
-                  message={item.message}
-                  link={item.link}
-                  cta={item.cta}
-                />
-              ))
-            )}
-          </SidebarPanel>
-        )}
-      </React.Fragment>
+            active={currentPanel === SidebarPanelKey.Broadcasts}
+            badge={unseenPosts.length}
+            icon={<IconBroadcast size="md" />}
+            label={t("What's new")}
+            onClick={this.handleShowPanel}
+            id="broadcasts"
+          />
+
+          {currentPanel === SidebarPanelKey.Broadcasts && (
+            <SidebarPanel
+              data-test-id="sidebar-broadcasts-panel"
+              orientation={orientation}
+              collapsed={collapsed}
+              title={t("What's new in Sentry")}
+              hidePanel={hidePanel}
+            >
+              <BroadcastSdkUpdates />
+              {loading ? (
+                <LoadingIndicator />
+              ) : broadcasts.length === 0 ? (
+                <SidebarPanelEmpty>
+                  {t('No recent updates from the Sentry team.')}
+                </SidebarPanelEmpty>
+              ) : (
+                broadcasts.map(item => (
+                  <SidebarPanelItem
+                    key={item.id}
+                    hasSeen={item.hasSeen}
+                    title={item.title}
+                    message={item.message}
+                    link={item.link}
+                    cta={item.cta}
+                  />
+                ))
+              )}
+            </SidebarPanel>
+          )}
+        </React.Fragment>
+      </DemoModeGate>
     );
   }
 }

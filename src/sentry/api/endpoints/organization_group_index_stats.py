@@ -1,6 +1,3 @@
-import six
-
-
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.response import Response
 
@@ -56,14 +53,11 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
         try:
             start, end = get_date_range_from_params(request.GET)
         except InvalidParams as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", ["base"])
         has_inbox = features.has("organizations:inbox", organization, actor=request.user)
-        has_workflow_owners = features.has(
-            "organizations:workflow-owners", organization=organization, actor=request.user
-        )
         projects = self.get_projects(request, organization)
         project_ids = [p.id for p in projects]
 
@@ -107,7 +101,6 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
                 collapse=collapse,
                 expand=expand,
                 has_inbox=has_inbox,
-                has_workflow_owners=has_workflow_owners,
                 start=start,
                 end=end,
                 search_filters=query_kwargs["search_filters"]

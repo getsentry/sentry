@@ -7,7 +7,15 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
-from sentry.models import AuditLogEntryEvent, Rule, RuleActivity, RuleActivityType, RuleStatus
+from sentry.models import (
+    AuditLogEntryEvent,
+    Rule,
+    RuleActivity,
+    RuleActivityType,
+    RuleStatus,
+    Team,
+    User,
+)
 from sentry.web.decorators import transaction_start
 
 
@@ -15,9 +23,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
     def convert_args(self, request, rule_id, *args, **kwargs):
-        args, kwargs = super(ProjectRuleDetailsEndpoint, self).convert_args(
-            request, *args, **kwargs
-        )
+        args, kwargs = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
 
         if not rule_id.isdigit():
@@ -84,6 +90,15 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
                 "actions": data["actions"],
                 "frequency": data.get("frequency"),
             }
+            owner = data.get("owner")
+            if owner:
+                try:
+                    kwargs["owner"] = owner.resolve_to_actor().id
+                except (User.DoesNotExist, Team.DoesNotExist):
+                    return Response(
+                        "Could not resolve owner",
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
             if data.get("pending_save"):
                 client = tasks.RedisRuleStatus()

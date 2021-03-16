@@ -17,7 +17,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type:error", "fields": ["count()"]}
             ],
         }
-        response = self.client.post(
+        response = self.do_request(
+            "post",
             self.url(),
             data=data,
         )
@@ -35,7 +36,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type: tag:foo", "fields": ["count()"]}
             ],
         }
-        response = self.client.post(
+        response = self.do_request(
+            "post",
             self.url(),
             data=data,
         )
@@ -55,7 +57,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type:error", "fields": ["p95(user)"]}
             ],
         }
-        response = self.client.post(
+        response = self.do_request(
+            "post",
             self.url(),
             data=data,
         )
@@ -71,9 +74,51 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type:error", "fields": ["count()"]}
             ],
         }
-        response = self.client.post(
+        response = self.do_request(
+            "post",
             self.url(),
             data=data,
         )
         assert response.status_code == 400, response.data
         assert "displayType" in response.data, response.data
+
+    def test_valid_epm_widget(self):
+        data = {
+            "title": "EPM Big Number",
+            "displayType": "big_number",
+            "queries": [{"name": "", "fields": ["epm()"], "conditions": "", "orderby": ""}],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_project_search_condition(self):
+        self.user = self.create_user(is_superuser=False)
+        self.project = self.create_project(
+            name="foo", organization=self.organization, teams=[self.team]
+        )
+        self.create_member(
+            user=self.user, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(self.user)
+        data = {
+            "title": "EPM Big Number",
+            "displayType": "big_number",
+            "queries": [
+                {
+                    "name": "",
+                    "fields": ["epm()"],
+                    "conditions": f"project:{self.project.name}",
+                    "orderby": "",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data

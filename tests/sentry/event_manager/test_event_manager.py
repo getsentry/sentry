@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import logging
 from sentry.utils.compat import mock
 import pytest
@@ -45,6 +42,7 @@ from sentry.models import (
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
+from sentry.testutils.helpers import Feature
 from sentry.ingest.inbound_filters import FilterStatKeys
 
 
@@ -588,6 +586,47 @@ class EventManagerTest(TestCase):
         assert event1.transaction is None
         assert event1.culprit == "foobar"
 
+    def test_culprit_after_stacktrace_processing(self):
+        from sentry.grouping.enhancer import Enhancements
+
+        enhancement = Enhancements.from_config_string(
+            """
+            function:in_app_function +app
+            function:not_in_app_function -app
+            """,
+        )
+
+        manager = EventManager(
+            make_event(
+                platform="native",
+                exception={
+                    "values": [
+                        {
+                            "type": "Hello",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "not_in_app_function",
+                                    },
+                                    {
+                                        "function": "in_app_function",
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+            )
+        )
+        manager.normalize()
+        manager.get_data()["grouping_config"] = {
+            "enhancements": enhancement.dumps(),
+            "id": "legacy:2019-03-12",
+        }
+        event1 = manager.save(1)
+        assert event1.transaction is None
+        assert event1.culprit == "in_app_function"
+
     def test_inferred_culprit_from_empty_stacktrace(self):
         manager = EventManager(make_event(stacktrace={"frames": []}))
         manager.normalize()
@@ -634,16 +673,16 @@ class EventManagerTest(TestCase):
         project = self.create_project(name="foo")
         partial_version_len = MAX_VERSION_LENGTH - 4
         release = Release.objects.create(
-            version="foo-%s" % ("a" * partial_version_len,), organization=project.organization
+            version="foo-{}".format("a" * partial_version_len), organization=project.organization
         )
         release.add_project(project)
 
         event = self.make_release_event("a" * partial_version_len, project.id)
 
         group = event.group
-        assert group.first_release.version == "foo-%s" % ("a" * partial_version_len,)
+        assert group.first_release.version == "foo-{}".format("a" * partial_version_len)
         release_tag = [v for k, v in event.tags if k == "sentry:release"][0]
-        assert release_tag == "foo-%s" % ("a" * partial_version_len,)
+        assert release_tag == "foo-{}".format("a" * partial_version_len)
 
     def test_group_release_no_env(self):
         project_id = 1
@@ -1503,3 +1542,10 @@ class ReleaseIssueTest(TestCase):
             last_seen=self.timestamp + 100,
             first_seen=self.timestamp + 100,
         )
+
+
+class RaceFreeEventManagerTest(EventManagerTest):
+    @pytest.fixture(autouse=True)
+    def _save_aggregate_parameterized(self):
+        with Feature({"projects:race-free-group-creation": True}):
+            yield

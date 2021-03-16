@@ -5,7 +5,7 @@ import * as queryString from 'query-string';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import {tct} from 'app/locale';
-import {IntegrationIssueConfig, IssueConfigField} from 'app/types';
+import {Choices, IntegrationIssueConfig, IssueConfigField} from 'app/types';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 import {FieldValue} from 'app/views/settings/components/forms/model';
@@ -26,6 +26,8 @@ type State = {
    * `integrationDetails` when it loads. Null until set.
    */
   dynamicFieldValues: {[key: string]: FieldValue | null} | null;
+  /** Cache of options fetched for async fields. */
+  fetchedFieldOptionsCache: Record<string, Choices>;
 } & AsyncComponent['state'];
 
 const DEBOUNCE_MS = 200;
@@ -43,6 +45,7 @@ export default class AbstractExternalIssueForm<
       ...super.getDefaultState(),
       action: 'create',
       dynamicFieldValues: null,
+      fetchedFieldOptionsCache: {},
       integrationDetails: null,
     };
   }
@@ -126,11 +129,18 @@ export default class AbstractExternalIssueForm<
     }
   };
 
+  /** For fields with dynamic fields, cache the fetched choices. */
   updateFetchedFieldOptionsCache = (
-    _field: IssueConfigField,
-    _result: {value: string; label: string}[]
+    field: IssueConfigField,
+    result: {value: string; label: string}[]
   ): void => {
-    // Do nothing.
+    const {fetchedFieldOptionsCache} = this.state;
+    this.setState({
+      fetchedFieldOptionsCache: {
+        ...fetchedFieldOptionsCache,
+        [field.name]: result.map(obj => [obj.value, obj.label]),
+      },
+    });
   };
 
   /**
@@ -141,10 +151,7 @@ export default class AbstractExternalIssueForm<
   getOptions = (field: IssueConfigField, input: string) =>
     new Promise((resolve, reject) => {
       if (!input) {
-        const choices =
-          (field.choices as Array<[number | string, number | string]>) || [];
-        const options = choices.map(([value, label]) => ({value, label}));
-        return resolve(options);
+        return resolve(this.getDefaultOptions(field));
       }
       return this.debouncedOptionLoad(field, input, (err, result) => {
         if (err) {
@@ -184,16 +191,23 @@ export default class AbstractExternalIssueForm<
     {trailing: true}
   );
 
+  getDefaultOptions = (field: IssueConfigField) => {
+    const choices = (field.choices as Array<[number | string, number | string]>) || [];
+    return choices.map(([value, label]) => ({value, label}));
+  };
+
+  /** If this field is an async select (field.url is not null), add async props. */
   getFieldProps = (field: IssueConfigField) =>
     field.url
       ? {
-          loadOptions: (input: string) => this.getOptions(field, input),
           async: true,
-          cache: false,
-          onSelectResetsInput: false,
-          onCloseResetsInput: false,
-          onBlurResetsInput: false,
           autoload: true,
+          cache: false,
+          loadOptions: (input: string) => this.getOptions(field, input),
+          defaultOptions: this.getDefaultOptions(field),
+          onBlurResetsInput: false,
+          onCloseResetsInput: false,
+          onSelectResetsInput: false,
         }
       : {};
 
@@ -201,9 +215,9 @@ export default class AbstractExternalIssueForm<
   handleReceiveIntegrationDetails = (_data: any) => {
     // Do nothing.
   };
-  getEndPointString = (): string => {
+  getEndPointString(): string {
     throw new Error("Method 'getEndPointString()' must be implemented.");
-  };
+  }
   renderNavTabs = (): React.ReactNode => null;
   renderBodyText = (): React.ReactNode => null;
   getTitle = () => tct('Issue Link Settings', {});
@@ -218,6 +232,21 @@ export default class AbstractExternalIssueForm<
       submitDisabled: this.state.reloading,
       // Other form props implemented by child classes.
     };
+  };
+
+  getCleanedFields = (): IssueConfigField[] => {
+    const {fetchedFieldOptionsCache, integrationDetails} = this.state;
+
+    const configsFromAPI = (integrationDetails || {})[this.getConfigName()];
+    return (configsFromAPI || []).map(field => {
+      const fieldCopy = {...field};
+      // Overwrite choices from cache.
+      if (fetchedFieldOptionsCache?.hasOwnProperty(field.name)) {
+        fieldCopy.choices = fetchedFieldOptionsCache[field.name];
+      }
+
+      return fieldCopy;
+    });
   };
 
   renderComponent() {

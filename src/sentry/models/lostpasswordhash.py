@@ -26,7 +26,7 @@ class LostPasswordHash(Model):
     def save(self, *args, **kwargs):
         if not self.hash:
             self.set_hash()
-        super(LostPasswordHash, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def set_hash(self):
         from django.utils.crypto import get_random_string
@@ -60,8 +60,8 @@ class LostPasswordHash(Model):
 
         msg = MessageBuilder(
             subject="{}Password Recovery".format(options.get("mail.subject-prefix")),
-            template="sentry/emails/{name}.txt".format(name=template),
-            html_template="sentry/emails/{name}.html".format(name=template),
+            template=f"sentry/emails/{template}.txt",
+            html_template=f"sentry/emails/{template}.html",
             type="user.password_recovery",
             context=context,
         )

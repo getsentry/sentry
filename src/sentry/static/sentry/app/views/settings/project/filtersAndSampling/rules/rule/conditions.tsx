@@ -1,27 +1,27 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
   DynamicSamplingCondition,
-  DynamicSamplingConditionLogicalNot,
-  DynamicSamplingConditionLogicalOthers,
+  DynamicSamplingConditionLogicalInner,
   DynamicSamplingConditionOperator,
-  DynamicSamplingConditionOthers,
 } from 'app/types/dynamicSampling';
 
-import {getOperatorLabel} from './utils';
+import {getInnerNameLabel} from './utils';
 
 type Props = {
   condition: DynamicSamplingCondition;
 };
 
 function Conditions({condition}: Props) {
-  function getConvertedValue(value: Array<string>) {
+  function getConvertedValue(value: DynamicSamplingConditionLogicalInner['value']) {
     if (Array.isArray(value)) {
       return (
         <React.Fragment>
-          {value.map((v, index) => (
+          {[...value].map((v, index) => (
             <React.Fragment key={v}>
               <Value>{v}</Value>
               {index !== value.length - 1 && <Separator>{'\u002C'}</Separator>}
@@ -34,39 +34,27 @@ function Conditions({condition}: Props) {
     return <Value>{String(value)}</Value>;
   }
 
-  switch (condition.operator) {
-    case DynamicSamplingConditionOperator.AND:
-    case DynamicSamplingConditionOperator.OR: {
-      const {inner: conditions} = condition as DynamicSamplingConditionLogicalOthers;
+  switch (condition.op) {
+    case DynamicSamplingConditionOperator.AND: {
+      const {inner} = condition;
+      if (!inner.length) {
+        return <Label>{t('All')}</Label>;
+      }
+
       return (
         <Wrapper>
-          {conditions.map(({operator, value}, index) => (
+          {inner.map(({value, name}, index) => (
             <div key={index}>
-              <Label>{getOperatorLabel(operator)}</Label>
+              <Label>{getInnerNameLabel(name)}</Label>
               {getConvertedValue(value)}
             </div>
           ))}
         </Wrapper>
       );
     }
-    case DynamicSamplingConditionOperator.NOT: {
-      const {inner} = condition as DynamicSamplingConditionLogicalNot;
-      const {operator, value} = inner;
-      return (
-        <div>
-          <Label>{getOperatorLabel(operator)}</Label>
-          {getConvertedValue(value)}
-        </div>
-      );
-    }
     default: {
-      const {operator, value} = condition as DynamicSamplingConditionOthers;
-      return (
-        <div>
-          <Label>{getOperatorLabel(operator)}</Label>
-          {getConvertedValue(value)}
-        </div>
-      );
+      Sentry.captureException(new Error('Unknown dynamic sampling condition operator'));
+      return null; //this shall not happen
     }
   }
 }

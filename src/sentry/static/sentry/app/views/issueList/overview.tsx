@@ -21,6 +21,7 @@ import {fetchTagValues, loadOrganizationTags} from 'app/actionCreators/tags';
 import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
@@ -44,10 +45,11 @@ import {
   TagCollection,
 } from 'app/types';
 import {defined} from 'app/utils';
-import {analytics, metric, trackAnalyticsEvent} from 'app/utils/analytics';
+import {analytics, logExperiment, metric, trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import CursorPoller from 'app/utils/cursorPoller';
 import {getUtcDateString} from 'app/utils/dates';
+import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import StreamManager from 'app/utils/streamManager';
@@ -62,10 +64,18 @@ import IssueListFilters from './filters';
 import IssueListHeader from './header';
 import NoGroupsHandler from './noGroupsHandler';
 import IssueListSidebar from './sidebar';
-import {getTabs, getTabsWithCounts, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import {
+  getTabs,
+  getTabsWithCounts,
+  isForReviewQuery,
+  IssueSortOptions,
+  Query,
+  QueryCounts,
+  TAB_MAX_COUNT,
+} from './utils';
 
 const MAX_ITEMS = 25;
-const DEFAULT_SORT = 'date';
+const DEFAULT_SORT = IssueSortOptions.DATE;
 // the default period for the graph in each issue row
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
@@ -92,9 +102,16 @@ type State = {
   selectAllActive: boolean;
   realtimeActive: boolean;
   pageLinks: string;
+  /**
+   * Current query total
+   */
   queryCount: number;
+  /**
+   * Counts for each inbox tab
+   */
   queryCounts: QueryCounts;
   queryMaxCount: number;
+  itemsRemoved: number;
   error: string | null;
   isSidebarVisible: boolean;
   renderSidebar: boolean;
@@ -138,6 +155,7 @@ class IssueListOverview extends React.Component<Props, State> {
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
+      itemsRemoved: 0,
       queryCount: 0,
       queryCounts: {},
       queryMaxCount: 0,
@@ -162,6 +180,7 @@ class IssueListOverview extends React.Component<Props, State> {
     this.fetchSavedSearches();
     this.fetchTags();
     this.fetchMemberList();
+    this.logInboxExperiment();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -223,7 +242,7 @@ class IssueListOverview extends React.Component<Props, State> {
     // If any important url parameter changed or saved search changed
     // reload data.
     if (
-      !isEqual(prevProps.selection, this.props.selection) ||
+      selectionChanged ||
       prevQuery.cursor !== newQuery.cursor ||
       prevQuery.sort !== newQuery.sort ||
       prevQuery.query !== newQuery.query ||
@@ -263,6 +282,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
   private _poller: any;
   private _lastRequest: any;
+  private _lastStatsRequest: any;
   private _streamManager = new StreamManager(GroupStore);
 
   getQuery(): string {
@@ -292,7 +312,25 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   getSort(): string {
-    return (this.props.location.query.sort as string) || DEFAULT_SORT;
+    const {location, savedSearch} = this.props;
+    if (!location.query.sort && savedSearch?.id) {
+      return savedSearch.sort;
+    }
+
+    if (location.query.sort) {
+      return location.query.sort as string;
+    }
+
+    const {organization} = this.props;
+    if (
+      organization.features.includes('inbox') &&
+      organization.features.includes('inbox-tab-default') &&
+      isForReviewQuery(this.getQuery())
+    ) {
+      return IssueSortOptions.INBOX;
+    }
+
+    return DEFAULT_SORT;
   }
 
   getGroupStatsPeriod(): string {
@@ -364,7 +402,7 @@ class IssueListOverview extends React.Component<Props, State> {
     );
   }
 
-  fetchStats = async (groups: string[]) => {
+  fetchStats = (groups: string[]) => {
     // If we have no groups to fetch, just skip stats
     if (!groups.length) {
       return;
@@ -377,17 +415,26 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!requestParams.statsPeriod && !requestParams.start) {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
     }
-    try {
-      const response = await this.props.api.requestPromise(this.getGroupStatsEndpoint(), {
-        method: 'GET',
-        data: qs.stringify(requestParams),
-      });
-      GroupActions.populateStats(groups, response);
-    } catch (e) {
-      this.setState({
-        error: parseApiError(e),
-      });
-    }
+
+    this._lastStatsRequest = this.props.api.request(this.getGroupStatsEndpoint(), {
+      method: 'GET',
+      data: qs.stringify(requestParams),
+      success: data => {
+        if (!data) {
+          return;
+        }
+
+        GroupActions.populateStats(groups, data);
+      },
+      error: err => {
+        this.setState({
+          error: parseApiError(err),
+        });
+      },
+      complete: () => {
+        this._lastStatsRequest = null;
+      },
+    });
   };
 
   fetchCounts = async (currentQueryCount: number, fetchAllCounts: boolean) => {
@@ -468,10 +515,14 @@ class IssueListOverview extends React.Component<Props, State> {
 
   fetchData = (selectionChanged?: boolean) => {
     GroupStore.loadInitialData([]);
+    this._streamManager.reset();
+    const transaction = getCurrentSentryReactTransaction();
+    transaction?.setTag('query.sort', this.getSort());
 
     this.setState({
       issuesLoading: true,
       queryCount: 0,
+      itemsRemoved: 0,
       error: null,
     });
 
@@ -492,12 +543,9 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     const orgFeatures = new Set(this.props.organization.features);
-    const expandParams: string[] = [];
+    const expandParams: string[] = ['owners'];
     if (orgFeatures.has('inbox')) {
       expandParams.push('inbox');
-    }
-    if (orgFeatures.has('workflow-owners')) {
-      expandParams.push('owners');
     }
     if (expandParams.length) {
       requestParams.expand = expandParams;
@@ -506,6 +554,9 @@ class IssueListOverview extends React.Component<Props, State> {
 
     if (this._lastRequest) {
       this._lastRequest.cancel();
+    }
+    if (this._lastStatsRequest) {
+      this._lastStatsRequest.cancel();
     }
 
     this._poller.disable();
@@ -609,6 +660,14 @@ class IssueListOverview extends React.Component<Props, State> {
     const {orgId} = this.props.params;
 
     return `/organizations/${orgId}/issues-stats/`;
+  }
+
+  logInboxExperiment() {
+    const {organization} = this.props;
+    // Only log users in experiment
+    if ([0, 1].includes(organization.experiments?.InboxExperiment!)) {
+      logExperiment({organization, key: 'InboxExperiment'});
+    }
   }
 
   onRealtimeChange = (realtime: boolean) => {
@@ -727,8 +786,16 @@ class IssueListOverview extends React.Component<Props, State> {
       if (!query.cursor && savedSearch.projectId) {
         query.project = [savedSearch.projectId];
       }
+      if (!query.cursor && !newParams.sort && savedSearch.sort) {
+        query.sort = savedSearch.sort;
+      }
     } else {
       path = `/organizations/${organization.slug}/issues/`;
+    }
+
+    // Remove inbox tab specific sort
+    if (query.sort === IssueSortOptions.INBOX && !isForReviewQuery(query.query)) {
+      delete query.sort;
     }
 
     if (
@@ -761,6 +828,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const topIssue = ids[0];
     const {memberList} = this.state;
     const query = this.getQuery();
+    const showInboxTime = this.getSort() === 'inbox';
 
     return ids.map(id => {
       const hasGuideAnchor = id === topIssue;
@@ -785,7 +853,9 @@ class IssueListOverview extends React.Component<Props, State> {
           hasGuideAnchor={hasGuideAnchor}
           memberList={members}
           displayReprocessingLayout={displayReprocessingLayout}
+          onMarkReviewed={this.onMarkReviewed}
           useFilteredStats
+          showInboxTime={showInboxTime}
         />
       );
     });
@@ -854,6 +924,27 @@ class IssueListOverview extends React.Component<Props, State> {
     });
   };
 
+  onMarkReviewed = (itemIds: string[]) => {
+    const query = this.getQuery();
+    if (!isForReviewQuery(query)) {
+      return;
+    }
+
+    const {queryCounts, itemsRemoved} = this.state;
+    const currentQueryCount = queryCounts[query as Query];
+    if (itemIds.length && currentQueryCount) {
+      const inInboxCount = itemIds.filter(id => GroupStore.get(id)?.inbox).length;
+      currentQueryCount.count -= inInboxCount;
+      this.setState({
+        queryCounts: {
+          ...queryCounts,
+          [query as Query]: currentQueryCount,
+        },
+        itemsRemoved: itemsRemoved + inInboxCount,
+      });
+    }
+  };
+
   tagValueLoader = (key: string, search: string) => {
     const {orgId} = this.props.params;
     const projectIds = this.getGlobalSearchProjectIds().map(id => id.toString());
@@ -884,6 +975,7 @@ class IssueListOverview extends React.Component<Props, State> {
       realtimeActive,
       groupIds,
       queryMaxCount,
+      itemsRemoved,
     } = this.state;
     const {
       organization,
@@ -894,10 +986,36 @@ class IssueListOverview extends React.Component<Props, State> {
       location,
       router,
     } = this.props;
+    const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);
-    const page = isNaN(queryPageInt) ? 0 : queryPageInt;
-    const pageCount = page * MAX_ITEMS + groupIds.length;
+    // Cursor must be present for the page number to be used
+    const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
+    const pageBasedCount = page * MAX_ITEMS + groupIds.length;
+
+    let pageCount = pageBasedCount > queryCount ? queryCount : pageBasedCount;
+    if (!links?.next?.results || this.allResultsVisible()) {
+      // On last available page
+      pageCount = queryCount;
+    } else if (!links?.previous?.results) {
+      // On first available page
+      pageCount = groupIds.length;
+    }
+
+    // Subtract # items that have been marked reviewed
+    pageCount = Math.max(pageCount - itemsRemoved, 0);
+    const modifiedQueryCount = Math.max(queryCount - itemsRemoved, 0);
+    const displayCount = tct('[count] of [total]', {
+      count: pageCount,
+      total: (
+        <StyledQueryCount
+          hideParens
+          hideIfEmpty={false}
+          count={modifiedQueryCount}
+          max={queryMaxCount || 100}
+        />
+      ),
+    });
 
     // TODO(workflow): When organization:inbox flag is removed add 'inbox' to tagStore
     if (
@@ -963,11 +1081,11 @@ class IssueListOverview extends React.Component<Props, State> {
                     organization={organization}
                     selection={selection}
                     query={query}
-                    queryCount={queryCount}
-                    queryMaxCount={queryMaxCount}
-                    pageCount={pageCount}
+                    queryCount={modifiedQueryCount}
+                    displayCount={displayCount}
                     onSelectStatsPeriod={this.onSelectStatsPeriod}
                     onRealtimeChange={this.onRealtimeChange}
+                    onMarkReviewed={this.onMarkReviewed}
                     realtimeActive={realtimeActive}
                     statsPeriod={this.getGroupStatsPeriod()}
                     groupIds={groupIds}
@@ -988,15 +1106,8 @@ class IssueListOverview extends React.Component<Props, State> {
                   {hasFeature && groupIds?.length > 0 && (
                     <div>
                       {/* total includes its own space */}
-                      {tct('Showing [count] of [total] issues', {
-                        count: <React.Fragment>{pageCount}</React.Fragment>,
-                        total: (
-                          <StyledQueryCount
-                            hideParens
-                            count={queryCount}
-                            max={queryMaxCount}
-                          />
-                        ),
+                      {tct('Showing [displayCount] issues', {
+                        displayCount,
                       })}
                     </div>
                   )}
@@ -1015,12 +1126,15 @@ class IssueListOverview extends React.Component<Props, State> {
                     tags={tags}
                     query={query}
                     onQueryChange={this.onIssueListSidebarSearch}
-                    orgId={orgSlug}
                     tagValueLoader={this.tagValueLoader}
                   />
                 )}
               </SidebarContainer>
             </StyledPageContent>
+
+            {hasFeature && isForReviewQuery(query) && (
+              <GuideAnchor target="is_inbox_tab" />
+            )}
           </React.Fragment>
         )}
       </Feature>

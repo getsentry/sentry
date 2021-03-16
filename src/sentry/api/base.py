@@ -1,6 +1,5 @@
 import functools
 import logging
-import six
 import time
 import sentry_sdk
 
@@ -97,19 +96,17 @@ class Endpoint(APIView):
 
     def build_cursor_link(self, request, name, cursor):
         querystring = "&".join(
-            "{0}={1}".format(urlquote(k), urlquote(v))
-            for k, v in six.iteritems(request.GET)
-            if k != "cursor"
+            f"{urlquote(k)}={urlquote(v)}" for k, v in request.GET.items() if k != "cursor"
         )
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
-            base_url = "{0}?{1}".format(base_url, querystring)
+            base_url = f"{base_url}?{querystring}"
         else:
             base_url = base_url + "?"
 
         return LINK_HEADER.format(
             uri=base_url,
-            cursor=six.text_type(cursor),
+            cursor=str(cursor),
             name=name,
             has_results="true" if bool(cursor) else "false",
         )
@@ -119,7 +116,7 @@ class Endpoint(APIView):
 
     def handle_exception(self, request, exc):
         try:
-            response = super(Endpoint, self).handle_exception(exc)
+            response = super().handle_exception(exc)
         except Exception:
             import sys
             import traceback
@@ -165,7 +162,7 @@ class Endpoint(APIView):
         # keep track of these here and reassign them as needed.
         orig_auth = getattr(request, "auth", None)
         orig_user = getattr(request, "user", None)
-        rv = super(Endpoint, self).initialize_request(request, *args, **kwargs)
+        rv = super().initialize_request(request, *args, **kwargs)
         # If our request is being made via our internal API client, we need to
         # stitch back on auth and user information
         if getattr(request, "__from_api_client__", False):
@@ -208,7 +205,7 @@ class Endpoint(APIView):
                 if origin and request.auth:
                     allowed_origins = request.auth.get_allowed_origins()
                     if not is_valid_origin(origin, allowed=allowed_origins):
-                        response = Response("Invalid origin: %s" % (origin,), status=400)
+                        response = Response(f"Invalid origin: {origin}", status=400)
                         self.response = self.finalize_response(request, response, *args, **kwargs)
                         return self.response
 
@@ -230,7 +227,7 @@ class Endpoint(APIView):
 
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
-                description="{}.{}".format(type(self).__name__, handler.__name__),
+                description=f"{type(self).__name__}.{handler.__name__}",
             ):
                 response = handler(request, *args, **kwargs)
 
@@ -282,9 +279,7 @@ class Endpoint(APIView):
 
         max_per_page = max(max_per_page, default_per_page)
         if per_page > max_per_page:
-            raise ParseError(
-                detail="Invalid per_page value. Cannot exceed {}.".format(max_per_page)
-            )
+            raise ParseError(detail=f"Invalid per_page value. Cannot exceed {max_per_page}.")
 
         return per_page
 
@@ -320,7 +315,7 @@ class Endpoint(APIView):
                 span.set_data("Limit", per_page)
                 cursor_result = paginator.get_result(limit=per_page, cursor=input_cursor)
         except BadPaginationError as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
         # map results based on callback
         if on_results:
@@ -339,7 +334,7 @@ class Endpoint(APIView):
         return response
 
 
-class EnvironmentMixin(object):
+class EnvironmentMixin:
     def _get_environment_func(self, request, organization_id):
         """\
         Creates a function that when called returns the ``Environment``
@@ -374,7 +369,7 @@ class EnvironmentMixin(object):
         return request._cached_environment
 
 
-class StatsMixin(object):
+class StatsMixin:
     def _parse_args(self, request, environment_id=None):
         try:
             resolution = request.GET.get("resolution")
@@ -429,7 +424,7 @@ class StatsMixin(object):
             raise ValueError(value)
 
 
-class ReleaseAnalyticsMixin(object):
+class ReleaseAnalyticsMixin:
     def track_set_commits_local(self, request, organization_id=None, project_ids=None):
         analytics.record(
             "release.set_commits_local",

@@ -1,7 +1,6 @@
 import logging
-import six
-from six.moves.urllib.error import HTTPError as UrllibHTTPError
-from six.moves.urllib.parse import urlparse, urlencode, urlunparse, parse_qs
+from urllib.error import HTTPError as UrllibHTTPError
+from urllib.parse import urlparse, urlencode, urlunparse, parse_qs
 
 from django import forms
 from requests.exceptions import SSLError, HTTPError
@@ -21,7 +20,7 @@ class BaseNotificationUserOptionsForm(forms.Form):
     def __init__(self, plugin, user, *args, **kwargs):
         self.plugin = plugin
         self.user = user
-        super(BaseNotificationUserOptionsForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def get_title(self):
         return self.plugin.get_conf_title()
@@ -52,7 +51,7 @@ class NotificationPlugin(Plugin):
         """
         This calls the notify_users method of the plugin.
         Normally this method eats the error and logs it but if we
-        set raise_exception=True like we do for the test plugin buttion,
+        set raise_exception=True like we do for the test plugin button,
         the exception is raised
         """
         event = notification.event
@@ -64,7 +63,7 @@ class NotificationPlugin(Plugin):
             self.logger.info(
                 "notification-plugin.notify-failed",
                 extra={
-                    "error": six.text_type(err),
+                    "error": str(err),
                     "plugin": self.slug,
                     "project_id": event.group.project_id,
                     "organization_id": event.group.project.organization_id,
@@ -127,7 +126,7 @@ class NotificationPlugin(Plugin):
         if not (
             hasattr(self, "notify_digest") and digests.enabled(project)
         ) and self.__is_rate_limited(group, event):
-            logger = logging.getLogger("sentry.plugins.{0}".format(self.get_conf_key()))
+            logger = logging.getLogger(f"sentry.plugins.{self.get_conf_key()}")
             logger.info("notification.rate_limited", extra={"project_id": project.id})
             return False
 
@@ -145,18 +144,16 @@ class NotificationPlugin(Plugin):
             test_results = self.test_configuration(project)
         except Exception as exc:
             if isinstance(exc, HTTPError) and hasattr(exc.response, "text"):
-                test_results = "%s\n%s" % (exc, exc.response.text[:256])
+                test_results = f"{exc}\n{exc.response.text[:256]}"
             elif hasattr(exc, "read") and callable(exc.read):
-                test_results = "%s\n%s" % (exc, exc.read()[:256])
+                test_results = f"{exc}\n{exc.read()[:256]}"
             else:
-                logging.exception(
-                    "Plugin(%s) raised an error during test, %s", self.slug, six.text_type(exc)
-                )
-                if six.text_type(exc).lower().startswith("error communicating with"):
-                    test_results = six.text_type(exc)[:256]
+                logging.exception("Plugin(%s) raised an error during test, %s", self.slug, str(exc))
+                if str(exc).lower().startswith("error communicating with"):
+                    test_results = str(exc)[:256]
                 else:
                     test_results = (
-                        "There was an internal error with the Plugin, %s" % six.text_type(exc)[:256]
+                        "There was an internal error with the Plugin, %s" % str(exc)[:256]
                     )
         if not test_results:
             test_results = "No errors returned"

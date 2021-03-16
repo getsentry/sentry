@@ -3,50 +3,49 @@ import styled from '@emotion/styled';
 
 import BulkController from 'app/components/bulkController';
 import {PanelTable} from 'app/components/panels';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
+import {LegacyBrowser} from 'app/types/dynamicSampling';
 
-import {LEGACY_BROWSER_LIST} from '../utils';
+import Browser from './browser';
 
-import LegacyBrowser from './legacyBrowser';
-
-type Browser = React.ComponentProps<typeof LegacyBrowser>['browser'];
-
-const legacyBrowsers = Object.keys(LEGACY_BROWSER_LIST) as Array<Browser>;
+const legacyBrowsers = Object.values(LegacyBrowser) as Array<LegacyBrowser>;
 
 type Props = {
-  onChange: (selectedLegacyBrowsers: Array<Browser>) => void;
+  onChange: (selectedLegacyBrowsers: Array<LegacyBrowser>) => void;
+  selectedLegacyBrowsers?: Array<LegacyBrowser>;
 };
 
-function LegacyBrowsersField({onChange}: Props) {
+function LegacyBrowsersField({onChange, selectedLegacyBrowsers = []}: Props) {
   function handleChange({
     selectedIds,
   }: Parameters<NonNullable<BulkController['props']['onChange']>>[0]) {
-    onChange(selectedIds as Array<Browser>);
+    onChange(selectedIds as Array<LegacyBrowser>);
   }
 
   return (
     <BulkController
       pageIds={legacyBrowsers}
+      defaultSelectedIds={selectedLegacyBrowsers}
       allRowsCount={legacyBrowsers.length}
       onChange={handleChange}
       columnsCount={0}
     >
-      {({selectedIds, onRowToggle, onAllRowsToggle, isAllSelected}) => (
+      {({selectedIds, onRowToggle, onPageRowsToggle, isPageSelected}) => (
         <StyledPanelTable
           headers={[
             '',
             <Switch
               key="switch"
               size="lg"
-              isActive={isAllSelected}
+              isActive={isPageSelected}
               toggle={() => {
-                onAllRowsToggle(!isAllSelected);
+                onPageRowsToggle(!isPageSelected);
               }}
             />,
           ]}
         >
           {legacyBrowsers.map(legacyBrowser => (
-            <LegacyBrowser
+            <Browser
               key={legacyBrowser}
               browser={legacyBrowser}
               isEnabled={selectedIds.includes(legacyBrowser)}

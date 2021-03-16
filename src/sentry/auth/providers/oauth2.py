@@ -1,6 +1,6 @@
 import logging
 
-from six.moves.urllib.parse import parse_qsl, urlencode
+from urllib.parse import parse_qsl, urlencode
 from time import time
 from uuid import uuid4
 
@@ -9,7 +9,6 @@ from sentry.auth.view import AuthView
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
-from sentry.utils.http import absolute_uri
 
 ERR_INVALID_STATE = "An error occurred while validating your request."
 
@@ -20,7 +19,7 @@ class OAuth2Login(AuthView):
     scope = ""
 
     def __init__(self, authorize_url=None, client_id=None, scope=None, *args, **kwargs):
-        super(OAuth2Login, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if authorize_url is not None:
             self.authorize_url = authorize_url
         if client_id is not None:
@@ -49,10 +48,8 @@ class OAuth2Login(AuthView):
 
         state = uuid4().hex
 
-        params = self.get_authorize_params(
-            state=state, redirect_uri=absolute_uri(helper.get_redirect_url())
-        )
-        redirect_uri = "{}?{}".format(self.get_authorize_url(), urlencode(params))
+        params = self.get_authorize_params(state=state, redirect_uri=helper.get_redirect_url())
+        redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
 
         helper.bind_state("state", state)
 
@@ -65,7 +62,7 @@ class OAuth2Callback(AuthView):
     client_secret = None
 
     def __init__(self, access_token_url=None, client_id=None, client_secret=None, *args, **kwargs):
-        super(OAuth2Callback, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if access_token_url is not None:
             self.access_token_url = access_token_url
         if client_id is not None:
@@ -84,9 +81,7 @@ class OAuth2Callback(AuthView):
 
     def exchange_token(self, request, helper, code):
         # TODO: this needs the auth yet
-        data = self.get_token_params(
-            code=code, redirect_uri=absolute_uri(helper.get_redirect_url())
-        )
+        data = self.get_token_params(code=code, redirect_uri=helper.get_redirect_url())
         req = safe_urlopen(self.access_token_url, data=data)
         body = safe_urlread(req)
         if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
@@ -191,7 +186,7 @@ class OAuth2Provider(Provider):
         error = payload.get("error", "unknown_error")
         error_description = payload.get("error_description", "no description available")
 
-        formatted_error = "HTTP {} ({}): {}".format(req.status_code, error, error_description)
+        formatted_error = f"HTTP {req.status_code} ({error}): {error_description}"
 
         if req.status_code == 401:
             raise IdentityNotValid(formatted_error)

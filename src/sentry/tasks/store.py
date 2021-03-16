@@ -22,7 +22,6 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.sdk import set_current_project
 from sentry.models import ProjectOption, Activity, Project, Organization
 from sentry.eventstore.processing import event_processing_store
-from sentry.eventstore.processing.base import _get_unprocessed_key
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
@@ -149,7 +148,6 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
         return
 
     if should_process(data):
-        reprocessing2.backup_unprocessed_event(project=project, data=original_data)
         submit_process(
             project,
             from_reprocessing,
@@ -227,6 +225,8 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
 
+    symbolication_start_time = time()
+
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
         span.set_data("symbolicaton_function", symbolication_function.__name__)
         with metrics.timer(
@@ -248,17 +248,15 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                     break
                 except RetrySymbolication as e:
                     if (
-                        start_time
-                        and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT
-                    ):
+                        time() - symbolication_start_time
+                    ) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
                         error_logger.warning(
                             "symbolicate.slow",
                             extra={"project_id": project_id, "event_id": event_id},
                         )
                     if (
-                        start_time
-                        and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT
-                    ):
+                        time() - symbolication_start_time
+                    ) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
                         # Do not drop event but actually continue with rest of pipeline
                         # (persisting unsymbolicated event)
                         metrics.incr(
@@ -386,7 +384,7 @@ def retry_process_event(process_task_name, task_kwargs, **kwargs):
 
     process_task = tasks.get(process_task_name)
     if not process_task:
-        raise ValueError("Invalid argument for process_task_name: %s" % (process_task_name,))
+        raise ValueError(f"Invalid argument for process_task_name: {process_task_name}")
 
     process_task.delay(**task_kwargs)
 
@@ -709,6 +707,7 @@ def create_failed_event(
             data=issue["data"],
         )
     event_processing_store.delete_by_key(cache_key)
+    event_processing_store.delete_by_key(cache_key)
 
     return True
 
@@ -787,7 +786,6 @@ def _do_save_event(
             if cache_key:
                 with metrics.timer("tasks.store.do_save_event.delete_cache"):
                     event_processing_store.delete_by_key(cache_key)
-                    event_processing_store.delete_by_key(_get_unprocessed_key(cache_key))
 
         finally:
             reprocessing2.mark_event_reprocessed(data)

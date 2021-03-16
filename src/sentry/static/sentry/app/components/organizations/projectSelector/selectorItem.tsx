@@ -10,7 +10,7 @@ import Hovercard from 'app/components/hovercard';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
-import {IconSettings} from 'app/icons';
+import {IconOpen, IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import {alertHighlight, pulse} from 'app/styles/animations';
 import space from 'app/styles/space';
@@ -123,6 +123,7 @@ class ProjectSelectorItem extends React.PureComponent<Props, State> {
               avatarSize={16}
               displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
               avatarProps={{consistentWidth: true}}
+              disableLink
             />
           </BadgeWrapper>
           <StyledBookmarkStar
@@ -131,6 +132,15 @@ class ProjectSelectorItem extends React.PureComponent<Props, State> {
             bookmarkHasChanged={bookmarkHasChanged}
             onToggle={this.handleBookmarkToggle}
           />
+          <Feature features={['organizations:project-detail']}>
+            <StyledLink
+              to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
+              onClick={e => e.stopPropagation()}
+            >
+              <IconOpen />
+            </StyledLink>
+          </Feature>
+
           <StyledLink
             to={`/settings/${organization.slug}/${project.slug}/`}
             onClick={e => e.stopPropagation()}
@@ -186,7 +196,7 @@ const BadgeAndActionsWrapper = styled('div')<{bookmarkHasChanged: boolean}>`
   ${p =>
     p.bookmarkHasChanged &&
     css`
-      animation: 1s ${alertHighlight('info')};
+      animation: 1s ${alertHighlight('info', p.theme)};
     `};
   z-index: ${p => (p.bookmarkHasChanged ? 1 : 'inherit')};
   position: relative;

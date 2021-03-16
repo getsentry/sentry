@@ -16,7 +16,7 @@ on:
 jobs:
   frontend:
     name: frontend tests
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 20
 
     env:
@@ -24,6 +24,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         name: Checkout sentry
+
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
 
       - uses: volta-cli/action@v1
 
@@ -36,7 +41,7 @@ jobs:
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
 
@@ -72,7 +77,7 @@ jobs:
 
   acceptance:
     name: acceptance
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 20
     strategy:
       matrix:
@@ -106,9 +111,10 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          key: |
+            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
 
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
@@ -121,7 +127,7 @@ jobs:
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
 

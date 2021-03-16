@@ -1,7 +1,7 @@
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 
 
-class BaseVariant(object):
+class BaseVariant:
     # The type of the variant that is reported to the UI.
     type = None
 
@@ -27,7 +27,7 @@ class BaseVariant(object):
         raise NotImplementedError()
 
     def __repr__(self):
-        return "<%s %r (%s)>" % (self.__class__.__name__, self.get_hash(), self.type)
+        return f"<{self.__class__.__name__} {self.get_hash()!r} ({self.type})>"
 
 
 class ChecksumVariant(BaseVariant):
@@ -164,8 +164,7 @@ class SaltedComponentVariant(ComponentVariant):
         return hash_from_values(final_values)
 
     def encode_for_similarity(self):
-        for x in ComponentVariant.encode_for_similarity(self):
-            yield x
+        yield from ComponentVariant.encode_for_similarity(self)
 
         for value in self.values:
             if not is_default_fingerprint_var(value):
@@ -175,3 +174,23 @@ class SaltedComponentVariant(ComponentVariant):
         rv = ComponentVariant._get_metadata_as_dict(self)
         rv.update(expose_fingerprint_dict(self.values, self.info))
         return rv
+
+
+# defines the order of hierarchical grouping hashes, globally. variant names
+# defined in this list
+#
+# 1) will be persisted in snuba for split/unsplit operations
+# 2) in save_event, will be traversed bottom-to-top, and the first GroupHash
+#    found is used to find/create group
+#
+# variants outside of this list are assumed to not contribute to any sort of
+# hierarchy, their hashes are always persisted as GroupHash (and used to find
+# existing groups)
+HIERARCHICAL_VARIANTS = [
+    "app-depth-1",  # hashing by 1 level of stacktrace (eg just crashing frame)
+    "app-depth-2",
+    "app-depth-3",
+    "app-depth-4",
+    "app-depth-5",
+    "app-depth-max",  # hashing by full stacktrace
+]

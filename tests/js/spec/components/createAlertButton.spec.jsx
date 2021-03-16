@@ -2,7 +2,9 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import CreateAlertButton, {
+  CreateAlertFromViewButton,
+} from 'app/components/createAlertButton';
 import EventView from 'app/utils/discover/eventView';
 import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'app/views/eventsV2/data';
 
@@ -21,6 +23,15 @@ function generateWrappedComponent(organization, eventView) {
       onSuccess={onSuccessMock}
     />,
     TestStubs.routerContext()
+  );
+}
+
+function generateWrappedComponentButton(organization, showPermissionGuide) {
+  return mountWithTheme(
+    <CreateAlertButton
+      organization={organization}
+      showPermissionGuide={showPermissionGuide}
+    />
   );
 }
 
@@ -187,5 +198,30 @@ describe('CreateAlertFromViewButton', () => {
 
     const button = wrapper.find('button[aria-label="Create Alert"]');
     expect(button.props()['aria-disabled']).toBe(true);
+  });
+
+  it('shows a guide for members', async () => {
+    const noAccessOrg = {
+      ...organization,
+      access: [],
+    };
+
+    const wrapper = generateWrappedComponentButton(noAccessOrg, true);
+
+    const guide = wrapper.find('GuideAnchor');
+    expect(guide.props().target).toBe('alerts_write_member');
+  });
+
+  it('shows a guide for owners/admins', async () => {
+    const adminAccessOrg = {
+      ...organization,
+      access: ['org:write'],
+    };
+
+    const wrapper = generateWrappedComponentButton(adminAccessOrg, true);
+
+    const guide = wrapper.find('GuideAnchor');
+    expect(guide.props().target).toBe('alerts_write_owner');
+    expect(guide.props().onFinish).toBeDefined();
   });
 });

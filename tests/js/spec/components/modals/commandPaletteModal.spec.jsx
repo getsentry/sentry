@@ -7,7 +7,6 @@ import {navigateTo} from 'app/actionCreators/navigation';
 import FormSearchStore from 'app/stores/formSearchStore';
 import App from 'app/views/app';
 
-jest.mock('jquery');
 jest.mock('app/actionCreators/formSearch');
 jest.mock('app/actionCreators/navigation');
 

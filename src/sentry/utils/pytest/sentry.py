@@ -1,11 +1,12 @@
-from sentry.utils.compat import mock
 import os
 from hashlib import md5
 
 from django.conf import settings
 from sentry_sdk import Hub
 
-import six
+from sentry.utils.compat import mock
+from sentry.utils.warnings import UnsupportedBackend
+
 
 TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")
@@ -13,6 +14,23 @@ TEST_ROOT = os.path.normpath(
 
 
 def pytest_configure(config):
+    import warnings
+    from django.utils.deprecation import RemovedInDjango20Warning, RemovedInDjango21Warning
+
+    # These warnings should be kept in sync with sentry.runner.settings,
+    # and pytest warningfilters in pyproject.toml.
+    # See pyproject.toml for explanations.
+    warnings.filterwarnings(action="ignore", category=RemovedInDjango20Warning)
+    warnings.filterwarnings(action="ignore", category=RemovedInDjango21Warning)
+    warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+
+    # These warnings are for pytest only.
+    warnings.filterwarnings(
+        action="ignore",
+        message=r".*sentry.digests.backends.dummy.DummyBackend.*",
+        category=UnsupportedBackend,
+    )
+
     # HACK: Only needed for testing!
     os.environ.setdefault("_SENTRY_SKIP_CONFIGURATION", "1")
 
@@ -79,9 +97,8 @@ def pytest_configure(config):
     settings.SENTRY_TSDB = "sentry.tsdb.inmemory.InMemoryTSDB"
     settings.SENTRY_TSDB_OPTIONS = {}
 
-    if settings.SENTRY_NEWSLETTER == "sentry.newsletter.base.Newsletter":
-        settings.SENTRY_NEWSLETTER = "sentry.newsletter.dummy.DummyNewsletter"
-        settings.SENTRY_NEWSLETTER_OPTIONS = {}
+    settings.SENTRY_NEWSLETTER = "sentry.newsletter.dummy.DummyNewsletter"
+    settings.SENTRY_NEWSLETTER_OPTIONS = {}
 
     settings.BROKER_BACKEND = "memory"
     settings.BROKER_URL = "memory://"
@@ -117,7 +134,7 @@ def pytest_configure(config):
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
             "slack.verification-token": "slack-verification-token",
-            "slack.legacy-app": True,
+            "slack.signing-secret": "slack-signing-secret",
             "github-app.name": "sentry-test-app",
             "github-app.client-id": "github-client-id",
             "github-app.client-secret": "github-client-secret",
@@ -135,6 +152,8 @@ def pytest_configure(config):
             "aws-lambda.account-number": "1234",
             "aws-lambda.node.layer-name": "my-layer",
             "aws-lambda.node.layer-version": "3",
+            "aws-lambda.python.layer-name": "my-python-layer",
+            "aws-lambda.python.layer-version": "34",
         }
     )
 
@@ -274,10 +293,8 @@ def pytest_collection_modifyitems(config, items):
 
         # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
         # we want to only include items in `accepted` list
-
-        # TODO(joshuarli): six 1.12.0 adds ensure_binary: six.ensure_binary(item.location[0])
         item_to_group = (
-            int(md5(six.text_type(item.location[0]).encode("utf-8")).hexdigest(), 16)
+            int(md5(str(item.location[0]).encode("utf-8")).hexdigest(), 16)
             if grouping_strategy == "file"
             else len(accepted) - 1
         )

@@ -2,17 +2,17 @@ from django.utils.encoding import force_text, force_bytes
 
 __all__ = ["JavaScriptStacktraceProcessor"]
 
+import errno
 import logging
 import re
 import sys
 import base64
-import six
 import zlib
 
 from django.conf import settings
 from os.path import splitext
 from requests.utils import get_encoding_from_headers
-from six.moves.urllib.parse import urlsplit
+from urllib.parse import urlsplit
 from symbolic import SourceMapView
 import sentry_sdk
 
@@ -39,6 +39,7 @@ from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
 from sentry.utils.safe import get_path
 from sentry.utils import metrics
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.urls import non_standard_url_join
 from sentry.stacktraces.processing import StacktraceProcessor
 
@@ -213,11 +214,21 @@ def discover_sourcemap(result):
 
 
 def get_release_file_cache_key(release_id, releasefile_ident):
-    return "releasefile:v1:%s:%s" % (release_id, releasefile_ident)
+    return f"releasefile:v1:{release_id}:{releasefile_ident}"
 
 
 def get_release_file_cache_key_meta(release_id, releasefile_ident):
     return "meta:%s" % get_release_file_cache_key(release_id, releasefile_ident)
+
+
+MAX_FETCH_ATTEMPTS = 3
+
+
+def should_retry_fetch(attempt: int, e: Exception) -> bool:
+    return not attempt > MAX_FETCH_ATTEMPTS and isinstance(e, OSError) and e.errno == errno.ESTALE
+
+
+fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(0.05))
 
 
 def fetch_release_file(filename, release, dist=None):
@@ -273,13 +284,16 @@ def fetch_release_file(filename, release, dist=None):
             # This is O(N*M) but there are only ever at most 4 things here
             # so not really worth optimizing.
             releasefile = next(
-                (rf for ident in filename_idents for rf in possible_files if rf.ident == ident)
+                rf for ident in filename_idents for rf in possible_files if rf.ident == ident
             )
+
+        logger.debug(
+            "Found release artifact %r (id=%s, release_id=%s)", filename, releasefile.id, release.id
+        )
 
         # If the release file is not in cache, check if we can retrieve at
         # least the size metadata from cache and prevent compression and
         # caching if payload exceeds the backend limit.
-        z_body = None
         z_body_size = None
 
         if CACHE_MAX_VALUE_SIZE:
@@ -287,16 +301,16 @@ def fetch_release_file(filename, release, dist=None):
             if cache_meta:
                 z_body_size = int(cache_meta.get("compressed_size"))
 
-        logger.debug(
-            "Found release artifact %r (id=%s, release_id=%s)", filename, releasefile.id, release.id
-        )
+        def fetch_release_body():
+            with ReleaseFile.cache.getfile(releasefile) as fp:
+                if z_body_size and z_body_size > CACHE_MAX_VALUE_SIZE:
+                    return None, fp.read()
+                else:
+                    return compress_file(fp)
+
         try:
             with metrics.timer("sourcemaps.release_file_read"):
-                with ReleaseFile.cache.getfile(releasefile) as fp:
-                    if z_body_size and z_body_size > CACHE_MAX_VALUE_SIZE:
-                        body = fp.read()
-                    else:
-                        z_body, body = compress_file(fp)
+                z_body, body = fetch_retry_policy(fetch_release_body)
         except Exception:
             logger.error("sourcemap.compress_read_failed", exc_info=sys.exc_info())
             result = None
@@ -361,7 +375,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
 
     # otherwise, try the web-scraping cache and then the web itself
 
-    cache_key = "source:cache:v4:%s" % (md5_text(url).hexdigest(),)
+    cache_key = f"source:cache:v4:{md5_text(url).hexdigest()}"
 
     if result is None:
         if not allow_scraping or not url.startswith(("http:", "https:")):
@@ -412,11 +426,11 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
             }
         )
 
-    # Make sure the file we're getting back is six.binary_type. The only
+    # Make sure the file we're getting back is bytes. The only
     # reason it'd not be binary would be from old cached blobs, so
     # for compatibility with current cached files, let's coerce back to
     # binary and say utf8 encoding.
-    if not isinstance(result.body, six.binary_type):
+    if not isinstance(result.body, bytes):
         try:
             result = http.UrlResult(
                 result.url,
@@ -469,7 +483,7 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
                 + (b"=" * (-(len(url) - BASE64_PREAMBLE_LENGTH) % 4))
             )
         except TypeError as e:
-            raise UnparseableSourcemap({"url": "<base64>", "reason": six.text_type(e)})
+            raise UnparseableSourcemap({"url": "<base64>", "reason": str(e)})
     else:
         # look in the database and, if not found, optionally try to scrape the web
         result = fetch_file(
@@ -480,7 +494,7 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
         return SourceMapView.from_json_bytes(body)
     except Exception as exc:
         # This is in debug because the product shows an error already.
-        logger.debug(six.text_type(exc), exc_info=True)
+        logger.debug(str(exc), exc_info=True)
         raise UnparseableSourcemap({"url": http.expose_url(url)})
 
 

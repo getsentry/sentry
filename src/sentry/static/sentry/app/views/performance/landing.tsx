@@ -9,6 +9,7 @@ import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import PageHeading from 'app/components/pageHeading';
@@ -40,7 +41,7 @@ import {
 } from './trends/utils';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import Onboarding from './onboarding';
-import {addRoutePerformanceContext} from './utils';
+import {addRoutePerformanceContext, getCurrentPerformanceView} from './utils';
 
 export enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
@@ -71,7 +72,7 @@ function isStatsPeriodDefault(
 }
 
 class PerformanceLanding extends React.Component<Props, State> {
-  static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
       eventView: generatePerformanceEventView(
@@ -163,11 +164,7 @@ class PerformanceLanding extends React.Component<Props, State> {
 
   getCurrentView(): string {
     const {location} = this.props;
-    const currentView = location.query.view as FilterViews;
-    if (Object.values(FilterViews).includes(currentView)) {
-      return currentView;
-    }
-    return FilterViews.ALL_TRANSACTIONS;
+    return getCurrentPerformanceView(location);
   }
 
   handleViewChange(viewKey: FilterViews) {
@@ -177,7 +174,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       ...location.query,
     };
 
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query, '');
     const statsPeriod = decodeScalar(location.query.statsPeriod);
     const conditions = tokenizeSearch(query);
 
@@ -305,7 +302,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     const showOnboarding = this.shouldShowOnboarding();
 
     return (
-      <SentryDocumentTitle title={t('Performance')} objSlug={organization.slug}>
+      <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
         <GlobalSelectionHeader
           defaultSelection={{
             datetime: {
@@ -322,6 +319,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                 <PageHeading>{t('Performance')}</PageHeading>
                 {!showOnboarding && <div>{this.renderHeaderButtons()}</div>}
               </PageHeader>
+              <GlobalSdkUpdateAlert />
               {this.renderError()}
               {showOnboarding ? (
                 <Onboarding organization={organization} />

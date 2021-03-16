@@ -5,12 +5,12 @@ from django.http import StreamingHttpResponse
 
 # csv.writer doesn't provide a non-file interface
 # https://docs.djangoproject.com/en/1.9/howto/outputting-csv/#streaming-large-csv-files
-class Echo(object):
+class Echo:
     def write(self, value):
         return value
 
 
-class CsvMixin(object):
+class CsvMixin:
     def get_header(self, **kwargs):
         return ()
 
@@ -30,5 +30,5 @@ class CsvMixin(object):
         response = StreamingHttpResponse(
             (writer.writerow(r) for r in row_iter()), content_type="text/csv"
         )
-        response["Content-Disposition"] = 'attachment; filename="{}.csv"'.format(filename)
+        response["Content-Disposition"] = f'attachment; filename="{filename}.csv"'
         return response

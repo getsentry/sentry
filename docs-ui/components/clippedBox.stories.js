@@ -1,24 +1,25 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
-// import {action} from '@storybook/addon-actions';
 
 import ClippedBox from 'app/components/clippedBox';
 
 export default {
   title: 'UI/ClippedBox',
+  component: ClippedBox,
+  args: {
+    title: 'Clipped Box Title',
+    clipHeight: 60,
+    btnText: 'expand',
+    defaultClipped: true,
+  },
+  argTypes: {
+    onReveal: {action: 'onReveal'},
+  },
 };
 
-export const Default = withInfo(
-  'Component that clips content and allows expansion of container'
-)(() => (
+export const Default = ({...args}) => (
   <div>
     <div>
-      <ClippedBox
-        defaultClipped
-        title="Clipped Box Title"
-        clipHeight={60}
-        btnText="Expand"
-      >
+      <ClippedBox {...args}>
         Tilde taiyaki lumbersexual, franzen gochujang forage mixtape meditation mumblecore
         af food truck etsy butcher. Post-ironic taiyaki affogato, artisan biodiesel
         kickstarter direct trade try-hard tacos subway tile swag vice trust fund shaman
@@ -38,8 +39,13 @@ export const Default = withInfo(
       </ClippedBox>
     </div>
   </div>
-));
+);
 
-Default.story = {
-  name: 'default',
+Default.storyName = 'ClippedBox';
+Default.parameters = {
+  docs: {
+    description: {
+      story: 'Component that clips content and allows expansion of container',
+    },
+  },
 };

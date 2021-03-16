@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
-import six
 import pytest
 
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
@@ -11,11 +7,11 @@ def dump_obj(obj):
     if not isinstance(getattr(obj, "__dict__", None), dict):
         return obj
     rv = {}
-    for (key, value) in six.iteritems(obj.__dict__):
+    for (key, value) in obj.__dict__.items():
         if isinstance(value, list):
             rv[key] = [dump_obj(x) for x in value]
         elif isinstance(value, dict):
-            rv[key] = {k: dump_obj(v) for k, v in six.iteritems(value)}
+            rv[key] = {k: dump_obj(v) for k, v in value.items()}
         else:
             rv[key] = value
     return rv
@@ -43,7 +39,7 @@ family:native                                   max-frames=3
     insta_snapshot(dump_obj(enhancement))
     assert Enhancements.loads(dumped).dumps() == dumped
     assert Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
-    assert isinstance(dumped, six.string_types)
+    assert isinstance(dumped, str)
 
 
 def test_parsing_errors():

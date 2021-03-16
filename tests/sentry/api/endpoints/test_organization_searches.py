@@ -2,7 +2,7 @@ from django.utils import timezone
 from exam import fixture
 
 from sentry.api.serializers import serialize
-from sentry.models import SavedSearch
+from sentry.models import SavedSearch, SortOptions
 from sentry.models.search_common import SearchType
 from sentry.testutils import APITestCase
 
@@ -15,7 +15,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         return self.create_user("test@test.com")
 
     def get_response(self, *args, **params):
-        return super(OrgLevelOrganizationSearchesListTest, self).get_response(*args, **params)
+        return super().get_response(*args, **params)
 
     def create_base_data(self):
         # Depending on test we run migrations in Django 1.8. This causes
@@ -27,6 +27,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
             project=self.create_project(teams=[team], name="foo"),
             name="foo",
             query="some test",
+            sort=SortOptions.DATE,
             date_added=timezone.now(),
         )
         SavedSearch.objects.create(
@@ -34,12 +35,14 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
             owner=self.create_user(),
             name="foo",
             query="some other user's query",
+            sort=SortOptions.DATE,
             date_added=timezone.now(),
         )
         included = [
             SavedSearch.objects.create(
                 name="Global Query",
                 query="is:unresolved",
+                sort=SortOptions.DATE,
                 is_global=True,
                 date_added=timezone.now(),
             ),
@@ -47,12 +50,14 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
                 organization=self.organization,
                 name="foo",
                 query="some test",
+                sort=SortOptions.DATE,
                 date_added=timezone.now(),
             ),
             SavedSearch.objects.create(
                 organization=self.organization,
                 name="wat",
                 query="is:unassigned is:unresolved",
+                sort=SortOptions.NEW,
                 date_added=timezone.now(),
             ),
         ]

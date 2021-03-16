@@ -31,6 +31,7 @@ node_modules
 /src/sentry/static/sentry/rest_framework/
 /src/sentry/integration-docs
 /src/sentry/loader/_registry.json
+/config/chartcuterie/config.js*
 /tests/apidocs/openapi-derefed.json
 tests/fixtures/integrations/*/data/**
 /wheelhouse
@@ -47,4 +48,3 @@ package-lock.json
 .webpack.meta
 pip-wheel-metadata/
 Brewfile.lock.json
-~/

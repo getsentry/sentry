@@ -1,18 +1,21 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import * as ReactRouter from 'react-router';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
 import ChartZoom from 'app/components/charts/chartZoom';
-import Legend from 'app/components/charts/components/legend';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -22,12 +25,9 @@ import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateArg, getMeasurementSlug} from 'app/utils/discover/fields';
 import getDynamicText from 'app/utils/getDynamicText';
-import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import {TransactionsListOption} from 'app/views/releases/detail/overview';
-
-import {HeaderTitleLegend} from '../styles';
 
 const QUERY_KEYS = [
   'environment',
@@ -42,6 +42,7 @@ type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
 type Props = ReactRouter.WithRouterProps &
   ViewProps & {
+    theme: Theme;
     api: Client;
     location: Location;
     organization: OrganizationSummary;
@@ -73,6 +74,7 @@ class VitalsChart extends React.Component<Props> {
 
   render() {
     const {
+      theme,
       api,
       project,
       environment,
@@ -86,9 +88,9 @@ class VitalsChart extends React.Component<Props> {
 
     const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
     const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : null;
-    const utc = decodeScalar(router.location.query.utc) !== 'false';
+    const {utc} = getParams(location.query);
 
-    const legend = Legend({
+    const legend = {
       right: 10,
       top: 0,
       selected: getSeriesSelection(location),
@@ -102,8 +104,7 @@ class VitalsChart extends React.Component<Props> {
         }
         return seriesName;
       },
-      theme,
-    });
+    };
 
     const datetimeSelection = {
       start,
@@ -147,7 +148,13 @@ class VitalsChart extends React.Component<Props> {
             )}
           />
         </HeaderTitleLegend>
-        <ChartZoom router={router} period={statsPeriod}>
+        <ChartZoom
+          router={router}
+          period={statsPeriod}
+          start={start}
+          end={end}
+          utc={utc === 'true'}
+        >
           {zoomRenderProps => (
             <EventsRequest
               api={api}
@@ -191,7 +198,7 @@ class VitalsChart extends React.Component<Props> {
                       showTransactions: TransactionsListOption.SLOW_LCP,
                     }}
                     period={statsPeriod}
-                    utc={utc}
+                    utc={utc === 'true'}
                     projects={project}
                     environments={environment}
                   >
@@ -208,7 +215,7 @@ class VitalsChart extends React.Component<Props> {
                               series={[...series, ...releaseSeries]}
                             />
                           ),
-                          fixed: 'Web Vitals Chart',
+                          fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                         })}
                       </TransitionChart>
                     )}
@@ -223,4 +230,4 @@ class VitalsChart extends React.Component<Props> {
   }
 }
 
-export default withApi(ReactRouter.withRouter(VitalsChart));
+export default withApi(withTheme(ReactRouter.withRouter(VitalsChart)));

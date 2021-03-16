@@ -1,7 +1,6 @@
 import unittest
 import pickle
 
-import six
 
 from django import forms
 from django.db import connection, models
@@ -174,7 +173,7 @@ class BitFieldTest(TestCase):
         flags_field = BitFieldTestModel._meta.get_field("flags")
         flags_db_column = flags_field.db_column or flags_field.name
         cursor.execute(
-            "INSERT INTO %s (%s) VALUES (-1)" % (BitFieldTestModel._meta.db_table, flags_db_column)
+            f"INSERT INTO {BitFieldTestModel._meta.db_table} ({flags_db_column}) VALUES (-1)"
         )
         # There should only be the one row we inserted through the cursor.
         instance = BitFieldTestModel.objects.get(flags=-1)
@@ -225,7 +224,7 @@ class BitFieldTest(TestCase):
 
         BitFieldTestModel.objects.filter(pk=instance.pk).update(
             flags=bitor(
-                F("flags"), ((~BitFieldTestModel.flags.FLAG_0 | BitFieldTestModel.flags.FLAG_3))
+                F("flags"), (~BitFieldTestModel.flags.FLAG_0 | BitFieldTestModel.flags.FLAG_3)
             )
         )
         instance = BitFieldTestModel.objects.get(pk=instance.pk)
@@ -300,7 +299,7 @@ class BitFieldTest(TestCase):
         MAX_COUNT = int(math.floor(math.log(BigIntegerField.MAX_BIGINT, 2)))
 
         # Big flags list
-        flags = ["f" + six.text_type(i) for i in range(100)]
+        flags = ["f" + str(i) for i in range(100)]
 
         try:
             BitField(flags=flags[:MAX_COUNT])
