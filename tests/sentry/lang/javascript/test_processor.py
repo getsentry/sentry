@@ -1,3 +1,4 @@
+import errno
 import pytest
 import re
 import responses
@@ -6,7 +7,7 @@ from symbolic import SourceMapTokenMatch
 
 from copy import deepcopy
 from io import BytesIO
-from sentry.utils.compat.mock import patch, ANY, call
+from sentry.utils.compat.mock import MagicMock, patch, ANY, call
 from requests.exceptions import RequestException
 
 from sentry import http, options
@@ -25,6 +26,7 @@ from sentry.lang.javascript.processor import (
     get_max_age,
     CACHE_CONTROL_MAX,
     CACHE_CONTROL_MIN,
+    should_retry_fetch,
 )
 from sentry.lang.javascript.errormapping import rewrite_exception, REACT_MAPPING_URL
 from sentry.models import File, Release, ReleaseFile, EventError
@@ -58,6 +60,18 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         project.organization.update_option("sentry:scrape_javascript", False)
         r = JavaScriptStacktraceProcessor({}, None, project)
         assert not r.allow_scraping
+
+
+def test_build_fetch_retry_condition() -> None:
+    e = OSError()
+    e.errno = errno.ESTALE
+
+    assert should_retry_fetch(1, e) is True
+    assert should_retry_fetch(2, e) is True
+    assert should_retry_fetch(3, e) is True
+    assert should_retry_fetch(4, e) is False
+
+    assert should_retry_fetch(1, Exception("something else")) is False
 
 
 class FetchReleaseFileTest(TestCase):
@@ -332,6 +346,57 @@ class FetchReleaseFileTest(TestCase):
         assert mock_compress_file.mock_calls == [call(ANY)]
         assert cache.get(cache_key_meta)["compressed_size"] == len(binary_body)
         assert cache.get(cache_key)
+
+    def test_retry_file_open(self) -> None:
+        project = self.project
+
+        release = Release.objects.create(organization_id=project.organization_id, version="abc")
+        release.add_project(project)
+
+        content = b"foo"
+
+        file = File.objects.create(
+            name="file.min.js",
+            type="release.file",
+            headers={"Content-Type": "application/json; charset=utf-8"},
+        )
+        file.putfile(BytesIO(content))
+
+        ReleaseFile.objects.create(
+            name=file.name,
+            release=release,
+            organization_id=project.organization_id,
+            file=file,
+        )
+
+        stale_file_error = OSError()
+        stale_file_error.errno = errno.ESTALE
+
+        bad_file = MagicMock()
+        bad_file.chunks.side_effect = stale_file_error
+
+        bad_file_reader = MagicMock()
+        bad_file_reader.__enter__.return_value = bad_file
+
+        good_file = MagicMock()
+        good_file.chunks.return_value = iter([content])
+
+        good_file_reader = MagicMock()
+        good_file_reader.__enter__.return_value = good_file
+
+        with patch("sentry.lang.javascript.processor.ReleaseFile.cache") as cache:
+            cache.getfile.side_effect = [bad_file_reader, good_file_reader]
+
+            assert fetch_release_file(file.name, release) == http.UrlResult(
+                file.name,
+                {k.lower(): v.lower() for k, v in file.headers.items()},
+                content,
+                200,
+                "utf-8",
+            )
+
+        assert bad_file.chunks.call_count == 1
+        assert good_file.chunks.call_count == 1
 
 
 class FetchFileTest(TestCase):
