@@ -733,3 +733,18 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 2
+
+    def test_team_filter_no_access(self):
+        self.setup_project_and_rules()
+        another_org = self.create_organization(owner=self.user, name="Rowdy Tiger")
+        another_org_team = self.create_team(organization=another_org, name="Meow Band", members=[])
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "team": [self.team.id, another_org_team.id],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 400
