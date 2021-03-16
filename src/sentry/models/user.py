@@ -10,7 +10,7 @@ from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, sane_repr
+from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, FlexibleForeignKey, sane_repr
 from sentry.models import LostPasswordHash
 from sentry.utils.http import absolute_uri
 
@@ -50,7 +50,7 @@ class User(BaseModel, AbstractBaseUser):
     is_staff = models.BooleanField(
         _("staff status"),
         default=False,
-        help_text=_("Designates whether the user can log into this admin " "site."),
+        help_text=_("Designates whether the user can log into this admin site."),
     )
     is_active = models.BooleanField(
         _("active"),
@@ -64,7 +64,7 @@ class User(BaseModel, AbstractBaseUser):
         _("superuser status"),
         default=False,
         help_text=_(
-            "Designates that this user has all permissions without " "explicitly assigning them."
+            "Designates that this user has all permissions without explicitly assigning them."
         ),
     )
     is_managed = models.BooleanField(
@@ -102,17 +102,15 @@ class User(BaseModel, AbstractBaseUser):
     flags = BitField(
         flags=(
             ("newsletter_consent_prompt", "Do we need to ask this user for newsletter consent?"),
-            (
-                "demo_mode",
-                "Mark an user as a demo user.",
-            ),
         ),
         default=0,
         null=True,
     )
 
     session_nonce = models.CharField(max_length=12, null=True)
-
+    actor = FlexibleForeignKey(
+        "sentry.Actor", db_index=True, unique=True, null=True, on_delete=models.PROTECT
+    )
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
 

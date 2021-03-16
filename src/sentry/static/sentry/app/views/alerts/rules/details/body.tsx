@@ -159,10 +159,13 @@ class DetailsBody extends React.Component<Props> {
         <span>{t('Time Window')}</span>
         <span>{rule?.timeWindow && <Duration seconds={rule?.timeWindow * 60} />}</span>
 
-        {rule?.query && (
+        {(rule?.dataset || rule?.query) && (
           <React.Fragment>
             <span>{t('Filter')}</span>
-            <span title={rule?.query}>{rule?.query}</span>
+            <span>
+              {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
+              {rule?.query}
+            </span>
           </React.Fragment>
         )}
 
@@ -255,7 +258,7 @@ class DetailsBody extends React.Component<Props> {
           <SummaryStats>{this.renderSummaryStatItems(percentages)}</SummaryStats>
         </ChartSummary>
         <Feature features={['discover-basic']}>
-          <Button size="small" priority="primary" disabled={!rule} {...props}>
+          <Button size="small" disabled={!rule} {...props}>
             {buttonText}
           </Button>
         </Feature>
@@ -291,19 +294,25 @@ class DetailsBody extends React.Component<Props> {
       : null;
 
     return (
-      <GroupedHeaderItems>
-        <ItemTitle>{t('Current Status')}</ItemTitle>
-        <ItemTitle>{activeIncident ? t('Last Triggered') : t('Last Resolved')}</ItemTitle>
-        <ItemValue>
-          <AlertBadge color={color} icon={Icon}>
-            <AlertIconWrapper>
-              <Icon color="white" />
-            </AlertIconWrapper>
-          </AlertBadge>
-          <IncidentStatusValue color={color}>{statusText}</IncidentStatusValue>
-        </ItemValue>
-        <ItemValue>{activityDate ? <TimeSince date={activityDate} /> : '-'}</ItemValue>
-      </GroupedHeaderItems>
+      <StatusContainer>
+        <div>
+          <SidebarHeading>{t('Status')}</SidebarHeading>
+          <ItemValue>
+            <AlertBadge color={color} icon={Icon}>
+              <AlertIconWrapper>
+                <Icon color="white" />
+              </AlertIconWrapper>
+            </AlertBadge>
+            <IncidentStatusValue color={color}>{statusText}</IncidentStatusValue>
+          </ItemValue>
+        </div>
+        <div>
+          <SidebarHeading>
+            {activeIncident ? t('Last Triggered') : t('Last Resolved')}
+          </SidebarHeading>
+          <ItemValue>{activityDate ? <TimeSince date={activityDate} /> : '-'}</ItemValue>
+        </div>
+      </StatusContainer>
     );
   }
 
@@ -343,7 +352,14 @@ class DetailsBody extends React.Component<Props> {
       return this.renderLoading();
     }
 
-    const {query, environment, aggregate, projects: projectSlugs, triggers} = rule;
+    const {
+      query,
+      environment,
+      aggregate,
+      projects: projectSlugs,
+      timeWindow,
+      triggers,
+    } = rule;
 
     const criticalTrigger = triggers.find(({label}) => label === 'critical');
     const warningTrigger = triggers.find(({label}) => label === 'warning');
@@ -369,16 +385,22 @@ class DetailsBody extends React.Component<Props> {
                   </DropdownControl>
                   {timePeriod.custom && (
                     <StyledTimeRange>
-                      <DateTime date={timePeriod.start} timeAndDate />
+                      <DateTime date={moment.utc(timePeriod.start)} timeAndDate />
                       {' — '}
-                      <DateTime date={timePeriod.end} timeAndDate />
+                      <DateTime date={moment.utc(timePeriod.end)} timeAndDate />
                     </StyledTimeRange>
                   )}
                 </ChartControls>
                 <ChartPanel>
                   <PanelBody withPadding>
                     <ChartHeader>
-                      {this.metricPreset?.name ?? t('Custom metric')}
+                      <PresetName>
+                        {this.metricPreset?.name ?? t('Custom metric')}
+                      </PresetName>
+                      {tct(' [metric] over [window]', {
+                        metric: aggregate,
+                        window: <Duration seconds={timeWindow * 60} />,
+                      })}
                     </ChartHeader>
                     <EventsRequest
                       api={api}
@@ -397,6 +419,7 @@ class DetailsBody extends React.Component<Props> {
                         !loading && timeseriesData ? (
                           <MetricChart
                             data={timeseriesData}
+                            ruleChangeThreshold={rule?.dateModified}
                             incidents={incidents}
                             criticalTrigger={criticalTrigger}
                             warningTrigger={warningTrigger}
@@ -436,33 +459,12 @@ class DetailsBody extends React.Component<Props> {
                         filter={DATASET_EVENT_TYPE_FILTERS[rule.dataset]}
                       />
                     )}
-                    <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
                   </ActivityWrapper>
                 </DetailWrapper>
               </Layout.Main>
               <Layout.Side>
                 {this.renderMetricStatus()}
-                <ChartParameters>
-                  {tct('Metric: [metric] over [window]', {
-                    metric: <code>{rule?.aggregate ?? '\u2026'}</code>,
-                    window: (
-                      <code>
-                        {rule?.timeWindow ? (
-                          <Duration seconds={rule?.timeWindow * 60} />
-                        ) : (
-                          '\u2026'
-                        )}
-                      </code>
-                    ),
-                  })}
-                  {(rule?.query || rule?.dataset) &&
-                    tct('Filter: [datasetType] [filter]', {
-                      datasetType: rule?.dataset && (
-                        <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>
-                      ),
-                      filter: rule?.query && <code>{rule.query}</code>,
-                    })}
-                </ChartParameters>
+                <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
                 <SidebarHeading>
                   <span>{t('Alert Rule')}</span>
                 </SidebarHeading>
@@ -494,47 +496,33 @@ const ActivityWrapper = styled('div')`
   width: 100%;
 `;
 
-const GroupedHeaderItems = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
-  grid-gap: ${space(1)} ${space(4)};
-  text-align: right;
-  margin-top: ${space(1)};
-  margin-bottom: ${space(4)};
-`;
-
-const ItemTitle = styled('h6')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: 0;
-  text-transform: uppercase;
-  color: ${p => p.theme.gray300};
-  letter-spacing: 0.1px;
-`;
-
 const ItemValue = styled('div')`
   display: flex;
   justify-content: flex-start;
   align-items: center;
+  position: relative;
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 const IncidentStatusValue = styled('div')<{color: string}>`
-  margin-left: ${space(1.5)};
+  margin-left: 30px;
   color: ${p => p.color};
 `;
 
 const AlertBadge = styled('div')<{color: string; icon: React.ReactNode}>`
   display: flex;
+  position: absolute;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   /* icon warning needs to be treated differently to look visually centered */
   line-height: ${p => (p.icon === IconWarning ? undefined : 1)};
+  left: 3px;
 
   &:before {
     content: '';
-    width: 30px;
-    height: 30px;
+    width: 20px;
+    height: 20px;
     border-radius: ${p => p.theme.borderRadius};
     background-color: ${p => p.color};
     transform: rotate(45deg);
@@ -543,11 +531,26 @@ const AlertBadge = styled('div')<{color: string; icon: React.ReactNode}>`
 
 const AlertIconWrapper = styled('div')`
   position: absolute;
+
+  svg {
+    width: 13px;
+    position: relative;
+    top: 1px;
+  }
+`;
+
+const StatusContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 50% 50%;
+  grid-row-gap: 16px;
+  margin-bottom: 20px;
 `;
 
 const SidebarHeading = styled(SectionHeading)`
   display: flex;
   justify-content: space-between;
+  margin-top: 0;
+  line-height: 1;
 `;
 
 const ChartControls = styled('div')`
@@ -566,13 +569,20 @@ const ChartPanel = styled(Panel)`
 
 const ChartHeader = styled('header')`
   margin-bottom: ${space(1)};
+  display: flex;
+  flex-direction: row;
+`;
+
+const PresetName = styled('div')`
+  text-transform: capitalize;
+  margin-right: ${space(0.5)};
 `;
 
 const ChartActions = styled(PanelFooter)`
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding: ${space(2)};
+  padding: ${space(1)} 20px;
 `;
 
 const ChartSummary = styled('div')`
@@ -604,31 +614,9 @@ const StatCount = styled('span')`
   color: black;
 `;
 
-const ChartParameters = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-  align-items: center;
-  overflow-x: auto;
-
-  > * {
-    position: relative;
-  }
-
-  > *:not(:last-of-type):after {
-    content: '';
-    display: block;
-    height: 70%;
-    width: 1px;
-    background: ${p => p.theme.gray200};
-    position: absolute;
-    right: -${space(2)};
-    top: 15%;
-  }
-`;
-
 const RuleDetails = styled('div')`
   display: grid;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
   grid-template-columns: auto max-content;
   margin-bottom: ${space(2)};
 

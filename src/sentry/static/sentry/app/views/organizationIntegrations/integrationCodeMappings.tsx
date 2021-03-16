@@ -8,6 +8,7 @@ import {openModal} from 'app/actionCreators/modal';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
+import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import RepositoryProjectPathConfigForm from 'app/components/repositoryProjectPathConfigForm';
 import RepositoryProjectPathConfigRow, {
@@ -28,6 +29,7 @@ import {
 import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 type Props = AsyncComponent['props'] & {
   integration: Integration;
@@ -184,10 +186,21 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
             {email: <a href="mailto:ecosystem-feedback@sentry.io" />}
           )}
         </Alert>
+        <TextBlock>
+          {tct(
+            `Code Mappings are used to map stack trace file paths to source code file paths. These mappings are the basis for features like Stack Trace Linking. To learn more, [link: read the docs].`,
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/integrations/gitlab/#stack-trace-linking" />
+              ),
+            }
+          )}
+        </TextBlock>
+
         <Panel>
           <PanelHeader disablePadding hasButtons>
             <HeaderLayout>
-              <NameRepoColumn>{t('Code Path Mappings')}</NameRepoColumn>
+              <NameRepoColumn>{t('Code Mappings')}</NameRepoColumn>
               <InputPathColumn>{t('Stack Trace Root')}</InputPathColumn>
               <OutputPathColumn>{t('Source Code Root')}</OutputPathColumn>
               <ButtonColumn>

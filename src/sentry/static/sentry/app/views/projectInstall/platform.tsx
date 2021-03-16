@@ -137,7 +137,7 @@ class ProjectInstallPlatform extends React.Component<Props, State> {
             <React.Fragment>
               <SentryDocumentTitle
                 title={`${t('Configure')} ${platform.name}`}
-                objSlug={projectId}
+                projectSlug={projectId}
               />
               <DocumentationWrapper dangerouslySetInnerHTML={{__html: this.state.html}} />
             </React.Fragment>

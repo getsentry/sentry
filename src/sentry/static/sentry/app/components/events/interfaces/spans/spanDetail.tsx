@@ -100,21 +100,16 @@ class SpanDetail extends React.Component<Props, State> {
     // Quick trace found some results that we can use to link to child
     // spans without making additional queries.
     if (quickTrace?.trace?.length) {
-      const traceLite = quickTrace.trace;
-      const child = traceLite.find(transaction => transaction.parent_span_id === spanID);
-      if (child) {
-        return Promise.resolve({
-          data: [
-            {
-              'project.name': child.project_slug,
-              transaction: child.transaction,
-              'trace.span': child.span_id,
-              id: child.event_id,
-            },
-          ],
-        });
-      }
-      return Promise.resolve({data: []});
+      return Promise.resolve({
+        data: quickTrace.trace
+          .filter(transaction => transaction.parent_span_id === spanID)
+          .map(child => ({
+            'project.name': child.project_slug,
+            transaction: child.transaction,
+            'trace.span': child.span_id,
+            id: child.event_id,
+          })),
+      });
     }
 
     const url = `/organizations/${organization.slug}/eventsv2/`;

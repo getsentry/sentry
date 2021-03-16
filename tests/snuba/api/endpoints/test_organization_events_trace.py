@@ -5,15 +5,24 @@ from django.core.urlresolvers import reverse
 
 from sentry.utils.samples import load_data
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
-    FEATURES = ["organizations:trace-view-quick", "organizations:global-views"]
+    FEATURES = [
+        "organizations:trace-view-quick",
+        "organizations:trace-view-summary",
+        "organizations:global-views",
+    ]
 
-    def create_event(self, trace, transaction, spans, parent_span_id, project_id, duration=4000):
+    def get_start_end(self, duration):
         start = before_now(minutes=1, milliseconds=duration)
-        end = start + timedelta(milliseconds=duration)
+        return start, start + timedelta(milliseconds=duration)
+
+    def create_event(
+        self, trace, transaction, spans, parent_span_id, project_id, duration=4000, span_id=None
+    ):
+        start, end = self.get_start_end(duration)
         data = load_data(
             "transaction",
             trace=trace,
@@ -23,6 +32,8 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         )
         data["transaction"] = transaction
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
+        if span_id:
+            data["contexts"]["trace"]["span_id"] = span_id
         return self.store_event(data, project_id=project_id)
 
     def setUp(self):
@@ -64,6 +75,7 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
 
         # First Generation
         self.gen1_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        self.gen1_project = self.create_project(organization=self.organization)
         self.gen1_events = [
             self.create_event(
                 trace=self.trace_id,
@@ -78,7 +90,7 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
                     }
                 ],
                 parent_span_id=root_span_id,
-                project_id=self.create_project(organization=self.organization).id,
+                project_id=self.gen1_project.id,
                 duration=2000,
             )
             for i, (root_span_id, gen1_span_id) in enumerate(
@@ -88,6 +100,8 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
 
         # Second Generation
         self.gen2_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        self.gen2_project = self.create_project(organization=self.organization)
+        self.gen2_span_id = uuid4().hex[:16]
         self.gen2_events = [
             self.create_event(
                 trace=self.trace_id,
@@ -102,7 +116,8 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
                     }
                 ],
                 parent_span_id=gen1_span_id,
-                project_id=self.create_project(organization=self.organization).id,
+                span_id=self.gen2_span_id if i == 0 else None,
+                project_id=self.gen2_project.id,
                 duration=1000,
             )
             for i, (gen1_span_id, gen2_span_id) in enumerate(
@@ -111,12 +126,13 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         ]
 
         # Third generation
+        self.gen3_project = self.create_project(organization=self.organization)
         self.gen3_event = self.create_event(
             trace=self.trace_id,
             transaction="/transaction/gen3-0",
             spans=[],
-            project_id=self.create_project(organization=self.organization).id,
-            parent_span_id=self.gen2_span_ids[0],
+            project_id=self.gen3_project.id,
+            parent_span_id=self.gen2_span_id,
             duration=500,
         )
 
@@ -312,7 +328,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         event = events[child_event_id]
         assert event["generation"] is None
         assert event["parent_event_id"] == current_event
-        assert event["parent_span_id"] == self.gen2_span_ids[0]
+        assert event["parent_span_id"] == self.gen2_span_id
 
     def test_third_generation_no_children(self):
         root_event_id = self.root_event.event_id
@@ -342,7 +358,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         # Parent is unknown in this case
         assert event["parent_event_id"] is None
         # But we still know the parent_span
-        assert event["parent_span_id"] == self.gen2_span_ids[0]
+        assert event["parent_span_id"] == self.gen2_span_id
 
     def test_sibling_transactions(self):
         """ More than one transaction can share a parent_span_id """
@@ -388,33 +404,32 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace"
 
+    def assert_event(self, result, event_data, message):
+        assert result["event_id"] == event_data.event_id, message
+        assert result["timestamp"] == event_data.data["timestamp"], message
+        assert result["start_timestamp"] == event_data.data["start_timestamp"], message
+
     def assert_trace_data(self, root, gen2_no_children=True):
         """ see the setUp docstring for an idea of what the response structure looks like """
-        assert root["event_id"] == self.root_event.event_id
+        self.assert_event(root, self.root_event, "root")
         assert root["parent_event_id"] is None
         assert root["parent_span_id"] is None
         assert root["generation"] == 0
         assert root["transaction.duration"] == 3000
-        assert root["timestamp"] == self.root_event.data["timestamp"]
-        assert root["start_timestamp"] == self.root_event.data["start_timestamp"]
         assert len(root["children"]) == 3
 
         for i, gen1 in enumerate(root["children"]):
-            assert gen1["event_id"] == self.gen1_events[i].event_id
+            self.assert_event(gen1, self.gen1_events[i], f"gen1_{i}")
             assert gen1["parent_event_id"] == self.root_event.event_id
             assert gen1["parent_span_id"] == self.root_span_ids[i]
-            assert gen1["timestamp"] == self.gen1_events[i].data["timestamp"]
-            assert gen1["start_timestamp"] == self.gen1_events[i].data["start_timestamp"]
             assert gen1["generation"] == 1
             assert gen1["transaction.duration"] == 2000
             assert len(gen1["children"]) == 1
 
             gen2 = gen1["children"][0]
-            assert gen2["event_id"] == self.gen2_events[i].event_id
+            self.assert_event(gen2, self.gen2_events[i], f"gen2_{i}")
             assert gen2["parent_event_id"] == self.gen1_events[i].event_id
             assert gen2["parent_span_id"] == self.gen1_span_ids[i]
-            assert gen2["timestamp"] == self.gen2_events[i].data["timestamp"]
-            assert gen2["start_timestamp"] == self.gen2_events[i].data["start_timestamp"]
             assert gen2["generation"] == 2
             assert gen2["transaction.duration"] == 1000
 
@@ -422,11 +437,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             if i == 0:
                 assert len(gen2["children"]) == 1
                 gen3 = gen2["children"][0]
-                assert gen3["event_id"] == self.gen3_event.event_id
+                self.assert_event(gen3, self.gen3_event, f"gen3_{i}")
                 assert gen3["parent_event_id"] == self.gen2_events[i].event_id
-                assert gen3["parent_span_id"] == self.gen2_span_ids[i]
-                assert gen3["timestamp"] == self.gen3_event.data["timestamp"]
-                assert gen3["start_timestamp"] == self.gen3_event.data["start_timestamp"]
+                assert gen3["parent_span_id"] == self.gen2_span_id
                 assert gen3["generation"] == 3
                 assert gen3["transaction.duration"] == 500
                 assert len(gen3["children"]) == 0
@@ -541,3 +554,74 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert len(gen2_parent["children"]) == 2
         for child in gen2_parent["children"]:
             assert child["event_id"] in gen3_event_siblings
+
+    def test_with_errors(self):
+        start, _ = self.get_start_end(1000)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": self.gen1_span_ids[0],
+        }
+        error = self.store_event(error_data, project_id=self.gen1_project.id)
+        error1 = self.store_event(error_data, project_id=self.gen1_project.id)
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        self.assert_trace_data(response.data)
+        gen1_event = response.data["children"][0]
+        assert len(gen1_event["errors"]) == 2
+        assert {
+            "event_id": error.event_id,
+            "span": self.gen1_span_ids[0],
+            "project_id": self.gen1_project.id,
+            "project_slug": self.gen1_project.slug,
+        } in gen1_event["errors"]
+        assert {
+            "event_id": error1.event_id,
+            "span": self.gen1_span_ids[0],
+            "project_id": self.gen1_project.id,
+            "project_slug": self.gen1_project.slug,
+        } in gen1_event["errors"]
+
+    def test_with_default(self):
+        start, _ = self.get_start_end(1000)
+        default_event = self.store_event(
+            {
+                "timestamp": iso_format(start),
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": self.trace_id,
+                        "span_id": self.root_span_ids[0],
+                    },
+                },
+            },
+            project_id=self.gen1_project.id,
+        )
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        self.assert_trace_data(response.data)
+        root_event = response.data
+        assert len(root_event["errors"]) == 1
+        assert {
+            "event_id": default_event.event_id,
+            "span": self.root_span_ids[0],
+            "project_id": self.gen1_project.id,
+            "project_slug": self.gen1_project.slug,
+        } in root_event["errors"]

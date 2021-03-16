@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectActions from 'app/actions/projectActions';
 import TeamActions from 'app/actions/teamActions';
@@ -25,7 +25,7 @@ describe('withUserTeams HoC', function () {
     });
     const MyComponent = () => null;
     const Container = withTeamsForUser(MyComponent);
-    const wrapper = mount(<Container organization={organization} api={api} />);
+    const wrapper = mountWithTheme(<Container organization={organization} api={api} />);
     await tick();
     expect(wrapper.update().find('MyComponent').prop('error')).not.toBeNull();
   });
@@ -51,7 +51,7 @@ describe('withUserTeams HoC', function () {
 
     const MyComponent = () => null;
     const Container = withTeamsForUser(MyComponent);
-    const wrapper = mount(<Container organization={organization} api={api} />);
+    const wrapper = mountWithTheme(<Container organization={organization} api={api} />);
     await tick();
     expect(wrapper.update().find('MyComponent').prop('teams')).toEqual(mockTeams);
   });

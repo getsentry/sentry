@@ -2,6 +2,9 @@ from collections import namedtuple, OrderedDict
 from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
+from hashlib import sha1
+from operator import itemgetter
+
 from dateutil.parser import parse as parse_datetime
 import logging
 import functools
@@ -15,9 +18,9 @@ from sentry_sdk import Hub
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
+from django.core.cache import cache
 from urllib.parse import urlparse
 
-from sentry import quotas
 from sentry.models import (
     Environment,
     Group,
@@ -30,7 +33,7 @@ from sentry.models import (
 )
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_timestamp, outside_retention_with_modified_start
 from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
 from sentry.utils.compat import map
@@ -504,13 +507,11 @@ def _prepare_query_params(query_params):
             else:
                 query_params.conditions.append((col, "IN", keys))
 
-    retention = quotas.get_event_retention(organization=Organization(organization_id))
-    if retention:
-        start = max(start, datetime.utcnow() - timedelta(days=retention))
-        if start > end:
-            raise QueryOutsideRetentionError(
-                "Invalid date range. Please try a more recent date range."
-            )
+    expired, start = outside_retention_with_modified_start(
+        start, end, Organization(organization_id)
+    )
+    if expired:
+        raise QueryOutsideRetentionError("Invalid date range. Please try a more recent date range.")
 
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
@@ -615,6 +616,7 @@ def raw_query(
     rollup=None,
     referrer=None,
     is_grouprelease=False,
+    use_cache=False,
     **kwargs,
 ):
     """
@@ -633,38 +635,53 @@ def raw_query(
         is_grouprelease=is_grouprelease,
         **kwargs,
     )
-    return bulk_raw_query([snuba_params], referrer=referrer)[0]
+    return bulk_raw_query([snuba_params], referrer=referrer, use_cache=use_cache)[0]
 
 
-def bulk_raw_query(snuba_param_list, referrer=None):
+def bulk_raw_query(snuba_param_list, referrer=None, use_cache=False):
     headers = {}
     if referrer:
         headers["referer"] = referrer
 
-    query_param_list = map(_prepare_query_params, snuba_param_list)
+    # Store the original position of the query so that we can maintain the order
+    query_param_list = list(enumerate(map(_prepare_query_params, snuba_param_list)))
 
-    def snuba_query(params):
-        query_params, forward, reverse, thread_hub = params
-        try:
-            with timer("snuba_query"):
-                referrer = headers.get("referer", "<unknown>")
-                if SNUBA_INFO:
-                    # We want debug in the body, but not in the logger, so dump the json twice
-                    logger.info(f"{referrer}.body: {json.dumps(query_params)}")
-                    query_params["debug"] = True
-                body = json.dumps(query_params)
-                with thread_hub.start_span(op="snuba", description=f"query {referrer}") as span:
-                    span.set_tag("referrer", referrer)
-                    for param_key, param_data in query_params.items():
-                        span.set_data(param_key, param_data)
-                    return (
-                        _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
-                        forward,
-                        reverse,
-                    )
-        except urllib3.exceptions.HTTPError as err:
-            raise SnubaError(err)
+    results = []
 
+    if use_cache:
+        # sqc - Snuba Query Cache
+        cache_keys = [
+            f"sqc:{sha1(json.dumps(query_params[0], sort_keys=True).encode('utf-8')).hexdigest()}"
+            for _, query_params in query_param_list
+        ]
+        cache_data = cache.get_many(cache_keys)
+        to_query = []
+        for (query_pos, query_params), cache_key in zip(query_param_list, cache_keys):
+            cached_result = cache_data.get(cache_key)
+            metric_tags = {"referrer": referrer} if referrer else None
+            if cached_result is None:
+                metrics.incr("snuba.query_cache.miss", tags=metric_tags)
+                to_query.append((query_pos, query_params, cache_key))
+            else:
+                metrics.incr("snuba.query_cache.hit", tags=metric_tags)
+                results.append((query_pos, json.loads(cached_result)))
+    else:
+        to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
+
+    if to_query:
+        query_results = _bulk_snuba_query(map(itemgetter(1), to_query), headers)
+        for result, (query_pos, _, cache_key) in zip(query_results, to_query):
+            if cache_key:
+                cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
+            results.append((query_pos, result))
+
+    # Sort so that we get the results back in the original param list order
+    results.sort()
+    # Drop the sort order val
+    return map(itemgetter(1), results)
+
+
+def _bulk_snuba_query(snuba_param_list, headers):
     with sentry_sdk.start_span(
         op="start_snuba_query",
         description=f"running {len(snuba_param_list)} snuba queries",
@@ -673,13 +690,14 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         if len(snuba_param_list) > 1:
             query_results = list(
                 _query_thread_pool.map(
-                    snuba_query, [params + (Hub(Hub.current),) for params in query_param_list]
+                    _snuba_query,
+                    [params + (Hub(Hub.current), headers) for params in snuba_param_list],
                 )
             )
         else:
             # No need to submit to the thread pool if we're just performing a
             # single query
-            query_results = [snuba_query(query_param_list[0] + (Hub(Hub.current),))]
+            query_results = [_snuba_query(snuba_param_list[0] + (Hub(Hub.current), headers))]
 
     results = []
     for response, _, reverse in query_results:
@@ -723,6 +741,29 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     return results
 
 
+def _snuba_query(params):
+    query_params, forward, reverse, thread_hub, headers = params
+    try:
+        with timer("snuba_query"):
+            referrer = headers.get("referer", "<unknown>")
+            if SNUBA_INFO:
+                # We want debug in the body, but not in the logger, so dump the json twice
+                logger.info(f"{referrer}.body: {json.dumps(query_params)}")
+                query_params["debug"] = True
+            body = json.dumps(query_params)
+            with thread_hub.start_span(op="snuba", description=f"query {referrer}") as span:
+                span.set_tag("referrer", referrer)
+                for param_key, param_data in query_params.items():
+                    span.set_data(param_key, param_data)
+                return (
+                    _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
+                    forward,
+                    reverse,
+                )
+    except urllib3.exceptions.HTTPError as err:
+        raise SnubaError(err)
+
+
 def query(
     dataset=None,
     start=None,
@@ -733,6 +774,7 @@ def query(
     aggregations=None,
     selected_columns=None,
     totals=None,
+    use_cache=False,
     **kwargs,
 ):
 
@@ -752,6 +794,7 @@ def query(
             aggregations=aggregations,
             selected_columns=selected_columns,
             totals=totals,
+            use_cache=use_cache,
             **kwargs,
         )
     except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):
@@ -1087,6 +1130,8 @@ JSON_TYPE_MAP = {
     "Float32": "number",
     "Float64": "number",
     "DateTime": "date",
+    # toStartOf{Hour,Day} return this, used for timestamp.to_{hour,day}
+    "DateTime('UTC')": "date",
 }
 
 

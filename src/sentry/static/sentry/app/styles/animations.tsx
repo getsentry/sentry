@@ -1,6 +1,6 @@
 import {keyframes} from '@emotion/core';
 
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 export const growIn = keyframes`
   0% {
@@ -112,7 +112,7 @@ export const highlight = (color: string) => keyframes`
 `;
 
 // TODO(ts): priority should be pulled from `keyof typeof theme.alert`
-export const alertHighlight = (priority: string) => keyframes`
+export const alertHighlight = (priority: string, theme: Theme) => keyframes`
   0%,
   100% {
     background: rgba(255, 255, 255, 0);

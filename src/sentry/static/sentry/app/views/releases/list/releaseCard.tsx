@@ -41,6 +41,7 @@ type Props = {
   selection: GlobalSelection;
   reloading: boolean;
   showHealthPlaceholders: boolean;
+  isTopRelease: boolean;
 };
 
 const ReleaseCard = ({
@@ -51,6 +52,7 @@ const ReleaseCard = ({
   reloading,
   selection,
   showHealthPlaceholders,
+  isTopRelease,
 }: Props) => {
   const {version, commitCount, lastDeploy, dateCreated, versionInfo} = release;
 
@@ -90,6 +92,7 @@ const ReleaseCard = ({
           showPlaceholders={showHealthPlaceholders}
           reloading={reloading}
           selection={selection}
+          isTopRelease={isTopRelease}
         />
       </ReleaseProjects>
     </StyledPanel>
@@ -133,7 +136,7 @@ const ReleaseInfoSubheader = styled('div')`
 
 const PackageName = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 `;
 
 const ReleaseProjects = styled('div')`

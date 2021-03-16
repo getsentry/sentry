@@ -33,7 +33,7 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
-const MESSAGES = {
+export const projectProcessingIssuesMessages = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
   native_internal_failure: t('Internal failure when attempting to symbolicate: {error}'),
   native_bad_dsym: t('The debug information file used was broken.'),
@@ -52,10 +52,10 @@ const MESSAGES = {
 };
 
 const HELP_LINKS = {
-  native_missing_dsym: 'https://docs.sentry.io/clients/cocoa/dsym/',
-  native_bad_dsym: 'https://docs.sentry.io/clients/cocoa/dsym/',
-  native_missing_system_dsym: 'https://docs.sentry.io/server/dsym/',
-  native_missing_symbol: 'https://docs.sentry.io/server/dsym/',
+  native_missing_dsym: 'https://docs.sentry.io/platforms/apple/dsym/',
+  native_bad_dsym: 'https://docs.sentry.io/platforms/apple/dsym/',
+  native_missing_system_dsym: 'https://develop.sentry.dev/self-hosted/',
+  native_missing_symbol: 'https://develop.sentry.dev/self-hosted/',
 };
 
 type Props = {
@@ -264,7 +264,7 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
   }
 
   getProblemDescription(item: ProcessingIssueItem) {
-    const msg = MESSAGES[item.type];
+    const msg = projectProcessingIssuesMessages[item.type];
     return msg || t('Unknown Error');
   }
 
@@ -450,7 +450,7 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
     const title = t('Processing Issues');
     return (
       <div>
-        <SentryDocumentTitle title={title} objSlug={projectId} />
+        <SentryDocumentTitle title={title} projectSlug={projectId} />
         <SettingsPageHeader title={title} />
         <TextBlock>
           {t(

@@ -330,26 +330,29 @@ class Event:
         """
         Returns _all_ information that is necessary to group an event into
         issues. It returns two lists of hashes, `(flat_hashes,
+
         hierarchical_hashes)`:
 
-        1. An event should be sorted into a group X, if there is a GroupHash
-          matching *any* of `flat_hashes`. Hashes that do not yet have a
-          GroupHash model get one and are associated with the same group
-          (unless they already belong to another group).
+        1. First, `hierarchical_hashes` is walked
+           *backwards* (end to start) until one hash has been found that matches
+           an existing group. Only *that* hash gets a GroupHash instance that is
+           associated with the group.
 
-          This is how regular grouping works.
+        2. If no group was found, an event should be sorted into a group X, if
+           there is a GroupHash matching *any* of `flat_hashes`. Hashes that do
+           not yet have a GroupHash model get one and are associated with the same
+           group (unless they already belong to another group).
 
-        2. If no group has been found, `hierarchical_hashes` is walked
-          *backwards* (end to start) until one hash has been found that matches
-          an existing group. Only *that* hash gets a GroupHash instance that is
-          associated with the group.
+           This is how regular grouping works.
 
         Whichever group the event lands in is associated with exactly one
         GroupHash corresponding to an entry in `hierarchical_hashes`, and an
         arbitrary amount of hashes from `flat_hashes` depending on whether some
-        of those hashes have GroupHashes already assigned to other groups.
+        of those hashes have GroupHashes already assigned to other groups (and
+        some other things).
 
-        The returned hashes already take SDK fingerprints and checksums into consideration.
+        The returned hashes already take SDK fingerprints and checksums into
+        consideration.
 
         """
 
@@ -362,33 +365,25 @@ class Event:
             if hashes is not None:
                 return hashes, hierarchical_hashes
 
-        from sentry.grouping.variants import HIERARCHICAL_VARIANTS
-
-        flat_hashes = []
-        hierarchical_hashes = []
-
-        for name, variant in self.get_grouping_variants(force_config).items():
-            _hash = variant.get_hash()
-            if not _hash:
-                continue
-
-            if name in HIERARCHICAL_VARIANTS:
-                hierarchical_hashes.append((name, _hash))
-            else:
-                flat_hashes.append((name, _hash))
-
-        # Sort system hash to the back of the list to resolve ambiguities when
-        # choosing primary_hash for Snuba
-        flat_hashes.sort(key=lambda name_and_hash: 1 if name_and_hash[0] == "system" else 0)
-        flat_hashes = [_hash for name, _hash in flat_hashes]
-
-        # Sort hierarchical_hashes by order defined in HIERARCHICAL_VARIANTS
-        hierarchical_hashes.sort(
-            key=lambda name_and_hash: HIERARCHICAL_VARIANTS.index(name_and_hash[0])
-        )
-        hierarchical_hashes = [_hash for name, _hash in hierarchical_hashes]
+        # Create fresh hashes
+        flat_variants, hierarchical_variants = self.get_sorted_grouping_variants(force_config)
+        flat_hashes = self._hashes_from_sorted_grouping_variants(flat_variants)
+        hierarchical_hashes = self._hashes_from_sorted_grouping_variants(hierarchical_variants)
 
         return flat_hashes, hierarchical_hashes
+
+    def get_sorted_grouping_variants(self, force_config=None):
+        """ Get grouping variants sorted into flat and hierarchical variants """
+        from sentry.grouping.api import sort_grouping_variants
+
+        variants = self.get_grouping_variants(force_config)
+        return sort_grouping_variants(variants)
+
+    @staticmethod
+    def _hashes_from_sorted_grouping_variants(variants):
+        """ Create hashes from variants and filter out None values """
+        hashes = (variant.get_hash() for variant in variants)
+        return [hash_ for hash_ in hashes if hash_ is not None]
 
     def get_grouping_variants(self, force_config=None, normalize_stacktraces=False):
         """
@@ -427,8 +422,15 @@ class Event:
         return get_grouping_variants_for_event(self, config)
 
     def get_primary_hash(self):
-        flat_hashes, _ = self.get_hashes()
-        return flat_hashes[0] if flat_hashes else None
+        flat_hashes, hierarchical_hashes = self.get_hashes()
+
+        if hierarchical_hashes:
+            return hierarchical_hashes[0]
+
+        if flat_hashes:
+            return flat_hashes[0]
+
+        return None
 
     @property
     def organization(self):
