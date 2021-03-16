@@ -31,8 +31,7 @@ class ReleaseTestCase(TestCase):
 
         assert UserEmail.objects.filter(user=user, email=user.email).update(is_verified=True)
 
-        if team:
-            self.create_member(user=user, organization=self.org, teams=[team])
+        self.create_member(user=user, organization=self.org, teams=[team] if team else None)
 
         return user
 
