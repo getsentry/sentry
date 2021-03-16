@@ -45,7 +45,6 @@ function OtherProjects({projects, location, version, organization}: Props) {
         {projects.map(project => (
           <Row key={project.id}>
             <IdBadge project={project} avatarSize={16} />
-
             <ProjectLink
               location={location}
               orgSlug={organization.slug}
