@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import OpsBreakdown from 'app/components/events/opsBreakdown';
+import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
@@ -749,7 +750,7 @@ const HeaderContainer = styled('div')`
   width: 100%;
   position: sticky;
   left: 0;
-  top: 0;
+  top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   z-index: ${zIndex.minimapContainer};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
