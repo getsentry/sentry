@@ -1,13 +1,13 @@
-from __future__ import absolute_import
 import uuid
 
-from sentry.utils.compat import mock
+import pytest
 import pytz
 from datetime import datetime, timedelta
 from django.utils import timezone
 from hashlib import md5
 
 from sentry import options
+from sentry.api.event_search import InvalidSearchQuery
 from sentry.api.issue_search import convert_query_values, IssueSearchVisitor, parse_search_query
 from sentry.models import (
     Environment,
@@ -19,9 +19,11 @@ from sentry.models import (
     GroupSubscription,
     Integration,
 )
+from sentry.models.groupinbox import add_group_to_inbox, GroupInboxReason
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 from sentry.utils.snuba import Dataset, SENTRY_SNUBA_MAP, SnubaError
 
 
@@ -35,7 +37,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         return EventsDatasetSnubaSearchBackend()
 
     def setUp(self):
-        super(EventsSnubaSearchTest, self).setUp()
+        super().setUp()
         self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 
         event1_timestamp = iso_format(self.base_datetime - timedelta(days=21))
@@ -120,7 +122,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         }
 
     def store_event(self, data, *args, **kwargs):
-        event = super(EventsSnubaSearchTest, self).store_event(data, *args, **kwargs)
+        event = super().store_event(data, *args, **kwargs)
         environment_name = data.get("environment")
         if environment_name:
             GroupEnvironment.objects.filter(
@@ -164,7 +166,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(event.group.organization, self.user)
         self.create_integration_external_issue(
-            group=event.group, integration=integration, key="APP-123",
+            group=event.group,
+            integration=integration,
+            key="APP-123",
         )
         return event.group
 
@@ -221,36 +225,36 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             sort_by=sort_by,
             date_from=date_from,
             date_to=date_to,
-            **kwargs
+            **kwargs,
         )
 
     def test_query(self):
         results = self.make_query(search_filter_query="foo")
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(search_filter_query="bar")
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
     def test_query_multi_project(self):
         self.set_up_multi_project()
         results = self.make_query([self.project, self.project2], search_filter_query="foo")
-        assert set(results) == set([self.group1, self.group_p2])
+        assert set(results) == {self.group1, self.group_p2}
 
     def test_query_with_environment(self):
         results = self.make_query(
             environments=[self.environments["production"]], search_filter_query="foo"
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(
             environments=[self.environments["production"]], search_filter_query="bar"
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
         results = self.make_query(
             environments=[self.environments["staging"]], search_filter_query="bar"
         )
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
     def test_query_for_text_in_long_message(self):
         results = self.make_query(
@@ -259,7 +263,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             search_filter_query="santryrox",
         )
 
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
     def test_multi_environments(self):
         self.set_up_multi_project()
@@ -267,7 +271,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             [self.project, self.project2],
             environments=[self.environments["production"], self.environments["staging"]],
         )
-        assert set(results) == set([self.group1, self.group2, self.group_p2])
+        assert set(results) == {self.group1, self.group2, self.group_p2}
 
     def test_query_with_environment_multi_project(self):
         self.set_up_multi_project()
@@ -276,14 +280,14 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             environments=[self.environments["production"]],
             search_filter_query="foo",
         )
-        assert set(results) == set([self.group1, self.group_p2])
+        assert set(results) == {self.group1, self.group_p2}
 
         results = self.make_query(
             [self.project, self.project2],
             environments=[self.environments["production"]],
             search_filter_query="bar",
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
     def test_sort(self):
         results = self.make_query(sort_by="date")
@@ -336,99 +340,99 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
 
     def test_status(self):
         results = self.make_query(search_filter_query="is:unresolved")
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(search_filter_query="is:resolved")
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
     def test_status_with_environment(self):
         results = self.make_query(
             environments=[self.environments["production"]], search_filter_query="is:unresolved"
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(
             environments=[self.environments["staging"]], search_filter_query="is:resolved"
         )
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         results = self.make_query(
             environments=[self.environments["production"]], search_filter_query="is:resolved"
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
     def test_tags(self):
         results = self.make_query(search_filter_query="environment:staging")
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         results = self.make_query(search_filter_query="environment:example.com")
-        assert set(results) == set([])
+        assert set(results) == set()
 
         results = self.make_query(search_filter_query="has:environment")
-        assert set(results) == set([self.group2, self.group1])
+        assert set(results) == {self.group2, self.group1}
 
         results = self.make_query(search_filter_query="environment:staging server:example.com")
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         results = self.make_query(search_filter_query='url:"http://example.com"')
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         results = self.make_query(search_filter_query="environment:staging has:server")
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         results = self.make_query(search_filter_query="environment:staging server:bar.example.com")
-        assert set(results) == set([])
+        assert set(results) == set()
 
     def test_tags_with_environment(self):
         results = self.make_query(
             environments=[self.environments["production"]], search_filter_query="server:example.com"
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(
             environments=[self.environments["staging"]], search_filter_query="server:example.com"
         )
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         results = self.make_query(
             environments=[self.environments["staging"]], search_filter_query="has:server"
         )
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         results = self.make_query(
             environments=[self.environments["production"]],
             search_filter_query='url:"http://example.com"',
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
         results = self.make_query(
             environments=[self.environments["staging"]],
             search_filter_query='url:"http://example.com"',
         )
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         results = self.make_query(
             environments=[self.environments["staging"]],
             search_filter_query="server:bar.example.com",
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
     def test_bookmarked_by(self):
         results = self.make_query(search_filter_query="bookmarks:%s" % self.user.username)
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
     def test_bookmarked_by_with_environment(self):
         results = self.make_query(
             environments=[self.environments["staging"]],
             search_filter_query="bookmarks:%s" % self.user.username,
         )
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         results = self.make_query(
             environments=[self.environments["production"]],
             search_filter_query="bookmarks:%s" % self.user.username,
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
     def test_search_filter_query_with_custom_priority_tag(self):
         priority = "high"
@@ -445,7 +449,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
 
         results = self.make_query(search_filter_query="priority:%s" % priority)
 
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
     def test_search_filter_query_with_custom_priority_tag_and_priority_sort(self):
         priority = "high"
@@ -487,11 +491,11 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         results = self.make_query(search_filter_query="email:tags@example.com")
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
     def test_project(self):
         results = self.make_query([self.create_project(name="other")])
-        assert set(results) == set([])
+        assert set(results) == set()
 
     def test_pagination(self):
         for options_set in [
@@ -500,14 +504,14 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         ]:
             with self.options(options_set):
                 results = self.backend.query([self.project], limit=1, sort_by="date")
-                assert set(results) == set([self.group1])
+                assert set(results) == {self.group1}
                 assert not results.prev.has_results
                 assert results.next.has_results
 
                 results = self.backend.query(
                     [self.project], cursor=results.next, limit=1, sort_by="date"
                 )
-                assert set(results) == set([self.group2])
+                assert set(results) == {self.group2}
                 assert results.prev.has_results
                 assert not results.next.has_results
 
@@ -515,7 +519,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 results = self.backend.query(
                     [self.project], cursor=results.prev, limit=1, sort_by="date"
                 )
-                assert set(results) == set([self.group1])
+                assert set(results) == {self.group1}
                 assert results.prev.has_results
                 assert results.next.has_results
 
@@ -523,28 +527,28 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 results = self.backend.query(
                     [self.project], cursor=results.prev, limit=1, sort_by="date"
                 )
-                assert set(results) == set([])
+                assert set(results) == set()
                 assert not results.prev.has_results
                 assert results.next.has_results
 
                 results = self.backend.query(
                     [self.project], cursor=results.next, limit=1, sort_by="date"
                 )
-                assert set(results) == set([self.group1])
+                assert set(results) == {self.group1}
                 assert results.prev.has_results
                 assert results.next.has_results
 
                 results = self.backend.query(
                     [self.project], cursor=results.next, limit=1, sort_by="date"
                 )
-                assert set(results) == set([self.group2])
+                assert set(results) == {self.group2}
                 assert results.prev.has_results
                 assert not results.next.has_results
 
                 results = self.backend.query(
                     [self.project], cursor=results.next, limit=1, sort_by="date"
                 )
-                assert set(results) == set([])
+                assert set(results) == set()
                 assert results.prev.has_results
                 assert not results.next.has_results
 
@@ -601,13 +605,13 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query(
             search_filter_query="activeSince:>=%s" % date_to_query_format(self.group2.active_at)
         )
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         results = self.make_query(
             search_filter_query="activeSince:<=%s"
             % date_to_query_format(self.group1.active_at + timedelta(minutes=1))
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(
             search_filter_query="activeSince:>=%s activeSince:<=%s"
@@ -616,19 +620,19 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 date_to_query_format(self.group1.active_at + timedelta(minutes=1)),
             )
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
     def test_age_filter(self):
         results = self.make_query(
             search_filter_query="firstSeen:>=%s" % date_to_query_format(self.group2.first_seen)
         )
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         results = self.make_query(
             search_filter_query="firstSeen:<=%s"
             % date_to_query_format(self.group1.first_seen + timedelta(minutes=1))
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(
             search_filter_query="firstSeen:>=%s firstSeen:<=%s"
@@ -637,7 +641,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 date_to_query_format(self.group1.first_seen + timedelta(minutes=1)),
             )
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
     def test_age_filter_with_environment(self):
         # add time instead to make it greater than or less than as needed.
@@ -649,19 +653,19 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             environments=[self.environments["production"]],
             search_filter_query="firstSeen:>=%s" % date_to_query_format(group1_first_seen),
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(
             environments=[self.environments["production"]],
             search_filter_query="firstSeen:<=%s" % date_to_query_format(group1_first_seen),
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(
             environments=[self.environments["production"]],
             search_filter_query="firstSeen:>%s" % date_to_query_format(group1_first_seen),
         )
-        assert set(results) == set([])
+        assert set(results) == set()
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
@@ -677,29 +681,29 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             environments=[self.environments["production"]],
             search_filter_query="firstSeen:>%s" % date_to_query_format(group1_first_seen),
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
         results = self.make_query(
             environments=[Environment.objects.get(name="development")],
             search_filter_query="firstSeen:>%s" % date_to_query_format(group1_first_seen),
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
     def test_times_seen_filter(self):
         results = self.make_query([self.project], search_filter_query="times_seen:2")
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query([self.project], search_filter_query="times_seen:>=2")
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query([self.project], search_filter_query="times_seen:<=1")
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
     def test_last_seen_filter(self):
         results = self.make_query(
             search_filter_query="lastSeen:>=%s" % date_to_query_format(self.group1.last_seen)
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(
             search_filter_query="lastSeen:>=%s lastSeen:<=%s"
@@ -708,26 +712,26 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 date_to_query_format(self.group1.last_seen + timedelta(minutes=1)),
             )
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
     def test_last_seen_filter_with_environment(self):
         results = self.make_query(
             environments=[self.environments["production"]],
             search_filter_query="lastSeen:>=%s" % date_to_query_format(self.group1.last_seen),
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(
             environments=[self.environments["production"]],
             search_filter_query="lastSeen:<=%s" % date_to_query_format(self.group1.last_seen),
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(
             environments=[self.environments["production"]],
             search_filter_query="lastSeen:>%s" % date_to_query_format(self.group1.last_seen),
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
         self.store_event(
             data={
@@ -746,7 +750,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             environments=[self.environments["production"]],
             search_filter_query="lastSeen:>%s" % date_to_query_format(self.group1.last_seen),
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
         results = self.make_query(
             environments=[Environment.objects.get(name="development")],
@@ -758,21 +762,21 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             environments=[Environment.objects.get(name="development")],
             search_filter_query="lastSeen:>=%s" % date_to_query_format(self.group1.last_seen),
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
     def test_date_filter(self):
         results = self.make_query(
             date_from=self.event2.datetime,
             search_filter_query="timestamp:>=%s" % date_to_query_format(self.event2.datetime),
         )
-        assert set(results) == set([self.group1, self.group2])
+        assert set(results) == {self.group1, self.group2}
 
         results = self.make_query(
             date_to=self.event1.datetime + timedelta(minutes=1),
             search_filter_query="timestamp:<=%s"
             % date_to_query_format(self.event1.datetime + timedelta(minutes=1)),
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(
             date_from=self.event1.datetime,
@@ -783,7 +787,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 date_to_query_format(self.event2.datetime + timedelta(minutes=1)),
             ),
         )
-        assert set(results) == set([self.group1, self.group2])
+        assert set(results) == {self.group1, self.group2}
 
         # Test with `Z` utc marker, should be equivalent
         results = self.make_query(
@@ -795,7 +799,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 date_to_query_format(self.event2.datetime + timedelta(minutes=1)) + "Z",
             ),
         )
-        assert set(results) == set([self.group1, self.group2])
+        assert set(results) == {self.group1, self.group2}
 
     def test_date_filter_with_environment(self):
         results = self.backend.query(
@@ -803,14 +807,14 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             environments=[self.environments["production"]],
             date_from=self.event2.datetime,
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.backend.query(
             [self.project],
             environments=[self.environments["production"]],
             date_to=self.event1.datetime + timedelta(minutes=1),
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.backend.query(
             [self.project],
@@ -818,35 +822,35 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             date_from=self.event1.datetime,
             date_to=self.event2.datetime + timedelta(minutes=1),
         )
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
     def test_linked(self):
         linked_group1 = self.create_group_with_integration_external_issue()
         linked_group2 = self.create_group_with_platform_external_issue()
 
         results = self.make_query(search_filter_query="is:unlinked")
-        assert set(results) == set([self.group1, self.group2])
+        assert set(results) == {self.group1, self.group2}
 
         results = self.make_query(search_filter_query="is:linked")
-        assert set(results) == set([linked_group1, linked_group2])
+        assert set(results) == {linked_group1, linked_group2}
 
     def test_linked_with_only_integration_external_issue(self):
         linked_group = self.create_group_with_integration_external_issue()
 
         results = self.make_query(search_filter_query="is:unlinked")
-        assert set(results) == set([self.group1, self.group2])
+        assert set(results) == {self.group1, self.group2}
 
         results = self.make_query(search_filter_query="is:linked")
-        assert set(results) == set([linked_group])
+        assert set(results) == {linked_group}
 
     def test_linked_with_only_platform_external_issue(self):
         linked_group = self.create_group_with_platform_external_issue()
 
         results = self.make_query(search_filter_query="is:unlinked")
-        assert set(results) == set([self.group1, self.group2])
+        assert set(results) == {self.group1, self.group2}
 
         results = self.make_query(search_filter_query="is:linked")
-        assert set(results) == set([linked_group])
+        assert set(results) == {linked_group}
 
     def test_linked_with_environment(self):
         linked_group1 = self.create_group_with_integration_external_issue(environment="production")
@@ -855,49 +859,49 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query(
             environments=[self.environments["production"]], search_filter_query="is:unlinked"
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(
             environments=[self.environments["staging"]], search_filter_query="is:unlinked"
         )
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         results = self.make_query(
             environments=[self.environments["production"]], search_filter_query="is:linked"
         )
-        assert set(results) == set([linked_group1])
+        assert set(results) == {linked_group1}
 
         results = self.make_query(
             environments=[self.environments["staging"]], search_filter_query="is:linked"
         )
-        assert set(results) == set([linked_group2])
+        assert set(results) == {linked_group2}
 
     def test_unassigned(self):
         results = self.make_query(search_filter_query="is:unassigned")
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(search_filter_query="is:assigned")
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
     def test_unassigned_with_environment(self):
         results = self.make_query(
             environments=[self.environments["production"]], search_filter_query="is:unassigned"
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(
             environments=[self.environments["staging"]], search_filter_query="is:assigned"
         )
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         results = self.make_query(
             environments=[self.environments["production"]], search_filter_query="is:assigned"
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
     def test_assigned_to(self):
         results = self.make_query(search_filter_query="assigned:%s" % self.user.username)
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         # test team assignee
         ga = GroupAssignee.objects.get(
@@ -907,12 +911,12 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         assert GroupAssignee.objects.get(id=ga.id).user is None
 
         results = self.make_query(search_filter_query="assigned:%s" % self.user.username)
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         # test when there should be no results
         other_user = self.create_user()
         results = self.make_query(search_filter_query="assigned:%s" % other_user.username)
-        assert set(results) == set([])
+        assert set(results) == set()
 
         owner = self.create_user()
         self.create_member(
@@ -921,26 +925,26 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
 
         # test that owners don't see results for all teams
         results = self.make_query(search_filter_query="assigned:%s" % owner.username)
-        assert set(results) == set([])
+        assert set(results) == set()
 
     def test_assigned_to_with_environment(self):
         results = self.make_query(
             environments=[self.environments["staging"]],
             search_filter_query="assigned:%s" % self.user.username,
         )
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
         results = self.make_query(
             environments=[self.environments["production"]],
             search_filter_query="assigned:%s" % self.user.username,
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
     def test_subscribed_by(self):
         results = self.make_query(
             [self.group1.project], search_filter_query="subscribed:%s" % self.user.username
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
     def test_subscribed_by_with_environment(self):
         results = self.make_query(
@@ -948,14 +952,14 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             environments=[self.environments["production"]],
             search_filter_query="subscribed:%s" % self.user.username,
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(
             [self.group1.project],
             environments=[self.environments["staging"]],
             search_filter_query="subscribed:%s" % self.user.username,
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
     @mock.patch("sentry.utils.snuba.raw_query")
     def test_snuba_not_called_optimization(self, query_mock):
@@ -978,7 +982,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         query_mock.return_value = {"data": [], "totals": {"total": 0}}
 
         def Any(cls):
-            class Any(object):
+            class Any:
                 def __eq__(self, other):
                     return isinstance(other, cls)
 
@@ -1023,7 +1027,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 ["uniq", "group_id", "total"],
             ],
             having=[["last_seen", ">=", Any(int)]],
-            **common_args
+            **common_args,
         )
 
         self.make_query(search_filter_query="foo", sort_by="priority")
@@ -1037,7 +1041,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 ["uniq", "group_id", "total"],
             ],
             having=[],
-            **common_args
+            **common_args,
         )
 
         self.make_query(search_filter_query="times_seen:5 foo", sort_by="freq")
@@ -1046,7 +1050,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             orderby=["-times_seen", "group_id"],
             aggregations=[["count()", "", "times_seen"], ["uniq", "group_id", "total"]],
             having=[["times_seen", "=", 5]],
-            **common_args
+            **common_args,
         )
 
         self.make_query(search_filter_query="foo", sort_by="user")
@@ -1058,7 +1062,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 ["uniq", "tags[sentry:user]", "user_count"],
             ],
             having=[],
-            **common_args
+            **common_args,
         )
 
     def test_pre_and_post_filtering(self):
@@ -1067,9 +1071,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         try:
             # normal queries work as expected
             results = self.make_query(search_filter_query="foo")
-            assert set(results) == set([self.group1])
+            assert set(results) == {self.group1}
             results = self.make_query(search_filter_query="bar")
-            assert set(results) == set([self.group2])
+            assert set(results) == {self.group2}
 
             # no candidate matches in Sentry, immediately return empty paginator
             results = self.make_query(search_filter_query="NO MATCHES IN SENTRY")
@@ -1077,7 +1081,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
 
             # too many candidates, skip pre-filter, requires >1 postfilter queries
             results = self.make_query()
-            assert set(results) == set([self.group1, self.group2])
+            assert set(results) == {self.group1, self.group2}
         finally:
             options.set("snuba.search.max-pre-snuba-candidates", prev_max_pre)
 
@@ -1090,18 +1094,18 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 search_filter_query="server:example.com",
                 environments=[self.environments["production"]],
             )
-            assert set(results) == set([self.group1])
+            assert set(results) == {self.group1}
         finally:
             options.set("snuba.search.pre-snuba-candidates-optimizer", prev_optimizer_enabled)
 
     def test_search_out_of_range(self):
         the_date = datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc)
         results = self.make_query(
-            search_filter_query="event.timestamp:>%s event.timestamp:<%s" % (the_date, the_date),
+            search_filter_query=f"event.timestamp:>{the_date} event.timestamp:<{the_date}",
             date_from=the_date,
             date_to=the_date,
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
     def test_hits_estimate(self):
         # 400 Groups/Events
@@ -1110,12 +1114,12 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         for i in range(400):
             event = self.store_event(
                 data={
-                    "event_id": md5("event {}".format(i).encode("utf-8")).hexdigest(),
-                    "fingerprint": ["put-me-in-group{}".format(i)],
+                    "event_id": md5(f"event {i}".encode("utf-8")).hexdigest(),
+                    "fingerprint": [f"put-me-in-group{i}"],
                     "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
-                    "message": "group {} event".format(i),
-                    "stacktrace": {"frames": [{"module": "module {}".format(i)}]},
-                    "tags": {"match": "{}".format(i % 2)},
+                    "message": f"group {i} event",
+                    "stacktrace": {"frames": [{"module": f"module {i}"}]},
+                    "tags": {"match": f"{i % 2}"},
                     "environment": "production",
                 },
                 project_id=self.project.id,
@@ -1168,7 +1172,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         # expect no groups within the results since there are no releases
 
         results = self.make_query(search_filter_query="first_release:%s" % "fake")
-        assert set(results) == set([])
+        assert set(results) == set()
 
         # expect no groups even though there is a release; since no group
         # is attached to a release
@@ -1176,7 +1180,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         release_1 = self.create_release(self.project)
 
         results = self.make_query(search_filter_query="first_release:%s" % release_1.version)
-        assert set(results) == set([])
+        assert set(results) == set()
 
         # Create a new event so that we get a group in this release
         group = self.store_event(
@@ -1193,14 +1197,14 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         ).group
 
         results = self.make_query(search_filter_query="first_release:%s" % release_1.version)
-        assert set(results) == set([group])
+        assert set(results) == {group}
 
     def test_first_release_environments(self):
         results = self.make_query(
             environments=[self.environments["production"]],
             search_filter_query="first_release:%s" % "fake",
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
         release = self.create_release(self.project)
         group_env = GroupEnvironment.get_or_create(
@@ -1211,7 +1215,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             environments=[self.environments["production"]],
             search_filter_query="first_release:%s" % release.version,
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
         group_env.first_release = release
         group_env.save()
@@ -1220,14 +1224,14 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             environments=[self.environments["production"]],
             search_filter_query="first_release:%s" % release.version,
         )
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
     def test_query_enclosed_in_quotes(self):
         results = self.make_query(search_filter_query='"foo"')
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
 
         results = self.make_query(search_filter_query='"bar"')
-        assert set(results) == set([self.group2])
+        assert set(results) == {self.group2}
 
     @xfail_if_not_postgres("Wildcard searching only supported in Postgres")
     def test_wildcard(self):
@@ -1246,20 +1250,20 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         # Note: Adding in `environment:production` so that we make sure we query
         # in both snuba and postgres
         results = self.make_query(search_filter_query="environment:production so*t")
-        assert set(results) == set([escaped_event.group])
+        assert set(results) == {escaped_event.group}
         # Make sure it's case insensitive
         results = self.make_query(search_filter_query="environment:production SO*t")
-        assert set(results) == set([escaped_event.group])
+        assert set(results) == {escaped_event.group}
         results = self.make_query(search_filter_query="environment:production so*zz")
         assert set(results) == set()
         results = self.make_query(search_filter_query="environment:production [hing]")
-        assert set(results) == set([escaped_event.group])
+        assert set(results) == {escaped_event.group}
         results = self.make_query(search_filter_query="environment:production s*]")
-        assert set(results) == set([escaped_event.group])
+        assert set(results) == {escaped_event.group}
         results = self.make_query(search_filter_query="environment:production server:example.*")
-        assert set(results) == set([self.group1, escaped_event.group])
+        assert set(results) == {self.group1, escaped_event.group}
         results = self.make_query(search_filter_query="environment:production !server:*net")
-        assert set(results) == set([self.group1])
+        assert set(results) == {self.group1}
         # TODO: Disabling tests that use [] syntax for the moment. Re-enable
         # these if we decide to add back in, or remove if this comment has been
         # here a while.
@@ -1297,17 +1301,17 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         results = self.make_query(search_filter_query="environment:production !server:*net")
-        assert set(results) == set([self.group1, no_tag_event.group])
+        assert set(results) == {self.group1, no_tag_event.group}
         results = self.make_query(search_filter_query="environment:production server:*net")
-        assert set(results) == set([tag_event.group])
+        assert set(results) == {tag_event.group}
         results = self.make_query(search_filter_query="environment:production !server:example.net")
-        assert set(results) == set([self.group1, no_tag_event.group])
+        assert set(results) == {self.group1, no_tag_event.group}
         results = self.make_query(search_filter_query="environment:production server:example.net")
-        assert set(results) == set([tag_event.group])
+        assert set(results) == {tag_event.group}
         results = self.make_query(search_filter_query="environment:production has:server")
-        assert set(results) == set([self.group1, tag_event.group])
+        assert set(results) == {self.group1, tag_event.group}
         results = self.make_query(search_filter_query="environment:production !has:server")
-        assert set(results) == set([no_tag_event.group])
+        assert set(results) == {no_tag_event.group}
 
     def test_null_promoted_tags(self):
         tag_event = self.store_event(
@@ -1334,17 +1338,17 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         results = self.make_query(search_filter_query="environment:production !logger:*sp")
-        assert set(results) == set([self.group1, no_tag_event.group])
+        assert set(results) == {self.group1, no_tag_event.group}
         results = self.make_query(search_filter_query="environment:production logger:*sp")
-        assert set(results) == set([tag_event.group])
+        assert set(results) == {tag_event.group}
         results = self.make_query(search_filter_query="environment:production !logger:csp")
-        assert set(results) == set([self.group1, no_tag_event.group])
+        assert set(results) == {self.group1, no_tag_event.group}
         results = self.make_query(search_filter_query="environment:production logger:csp")
-        assert set(results) == set([tag_event.group])
+        assert set(results) == {tag_event.group}
         results = self.make_query(search_filter_query="environment:production has:logger")
-        assert set(results) == set([tag_event.group])
+        assert set(results) == {tag_event.group}
         results = self.make_query(search_filter_query="environment:production !has:logger")
-        assert set(results) == set([self.group1, no_tag_event.group])
+        assert set(results) == {self.group1, no_tag_event.group}
 
     def test_sort_multi_project(self):
         self.set_up_multi_project()
@@ -1437,7 +1441,61 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query([self.project], sort_by="trend", date_from=start, date_to=end)
         assert results[:2] == [self.group1, fewer_events_group]
         # These will be arbitrarily ordered since their trend values are all 0
-        assert set(results[2:]) == set([self.group2, no_before_group, no_after_group])
+        assert set(results[2:]) == {self.group2, no_before_group, no_after_group}
+
+    def test_sort_inbox(self):
+        start = self.group1.first_seen - timedelta(days=1)
+        inbox_group_1 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "2" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_1 = add_group_to_inbox(inbox_group_1, GroupInboxReason.NEW)
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group2"],
+                "event_id": "3" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        ).group
+
+        inbox_group_2 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group3"],
+                "event_id": "4" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_2 = add_group_to_inbox(inbox_group_2, GroupInboxReason.NEW)
+        inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
+
+        results = self.make_query(
+            [self.project, self.create_project()],
+            sort_by="inbox",
+            date_from=start,
+            search_filter_query="is:unresolved is:for_review",
+        )
+        assert results.results == [inbox_group_1, inbox_group_2]
+
+    def test_sort_inbox_invalid(self):
+        with pytest.raises(InvalidSearchQuery):
+            self.make_query([self.project], sort_by="inbox")
+
+        with pytest.raises(InvalidSearchQuery):
+            self.make_query(
+                [self.project], sort_by="inbox", search_filter_query="is:for_review abc:no_tags"
+            )
+
+        with pytest.raises(InvalidSearchQuery):
+            self.make_query([self.project], sort_by="inbox", search_filter_query="!is:for_review")
 
     def test_first_release_any_or_no_environments(self):
         # test scenarios for tickets:
@@ -1511,7 +1569,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        assert group_b_event_1.get_environment().name == u""  # has no environment
+        assert group_b_event_1.get_environment().name == ""  # has no environment
 
         group_b = group_b_event_1.group
 
@@ -1526,51 +1584,51 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        assert group_c_event_1.get_environment().name == u""  # has no environment
+        assert group_c_event_1.get_environment().name == ""  # has no environment
 
         group_c = group_c_event_1.group
 
         # query by release release_1
 
         results = self.make_query(search_filter_query="first_release:%s" % "release_1")
-        assert set(results) == set([group_a, group_b])
+        assert set(results) == {group_a, group_b}
 
         results = self.make_query(
             environments=[staging_env, prod_env],
             search_filter_query="first_release:%s" % "release_1",
         )
-        assert set(results) == set([group_a])
+        assert set(results) == {group_a}
 
         results = self.make_query(
             environments=[staging_env], search_filter_query="first_release:%s" % "release_1"
         )
-        assert set(results) == set([group_a])
+        assert set(results) == {group_a}
 
         results = self.make_query(
             environments=[prod_env], search_filter_query="first_release:%s" % "release_1"
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
         # query by release release_2
 
         results = self.make_query(search_filter_query="first_release:%s" % "release_2")
-        assert set(results) == set([group_a, group_c])
+        assert set(results) == {group_a, group_c}
 
         results = self.make_query(
             environments=[staging_env, prod_env],
             search_filter_query="first_release:%s" % "release_2",
         )
-        assert set(results) == set([group_a])
+        assert set(results) == {group_a}
 
         results = self.make_query(
             environments=[staging_env], search_filter_query="first_release:%s" % "release_2"
         )
-        assert set(results) == set([])
+        assert set(results) == set()
 
         results = self.make_query(
             environments=[prod_env], search_filter_query="first_release:%s" % "release_2"
         )
-        assert set(results) == set([group_a])
+        assert set(results) == {group_a}
 
     def test_all_fields_do_not_error(self):
         # Just a sanity check to make sure that all fields can be successfully
@@ -1580,7 +1638,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             try:
                 self.make_query(search_filter_query=query)
             except SnubaError as e:
-                self.fail("Query %s errored. Error info: %s" % (query, e))
+                self.fail(f"Query {query} errored. Error info: {e}")
 
         for key in SENTRY_SNUBA_MAP:
             if key in ["project.id", "issue.id"]:
@@ -1597,6 +1655,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 val = "true"
             else:
                 val = "abadcafedeadbeefdeaffeedabadfeed"
-                test_query("!%s:%s" % (key, val))
+                test_query(f"!{key}:{val}")
 
-            test_query("%s:%s" % (key, val))
+            test_query(f"{key}:{val}")

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from datetime import datetime, timedelta
 
 from django.db.models import Max
 from rest_framework import serializers
@@ -7,6 +7,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.event_search import (
     resolve_field_list,
     get_filter,
+    get_function_alias,
     InvalidSearchQuery,
 )
 from sentry.models import (
@@ -47,42 +48,67 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     fields = serializers.ListField(child=serializers.CharField(), required=False)
     name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False, allow_blank=True)
+    orderby = serializers.CharField(required=False, allow_blank=True)
 
     required_for_create = {"fields", "conditions"}
 
     validate_id = validate_id
 
-    def validate_fields(self, fields):
-        snuba_filter = get_filter("")
-        try:
-            resolve_field_list(fields, snuba_filter)
-            return fields
-        except InvalidSearchQuery as err:
-            raise serializers.ValidationError(u"Invalid fields: {}".format(err))
-
-    def validate_conditions(self, conditions):
-        try:
-            get_filter(conditions)
-        except InvalidSearchQuery as err:
-            raise serializers.ValidationError(u"Invalid conditions: {}".format(err))
-        return conditions
-
     def validate(self, data):
         if not data.get("id"):
             keys = set(data.keys())
-            if keys.intersection(self.required_for_create) != self.required_for_create:
-                raise serializers.ValidationError("The fields and conditions fields are required")
+            if self.required_for_create - keys:
+                raise serializers.ValidationError(
+                    {
+                        "fields": "fields are required during creation.",
+                        "conditions": "conditions are required during creation.",
+                    }
+                )
+
+        # Validate the query that would be created when run.
+        conditions = self._get_attr(data, "conditions", "")
+        fields = self._get_attr(data, "fields", []).copy()
+        orderby = self._get_attr(data, "orderby", "")
+        try:
+            # When using the eps/epm functions, they require an interval argument
+            # or to provide the start/end so that the interval can be computed.
+            # This uses a hard coded start/end to ensure the validation succeeds
+            # since the values themselves don't matter.
+            params = {
+                "start": datetime.now() - timedelta(days=1),
+                "end": datetime.now(),
+                "project_id": [p.id for p in self.context.get("projects")],
+            }
+
+            snuba_filter = get_filter(conditions, params=params)
+        except InvalidSearchQuery as err:
+            raise serializers.ValidationError({"conditions": f"Invalid conditions: {err}"})
+
+        if orderby:
+            snuba_filter.orderby = get_function_alias(orderby)
+        try:
+            resolve_field_list(fields, snuba_filter)
+        except InvalidSearchQuery as err:
+            raise serializers.ValidationError({"fields": f"Invalid fields: {err}"})
         return data
+
+    def _get_attr(self, data, attr, empty_value=None):
+        value = data.get(attr)
+        if value is not None:
+            return value
+        if self.instance:
+            return getattr(self.instance, attr)
+        return empty_value
 
 
 class DashboardWidgetSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
-    title = serializers.CharField(required=False)
+    title = serializers.CharField(required=False, max_length=255)
     display_type = serializers.ChoiceField(
         choices=DashboardWidgetDisplayTypes.as_text_choices(), required=False
     )
-    interval = serializers.CharField(required=False)
+    interval = serializers.CharField(required=False, max_length=10)
     queries = DashboardWidgetQuerySerializer(many=True, required=False)
 
     def validate_display_type(self, display_type):
@@ -113,7 +139,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
 class DashboardDetailsSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
-    title = serializers.CharField(required=False)
+    title = serializers.CharField(required=False, max_length=255)
     widgets = DashboardWidgetSerializer(many=True, required=False)
 
     validate_id = validate_id
@@ -203,6 +229,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                     fields=query["fields"],
                     conditions=query["conditions"],
                     name=query.get("name", ""),
+                    orderby=query.get("orderby", ""),
                     order=i,
                 )
             )
@@ -240,6 +267,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                         fields=query_data["fields"],
                         conditions=query_data["conditions"],
                         name=query_data.get("name", ""),
+                        orderby=query_data.get("orderby", ""),
                         order=next_order + i,
                     )
                 )
@@ -251,6 +279,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         query.name = data.get("name", query.name)
         query.fields = data.get("fields", query.fields)
         query.conditions = data.get("conditions", query.conditions)
+        query.orderby = data.get("orderby", query.orderby)
         query.order = order
         query.save()
 
@@ -259,4 +288,4 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
 
 class DashboardSerializer(DashboardDetailsSerializer):
-    title = serializers.CharField(required=True)
+    title = serializers.CharField(required=True, max_length=255)

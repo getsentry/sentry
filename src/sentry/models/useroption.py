@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.conf import settings
 from django.db import models
 
@@ -8,7 +6,7 @@ from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import OptionManager
 
 
-class UserOptionValue(object):
+class UserOptionValue:
     # 'workflow:notifications'
     all_conversations = "0"
     participating_only = "1"
@@ -25,13 +23,13 @@ option_scope_error = "this is not a supported use case, scope to project OR orga
 class UserOptionManager(OptionManager):
     def _make_key(self, user, project=None, organization=None):
         if project:
-            metakey = u"%s:%s:project" % (user.pk, project.id)
+            metakey = f"{user.pk}:{project.id}:project"
         elif organization:
-            metakey = u"%s:%s:organization" % (user.pk, organization.id)
+            metakey = f"{user.pk}:{organization.id}:organization"
         else:
-            metakey = u"%s:user" % (user.pk)
+            metakey = "%s:user" % (user.pk)
 
-        return super(UserOptionManager, self)._make_key(metakey)
+        return super()._make_key(metakey)
 
     def get_value(self, user, key, default=None, **kwargs):
         project = kwargs.get("project")
@@ -88,10 +86,10 @@ class UserOptionManager(OptionManager):
         metakey = self._make_key(user, project=project, organization=organization)
 
         if metakey not in self._option_cache or force_reload:
-            result = dict(
-                (i.key, i.value)
+            result = {
+                i.key: i.value
                 for i in self.filter(user=user, project=project, organization=organization)
-            )
+            }
             self._option_cache[metakey] = result
         return self._option_cache.get(metakey, {})
 
@@ -118,6 +116,43 @@ class UserOption(Model):
     Keeping user feature state
     key: "feature:assignment"
     value: { updated: datetime, state: bool }
+
+    where key is one of:
+     (please add to this list if adding new keys)
+     - clock_24_hours
+        - 12hr vs. 24hr
+     - issue:defaults
+        - only used in Jira, set default reporter field
+     - issues:defaults:jira
+        - unused
+     - issues:defaults:jira_server
+        - unused
+     - language
+        - which language to display the app in
+     - mail:email
+        - which email address to send an email to
+     - reports:disabled-organizations
+        - which orgs to not send weekly reports to
+     - seen_release_broadcast
+        - unused
+     - self_assign_issue
+        - "Claim Unassigned Issues I've Resolved"
+     - self_notifications
+        - "Notify Me About My Own Activity"
+     - stacktrace_order
+        - default, most recent first, most recent last
+     - subscribe_by_default
+        - "Only On Issues I Subscribe To", "Only On Deploys With My Commits"
+     - subscribe_notes
+        - unused
+     - timezone
+        - user's timezone to display timestamps
+     - theme
+        - dark, light, or default
+     - twilio:alert
+        - unused
+     - workflow_notifications
+        - unused
     """
 
     __core__ = True

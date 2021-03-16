@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 __all__ = ("PluginManager",)
 
 import logging
@@ -16,7 +14,7 @@ class PluginManager(InstanceManager):
         return sum(1 for i in self.all())
 
     def all(self, version=1):
-        for plugin in sorted(super(PluginManager, self).all(), key=lambda x: x.get_title()):
+        for plugin in sorted(super().all(), key=lambda x: x.get_title()):
             if not plugin.is_enabled():
                 continue
             if version is not None and plugin.__version__ != version:
@@ -64,7 +62,7 @@ class PluginManager(InstanceManager):
             try:
                 result = getattr(plugin, func_name)(*args, **kwargs)
             except Exception as e:
-                logger = logging.getLogger("sentry.plugins.%s" % (type(plugin).slug,))
+                logger = logging.getLogger(f"sentry.plugins.{type(plugin).slug}")
                 logger.error("%s.process_error", func_name, exc_info=True, extra={"exception": e})
                 continue
 
@@ -72,9 +70,9 @@ class PluginManager(InstanceManager):
                 return result
 
     def register(self, cls):
-        self.add("%s.%s" % (cls.__module__, cls.__name__))
+        self.add(f"{cls.__module__}.{cls.__name__}")
         return cls
 
     def unregister(self, cls):
-        self.remove("%s.%s" % (cls.__module__, cls.__name__))
+        self.remove(f"{cls.__module__}.{cls.__name__}")
         return cls

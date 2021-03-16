@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 
 from exam import fixture
@@ -11,7 +9,7 @@ from sentry.testutils import APITestCase
 
 class GroupNotesDetailsTest(APITestCase):
     def setUp(self):
-        super(GroupNotesDetailsTest, self).setUp()
+        super().setUp()
         self.activity.data["external_id"] = "123"
         self.activity.save()
         self.integration = Integration.objects.create(
@@ -32,7 +30,7 @@ class GroupNotesDetailsTest(APITestCase):
 
     @fixture
     def url(self):
-        return u"/api/0/issues/{}/comments/{}/".format(self.group.id, self.activity.id)
+        return f"/api/0/issues/{self.group.id}/comments/{self.activity.id}/"
 
     def test_delete(self):
         self.login_as(user=self.user)
@@ -68,7 +66,7 @@ class GroupNotesDetailsTest(APITestCase):
         assert activity.data == {"text": "hi haters", "external_id": "123"}
 
         assert mock_update_comment.call_count == 1
-        assert mock_update_comment.call_args[0][0] == u"123"
+        assert mock_update_comment.call_args[0][0] == "123"
         assert mock_update_comment.call_args[0][1] == self.user.id
         assert mock_update_comment.call_args[0][2] == activity
 
@@ -83,8 +81,8 @@ class GroupNotesDetailsTest(APITestCase):
                     self.url,
                     format="json",
                     data={
-                        "text": "hi **@{}**".format(self.user.username),
-                        "mentions": ["user:{}".format(self.user.id)],
+                        "text": f"hi **@{self.user.username}**",
+                        "mentions": [f"user:{self.user.id}"],
                     },
                 )
         assert response.status_code == 200, response.content
@@ -94,7 +92,7 @@ class GroupNotesDetailsTest(APITestCase):
         assert activity.group == self.group
         assert activity.data == {
             "external_id": "123",
-            "text": "hi **@{}**".format(self.user.username),
+            "text": f"hi **@{self.user.username}**",
         }
 
     @patch("sentry.integrations.issues.IssueBasicMixin.update_comment")

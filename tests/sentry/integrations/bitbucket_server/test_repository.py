@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import datetime
 import responses
 import pytest
-import six
 
 from django.utils import timezone
 from exam import fixture
@@ -175,14 +172,14 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
     @responses.activate
     def test_build_repository_config(self):
-        project = u"laurynsentry"
-        repo = u"helloworld"
-        full_repo_name = u"%s/%s" % (project, repo)
+        project = "laurynsentry"
+        repo = "helloworld"
+        full_repo_name = f"{project}/{repo}"
 
         webhook_id = 79
         responses.add(
             responses.GET,
-            "https://bitbucket.example.com/rest/api/1.0/projects/%s/repos/%s" % (project, repo),
+            f"https://bitbucket.example.com/rest/api/1.0/projects/{project}/repos/{repo}",
             json=REPO,
         )
         responses.add(
@@ -209,7 +206,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             "identifier": project + "/" + repo,
             "name": full_repo_name,
             "installation": integration.id,
-            "external_id": six.text_type(REPO["id"]),
+            "external_id": str(REPO["id"]),
         }
 
         data["identifier"] = full_repo_name
@@ -217,7 +214,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
         assert data == {
             "name": full_repo_name,
-            "external_id": six.text_type(REPO["id"]),
+            "external_id": str(REPO["id"]),
             "url": "https://bitbucket.example.com/projects/laurynsentry/repos/helloworld/browse",
             "integration_id": integration.id,
             "config": {
@@ -243,4 +240,4 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
     def test_get_repository_data_no_installation_id(self):
         with pytest.raises(IntegrationError) as e:
             self.provider.get_repository_data(self.organization, {})
-            assert "requires an integration id" in six.text_type(e)
+            assert "requires an integration id" in str(e)

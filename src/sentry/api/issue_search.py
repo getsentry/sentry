@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 
@@ -15,7 +13,7 @@ from sentry.api.event_search import (
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.utils import (
     parse_actor_value,
-    parse_owner_value,
+    parse_actor_or_none_value,
     parse_user_value,
     parse_release,
     parse_status_value,
@@ -28,7 +26,7 @@ class IssueSearchVisitor(SearchVisitor):
         "assigned_to": ["assigned"],
         "bookmarked_by": ["bookmarks"],
         "subscribed_by": ["subscribed"],
-        "owner": ["owner"],
+        "assigned_or_suggested": ["assigned_or_suggested"],
         "first_release": ["first-release", "firstRelease"],
         "first_seen": ["age", "firstSeen"],
         "last_seen": ["lastSeen"],
@@ -47,7 +45,7 @@ class IssueSearchVisitor(SearchVisitor):
         is_filter_translators = {
             "assigned": (SearchKey("unassigned"), SearchValue(False)),
             "unassigned": (SearchKey("unassigned"), SearchValue(True)),
-            "needs_review": (SearchKey("needs_review"), SearchValue(True)),
+            "for_review": (SearchKey("for_review"), SearchValue(True)),
             "linked": (SearchKey("linked"), SearchValue(True)),
             "unlinked": (SearchKey("linked"), SearchValue(False)),
         }
@@ -85,7 +83,7 @@ def parse_search_query(query):
         raise InvalidSearchQuery(
             "%s %s"
             % (
-                u"Parse error: %r (column %d)." % (e.expr.name, e.column()),
+                "Parse error: %r (column %d)." % (e.expr.name, e.column()),
                 "This is commonly caused by unmatched-parentheses. Enclose any text in double quotes.",
             )
         )
@@ -96,8 +94,8 @@ def convert_actor_value(value, projects, user, environments):
     return parse_actor_value(projects, value, user)
 
 
-def convert_owner_value(value, projects, user, environments):
-    return parse_owner_value(projects, value, user)
+def convert_actor_or_none_value(value, projects, user, environments):
+    return parse_actor_or_none_value(projects, value, user)
 
 
 def convert_user_value(value, projects, user, environments):
@@ -112,12 +110,12 @@ def convert_status_value(value, projects, user, environments):
     try:
         return parse_status_value(value)
     except ValueError:
-        raise InvalidSearchQuery(u"invalid status value of '{}'".format(value))
+        raise InvalidSearchQuery(f"invalid status value of '{value}'")
 
 
 value_converters = {
-    "owner": convert_owner_value,
-    "assigned_to": convert_actor_value,
+    "assigned_or_suggested": convert_actor_or_none_value,
+    "assigned_to": convert_actor_or_none_value,
     "bookmarked_by": convert_user_value,
     "subscribed_by": convert_user_value,
     "first_release": convert_release_value,
@@ -143,9 +141,7 @@ def convert_query_values(search_filters, projects, user, environments):
             search_filter = search_filter._replace(value=SearchValue(new_value))
         elif isinstance(search_filter, AggregateFilter):
             raise InvalidSearchQuery(
-                u"Aggregate filters ({}) are not supported in issue searches.".format(
-                    search_filter.key.name
-                )
+                f"Aggregate filters ({search_filter.key.name}) are not supported in issue searches."
             )
         return search_filter
 

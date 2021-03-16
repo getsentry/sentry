@@ -4,6 +4,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import Feature from 'app/components/acl/feature';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -31,6 +32,7 @@ import ReleaseDisplayOptions from './releaseDisplayOptions';
 import ReleaseLanding from './releaseLanding';
 import ReleaseListSortOptions from './releaseListSortOptions';
 import ReleaseListStatusOptions from './releaseListStatusOptions';
+import ReleasesStabilityChart from './releasesStabilityChart';
 import {DisplayOption, SortOption, StatusOption} from './utils';
 
 type RouteParams = {
@@ -73,7 +75,7 @@ class ReleasesList extends AsyncView<Props, State> {
       summaryStatsPeriod: statsPeriod,
       per_page: 25,
       health: 1,
-      healthStat: activeDisplay === DisplayOption.CRASH_FREE_USERS ? 'users' : 'sessions',
+      healthStat: activeDisplay === DisplayOption.USERS ? 'users' : 'sessions',
       flatten: activeSort === SortOption.DATE ? 0 : 1,
       status:
         activeStatus === StatusOption.ARCHIVED
@@ -156,10 +158,10 @@ class ReleasesList extends AsyncView<Props, State> {
     const {display} = this.props.location.query;
 
     switch (display) {
-      case DisplayOption.CRASH_FREE_USERS:
-        return DisplayOption.CRASH_FREE_USERS;
+      case DisplayOption.USERS:
+        return DisplayOption.USERS;
       default:
-        return DisplayOption.CRASH_FREE_SESSIONS;
+        return DisplayOption.SESSIONS;
     }
   }
 
@@ -289,16 +291,17 @@ class ReleasesList extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        {releases.map(release => (
+        {releases.map((release, index) => (
           <ReleaseCard
             key={`${release.version}-${release.projects[0].slug}`}
             activeDisplay={activeDisplay}
             release={release}
-            orgSlug={organization.slug}
+            organization={organization}
             location={location}
             selection={selection}
             reloading={reloading}
             showHealthPlaceholders={loadingHealth}
+            isTopRelease={index === 0}
           />
         ))}
         <Pagination pageLinks={releasesPageLinks} />
@@ -307,7 +310,7 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, location, router, selection} = this.props;
     const {releases, reloading} = this.state;
 
     const activeSort = this.getSort();
@@ -326,6 +329,19 @@ class ReleasesList extends AsyncView<Props, State> {
             <PageHeader>
               <PageHeading>{t('Releases')}</PageHeading>
             </PageHeader>
+
+            <Feature features={['releases-top-charts']} organization={organization}>
+              {/* We are only displaying charts if single project is selected */}
+              {selection.projects.length === 1 &&
+                !selection.projects.includes(ALL_ACCESS_PROJECTS) && (
+                  <ReleasesStabilityChart
+                    location={location}
+                    organization={organization}
+                    router={router}
+                  />
+                )}
+            </Feature>
+
             <SortAndFilterWrapper>
               <SearchBar
                 placeholder={t('Search')}
@@ -359,11 +375,11 @@ class ReleasesList extends AsyncView<Props, State> {
 }
 
 const SortAndFilterWrapper = styled('div')`
-  display: grid;
+  display: inline-grid;
   grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: 1fr repeat(3, auto);
   }
 `;

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
 from sentry.utils import json
@@ -60,7 +58,7 @@ class SentryAppsStatsTest(APITestCase):
 
         for i in range(15):
             app = self.create_sentry_app(
-                name="Test {}".format(i), organization=self.super_org, published=True
+                name=f"Test {i}", organization=self.super_org, published=True
             )
 
             self.create_sentry_app_installation(slug=app.slug, organization=self.org)

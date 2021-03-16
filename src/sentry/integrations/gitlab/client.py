@@ -1,39 +1,36 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.utils.http import absolute_uri
-from sentry.web.decorators import transaction_start
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 
-API_VERSION = u"/api/v4"
+API_VERSION = "/api/v4"
 
 
-class GitLabApiClientPath(object):
-    oauth_token = u"/oauth/token"
-    commit = u"/projects/{project}/repository/commits/{sha}"
-    commits = u"/projects/{project}/repository/commits"
-    compare = u"/projects/{project}/repository/compare"
-    diff = u"/projects/{project}/repository/commits/{sha}/diff"
-    file = u"/projects/{project}/repository/files/{path}"
-    group = u"/groups/{group}"
-    group_projects = u"/groups/{group}/projects"
-    hooks = u"/hooks"
-    issue = u"/projects/{project}/issues/{issue}"
-    issues = u"/projects/{project}/issues"
-    notes = u"/projects/{project}/issues/{issue_id}/notes"
-    project = u"/projects/{project}"
-    project_issues = u"/projects/{project}/issues"
-    project_hooks = u"/projects/{project}/hooks"
-    project_hook = u"/projects/{project}/hooks/{hook_id}"
-    user = u"/user"
+class GitLabApiClientPath:
+    oauth_token = "/oauth/token"
+    commit = "/projects/{project}/repository/commits/{sha}"
+    commits = "/projects/{project}/repository/commits"
+    compare = "/projects/{project}/repository/compare"
+    diff = "/projects/{project}/repository/commits/{sha}/diff"
+    file = "/projects/{project}/repository/files/{path}"
+    group = "/groups/{group}"
+    group_projects = "/groups/{group}/projects"
+    hooks = "/hooks"
+    issue = "/projects/{project}/issues/{issue}"
+    issues = "/projects/{project}/issues"
+    notes = "/projects/{project}/issues/{issue_id}/notes"
+    project = "/projects/{project}"
+    project_issues = "/projects/{project}/issues"
+    project_hooks = "/projects/{project}/hooks"
+    project_hook = "/projects/{project}/hooks/{hook_id}"
+    user = "/user"
 
     @staticmethod
     def build_api_url(base_url, path):
-        return u"{base_url}{api}{path}".format(base_url=base_url, api=API_VERSION, path=path)
+        return f"{base_url}{API_VERSION}{path}"
 
 
 class GitLabSetupClient(ApiClient):
@@ -61,7 +58,7 @@ class GitLabSetupClient(ApiClient):
         return self.get(path)
 
     def request(self, method, path, data=None, params=None):
-        headers = {"Authorization": u"Bearer {}".format(self.token)}
+        headers = {"Authorization": f"Bearer {self.token}"}
         return self._request(
             method,
             GitLabApiClientPath.build_api_url(self.base_url, path),
@@ -78,7 +75,7 @@ class GitLabApiClient(ApiClient):
         self.installation = installation
         verify_ssl = self.metadata["verify_ssl"]
         self.is_refreshing_token = False
-        super(GitLabApiClient, self).__init__(verify_ssl)
+        super().__init__(verify_ssl)
 
     @property
     def identity(self):
@@ -90,7 +87,7 @@ class GitLabApiClient(ApiClient):
 
     def request(self, method, path, data=None, params=None):
         access_token = self.identity.data["access_token"]
-        headers = {"Authorization": u"Bearer {}".format(access_token)}
+        headers = {"Authorization": f"Bearer {access_token}"}
         url = GitLabApiClientPath.build_api_url(self.metadata["base_url"], path)
         try:
             return self._request(method, url, headers=headers, data=data, params=params)
@@ -112,7 +109,9 @@ class GitLabApiClient(ApiClient):
         """
         self.identity.get_provider().refresh_identity(
             self.identity,
-            refresh_token_url="%s%s" % (self.metadata["base_url"], GitLabApiClientPath.oauth_token),
+            refresh_token_url="{}{}".format(
+                self.metadata["base_url"], GitLabApiClientPath.oauth_token
+            ),
         )
 
     def get_user(self):
@@ -200,7 +199,7 @@ class GitLabApiClient(ApiClient):
         model = self.installation.model
         data = {
             "url": absolute_uri(hook_uri),
-            "token": u"{}:{}".format(model.external_id, model.metadata["webhook_secret"]),
+            "token": "{}:{}".format(model.external_id, model.metadata["webhook_secret"]),
             "merge_requests_events": True,
             "push_events": True,
             "enable_ssl_verification": model.metadata["verify_ssl"],
@@ -252,14 +251,22 @@ class GitLabApiClient(ApiClient):
         path = GitLabApiClientPath.diff.format(project=project_id, sha=sha)
         return self.get(path)
 
-    @transaction_start("GitLabApiClient.check_file")
     def check_file(self, repo, path, ref):
         """Fetch a file for stacktrace linking
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
         Path requires file path and ref
+        file_path must also be URL encoded Ex. lib%2Fclass%2Erb
         """
-        self.base_url = self.metadata["base_url"]
-        project_id = repo.config["project_id"]
-        request_path = GitLabApiClientPath.file.format(project=project_id, path=path)
-        return self.head_cached(request_path, params={"ref": ref})
+        try:
+            self.base_url = self.metadata["base_url"]
+            project_id = repo.config["project_id"]
+            encoded_path = quote(path, safe="")
+
+            request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
+            return self.head_cached(request_path, params={"ref": ref})
+        except ApiError as e:
+            # Gitlab can return 404 or 400 if the file doesn't exist
+            if e.code != 400:
+                raise
+            return None

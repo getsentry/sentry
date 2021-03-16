@@ -1,8 +1,6 @@
-from __future__ import absolute_import
-
 import responses
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry.models import Integration
 from sentry.integrations.msteams.client import MsTeamsClient
@@ -23,7 +21,7 @@ class MsTeamsClientTest(TestCase):
         access_json = {"expires_in": 86399, "access_token": "my_new_token"}
         responses.add(
             responses.POST,
-            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
             json=access_json,
         )
 

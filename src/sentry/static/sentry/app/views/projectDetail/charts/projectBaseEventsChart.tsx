@@ -1,11 +1,12 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
 import {withTheme} from 'emotion-theming';
-import isEqual from 'lodash/isEqual';
 
 import {fetchTotalCount} from 'app/actionCreators/events';
-import EventsChart from 'app/components/charts/eventsChart';
+import EventsChart, {EventsChartProps} from 'app/components/charts/eventsChart';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
 import {GlobalSelection} from 'app/types';
@@ -13,10 +14,9 @@ import {axisLabelFormatter} from 'app/utils/discover/charts';
 import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {HeaderTitleLegend} from 'app/views/performance/styles';
 
 type Props = Omit<
-  EventsChart['props'],
+  EventsChartProps,
   keyof Omit<GlobalSelection, 'datetime'> | keyof GlobalSelection['datetime']
 > & {
   title: string;
@@ -32,7 +32,7 @@ class ProjectBaseEventsChart extends React.Component<Props> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (!isEqual(this.props.selection, prevProps.selection)) {
+    if (!isSelectionEqual(this.props.selection, prevProps.selection)) {
       this.fetchTotalCount();
     }
   }

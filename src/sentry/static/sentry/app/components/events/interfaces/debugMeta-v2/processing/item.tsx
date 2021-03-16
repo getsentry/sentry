@@ -8,9 +8,10 @@ import space from 'app/styles/space';
 type Props = {
   type: 'stack_unwinding' | 'symbolication';
   icon: React.ReactElement;
+  className?: string;
 };
 
-function Item({type, icon}: Props) {
+function Item({type, icon, className}: Props) {
   function getLabel() {
     switch (type) {
       case 'stack_unwinding':
@@ -18,17 +19,14 @@ function Item({type, icon}: Props) {
       case 'symbolication':
         return t('Symbolication');
       default: {
-        Sentry.withScope(scope => {
-          scope.setLevel(Sentry.Severity.Warning);
-          Sentry.captureException(new Error("Unknown Item's type"));
-        });
+        Sentry.captureException(new Error('Unknown Images Loaded processing item type'));
         return null; // This shall not happen
       }
     }
   }
 
   return (
-    <Wrapper>
+    <Wrapper className={className}>
       {icon}
       {getLabel()}
     </Wrapper>
@@ -40,7 +38,7 @@ export default Item;
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1.5)};
+  grid-column-gap: ${space(0.5)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;

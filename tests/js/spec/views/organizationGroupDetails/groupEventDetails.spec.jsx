@@ -65,8 +65,13 @@ describe('groupEventDetails', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
       body: promptsActivity,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/has-mobile-app-events/`,
+      body: null,
     });
 
     MockApiClient.addMockResponse({

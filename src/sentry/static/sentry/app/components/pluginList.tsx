@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {disablePlugin, enablePlugin} from 'app/actionCreators/plugins';
 import InactivePlugins from 'app/components/inactivePlugins';
@@ -74,14 +73,6 @@ const PluginList = ({
       />
     </div>
   );
-};
-
-PluginList.propTypes = {
-  organization: PropTypes.object.isRequired,
-  project: PropTypes.object.isRequired,
-  pluginList: PropTypes.array.isRequired,
-  onDisablePlugin: PropTypes.func,
-  onEnablePlugin: PropTypes.func,
 };
 
 export default PluginList;

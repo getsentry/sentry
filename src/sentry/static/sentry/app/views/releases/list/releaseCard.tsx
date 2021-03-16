@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import {Panel} from 'app/components/panels';
 import ReleaseStats from 'app/components/releaseStats';
 import TextOverflow from 'app/components/textOverflow';
@@ -9,29 +10,49 @@ import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {GlobalSelection, Release} from 'app/types';
+import {GlobalSelection, Organization, Release} from 'app/types';
 
 import ReleaseHealth from './releaseHealth';
 import {DisplayOption} from './utils';
 
+function getReleaseProjectId(release: Release, selection: GlobalSelection) {
+  // if a release has only one project
+  if (release.projects.length === 1) {
+    return release.projects[0].id;
+  }
+
+  // if only one project is selected in global header and release has it (second condition will prevent false positives like -1)
+  if (
+    selection.projects.length === 1 &&
+    release.projects.map(p => p.id).includes(selection.projects[0])
+  ) {
+    return selection.projects[0];
+  }
+
+  // project selector on release detail page will pick it up
+  return undefined;
+}
+
 type Props = {
   release: Release;
-  orgSlug: string;
+  organization: Organization;
   activeDisplay: DisplayOption;
   location: Location;
   selection: GlobalSelection;
   reloading: boolean;
   showHealthPlaceholders: boolean;
+  isTopRelease: boolean;
 };
 
 const ReleaseCard = ({
   release,
-  orgSlug,
+  organization,
   activeDisplay,
   location,
   reloading,
   selection,
   showHealthPlaceholders,
+  isTopRelease,
 }: Props) => {
   const {version, commitCount, lastDeploy, dateCreated, versionInfo} = release;
 
@@ -39,9 +60,18 @@ const ReleaseCard = ({
     <StyledPanel reloading={reloading ? 1 : 0}>
       <ReleaseInfo>
         <ReleaseInfoHeader>
-          <VersionWrapper>
-            <StyledVersion version={version} tooltipRawVersion anchor={false} />
-          </VersionWrapper>
+          <GlobalSelectionLink
+            to={{
+              pathname: `/organizations/${
+                organization.slug
+              }/releases/${encodeURIComponent(version)}/`,
+              query: {project: getReleaseProjectId(release, selection)},
+            }}
+          >
+            <VersionWrapper>
+              <StyledVersion version={version} tooltipRawVersion anchor={false} />
+            </VersionWrapper>
+          </GlobalSelectionLink>
           {commitCount > 0 && <ReleaseStats release={release} withHeading={false} />}
         </ReleaseInfoHeader>
         <ReleaseInfoSubheader>
@@ -56,12 +86,13 @@ const ReleaseCard = ({
       <ReleaseProjects>
         <ReleaseHealth
           release={release}
-          orgSlug={orgSlug}
+          organization={organization}
           activeDisplay={activeDisplay}
           location={location}
           showPlaceholders={showHealthPlaceholders}
           reloading={reloading}
           selection={selection}
+          isTopRelease={isTopRelease}
         />
       </ReleaseProjects>
     </StyledPanel>
@@ -105,7 +136,7 @@ const ReleaseInfoSubheader = styled('div')`
 
 const PackageName = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 `;
 
 const ReleaseProjects = styled('div')`

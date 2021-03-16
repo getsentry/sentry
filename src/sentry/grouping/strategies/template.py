@@ -1,11 +1,10 @@
-from __future__ import absolute_import
-
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.strategies.base import strategy
+from sentry.grouping.strategies.base import strategy, produces_variants
 
 
-@strategy(id="template:v1", interfaces=["template"], variants=["default"], score=1100)
-def template_v1(template, **meta):
+@strategy(id="template:v1", interfaces=["template"], score=1100)
+@produces_variants(["default"])
+def template_v1(template, context, **meta):
     filename_component = GroupingComponent(id="filename")
     if template.filename is not None:
         filename_component.update(values=[template.filename])
@@ -14,4 +13,8 @@ def template_v1(template, **meta):
     if template.context_line is not None:
         context_line_component.update(values=[template.context_line])
 
-    return GroupingComponent(id="template", values=[filename_component, context_line_component])
+    return {
+        context["variant"]: GroupingComponent(
+            id="template", values=[filename_component, context_line_component]
+        )
+    }

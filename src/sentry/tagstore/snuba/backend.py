@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import functools
-import six
 from collections import defaultdict, Iterable, OrderedDict
 from dateutil.parser import parse as parse_datetime
 from pytz import UTC
@@ -10,7 +7,7 @@ from django.core.cache import cache
 
 from sentry import options
 from sentry.api.event_search import FIELD_ALIASES, PROJECT_ALIAS, USER_DISPLAY_ALIAS
-from sentry.models import Project
+from sentry.models import Project, ReleaseProjectEnvironment
 from sentry.api.utils import default_start_end_dates
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
@@ -60,7 +57,7 @@ def get_project_list(project_id):
 
 class SnubaTagStorage(TagStorage):
     def __get_tag_key(self, project_id, group_id, environment_id, key):
-        tag = u"tags[{}]".format(key)
+        tag = f"tags[{key}]"
         filters = {"project_id": get_project_list(project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -88,7 +85,7 @@ class SnubaTagStorage(TagStorage):
         self, project_id, group_id, environment_id, key, limit=3, raise_on_empty=True, **kwargs
     ):
 
-        tag = u"tags[{}]".format(key)
+        tag = f"tags[{key}]"
         filters = {"project_id": get_project_list(project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -137,7 +134,7 @@ class SnubaTagStorage(TagStorage):
                     first_seen=parse_datetime(data["first_seen"]),
                     last_seen=parse_datetime(data["last_seen"]),
                 )
-                for value, data in six.iteritems(result)
+                for value, data in result.items()
             ]
 
             return key_ctor(
@@ -155,7 +152,7 @@ class SnubaTagStorage(TagStorage):
         limit=1000,
         keys=None,
         include_values_seen=True,
-        **kwargs
+        **kwargs,
     ):
         return self.__get_tag_keys_for_projects(
             get_project_list(project_id),
@@ -179,21 +176,21 @@ class SnubaTagStorage(TagStorage):
         keys=None,
         include_values_seen=True,
         use_cache=False,
-        **kwargs
+        **kwargs,
     ):
-        """ Query snuba for tag keys based on projects
+        """Query snuba for tag keys based on projects
 
-            When use_cache is passed, we'll attempt to use the cache. There's an exception if group_id was passed
-            which refines the query enough caching isn't required.
-            The cache key is based on the filters being passed so that different queries don't hit the same cache, with
-            exceptions for start and end dates. Since even a microsecond passing would result in a different caching
-            key, which means always missing the cache.
-            Instead, to keep the cache key the same for a short period we append the duration, and the end time rounded
-            with a certain jitter to the cache key.
-            This jitter is based on the hash of the key before duration/end time is added for consistency per query.
-            The jitter's intent is to avoid a dogpile effect of many queries being invalidated at the same time.
-            This is done by changing the rounding of the end key to a random offset. See snuba.quantize_time for
-            further explanation of how that is done.
+        When use_cache is passed, we'll attempt to use the cache. There's an exception if group_id was passed
+        which refines the query enough caching isn't required.
+        The cache key is based on the filters being passed so that different queries don't hit the same cache, with
+        exceptions for start and end dates. Since even a microsecond passing would result in a different caching
+        key, which means always missing the cache.
+        Instead, to keep the cache key the same for a short period we append the duration, and the end time rounded
+        with a certain jitter to the cache key.
+        This jitter is based on the hash of the key before duration/end time is added for consistency per query.
+        The jitter's intent is to avoid a dogpile effect of many queries being invalidated at the same time.
+        This is done by changing the rounding of the end key to a random offset. See snuba.quantize_time for
+        further explanation of how that is done.
         """
         default_start, default_end = default_start_end_dates()
         if start is None:
@@ -219,10 +216,8 @@ class SnubaTagStorage(TagStorage):
         result = None
 
         if should_cache:
-            filtering_strings = [
-                u"{}={}".format(key, value) for key, value in six.iteritems(filters)
-            ]
-            cache_key = u"tagstore.__get_tag_keys:{}".format(
+            filtering_strings = [f"{key}={value}" for key, value in filters.items()]
+            cache_key = "tagstore.__get_tag_keys:{}".format(
                 md5_text(*filtering_strings).hexdigest()
             )
             key_hash = hash(cache_key)
@@ -236,7 +231,7 @@ class SnubaTagStorage(TagStorage):
             duration = (end - start).total_seconds()
             # Cause there's rounding to create this cache suffix, we want to update the query end so results match
             end = snuba.quantize_time(end, key_hash)
-            cache_key += u":{}@{}".format(duration, end.isoformat())
+            cache_key += f":{duration}@{end.isoformat()}"
             result = cache.get(cache_key, None)
             if result is not None:
                 metrics.incr("testing.tagstore.cache_tag_key.hit")
@@ -254,7 +249,7 @@ class SnubaTagStorage(TagStorage):
                 limit=limit,
                 orderby="-count",
                 referrer="tagstore.__get_tag_keys",
-                **kwargs
+                **kwargs,
             )
             if should_cache:
                 cache.set(cache_key, result, 300)
@@ -266,7 +261,7 @@ class SnubaTagStorage(TagStorage):
             ctor = functools.partial(GroupTagKey, group_id=group_id)
 
         results = set()
-        for key, data in six.iteritems(result):
+        for key, data in result.items():
             params = {"key": key}
             if include_values_seen:
                 params["values_seen"] = data["values_seen"]
@@ -280,7 +275,7 @@ class SnubaTagStorage(TagStorage):
         return results
 
     def __get_tag_value(self, project_id, group_id, environment_id, key, value):
-        tag = u"tags[{}]".format(key)
+        tag = f"tags[{key}]"
         filters = {"project_id": get_project_list(project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -338,7 +333,7 @@ class SnubaTagStorage(TagStorage):
             end,
             include_values_seen=False,
             use_cache=use_cache,
-            **optimize_kwargs
+            **optimize_kwargs,
         )
 
     def get_tag_value(self, project_id, environment_id, key, value):
@@ -365,7 +360,7 @@ class SnubaTagStorage(TagStorage):
             limit=limit,
             keys=keys,
             include_values_seen=False,
-            **kwargs
+            **kwargs,
         )
 
     def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
@@ -380,7 +375,7 @@ class SnubaTagStorage(TagStorage):
         return set(key.top_values)
 
     def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
-        tag = u"tags[{}]".format(key)
+        tag = f"tags[{key}]"
         filters = {"project_id": project_ids, "group_id": group_id_list}
         if environment_ids:
             filters["environment"] = environment_ids
@@ -401,7 +396,7 @@ class SnubaTagStorage(TagStorage):
 
         return {
             issue: GroupTagValue(group_id=issue, key=key, value=value, **fix_tag_value_data(data))
-            for issue, data in six.iteritems(result)
+            for issue, data in result.items()
         }
 
     def get_group_seen_values_for_environments(
@@ -428,10 +423,10 @@ class SnubaTagStorage(TagStorage):
             referrer="tagstore.get_group_seen_values_for_environments",
         )
 
-        return {issue: fix_tag_value_data(data) for issue, data in six.iteritems(result)}
+        return {issue: fix_tag_value_data(data) for issue, data in result.items()}
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
-        tag = u"tags[{}]".format(key)
+        tag = f"tags[{key}]"
         filters = {"project_id": get_project_list(project_id), "group_id": [group_id]}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -459,7 +454,7 @@ class SnubaTagStorage(TagStorage):
         user=None,
         keys=None,
         value_limit=TOP_VALUES_DEFAULT_LIMIT,
-        **kwargs
+        **kwargs,
     ):
         # Similar to __get_tag_key_and_top_values except we get the top values
         # for all the keys provided. value_limit in this case means the number
@@ -515,7 +510,7 @@ class SnubaTagStorage(TagStorage):
                     first_seen=parse_datetime(data["first_seen"]),
                     last_seen=parse_datetime(data["last_seen"]),
                 )
-                for value, data in six.iteritems(values)
+                for value, data in values.items()
             ]
 
         return keys_with_counts
@@ -548,7 +543,7 @@ class SnubaTagStorage(TagStorage):
     def get_last_release(self, project_id, group_id):
         return self.__get_release(project_id, group_id, False)
 
-    def get_release_tags(self, project_ids, environment_id, versions):
+    def get_release_tags(self, organization_id, project_ids, environment_id, versions):
         filters = {"project_id": project_ids}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -556,15 +551,16 @@ class SnubaTagStorage(TagStorage):
         # this method is already dealing with version strings rather than
         # release ids which would need to be translated by the snuba util.
         tag = "sentry:release"
-        col = u"tags[{}]".format(tag)
+        col = f"tags[{tag}]"
         conditions = [[col, "IN", versions], DEFAULT_TYPE_CONDITION]
         aggregations = [
             ["count()", "", "times_seen"],
             ["min", SEEN_COLUMN, "first_seen"],
             ["max", SEEN_COLUMN, "last_seen"],
         ]
-
+        start = self.get_min_start_date(organization_id, project_ids, environment_id, versions)
         result = snuba.query(
+            start=start,
             groupby=["project_id", col],
             conditions=conditions,
             filter_keys=filters,
@@ -574,11 +570,27 @@ class SnubaTagStorage(TagStorage):
         )
 
         values = []
-        for project_data in six.itervalues(result):
-            for value, data in six.iteritems(project_data):
+        for project_data in result.values():
+            for value, data in project_data.items():
                 values.append(TagValue(key=tag, value=value, **fix_tag_value_data(data)))
 
         return set(values)
+
+    def get_min_start_date(self, organization_id, project_ids, environment_id, versions):
+        rpe = ReleaseProjectEnvironment.objects.filter(
+            project_id__in=project_ids,
+            release__version__in=versions,
+            release__organization_id=organization_id,
+        ).order_by("first_seen")
+
+        if environment_id:
+            rpe = rpe.filter(environment_id=environment_id)
+
+        rpe = rpe.first()
+        if rpe:
+            return rpe.first_seen
+
+        return None
 
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         filters = {"project_id": project_ids}
@@ -620,8 +632,8 @@ class SnubaTagStorage(TagStorage):
         )
 
         values = []
-        for issue, users in six.iteritems(result):
-            for name, data in six.iteritems(users):
+        for issue, users in result.items():
+            for name, data in users.items():
                 values.append(
                     GroupTagValue(
                         group_id=issue, key="sentry:user", value=name, **fix_tag_value_data(data)
@@ -704,6 +716,8 @@ class SnubaTagStorage(TagStorage):
         #               enters 2020-07 we can generate the following conditions:
         #               >= 2020-07-01T00:00:00 AND <= 2020-07-31T23:59:59
         # time:         This is a column computed from timestamp so it suffers the same issues
+        if snuba_key in {"group_id"}:
+            snuba_key = f"tags[{snuba_key}]"
         if snuba_key in {"event_id", "timestamp", "time"}:
             return SequencePaginator([])
 
@@ -735,7 +749,7 @@ class SnubaTagStorage(TagStorage):
             # but want to do this with names that include our query
             status_codes = [
                 span_key
-                for span_key, value in six.iteritems(SPAN_STATUS_CODE_TO_NAME)
+                for span_key, value in SPAN_STATUS_CODE_TO_NAME.items()
                 if (query and query in value) or (not query)
             ]
             if status_codes:
@@ -773,10 +787,10 @@ class SnubaTagStorage(TagStorage):
                 snuba_name = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_field()
                 snuba.resolve_complex_column(snuba_name, resolver)
             elif snuba_name in BLACKLISTED_COLUMNS:
-                snuba_name = "tags[%s]" % (key,)
+                snuba_name = f"tags[{key}]"
 
             if query:
-                conditions.append([snuba_name, "LIKE", u"%{}%".format(query)])
+                conditions.append([snuba_name, "LIKE", f"%{query}%"])
             else:
                 conditions.append([snuba_name, "!=", ""])
 
@@ -812,7 +826,7 @@ class SnubaTagStorage(TagStorage):
                 results = OrderedDict(
                     [
                         (SPAN_STATUS_CODE_TO_NAME[result_key], data)
-                        for result_key, data in six.iteritems(results)
+                        for result_key, data in results.items()
                     ]
                 )
             # With project names we map the ids back to the project slugs
@@ -820,14 +834,14 @@ class SnubaTagStorage(TagStorage):
                 results = OrderedDict(
                     [
                         (project_slugs[value], data)
-                        for value, data in six.iteritems(results)
+                        for value, data in results.items()
                         if value in project_slugs
                     ]
                 )
 
         tag_values = [
-            TagValue(key=key, value=six.text_type(value), **fix_tag_value_data(data))
-            for value, data in six.iteritems(results)
+            TagValue(key=key, value=str(value), **fix_tag_value_data(data))
+            for value, data in results.items()
         ]
 
         desc = order_by.startswith("-")
@@ -863,7 +877,7 @@ class SnubaTagStorage(TagStorage):
 
         group_tag_values = [
             GroupTagValue(group_id=group_id, key=key, value=value, **fix_tag_value_data(data))
-            for value, data in six.iteritems(results)
+            for value, data in results.items()
         ]
 
         for cb in callbacks:
@@ -909,7 +923,7 @@ class SnubaTagStorage(TagStorage):
         conditions = []
         for tag_name, tag_val in tags.items():
             operator = "IN" if isinstance(tag_val, list) else "="
-            conditions.append([u"tags[{}]".format(tag_name), operator, tag_val])
+            conditions.append([f"tags[{tag_name}]", operator, tag_val])
 
         result = snuba.raw_query(
             start=start,
@@ -922,7 +936,7 @@ class SnubaTagStorage(TagStorage):
             referrer="tagstore.get_group_event_filter",
         )
 
-        event_id_set = set(row["event_id"] for row in result["data"])
+        event_id_set = {row["event_id"] for row in result["data"]}
 
         if not event_id_set:
             return None

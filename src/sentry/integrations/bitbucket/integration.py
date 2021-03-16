@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.integrations import (
     IntegrationInstallation,
     IntegrationFeatures,
@@ -65,7 +63,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=Bitbucket%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Bitbucket%Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/bitbucket",
     aspects={},
 )
@@ -99,8 +97,8 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
                 for repo in resp.get("values", [])
             ]
 
-        exact_query = (u'name="%s"' % (query)).encode("utf-8")
-        fuzzy_query = (u'name~"%s"' % (query)).encode("utf-8")
+        exact_query = ('name="%s"' % (query)).encode("utf-8")
+        fuzzy_query = ('name~"%s"' % (query)).encode("utf-8")
         exact_search_resp = self.get_client().search_repositories(username, exact_query)
         fuzzy_search_resp = self.get_client().search_repositories(username, fuzzy_query)
 

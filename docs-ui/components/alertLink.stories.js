@@ -1,5 +1,4 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import AlertLink from 'app/components/alertLink';
 import {IconDocs, IconGeneric, IconMail, IconStack, IconStar} from 'app/icons';
@@ -8,9 +7,7 @@ export default {
   title: 'Core/Alerts/AlertLink',
 };
 
-export const Default = withInfo(
-  'A way to loudly link between different parts of the application'
-)(() => [
+export const Default = () => [
   <AlertLink to="/settings/account/notifications" key="1">
     Check out the notifications settings panel.
   </AlertLink>,
@@ -26,13 +23,18 @@ export const Default = withInfo(
   <AlertLink to="/settings/account/notifications" priority="muted" key="5">
     I am saying nothing, ok?
   </AlertLink>,
-]);
+];
 
-Default.story = {
-  name: 'default',
+Default.storyName = 'default';
+Default.parameters = {
+  docs: {
+    description: {
+      story: 'A way to loudly link between different parts of the application',
+    },
+  },
 };
 
-export const WithAnIcon = withInfo('You can optionally pass an icon src')(() => [
+export const WithAnIcon = () => [
   <AlertLink to="/settings/account/notifications" icon={<IconMail />} key="1">
     Gumbo beet greens corn soko endive gumbo gourd. Parsley shallot courgette tatsoi pea
     sprouts fava bean collard greens dandelion okra wakame tomato. Dandelion cucumber
@@ -70,13 +72,18 @@ export const WithAnIcon = withInfo('You can optionally pass an icon src')(() => 
   >
     I am saying nothing, ok?
   </AlertLink>,
-]);
+];
 
-WithAnIcon.story = {
-  name: 'with an icon',
+WithAnIcon.storyName = 'with an icon';
+WithAnIcon.parameters = {
+  docs: {
+    description: {
+      story: 'You can optionally pass an icon src',
+    },
+  },
 };
 
-export const Small = withInfo('You can optionally pass an icon src')(() => [
+export const Small = () => [
   <AlertLink to="/settings/account/notifications" size="small" key="1">
     Check out the notifications settings panel.
   </AlertLink>,
@@ -92,8 +99,13 @@ export const Small = withInfo('You can optionally pass an icon src')(() => [
   <AlertLink to="/settings/account/notifications" priority="muted" size="small" key="5">
     I am saying nothing, ok?
   </AlertLink>,
-]);
+];
 
-Small.story = {
-  name: 'small',
+Small.storyName = 'small';
+Small.parameters = {
+  docs: {
+    description: {
+      story: 'You can optionally pass an icon src',
+    },
+  },
 };

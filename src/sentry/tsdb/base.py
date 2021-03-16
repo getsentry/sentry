@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import collections
-import six
 
 from collections import OrderedDict
 from datetime import timedelta
@@ -231,7 +228,7 @@ class BaseTSDB(Service):
         # window, retrieved several days after it's occurrence), this can
         # return a rollup that has already been evicted due to TTL, even if a
         # lower resolution representation of the range exists.
-        for rollup, samples in six.iteritems(self.rollups):
+        for rollup, samples in self.rollups.items():
             if rollup * samples >= num_seconds:
                 return rollup
 
@@ -349,7 +346,9 @@ class BaseTSDB(Service):
         """
         raise NotImplementedError
 
-    def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
+    def get_range(
+        self, model, keys, start, end, rollup=None, environment_ids=None, use_cache=False
+    ):
         """
         To get a range of data for group ID=[1, 2, 3]:
 
@@ -362,7 +361,7 @@ class BaseTSDB(Service):
         """
         raise NotImplementedError
 
-    def get_sums(self, model, keys, start, end, rollup=None, environment_id=None):
+    def get_sums(self, model, keys, start, end, rollup=None, environment_id=None, use_cache=False):
         range_set = self.get_range(
             model,
             keys,
@@ -370,10 +369,9 @@ class BaseTSDB(Service):
             end,
             rollup,
             environment_ids=[environment_id] if environment_id is not None else None,
+            use_cache=use_cache,
         )
-        sum_set = dict(
-            (key, sum(p for _, p in points)) for (key, points) in six.iteritems(range_set)
-        )
+        sum_set = {key: sum(p for _, p in points) for (key, points) in range_set.items()}
         return sum_set
 
     def rollup(self, values, rollup):
@@ -383,7 +381,7 @@ class BaseTSDB(Service):
         """
         normalize_ts_to_epoch = self.normalize_ts_to_epoch
         result = {}
-        for key, points in six.iteritems(values):
+        for key, points in values.items():
             result[key] = []
             last_new_ts = None
             for (ts, count) in points:
@@ -417,7 +415,14 @@ class BaseTSDB(Service):
         raise NotImplementedError
 
     def get_distinct_counts_totals(
-        self, model, keys, start, end=None, rollup=None, environment_id=None
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        environment_id=None,
+        use_cache=False,
     ):
         """
         Count distinct items during a time range.

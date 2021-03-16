@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django import forms
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
@@ -134,9 +130,9 @@ class ErrorPageEmbedView(View):
 
         # customization options
         options = DEFAULT_OPTIONS.copy()
-        for name in six.iterkeys(options):
+        for name in options.keys():
             if name in request.GET:
-                options[name] = six.text_type(request.GET[name])
+                options[name] = str(request.GET[name])
 
         # TODO(dcramer): since we cant use a csrf cookie we should at the very
         # least sign the request / add some kind of nonce
@@ -179,7 +175,8 @@ class ErrorPageEmbedView(View):
                     report.notify()
 
             user_feedback_received.send(
-                project=Project.objects.get(id=report.project_id), sender=self,
+                project=Project.objects.get(id=report.project_id),
+                sender=self,
             )
 
             return self._smart_response(request)
@@ -212,12 +209,16 @@ class ErrorPageEmbedView(View):
         context = {
             "endpoint": mark_safe("*/" + json.dumps(absolute_uri(request.get_full_path())) + ";/*"),
             "template": mark_safe("*/" + json.dumps(template) + ";/*"),
-            "strings": json.dumps_htmlsafe(
-                {
-                    "generic_error": six.text_type(options["errorGeneric"]),
-                    "form_error": six.text_type(options["errorFormEntry"]),
-                    "sent_message": six.text_type(options["successMessage"]),
-                }
+            "strings": mark_safe(
+                "*/"
+                + json.dumps_htmlsafe(
+                    {
+                        "generic_error": str(options["errorGeneric"]),
+                        "form_error": str(options["errorFormEntry"]),
+                        "sent_message": str(options["successMessage"]),
+                    }
+                )
+                + ";/*"
             ),
         }
 

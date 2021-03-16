@@ -1,7 +1,5 @@
-from __future__ import absolute_import
-
 from uuid import uuid4
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 from django.core.urlresolvers import reverse
 from sentry.utils.signing import sign
 from sentry.models import Project
@@ -11,7 +9,7 @@ from sentry.testutils import APITestCase, PermissionTestCase
 
 class AcceptTransferProjectPermissionTest(PermissionTestCase):
     def setUp(self):
-        super(AcceptTransferProjectPermissionTest, self).setUp()
+        super().setUp()
         self.project = self.create_project(teams=[self.team])
         self.path = reverse("sentry-api-0-accept-project-transfer")
 
@@ -21,7 +19,7 @@ class AcceptTransferProjectPermissionTest(PermissionTestCase):
 
 class AcceptTransferProjectTest(APITestCase):
     def setUp(self):
-        super(AcceptTransferProjectTest, self).setUp()
+        super().setUp()
         self.owner = self.create_user(email="example@example.com", is_superuser=False)
         self.from_organization = self.create_organization(owner=self.owner)
         self.to_organization = self.create_organization(owner=self.owner)

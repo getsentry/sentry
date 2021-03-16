@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from exam import fixture
@@ -13,7 +11,7 @@ class OrganizationTagKeyTestCase(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-tagkey-values"
 
     def setUp(self):
-        super(OrganizationTagKeyTestCase, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1)
         self.day_ago = before_now(days=1)
         user = self.create_user()
@@ -23,7 +21,7 @@ class OrganizationTagKeyTestCase(APITestCase, SnubaTestCase):
         self.login_as(user=user)
 
     def get_response(self, key, **kwargs):
-        return super(OrganizationTagKeyTestCase, self).get_response(self.org.slug, key, **kwargs)
+        return super().get_response(self.org.slug, key, **kwargs)
 
     def run_test(self, key, expected, **kwargs):
         response = self.get_valid_response(key, **kwargs)
@@ -215,6 +213,16 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
         self.run_test("time", expected=[])
         self.run_test("time", qs_params={"query": "z"}, expected=[])
 
+    def test_group_id_tag(self):
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago - timedelta(minutes=1)),
+                "tags": {"group_id": "not-a-group-id-but-a-string"},
+            },
+            project_id=self.project.id,
+        )
+        self.run_test("group_id", expected=[("not-a-group-id-but-a-string", 1)])
+
     def test_user_display(self):
         self.store_event(
             data={
@@ -264,7 +272,7 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
 
 class TransactionTagKeyValues(OrganizationTagKeyTestCase):
     def setUp(self):
-        super(TransactionTagKeyValues, self).setUp()
+        super().setUp()
         data = load_data("transaction", timestamp=before_now(minutes=1))
         self.store_event(data, project_id=self.project.id)
         self.transaction = data.copy()
@@ -279,7 +287,8 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
             {"status": "unknown_error", "parent_span_id": "9000cec7cc0779c1", "op": "bar.server"}
         )
         self.store_event(
-            self.transaction, project_id=self.project.id,
+            self.transaction,
+            project_id=self.project.id,
         )
 
     def run_test(self, key, expected, **kwargs):
@@ -287,12 +296,14 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         qs_params = kwargs.get("qs_params", {})
         qs_params["includeTransactions"] = "1"
         kwargs["qs_params"] = qs_params
-        super(TransactionTagKeyValues, self).run_test(key, expected, **kwargs)
+        super().run_test(key, expected, **kwargs)
 
     def test_status(self):
         self.run_test("transaction.status", expected=[("unknown", 1), ("ok", 1)])
         self.run_test(
-            "transaction.status", qs_params={"query": "o"}, expected=[("unknown", 1), ("ok", 1)],
+            "transaction.status",
+            qs_params={"query": "o"},
+            expected=[("unknown", 1), ("ok", 1)],
         )
         self.run_test("transaction.status", qs_params={"query": "ow"}, expected=[("unknown", 1)])
         self.run_test("transaction.status", qs_params={"query": "does-not-exist"}, expected=[])

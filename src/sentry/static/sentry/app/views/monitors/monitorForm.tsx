@@ -4,7 +4,7 @@ import {Observer} from 'mobx-react';
 import Access from 'app/components/acl/access';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import {GlobalSelection, Organization} from 'app/types';
+import {Choices, GlobalSelection, Organization} from 'app/types';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import Field from 'app/views/settings/components/forms/field';
@@ -22,7 +22,7 @@ const SCHEDULE_TYPES: [ScheduleType, string][] = [
   ['interval', 'Interval'],
 ];
 
-const MONITOR_TYPES = [['cron_job', 'Cron Job']];
+const MONITOR_TYPES: Choices = [['cron_job', 'Cron Job']];
 
 const INTERVALS = [
   ['minute', 'minute(s)'],
@@ -207,7 +207,6 @@ class MonitorForm extends Component<Props> {
                               required
                             />
                             <SelectField
-                              deprecatedSelectControl
                               name="config.schedule.interval"
                               label={t('Interval')}
                               disabled={!hasAccess}

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DropdownMenu from 'app/components/dropdownMenu';
 
@@ -10,7 +10,7 @@ describe('DropdownMenu', function () {
   let wrapper;
 
   beforeEach(function () {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <DropdownMenu>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
           <span {...getRootProps({})}>
@@ -49,9 +49,10 @@ describe('DropdownMenu', function () {
   it('closes dropdown when clicking outside of menu', async function () {
     wrapper.find('button').simulate('click');
     // Simulate click on document
-    const evt = document.createEvent('HTMLEvents');
-    evt.initEvent('click', false, true);
-    document.body.dispatchEvent(evt);
+    const event = document.createEvent('HTMLEvents');
+    event.initEvent('click', false, true);
+    document.body.dispatchEvent(event);
+
     jest.runAllTimers();
     await Promise.resolve();
     wrapper.update();
@@ -69,7 +70,7 @@ describe('DropdownMenu', function () {
   });
 
   it('ignores "Escape" key if `closeOnEscape` is false', function () {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <DropdownMenu closeOnEscape={false}>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
           <span {...getRootProps({})}>
@@ -92,7 +93,7 @@ describe('DropdownMenu', function () {
   });
 
   it('keeps dropdown open when clicking on anything in menu with `keepMenuOpen` prop', function () {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <DropdownMenu keepMenuOpen>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
           <span {...getRootProps({})}>
@@ -120,7 +121,7 @@ describe('DropdownMenu', function () {
     const addSpy = jest.spyOn(document, 'addEventListener');
     const removeSpy = jest.spyOn(document, 'removeEventListener');
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <DropdownMenu keepMenuOpen>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
           <span
@@ -177,7 +178,7 @@ describe('DropdownMenu', function () {
     const addSpy = jest.spyOn(document, 'addEventListener');
     const removeSpy = jest.spyOn(document, 'removeEventListener');
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <DropdownMenu alwaysRenderMenu>
         {({getRootProps, getActorProps, getMenuProps}) => (
           <span
@@ -220,7 +221,7 @@ describe('DropdownMenu', function () {
   });
 
   it('does not close nested dropdown on actor clicks', function () {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <DropdownMenu isNestedDropdown>
         {({getRootProps, getActorProps, getMenuProps}) => (
           <span {...getRootProps({})}>

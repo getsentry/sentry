@@ -1,14 +1,10 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry import tagstore
 from sentry.models import EventUser, Group, get_group_with_redirect, Project
 
 from ..base import ExportError
 
 
-class IssuesByTagProcessor(object):
+class IssuesByTagProcessor:
     """
     Processor for exports of issues data based on a provided tag
     """
@@ -63,7 +59,7 @@ class IssuesByTagProcessor(object):
 
     @staticmethod
     def get_lookup_key(key):
-        return six.text_type("sentry:{}".format(key)) if tagstore.is_reserved_key(key) else key
+        return str(f"sentry:{key}") if tagstore.is_reserved_key(key) else key
 
     @staticmethod
     def get_eventuser_callback(project_id):

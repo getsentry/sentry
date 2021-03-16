@@ -16,10 +16,12 @@ import {FilterViews} from 'app/views/performance/landing';
 import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
 import {getPerformanceLandingUrl} from 'app/views/performance/utils';
 
+import {SidebarSection} from './styles';
+
 type Props = {
   organization: Organization;
   location: Location;
-  project: Project | null;
+  project?: Project;
 };
 
 function ProjectQuickLinks({organization, project, location}: Props) {
@@ -49,14 +51,6 @@ function ProjectQuickLinks({organization, project, location}: Props) {
       },
     },
     {
-      title: t('Key Transactions'),
-      to: {
-        pathname: getPerformanceLandingUrl(organization),
-        query: {project: project?.id},
-      },
-      disabled: !organization.features.includes('performance-view'),
-    },
-    {
       title: t('Most Improved/Regressed Transactions'),
       to: getTrendsLink(),
       disabled: !organization.features.includes('performance-view'),
@@ -64,7 +58,7 @@ function ProjectQuickLinks({organization, project, location}: Props) {
   ];
 
   return (
-    <Section>
+    <SidebarSection>
       <SectionHeading>{t('Quick Links')}</SectionHeading>
       {quickLinks
         // push disabled links to the bottom
@@ -82,13 +76,9 @@ function ProjectQuickLinks({organization, project, location}: Props) {
             </Tooltip>
           </div>
         ))}
-    </Section>
+    </SidebarSection>
   );
 }
-
-const Section = styled('section')`
-  margin-bottom: ${space(2)};
-`;
 
 const QuickLink = styled(p =>
   p.disabled ? (
@@ -114,6 +104,7 @@ const QuickLink = styled(p =>
 `;
 
 const QuickLinkText = styled('span')`
+  font-size: ${p => p.theme.fontSizeMedium};
   ${overflowEllipsis}
 `;
 

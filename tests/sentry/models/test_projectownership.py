@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 from sentry.testutils import TestCase
-from sentry.api.fields.actor import Actor
-from sentry.models import ProjectOwnership, User, Team
+from sentry.models import ActorTuple, ProjectOwnership, User, Team
 from sentry.models.projectownership import resolve_actors
 from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
 from sentry.utils.cache import cache
@@ -12,7 +9,7 @@ class ProjectOwnershipTestCase(TestCase):
     def tearDown(self):
         cache.delete(ProjectOwnership.get_cache_key(self.project.id))
 
-        super(ProjectOwnershipTestCase, self).tearDown()
+        super().tearDown()
 
     def assert_ownership_equals(self, o1, o2):
         assert sorted(o1[0]) == sorted(o2[0]) and sorted(o1[1]) == sorted(o2[1])
@@ -40,7 +37,7 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "foo.py"}]}}
             ),
-            ([Actor(self.team.id, Team)], [rule_a]),
+            ([ActorTuple(self.team.id, Team)], [rule_a]),
         )
 
         # Match only rule_b
@@ -48,7 +45,7 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/thing.txt"}]}}
             ),
-            ([Actor(self.user.id, User)], [rule_b]),
+            ([ActorTuple(self.user.id, User)], [rule_b]),
         )
 
         # Matches both rule_a and rule_b
@@ -56,7 +53,7 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
             ),
-            ([Actor(self.team.id, Team), Actor(self.user.id, User)], [rule_a, rule_b]),
+            ([ActorTuple(self.team.id, Team), ActorTuple(self.user.id, User)], [rule_a, rule_b]),
         )
 
         assert ProjectOwnership.get_owners(
@@ -76,7 +73,7 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
             ),
-            ([Actor(self.team.id, Team), Actor(self.user.id, User)], [rule_a, rule_b]),
+            ([ActorTuple(self.team.id, Team), ActorTuple(self.user.id, User)], [rule_a, rule_b]),
         )
 
 
@@ -87,14 +84,14 @@ class ResolveActorsTestCase(TestCase):
     def test_basic(self):
         owners = [Owner("user", self.user.email), Owner("team", self.team.slug)]
         assert resolve_actors(owners, self.project.id) == {
-            owners[0]: Actor(self.user.id, User),
-            owners[1]: Actor(self.team.id, Team),
+            owners[0]: ActorTuple(self.user.id, User),
+            owners[1]: ActorTuple(self.team.id, Team),
         }
 
     def test_teams(self):
         # Normal team
         owner1 = Owner("team", self.team.slug)
-        actor1 = Actor(self.team.id, Team)
+        actor1 = ActorTuple(self.team.id, Team)
 
         # Team that doesn't exist
         owner2 = Owner("team", "nope")
@@ -114,7 +111,7 @@ class ResolveActorsTestCase(TestCase):
     def test_users(self):
         # Normal user
         owner1 = Owner("user", self.user.email)
-        actor1 = Actor(self.user.id, User)
+        actor1 = ActorTuple(self.user.id, User)
 
         # An extra secondary email
         email1 = self.create_useremail(self.user, None, is_verified=True).email

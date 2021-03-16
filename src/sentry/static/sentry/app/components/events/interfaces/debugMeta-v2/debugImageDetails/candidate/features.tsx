@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import NotAvailable from 'app/components/notAvailable';
 import QuestionTooltip from 'app/components/questionTooltip';
 import space from 'app/styles/space';
 import {
@@ -9,16 +10,17 @@ import {
   CandidateFeatures,
 } from 'app/types/debugImage';
 
-import NotAvailable from '../../notAvailable';
-
-import {getCandidateFeatureLabel} from './utils';
+import {getFeatureLabel} from './utils';
 
 type Props = {
   download: CandidateDownload;
 };
 
 function Features({download}: Props) {
-  if (download.status !== CandidateDownloadStatus.OK) {
+  if (
+    download.status !== CandidateDownloadStatus.OK &&
+    download.status !== CandidateDownloadStatus.DELETED
+  ) {
     return <NotAvailable />;
   }
 
@@ -31,9 +33,7 @@ function Features({download}: Props) {
   return (
     <Wrapper>
       {features.map(([key]) => {
-        const {label, description} = getCandidateFeatureLabel(
-          key as keyof CandidateFeatures
-        );
+        const {label, description} = getFeatureLabel(key as keyof CandidateFeatures);
         return (
           <Feature key={key}>
             {label}

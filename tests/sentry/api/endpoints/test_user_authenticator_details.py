@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import datetime
 from sentry.utils.compat import mock
-import six
 
 from django.core.urlresolvers import reverse
 from django.db.models import F
@@ -55,7 +52,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data["isEnrolled"]
         assert resp.data["id"] == "totp"
-        assert resp.data["authId"] == six.text_type(auth.id)
+        assert resp.data["authId"] == str(auth.id)
 
         # should not have these because enrollment
         assert "totp_secret" not in resp.data
@@ -75,7 +72,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
         resp = self.client.get(url)
         assert resp.status_code == 200
         assert resp.data["id"] == "recovery"
-        assert resp.data["authId"] == six.text_type(interface.authenticator.id)
+        assert resp.data["authId"] == str(interface.authenticator.id)
         assert len(resp.data["codes"])
 
         assert email_log.info.call_count == 0
@@ -88,11 +85,11 @@ class UserAuthenticatorDetailsTest(APITestCase):
                 "devices": [
                     {
                         "binding": {
-                            "publicKey": u"aowekroawker",
-                            "keyHandle": u"aowkeroakewrokaweokrwoer",
-                            "appId": u"https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
+                            "publicKey": "aowekroawker",
+                            "keyHandle": "aowkeroakewrokaweokrwoer",
+                            "appId": "https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
                         },
-                        "name": u"Amused Beetle",
+                        "name": "Amused Beetle",
                         "ts": 1512505334,
                     }
                 ]
@@ -107,7 +104,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
         resp = self.client.get(url)
         assert resp.status_code == 200
         assert resp.data["id"] == "u2f"
-        assert resp.data["authId"] == six.text_type(auth.id)
+        assert resp.data["authId"] == str(auth.id)
         assert len(resp.data["devices"])
         assert resp.data["devices"][0]["name"] == "Amused Beetle"
 
@@ -220,7 +217,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
         resp = self.client.get(url)
         assert resp.status_code == 200
         assert resp.data["id"] == "sms"
-        assert resp.data["authId"] == six.text_type(interface.authenticator.id)
+        assert resp.data["authId"] == str(interface.authenticator.id)
         assert resp.data["phone"] == "5551231234"
 
         # should not have these because enrollment

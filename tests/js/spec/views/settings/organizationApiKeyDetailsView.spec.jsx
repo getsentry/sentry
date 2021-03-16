@@ -5,8 +5,6 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OrganizationApiKeyDetails from 'app/views/settings/organizationApiKeys/organizationApiKeyDetails';
 
-jest.mock('jquery');
-
 const childContextTypes = {
   organization: PropTypes.object,
   router: PropTypes.object,

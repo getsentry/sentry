@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import logging
-import six
 from operator import attrgetter
 import re
 
@@ -87,7 +84,7 @@ metadata = IntegrationMetadata(
     features=FEATURE_DESCRIPTIONS,
     author="The Sentry Team",
     noun=_("Instance"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=Jira%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Jira%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/jira",
     aspects={"externalInstall": external_install},
 )
@@ -293,7 +290,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         self.model.save()
 
     def get_link_issue_config(self, group, **kwargs):
-        fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
+        fields = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-jira-search", args=[org.slug, self.model.id])
         for field in fields:
@@ -303,7 +300,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return fields
 
     def get_issue_url(self, key, **kwargs):
-        return "%s/browse/%s" % (self.model.metadata["base_url"], key)
+        return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
     def get_persisted_default_config_fields(self):
         return ["project", "issuetype", "priority", "labels"]
@@ -316,7 +313,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_group_description(self, group, event, **kwargs):
         output = [
-            u"Sentry Issue: [{}|{}]".format(
+            "Sentry Issue: [{}|{}]".format(
                 group.qualified_short_id,
                 absolute_uri(group.get_absolute_url(params={"referrer": "jira_integration"})),
             )
@@ -339,12 +336,16 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         )
 
     def get_issue(self, issue_id, **kwargs):
+        """
+        Jira installation's implementation of IssueSyncMixin's `get_issue`.
+        """
         client = self.get_client()
         issue = client.get_issue(issue_id)
+        fields = issue.get("fields", {})
         return {
             "key": issue_id,
-            "title": issue["fields"]["summary"],
-            "description": issue["fields"].get("description"),
+            "title": fields.get("summary"),
+            "description": fields.get("description"),
         }
 
     def create_comment(self, issue_id, user_id, group_note):
@@ -356,7 +357,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def create_comment_attribution(self, user_id, comment_text):
         user = User.objects.get(id=user_id)
         attribution = "%s wrote:\n\n" % user.name
-        return "%s{quote}%s{quote}" % (attribution, comment_text)
+        return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
     def update_comment(self, issue_id, user_id, group_note):
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
@@ -398,7 +399,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if data.get("errors"):
             if message:
                 message += " "
-            message += " ".join(["%s: %s" % (k, v) for k, v in data.get("errors").items()])
+            message += " ".join([f"{k}: {v}" for k, v in data.get("errors").items()])
         return message
 
     def error_fields_from_json(self, data):
@@ -547,7 +548,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
                     "jira_project": project_id,
-                    "error": six.text_type(e),
+                    "error": str(e),
                 },
             )
             raise IntegrationError(
@@ -578,7 +579,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         fields = []
         defaults = {}
         if group:
-            fields = super(JiraIntegration, self).get_create_issue_config(group, user, **kwargs)
+            fields = super().get_create_issue_config(group, user, **kwargs)
             defaults = self.get_defaults(group.project, user)
 
         project_id = params.get("project", defaults.get("project"))
@@ -591,7 +592,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 extra={
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
-                    "error": six.text_type(e),
+                    "error": str(e),
                 },
             )
             raise IntegrationError(
@@ -614,7 +615,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # make sure default issue type is actually
         # one that is allowed for project
         if issue_type:
-            if not any((c for c in issue_type_choices if c[0] == issue_type)):
+            if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
         fields = (
@@ -695,7 +696,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                             "integration_id": self.model.id,
                             "organization_id": self.organization_id,
                             "persisted_reporter_id": reporter_id,
-                            "error": six.text_type(e),
+                            "error": str(e),
                         },
                     )
                     continue
@@ -773,7 +774,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                         try:
                             v = int(v)
                         except ValueError:
-                            raise IntegrationError("Invalid sprint ({}) specified".format(v))
+                            raise IntegrationError(f"Invalid sprint ({v}) specified")
                     elif schema["type"] == "array" and schema.get("items") == "option":
                         v = [{"value": vx} for vx in v]
                     elif schema["type"] == "array" and schema.get("items") == "string":
@@ -820,13 +821,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if not issue_key:
             raise IntegrationError("There was an error creating the issue.")
 
-        issue = client.get_issue(issue_key)
-
-        return {
-            "title": issue["fields"]["summary"],
-            "description": issue["fields"]["description"],
-            "key": issue_key,
-        }
+        # Immediately fetch and return the created issue.
+        return self.get_issue(issue_key)
 
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         """

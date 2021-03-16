@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 from mistune import markdown
 
 from collections import OrderedDict
@@ -18,7 +15,7 @@ class VstsIssueSync(IssueSyncMixin):
     conf_key = slug
 
     issue_fields = frozenset(["id", "title", "url"])
-    done_categories = frozenset(["Resolved", "Completed"])
+    done_categories = frozenset(["Resolved", "Completed", "Closed"])
 
     def get_persisted_default_config_fields(self):
         return ["project", "work_item_type"]
@@ -103,7 +100,7 @@ class VstsIssueSync(IssueSyncMixin):
         kwargs["link_referrer"] = "vsts_integration"
         fields = []
         if group:
-            fields = super(VstsIssueSync, self).get_create_issue_config(group, user, **kwargs)
+            fields = super().get_create_issue_config(group, user, **kwargs)
             # Azure/VSTS has BOTH projects and repositories. A project can have many repositories.
             # Workitems (issues) are associated with the project not the repository.
         default_project, project_choices = self.get_project_choices(group, **kwargs)
@@ -138,7 +135,7 @@ class VstsIssueSync(IssueSyncMixin):
         ] + fields
 
     def get_link_issue_config(self, group, **kwargs):
-        fields = super(VstsIssueSync, self).get_link_issue_config(group, **kwargs)
+        fields = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-vsts-search", args=[org.slug, self.model.id])
         for field in fields:
@@ -148,7 +145,7 @@ class VstsIssueSync(IssueSyncMixin):
         return fields
 
     def get_issue_url(self, key, **kwargs):
-        return "%s_workitems/edit/%s" % (self.instance, six.text_type(key))
+        return f"{self.instance}_workitems/edit/{key}"
 
     def create_issue(self, data, **kwargs):
         """
@@ -179,21 +176,23 @@ class VstsIssueSync(IssueSyncMixin):
 
         project_name = created_item["fields"]["System.AreaPath"]
         return {
-            "key": six.text_type(created_item["id"]),
+            "key": str(created_item["id"]),
             "title": title,
             "description": description,
-            "metadata": {"display_name": "%s#%s" % (project_name, created_item["id"])},
+            "metadata": {"display_name": "{}#{}".format(project_name, created_item["id"])},
         }
 
     def get_issue(self, issue_id, **kwargs):
         client = self.get_client()
         work_item = client.get_work_item(self.instance, issue_id)
         return {
-            "key": six.text_type(work_item["id"]),
+            "key": str(work_item["id"]),
             "title": work_item["fields"]["System.Title"],
             "description": work_item["fields"].get("System.Description"),
             "metadata": {
-                "display_name": "%s#%s" % (work_item["fields"]["System.AreaPath"], work_item["id"])
+                "display_name": "{}#{}".format(
+                    work_item["fields"]["System.AreaPath"], work_item["id"]
+                )
             },
         }
 
@@ -208,7 +207,7 @@ class VstsIssueSync(IssueSyncMixin):
                 vsts_users = client.get_users(self.model.name, continuation_token)
                 continuation_token = vsts_users.headers.get("X-MS-ContinuationToken")
                 for vsts_user in vsts_users["value"]:
-                    vsts_email = vsts_user.get(u"mailAddress")
+                    vsts_email = vsts_user.get("mailAddress")
                     if vsts_email and vsts_email.lower() in sentry_emails:
                         assignee = vsts_user["mailAddress"]
                         break
@@ -243,7 +242,6 @@ class VstsIssueSync(IssueSyncMixin):
     def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
         client = self.get_client()
         work_item = client.get_work_item(self.instance, external_issue.key)
-
         # For some reason, vsts doesn't include the project id
         # in the work item response.
         # TODO(jess): figure out if there's a better way to do this
@@ -295,11 +293,7 @@ class VstsIssueSync(IssueSyncMixin):
 
     def should_unresolve(self, data):
         done_states = self.get_done_states(data["project"])
-        return (
-            data["old_state"] in done_states
-            or data["old_state"] is None
-            and not data["new_state"] in done_states
-        )
+        return not data["new_state"] in done_states or data["old_state"] is None
 
     def should_resolve(self, data):
         done_states = self.get_done_states(data["project"])
@@ -315,7 +309,6 @@ class VstsIssueSync(IssueSyncMixin):
                 extra={"integration_id": self.model.id, "exception": err},
             )
             return []
-
         done_states = [
             state["name"] for state in all_states if state["category"] in self.done_categories
         ]
@@ -336,7 +329,7 @@ class VstsIssueSync(IssueSyncMixin):
         # https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/bots/bots-text-formats
         user = User.objects.get(id=user_id)
         attribution = "%s wrote:\n\n" % user.name
-        quoted_comment = "%s<blockquote>%s</blockquote>" % (attribution, comment_text)
+        quoted_comment = f"{attribution}<blockquote>{comment_text}</blockquote>"
         return quoted_comment
 
     def update_comment(self, issue_id, user_id, external_comment_id, comment_text):

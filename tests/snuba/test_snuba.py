@@ -1,5 +1,5 @@
-from __future__ import absolute_import
-
+import copy
+from unittest import mock
 from datetime import datetime, timedelta
 
 import pytest
@@ -55,12 +55,15 @@ class SnubaTest(TestCase, SnubaTestCase):
 
         self.snuba_insert(events)
 
-        assert snuba.query(
-            start=now - timedelta(days=1),
-            end=now + timedelta(days=1),
-            groupby=["project_id"],
-            filter_keys={"project_id": [self.project.id]},
-        ) == {self.project.id: 1}
+        assert (
+            snuba.query(
+                start=now - timedelta(days=1),
+                end=now + timedelta(days=1),
+                groupby=["project_id"],
+                filter_keys={"project_id": [self.project.id]},
+            )
+            == {self.project.id: 1}
+        )
 
     def test_fail(self):
         now = datetime.now()
@@ -134,10 +137,60 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
                 ),
             ]
         )
-        assert [
-            {"issue": r["data"][0]["group_id"], "event_id": r["data"][0]["event_id"]}
-            for r in results
-        ] == [
-            {"issue": event_1.group.id, "event_id": event_1.event_id},
-            {"issue": event_2.group.id, "event_id": event_2.event_id},
+        assert [{(item["group_id"], item["event_id"]) for item in r["data"]} for r in results] == [
+            {(event_1.group.id, event_1.event_id)},
+            {(event_2.group.id, event_2.event_id)},
         ]
+
+    @mock.patch("sentry.utils.snuba._bulk_snuba_query", side_effect=snuba._bulk_snuba_query)
+    def test_cache(self, _bulk_snuba_query):
+        one_min_ago = iso_format(before_now(minutes=1))
+        event_1 = self.store_event(
+            data={"fingerprint": ["group-1"], "message": "hello", "timestamp": one_min_ago},
+            project_id=self.project.id,
+        )
+        event_2 = self.store_event(
+            data={"fingerprint": ["group-2"], "message": "hello", "timestamp": one_min_ago},
+            project_id=self.project.id,
+        )
+        params = [
+            snuba.SnubaQueryParams(
+                start=timezone.now() - timedelta(days=1),
+                end=timezone.now(),
+                selected_columns=["event_id", "group_id", "timestamp"],
+                filter_keys={"project_id": [self.project.id], "group_id": [event_1.group.id]},
+            ),
+            snuba.SnubaQueryParams(
+                start=timezone.now() - timedelta(days=1),
+                end=timezone.now(),
+                selected_columns=["event_id", "group_id", "timestamp"],
+                filter_keys={"project_id": [self.project.id], "group_id": [event_2.group.id]},
+            ),
+        ]
+
+        results = snuba.bulk_raw_query(
+            copy.deepcopy(params),
+            use_cache=True,
+        )
+        assert [{(item["group_id"], item["event_id"]) for item in r["data"]} for r in results] == [
+            {(event_1.group.id, event_1.event_id)},
+            {(event_2.group.id, event_2.event_id)},
+        ]
+        assert _bulk_snuba_query.call_count == 1
+        _bulk_snuba_query.reset_mock()
+
+        # # Make sure this doesn't appear in the cached results
+        self.store_event(
+            data={"fingerprint": ["group-2"], "message": "hello there", "timestamp": one_min_ago},
+            project_id=self.project.id,
+        )
+
+        results = snuba.bulk_raw_query(
+            copy.deepcopy(params),
+            use_cache=True,
+        )
+        assert [{(item["group_id"], item["event_id"]) for item in r["data"]} for r in results] == [
+            {(event_1.group.id, event_1.event_id)},
+            {(event_2.group.id, event_2.event_id)},
+        ]
+        assert _bulk_snuba_query.call_count == 0

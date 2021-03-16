@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from copy import deepcopy
 
 from rest_framework import status
@@ -104,6 +102,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
                     "organization_id": project.organization_id,
                     "uuid": client.uuid,
                     "data": data,
+                    "user_id": request.user.id,
                 }
                 tasks.find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
                 return Response({"uuid": client.uuid}, status=202)

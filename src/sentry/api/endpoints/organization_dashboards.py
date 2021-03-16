@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db import IntegrityError, transaction
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
@@ -8,6 +6,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardListSerializer
 from sentry.api.serializers.rest_framework import DashboardSerializer
 from sentry.models import Dashboard
+from sentry import features
 from rest_framework.response import Response
 
 
@@ -37,6 +36,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         :qparam string query: the title of the dashboard being searched for.
         :auth: required
         """
+        if not features.has("organizations:dashboards-basic", organization, actor=request.user):
+            return Response(status=404)
+
         dashboards = Dashboard.objects.filter(organization_id=organization.id)
         query = request.GET.get("query")
         if query:
@@ -68,13 +70,21 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         """
         Create a New Dashboard for an Organization
         ``````````````````````````````````````````
+
         Create a new dashboard for the given Organization
         :pparam string organization_slug: the slug of the organization the
                                           dashboards belongs to.
-        :param string title: the title of the dashboard.
         """
+        if not features.has("organizations:dashboards-edit", organization, actor=request.user):
+            return Response(status=404)
+
         serializer = DashboardSerializer(
-            data=request.data, context={"organization": organization, "request": request}
+            data=request.data,
+            context={
+                "organization": organization,
+                "request": request,
+                "projects": self.get_projects(request, organization),
+            },
         )
 
         if not serializer.is_valid():

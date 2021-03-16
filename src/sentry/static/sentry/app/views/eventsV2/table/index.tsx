@@ -10,6 +10,7 @@ import {metric} from 'app/utils/analytics';
 import {TableData} from 'app/utils/discover/discoverQuery';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import Measurements from 'app/utils/measurements/measurements';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
 
@@ -133,6 +134,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
             status: err.status,
           },
         });
+
         const message = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({
           isLoading: false,
@@ -150,6 +152,10 @@ class Table extends React.PureComponent<TableProps, TableState> {
     const {pageLinks, tableData, isLoading, error} = this.state;
     const tagKeys = Object.values(tags).map(({key}) => key);
 
+    const isFirstPage = pageLinks
+      ? parseLinkHeader(pageLinks).previous.results === false
+      : false;
+
     return (
       <Container>
         <Measurements>
@@ -159,6 +165,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
               <TableView
                 {...this.props}
                 isLoading={isLoading}
+                isFirstPage={isFirstPage}
                 error={error}
                 eventView={eventView}
                 tableData={tableData}

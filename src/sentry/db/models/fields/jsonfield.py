@@ -1,7 +1,4 @@
-from __future__ import absolute_import, unicode_literals
-
 import datetime
-import six
 
 from decimal import Decimal
 
@@ -19,7 +16,7 @@ def default(o):
     if hasattr(o, "to_json"):
         return o.to_json()
     if isinstance(o, Decimal):
-        return six.text_type(o)
+        return str(o)
     if isinstance(o, datetime.datetime):
         if o.tzinfo:
             return o.strftime("%Y-%m-%dT%H:%M:%S%z")
@@ -55,7 +52,7 @@ class JSONField(models.TextField):
         self.encoder_kwargs = {
             "indent": kwargs.pop("indent", getattr(settings, "JSONFIELD_INDENT", None))
         }
-        super(JSONField, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.validate(self.get_default(), None)
 
     def contribute_to_class(self, cls, name):
@@ -63,7 +60,7 @@ class JSONField(models.TextField):
         Add a descriptor for backwards compatibility
         with previous Django behavior.
         """
-        super(JSONField, self).contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name)
         setattr(cls, name, Creator(self))
 
     def validate(self, value, model_instance):
@@ -79,10 +76,10 @@ class JSONField(models.TextField):
             default = self.default
             if callable(default):
                 default = default()
-            if isinstance(default, six.string_types):
+            if isinstance(default, str):
                 return json.loads(default)
             return json.loads(json.dumps(default))
-        return super(JSONField, self).get_default()
+        return super().get_default()
 
     def get_internal_type(self):
         return "TextField"
@@ -91,7 +88,7 @@ class JSONField(models.TextField):
         return "text"
 
     def to_python(self, value):
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             if value == "":
                 if self.null:
                     return None
@@ -119,7 +116,7 @@ class JSONField(models.TextField):
         return self._get_val_from_obj(obj)
 
 
-class NoPrepareMixin(object):
+class NoPrepareMixin:
     def get_prep_lookup(self):
         return self.rhs
 
@@ -142,7 +139,7 @@ class JSONFieldInLookup(NoPrepareMixin, In):
         ]
 
 
-class ContainsLookupMixin(object):
+class ContainsLookupMixin:
     def get_prep_lookup(self):
         if isinstance(self.rhs, (list, tuple)):
             raise TypeError(

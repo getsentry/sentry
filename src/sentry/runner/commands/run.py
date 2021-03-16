@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import signal
 import sys
 from multiprocessing import cpu_count
@@ -160,7 +158,7 @@ def run_worker(**options):
             without_gossip=True,
             without_heartbeat=True,
             pool_cls="processes",
-            **options
+            **options,
         )
         worker.start()
         try:
@@ -384,6 +382,7 @@ def query_subscription_consumer(**options):
         subscriber.shutdown()
 
     signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
 
     subscriber.run()
 

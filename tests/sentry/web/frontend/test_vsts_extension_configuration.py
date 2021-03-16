@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-from six.moves.urllib.parse import parse_qsl, urlparse
+from urllib.parse import parse_qsl, urlparse
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import TestCase

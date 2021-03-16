@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.api.serializers import serialize
@@ -9,9 +5,9 @@ from sentry.models import Integration, Repository, RepositoryProjectPathConfig
 from sentry.testutils import APITestCase
 
 
-class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
+class OrganizationIntegrationRepositoryProjectPathConfigDetailsTest(APITestCase):
     def setUp(self):
-        super(OrganizationIntegrationRepositoryProjectPathConfigTest, self).setUp()
+        super().setUp()
 
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user, name="baz")
@@ -25,36 +21,34 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             name="example", organization_id=self.org.id, integration_id=self.integration.id
         )
         self.config = RepositoryProjectPathConfig.objects.create(
-            repository_id=six.text_type(self.repo.id),
-            project_id=six.text_type(self.project.id),
-            organization_integration_id=six.text_type(self.org_integration.id),
+            repository_id=str(self.repo.id),
+            project_id=str(self.project.id),
+            organization_integration_id=str(self.org_integration.id),
             stack_root="/stack/root",
             source_root="/source/root",
             default_branch="master",
         )
 
         self.url = reverse(
-            "sentry-api-0-organization-integration-repository-project-path-config-details",
-            args=[self.org.slug, self.integration.id, self.config.id],
+            "sentry-api-0-organization-repository-project-path-config-details",
+            args=[self.org.slug, self.config.id],
         )
 
     def make_put(self, data):
         # reconstruct the original object
         config_data = serialize(self.config, self.user)
-        config_data["repositoryId"] = six.text_type(self.repo.id)
-        # update with the new fields
-        config_data.update(data)
-        return self.client.put(self.url, config_data)
+        return self.client.put(
+            self.url,
+            {**config_data, **data, "repositoryId": self.repo.id},
+        )
 
     def test_basic_delete(self):
         resp = self.client.delete(self.url)
         assert resp.status_code == 204
-        assert not RepositoryProjectPathConfig.objects.filter(
-            id=six.text_type(self.config.id)
-        ).exists()
+        assert not RepositoryProjectPathConfig.objects.filter(id=str(self.config.id)).exists()
 
     def test_basic_edit(self):
         resp = self.make_put({"sourceRoot": "newRoot"})
         assert resp.status_code == 200
-        assert resp.data["id"] == six.text_type(self.config.id)
+        assert resp.data["id"] == str(self.config.id)
         assert resp.data["sourceRoot"] == "newRoot"

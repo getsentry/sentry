@@ -1,7 +1,6 @@
-from __future__ import absolute_import
-
 from sentry.utils.compat import mock
-import six
+from sentry.testutils.helpers import Feature
+import pytest
 
 from django.core.urlresolvers import reverse
 
@@ -22,8 +21,49 @@ from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
 )
+from sentry.api.endpoints.project_details import (
+    DynamicSamplingSerializer,
+    DynamicSamplingConditionSerializer,
+)
 from sentry.testutils import APITestCase
 from sentry.utils.compat import zip
+
+
+def _dyn_sampling_data():
+    return {
+        "rules": [
+            {
+                "sampleRate": 0.7,
+                "type": "trace",
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": "field1", "value": ["val"]},
+                        {"op": "glob", "name": "field1", "value": ["val"]},
+                    ],
+                },
+                "id": 0,
+            },
+            {
+                "sampleRate": 0.8,
+                "type": "trace",
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": "field1", "value": ["val"]},
+                    ],
+                },
+                "id": 0,
+            },
+        ]
+    }
+
+
+def _remove_ids_from_dynamic_rules(dynamic_rules):
+    if dynamic_rules.get("next_id") is not None:
+        del dynamic_rules["next_id"]
+    for rule in dynamic_rules["rules"]:
+        del rule["id"]
 
 
 class ProjectDetailsTest(APITestCase):
@@ -36,7 +76,7 @@ class ProjectDetailsTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(project.id)
+        assert response.data["id"] == str(project.id)
 
     def test_numeric_org_slug(self):
         # Regression test for https://github.com/getsentry/sentry/issues/2236
@@ -45,10 +85,10 @@ class ProjectDetailsTest(APITestCase):
         team = self.create_team(organization=org, name="foo", slug="foo")
         project = self.create_project(name="Bar", slug="bar", teams=[team])
         # We want to make sure we don't hit the LegacyProjectRedirect view at all.
-        url = "/api/0/projects/%s/%s/" % (org.slug, project.slug)
+        url = f"/api/0/projects/{org.slug}/{project.slug}/"
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(project.id)
+        assert response.data["id"] == str(project.id)
 
     def test_with_stats(self):
         project = self.create_project()
@@ -61,6 +101,18 @@ class ProjectDetailsTest(APITestCase):
         response = self.client.get(url + "?include=stats")
         assert response.status_code == 200
         assert response.data["stats"]["unresolved"] == 1
+
+    def test_with_dynamic_sampling_rules(self):
+        project = self.project  # force creation
+        project.update_option("sentry:dynamic_sampling", _dyn_sampling_data())
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data["dynamicSampling"] == _dyn_sampling_data()
 
     def test_project_renamed_302(self):
         project = self.create_project()
@@ -77,11 +129,11 @@ class ProjectDetailsTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 302
         assert response.data["slug"] == "foobar"
-        assert response.data["detail"]["extra"]["url"] == "/api/0/projects/%s/%s/" % (
-            project.organization.slug,
-            "foobar",
+        assert (
+            response.data["detail"]["extra"]["url"]
+            == f"/api/0/projects/{project.organization.slug}/foobar/"
         )
-        redirect_path = "/api/0/projects/%s/%s/" % (project.organization.slug, "foobar")
+        redirect_path = f"/api/0/projects/{project.organization.slug}/foobar/"
         # XXX: AttributeError: 'Response' object has no attribute 'url'
         # (this is with self.assertRedirects(response, ...))
         assert response["Location"] == redirect_path
@@ -107,7 +159,7 @@ class ProjectDetailsTest(APITestCase):
 
 class ProjectUpdateTest(APITestCase):
     def setUp(self):
-        super(ProjectUpdateTest, self).setUp()
+        super().setUp()
         self.path = reverse(
             "sentry-api-0-project-details",
             kwargs={
@@ -540,10 +592,149 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("digests:mail:minimum_delay") == min_delay
         assert self.project.get_option("digests:mail:maximum_delay") == max_delay
 
+    def test_dynamic_sampling_requires_feature_enabled(self):
+        resp = self.client.put(self.path, data={"dynamicSampling": _dyn_sampling_data()})
+        assert resp.status_code == 403
+
+    def test_setting_dynamic_sampling_rules(self):
+        """
+        Test that we can set sampling rules
+        """
+        with Feature({"organizations:filters-and-sampling": True}):
+            resp = self.client.put(self.path, data={"dynamicSampling": _dyn_sampling_data()})
+            assert resp.status_code == 200, resp.content
+        original_config = _dyn_sampling_data()
+        saved_config = self.project.get_option("sentry:dynamic_sampling")
+        # test that we have unique ids
+        ids = set()
+        for rule in saved_config["rules"]:
+            rid = rule["id"]
+            assert rid not in ids
+            ids.add(rid)
+        next_id = saved_config["next_id"]
+        assert next_id not in ids
+        # short of ids and next_id the saved config should be the same as the original one
+        _remove_ids_from_dynamic_rules(saved_config)
+        _remove_ids_from_dynamic_rules(original_config)
+        assert original_config == saved_config
+
+    def test_setting_dynamic_sampling_rules_roundtrip(self):
+        """
+        Tests that we get the same dynamic sampling rules that previously set
+        """
+        with Feature({"organizations:filters-and-sampling": True}):
+            resp = self.client.put(self.path, data={"dynamicSampling": _dyn_sampling_data()})
+            assert resp.status_code == 200, resp.content
+        response = self.client.get(self.path)
+        assert response.status_code == 200
+        saved_config = _remove_ids_from_dynamic_rules(response.data["dynamicSampling"])
+        original_data = _remove_ids_from_dynamic_rules(_dyn_sampling_data())
+        assert saved_config == original_data
+
+    def test_dynamic_sampling_rule_id_handling(self):
+        """
+        Tests the assignment of rule ids.
+
+        New rules (having no id or id==0) will be assigned new unique ids.
+        Old rules (rules that have ids present in the currently saved config) that have
+        not been modified should keep their id.
+        Old rules that have been modified (anything changed) should get new ids.
+        Once an id is assigned to a rule it should never be reused.
+        """
+        config = {
+            "rules": [
+                {
+                    "sampleRate": 0.7,
+                    "type": "trace",
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
+                    "id": 0,
+                },
+                {
+                    "sampleRate": 0.8,
+                    "type": "trace",
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
+                    "id": 0,
+                },
+                {
+                    "sampleRate": 0.9,
+                    "type": "trace",
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
+                    "id": 0,
+                },
+            ]
+        }
+        with Feature({"organizations:filters-and-sampling": True}):
+            resp = self.client.put(self.path, data={"dynamicSampling": config})
+            assert resp.status_code == 200, resp.content
+        response = self.client.get(self.path)
+        saved_config = response.data["dynamicSampling"]
+        next_id = saved_config["next_id"]
+        id1 = saved_config["rules"][0]["id"]
+        id2 = saved_config["rules"][1]["id"]
+        id3 = saved_config["rules"][2]["id"]
+        assert id1 != 0 and id2 != 0 and id3 != 0
+        next_id != 0
+        assert id1 != id2 and id2 != id3 and id1 != id3
+        assert next_id > id1 and next_id > id2 and next_id > id3
+        assert response.status_code == 200
+        # set it again and see how it handles the id reallocation
+        # change first rule
+        saved_config["rules"][0]["sampleRate"] = 0.1
+        # do not touch the second rule
+        # remove third rule (the id should NEVER be reused)
+        del saved_config["rules"][2]
+        # insert a new element at position 0
+        new_rule_1 = {
+            "sampleRate": 0.22,
+            "type": "trace",
+            "condition": {
+                "op": "and",
+                "inner": [],
+            },
+            "id": 0,
+        }
+
+        saved_config["rules"].insert(0, new_rule_1)
+        # insert a new element at the end
+        new_rule_2 = {
+            "sampleRate": 0.33,
+            "type": "trace",
+            "condition": {
+                "op": "and",
+                "inner": [],
+            },
+            "id": 0,
+        }
+
+        saved_config["rules"].append(new_rule_2)
+        with Feature({"organizations:filters-and-sampling": True}):
+            # turn it back from ordered dict to dict (both main obj and rules)
+            saved_config = dict(saved_config)
+            saved_config["rules"] = [dict(rule) for rule in saved_config["rules"]]
+            resp = self.client.put(self.path, data={"dynamicSampling": saved_config})
+            assert resp.status_code == 200, resp.content
+        response = self.client.get(self.path)
+        saved_config = response.data["dynamicSampling"]
+        new_ids = [rule["id"] for rule in saved_config["rules"]]
+        # first rule is new, second rule got a new id because it is changed,
+        # third rule (used to be second) keeps the id, fourth rule is new
+        assert new_ids == [4, 5, 2, 6]
+        new_next_id = saved_config["next_id"]
+        assert new_next_id == 7
+
 
 class CopyProjectSettingsTest(APITestCase):
     def setUp(self):
-        super(CopyProjectSettingsTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
 
         self.options_dict = {
@@ -552,7 +743,7 @@ class CopyProjectSettingsTest(APITestCase):
             "sentry:scrub_defaults": False,
         }
         self.other_project = self.create_project()
-        for key, value in six.iteritems(self.options_dict):
+        for key, value in self.options_dict.items():
             self.other_project.update_option(key=key, value=value)
 
         self.teams = [self.create_team(), self.create_team(), self.create_team()]
@@ -586,7 +777,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_settings_copied(self.other_project)
 
     def assert_settings_copied(self, project):
-        for key, value in six.iteritems(self.options_dict):
+        for key, value in self.options_dict.items():
             assert project.get_option(key) == value
 
         project_teams = ProjectTeam.objects.filter(project_id=project.id, team__in=self.teams)
@@ -606,7 +797,7 @@ class CopyProjectSettingsTest(APITestCase):
             assert rule.label == other_rule.label
 
     def assert_settings_not_copied(self, project, teams=()):
-        for key in six.iterkeys(self.options_dict):
+        for key in self.options_dict.keys():
             assert project.get_option(key) is None
 
         project_teams = ProjectTeam.objects.filter(project_id=project.id, team__in=teams)
@@ -735,7 +926,7 @@ class ProjectDeleteTest(APITestCase):
     @mock.patch("sentry.api.endpoints.project_details.uuid4")
     @mock.patch("sentry.api.endpoints.project_details.delete_project")
     def test_simple(self, mock_delete_project, mock_uuid4_project, mock_uuid4_mixin):
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4_mixin.return_value = uuid
@@ -785,3 +976,62 @@ class ProjectDeleteTest(APITestCase):
         assert not mock_delete_project.delay.mock_calls
 
         assert response.status_code == 403
+
+
+@pytest.mark.parametrize(
+    "condition",
+    (
+        {"op": "and", "inner": []},
+        {"op": "and", "inner": [{"op": "and", "inner": []}]},
+        {"op": "or", "inner": []},
+        {"op": "or", "inner": [{"op": "or", "inner": []}]},
+        {"op": "not", "inner": {"op": "or", "inner": []}},
+        {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
+        {"op": "eq", "name": "field1", "value": ["val"]},
+        {"op": "glob", "name": "field1", "value": ["val"]},
+    ),
+)
+def test_condition_serializer_ok(condition):
+    serializer = DynamicSamplingConditionSerializer(data=condition)
+    assert serializer.is_valid()
+    assert serializer.validated_data == condition
+
+
+@pytest.mark.parametrize(
+    "condition",
+    (
+        {"inner": []},
+        {"op": "and"},
+        {"op": "or"},
+        {"op": "eq", "value": ["val"]},
+        {"op": "eq", "name": "field1"},
+        {"op": "glob", "value": ["val"]},
+        {"op": "glob", "name": "field1"},
+    ),
+)
+def test_bad_condition_serialization(condition):
+    serializer = DynamicSamplingConditionSerializer(data=condition)
+    assert not serializer.is_valid()
+
+
+def test_rule_config_serializer():
+    data = {
+        "rules": [
+            {
+                "sampleRate": 0.7,
+                "type": "trace",
+                "id": 1,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": "field1", "value": ["val"]},
+                        {"op": "glob", "name": "field1", "value": ["val"]},
+                    ],
+                },
+            }
+        ],
+        "next_id": 22,
+    }
+    serializer = DynamicSamplingSerializer(data=data)
+    assert serializer.is_valid()
+    assert data == serializer.validated_data

@@ -1,13 +1,9 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function, unicode_literals
-
 from django.conf import settings
 
 import io
 import os
 import petname
 import random
-import six
 import warnings
 from binascii import hexlify
 from hashlib import sha1
@@ -71,7 +67,11 @@ from sentry.models import (
     ExternalIssue,
     GroupLink,
     ReleaseFile,
+    RepositoryProjectPathConfig,
     Rule,
+    ExternalUser,
+    ExternalTeam,
+    ProjectCodeOwners,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
@@ -222,7 +222,7 @@ def _patch_artifact_manifest(path, org, release, project=None):
 
 
 # TODO(dcramer): consider moving to something more scaleable like factoryboy
-class Factories(object):
+class Factories:
     @staticmethod
     def create_organization(name=None, owner=None, **kwargs):
         if not name:
@@ -259,7 +259,7 @@ class Factories(object):
         if not kwargs.get("name"):
             kwargs["name"] = petname.Generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
-            kwargs["slug"] = slugify(six.text_type(kwargs["name"]))
+            kwargs["slug"] = slugify(str(kwargs["name"]))
         members = kwargs.pop("members", None)
 
         team = Team.objects.create(organization=organization, **kwargs)
@@ -286,7 +286,7 @@ class Factories(object):
         if not kwargs.get("name"):
             kwargs["name"] = petname.Generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
-            kwargs["slug"] = slugify(six.text_type(kwargs["name"]))
+            kwargs["slug"] = slugify(str(kwargs["name"]))
         if not organization and teams:
             organization = teams[0].organization
 
@@ -380,7 +380,7 @@ class Factories(object):
         # add commits
         if user:
             author = Factories.create_commit_author(project=project, user=user)
-            repo = Factories.create_repo(project, name="organization-{}".format(project.slug))
+            repo = Factories.create_repo(project, name=f"organization-{project.slug}")
             commit = Factories.create_commit(
                 project=project,
                 repo=repo,
@@ -390,9 +390,7 @@ class Factories(object):
                 message="placeholder commit message",
             )
 
-            release.update(
-                authors=[six.text_type(author.id)], commit_count=1, last_commit_id=commit.id
-            )
+            release.update(authors=[str(author.id)], commit_count=1, last_commit_id=commit.id)
 
         return release
 
@@ -431,6 +429,19 @@ class Factories(object):
                         zipfile.write(fullpath, relpath)
 
         return bundle.getvalue()
+
+    @staticmethod
+    def create_code_mapping(project, repo=None, **kwargs):
+        kwargs.setdefault("stack_root", "")
+        kwargs.setdefault("source_root", "")
+        kwargs.setdefault("default_branch", "master")
+
+        if not repo:
+            repo = Factories.create_repo(project=project)
+
+        return RepositoryProjectPathConfig.objects.create(
+            project=project, repository=repo, **kwargs
+        )
 
     @staticmethod
     def create_repo(project, name=None, provider=None, integration_id=None, url=None):
@@ -480,7 +491,7 @@ class Factories(object):
     def create_commit_author(organization_id=None, project=None, user=None):
         return CommitAuthor.objects.get_or_create(
             organization_id=organization_id or project.organization_id,
-            email=user.email if user else "{}@example.com".format(make_word()),
+            email=user.email if user else f"{make_word()}@example.com",
             defaults={"name": user.name if user else make_word()},
         )[0]
 
@@ -578,7 +589,7 @@ class Factories(object):
             event_id=event.event_id,
             file_id=file.id,
             type=file.type,
-            **kwargs
+            **kwargs,
         )
 
     @staticmethod
@@ -591,10 +602,10 @@ class Factories(object):
         file=None,
         cpu_name=None,
         code_id=None,
-        **kwargs
+        **kwargs,
     ):
         if debug_id is None:
-            debug_id = six.text_type(uuid4())
+            debug_id = str(uuid4())
 
         if object_name is None:
             object_name = "%s.dSYM" % debug_id
@@ -621,7 +632,7 @@ class Factories(object):
             file=file,
             checksum=file.checksum,
             data=data,
-            **kwargs
+            **kwargs,
         )
 
     @staticmethod
@@ -782,7 +793,7 @@ class Factories(object):
             name="Jane Bloggs",
             email="jane@example.com",
             comments="the application crashed",
-            **kwargs
+            **kwargs,
         )
 
     @staticmethod
@@ -871,6 +882,7 @@ class Factories(object):
         organization,
         projects,
         name=None,
+        owner=None,
         query="level:error",
         aggregate="count()",
         time_window=10,
@@ -897,6 +909,7 @@ class Factories(object):
             time_window,
             threshold_type,
             threshold_period,
+            owner=owner,
             resolve_threshold=resolve_threshold,
             dataset=dataset,
             environment=environment,
@@ -938,4 +951,26 @@ class Factories(object):
     ):
         return create_alert_rule_trigger_action(
             trigger, type, target_type, target_identifier, integration, sentry_app
+        )
+
+    @staticmethod
+    def create_external_user(organizationmember, **kwargs):
+        kwargs.setdefault("provider", ExternalUser.get_provider_enum("github"))
+        kwargs.setdefault("external_name", "")
+
+        return ExternalUser.objects.create(organizationmember=organizationmember, **kwargs)
+
+    @staticmethod
+    def create_external_team(team, **kwargs):
+        kwargs.setdefault("provider", ExternalTeam.get_provider_enum("github"))
+        kwargs.setdefault("external_name", "@getsentry/ecosystem")
+
+        return ExternalTeam.objects.create(team=team, **kwargs)
+
+    @staticmethod
+    def create_codeowners(project, code_mapping, **kwargs):
+        kwargs.setdefault("raw", "")
+
+        return ProjectCodeOwners.objects.create(
+            project=project, repository_project_path_config=code_mapping, **kwargs
         )

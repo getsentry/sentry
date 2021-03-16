@@ -1,19 +1,16 @@
-from __future__ import absolute_import
-
-import six
 import uuid
 
 
 def get_header_relay_id(request):
     try:
-        return six.text_type(uuid.UUID(request.META["HTTP_X_SENTRY_RELAY_ID"]))
+        return str(uuid.UUID(request.META["HTTP_X_SENTRY_RELAY_ID"]))
     except (LookupError, ValueError, TypeError):
         pass
 
 
 def get_header_relay_signature(request):
     try:
-        return six.text_type(request.META["HTTP_X_SENTRY_RELAY_SIGNATURE"])
+        return str(request.META["HTTP_X_SENTRY_RELAY_SIGNATURE"])
     except (LookupError, ValueError, TypeError):
         pass
 
@@ -54,7 +51,7 @@ def to_camel_case_name(name):
     def first_upper(s):
         return s[:1].upper() + s[1:]
 
-    if not isinstance(name, six.string_types):
+    if not isinstance(name, str):
         return name
     else:
         name = name.strip("_")

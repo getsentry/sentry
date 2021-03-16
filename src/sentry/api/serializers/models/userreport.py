@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.models import EventUser, Group, UserReport
 from sentry.utils.compat import zip
@@ -37,7 +33,7 @@ class UserReportSerializer(Serializer):
                 name = name or event_user.get("name")
                 email = email or event_user.get("email")
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "eventID": obj.event_id,
             "name": name,
             "email": email,
@@ -55,30 +51,26 @@ class UserReportWithGroupSerializer(UserReportSerializer):
     def get_attrs(self, item_list, user):
         from sentry.api.serializers import GroupSerializer
 
-        groups = list(
-            Group.objects.filter(id__in=set([i.group_id for i in item_list if i.group_id]))
-        )
+        groups = list(Group.objects.filter(id__in={i.group_id for i in item_list if i.group_id}))
         serialized_groups = {}
         if groups:
             serialized_groups = {
                 d["id"]: d
                 for d in serialize(
-                    groups, user, GroupSerializer(environment_func=self.environment_func),
+                    groups,
+                    user,
+                    GroupSerializer(environment_func=self.environment_func),
                 )
             }
 
-        attrs = super(UserReportWithGroupSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
         for item in item_list:
             attrs[item].update(
-                {
-                    "group": serialized_groups[six.text_type(item.group_id)]
-                    if item.group_id
-                    else None
-                }
+                {"group": serialized_groups[str(item.group_id)] if item.group_id else None}
             )
         return attrs
 
     def serialize(self, obj, attrs, user):
-        context = super(UserReportWithGroupSerializer, self).serialize(obj, attrs, user)
+        context = super().serialize(obj, attrs, user)
         context["issue"] = attrs["group"]
         return context

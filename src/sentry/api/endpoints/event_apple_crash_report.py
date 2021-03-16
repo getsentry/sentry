@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.http import HttpResponse, StreamingHttpResponse
 
 from sentry import eventstore
@@ -31,7 +27,7 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
 
         symbolicated = request.GET.get("minified") not in ("1", "true")
 
-        apple_crash_report_string = six.text_type(
+        apple_crash_report_string = str(
             AppleCrashReport(
                 threads=get_path(event.data, "threads", "values", filter=True),
                 context=event.data.get("contexts"),
@@ -44,7 +40,7 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         response = HttpResponse(apple_crash_report_string, content_type="text/plain")
 
         if request.GET.get("download") is not None:
-            filename = u"{}{}.crash".format(event.event_id, symbolicated and "-symbolicated" or "")
+            filename = "{}{}.crash".format(event.event_id, symbolicated and "-symbolicated" or "")
             response = StreamingHttpResponse(apple_crash_report_string, content_type="text/plain")
             response["Content-Length"] = len(apple_crash_report_string)
             response["Content-Disposition"] = 'attachment; filename="%s"' % filename

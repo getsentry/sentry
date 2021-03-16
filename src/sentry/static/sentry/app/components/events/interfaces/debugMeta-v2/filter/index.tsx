@@ -2,50 +2,54 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
-import DropdownControl from 'app/components/dropdownControl';
+import DropdownControl, {Content} from 'app/components/dropdownControl';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
-import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {ImageStatus} from 'app/types/debugImage';
 
 import DropDownButton from './dropDownButton';
 
 type Option = {
-  id: ImageStatus;
+  id: string;
   symbol: React.ReactElement;
   isChecked: boolean;
 };
 
+type Options = Record<string, Array<Option>>;
+
 type Props = {
-  options: Array<Option>;
-  onFilter: (options: Array<Option>) => void;
+  options: Options;
+  onFilter: (options: Options) => void;
+  className?: string;
 };
 
-function Filter({options, onFilter}: Props) {
-  function handleClick(option: Option) {
+function Filter({options, onFilter, className}: Props) {
+  const checkedQuantity = Object.values(options)
+    .flatMap(option => option)
+    .filter(option => option.isChecked).length;
+
+  function handleClick(category: string, option: Option) {
     return function () {
-      const updatedOptions = options.map(opt => {
-        if (option.id === opt.id) {
-          return {
-            ...opt,
-            isChecked: !opt.isChecked,
-          };
-        }
-        return opt;
-      });
+      const updatedOptions = {
+        ...options,
+        [category]: options[category].map(groupedOption => {
+          if (option.id === groupedOption.id) {
+            return {
+              ...groupedOption,
+              isChecked: !groupedOption.isChecked,
+            };
+          }
+          return groupedOption;
+        }),
+      };
 
       onFilter(updatedOptions);
     };
   }
 
-  const checkedQuantity = options.filter(option => option.isChecked).length;
-
   return (
-    <Wrapper>
+    <Wrapper className={className}>
       <DropdownControl
-        menuWidth="240px"
-        blendWithActor
         button={({isOpen, getActorProps}) => (
           <DropDownButton
             isOpen={isOpen}
@@ -54,22 +58,38 @@ function Filter({options, onFilter}: Props) {
           />
         )}
       >
-        <Header>{t('Status')}</Header>
-        <List>
-          {options.map(option => {
-            const {symbol, isChecked, id} = option;
-            return (
-              <StyledListItem
-                key={id}
-                onClick={handleClick(option)}
-                isChecked={isChecked}
-              >
-                {symbol}
-                <CheckboxFancy isChecked={isChecked} />
-              </StyledListItem>
-            );
-          })}
-        </List>
+        {({getMenuProps, isOpen}) => (
+          <StyledContent
+            {...getMenuProps()}
+            alignMenu="left"
+            width="240px"
+            isOpen={isOpen}
+            className="drop-down-filter-menu"
+            blendWithActor
+            blendCorner
+          >
+            {Object.keys(options).map(category => (
+              <React.Fragment key={category}>
+                <Header>{category}</Header>
+                <List>
+                  {options[category].map(groupedOption => {
+                    const {symbol, isChecked, id} = groupedOption;
+                    return (
+                      <StyledListItem
+                        key={id}
+                        onClick={handleClick(category, groupedOption)}
+                        isChecked={isChecked}
+                      >
+                        {symbol}
+                        <CheckboxFancy isChecked={isChecked} />
+                      </StyledListItem>
+                    );
+                  })}
+                </List>
+              </React.Fragment>
+            ))}
+          </StyledContent>
+        )}
       </DropdownControl>
     </Wrapper>
   );
@@ -80,6 +100,12 @@ export default Filter;
 const Wrapper = styled('div')`
   position: relative;
   display: flex;
+`;
+
+const StyledContent = styled(Content)`
+  > * :last-child {
+    margin-bottom: -1px;
+  }
 `;
 
 const Header = styled('div')`
@@ -101,10 +127,7 @@ const StyledListItem = styled(ListItem)<{isChecked: boolean}>`
   padding: ${space(1)} ${space(2)};
   align-items: center;
   cursor: pointer;
-  :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-
+  border-bottom: 1px solid ${p => p.theme.border};
   ${CheckboxFancy} {
     opacity: ${p => (p.isChecked ? 1 : 0.3)};
   }

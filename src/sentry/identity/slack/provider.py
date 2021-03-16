@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import options
 from sentry.identity.oauth2 import OAuth2Provider, OAuth2LoginView, OAuth2CallbackView
 
@@ -21,17 +19,17 @@ class SlackIdentityProvider(OAuth2Provider):
         return "https://slack.com/oauth/v2/authorize"
 
     # XXX(epurkhiser): While workspace tokens _do_ support the oauth.access
-    # endpoint, it will no include the authorizing_user, so we continue to use
+    # endpoint, it will not include the authorizing_user, so we continue to use
     # the deprecated oauth.token endpoint until we are able to migrate to a bot
     # app which uses oauth.access.
     def get_oauth_access_token_url(self):
         return "https://slack.com/api/oauth.v2.access"
 
     def get_oauth_client_id(self):
-        return options.get("slack-v2.client-id") or options.get("slack.client-id")
+        return options.get("slack.client-id")
 
     def get_oauth_client_secret(self):
-        return options.get("slack-v2.client-secret") or options.get("slack.client-secret")
+        return options.get("slack.client-secret")
 
     def get_user_scopes(self):
         return self.config.get("user_scopes", self.user_scopes)
@@ -55,7 +53,7 @@ class SlackIdentityProvider(OAuth2Provider):
         # TODO(epurkhiser): This flow isn't actually used right now in sentry.
         # In slack-bot world we would need to make an API call to the 'me'
         # endpoint to get their user ID here.
-        return super(SlackIdentityProvider, self).get_oauth_data(self, payload)
+        return super().get_oauth_data(self, payload)
 
     def build_identity(self, data):
         data = data["data"]
@@ -83,14 +81,14 @@ class SlackOAuth2LoginView(OAuth2LoginView):
     def __init__(
         self, authorize_url=None, client_id=None, scope=None, user_scope=None, *args, **kwargs
     ):
-        super(SlackOAuth2LoginView, self).__init__(
+        super().__init__(
             authorize_url=authorize_url, client_id=client_id, scope=scope, *args, **kwargs
         )
         if user_scope is not None:
             self.user_scope = user_scope
 
     def get_authorize_params(self, state, redirect_uri):
-        data = super(SlackOAuth2LoginView, self).get_authorize_params(state, redirect_uri)
+        data = super().get_authorize_params(state, redirect_uri)
 
         # XXX(meredith): Bot apps must be added manually to channels, and link unfurling
         # only works for channels the bot is a part of, so in order to expand the usage

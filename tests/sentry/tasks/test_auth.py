@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.core import mail
 
 from sentry.models import AuthProvider, OrganizationMember
@@ -9,7 +7,7 @@ from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 
 class EmailMissingLinksTest(TestCase):
     def setUp(self):
-        super(EmailMissingLinksTest, self).setUp()
+        super().setUp()
         self.user = self.create_user(email="bar@example.com")
         self.organization = self.create_organization(name="Test")
         self.provider = AuthProvider.objects.create(

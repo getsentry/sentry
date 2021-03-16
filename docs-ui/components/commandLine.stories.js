@@ -1,17 +1,16 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
-import {text} from '@storybook/addon-knobs';
 
 import CommandLine from 'app/components/commandLine';
 
 export default {
-  title: 'Core/CommandLine',
+  title: 'Utilities/CommandLine',
+  args: {
+    children: 'sentry devserver --workers',
+  },
 };
 
-export const _CommandLine = withInfo('A Command Line Interface')(() => {
-  return <CommandLine>{text('children', 'sentry devserver --workers')}</CommandLine>;
-});
-
-_CommandLine.story = {
-  name: 'CommandLine',
+export const _CommandLine = ({children}) => {
+  return <CommandLine>{children}</CommandLine>;
 };
+
+_CommandLine.storyName = 'CommandLine';

@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 from rest_framework.response import Response
 
 from sentry import eventstore
@@ -48,7 +45,7 @@ class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
             {
                 "suggestions": [
                     {"type": "value", "value": value, "examples": examples}
-                    for value, examples in six.iteritems(suggestions)
+                    for value, examples in suggestions.items()
                 ]
             }
         )

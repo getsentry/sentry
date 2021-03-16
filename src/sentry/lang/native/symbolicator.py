@@ -1,16 +1,14 @@
-from __future__ import absolute_import
-
 import sys
 import jsonschema
 import logging
-import six
 import time
+import base64
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from requests.exceptions import RequestException
-from six.moves.urllib.parse import urljoin
+from urllib.parse import urljoin
 
 import sentry_sdk
 
@@ -57,7 +55,9 @@ HTTP_SOURCE_SCHEMA = {
     "properties": dict(
         type={"type": "string", "enum": ["http"]},
         url={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES
+        username={"type": "string"},
+        password={"type": "string"},
+        **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "url", "layout"],
     "additionalProperties": False,
@@ -72,7 +72,7 @@ S3_SOURCE_SCHEMA = {
         access_key={"type": "string"},
         secret_key={"type": "string"},
         prefix={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES
+        **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "bucket", "region", "access_key", "secret_key", "layout"],
     "additionalProperties": False,
@@ -86,7 +86,7 @@ GCS_SOURCE_SCHEMA = {
         client_email={"type": "string"},
         private_key={"type": "string"},
         prefix={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES
+        **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "bucket", "client_email", "private_key", "layout"],
     "additionalProperties": False,
@@ -99,10 +99,10 @@ SOURCES_SCHEMA = {
 
 
 def _task_id_cache_key_for_event(project_id, event_id):
-    return u"symbolicator:{1}:{0}".format(project_id, event_id)
+    return f"symbolicator:{event_id}:{project_id}"
 
 
-class Symbolicator(object):
+class Symbolicator:
     def __init__(self, project, event_id):
         symbolicator_options = options.get("symbolicator.options")
         base_url = symbolicator_options["url"].rstrip("/")
@@ -117,8 +117,8 @@ class Symbolicator(object):
 
         self.sess = SymbolicatorSession(
             url=base_url,
-            project_id=six.text_type(project.id),
-            event_id=six.text_type(event_id),
+            project_id=str(project.id),
+            event_id=str(event_id),
             timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
             sources=get_sources_for_project(project),
             options=get_options_for_project(project),
@@ -180,7 +180,8 @@ class Symbolicator(object):
 
     def process_applecrashreport(self, report):
         return self._process(
-            lambda: self.sess.upload_applecrashreport(report), "process_applecrashreport",
+            lambda: self.sess.upload_applecrashreport(report),
+            "process_applecrashreport",
         )
 
     def process_payload(self, stacktraces, modules, signal=None):
@@ -285,7 +286,7 @@ def get_internal_source(project):
             ).replace("127.0.0.1", "host.docker.internal")
 
     assert internal_url_prefix
-    sentry_source_url = "%s%s" % (
+    sentry_source_url = "{}{}".format(
         internal_url_prefix.rstrip("/"),
         reverse(
             "sentry-api-0-dsym-files",
@@ -309,6 +310,26 @@ def is_internal_source_id(source_id):
     return source_id.startswith("sentry")
 
 
+def normalize_user_source(source):
+    """Sources supplied from the user frontend might not match the format that
+    symbolicator expects.  For instance we currently do not permit headers to be
+    configured in the UI, but we allow basic auth to be configured for HTTP.
+    This means that we need to convert from username/password into the HTTP
+    basic auth header.
+    """
+    if source.get("type") == "http":
+        username = source.pop("username", None)
+        password = source.pop("password", None)
+        if username or password:
+            auth = base64.b64encode(
+                ("{}:{}".format(username or "", password or "")).encode("utf-8")
+            )
+            source["headers"] = {
+                "authorization": "Basic %s" % auth.decode("ascii"),
+            }
+    return source
+
+
 def parse_sources(config):
     """
     Parses the given sources in the config string (from JSON).
@@ -320,7 +341,7 @@ def parse_sources(config):
     try:
         sources = json.loads(config)
     except BaseException as e:
-        raise InvalidSourcesError(six.text_type(e))
+        raise InvalidSourcesError(str(e))
 
     try:
         jsonschema.validate(sources, SOURCES_SCHEMA)
@@ -332,7 +353,7 @@ def parse_sources(config):
         if is_internal_source_id(source["id"]):
             raise InvalidSourcesError('Source ids must not start with "sentry:"')
         if source["id"] in ids:
-            raise InvalidSourcesError("Duplicate source id: %s" % (source["id"],))
+            raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
         ids.add(source["id"])
 
     return sources
@@ -373,7 +394,7 @@ def get_sources_for_project(project):
     if sources_config:
         try:
             custom_sources = parse_sources(sources_config)
-            sources.extend(custom_sources)
+            sources.extend(normalize_user_source(source) for source in custom_sources)
         except InvalidSourcesError:
             # Source configs should be validated when they are saved. If this
             # did not happen, this indicates a bug. Record this, but do not stop
@@ -385,15 +406,14 @@ def get_sources_for_project(project):
             other_source = settings.SENTRY_BUILTIN_SOURCES.get(key)
             if other_source:
                 if other_source.get("type") == "alias":
-                    for item in resolve_alias(other_source):
-                        yield item
+                    yield from resolve_alias(other_source)
                 else:
                     yield other_source
 
     # Add builtin sources last to ensure that custom sources have precedence
     # over our defaults.
     builtin_sources = project.get_option("sentry:builtin_symbol_sources")
-    for key, source in six.iteritems(settings.SENTRY_BUILTIN_SOURCES):
+    for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
         if key not in builtin_sources:
             continue
 
@@ -408,7 +428,7 @@ def get_sources_for_project(project):
     return sources
 
 
-class SymbolicatorSession(object):
+class SymbolicatorSession:
     def __init__(
         self, url=None, sources=None, project_id=None, event_id=None, timeout=None, options=None
     ):
@@ -497,7 +517,7 @@ class SymbolicatorSession(object):
                     json = {"status": "failed", "message": "internal server error"}
 
                 return self._process_response(json)
-            except (IOError, RequestException) as e:
+            except (OSError, RequestException) as e:
                 metrics.incr(
                     "events.symbolicator.request_error",
                     tags={
@@ -551,7 +571,7 @@ class SymbolicatorSession(object):
         )
 
     def query_task(self, task_id):
-        task_url = "requests/%s" % (task_id,)
+        task_url = f"requests/{task_id}"
 
         params = {
             "timeout": 0,  # Only wait when creating, but not when querying tasks

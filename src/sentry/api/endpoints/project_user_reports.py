@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 from rest_framework import serializers
 
 from sentry.api.authentication import DSNAuthentication
@@ -65,7 +62,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 ),
             ),
             paginator_cls=DateTimePaginator,
-            **paginate_kwargs
+            **paginate_kwargs,
         )
 
     def post(self, request, project):
@@ -103,7 +100,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         try:
             report_instance = save_userreport(project, report)
         except Conflict as e:
-            return self.respond({"detail": six.text_type(e)}, status=409)
+            return self.respond({"detail": str(e)}, status=409)
 
         if isinstance(request.auth, ProjectKey):
             return self.respond(status=200)

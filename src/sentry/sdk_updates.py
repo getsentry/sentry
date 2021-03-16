@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 from distutils.version import LooseVersion
 from django.conf import settings
@@ -12,7 +10,7 @@ from sentry.utils.compat import zip
 logger = logging.getLogger(__name__)
 
 
-class SdkSetupState(object):
+class SdkSetupState:
     def __init__(self, sdk_name, sdk_version, modules, integrations):
         self.sdk_name = sdk_name
         self.sdk_version = sdk_version
@@ -44,14 +42,14 @@ class SdkSetupState(object):
         )
 
 
-class SdkIndexState(object):
+class SdkIndexState:
     def __init__(self, sdk_versions=None, deprecated_sdks=None, sdk_supported_modules=None):
         self.sdk_versions = sdk_versions or get_sdk_versions()
         self.deprecated_sdks = deprecated_sdks or settings.DEPRECATED_SDKS
         self.sdk_supported_modules = sdk_supported_modules or SDK_SUPPORTED_MODULES
 
 
-class Suggestion(object):
+class Suggestion:
     def to_json(self):
         raise NotImplementedError()
 
@@ -81,9 +79,10 @@ class EnableIntegrationSuggestion(Suggestion):
 
 
 class UpdateSDKSuggestion(Suggestion):
-    def __init__(self, sdk_name, new_sdk_version):
+    def __init__(self, sdk_name, new_sdk_version, ignore_patch_version):
         self.sdk_name = sdk_name
         self.new_sdk_version = new_sdk_version
+        self.ignore_patch_version = ignore_patch_version
 
     def to_json(self):
         return {
@@ -97,10 +96,12 @@ class UpdateSDKSuggestion(Suggestion):
         if self.new_sdk_version is None:
             return old_state
 
+        new_sdk_version = self.new_sdk_version
+        if self.ignore_patch_version:
+            new_sdk_version = ".".join(v for v in new_sdk_version.split(".")[:2])
+
         try:
-            has_newer_version = LooseVersion(old_state.sdk_version) < LooseVersion(
-                self.new_sdk_version
-            )
+            has_newer_version = LooseVersion(old_state.sdk_version) < LooseVersion(new_sdk_version)
         except Exception:
             has_newer_version = False
 
@@ -358,12 +359,14 @@ def get_sdk_urls():
         return {}
 
 
-def _get_suggested_updates_step(setup_state, index_state):
+def _get_suggested_updates_step(setup_state, index_state, ignore_patch_version):
     if not setup_state.sdk_name or not setup_state.sdk_version:
         return
 
     yield UpdateSDKSuggestion(
-        setup_state.sdk_name, index_state.sdk_versions.get(setup_state.sdk_name)
+        setup_state.sdk_name,
+        index_state.sdk_versions.get(setup_state.sdk_name),
+        ignore_patch_version,
     )
 
     # If an SDK is both outdated and entirely deprecated, we want to inform
@@ -404,14 +407,16 @@ def _get_suggested_updates_step(setup_state, index_state):
         yield support_info["suggestion"]
 
 
-def get_suggested_updates(setup_state, index_state=None, parent_suggestions=None):
+def get_suggested_updates(
+    setup_state, index_state=None, parent_suggestions=None, ignore_patch_version=False
+):
     if index_state is None:
         index_state = SdkIndexState()
 
     if parent_suggestions is None:
         parent_suggestions = []
 
-    suggestions = list(_get_suggested_updates_step(setup_state, index_state))
+    suggestions = list(_get_suggested_updates_step(setup_state, index_state, ignore_patch_version))
 
     rv = []
     new_setup_states = []

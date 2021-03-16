@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.db.models import Q
@@ -14,7 +12,7 @@ from sentry.db.models import (
 )
 
 
-class GroupSubscriptionReason(object):
+class GroupSubscriptionReason:
     implicit = -1  # not for use as a persisted field value
     committed = -2  # not for use as a persisted field value
     processing_issue = -3  # not for use as a persisted field value
@@ -29,17 +27,17 @@ class GroupSubscriptionReason(object):
     team_mentioned = 7
 
     descriptions = {
-        implicit: u"have opted to receive updates for all issues within "
+        implicit: "have opted to receive updates for all issues within "
         "projects that you are a member of",
-        committed: u"were involved in a commit that is part of this release",
-        processing_issue: u"are subscribed to alerts for this project",
-        comment: u"have commented on this issue",
-        assigned: u"have been assigned to this issue",
-        bookmark: u"have bookmarked this issue",
-        status_change: u"have changed the resolution status of this issue",
-        deploy_setting: u"opted to receive all deploy notifications for this organization",
-        mentioned: u"have been mentioned in this issue",
-        team_mentioned: u"are a member of a team mentioned in this issue",
+        committed: "were involved in a commit that is part of this release",
+        processing_issue: "are subscribed to alerts for this project",
+        comment: "have commented on this issue",
+        assigned: "have been assigned to this issue",
+        bookmark: "have bookmarked this issue",
+        status_change: "have changed the resolution status of this issue",
+        deploy_setting: "opted to receive all deploy notifications for this organization",
+        mentioned: "have been mentioned in this issue",
+        team_mentioned: "are a member of a team mentioned in this issue",
     }
 
 
@@ -55,12 +53,10 @@ def get_user_options(key, user_ids, project, default):
         )
     }
 
-    results = {}
-
-    for user_id in user_ids:
-        results[user_id] = options.get((user_id, project.id), options.get((user_id, None), default))
-
-    return results
+    return {
+        user_id: options.get((user_id, project.id), options.get((user_id, None), default))
+        for user_id in user_ids
+    }
 
 
 class GroupSubscriptionManager(BaseManager):
@@ -139,18 +135,12 @@ class GroupSubscriptionManager(BaseManager):
             )
         }
 
-        excluded_ids = set()
-
         subscriptions = {
             subscription.user_id: subscription
             for subscription in GroupSubscription.objects.filter(
                 group=group, user_id__in=users.keys()
             )
         }
-
-        for user_id, subscription in subscriptions.items():
-            if not subscription.is_active:
-                excluded_ids.add(user_id)
 
         options = get_user_options(
             "workflow:notifications",
@@ -159,6 +149,10 @@ class GroupSubscriptionManager(BaseManager):
             UserOptionValue.participating_only,
         )
 
+        excluded_ids = {
+            user_id for user_id, subscription in subscriptions.items() if not subscription.is_active
+        }
+
         for user_id, option in options.items():
             if option == UserOptionValue.no_conversations:
                 excluded_ids.add(user_id)
@@ -166,19 +160,11 @@ class GroupSubscriptionManager(BaseManager):
                 if user_id not in subscriptions:
                     excluded_ids.add(user_id)
 
-        results = {}
-
-        for user_id, user in users.items():
-            if user_id in excluded_ids:
-                continue
-
-            subscription = subscriptions.get(user_id)
-            if subscription is not None:
-                results[user] = subscription.reason
-            else:
-                results[user] = GroupSubscriptionReason.implicit
-
-        return results
+        return {
+            user: getattr(subscriptions.get(user_id), "reason", GroupSubscriptionReason.implicit)
+            for user_id, user in users.items()
+            if user_id not in excluded_ids
+        }
 
 
 class GroupSubscription(Model):

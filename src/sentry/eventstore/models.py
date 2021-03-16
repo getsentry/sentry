@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import pytz
-import six
 import string
 
 from collections import OrderedDict
@@ -32,7 +29,7 @@ def ref_func(x):
     return x.project_id or x.project.id
 
 
-class Event(object):
+class Event:
     """
     Event backed by nodestore and Snuba.
     """
@@ -265,9 +262,9 @@ class Event(object):
         be saved under this key in nodestore so it can be retrieved using the
         same generated id when we only have project_id and event_id.
         """
-        return md5(u"{}:{}".format(project_id, event_id).encode("utf-8")).hexdigest()
+        return md5(f"{project_id}:{event_id}".encode("utf-8")).hexdigest()
 
-    # TODO We need a better way to cache these properties.  functools32
+    # TODO We need a better way to cache these properties. functools
     # doesn't quite do the trick as there is a reference bug with unsaved
     # models. But the current _group_cache thing is also clunky because these
     # properties need to be stripped out in __getstate__.
@@ -331,23 +328,62 @@ class Event(object):
 
     def get_hashes(self, force_config=None):
         """
-        Returns the calculated hashes for the event.  This uses the stored
-        information if available.  Grouping hashes will take into account
-        fingerprinting and checksums.
+        Returns _all_ information that is necessary to group an event into
+        issues. It returns two lists of hashes, `(flat_hashes,
+
+        hierarchical_hashes)`:
+
+        1. First, `hierarchical_hashes` is walked
+           *backwards* (end to start) until one hash has been found that matches
+           an existing group. Only *that* hash gets a GroupHash instance that is
+           associated with the group.
+
+        2. If no group was found, an event should be sorted into a group X, if
+           there is a GroupHash matching *any* of `flat_hashes`. Hashes that do
+           not yet have a GroupHash model get one and are associated with the same
+           group (unless they already belong to another group).
+
+           This is how regular grouping works.
+
+        Whichever group the event lands in is associated with exactly one
+        GroupHash corresponding to an entry in `hierarchical_hashes`, and an
+        arbitrary amount of hashes from `flat_hashes` depending on whether some
+        of those hashes have GroupHashes already assigned to other groups (and
+        some other things).
+
+        The returned hashes already take SDK fingerprints and checksums into
+        consideration.
+
         """
+
         # If we have hashes stored in the data we use them, otherwise we
         # fall back to generating new ones from the data.  We can only use
         # this if we do not force a different config.
         if force_config is None:
             hashes = self.data.get("hashes")
+            hierarchical_hashes = self.data.get("hierarchical_hashes") or []
             if hashes is not None:
-                return hashes
+                return hashes, hierarchical_hashes
 
-        return [
-            _f
-            for _f in [x.get_hash() for x in self.get_grouping_variants(force_config).values()]
-            if _f
-        ]
+        # Create fresh hashes
+        flat_variants, hierarchical_variants = self.get_sorted_grouping_variants(force_config)
+        flat_hashes = self._hashes_from_sorted_grouping_variants(flat_variants)
+        hierarchical_hashes = self._hashes_from_sorted_grouping_variants(hierarchical_variants)
+
+        return flat_hashes, hierarchical_hashes
+
+    def get_sorted_grouping_variants(self, force_config=None):
+        """ Get grouping variants sorted into flat and hierarchical variants """
+        from sentry.grouping.api import sort_grouping_variants
+
+        variants = self.get_grouping_variants(force_config)
+        return sort_grouping_variants(variants)
+
+    @staticmethod
+    def _hashes_from_sorted_grouping_variants(variants):
+        """ Create hashes from variants and filter out None values """
+        hashes = (variant.get_hash() for variant in variants)
+        return [hash_ for hash_ in hashes if hash_ is not None]
 
     def get_grouping_variants(self, force_config=None, normalize_stacktraces=False):
         """
@@ -366,7 +402,7 @@ class Event(object):
         # config ID is given in which case it's merged with the stored or
         # default config dictionary
         if force_config is not None:
-            if isinstance(force_config, six.string_types):
+            if isinstance(force_config, str):
                 stored_config = self.get_grouping_config()
                 config = dict(stored_config)
                 config["id"] = force_config
@@ -386,8 +422,15 @@ class Event(object):
         return get_grouping_variants_for_event(self, config)
 
     def get_primary_hash(self):
-        # TODO: This *might* need to be protected from an IndexError?
-        return self.get_hashes()[0]
+        flat_hashes, hierarchical_hashes = self.get_hashes()
+
+        if hierarchical_hashes:
+            return hierarchical_hashes[0]
+
+        if flat_hashes:
+            return flat_hashes[0]
+
+        return None
 
     @property
     def organization(self):
@@ -431,11 +474,11 @@ class Event(object):
         data["message"] = self.message
         data["datetime"] = self.datetime
         data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
-        for k, v in sorted(six.iteritems(self.data)):
+        for k, v in sorted(self.data.items()):
             if k in data:
                 continue
             if k == "sdk":
-                v = {v_k: v_v for v_k, v_v in six.iteritems(v) if v_k != "client_ip"}
+                v = {v_k: v_v for v_k, v_v in v.items() if v_k != "client_ip"}
             data[k] = v
 
         # for a long time culprit was not persisted.  In those cases put
@@ -469,14 +512,14 @@ class Event(object):
             message += data["logentry"].get("formatted") or data["logentry"].get("message") or ""
 
         if event_metadata:
-            for value in six.itervalues(event_metadata):
+            for value in event_metadata.values():
                 value_u = force_text(value, errors="replace")
                 if value_u not in message:
-                    message = u"{} {}".format(message, value_u)
+                    message = f"{message} {value_u}"
 
         if culprit and culprit not in message:
             culprit_u = force_text(culprit, errors="replace")
-            message = u"{} {}".format(message, culprit_u)
+            message = f"{message} {culprit_u}"
 
         return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
@@ -489,7 +532,7 @@ class EventSubjectTemplate(string.Template):
     idpattern = r"(tag:)?[_a-z][_a-z0-9]*"
 
 
-class EventSubjectTemplateData(object):
+class EventSubjectTemplateData:
     tag_aliases = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
 
     def __init__(self, event):
@@ -501,7 +544,7 @@ class EventSubjectTemplateData(object):
             value = self.event.get_tag(self.tag_aliases.get(name, name))
             if value is None:
                 raise KeyError
-            return six.text_type(value)
+            return str(value)
         elif name == "project":
             return self.event.project.get_full_name()
         elif name == "projectID":

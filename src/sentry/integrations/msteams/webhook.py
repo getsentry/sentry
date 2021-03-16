@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import jwt
 import time
@@ -144,7 +142,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
-        return super(MsTeamsWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     @transaction_start("MsTeamsWebhookEndpoint")
     def post(self, request):
@@ -234,7 +232,8 @@ class MsTeamsWebhookEndpoint(Endpoint):
             integration = Integration.objects.get(provider=self.provider, external_id=team_id)
         except Integration.DoesNotExist:
             logger.info(
-                "msteams.uninstall.missing-integration", extra={"team_id": team_id},
+                "msteams.uninstall.missing-integration",
+                extra={"team_id": team_id},
             )
             return self.respond(status=404)
 
@@ -287,7 +286,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         elif action_type == ACTION_TYPE.ASSIGN:
             assignee = data["assignInput"]
             if assignee == "ME":
-                assignee = u"user:{}".format(user_id)
+                assignee = f"user:{user_id}"
             action_data = {"assignedTo": assignee}
         elif action_type == ACTION_TYPE.UNASSIGN:
             action_data = {"assignedTo": ""}
@@ -317,9 +316,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         )
 
         return client.put(
-            path=u"/projects/{}/{}/issues/".format(
-                group.project.organization.slug, group.project.slug
-            ),
+            path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
             params={"id": group.id},
             data=action_data,
             user=identity.user,

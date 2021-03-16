@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import time
 
 from django.db.models.signals import post_save
@@ -118,7 +116,7 @@ def record_event_processed(project, event, **kwargs):
         feature_slugs.append("user_tracking")
 
     # Custom Tags
-    if set(tag[0] for tag in event.tags) - DEFAULT_TAGS:
+    if {tag[0] for tag in event.tags} - DEFAULT_TAGS:
         feature_slugs.append("custom_tags")
 
     # Sourcemaps
@@ -179,11 +177,11 @@ def record_issue_assigned(project, group, user, **kwargs):
 
 @issue_resolved.connect(weak=False)
 def record_issue_resolved(organization_id, project, group, user, resolution_type, **kwargs):
-    """ There are three main types of ways to resolve issues
-        1) via a release (current release, next release, or other)
-        2) via commit (in the UI with the commit hash (marked as "in_commit")
-            or tagging the issue in a commit (marked as "with_commit"))
-        3) now
+    """There are three main types of ways to resolve issues
+    1) via a release (current release, next release, or other)
+    2) via commit (in the UI with the commit hash (marked as "in_commit")
+        or tagging the issue in a commit (marked as "with_commit"))
+    3) now
     """
     if resolution_type in ("in_next_release", "in_release"):
         FeatureAdoption.objects.record(
@@ -477,7 +475,7 @@ def record_inbox_in(project, user, group, reason, **kwargs):
 
 
 @inbox_out.connect(weak=False)
-def record_inbox_out(project, user, group, action, inbox_date_added, **kwargs):
+def record_inbox_out(project, user, group, action, inbox_date_added, referrer, **kwargs):
     if user and user.is_authenticated():
         user_id = default_user_id = user.id
     else:
@@ -492,6 +490,7 @@ def record_inbox_out(project, user, group, action, inbox_date_added, **kwargs):
         group_id=group.id,
         action=action,
         inbox_in_ts=int(time.mktime(inbox_date_added.timetuple())),
+        referrer=referrer,
     )
 
 
@@ -528,7 +527,9 @@ def record_integration_added(integration, organization, user, **kwargs):
         id=integration.id,
     )
     metrics.incr(
-        "integration.added", sample_rate=1.0, tags={"integration_slug": integration.provider},
+        "integration.added",
+        sample_rate=1.0,
+        tags={"integration_slug": integration.provider},
     )
 
 

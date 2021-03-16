@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from django import forms
@@ -15,26 +13,30 @@ logger = logging.getLogger("sentry.rules")
 
 
 class JiraCreateTicketAction(TicketEventAction):
-    label = u"Create a Jira issue in {integration} with these "
+    label = "Create a Jira issue in {integration} with these "
     ticket_type = "a Jira issue"
     link = "https://docs.sentry.io/product/integrations/jira/#issue-sync"
     provider = "jira"
     integration_key = "integration"
 
     def clean(self):
-        cleaned_data = super(JiraCreateTicketAction, self).clean()
+        cleaned_data = super().clean()
 
         integration = cleaned_data.get(self.integration_key)
         try:
             Integration.objects.get(id=integration)
         except Integration.DoesNotExist:
             raise forms.ValidationError(
-                _("Jira integration is a required field.",), code="invalid",
+                _(
+                    "Jira integration is a required field.",
+                ),
+                code="invalid",
             )
 
     def generate_footer(self, rule_url):
-        return u"This ticket was automatically created by Sentry via [{}|{}]".format(
-            self.rule.label, absolute_uri(rule_url),
+        return "This ticket was automatically created by Sentry via [{}|{}]".format(
+            self.rule.label,
+            absolute_uri(rule_url),
         )
 
     def fix_data_for_issue(self):
@@ -51,4 +53,4 @@ class JiraCreateTicketAction(TicketEventAction):
     @transaction_start("JiraCreateTicketAction.after")
     def after(self, event, state):
         self.fix_data_for_issue()
-        yield super(JiraCreateTicketAction, self).after(event, state)
+        yield super().after(event, state)

@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.core.validators import validate_slug, ValidationError
 from django.db import transaction
 from rest_framework.response import Response
@@ -24,7 +20,7 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
         :auth: required
         """
         slugs = request.data.get("slugs", {})
-        for project_id, slug in six.iteritems(slugs):
+        for project_id, slug in slugs.items():
             slug = slug.lower()
             try:
                 validate_slug(slug)
@@ -45,12 +41,12 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
             # Clear out all slugs first so that we can move them
             # around through the uniqueness
             for project in project_q:
-                projects[six.text_type(project.id)] = project
+                projects[str(project.id)] = project
                 project.slug = None
                 project.save()
 
             # Set new ones
-            for project_id, slug in six.iteritems(slugs):
+            for project_id, slug in slugs.items():
                 project = projects.get(project_id)
                 if project is None:
                     continue

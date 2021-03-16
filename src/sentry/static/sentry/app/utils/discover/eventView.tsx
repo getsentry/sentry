@@ -17,6 +17,7 @@ import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 
 import {statsPeriodToDays} from '../dates';
+import {QueryResults, stringifyQueryObject, tokenizeSearch} from '../tokenizeSearch';
 
 import {getSortField} from './fieldRenderers';
 import {
@@ -108,8 +109,8 @@ const decodeFields = (location: Location): Array<Field> => {
     return [];
   }
 
-  const fields = decodeList(query.field) || [];
-  const widths = decodeList(query.widths) || [];
+  const fields = decodeList(query.field);
+  const widths = decodeList(query.widths);
 
   const parsed: Field[] = [];
   fields.forEach((field, i) => {
@@ -185,7 +186,7 @@ const encodeSorts = (sorts: Readonly<Array<Sort>>): Array<string> =>
 
 const collectQueryStringByKey = (query: Query, key: string): Array<string> => {
   const needle = query[key];
-  const collection = decodeList(needle) || [];
+  const collection = decodeList(needle);
   return collection.reduce((acc: Array<string>, item: string) => {
     item = item.trim();
 
@@ -197,15 +198,14 @@ const collectQueryStringByKey = (query: Query, key: string): Array<string> => {
   }, []);
 };
 
-const decodeQuery = (location: Location): string | undefined => {
+const decodeQuery = (location: Location): string => {
   if (!location.query || !location.query.query) {
-    return undefined;
+    return '';
   }
 
   const queryParameter = location.query.query;
 
-  const query = decodeScalar(queryParameter);
-  return isString(query) ? query.trim() : undefined;
+  return decodeScalar(queryParameter, '').trim();
 };
 
 const decodeProjects = (location: Location): number[] => {
@@ -242,7 +242,9 @@ class EventView {
   yAxis: string | undefined;
   display: string | undefined;
   interval: string | undefined;
+  expired?: boolean;
   createdBy: User | undefined;
+  additionalConditions: QueryResults; // This allows views to always add additional conditins to the query to get specific data. It should not show up in the UI unless explicitly called.
 
   constructor(props: {
     id: string | undefined;
@@ -258,7 +260,9 @@ class EventView {
     yAxis: string | undefined;
     display: string | undefined;
     interval?: string;
+    expired?: boolean;
     createdBy: User | undefined;
+    additionalConditions: QueryResults;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
@@ -289,6 +293,8 @@ class EventView {
     this.display = props.display;
     this.interval = props.interval;
     this.createdBy = props.createdBy;
+    this.expired = props.expired;
+    this.additionalConditions = props.additionalConditions ?? new QueryResults([]);
   }
 
   static fromLocation(location: Location): EventView {
@@ -299,7 +305,7 @@ class EventView {
       name: decodeScalar(location.query.name),
       fields: decodeFields(location),
       sorts: decodeSorts(location),
-      query: decodeQuery(location) || '',
+      query: decodeQuery(location),
       project: decodeProjects(location),
       start: decodeScalar(start),
       end: decodeScalar(end),
@@ -309,6 +315,7 @@ class EventView {
       display: decodeScalar(location.query.display),
       interval: decodeScalar(location.query.interval),
       createdBy: undefined,
+      additionalConditions: new QueryResults([]),
     });
   }
 
@@ -374,6 +381,8 @@ class EventView {
       yAxis: saved.yAxis,
       display: saved.display,
       createdBy: saved.createdBy,
+      expired: saved.expired,
+      additionalConditions: new QueryResults([]),
     });
   }
 
@@ -589,7 +598,9 @@ class EventView {
       yAxis: this.yAxis,
       display: this.display,
       interval: this.interval,
+      expired: this.expired,
       createdBy: this.createdBy,
+      additionalConditions: this.additionalConditions,
     });
   }
 
@@ -850,7 +861,11 @@ class EventView {
     const queryParts: string[] = [];
 
     if (this.query) {
-      queryParts.push(this.query);
+      if (this.additionalConditions) {
+        queryParts.push(this.getQueryWithAdditionalConditions());
+      } else {
+        queryParts.push(this.query);
+      }
     }
 
     if (inputQuery) {
@@ -934,7 +949,7 @@ class EventView {
         field: [...new Set(fields)],
         sort,
         per_page: DEFAULT_PER_PAGE,
-        query: this.query,
+        query: this.getQueryWithAdditionalConditions(),
       }
     ) as EventQuery & LocationQuery;
 
@@ -1080,6 +1095,18 @@ class EventView {
     // after trying to find an enabled display mode and failing to find one,
     // we just use the default display mode
     return DisplayModes.DEFAULT;
+  }
+
+  getQueryWithAdditionalConditions() {
+    const {query} = this;
+    if (!this.additionalConditions) {
+      return query;
+    }
+    const conditions = tokenizeSearch(query);
+    Object.entries(this.additionalConditions.tagValues).forEach(([tag, tagValues]) => {
+      conditions.addTagValues(tag, tagValues);
+    });
+    return stringifyQueryObject(conditions);
   }
 }
 

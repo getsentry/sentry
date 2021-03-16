@@ -1,14 +1,12 @@
-from __future__ import absolute_import
-
-from datetime import datetime
-
-import six
+from datetime import datetime, timedelta
 import itertools
+import math
+import pytz
 
 from sentry.api.event_search import get_filter
-from sentry.api.utils import get_date_range_rollup_from_params
-from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import Dataset, raw_query
+from sentry.api.utils import get_date_range_from_params
+from sentry.utils.dates import parse_stats_period, to_timestamp, to_datetime
+from sentry.utils.snuba import Dataset, raw_query, resolve_condition
 
 """
 The new Sessions API defines a "metrics"-like interface which is can be used in
@@ -80,7 +78,7 @@ Is then "exploded" into something like:
 """
 
 
-class SessionsField(object):
+class SessionsField:
     def get_snuba_columns(self, raw_groupby):
         if "session.status" in raw_groupby:
             return ["sessions", "sessions_abnormal", "sessions_crashed", "sessions_errored"]
@@ -103,7 +101,7 @@ class SessionsField(object):
         return 0
 
 
-class UsersField(object):
+class UsersField:
     def get_snuba_columns(self, raw_groupby):
         if "session.status" in raw_groupby:
             return ["users", "users_abnormal", "users_crashed", "users_errored"]
@@ -126,7 +124,13 @@ class UsersField(object):
         return 0
 
 
-class DurationAverageField(object):
+def finite_or_none(val):
+    if not math.isfinite(val):
+        return None
+    return val
+
+
+class DurationAverageField:
     def get_snuba_columns(self, raw_groupby):
         return ["duration_avg"]
 
@@ -135,11 +139,11 @@ class DurationAverageField(object):
             return None
         status = group.get("session.status")
         if status is None or status == "healthy":
-            return row["duration_avg"]
+            return finite_or_none(row["duration_avg"])
         return None
 
 
-class DurationQuantileField(object):
+class DurationQuantileField:
     def __init__(self, quantile_index):
         self.quantile_index = quantile_index
 
@@ -151,7 +155,7 @@ class DurationQuantileField(object):
             return None
         status = group.get("session.status")
         if status is None or status == "healthy":
-            return row["duration_quantiles"][self.quantile_index]
+            return finite_or_none(row["duration_quantiles"][self.quantile_index])
         return None
 
 
@@ -168,7 +172,7 @@ COLUMN_MAP = {
 }
 
 
-class SimpleGroupBy(object):
+class SimpleGroupBy:
     def __init__(self, row_name, name=None):
         self.row_name = row_name
         self.name = name or row_name
@@ -183,7 +187,7 @@ class SimpleGroupBy(object):
         return [(self.name, row[self.row_name])]
 
 
-class SessionStatusGroupBy(object):
+class SessionStatusGroupBy:
     def get_snuba_columns(self):
         return []
 
@@ -194,6 +198,8 @@ class SessionStatusGroupBy(object):
         return [("session.status", key) for key in ["healthy", "abnormal", "crashed", "errored"]]
 
 
+# NOTE: in the future we might add new `user_agent` and `os` fields
+
 GROUPBY_MAP = {
     "project": SimpleGroupBy("project_id", "project"),
     "environment": SimpleGroupBy("environment"),
@@ -201,39 +207,48 @@ GROUPBY_MAP = {
     "session.status": SessionStatusGroupBy(),
 }
 
+CONDITION_COLUMNS = ["project", "environment", "release"]
+
+
+def resolve_column(col):
+    if col in CONDITION_COLUMNS:
+        return col
+    raise InvalidField(f'Invalid query field: "{col}"')
+
 
 class InvalidField(Exception):
     pass
 
 
-class QueryDefinition(object):
+class QueryDefinition:
     """
     This is the definition of the query the user wants to execute.
     This is constructed out of the request params, and also contains a list of
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, query, project_ids=None):
+    # XXX: Do *not* enable `allow_minute_resolution` yet outside of unit tests!
+    def __init__(self, query, params, allow_minute_resolution=False):
         self.query = query.get("query", "")
         raw_fields = query.getlist("field", [])
         raw_groupby = query.getlist("groupBy", [])
 
         if len(raw_fields) == 0:
-            raise InvalidField(u'Request is missing a "field"')
+            raise InvalidField('Request is missing a "field"')
 
         self.fields = {}
         for key in raw_fields:
             if key not in COLUMN_MAP:
-                raise InvalidField(u'Invalid field: "{}"'.format(key))
+                raise InvalidField(f'Invalid field: "{key}"')
             self.fields[key] = COLUMN_MAP[key]
 
         self.groupby = []
         for key in raw_groupby:
             if key not in GROUPBY_MAP:
-                raise InvalidField(u'Invalid groupBy: "{}"'.format(key))
+                raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
-        start, end, rollup = get_date_range_rollup_from_params(query, "1h", round_range=True)
+        start, end, rollup = _get_constrained_date_range(query, allow_minute_resolution)
         self.rollup = rollup
         self.start = start
         self.end = end
@@ -250,12 +265,93 @@ class QueryDefinition(object):
             query_groupby.update(groupby.get_snuba_groupby())
         self.query_groupby = list(query_groupby)
 
-        params = {"project_id": project_ids or []}
+        # the `params` are:
+        # project_id, organization_id, environment;
+        # also: start, end; but we got those ourselves.
         snuba_filter = get_filter(self.query, params)
 
+        # this makes sure that literals in complex queries are properly quoted,
+        # and unknown fields are raised as errors
+        conditions = [resolve_condition(c, resolve_column) for c in snuba_filter.conditions]
+
         self.aggregations = snuba_filter.aggregations
-        self.conditions = snuba_filter.conditions
+        self.conditions = conditions
         self.filter_keys = snuba_filter.filter_keys
+
+
+MAX_POINTS = 1000
+ONE_DAY = timedelta(days=1).total_seconds()
+ONE_HOUR = timedelta(hours=1).total_seconds()
+ONE_MINUTE = timedelta(minutes=1).total_seconds()
+
+
+class InvalidParams(Exception):
+    pass
+
+
+def _get_constrained_date_range(params, allow_minute_resolution=False):
+    interval = parse_stats_period(params.get("interval", "1h"))
+    interval = int(3600 if interval is None else interval.total_seconds())
+
+    smallest_interval = ONE_MINUTE if allow_minute_resolution else ONE_HOUR
+    if interval % smallest_interval != 0 or interval < smallest_interval:
+        interval_str = "one minute" if allow_minute_resolution else "one hour"
+        raise InvalidParams(
+            f"The interval has to be a multiple of the minimum interval of {interval_str}."
+        )
+
+    if interval > ONE_DAY:
+        raise InvalidParams("The interval has to be less than one day.")
+
+    if ONE_DAY % interval != 0:
+        raise InvalidParams("The interval should divide one day without a remainder.")
+
+    using_minute_resolution = interval % ONE_HOUR != 0
+
+    start, end = get_date_range_from_params(params)
+
+    # if `end` is explicitly given, we add a second to it, so it is treated as
+    # inclusive. the rounding logic down below will take care of the rest.
+    if params.get("end"):
+        end += timedelta(seconds=1)
+
+    date_range = end - start
+    # round the range up to a multiple of the interval.
+    # the minimum is 1h so the "totals" will not go out of sync, as they will
+    # use the materialized storage due to no grouping on the `started` column.
+    rounding_interval = int(math.ceil(interval / ONE_HOUR) * ONE_HOUR)
+    date_range = timedelta(
+        seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))
+    )
+
+    if using_minute_resolution:
+        if date_range.total_seconds() > 6 * ONE_HOUR:
+            raise InvalidParams(
+                "The time-range when using one-minute resolution intervals is restricted to 6 hours."
+            )
+        if (datetime.now(tz=pytz.utc) - start).total_seconds() > 30 * ONE_DAY:
+            raise InvalidParams(
+                "The time-range when using one-minute resolution intervals is restricted to the last 30 days."
+            )
+
+    if date_range.total_seconds() / interval > MAX_POINTS:
+        raise InvalidParams(
+            "Your interval and date range would create too many results. "
+            "Use a larger interval, or a smaller date range."
+        )
+
+    end_ts = int(rounding_interval * math.ceil(to_timestamp(end) / rounding_interval))
+    end = to_datetime(end_ts)
+    # when expanding the rounding interval, we would adjust the end time too far
+    # to the future, in which case the start time would not actually contain our
+    # desired date range. adjust for this by extend the time by another interval.
+    # for example, when "45m" means the range from 08:49:00-09:34:00, our rounding
+    # has to go from 08:00:00 to 10:00:00.
+    if rounding_interval > interval and (end - date_range) > start:
+        date_range += timedelta(seconds=rounding_interval)
+    start = end - date_range
+
+    return start, end, interval
 
 
 TS_COL = "bucketed_started"
@@ -392,10 +488,7 @@ def _get_timestamps(query):
     rollup = query.rollup
     start = int(to_timestamp(query.start))
     end = int(to_timestamp(query.end))
-    return [
-        datetime.utcfromtimestamp(ts).isoformat() + "Z"
-        for ts in six.moves.xrange(start, end, rollup)
-    ]
+    return [datetime.utcfromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]
 
 
 def _split_rows_groupby(rows, groupby):

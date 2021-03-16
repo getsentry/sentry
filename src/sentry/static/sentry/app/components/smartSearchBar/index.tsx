@@ -4,6 +4,7 @@ import {ClassNames} from '@emotion/core';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import createReactClass from 'create-react-class';
+import {withTheme} from 'emotion-theming';
 import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import Reflux from 'reflux';
@@ -33,7 +34,7 @@ import {LightWeightOrganization, SavedSearch, SavedSearchType, Tag} from 'app/ty
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import theme from 'app/utils/theme';
+import commonTheme, {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
@@ -61,7 +62,7 @@ const getInputButtonStyles = (p: {
   isActive?: boolean;
   collapseIntoEllipsisMenu?: number;
 }) => `
-  color: ${p.isActive ? theme.blue300 : theme.gray300};
+  color: ${p.isActive ? commonTheme.blue300 : commonTheme.gray300};
   width: 18px;
 
   &,
@@ -71,20 +72,26 @@ const getInputButtonStyles = (p: {
   }
 
   &:hover {
-    color: ${theme.gray400};
+    color: ${commonTheme.gray400};
   }
 
   ${
     p.collapseIntoEllipsisMenu &&
-    getMediaQuery(theme.breakpoints[p.collapseIntoEllipsisMenu], 'none')
+    getMediaQuery(commonTheme.breakpoints[p.collapseIntoEllipsisMenu], 'none')
   };
 `;
 
-const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolean}) => `
+type DropdownElementStylesProps = {
+  theme: Theme;
+  showBelowMediaQuery: number;
+  last?: boolean;
+};
+
+const getDropdownElementStyles = (p: DropdownElementStylesProps) => `
   padding: 0 ${space(1)} ${p.last ? null : space(0.5)};
   margin-bottom: ${p.last ? null : space(0.5)};
   display: none;
-  color: ${theme.textColor};
+  color: ${p.theme.textColor};
   align-items: center;
   min-width: 190px;
   height: 38px;
@@ -94,12 +101,12 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   &,
   &:hover,
   &:focus {
-    border-bottom: ${p.last ? null : `1px solid ${theme.border}`};
+    border-bottom: ${p.last ? null : `1px solid ${p.theme.border}`};
     border-radius: 0;
   }
 
   &:hover {
-    color: ${theme.blue300};
+    color: ${p.theme.blue300};
   }
   & > svg {
     margin-right: ${space(1)};
@@ -107,9 +114,31 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
 
   ${
     p.showBelowMediaQuery &&
-    getMediaQuery(theme.breakpoints[p.showBelowMediaQuery], 'flex')
+    getMediaQuery(commonTheme.breakpoints[p.showBelowMediaQuery], 'flex')
   }
 `;
+
+const ThemedCreateSavedSearchButton = withTheme(
+  (props: {theme: Theme; query; sort; organization}) => (
+    <ClassNames>
+      {({css}) => (
+        <CreateSavedSearchButton
+          buttonClassName={css`
+            ${getDropdownElementStyles({
+              theme: props.theme,
+              showBelowMediaQuery: 2,
+              last: false,
+            })}
+          `}
+          tooltipClassName={css`
+            ${getMediaQuery(commonTheme.breakpoints[2], 'none')}
+          `}
+          {...props}
+        />
+      )}
+    </ClassNames>
+  )
+);
 
 type Props = {
   api: Client;
@@ -119,6 +148,7 @@ type Props = {
 
   defaultQuery?: string;
   query?: string | null;
+  sort?: string;
   /**
    * Prepare query value before filtering dropdown items
    */
@@ -218,6 +248,10 @@ type Props = {
    * such as the stream view where it is a top level concept
    */
   excludeEnvironment?: boolean;
+  /**
+   * Used to enforce length on the query
+   */
+  maxQueryLength?: number;
 };
 
 type State = {
@@ -225,6 +259,7 @@ type State = {
    * The current search query in the input
    */
   query: string;
+  sort?: string;
   /**
    * The query in the input since we last updated our autocomplete list.
    */
@@ -887,7 +922,11 @@ class SmartSearchBar extends React.Component<Props, State> {
     tagName: string,
     type: ItemType
   ) => {
-    const {hasRecentSearches, maxSearchItems} = this.props;
+    const {hasRecentSearches, maxSearchItems, maxQueryLength} = this.props;
+    const query = this.state.query;
+
+    const queryCharsLeft =
+      maxQueryLength && query ? maxQueryLength - query.length : undefined;
 
     this.setState(
       createSearchGroups(
@@ -895,7 +934,8 @@ class SmartSearchBar extends React.Component<Props, State> {
         hasRecentSearches ? recentSearchItems : undefined,
         tagName,
         type,
-        maxSearchItems
+        maxSearchItems,
+        queryCharsLeft
       )
     );
   };
@@ -1052,6 +1092,8 @@ class SmartSearchBar extends React.Component<Props, State> {
       useFormWrapper,
       onSidebarToggle,
       inlineLabel,
+      sort,
+      maxQueryLength,
     } = this.props;
 
     const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
@@ -1079,6 +1121,7 @@ class SmartSearchBar extends React.Component<Props, State> {
           onChange={this.onQueryChange}
           onClick={this.onInputClick}
           disabled={disabled}
+          maxLength={maxQueryLength}
         />
         {(this.state.loading || this.state.searchGroups.length > 0) && (
           <DropdownWrapper visible={this.state.dropdownVisible}>
@@ -1135,7 +1178,7 @@ class SmartSearchBar extends React.Component<Props, State> {
                   tooltipProps={{
                     containerDisplayMode: 'inline-flex',
                     className: css`
-                      ${getMediaQuery(theme.breakpoints[1], 'none')}
+                      ${getMediaQuery(commonTheme.breakpoints[1], 'none')}
                     `,
                   }}
                   onClick={this.onTogglePinnedSearch}
@@ -1151,6 +1194,7 @@ class SmartSearchBar extends React.Component<Props, State> {
               {({css}) => (
                 <CreateSavedSearchButton
                   query={this.state.query}
+                  sort={sort}
                   organization={organization}
                   withTooltip
                   iconOnly
@@ -1160,7 +1204,7 @@ class SmartSearchBar extends React.Component<Props, State> {
                     })}
                   `}
                   tooltipClassName={css`
-                    ${getMediaQuery(theme.breakpoints[2], 'none')}
+                    ${getMediaQuery(commonTheme.breakpoints[2], 'none')}
                   `}
                 />
               )}
@@ -1176,7 +1220,7 @@ class SmartSearchBar extends React.Component<Props, State> {
                   tooltipProps={{
                     containerDisplayMode: 'inline-flex',
                     className: css`
-                      ${getMediaQuery(theme.breakpoints[2], 'none')}
+                      ${getMediaQuery(commonTheme.breakpoints[2], 'none')}
                     `,
                   }}
                   collapseIntoEllipsisMenu={2}
@@ -1216,23 +1260,11 @@ class SmartSearchBar extends React.Component<Props, State> {
                 </DropdownElement>
               )}
               {canCreateSavedSearch && (
-                <ClassNames>
-                  {({css}) => (
-                    <CreateSavedSearchButton
-                      query={this.state.query}
-                      organization={organization}
-                      buttonClassName={css`
-                        ${getDropdownElementStyles({
-                          showBelowMediaQuery: 2,
-                          last: false,
-                        })}
-                      `}
-                      tooltipClassName={css`
-                        ${getMediaQuery(theme.breakpoints[2], 'none')}
-                      `}
-                    />
-                  )}
-                </ClassNames>
+                <ThemedCreateSavedSearchButton
+                  query={this.state.query}
+                  organization={organization}
+                  sort={sort}
+                />
               )}
               {hasSearchBuilder && (
                 <DropdownElement showBelowMediaQuery={2} last onClick={onSidebarToggle}>
@@ -1331,12 +1363,12 @@ const InputButton = styled(Button)`
 const StyledDropdownLink = styled(DropdownLink)`
   display: none;
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${commonTheme.breakpoints[2]}) {
     display: flex;
   }
 `;
 
-const DropdownElement = styled('a')`
+const DropdownElement = styled('a')<Omit<DropdownElementStylesProps, 'theme'>>`
   ${getDropdownElementStyles}
 `;
 

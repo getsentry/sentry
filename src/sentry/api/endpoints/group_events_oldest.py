@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
 from sentry.api import client
@@ -27,9 +25,7 @@ class GroupEventsOldestEndpoint(GroupEndpoint):
 
         try:
             return client.get(
-                u"/projects/{}/{}/events/{}/".format(
-                    event.organization.slug, event.project.slug, event.event_id
-                ),
+                f"/projects/{event.organization.slug}/{event.project.slug}/events/{event.event_id}/",
                 request=request,
                 data={"environment": environments},
             )

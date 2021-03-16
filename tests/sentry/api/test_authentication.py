@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 
 from django.http import HttpRequest
@@ -12,7 +10,7 @@ from sentry.testutils import TestCase
 
 class TestClientIdSecretAuthentication(TestCase):
     def setUp(self):
-        super(TestClientIdSecretAuthentication, self).setUp()
+        super().setUp()
 
         self.auth = ClientIdSecretAuthentication()
         self.org = self.create_organization(owner=self.user)
@@ -70,7 +68,7 @@ class TestClientIdSecretAuthentication(TestCase):
 
 class TestDSNAuthentication(TestCase):
     def setUp(self):
-        super(TestDSNAuthentication, self).setUp()
+        super().setUp()
 
         self.auth = DSNAuthentication()
         self.org = self.create_organization(owner=self.user)
@@ -79,7 +77,7 @@ class TestDSNAuthentication(TestCase):
 
     def test_authenticate(self):
         request = HttpRequest()
-        request.META["HTTP_AUTHORIZATION"] = u"DSN {}".format(self.project_key.dsn_public)
+        request.META["HTTP_AUTHORIZATION"] = f"DSN {self.project_key.dsn_public}"
 
         result = self.auth.authenticate(request)
         assert result is not None
@@ -91,7 +89,7 @@ class TestDSNAuthentication(TestCase):
     def test_inactive_key(self):
         self.project_key.update(status=ProjectKeyStatus.INACTIVE)
         request = HttpRequest()
-        request.META["HTTP_AUTHORIZATION"] = u"DSN {}".format(self.project_key.dsn_public)
+        request.META["HTTP_AUTHORIZATION"] = f"DSN {self.project_key.dsn_public}"
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)

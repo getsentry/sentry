@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 from rest_framework import serializers
 
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
@@ -33,7 +30,7 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
         try:
             serverless_functions = install.get_serverless_functions()
         except IntegrationError as e:
-            return self.respond({"detail": six.text_type(e)}, status=400)
+            return self.respond({"detail": str(e)}, status=400)
 
         return self.respond(serverless_functions)
 
@@ -53,7 +50,6 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
         action = data["action"]
         target = data["target"]
 
-        # TODO(Steve): error handling
         try:
             resp = None
             if action == "enable":
@@ -63,5 +59,5 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
             elif action == "updateVersion":
                 resp = install.update_function_to_latest_version(target)
             return self.respond(resp)
-        except Exception as e:
-            raise e
+        except IntegrationError as e:
+            return self.respond({"detail": str(e)}, status=400)

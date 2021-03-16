@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
 
 
-class Feature(object):
+class Feature:
     API = 0
     ISSUE_LINK = 1
     STACKTRACE_LINK = 2
@@ -19,14 +17,14 @@ class Feature(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.API, u"integrations-api"),
-            (cls.ISSUE_LINK, u"integrations-issue-link"),
-            (cls.STACKTRACE_LINK, u"integrations-stacktrace-link"),
-            (cls.EVENT_HOOKS, u"integrations-event-hooks"),
-            (cls.PROJECT_MANAGEMENT, u"integrations-project-management"),
-            (cls.INCIDENT_MANAGEMENT, u"integrations-incident-management"),
-            (cls.FEATURE_FLAG, u"integrations-feature-flag"),
-            (cls.ALERTS, u"integrations-alert-rule"),
+            (cls.API, "integrations-api"),
+            (cls.ISSUE_LINK, "integrations-issue-link"),
+            (cls.STACKTRACE_LINK, "integrations-stacktrace-link"),
+            (cls.EVENT_HOOKS, "integrations-event-hooks"),
+            (cls.PROJECT_MANAGEMENT, "integrations-project-management"),
+            (cls.INCIDENT_MANAGEMENT, "integrations-incident-management"),
+            (cls.FEATURE_FLAG, "integrations-feature-flag"),
+            (cls.ALERTS, "integrations-alert-rule"),
         )
 
     @classmethod

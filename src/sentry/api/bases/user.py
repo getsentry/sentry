@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission
@@ -45,7 +43,7 @@ class OrganizationUserPermission(UserPermission):
             return False
 
     def has_object_permission(self, request, view, user=None):
-        if super(OrganizationUserPermission, self).has_object_permission(request, view, user):
+        if super().has_object_permission(request, view, user):
             return True
         return self.has_org_permission(request, user)
 

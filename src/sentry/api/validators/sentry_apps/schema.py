@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from jsonschema import Draft7Validator
@@ -225,7 +223,7 @@ def check_each_element_for_error(instance):
             validate_component(element)
         except SchemaValidationError as e:
             # catch the validation error and re-write the error so the user knows which element has the issue
-            raise SchemaValidationError("%s for element of type '%s'" % (e.message, found_type))
+            raise SchemaValidationError(f"{e.message} for element of type '{found_type}'")
 
 
 def validate_ui_element_schema(instance):
@@ -244,7 +242,6 @@ def validate_ui_element_schema(instance):
         )
         # pre-validators might have unexpected errors if the format is not what they expect in the check
         # if that happens, we should eat the error and let the main validator find the schema error
-        pass
     validate(instance, SCHEMA)
 
 

@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from rest_framework.response import Response
 
 from sentry.app import tsdb
@@ -32,4 +28,4 @@ class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
             model=tsdb.models.group, keys=group_ids, **self._parse_args(request, environment_id)
         )
 
-        return Response({six.text_type(k): v for k, v in data.items()})
+        return Response({str(k): v for k, v in data.items()})

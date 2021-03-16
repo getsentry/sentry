@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework import status, serializers
 
 from sentry import integrations
@@ -36,7 +34,7 @@ class PathMappingSerializer(CamelSnakeSerializer):
     source_url = serializers.URLField()
 
     def __init__(self, *args, **kwargs):
-        super(PathMappingSerializer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.integration = None
         self.repo = None
 
@@ -62,7 +60,7 @@ class PathMappingSerializer(CamelSnakeSerializer):
             )
 
         def integration_match(integration):
-            return source_url.startswith(u"https://{}".format(integration.metadata["domain_name"]))
+            return source_url.startswith("https://{}".format(integration.metadata["domain_name"]))
 
         def repo_match(repo):
             return source_url.startswith(repo.url)
@@ -99,7 +97,8 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         serializer = PathMappingSerializer(
-            context={"organization_id": project.organization_id}, data=request.data,
+            context={"organization_id": project.organization_id},
+            data=request.data,
         )
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -112,8 +111,8 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         integration = serializer.integration
 
         # strip off the base URL (could be in different formats)
-        rest_url = source_url.replace(u"{}/-/blob/".format(repo.url), "")
-        rest_url = rest_url.replace(u"{}/blob/".format(repo.url), "")
+        rest_url = source_url.replace(f"{repo.url}/-/blob/", "")
+        rest_url = rest_url.replace(f"{repo.url}/blob/", "")
         branch, _, source_path = rest_url.partition("/")
 
         stack_root, source_root = find_roots(stack_path, source_path)

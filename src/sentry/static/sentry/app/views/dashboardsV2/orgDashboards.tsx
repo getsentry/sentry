@@ -1,7 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
-import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -11,6 +11,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 import {DashboardDetails, DashboardListItem} from './types';
 
@@ -23,9 +24,9 @@ type OrgDashboardsChildrenProps = {
 
 type Props = {
   api: Client;
-  location: Location;
-  params: Params;
   organization: Organization;
+  params: {orgId: string; dashboardId?: string};
+  location: Location;
   children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
 };
 
@@ -50,6 +51,12 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     selectedDashboard: null,
   };
 
+  componentDidUpdate(prevProps: Props) {
+    if (!isEqual(prevProps.params, this.props.params)) {
+      this.remountComponent();
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, params} = this.props;
     const url = `/organizations/${organization.slug}/dashboards/`;
@@ -57,6 +64,12 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
     if (params.dashboardId) {
       endpoints.push(['selectedDashboard', `${url}${params.dashboardId}/`]);
+      trackAnalyticsEvent({
+        eventKey: 'dashboards2.view',
+        eventName: 'Dashboards2: View dashboard',
+        organization_id: parseInt(this.props.organization.id, 10),
+        dashboard_id: params.dashboardId,
+      });
     }
 
     return endpoints;
@@ -119,7 +132,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
   renderComponent() {
     const {organization, location} = this.props;
 
-    if (!organization.features.includes('dashboards-v2')) {
+    if (!organization.features.includes('dashboards-basic')) {
       // Redirect to Dashboards v1
       browserHistory.replace({
         pathname: `/organizations/${organization.slug}/dashboards/`,
@@ -131,7 +144,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     }
 
     return (
-      <SentryDocumentTitle title={t('Dashboards')} objSlug={organization.slug}>
+      <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
         {super.renderComponent()}
       </SentryDocumentTitle>
     );

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from hashlib import sha256
 import hmac
 import logging
@@ -24,14 +22,14 @@ class MailgunInboundWebhookView(View):
             signature,
             hmac.new(
                 key=api_key.encode("utf-8"),
-                msg=("{}{}".format(timestamp, token)).encode("utf-8"),
+                msg=(f"{timestamp}{token}").encode("utf-8"),
                 digestmod=sha256,
             ).hexdigest(),
         )
 
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
-        return super(MailgunInboundWebhookView, self).dispatch(*args, **kwargs)
+        return super().dispatch(*args, **kwargs)
 
     def post(self, request):
         token = request.POST["token"]

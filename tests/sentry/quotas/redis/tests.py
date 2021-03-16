@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from sentry.utils.compat import mock
-import six
 import time
 
 from exam import fixture, patcher
@@ -13,7 +8,6 @@ from sentry.quotas.base import QuotaConfig, QuotaScope
 from sentry.quotas.redis import is_rate_limited, RedisQuota
 from sentry.testutils import TestCase
 from sentry.utils.redis import clusters
-from six.moves import xrange
 from sentry.utils.compat import map
 
 
@@ -21,34 +15,49 @@ def test_is_rate_limited_script():
     now = int(time.time())
 
     cluster = clusters.get("default")
-    client = cluster.get_local_client(six.next(iter(cluster.hosts)))
+    client = cluster.get_local_client(next(iter(cluster.hosts)))
 
     # The item should not be rate limited by either key.
-    assert list(
-        map(
-            bool,
-            is_rate_limited(client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)),
+    assert (
+        list(
+            map(
+                bool,
+                is_rate_limited(
+                    client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)
+                ),
+            )
         )
-    ) == [False, False]
+        == [False, False]
+    )
 
     # The item should be rate limited by the first key (1).
-    assert list(
-        map(
-            bool,
-            is_rate_limited(client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)),
+    assert (
+        list(
+            map(
+                bool,
+                is_rate_limited(
+                    client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)
+                ),
+            )
         )
-    ) == [True, False]
+        == [True, False]
+    )
 
     # The item should still be rate limited by the first key (1), but *not*
     # rate limited by the second key (2) even though this is the third time
     # we've checked the quotas. This ensures items that are rejected by a lower
     # quota don't affect unrelated items that share a parent quota.
-    assert list(
-        map(
-            bool,
-            is_rate_limited(client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)),
+    assert (
+        list(
+            map(
+                bool,
+                is_rate_limited(
+                    client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)
+                ),
+            )
         )
-    ) == [True, False]
+        == [True, False]
+    )
 
     assert client.get("foo") == b"1"
     assert 59 <= client.ttl("foo") <= 60
@@ -90,14 +99,14 @@ class RedisQuotaTest(TestCase):
         self.get_organization_quota.return_value = (300, 60)
         quotas = self.quota.get_quotas(self.project)
 
-        assert quotas[0].id == u"p"
+        assert quotas[0].id == "p"
         assert quotas[0].scope == QuotaScope.PROJECT
-        assert quotas[0].scope_id == six.text_type(self.project.id)
+        assert quotas[0].scope_id == str(self.project.id)
         assert quotas[0].limit == 200
         assert quotas[0].window == 60
-        assert quotas[1].id == u"o"
+        assert quotas[1].id == "o"
         assert quotas[1].scope == QuotaScope.ORGANIZATION
-        assert quotas[1].scope_id == six.text_type(self.organization.id)
+        assert quotas[1].scope_id == str(self.organization.id)
         assert quotas[1].limit == 300
         assert quotas[1].window == 60
 
@@ -175,7 +184,7 @@ class RedisQuotaTest(TestCase):
         self.get_organization_quota.return_value = (300, 60)
 
         n = 10
-        for _ in xrange(n):
+        for _ in range(n):
             self.quota.is_rate_limited(self.project, timestamp=timestamp)
 
         quotas = self.quota.get_quotas(self.project)
@@ -226,9 +235,7 @@ class RedisQuotaTest(TestCase):
         )
 
         self.quota.refund(self.project, timestamp=timestamp)
-        client = self.quota.cluster.get_local_client_for_key(
-            six.text_type(self.project.organization.pk)
-        )
+        client = self.quota.cluster.get_local_client_for_key(str(self.project.organization.pk))
 
         error_keys = client.keys("r:quota:p:?:*")
         assert len(error_keys) == 2
@@ -277,9 +284,7 @@ class RedisQuotaTest(TestCase):
         self.quota.refund(
             self.project, timestamp=timestamp, category=DataCategory.ATTACHMENT, quantity=100
         )
-        client = self.quota.cluster.get_local_client_for_key(
-            six.text_type(self.project.organization.pk)
-        )
+        client = self.quota.cluster.get_local_client_for_key(str(self.project.organization.pk))
 
         error_keys = client.keys("r:quota:p:?:*")
         assert len(error_keys) == 0
@@ -297,7 +302,7 @@ class RedisQuotaTest(TestCase):
         self.get_organization_quota.return_value = (300, 60)
 
         n = 10
-        for _ in xrange(n):
+        for _ in range(n):
             self.quota.is_rate_limited(self.project, timestamp=timestamp)
 
         self.quota.refund(self.project, timestamp=timestamp)

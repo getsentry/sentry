@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry.plugins.bases.notify import NotifyPlugin
 
 from sentry_plugins.base import CorePluginMixin
@@ -81,13 +77,13 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
             return ENHANCED_PRIVACY_BODY
 
         interface_list = []
-        for interface in six.itervalues(event.interfaces):
+        for interface in event.interfaces.values():
             body = interface.to_string(event)
             if not body:
                 continue
             interface_list.append((interface.get_title(), body))
 
-        return u"\n\n".join((u"{}\n-----------\n\n{}".format(k, v) for k, v in interface_list))
+        return "\n\n".join((f"{k}\n-----------\n\n{v}" for k, v in interface_list))
 
     def notify_users(self, group, event, fail_silently=False, **kwargs):
         if not self.is_configured(group.project):

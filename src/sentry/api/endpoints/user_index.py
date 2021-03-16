@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.db.models import Q
 
 from sentry.api.base import Endpoint
@@ -22,7 +18,7 @@ class UserIndexEndpoint(Endpoint):
         query = request.GET.get("query")
         if query:
             tokens = tokenize_query(query)
-            for key, value in six.iteritems(tokens):
+            for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(

@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import * as ReactRouter from 'react-router';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -10,6 +11,7 @@ import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
+import {ChartContainer, HeaderTitleLegend} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
@@ -24,10 +26,9 @@ import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
 import getDynamicText from 'app/utils/getDynamicText';
 import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
-import {ChartContainer, HeaderTitleLegend} from '../styles';
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 
 import {getMaxOfSeries, vitalNameFromLocation, webVitalMeh, webVitalPoor} from './utils';
@@ -45,6 +46,7 @@ type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
 type Props = ReactRouter.WithRouterProps &
   ViewProps & {
+    theme: Theme;
     api: Client;
     location: Location;
     organization: OrganizationSummary;
@@ -68,6 +70,7 @@ class VitalChart extends React.Component<Props> {
 
   render() {
     const {
+      theme,
       api,
       project,
       environment,
@@ -89,16 +92,6 @@ class VitalChart extends React.Component<Props> {
     const legend = {
       right: 10,
       top: 0,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left' as const,
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
       selected: getSeriesSelection(location),
     };
 
@@ -197,7 +190,13 @@ class VitalChart extends React.Component<Props> {
               title={t(`The durations shown should fall under the vital threshold.`)}
             />
           </HeaderTitleLegend>
-          <ChartZoom router={router} period={statsPeriod}>
+          <ChartZoom
+            router={router}
+            period={statsPeriod}
+            start={start}
+            end={end}
+            utc={utc}
+          >
             {zoomRenderProps => (
               <EventsRequest
                 api={api}
@@ -287,4 +286,4 @@ class VitalChart extends React.Component<Props> {
   }
 }
 
-export default withApi(ReactRouter.withRouter(VitalChart));
+export default withApi(withTheme(ReactRouter.withRouter(VitalChart)));

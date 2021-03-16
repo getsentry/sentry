@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-
 from uuid import uuid4
-import six
 import logging
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.serializers import ValidationError
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 
 from sentry.integrations import (
@@ -60,7 +57,7 @@ INSTALL_NOTICE_TEXT = _(
 
 
 external_install = {
-    "url": u"https://vercel.com/integrations/%s/add" % options.get("vercel.integration-slug"),
+    "url": "https://vercel.com/integrations/%s/add" % options.get("vercel.integration-slug"),
     "buttonText": _("Vercel Marketplace"),
     "noticeText": _(INSTALL_NOTICE_TEXT),
 }
@@ -72,26 +69,16 @@ install_source_code_integration = _(
     "Install a [source code integration]({}) and configure your repositories."
 )
 
-disable_dialog = {
-    "actionText": _("Visit Vercel"),
-    "body": _(
-        "In order to uninstall this integration, you must go"
-        " to Vercel and uninstall there by clicking 'Remove Configuration'."
-    ),
-}
-
-
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=Vercel%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Vercel%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vercel",
     aspects={
         "externalInstall": external_install,
         "configure_integration": configure_integration,
-        "disable_dialog": disable_dialog,
     },
 )
 
@@ -110,30 +97,18 @@ class VercelIntegration(IntegrationInstallation):
     def get_dynamic_display_information(self):
         organization = Organization.objects.get_from_cache(id=self.organization_id)
         source_code_link = absolute_uri(
-            u"/settings/%s/integrations/?%s"
+            "/settings/%s/integrations/?%s"
             % (organization.slug, urlencode({"category": "source code management"}))
         )
-        add_project_link = absolute_uri(u"/organizations/%s/projects/new/" % (organization.slug))
+        add_project_link = absolute_uri("/organizations/%s/projects/new/" % (organization.slug))
         return {
             "configure_integration": {
                 "instructions": [
                     create_project_instruction.format(add_project_link),
                     install_source_code_integration.format(source_code_link),
                 ]
-            },
-            "integration_detail": {"uninstallationUrl": self.get_manage_url()},
+            }
         }
-
-    def get_manage_url(self):
-        slug = self.get_slug()
-        configuration_id = self.get_configuration_id()
-        if configuration_id:
-            if self.metadata["installation_type"] == "team":
-                dashboard_url = u"https://vercel.com/dashboard/%s/" % slug
-            else:
-                dashboard_url = "https://vercel.com/dashboard/"
-            return u"%sintegrations/%s" % (dashboard_url, configuration_id)
-        return None
 
     def get_client(self):
         access_token = self.metadata["access_token"]
@@ -167,9 +142,9 @@ class VercelIntegration(IntegrationInstallation):
         vercel_client = self.get_client()
         # TODO: add try/catch if we get API failure
         slug = self.get_slug()
-        base_url = u"https://vercel.com/%s" % slug
+        base_url = "https://vercel.com/%s" % slug
         vercel_projects = [
-            {"value": p["id"], "label": p["name"], "url": u"%s/%s" % (base_url, p["name"])}
+            {"value": p["id"], "label": p["name"], "url": "{}/{}".format(base_url, p["name"])}
             for p in vercel_client.get_projects()
         ]
 
@@ -209,6 +184,7 @@ class VercelIntegration(IntegrationInstallation):
 
     def update_organization_config(self, data):
         # data = {"project_mappings": [[sentry_project_id, vercel_project_id]]}
+
         vercel_client = self.get_client()
         config = self.org_integration.config
         try:
@@ -251,62 +227,64 @@ class VercelIntegration(IntegrationInstallation):
             )
 
             is_next_js = vercel_project.get("framework") == "nextjs"
-            dsn_secret_name = "NEXT_PUBLIC_SENTRY_DSN_%s" if is_next_js else "SENTRY_DSN_%s"
-
-            secret_names = [
-                "SENTRY_ORG_%s" % uuid,
-                "SENTRY_PROJECT_%s" % uuid,
-                dsn_secret_name % uuid,
-                "SENTRY_AUTH_TOKEN_%s" % uuid,
-            ]
-            values = [
-                sentry_project.organization.slug,
-                sentry_project.slug,
-                sentry_project_dsn,
-                sentry_auth_token,
-            ]
-
             dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
 
-            env_var_names = [
-                "SENTRY_ORG",
-                "SENTRY_PROJECT",
-                dsn_env_name,
-                "SENTRY_AUTH_TOKEN",
-                "VERCEL_%s_COMMIT_SHA" % source_code_provider.upper(),
-            ]
+            env_var_map = {
+                "SENTRY_ORG": {"type": "plain", "value": sentry_project.organization.slug},
+                "SENTRY_PROJECT": {"type": "plain", "value": sentry_project.slug},
+                dsn_env_name: {"type": "plain", "value": sentry_project_dsn},
+                "SENTRY_AUTH_TOKEN": {"type": "secret", "value": sentry_auth_token},
+                "VERCEL_GIT_COMMIT_SHA": {"type": "system", "value": "VERCEL_GIT_COMMIT_SHA"},
+            }
 
-            secrets = []
-            for name, val in zip(secret_names, values):
-                secrets.append(vercel_client.create_secret(vercel_project_id, name, val))
-
-            secrets.append("")
-            for secret, env_var in zip(secrets, env_var_names):
-                self.create_env_var(vercel_client, vercel_project_id, env_var, secret)
+            for env_var, details in env_var_map.items():
+                if details["type"] == "secret":
+                    secret_name = env_var + "_%s" % uuid
+                    secret_value = vercel_client.create_secret(secret_name, details["value"])
+                    details["value"] = secret_value
+                self.create_env_var(
+                    vercel_client, vercel_project_id, env_var, details["value"], details["type"]
+                )
 
         config.update(data)
         self.org_integration.update(config=config)
 
-    def env_var_already_exists(self, client, vercel_project_id, name):
-        return any(
-            [
-                env_var
-                for env_var in client.get_env_vars(vercel_project_id)["envs"]
-                if env_var["key"] == name
-            ]
+    def create_env_var(self, client, vercel_project_id, key, value, type):
+        data = {
+            "key": key,
+            "value": value,
+            "target": ["production"],
+            "type": type,
+        }
+        try:
+            return client.create_env_variable(vercel_project_id, data)
+        except ApiError as e:
+            if e.json and e.json.get("error", {}).get("code") == "ENV_ALREADY_EXISTS":
+                return self.update_env_variable(client, vercel_project_id, data)
+            raise
+
+    def update_env_variable(self, client, vercel_project_id, data):
+        envs = client.get_env_vars(vercel_project_id)["envs"]
+
+        env_var_ids = [env_var["id"] for env_var in envs if env_var["key"] == data["key"]]
+        if env_var_ids:
+            return client.update_env_variable(vercel_project_id, env_var_ids[0], data)
+
+        key = data["key"]
+        raise IntegrationError(
+            f"Could not update environment variable {key} in Vercel project {vercel_project_id}."
         )
 
-    def create_env_var(self, client, vercel_project_id, key, value):
-        if not self.env_var_already_exists(client, vercel_project_id, key):
-            return client.create_env_variable(vercel_project_id, key, value)
-        client.update_env_variable(vercel_project_id, key, value)
+    def uninstall(self):
+        client = self.get_client()
+        client.uninstall(self.get_configuration_id())
 
 
 class VercelIntegrationProvider(IntegrationProvider):
     key = "vercel"
     name = "Vercel"
     can_add = False
-    can_disable = True
+    can_disable = False
     metadata = metadata
     integration_cls = VercelIntegration
     features = frozenset([IntegrationFeatures.DEPLOYMENT])
@@ -358,13 +336,13 @@ class VercelIntegrationProvider(IntegrationProvider):
         except ApiError as err:
             logger.info(
                 "vercel.create_webhook.failed",
-                extra={"error": six.text_type(err), "external_id": external_id},
+                extra={"error": str(err), "external_id": external_id},
             )
             try:
                 details = list(err.json["messages"][0].values()).pop()
             except Exception:
                 details = "Unknown Error"
-            message = u"Could not create deployment webhook in Vercel: {}".format(details)
+            message = f"Could not create deployment webhook in Vercel: {details}"
             raise IntegrationError(message)
 
         configurations = self.get_configuration_metadata(external_id)

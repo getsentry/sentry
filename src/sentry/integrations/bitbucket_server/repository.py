@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import logging
-import six
 
 from datetime import datetime
 from django.utils import timezone
@@ -36,7 +33,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
         except Exception as e:
             installation.raise_error(e)
         else:
-            config["external_id"] = six.text_type(repo["id"])
+            config["external_id"] = str(repo["id"])
             config["name"] = repo["project"]["key"] + "/" + repo["name"]
             config["project"] = repo["project"]["key"]
             config["repo"] = repo["name"]
@@ -72,7 +69,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
                 "name": data["identifier"],
                 "external_id": data["external_id"],
                 "url": installation.model.metadata["base_url"]
-                + u"/projects/{project}/repos/{repo}/browse".format(
+                + "/projects/{project}/repos/{repo}/browse".format(
                     project=data["project"], repo=data["repo"]
                 ),
                 "config": {
@@ -133,10 +130,10 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
 
     def _get_patchset(self, client, project, repo, sha):
         """
-            Get the modified files for a commit
+        Get the modified files for a commit
         """
 
-        key = u"get_changelist:{}:{}".format(md5_text(project + repo).hexdigest(), sha)
+        key = f"get_changelist:{md5_text(project + repo).hexdigest()}:{sha}"
         commit_files = cache.get(key)
         if commit_files is None:
             commit_files = client.get_commit_filechanges(project, repo, sha)

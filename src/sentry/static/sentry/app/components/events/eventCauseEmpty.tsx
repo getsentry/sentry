@@ -4,7 +4,7 @@ import moment from 'moment';
 
 import codesworth from 'sentry-images/spot/codesworth.png';
 
-import {promptsUpdate} from 'app/actionCreators/prompts';
+import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import CommitRow from 'app/components/commitRow';
@@ -119,23 +119,21 @@ class EventCauseEmpty extends React.Component<Props, State> {
   async fetchData() {
     const {api, project, organization} = this.props;
 
-    const data = await api.requestPromise('/promptsactivity/', {
-      query: {
-        project_id: project.id,
-        organization_id: organization.id,
-        feature: 'suspect_commits',
-      },
+    const data = await promptsCheck(api, {
+      projectId: project.id,
+      organizationId: organization.id,
+      feature: 'suspect_commits',
     });
 
-    this.setState({shouldShow: this.shouldShow(data)});
+    this.setState({shouldShow: this.shouldShow(data ?? {})});
   }
 
-  shouldShow({data}: PromptActivity = {data: {}}) {
-    if (data?.dismissed_ts) {
+  shouldShow({snoozedTime, dismissedTime}: PromptActivity) {
+    if (dismissedTime) {
       return false;
     }
-    if (data?.snoozed_ts) {
-      return snoozedDays(data.snoozed_ts) > 7;
+    if (snoozedTime) {
+      return snoozedDays(snoozedTime) > 7;
     }
     return true;
   }
@@ -183,7 +181,7 @@ class EventCauseEmpty extends React.Component<Props, State> {
               <DocsButton
                 size="small"
                 priority="primary"
-                href="https://docs.sentry.io/workflow/releases/#create-release"
+                href="https://docs.sentry.io/product/releases/setup/"
                 onClick={() =>
                   this.trackAnalytics({
                     eventKey: 'event_cause.docs_clicked',

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from hashlib import sha256
 import hmac
 from uuid import uuid1
@@ -28,7 +27,7 @@ def _get_webhook_url(project, plugin_id, token):
 def _get_signature(project_id, plugin_id, token):
     return hmac.new(
         key=token.encode("utf-8"),
-        msg=("{}-{}".format(plugin_id, project_id)).encode("utf-8"),
+        msg=(f"{plugin_id}-{project_id}").encode("utf-8"),
         digestmod=sha256,
     ).hexdigest()
 

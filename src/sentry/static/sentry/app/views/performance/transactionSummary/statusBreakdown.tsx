@@ -10,11 +10,10 @@ import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {LightWeightOrganization} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {getTermHelp} from 'app/views/performance/data';
+import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 type Props = {
   organization: LightWeightOrganization;
@@ -31,12 +30,12 @@ function StatusBreakdown({eventView, location, organization}: Props) {
     .withSorts([{kind: 'desc', field: 'count'}]);
 
   return (
-    <Container>
+    <React.Fragment>
       <SectionHeading>
         {t('Status Breakdown')}
         <QuestionTooltip
           position="top"
-          title={getTermHelp(organization, 'statusBreakdown')}
+          title={getTermHelp(organization, PERFORMANCE_TERM.STATUS_BREAKDOWN)}
           size="sm"
         />
       </SectionHeading>
@@ -47,17 +46,19 @@ function StatusBreakdown({eventView, location, organization}: Props) {
       >
         {({isLoading, error, tableData}) => {
           if (isLoading) {
-            return <Placeholder height="125px" />;
+            return <Placeholder height="124px" />;
           }
           if (error) {
             return (
-              <ErrorPanel height="125px">
+              <ErrorPanel height="124px">
                 <IconWarning color="gray300" size="lg" />
               </ErrorPanel>
             );
           }
           if (!tableData || tableData.data.length === 0) {
-            return <EmptyStateWarning small>{t('No data available')}</EmptyStateWarning>;
+            return (
+              <EmptyStatusBreakdown small>{t('No statuses found')}</EmptyStatusBreakdown>
+            );
           }
           const points = tableData.data.map(row => ({
             label: String(row['transaction.status']),
@@ -66,12 +67,13 @@ function StatusBreakdown({eventView, location, organization}: Props) {
           return <BreakdownBars data={points} />;
         }}
       </DiscoverQuery>
-    </Container>
+    </React.Fragment>
   );
 }
 
-export default StatusBreakdown;
-
-const Container = styled('div')`
-  margin-bottom: ${space(4)};
+const EmptyStatusBreakdown = styled(EmptyStateWarning)`
+  height: 124px;
+  padding: 50px 15%;
 `;
+
+export default StatusBreakdown;

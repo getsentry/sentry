@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from sentry.models import ApiKey, User, ProjectOption, Repository
@@ -82,8 +80,8 @@ class HerokuReleaseHook(ReleaseHook):
                     fetch=True,
                 )
         # create deploy associated with release via ReleaseDeploysEndpoint
-        endpoint = u"/organizations/{}/releases/{}/deploys/".format(
-            self.project.organization.slug, release.version
+        endpoint = (
+            f"/organizations/{self.project.organization.slug}/releases/{release.version}/deploys/"
         )
         client = self.get_client()
         client.post(endpoint, data={"environment": deploy_project_option}, auth=self.get_auth())
@@ -147,12 +145,10 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
         ]
 
     def get_release_doc_html(self, hook_url):
-        return u"""
+        return f"""
         <p>Add Sentry as a deploy hook to automatically track new releases.</p>
         <pre class="clippy">heroku addons:create deployhooks:http --url={hook_url}</pre>
-        """.format(
-            hook_url=hook_url
-        )
+        """
 
     def get_release_hook(self):
         return HerokuReleaseHook

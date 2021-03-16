@@ -1,14 +1,13 @@
 # NOTE: This is run external to sentry as well as part of the setup
 # process.  Thus we do not want to import non stdlib things here.
-from __future__ import absolute_import
 
-import io
 import multiprocessing
 import multiprocessing.dummy
 import os
 import sys
 import logging
 import time
+from urllib.request import urlopen
 
 # Import the stdlib json instead of sentry.utils.json, since this command is
 # run at build time
@@ -23,22 +22,6 @@ DOC_FOLDER = os.environ.get("INTEGRATION_DOC_FOLDER") or os.path.abspath(
     os.path.join(os.path.dirname(sentry.__file__), "integration-docs")
 )
 
-# We cannot leverage six here, so we need to vendor
-# bits that we need.
-if sys.version_info[0] == 3:
-    unicode = str  # NOQA
-
-    def iteritems(d, **kw):
-        return iter(d.items(**kw))
-
-    from urllib.request import urlopen
-
-else:
-
-    def iteritems(d, **kw):
-        return d.iteritems(**kw)  # NOQA
-
-    from urllib2 import urlopen
 """
 Looking to add a new framework/language to /settings/install?
 
@@ -54,6 +37,10 @@ the latest list of integrations and serve them in your local Sentry install.
 logger = logging.getLogger("sentry")
 
 
+def iteritems(d, **kw):
+    return iter(d.items(**kw))
+
+
 def echo(what):
     sys.stdout.write(what + "\n")
     sys.stdout.flush()
@@ -66,10 +53,9 @@ def dump_doc(path, data):
         os.makedirs(directory)
     except OSError:
         pass
-    with io.open(fn, "wt", encoding="utf-8") as f:
-        # XXX: ideally, we use six.text_type here, but we can't use six.
-        f.write(unicode(json.dumps(data, indent=2)))  # NOQA
-        f.write(u"\n")
+    with open(fn, "wt", encoding="utf-8") as f:
+        f.write(json.dumps(data, indent=2))
+        f.write("\n")
 
 
 def load_doc(path):
@@ -77,16 +63,16 @@ def load_doc(path):
         return None
     fn = os.path.join(DOC_FOLDER, path + ".json")
     try:
-        with io.open(fn, "rt", encoding="utf-8") as f:
+        with open(fn, encoding="utf-8") as f:
             return json.load(f)
-    except IOError:
+    except OSError:
         return None
 
 
 def get_integration_id(platform_id, integration_id):
     if integration_id == "_self":
         return platform_id
-    return u"{}-{}".format(platform_id, integration_id)
+    return f"{platform_id}-{integration_id}"
 
 
 def urlopen_with_retries(url, timeout=5, retries=10):
@@ -143,7 +129,7 @@ def sync_docs(quiet=False):
 
 def sync_integration_docs(platform_id, integration_id, path, quiet=False):
     if not quiet:
-        echo("  syncing documentation for %s.%s integration" % (platform_id, integration_id))
+        echo(f"  syncing documentation for {platform_id}.{integration_id} integration")
 
     data = json.load(urlopen_with_retries(BASE_URL.format(path)))
 
@@ -157,5 +143,5 @@ def integration_doc_exists(integration_id):
     # and using os.path.join() would allow directory traversal vulnerabilities
     # which we don't want.
     docs = os.listdir(DOC_FOLDER)
-    filename = u"{}.json".format(integration_id)
+    filename = f"{integration_id}.json"
     return filename in docs

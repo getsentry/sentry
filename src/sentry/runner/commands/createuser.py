@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import click
 import sys
 from sentry.runner.decorators import configuration
@@ -71,23 +69,26 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
     from sentry.models import User
     from django.conf import settings
 
-    user = User(
+    fields = dict(
         email=email, username=email, is_superuser=superuser, is_staff=superuser, is_active=True
     )
 
-    if password:
-        user.set_password(password)
+    verb = None
+    try:
+        user = User.objects.get(username=email)
+    except User.DoesNotExist:
+        user = None
 
-    if User.objects.filter(username=email).exists():
+    if user is not None:
         if force_update:
-            user.save(force_update=force_update)
-            click.echo("User updated: %s" % (email,))
+            user.update(**fields)
+            verb = "updated"
         else:
-            click.echo("User: %s exists, use --force-update to force" % (email,))
+            click.echo(f"User: {email} exists, use --force-update to force")
             sys.exit(3)
     else:
-        user.save()
-        click.echo("User created: %s" % (email,))
+        user = User.objects.create(**fields)
+        verb = "created"
 
         # TODO(dcramer): kill this when we improve flows
         if settings.SENTRY_SINGLE_ORGANIZATION:
@@ -105,4 +106,10 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
             teams = list(Team.objects.filter(organization=org)[0:2])
             if len(teams) == 1:
                 OrganizationMemberTeam.objects.create(team=teams[0], organizationmember=member)
-            click.echo("Added to organization: %s" % (org.slug,))
+            click.echo(f"Added to organization: {org.slug}")
+
+    if password:
+        user.set_password(password)
+        user.save()
+
+    click.echo(f"User {verb}: {email}")

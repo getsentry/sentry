@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import features
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize, EventAttachmentSerializer
@@ -15,7 +13,7 @@ class GroupEventAttachmentSerializer(EventAttachmentSerializer):
     """
 
     def serialize(self, obj, attrs, user):
-        result = super(GroupEventAttachmentSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
         result["event_id"] = obj.event_id
         return result
 

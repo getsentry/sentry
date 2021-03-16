@@ -9,7 +9,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import {IconDelete, IconSettings} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {IssueConfigFieldChoices, Organization, Project} from 'app/types';
+import {Choices, Organization, Project} from 'app/types';
 import {
   AssigneeTargetType,
   IssueAlertRuleAction,
@@ -264,7 +264,7 @@ class RuleNode extends React.Component<Props> {
               'If there are no matching [issueOwners], ownership is determined by the [ownershipSettings].',
               {
                 issueOwners: (
-                  <ExternalLink href="https://docs.sentry.io/workflow/issue-owners/">
+                  <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
                     {t('issue owners')}
                   </ExternalLink>
                 ),
@@ -296,24 +296,26 @@ class RuleNode extends React.Component<Props> {
    */
   updateParent = (
     formData: {[key: string]: string},
-    fetchedFieldOptionsCache: {[key: string]: IssueConfigFieldChoices}
+    fetchedFieldOptionsCache: Record<string, Choices>
   ): void => {
-    const {data, index, onPropertyChange} = this.props;
-    for (const [name, value] of Object.entries(formData)) {
-      onPropertyChange(index, name, value);
-    }
+    const {index, onPropertyChange} = this.props;
 
     // We only know the choices after the form loads.
-    for (const [name, choices] of Object.entries(fetchedFieldOptionsCache)) {
-      // If a value was actually selected.
-      if (name in formData) {
-        const dynamicFormFieldsCopy = data.dynamic_form_fields as any;
+    formData.dynamic_form_fields = ((formData.dynamic_form_fields as any) || []).map(
+      field => {
         // Overwrite the choices because the user's pick is in this list.
-        if (dynamicFormFieldsCopy?.hasOwnProperty(name)) {
-          dynamicFormFieldsCopy[name].choices = choices;
-          onPropertyChange(index, 'dynamic_form_fields', dynamicFormFieldsCopy);
+        if (
+          field.name in formData &&
+          fetchedFieldOptionsCache?.hasOwnProperty(field.name)
+        ) {
+          field.choices = fetchedFieldOptionsCache[field.name];
         }
+        return field;
       }
+    );
+
+    for (const [name, value] of Object.entries(formData)) {
+      onPropertyChange(index, name, value);
     }
   };
 

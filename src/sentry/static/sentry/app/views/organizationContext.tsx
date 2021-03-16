@@ -4,7 +4,6 @@ import {RouteComponentProps} from 'react-router';
 import {PlainRoute} from 'react-router/lib/Route';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
 
 import {openSudo} from 'app/actionCreators/modal';
 import {fetchOrganizationDetails} from 'app/actionCreators/organization';
@@ -59,7 +58,7 @@ type State = {
 };
 
 class OrganizationContext extends React.Component<Props, State> {
-  static getDerivedStateFromProps(props: Props, prevState: State): State {
+  static getDerivedStateFromProps(props: Readonly<Props>, prevState: State): State {
     const {prevProps} = prevState;
 
     if (OrganizationContext.shouldRemount(prevProps, props)) {
@@ -158,16 +157,6 @@ class OrganizationContext extends React.Component<Props, State> {
     );
   }
 
-  static propTypes = {
-    api: PropTypes.object,
-    routes: PropTypes.arrayOf(PropTypes.object),
-    includeSidebar: PropTypes.bool,
-    useLastOrganization: PropTypes.bool,
-    organizationsLoading: PropTypes.bool,
-    organizations: PropTypes.arrayOf(SentryTypes.Organization),
-    detailed: PropTypes.bool,
-  } as any;
-
   static childContextTypes = {
     organization: SentryTypes.Organization,
   };
@@ -186,7 +175,7 @@ class OrganizationContext extends React.Component<Props, State> {
   }
 
   componentDidMount() {
-    this.fetchData();
+    this.fetchData(true);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -244,7 +233,7 @@ class OrganizationContext extends React.Component<Props, State> {
     );
   }
 
-  fetchData() {
+  fetchData(isInitialFetch = false) {
     if (!OrganizationContext.getOrganizationSlug(this.props)) {
       return;
     }
@@ -258,7 +247,8 @@ class OrganizationContext extends React.Component<Props, State> {
       this.props.api,
       OrganizationContext.getOrganizationSlug(this.props),
       this.props.detailed,
-      !OrganizationContext.isOrgChanging(this.props) // if true, will preserve a lightweight org that was fetched
+      !OrganizationContext.isOrgChanging(this.props), // if true, will preserve a lightweight org that was fetched,
+      isInitialFetch
     );
   }
 

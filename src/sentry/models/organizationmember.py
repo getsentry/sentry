@@ -1,7 +1,3 @@
-from __future__ import absolute_import, print_function
-
-import six
-
 from bitfield import BitField
 from datetime import timedelta
 from django.conf import settings
@@ -14,7 +10,7 @@ from enum import Enum
 from hashlib import md5
 from structlog import get_logger
 from uuid import uuid4
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry import roles
 from sentry.constants import EVENTS_MEMBER_ADMIN_DEFAULT, ALERTS_MEMBER_WRITE_DEFAULT
@@ -92,9 +88,9 @@ class OrganizationMember(Model):
         settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
     )
     email = models.EmailField(null=True, blank=True, max_length=75)
-    role = models.CharField(max_length=32, default=six.text_type(roles.get_default().id))
+    role = models.CharField(max_length=32, default=str(roles.get_default().id))
     flags = BitField(
-        flags=((u"sso:linked", u"sso:linked"), (u"sso:invalid", u"sso:invalid")), default=0
+        flags=(("sso:linked", "sso:linked"), ("sso:invalid", "sso:invalid")), default=0
     )
     token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -138,7 +134,7 @@ class OrganizationMember(Model):
         assert self.user_id or self.email, "Must set user or email"
         if self.token and not self.token_expires_at:
             self.refresh_expires_at()
-        super(OrganizationMember, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def set_user(self, user):
         self.user = user
@@ -197,7 +193,7 @@ class OrganizationMember(Model):
     @property
     def legacy_token(self):
         checksum = md5()
-        checksum.update(six.text_type(self.organization_id).encode("utf-8"))
+        checksum.update(str(self.organization_id).encode("utf-8"))
         checksum.update(self.get_email().encode("utf-8"))
         checksum.update(force_bytes(settings.SECRET_KEY))
         return checksum.hexdigest()
@@ -251,7 +247,7 @@ class OrganizationMember(Model):
         }
 
         msg = MessageBuilder(
-            subject="Action Required for %s" % (self.organization.name,),
+            subject=f"Action Required for {self.organization.name}",
             template="sentry/emails/auth-link-identity.txt",
             html_template="sentry/emails/auth-link-identity.html",
             type="organization.auth_link",
@@ -265,7 +261,7 @@ class OrganizationMember(Model):
 
         email = self.get_email()
 
-        recover_uri = u"{path}?{query}".format(
+        recover_uri = "{path}?{query}".format(
             path=reverse("sentry-account-recover"), query=urlencode({"email": email})
         )
 
@@ -287,7 +283,7 @@ class OrganizationMember(Model):
             context["set_password_url"] = password_hash.get_absolute_url(mode="set_password")
 
         msg = MessageBuilder(
-            subject="Action Required for %s" % (self.organization.name,),
+            subject=f"Action Required for {self.organization.name}",
             template="sentry/emails/auth-sso-disabled.txt",
             html_template="sentry/emails/auth-sso-disabled.html",
             type="organization.auth_sso_disabled",

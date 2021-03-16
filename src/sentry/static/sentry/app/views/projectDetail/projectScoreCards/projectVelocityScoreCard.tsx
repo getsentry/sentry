@@ -5,7 +5,8 @@ import AsyncComponent from 'app/components/asyncComponent';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'app/components/scoreCard';
-import {t, tn} from 'app/locale';
+import {IconArrow} from 'app/icons';
+import {t} from 'app/locale';
 import {GlobalSelection, Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {getPeriod} from 'app/utils/getPeriod';
@@ -20,6 +21,7 @@ type Release = {version: string; date: string};
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   selection: GlobalSelection;
+  isProjectStabilized: boolean;
 };
 
 type State = AsyncComponent['state'] & {
@@ -39,7 +41,11 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
   }
 
   getEndpoints() {
-    const {organization, selection} = this.props;
+    const {organization, selection, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return [];
+    }
 
     const {projects, environments, datetime} = selection;
     const {period} = datetime;
@@ -94,7 +100,11 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
    */
   async onLoadAllEndpointsSuccess() {
     const {currentReleases, previousReleases} = this.state;
-    const {organization, selection} = this.props;
+    const {organization, selection, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return;
+    }
 
     if ([...(currentReleases ?? []), ...(previousReleases ?? [])].length !== 0) {
       this.setState({noReleaseEver: false});
@@ -113,11 +123,15 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardTitle() {
-    return t('Release Count');
+    return t('Number of Releases');
   }
 
   get cardHelp() {
-    return t('Number of releases in the given timeframe.');
+    return this.trend
+      ? t(
+          'The number of releases for this project and how it has changed since the last period.'
+        )
+      : t('The number of releases for this project.');
   }
 
   get trend() {
@@ -130,7 +144,7 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
     return currentReleases.length - previousReleases.length;
   }
 
-  get trendStyle(): React.ComponentProps<typeof ScoreCard>['trendStyle'] {
+  get trendStatus(): React.ComponentProps<typeof ScoreCard>['trendStatus'] {
     if (!this.trend) {
       return undefined;
     }
@@ -139,7 +153,12 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.selection !== this.props.selection) {
+    const {selection, isProjectStabilized} = this.props;
+
+    if (
+      prevProps.selection !== selection ||
+      prevProps.isProjectStabilized !== isProjectStabilized
+    ) {
       this.remountComponent();
     }
   }
@@ -180,8 +199,12 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
 
     return (
       <React.Fragment>
-        {this.trend >= 0 ? '+' : '-'}
-        {tn('%s release', '%s releases', Math.abs(this.trend))}
+        {this.trend >= 0 ? (
+          <IconArrow direction="up" size="xs" />
+        ) : (
+          <IconArrow direction="down" size="xs" />
+        )}
+        {Math.abs(this.trend)}
       </React.Fragment>
     );
   }
@@ -199,7 +222,7 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
         help={this.cardHelp}
         score={this.renderScore()}
         trend={this.renderTrend()}
-        trendStyle={this.trendStyle}
+        trendStatus={this.trendStatus}
       />
     );
   }

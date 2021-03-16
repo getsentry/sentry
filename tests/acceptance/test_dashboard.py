@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
@@ -19,7 +17,7 @@ from datetime import datetime
 
 class DashboardTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(DashboardTest, self).setUp()
+        super().setUp()
         release = Release.objects.create(organization_id=self.organization.id, version="1")
 
         environment = Environment.objects.create(
@@ -41,7 +39,7 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        self.path = u"/organizations/{}/projects/".format(self.organization.slug)
+        self.path = f"/organizations/{self.organization.slug}/projects/"
 
     def create_sample_event(self):
         self.init_snuba()
@@ -93,7 +91,7 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.wait_until('[data-test-id="toast-success"]')
 
         # Go to projects
-        self.browser.click('[href="/organizations/{}/projects/"]'.format(self.organization.slug))
+        self.browser.click(f'[href="/organizations/{self.organization.slug}/projects/"]')
         self.browser.wait_until_not(".loading-indicator")
 
         assert self.browser.element('[data-test-id="badge-display-name"]').text == "#foo-new-slug"
@@ -101,9 +99,9 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
 
 class EmptyDashboardTest(AcceptanceTestCase):
     def setUp(self):
-        super(EmptyDashboardTest, self).setUp()
+        super().setUp()
         self.login_as(self.user)
-        self.path = u"/organizations/{}/projects/".format(self.organization.slug)
+        self.path = f"/organizations/{self.organization.slug}/projects/"
 
     def test_new_dashboard_empty(self):
         self.browser.get(self.path)

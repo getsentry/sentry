@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 import inspect
 
 from parsimonious.grammar import Grammar, NodeVisitor
@@ -61,7 +58,7 @@ class InvalidFingerprintingConfig(Exception):
     pass
 
 
-class EventAccess(object):
+class EventAccess:
     def __init__(self, event):
         self.event = event
         self._exceptions = None
@@ -166,7 +163,7 @@ class EventAccess(object):
         return getattr(self, "get_" + match_group)()
 
 
-class FingerprintingRules(object):
+class FingerprintingRules:
     def __init__(self, rules, changelog=None, version=None):
         if version is None:
             version = VERSION
@@ -215,7 +212,7 @@ class FingerprintingRules(object):
             if len(context) == 33:
                 context = context[:-1] + "..."
             raise InvalidFingerprintingConfig(
-                'Invalid syntax near "%s" (line %s, column %s)' % (context, e.line(), e.column())
+                f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
             )
         return FingerprintingVisitor().visit(tree)
 
@@ -244,7 +241,7 @@ MATCHERS = {
 }
 
 
-class Match(object):
+class Match:
     def __init__(self, key, pattern, negated=False):
         if key.startswith("tags."):
             self.key = key
@@ -341,10 +338,14 @@ class Match(object):
 
     @property
     def text(self):
-        return '%s%s:"%s"' % (self.negated and "!" or "", self.key, self.pattern,)
+        return '{}{}:"{}"'.format(
+            self.negated and "!" or "",
+            self.key,
+            self.pattern,
+        )
 
 
-class Rule(object):
+class Rule:
     def __init__(self, matchers, fingerprint, attributes):
         self.matchers = matchers
         self.fingerprint = fingerprint
@@ -355,7 +356,7 @@ class Rule(object):
         for matcher in self.matchers:
             by_match_group.setdefault(matcher.match_group, []).append(matcher)
 
-        for match_group, matchers in six.iteritems(by_match_group):
+        for match_group, matchers in by_match_group.items():
             for values in access.get_values(match_group):
                 if all(x.matches(values) for x in matchers):
                     break
@@ -393,7 +394,7 @@ class Rule(object):
             % (
                 " ".join(x.text for x in self.matchers),
                 "".join(x for x in self.fingerprint),
-                " ".join('%s="%s"' % (k, v) for (k, v) in sorted(self.attributes.items())),
+                " ".join(f'{k}="{v}"' for (k, v) in sorted(self.attributes.items())),
             )
         ).rstrip()
 
@@ -410,7 +411,7 @@ class FingerprintingVisitor(NodeVisitor):
         rules = []
         in_header = True
         for child in children:
-            if isinstance(child, six.string_types):
+            if isinstance(child, str):
                 if in_header and child[:2] == "##":
                     changelog.append(child[2:].rstrip())
                 else:

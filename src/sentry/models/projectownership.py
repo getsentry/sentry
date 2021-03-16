@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import operator
 
 
@@ -41,7 +39,7 @@ class ProjectOwnership(Model):
 
     @classmethod
     def get_cache_key(self, project_id):
-        return u"projectownership_project_id:1:{}".format(project_id)
+        return f"projectownership_project_id:1:{project_id}"
 
     @classmethod
     def get_ownership_cached(cls, project_id):
@@ -111,30 +109,24 @@ class ProjectOwnership(Model):
             if not rules:
                 return ownership.auto_assignment, []
 
-            owners = []
-            # Automatic assignment prefers the owner with the longest
-            # matching pattern as the match is more specific.
-            for rule in rules:
-                candidate = len(rule.matcher.pattern)
-                for i, owner in enumerate(rule.owners):
-                    owners.append((candidate, -i, owner))
-
-            owners.sort(reverse=True)
+            # We want the last matching rule to take the most precedence.
+            owners = [owner for rule in rules for owner in rule.owners]
+            owners.reverse()
             actors = {
                 key: val
-                for key, val in resolve_actors(
-                    set([owner[2] for owner in owners]), project_id
-                ).items()
+                for key, val in resolve_actors({owner for owner in owners}, project_id).items()
                 if val
             }
-            actors = [actors[owner[2]] for owner in owners if owner[2] in actors][:limit]
+            actors = [actors[owner] for owner in owners if owner in actors][:limit]
 
             # Can happen if the ownership rule references a user/team that no longer
             # is assigned to the project or has been removed from the org.
             if not actors:
                 return ownership.auto_assignment, []
 
-            return ownership.auto_assignment, actors[0].resolve_many(actors)
+            from sentry.models import ActorTuple
+
+            return ownership.auto_assignment, ActorTuple.resolve_many(actors)
 
     @classmethod
     def _matching_ownership_rules(cls, ownership, project_id, data):
@@ -148,10 +140,10 @@ class ProjectOwnership(Model):
 
 
 def resolve_actors(owners, project_id):
-    """ Convert a list of Owner objects into a dictionary
+    """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
-    as None. """
-    from sentry.api.fields.actor import Actor
+    as None."""
+    from sentry.models import ActorTuple
     from sentry.models import User, Team
 
     if not owners:
@@ -174,7 +166,7 @@ def resolve_actors(owners, project_id):
     if users:
         actors.update(
             {
-                ("user", email.lower()): Actor(u_id, User)
+                ("user", email.lower()): ActorTuple(u_id, User)
                 for u_id, email in User.objects.filter(
                     reduce(operator.or_, [Q(emails__email__iexact=o.identifier) for o in users]),
                     # We don't require verified emails
@@ -190,7 +182,7 @@ def resolve_actors(owners, project_id):
     if teams:
         actors.update(
             {
-                ("team", slug): Actor(t_id, Team)
+                ("team", slug): ActorTuple(t_id, Team)
                 for t_id, slug in Team.objects.filter(
                     slug__in=[o.identifier for o in teams], projectteam__project_id=project_id
                 ).values_list("id", "slug")

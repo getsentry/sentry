@@ -1,8 +1,5 @@
-from __future__ import absolute_import, print_function
-
 import logging
 import re
-import six
 import sentry_sdk
 import itertools
 
@@ -26,7 +23,7 @@ from sentry.db.models import (
 
 from sentry_relay import parse_release, RelayError
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
-from sentry.models import CommitFileChange, remove_group_from_inbox
+from sentry.models import CommitFileChange, remove_group_from_inbox, GroupInboxRemoveAction
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -66,7 +63,7 @@ class ReleaseProject(Model):
         unique_together = (("project", "release"),)
 
 
-class ReleaseStatus(object):
+class ReleaseStatus:
     OPEN = 0
     ARCHIVED = 1
 
@@ -115,7 +112,10 @@ class Release(Model):
     status = BoundedPositiveIntegerField(
         default=ReleaseStatus.OPEN,
         null=True,
-        choices=((ReleaseStatus.OPEN, _("Open")), (ReleaseStatus.ARCHIVED, _("Archived")),),
+        choices=(
+            (ReleaseStatus.OPEN, _("Open")),
+            (ReleaseStatus.ARCHIVED, _("Archived")),
+        ),
     )
 
     # DEPRECATED
@@ -174,11 +174,11 @@ class Release(Model):
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
-        return "release:3:%s:%s" % (organization_id, md5_text(version).hexdigest())
+        return f"release:3:{organization_id}:{md5_text(version).hexdigest()}"
 
     @classmethod
     def get_lock_key(cls, organization_id, release_id):
-        return u"releasecommits:{}:{}".format(organization_id, release_id)
+        return f"releasecommits:{organization_id}:{release_id}"
 
     @classmethod
     def get(cls, project, version):
@@ -218,7 +218,7 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            project_version = ("%s-%s" % (project.slug, version))[:DB_VERSION_LENGTH]
+            project_version = (f"{project.slug}-{version}")[:DB_VERSION_LENGTH]
             releases = list(
                 cls.objects.filter(
                     organization_id=project.organization_id,
@@ -483,9 +483,7 @@ class Release(Model):
                 head_commit_by_repo = {}
                 latest_commit = None
                 for idx, data in enumerate(commit_list):
-                    repo_name = data.get("repository") or u"organization-{}".format(
-                        self.organization_id
-                    )
+                    repo_name = data.get("repository") or f"organization-{self.organization_id}"
                     if repo_name not in repos:
                         repos[repo_name] = repo = Repository.objects.get_or_create(
                             organization_id=self.organization_id, name=repo_name
@@ -536,7 +534,7 @@ class Release(Model):
                     if not created:
                         commit_data = {
                             key: value
-                            for key, value in six.iteritems(commit_data)
+                            for key, value in commit_data.items()
                             if getattr(commit, key) != value
                         }
                         if commit_data:
@@ -580,7 +578,7 @@ class Release(Model):
                 self.update(
                     commit_count=len(commit_list),
                     authors=[
-                        six.text_type(a_id)
+                        str(a_id)
                         for a_id in ReleaseCommit.objects.filter(
                             release=self, commit__author_id__isnull=False
                         )
@@ -592,7 +590,7 @@ class Release(Model):
                 metrics.timing("release.set_commits.duration", time() - start)
 
         # fill any missing ReleaseHeadCommit entries
-        for repo_id, commit_id in six.iteritems(head_commit_by_repo):
+        for repo_id, commit_id in head_commit_by_repo.items():
             try:
                 with transaction.atomic():
                     ReleaseHeadCommit.objects.create(
@@ -678,7 +676,7 @@ class Release(Model):
                 )
                 group = Group.objects.get(id=group_id)
                 group.update(status=GroupStatus.RESOLVED)
-                remove_group_from_inbox(group, action="resolved", user=actor)
+                remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
                 metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
 
             issue_resolved.send_robust(

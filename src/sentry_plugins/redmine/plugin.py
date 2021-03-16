@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-import six
-
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.exceptions import PluginError
@@ -53,7 +50,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
     new_issue_form = RedmineNewIssueForm
 
     def __init__(self):
-        super(RedminePlugin, self).__init__()
+        super().__init__()
         self.client_errors = []
         self.fields = []
 
@@ -61,7 +58,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
         return True
 
     def is_configured(self, project, **kwargs):
-        return all((self.get_option(k, project) for k in ("host", "key", "project_id")))
+        return all(self.get_option(k, project) for k in ("host", "key", "project_id"))
 
     def get_new_issue_title(self, **kwargs):
         return "Create Redmine Task"
@@ -113,7 +110,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
 
     def get_issue_url(self, group, issue_id, **kwargs):
         host = self.get_option("host", group.project)
-        return u"{}/issues/{}".format(host.rstrip("/"), issue_id)
+        return "{}/issues/{}".format(host.rstrip("/"), issue_id)
 
     def build_config(self):
         host = {
@@ -200,7 +197,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
                 choices_value = self.get_option("project_id", project)
                 project_choices = [("", "--")] if not choices_value else []
                 project_choices += [
-                    (p["id"], u"%s (%s)" % (p["name"], p["identifier"]))
+                    (p["id"], "{} ({})".format(p["name"], p["identifier"]))
                     for p in projects["projects"]
                 ]
                 self.add_choices("project_id", project_choices, choices_value)
@@ -233,15 +230,15 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
         return self.fields
 
     def validate_config(self, project, config, actor):
-        super(RedminePlugin, self).validate_config(project, config, actor)
+        super().validate_config(project, config, actor)
         self.client_errors = []
 
         for field in self.fields:
             if field["name"] in ["project_id", "tracker_id", "default_priority"]:
                 if not config[field["name"]]:
-                    self.logger.exception(six.text_type(u"{} required.".format(field["name"])))
+                    self.logger.exception(str("{} required.".format(field["name"])))
                     self.client_errors.append(field["name"])
 
         if self.client_errors:
-            raise PluginError(u", ".join(self.client_errors) + " required.")
+            raise PluginError(", ".join(self.client_errors) + " required.")
         return config

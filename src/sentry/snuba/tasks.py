@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 from datetime import timedelta
 
@@ -48,14 +46,14 @@ def apply_dataset_query_conditions(dataset, query, event_types, discover=False):
         return query
     if event_types:
         event_type_conditions = " OR ".join(
-            ["event.type:{}".format(event_type.name.lower()) for event_type in event_types]
+            [f"event.type:{event_type.name.lower()}" for event_type in event_types]
         )
     elif dataset in DATASET_CONDITIONS:
         event_type_conditions = DATASET_CONDITIONS[dataset]
     else:
         return query
 
-    return u"({}) AND ({})".format(event_type_conditions, query)
+    return f"({event_type_conditions}) AND ({query})"
 
 
 @instrumented_task(
@@ -174,6 +172,8 @@ def build_snuba_filter(dataset, query, aggregate, environment, event_types, para
     snuba_filter = get_filter(query, params=params)
     snuba_filter.update_with(resolve_field_list([aggregate], snuba_filter, auto_fields=False))
     snuba_filter = resolve_snuba_aliases(snuba_filter, resolve_func)[0]
+    if snuba_filter.group_ids:
+        snuba_filter.conditions.append(["group_id", "IN", list(map(int, snuba_filter.group_ids))])
     if environment:
         snuba_filter.conditions.append(["environment", "=", environment.name])
     return snuba_filter
@@ -190,7 +190,7 @@ def _create_in_snuba(subscription):
     )
     response = _snuba_pool.urlopen(
         "POST",
-        "/%s/subscriptions" % (snuba_query.dataset,),
+        f"/{snuba_query.dataset}/subscriptions",
         body=json.dumps(
             {
                 "project_id": subscription.project_id,
@@ -207,16 +207,15 @@ def _create_in_snuba(subscription):
     return json.loads(response.data)["subscription_id"]
 
 
-def _delete_from_snuba(dataset, subscription_id):
-    response = _snuba_pool.urlopen(
-        "DELETE", "/%s/subscriptions/%s" % (dataset.value, subscription_id)
-    )
+def _delete_from_snuba(dataset: QueryDatasets, subscription_id: str) -> None:
+    response = _snuba_pool.urlopen("DELETE", f"/{dataset.value}/subscriptions/{subscription_id}")
     if response.status != 202:
         raise SnubaError("HTTP %s response from Snuba!" % response.status)
 
 
 @instrumented_task(
-    name="sentry.snuba.tasks.subscription_checker", queue="subscriptions",
+    name="sentry.snuba.tasks.subscription_checker",
+    queue="subscriptions",
 )
 def subscription_checker(**kwargs):
     """
@@ -224,7 +223,9 @@ def subscription_checker(**kwargs):
     """
     count = 0
     with sentry_sdk.start_transaction(
-        op="subscription_checker", name="subscription_checker", sampled=False,
+        op="subscription_checker",
+        name="subscription_checker",
+        sampled=False,
     ):
         for subscription in QuerySubscription.objects.filter(
             status__in=(

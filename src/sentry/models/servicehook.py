@@ -1,7 +1,4 @@
-from __future__ import absolute_import, print_function
-
 import hmac
-import six
 
 from django.db import models
 from django.utils import timezone
@@ -59,7 +56,7 @@ class ServiceHook(Model):
     status = BoundedPositiveIntegerField(
         default=0, choices=ObjectStatus.as_choices(), db_index=True
     )
-    version = BoundedPositiveIntegerField(default=0, choices=((0, u"0"),))
+    version = BoundedPositiveIntegerField(default=0, choices=((0, "0"),))
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager(cache_fields=("guid",))
@@ -82,12 +79,12 @@ class ServiceHook(Model):
             return
 
     def __init__(self, *args, **kwargs):
-        super(ServiceHook, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if self.guid is None:
             self.guid = uuid4().hex
 
-    def __unicode__(self):
-        return six.text_type(self.guid)
+    def __str__(self):
+        return str(self.guid)
 
     def build_signature(self, body):
         return hmac.new(

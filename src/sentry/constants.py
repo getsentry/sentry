@@ -2,11 +2,9 @@
 These settings act as the default (base) settings for the Sentry-provided
 web-server
 """
-from __future__ import absolute_import, print_function
 
 import logging
 import os.path
-import six
 from datetime import timedelta
 
 from collections import OrderedDict, namedtuple
@@ -26,7 +24,7 @@ def get_all_languages():
             continue
         if "_" in path:
             pre, post = path.split("_", 1)
-            path = u"{}-{}".format(pre, post.lower())
+            path = f"{pre}-{post.lower()}"
         results.append(path)
     return results
 
@@ -148,6 +146,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "trust",
         "legal",
         "community",
+        "referrals",
     )
 )
 
@@ -183,7 +182,7 @@ LOG_LEVELS = {
 }
 DEFAULT_LOG_LEVEL = "error"
 DEFAULT_LOGGER_NAME = ""
-LOG_LEVELS_MAP = {v: k for k, v in six.iteritems(LOG_LEVELS)}
+LOG_LEVELS_MAP = {v: k for k, v in LOG_LEVELS.items()}
 
 # Default alerting threshold values
 DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
@@ -386,7 +385,7 @@ def get_integration_id_for_event(platform, sdk_name, integrations):
                 return PLATFORM_INTEGRATION_TO_INTEGRATION_ID[platform][integration]
 
             # try <platform>-<integration>, for example "java-log4j"
-            integration_id = "%s-%s" % (platform, integration)
+            integration_id = f"{platform}-{integration}"
             if integration_id in INTEGRATION_ID_TO_PLATFORM_DATA:
                 return integration_id
 
@@ -400,7 +399,7 @@ def get_integration_id_for_event(platform, sdk_name, integrations):
         return platform
 
 
-class ObjectStatus(object):
+class ObjectStatus:
     VISIBLE = 0
     HIDDEN = 1
     PENDING_DELETION = 2
@@ -412,14 +411,14 @@ class ObjectStatus(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.ACTIVE, u"active"),
-            (cls.DISABLED, u"disabled"),
-            (cls.PENDING_DELETION, u"pending_deletion"),
-            (cls.DELETION_IN_PROGRESS, u"deletion_in_progress"),
+            (cls.ACTIVE, "active"),
+            (cls.DISABLED, "disabled"),
+            (cls.PENDING_DELETION, "pending_deletion"),
+            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
         )
 
 
-class SentryAppStatus(object):
+class SentryAppStatus:
     UNPUBLISHED = 0
     PUBLISHED = 1
     INTERNAL = 2
@@ -432,10 +431,10 @@ class SentryAppStatus(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.UNPUBLISHED, six.text_type(cls.UNPUBLISHED_STR)),
-            (cls.PUBLISHED, six.text_type(cls.PUBLISHED_STR)),
-            (cls.INTERNAL, six.text_type(cls.INTERNAL_STR)),
-            (cls.PUBLISH_REQUEST_INPROGRESS, six.text_type(cls.PUBLISH_REQUEST_INPROGRESS_STR)),
+            (cls.UNPUBLISHED, str(cls.UNPUBLISHED_STR)),
+            (cls.PUBLISHED, str(cls.PUBLISHED_STR)),
+            (cls.INTERNAL, str(cls.INTERNAL_STR)),
+            (cls.PUBLISH_REQUEST_INPROGRESS, str(cls.PUBLISH_REQUEST_INPROGRESS_STR)),
         )
 
     @classmethod
@@ -450,7 +449,7 @@ class SentryAppStatus(object):
             return cls.PUBLISH_REQUEST_INPROGRESS_STR
 
 
-class SentryAppInstallationStatus(object):
+class SentryAppInstallationStatus:
     PENDING = 0
     INSTALLED = 1
     PENDING_STR = "pending"
@@ -459,8 +458,8 @@ class SentryAppInstallationStatus(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.PENDING, six.text_type(cls.PENDING_STR)),
-            (cls.INSTALLED, six.text_type(cls.INSTALLED_STR)),
+            (cls.PENDING, str(cls.PENDING_STR)),
+            (cls.INSTALLED, str(cls.INSTALLED_STR)),
         )
 
     @classmethod
@@ -471,7 +470,7 @@ class SentryAppInstallationStatus(object):
             return cls.INSTALLED_STR
 
 
-class ExportQueryType(object):
+class ExportQueryType:
     ISSUES_BY_TAG = 0
     DISCOVER = 1
     ISSUES_BY_TAG_STR = "Issues-by-Tag"

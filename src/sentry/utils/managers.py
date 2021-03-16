@@ -1,9 +1,7 @@
-from __future__ import absolute_import, print_function
-
 import logging
 
 
-class InstanceManager(object):
+class InstanceManager:
     def __init__(self, class_list=None, instances=True):
         if class_list is None:
             class_list = []

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
@@ -7,7 +5,7 @@ from sentry.testutils import APITestCase
 
 class PromptsActivityTest(APITestCase):
     def setUp(self):
-        super(PromptsActivityTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user, name="baz")
         # self.project = self.create_project(
@@ -20,7 +18,7 @@ class PromptsActivityTest(APITestCase):
         self.project = self.create_project(
             organization=self.org, teams=[self.team], name="Bengal-Elephant-Giraffe-Tree-House"
         )
-        self.path = reverse("sentry-api-0-promptsactivity")
+        self.path = reverse("sentry-api-0-prompts-activity")
 
     def test_invalid_feature(self):
         # Invalid feature prompt name

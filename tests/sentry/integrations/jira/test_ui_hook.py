@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from jwt import ExpiredSignatureError
 
 from sentry.integrations.atlassian_connect import AtlassianConnectValidationError
@@ -16,7 +14,7 @@ CLICK_TO_FINISH = b"Finish Installation in Sentry"
 
 class JiraUiHookViewTestCase(APITestCase):
     def setUp(self):
-        super(JiraUiHookViewTestCase, self).setUp()
+        super().setUp()
         self.path = absolute_uri("extensions/jira/ui-hook/") + "?xdm_e=base_url"
 
         self.user.name = "Sentry Admin"
@@ -47,7 +45,7 @@ class JiraUiHookViewErrorsTest(JiraUiHookViewTestCase):
 
 class JiraUiHookViewTest(JiraUiHookViewTestCase):
     def setUp(self):
-        super(JiraUiHookViewTest, self).setUp()
+        super().setUp()
         self.login_as(self.user)
 
     def assert_no_errors(self, response):

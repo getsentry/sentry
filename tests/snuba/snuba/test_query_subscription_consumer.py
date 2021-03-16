@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from copy import deepcopy
 from datetime import timedelta
 from uuid import uuid4
@@ -69,7 +67,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         return Producer(conf)
 
     def setUp(self):
-        super(QuerySubscriptionConsumerTest, self).setUp()
+        super().setUp()
         self.override_settings_cm = override_settings(
             KAFKA_TOPICS={self.topic: {"cluster": "default", "topic": self.topic}}
         )
@@ -77,7 +75,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         self.orig_registry = deepcopy(subscriber_registry)
 
     def tearDown(self):
-        super(QuerySubscriptionConsumerTest, self).tearDown()
+        super().tearDown()
         self.override_settings_cm.__exit__(None, None, None)
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
@@ -115,11 +113,11 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         producer = Producer(conf)
         producer.produce(self.topic, json.dumps(self.old_valid_wrapper))
         producer.flush()
-        mock_callback = Mock()
-        mock_callback.side_effect = KeyboardInterrupt()
+
+        consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
+        mock_callback = Mock(side_effect=lambda *a, **k: consumer.shutdown())
         register_subscriber(self.registration_key)(mock_callback)
         sub = self.create_subscription()
-        consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
         consumer.run()
 
         payload = self.old_payload
@@ -139,11 +137,11 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         producer = Producer(conf)
         producer.produce(self.topic, json.dumps(self.valid_wrapper))
         producer.flush()
-        mock_callback = Mock()
-        mock_callback.side_effect = KeyboardInterrupt()
+
+        consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
+        mock_callback = Mock(side_effect=lambda *a, **k: consumer.shutdown())
         register_subscriber(self.registration_key)(mock_callback)
         sub = self.create_subscription()
-        consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
         consumer.run()
 
         payload = self.valid_payload
@@ -152,48 +150,47 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         mock_callback.assert_called_once_with(payload, sub)
 
     def test_shutdown(self):
-        self.producer.produce(self.topic, json.dumps(self.valid_wrapper))
         valid_wrapper_2 = deepcopy(self.valid_wrapper)
         valid_wrapper_2["payload"]["result"]["hello"] = 25
-        valid_wrapper_3 = deepcopy(valid_wrapper_2)
+
+        valid_wrapper_3 = deepcopy(self.valid_wrapper)
         valid_wrapper_3["payload"]["result"]["hello"] = 5000
+
+        self.producer.produce(self.topic, json.dumps(self.valid_wrapper))
         self.producer.produce(self.topic, json.dumps(valid_wrapper_2))
+        self.producer.produce(self.topic, json.dumps(valid_wrapper_3))
         self.producer.flush()
 
-        counts = [0]
+        def normalize_payload(payload):
+            return {
+                **payload,
+                "values": payload["result"],
+                "timestamp": parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc),
+            }
+
+        consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=100)
 
         def mock_callback(*args, **kwargs):
-            counts[0] += 1
-            if counts[0] > 1:
-                raise KeyboardInterrupt()
+            if mock.call_count >= len(expected_calls):
+                consumer.shutdown()
 
-        mock = Mock()
-        mock.side_effect = mock_callback
+        mock = Mock(side_effect=mock_callback)
 
         register_subscriber(self.registration_key)(mock)
         sub = self.create_subscription()
-        consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=100)
-        consumer.run()
-        valid_payload = self.valid_payload
-        valid_payload["values"] = valid_payload["result"]
-        valid_payload["timestamp"] = parse_date(valid_payload["timestamp"]).replace(tzinfo=pytz.utc)
-        valid_wrapper_2["payload"]["values"] = valid_wrapper_2["payload"]["result"]
-        valid_wrapper_2["payload"]["timestamp"] = parse_date(
-            valid_wrapper_2["payload"]["timestamp"]
-        ).replace(tzinfo=pytz.utc)
-        mock.assert_has_calls([call(valid_payload, sub), call(valid_wrapper_2["payload"], sub)])
-        # Offset should be committed for the first message, so second run should process
-        # the second message again
-        self.producer.produce(self.topic, json.dumps(valid_wrapper_3))
-        self.producer.flush()
-        mock.reset_mock()
-        counts[0] = 0
-        consumer.run()
-        valid_wrapper_3["payload"]["values"] = valid_wrapper_3["payload"]["result"]
-        valid_wrapper_3["payload"]["timestamp"] = parse_date(
-            valid_wrapper_3["payload"]["timestamp"]
-        ).replace(tzinfo=pytz.utc)
 
-        mock.assert_has_calls(
-            [call(valid_wrapper_2["payload"], sub), call(valid_wrapper_3["payload"], sub)]
-        )
+        expected_calls = [
+            call(normalize_payload(self.valid_payload), sub),
+            call(normalize_payload(valid_wrapper_2["payload"]), sub),
+        ]
+
+        consumer.run()
+
+        mock.assert_has_calls(expected_calls)
+
+        expected_calls = [call(normalize_payload(valid_wrapper_3["payload"]), sub)]
+        mock.reset_mock()
+
+        consumer.run()
+
+        mock.assert_has_calls(expected_calls)

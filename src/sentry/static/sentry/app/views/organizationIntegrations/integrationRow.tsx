@@ -105,9 +105,8 @@ const IntegrationRow = (props: Props) => {
               size="xsmall"
               onClick={() =>
                 trackIntegrationEvent(
+                  'integrations.resolve_now_clicked',
                   {
-                    eventKey: 'integrations.resolve_now_clicked',
-                    eventName: 'Integrations: Resolve Now Clicked',
                     integration_type: convertIntegrationTypeToSnakeCase(type),
                     integration: slug,
                   },
@@ -141,7 +140,6 @@ const Container = styled('div')`
 
 const IntegrationName = styled(Link)`
   font-weight: bold;
-  color: ${p => p.theme.blue300};
 `;
 
 const IntegrationDetails = styled('div')`

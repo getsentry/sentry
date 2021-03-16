@@ -20,21 +20,14 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
     );
 
     expect(wrapper.find('SectionHeading').text()).toBe('Quick Links');
-    expect(wrapper.find('QuickLink a').length).toBe(3);
+    expect(wrapper.find('QuickLink a').length).toBe(2);
 
     const userFeedback = wrapper.find('QuickLink').at(0);
-    const keyTransactions = wrapper.find('QuickLink').at(1);
-    const mostChangedTransactions = wrapper.find('QuickLink').at(2);
+    const mostChangedTransactions = wrapper.find('QuickLink').at(1);
 
     expect(userFeedback.text()).toBe('User Feedback');
     expect(userFeedback.prop('to')).toEqual({
       pathname: '/organizations/org-slug/user-feedback/',
-      query: {project: '2'},
-    });
-
-    expect(keyTransactions.text()).toBe('Key Transactions');
-    expect(keyTransactions.prop('to')).toEqual({
-      pathname: '/organizations/org-slug/performance/',
       query: {project: '2'},
     });
 
@@ -59,11 +52,11 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
       />
     );
 
-    const keyTransactions = wrapper.find('QuickLink').at(1);
+    const mostChangedTransactions = wrapper.find('QuickLink').at(1);
     const tooltip = wrapper.find('Tooltip').at(1);
 
-    expect(keyTransactions.prop('disabled')).toBeTruthy();
-    expect(keyTransactions.find('a').exists()).toBeFalsy();
+    expect(mostChangedTransactions.prop('disabled')).toBeTruthy();
+    expect(mostChangedTransactions.find('a').exists()).toBeFalsy();
     expect(tooltip.prop('title')).toBe("You don't have access to this feature");
     expect(tooltip.prop('disabled')).toBeFalsy();
   });

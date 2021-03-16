@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -46,7 +43,7 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
                 request=request, sentry_app_installation=sentry_app_installation, user=request.user
             )
         except ApiTokenLimitError as e:
-            return Response(six.text_type(e), status=status.HTTP_403_FORBIDDEN)
+            return Response(str(e), status=status.HTTP_403_FORBIDDEN)
 
         # hack so the token is included in the response
         attrs = {"application": None}

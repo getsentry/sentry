@@ -7,7 +7,6 @@ Our linter engine needs to run in 3 different scenarios:
 For the js only path, we should not depend on any packages outside the
 python stdlib to prevent the need to install the world just to run eslint.
 """
-from __future__ import absolute_import
 
 import os
 import sys
@@ -87,7 +86,7 @@ def get_js_files(file_list=None, snapshots=False):
 def get_less_files(file_list=None):
     if file_list is None:
         file_list = ["src/sentry/static/sentry/less", "src/sentry/static/sentry/app"]
-    return [x for x in get_files_for_list(file_list) if x.endswith((".less"))]
+    return [x for x in get_files_for_list(file_list) if x.endswith(".less")]
 
 
 def js_lint(file_list=None, parseable=False, format=False):
@@ -189,9 +188,7 @@ def is_prettier_valid(project_root, prettier_path):
     prettier_version = subprocess.check_output([prettier_path, "--version"]).decode("utf8").rstrip()
     if prettier_version != package_version:
         sys.stderr.write(
-            u"[sentry.lint] Prettier is out of date: {} (expected {}). Please run `yarn install`.\n".format(
-                prettier_version, package_version
-            )
+            f"[sentry.lint] Prettier is out of date: {prettier_version} (expected {package_version}). Please run `yarn install`.\n"
         )
         return False
 

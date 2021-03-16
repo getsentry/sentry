@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import ApiApplication, ApiAuthorization, ApiToken
@@ -20,7 +16,7 @@ class ApiAuthorizationsListTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(auth.id)
+        assert response.data[0]["id"] == str(auth.id)
 
 
 class ApiAuthorizationsDeleteTest(APITestCase):

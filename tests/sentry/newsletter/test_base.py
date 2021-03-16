@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.newsletter.base import Newsletter
 from sentry.testutils import TestCase
 

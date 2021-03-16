@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import posixpath
 
 from django.http import StreamingHttpResponse
@@ -15,9 +13,7 @@ from sentry.models import EventAttachment, File, OrganizationMember
 
 class EventAttachmentDetailsPermission(ProjectPermission):
     def has_object_permission(self, request, view, project):
-        result = super(EventAttachmentDetailsPermission, self).has_object_permission(
-            request, view, project
-        )
+        result = super().has_object_permission(request, view, project)
 
         if not result:
             return result

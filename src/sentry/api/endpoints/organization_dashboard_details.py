@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
@@ -8,6 +6,10 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import DashboardDetailsSerializer
 from sentry.models.dashboard import DashboardTombstone
 from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
+from sentry import features
+
+EDIT_FEATURE = "organizations:dashboards-edit"
+READ_FEATURE = "organizations:dashboards-basic"
 
 
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
@@ -25,8 +27,12 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         :pparam int dashboard_id: the id of the dashboard.
         :auth: required
         """
+        if not features.has(READ_FEATURE, organization, actor=request.user):
+            return Response(status=404)
+
         if isinstance(dashboard, dict):
             return self.respond(dashboard)
+
         return self.respond(serialize(dashboard, request.user))
 
     def delete(self, request, organization, dashboard):
@@ -42,6 +48,9 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         :pparam int dashboard_id: the id of the dashboard.
         :auth: required
         """
+        if not features.has(EDIT_FEATURE, organization, actor=request.user):
+            return Response(status=404)
+
         if isinstance(dashboard, dict):
             DashboardTombstone.objects.get_or_create(
                 organization=organization, slug=dashboard["id"]
@@ -66,6 +75,9 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
                             to be updated.
         :auth: required
         """
+        if not features.has(EDIT_FEATURE, organization, actor=request.user):
+            return Response(status=404)
+
         tombstone = None
         if isinstance(dashboard, dict):
             tombstone = dashboard["id"]
@@ -74,7 +86,11 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         serializer = DashboardDetailsSerializer(
             data=request.data,
             instance=dashboard,
-            context={"organization": organization, "request": request},
+            context={
+                "organization": organization,
+                "request": request,
+                "projects": self.get_projects(request, organization),
+            },
         )
 
         if not serializer.is_valid():

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import functools
 
 from django.core.cache import cache
@@ -7,7 +5,7 @@ from django.core.cache import cache
 default_cache = cache
 
 
-class memoize(object):
+class memoize:
     """
     Memoize the result of a property call.
 
@@ -75,4 +73,4 @@ class cached_for_request(memoize):
 
 
 def cache_key_for_event(data):
-    return u"e:{1}:{0}".format(data["project"], data["event_id"])
+    return "e:{1}:{0}".format(data["project"], data["event_id"])

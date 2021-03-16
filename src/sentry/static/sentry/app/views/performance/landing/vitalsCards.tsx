@@ -5,6 +5,7 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import Card from 'app/components/card';
 import EventsRequest from 'app/components/charts/eventsRequest';
+import {HeaderTitle} from 'app/components/charts/styles';
 import {getInterval} from 'app/components/charts/utils';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
@@ -20,19 +21,18 @@ import {getUtcToLocalDateObject} from 'app/utils/dates';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
-import {decodeList} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import VitalsCardsDiscoverQuery, {
   VitalData,
   VitalsData,
-} from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
+} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {decodeList} from 'app/utils/queryString';
+import theme from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
 
-import {HeaderTitle} from '../styles';
 import ColorBar from '../vitalDetail/colorBar';
 import {
   vitalAbbreviations,
-  vitalDescription,
   vitalDetailRouteWithQuery,
   vitalMap,
   VitalState,
@@ -40,19 +40,12 @@ import {
 } from '../vitalDetail/utils';
 import VitalPercents from '../vitalDetail/vitalPercents';
 
-import {backendCardDetails, getBackendFunction} from './utils';
-
-// Temporary list of platforms to only show web vitals for.
-const VITALS_PLATFORMS = [
-  'javascript',
-  'javascript-react',
-  'javascript-angular',
-  'javascript-angularjs',
-  'javascript-backbone',
-  'javascript-ember',
-  'javascript-gatsby',
-  'javascript-vue',
-];
+import {
+  backendCardDetails,
+  getBackendFunction,
+  getDefaultDisplayFieldForPlatform,
+  LandingDisplayField,
+} from './utils';
 
 type FrontendCardsProps = {
   eventView: EventView;
@@ -66,11 +59,8 @@ export function FrontendCards(props: FrontendCardsProps) {
   const {eventView, location, organization, projects, frontendOnly = false} = props;
 
   if (frontendOnly) {
-    const isFrontend = eventView.project.some(projectId =>
-      VITALS_PLATFORMS.includes(
-        projects.find(project => project.id === `${projectId}`)?.platform || ''
-      )
-    );
+    const defaultDisplay = getDefaultDisplayFieldForPlatform(projects, eventView);
+    const isFrontend = defaultDisplay === LandingDisplayField.FRONTEND_PAGELOAD;
 
     if (!isFrontend) {
       return null;
@@ -114,7 +104,7 @@ export function FrontendCards(props: FrontendCardsProps) {
                 >
                   <VitalCard
                     title={vitalMap[vital] ?? ''}
-                    tooltip={vitalDescription[vital] ?? ''}
+                    tooltip={WEB_VITAL_DETAILS[vital].description ?? ''}
                     value={isLoading ? '\u2014' : value}
                     chart={chart}
                     minHeight={150}
@@ -197,7 +187,9 @@ function _BackendCards(props: BackendCardsProps) {
             return (
               <VitalsContainer>
                 {fields.map(([name, fn, data]) => {
-                  const {title, tooltip, formatter} = backendCardDetails[name];
+                  const {title, tooltip, formatter} = backendCardDetails(organization)[
+                    name
+                  ];
                   const alias = getAggregateAlias(fn);
                   const rawValue = tableData?.data?.[0]?.[alias];
                   const value =
@@ -214,6 +206,7 @@ function _BackendCards(props: BackendCardsProps) {
                       chart={chart}
                       horizontal
                       minHeight={102}
+                      isNotInteractive
                     />
                   );
                 })}
@@ -234,19 +227,27 @@ type SparklineChartProps = {
 
 function SparklineChart(props: SparklineChartProps) {
   const {data} = props;
+  const width = 150;
+  const height = 24;
+  const lineColor = theme.charts.getColorPalette(1)[0];
   return (
-    <SparklineContainer data-test-id="sparkline">
-      <Sparklines data={data} width={240} height={24}>
-        <SparklinesLine style={{stroke: theme.gray300, fill: 'none', strokeWidth: 4}} />
+    <SparklineContainer data-test-id="sparkline" width={width} height={height}>
+      <Sparklines data={data} width={width} height={height}>
+        <SparklinesLine style={{stroke: lineColor, fill: 'none', strokeWidth: 3}} />
       </Sparklines>
     </SparklineContainer>
   );
 }
 
-const SparklineContainer = styled('div')`
+type SparklineContainerProps = {
+  width: number;
+  height: number;
+};
+
+const SparklineContainer = styled('div')<SparklineContainerProps>`
   flex-grow: 4;
-  max-height: 24px;
-  max-width: 240px;
+  max-height: ${p => p.height}px;
+  max-width: ${p => p.width}px;
   margin: ${space(1)} ${space(0)} ${space(1.5)} ${space(3)};
 `;
 
@@ -292,7 +293,7 @@ export function VitalBar(props: VitalBarProps) {
   }
 
   const emptyState = showStates ? (
-    <EmptyStateWarning small>{t('No data available')}</EmptyStateWarning>
+    <EmptyVitalBar small>{t('No vitals found')}</EmptyVitalBar>
   ) : null;
 
   if (!data) {
@@ -332,6 +333,7 @@ export function VitalBar(props: VitalBarProps) {
           </div>
         )}
         <VitalPercents
+          vital={vital}
           percents={percents}
           showVitalPercentNames={showVitalPercentNames}
         />
@@ -340,6 +342,11 @@ export function VitalBar(props: VitalBarProps) {
   );
 }
 
+const EmptyVitalBar = styled(EmptyStateWarning)`
+  height: 48px;
+  padding: ${space(1.5)} 15%;
+`;
+
 type VitalCardProps = {
   title: string;
   tooltip: string;
@@ -347,12 +354,13 @@ type VitalCardProps = {
   chart: React.ReactNode;
   minHeight?: number;
   horizontal?: boolean;
+  isNotInteractive?: boolean;
 };
 
 function VitalCard(props: VitalCardProps) {
-  const {chart, minHeight, horizontal, title, tooltip, value} = props;
+  const {chart, minHeight, horizontal, title, tooltip, value, isNotInteractive} = props;
   return (
-    <StyledCard interactive minHeight={minHeight}>
+    <StyledCard interactive={!isNotInteractive} minHeight={minHeight}>
       <HeaderTitle>
         <OverflowEllipsis>{t(title)}</OverflowEllipsis>
         <QuestionTooltip size="sm" position="top" title={tooltip} />

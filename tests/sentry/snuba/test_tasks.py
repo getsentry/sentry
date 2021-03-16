@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import abc
 from uuid import uuid4
 
@@ -7,8 +5,7 @@ import pytest
 import responses
 from django.utils import timezone
 from exam import patcher
-from mock import Mock, patch
-from six import add_metaclass
+from sentry.utils.compat.mock import Mock, patch
 
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
@@ -20,12 +17,12 @@ from sentry.snuba.tasks import (
     subscription_checker,
     SUBSCRIPTION_STATUS_MAX_AGE,
 )
+from sentry.utils.snuba import _snuba_pool
 from sentry.utils import json
 from sentry.testutils import TestCase
 
 
-@add_metaclass(abc.ABCMeta)
-class BaseSnubaTaskTest(object):
+class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
     metrics = patcher("sentry.snuba.tasks.metrics")
 
     status_translations = {
@@ -42,14 +39,15 @@ class BaseSnubaTaskTest(object):
     def task(self):
         pass
 
-    def create_subscription(self, status=None, subscription_id=None, dataset=None):
+    def create_subscription(self, status=None, subscription_id=None, dataset=None, query=None):
         if status is None:
             status = self.expected_status
         if dataset is None:
             dataset = QueryDatasets.EVENTS
         dataset = dataset.value
         aggregate = "count_unique(tags[sentry:user])"
-        query = "hello"
+        if query is None:
+            query = "hello"
         time_window = 60
         resolution = 60
 
@@ -106,6 +104,20 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_group_id(self):
+        group_id = 1234
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING, query=f"issue.id:{group_id}"
+        )
+        with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
+            create_subscription_in_snuba(sub.id)
+            assert ["group_id", "IN", [group_id]] in json.loads(urlopen.call_args[1]["body"])[
+                "conditions"
+            ]
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
     def test_transaction(self):
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING, dataset=QueryDatasets.TRANSACTIONS
@@ -134,7 +146,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
     task = update_subscription_in_snuba
 
     def test(self):
-        subscription_id = "1/{}".format(uuid4().hex)
+        subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.UPDATING, subscription_id=subscription_id
         )
@@ -158,7 +170,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
     task = delete_subscription_from_snuba
 
     def test(self):
-        subscription_id = "1/{}".format(uuid4().hex)
+        subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING, subscription_id=subscription_id
         )
@@ -179,7 +191,7 @@ class BuildSnubaFilterTest(TestCase):
         )
         assert snuba_filter
         assert snuba_filter.conditions == [["type", "=", "error"]]
-        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
+        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
 
     def test_simple_transactions(self):
         snuba_filter = build_snuba_filter(
@@ -187,7 +199,7 @@ class BuildSnubaFilterTest(TestCase):
         )
         assert snuba_filter
         assert snuba_filter.conditions == []
-        assert snuba_filter.aggregations == [["uniq", "user", u"count_unique_user"]]
+        assert snuba_filter.aggregations == [["uniq", "user", "count_unique_user"]]
 
     def test_aliased_query_events(self):
         snuba_filter = build_snuba_filter(
@@ -198,7 +210,7 @@ class BuildSnubaFilterTest(TestCase):
             ["type", "=", "error"],
             ["tags[sentry:release]", "=", "latest"],
         ]
-        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
+        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
 
     def test_aliased_query_transactions(self):
         snuba_filter = build_snuba_filter(
@@ -211,7 +223,7 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter
         assert snuba_filter.conditions == [["release", "=", "latest"]]
         assert snuba_filter.aggregations == [
-            [u"quantile(0.95)", "duration", u"percentile_transaction_duration__95"]
+            ["quantile(0.95)", "duration", "percentile_transaction_duration__95"]
         ]
 
     def test_user_query(self):
@@ -223,7 +235,7 @@ class BuildSnubaFilterTest(TestCase):
             ["type", "=", "error"],
             ["tags[sentry:user]", "=", "anengineer@work.io"],
         ]
-        assert snuba_filter.aggregations == [[u"count", None, u"count"]]
+        assert snuba_filter.aggregations == [["count", None, "count"]]
 
     def test_user_query_transactions(self):
         snuba_filter = build_snuba_filter(
@@ -231,7 +243,7 @@ class BuildSnubaFilterTest(TestCase):
         )
         assert snuba_filter
         assert snuba_filter.conditions == [["user", "=", "anengineer@work.io"]]
-        assert snuba_filter.aggregations == [[u"quantile(0.95)", "duration", u"p95"]]
+        assert snuba_filter.aggregations == [["quantile(0.95)", "duration", "p95"]]
 
     def test_boolean_query(self):
         snuba_filter = build_snuba_filter(
@@ -252,7 +264,7 @@ class BuildSnubaFilterTest(TestCase):
                 1,
             ],
         ]
-        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
+        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
 
     def test_event_types(self):
         snuba_filter = build_snuba_filter(
@@ -277,7 +289,7 @@ class BuildSnubaFilterTest(TestCase):
                 1,
             ],
         ]
-        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
+        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
 
 
 class TestApplyDatasetQueryConditions(TestCase):
@@ -411,9 +423,13 @@ class SubscriptionCheckerTest(TestCase):
             QuerySubscription.Status.DELETING,
         ):
             sub = self.create_subscription(
-                status, date_updated=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE * 2,
+                status,
+                date_updated=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE * 2,
             )
-            sub_new = self.create_subscription(status, date_updated=timezone.now(),)
+            sub_new = self.create_subscription(
+                status,
+                date_updated=timezone.now(),
+            )
             with self.tasks():
                 subscription_checker()
             if status == QuerySubscription.Status.DELETING:

@@ -28,6 +28,7 @@ type Props = {
   onCommit: () => void;
   onDelete: () => void;
   dashboardState: DashboardState;
+  canEdit?: boolean;
 };
 
 class Controls extends React.Component<Props> {
@@ -41,6 +42,7 @@ class Controls extends React.Component<Props> {
       onCancel,
       onCommit,
       onDelete,
+      canEdit,
     } = this.props;
 
     const cancelButton = (
@@ -143,6 +145,8 @@ class Controls extends React.Component<Props> {
             onCreate();
           }}
           icon={<IconAdd size="xs" isCircled />}
+          disabled={!canEdit}
+          title={!canEdit ? t('Requires dashboard editing') : undefined}
         >
           {t('Create Dashboard')}
         </Button>
@@ -154,6 +158,8 @@ class Controls extends React.Component<Props> {
           }}
           priority="primary"
           icon={<IconEdit size="xs" />}
+          disabled={!canEdit}
+          title={!canEdit ? t('Requires dashboard editing') : undefined}
         >
           {t('Edit Dashboard')}
         </Button>
@@ -168,6 +174,8 @@ const DashboardSelect = styled('div')`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
+  flex-shrink: 0;
+
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};

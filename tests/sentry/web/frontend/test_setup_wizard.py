@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
 from sentry.cache import default_cache
@@ -23,7 +21,7 @@ class SetupWizard(PermissionTestCase):
 
         self.login_as(self.user)
 
-        key = "%s%s" % (SETUP_WIZARD_CACHE_KEY, "abc")
+        key = f"{SETUP_WIZARD_CACHE_KEY}abc"
         default_cache.set(key, "test", 600)
 
         url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
@@ -48,7 +46,7 @@ class SetupWizard(PermissionTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
 
-        key = "%s%s" % (SETUP_WIZARD_CACHE_KEY, "abc")
+        key = f"{SETUP_WIZARD_CACHE_KEY}abc"
         default_cache.set(key, "test", 600)
 
         url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})

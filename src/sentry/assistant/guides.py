@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 # Guide Schema
 # id (text, required): unique id
 # required_targets (list): An empty list will cause the guide to be shown regardless
@@ -21,5 +18,10 @@ from __future__ import absolute_import
 GUIDES = {
     "issue": {"id": 1, "required_targets": ["issue_title", "exception"]},
     "issue_stream": {"id": 3, "required_targets": ["issue_stream"]},
-    "dynamic_counts": {"id": 7, "required_targets": ["dynamic_counts"]},
+    "inbox_guide": {"id": 8, "required_targets": ["inbox_guide"]},
+    "for_review_guide": {"id": 9, "required_targets": ["for_review_guide_tab"]},
+    "alerts_write_member": {"id": 10, "required_targets": ["alerts_write_member"]},
+    "alerts_write_owner": {"id": 11, "required_targets": ["alerts_write_owner"]},
+    "assigned_or_suggested_guide": {"id": 12, "required_targets": ["assigned_or_suggested_query"]},
+    "release_adoption": {"id": 13, "required_targets": ["release_adoption"]},
 }

@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-
 import functools
 import os.path
 from collections import namedtuple
 from datetime import timedelta
 from random import randint
 
-import six
 from django import template
 from django.template.defaultfilters import stringfilter
 from django.utils import timezone
@@ -20,8 +17,7 @@ from sentry.api.serializers import serialize as serialize_func
 from sentry.utils import json
 from sentry.utils.strings import soft_break as _soft_break
 from sentry.utils.strings import soft_hyphenate, to_unicode, truncatechars
-from six.moves import range
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 SentryVersion = namedtuple("SentryVersion", ["current", "latest", "update_available", "build"])
 
@@ -39,7 +35,7 @@ def to_json(obj, request=None):
 @register.filter
 def multiply(x, y):
     def coerce(value):
-        if isinstance(value, (six.integer_types, float)):
+        if isinstance(value, ((int,), float)):
             return value
         try:
             return int(value)
@@ -124,7 +120,7 @@ def pprint(value, break_after=10):
 
     value = to_unicode(value)
     return mark_safe(
-        u"<span></span>".join(
+        "<span></span>".join(
             [escape(value[i : (i + break_after)]) for i in range(0, len(value), break_after)]
         )
     )
@@ -132,7 +128,7 @@ def pprint(value, break_after=10):
 
 @register.filter
 def is_url(value):
-    if not isinstance(value, six.string_types):
+    if not isinstance(value, str):
         return False
     if not value.startswith(("http://", "https://")):
         return False
@@ -143,7 +139,7 @@ def is_url(value):
 
 @register.filter
 def absolute_value(value):
-    return abs(int(value) if isinstance(value, six.integer_types) else float(value))
+    return abs(int(value) if isinstance(value, int) else float(value))
 
 
 @register.filter
@@ -160,9 +156,9 @@ def small_count(v, precision=1):
     for x, y in z:
         o, p = divmod(v, x)
         if o:
-            if len(six.text_type(o)) > 2 or not p:
+            if len(str(o)) > 2 or not p:
                 return "%d%s" % (o, y)
-            return (u"%.{}f%s".format(precision)) % (v / float(x), y)
+            return (f"%.{precision}f%s") % (v / float(x), y)
     return v
 
 

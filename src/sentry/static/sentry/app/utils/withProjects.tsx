@@ -2,7 +2,6 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import SentryTypes from 'app/sentryTypes';
 import ProjectsStore from 'app/stores/projectsStore';
 import {Project} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
@@ -28,10 +27,6 @@ const withProjects = <P extends InjectedProjectsProps>(
     State
   >({
     displayName: `withProjects(${getDisplayName(WrappedComponent)})`,
-    propTypes: {
-      organization: SentryTypes.Organization,
-      project: SentryTypes.Project,
-    },
     mixins: [Reflux.listenTo(ProjectsStore, 'onProjectUpdate') as any],
     getInitialState() {
       return ProjectsStore.getState();

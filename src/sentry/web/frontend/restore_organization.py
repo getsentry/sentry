@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import logging
-import six
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -33,7 +30,7 @@ class RestoreOrganizationView(OrganizationView):
         organizations = Organization.objects.get_for_user(user=request.user, only_visible=False)
 
         try:
-            return six.next(o for o in organizations if o.slug == organization_slug)
+            return next(o for o in organizations if o.slug == organization_slug)
         except StopIteration:
             return None
 
@@ -66,7 +63,7 @@ class RestoreOrganizationView(OrganizationView):
         ).update(status=OrganizationStatus.VISIBLE)
         if updated:
             client.put(
-                u"/organizations/{}/".format(organization.slug),
+                f"/organizations/{organization.slug}/",
                 data={"cancelDeletion": True},
                 request=request,
             )

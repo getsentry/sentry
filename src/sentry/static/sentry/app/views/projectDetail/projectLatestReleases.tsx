@@ -7,10 +7,12 @@ import {fetchAnyReleaseExistence} from 'app/actionCreators/projects';
 import AsyncComponent from 'app/components/asyncComponent';
 import {SectionHeading} from 'app/components/charts/styles';
 import DateTime from 'app/components/dateTime';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Placeholder from 'app/components/placeholder';
 import TextOverflow from 'app/components/textOverflow';
 import Version from 'app/components/version';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -19,11 +21,16 @@ import {analytics} from 'app/utils/analytics';
 import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releaseLanding';
 
 import MissingReleasesButtons from './missingFeatureButtons/missingReleasesButtons';
+import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
+import {didProjectOrEnvironmentChange} from './utils';
+
+const PLACEHOLDER_AND_EMPTY_HEIGHT = '160px';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   projectSlug: string;
   location: Location;
+  isProjectStabilized: boolean;
   projectId?: string;
 };
 
@@ -34,10 +41,12 @@ type State = {
 
 class ProjectLatestReleases extends AsyncComponent<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {
+    const {location, isProjectStabilized} = this.props;
     // TODO(project-detail): we temporarily removed refetching based on timeselector
     if (
       this.state !== nextState ||
-      this.props.location.query.environment !== nextProps.location.query.environment
+      didProjectOrEnvironmentChange(location, nextProps.location) ||
+      isProjectStabilized !== nextProps.isProjectStabilized
     ) {
       return true;
     }
@@ -45,8 +54,23 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     return false;
   }
 
+  componentDidUpdate(prevProps: Props) {
+    const {location, isProjectStabilized} = this.props;
+
+    if (
+      didProjectOrEnvironmentChange(prevProps.location, location) ||
+      prevProps.isProjectStabilized !== isProjectStabilized
+    ) {
+      this.remountComponent();
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {location, organization, projectSlug} = this.props;
+    const {location, organization, projectSlug, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return [];
+    }
 
     const query = {
       ...pick(location.query, Object.values(URL_PARAM)),
@@ -64,7 +88,11 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
    */
   async onLoadAllEndpointsSuccess() {
     const {releases} = this.state;
-    const {organization, projectId} = this.props;
+    const {organization, projectId, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return;
+    }
 
     if ((releases ?? []).length !== 0 || !projectId) {
       this.setState({hasOlderReleases: true});
@@ -93,6 +121,21 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     });
   };
 
+  get releasesLink() {
+    const {organization} = this.props;
+
+    // as this is a link to latest releases, we want to only preserve project and environment
+    return {
+      pathname: `/organizations/${organization.slug}/releases/`,
+      query: {
+        statsPeriod: undefined,
+        start: undefined,
+        end: undefined,
+        utc: undefined,
+      },
+    };
+  }
+
   renderReleaseRow = (release: Release) => {
     const {projectId} = this.props;
     const {lastDeploy, dateCreated} = release;
@@ -112,14 +155,15 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
   };
 
   renderInnerBody() {
-    const {organization, projectId} = this.props;
+    const {organization, projectId, isProjectStabilized} = this.props;
     const {loading, releases, hasOlderReleases} = this.state;
     const checkingForOlderReleases =
       !(releases ?? []).length && hasOlderReleases === undefined;
-    const showLoadingIndicator = loading || checkingForOlderReleases;
+    const showLoadingIndicator =
+      loading || checkingForOlderReleases || !isProjectStabilized;
 
     if (showLoadingIndicator) {
-      return <Placeholder height="160px" />;
+      return <Placeholder height={PLACEHOLDER_AND_EMPTY_HEIGHT} />;
     }
 
     if (!hasOlderReleases) {
@@ -127,7 +171,9 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     }
 
     if (!releases || releases.length === 0) {
-      return t('No releases match the filter.');
+      return (
+        <StyledEmptyStateWarning small>{t('No releases found')}</StyledEmptyStateWarning>
+      );
     }
 
     return <ReleasesTable>{releases.map(this.renderReleaseRow)}</ReleasesTable>;
@@ -139,17 +185,18 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
 
   renderBody() {
     return (
-      <Section>
-        <SectionHeading>{t('Latest Releases')}</SectionHeading>
+      <SidebarSection>
+        <SectionHeadingWrapper>
+          <SectionHeading>{t('Latest Releases')}</SectionHeading>
+          <SectionHeadingLink to={this.releasesLink}>
+            <IconOpen />
+          </SectionHeadingLink>
+        </SectionHeadingWrapper>
         <div>{this.renderInnerBody()}</div>
-      </Section>
+      </SidebarSection>
     );
   }
 }
-
-const Section = styled('section')`
-  margin-bottom: ${space(2)};
-`;
 
 const ReleasesTable = styled('div')`
   display: grid;
@@ -175,6 +222,11 @@ const ReleasesTable = styled('div')`
 
 const StyledVersion = styled(Version)`
   ${overflowEllipsis}
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  height: ${PLACEHOLDER_AND_EMPTY_HEIGHT};
+  justify-content: center;
 `;
 
 export default ProjectLatestReleases;

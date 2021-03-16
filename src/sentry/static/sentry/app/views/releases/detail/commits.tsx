@@ -1,28 +1,29 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
+import {Location} from 'history';
 
-import {Client} from 'app/api';
 import CommitRow from 'app/components/commitRow';
 import {Body, Main} from 'app/components/layouts/thirds';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
-import {Commit, Repository} from 'app/types';
+import {Commit, Organization, Project, Repository} from 'app/types';
 import {formatVersion} from 'app/utils/formatters';
 import routeTitleGen from 'app/utils/routeTitle';
-import withApi from 'app/utils/withApi';
 import AsyncView from 'app/views/asyncView';
 
 import EmptyState from './emptyState';
 import RepositorySwitcher from './repositorySwitcher';
 import {getCommitsByRepository, getQuery, getReposToRender} from './utils';
-import withRepositories from './withRepositories';
+import withReleaseRepos from './withReleaseRepos';
 
 type Props = RouteComponentProps<{orgId: string; release: string}, {}> & {
-  api: Client;
-  repositories: Array<Repository>;
-  projectSlug: string;
-  activeRepository?: Repository;
+  location: Location;
+  projectSlug: Project['slug'];
+  orgSlug: Organization['slug'];
+  release: string;
+  releaseRepos: Repository[];
+  activeReleaseRepo?: Repository;
 } & AsyncView['props'];
 
 type State = {
@@ -31,13 +32,14 @@ type State = {
 
 class Commits extends AsyncView<Props, State> {
   getTitle() {
-    const {params} = this.props;
+    const {params, projectSlug} = this.props;
     const {orgId} = params;
 
     return routeTitleGen(
       t('Commits - Release %s', formatVersion(params.release)),
       orgId,
-      false
+      false,
+      projectSlug
     );
   }
 
@@ -49,14 +51,20 @@ class Commits extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params, projectSlug, activeRepository, location} = this.props;
-    const {orgId, release} = params;
+    const {
+      projectSlug,
+      activeReleaseRepo: activeRepository,
+      location,
+      orgSlug,
+      release,
+    } = this.props;
+
     const query = getQuery({location, activeRepository});
 
     return [
       [
         'commits',
-        `/projects/${orgId}/${projectSlug}/releases/${encodeURIComponent(
+        `/projects/${orgSlug}/${projectSlug}/releases/${encodeURIComponent(
           release
         )}/commits/`,
         {query},
@@ -66,16 +74,16 @@ class Commits extends AsyncView<Props, State> {
 
   renderContent() {
     const {commits, commitsPageLinks} = this.state;
-    const {activeRepository} = this.props;
+    const {activeReleaseRepo} = this.props;
 
     if (!commits.length) {
       return (
         <EmptyState>
-          {!activeRepository
+          {!activeReleaseRepo
             ? t('There are no commits associated with this release.')
             : t(
                 'There are no commits associated with this release in the %s repository.',
-                activeRepository.name
+                activeReleaseRepo.name
               )}
         </EmptyState>
       );
@@ -102,14 +110,14 @@ class Commits extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {location, router, activeRepository, repositories} = this.props;
+    const {location, router, activeReleaseRepo, releaseRepos} = this.props;
 
     return (
       <React.Fragment>
-        {repositories.length > 1 && (
+        {releaseRepos.length > 1 && (
           <RepositorySwitcher
-            repositories={repositories}
-            activeRepository={activeRepository}
+            repositories={releaseRepos}
+            activeRepository={activeReleaseRepo}
             location={location}
             router={router}
           />
@@ -128,4 +136,4 @@ class Commits extends AsyncView<Props, State> {
   }
 }
 
-export default withApi(withRepositories(Commits));
+export default withReleaseRepos(Commits);

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from exam import fixture
 
 from sentry.testutils import AcceptanceTestCase
@@ -15,14 +13,14 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         return OpsGeniePlugin()
 
     def setUp(self):
-        super(OrganizationPluginDetailedView, self).setUp()
+        super().setUp()
         # need at least two projects
         self.project = self.create_project(organization=self.organization, name="Back end")
         self.create_project(organization=self.organization, name="Front End")
         self.login_as(self.user)
 
     def load_page(self, slug, configuration_tab=False):
-        url = u"/settings/{}/plugins/{}/".format(self.organization.slug, slug)
+        url = f"/settings/{self.organization.slug}/plugins/{slug}/"
         if configuration_tab:
             url += "?tab=configurations"
         self.browser.get(url)

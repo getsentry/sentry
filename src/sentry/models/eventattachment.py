@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import mimetypes
 
 from django.core.cache import cache
@@ -8,7 +6,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
 
-from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
 
 
 # Attachment file types that are considered a crash report (PII relevant)
@@ -20,7 +18,7 @@ def get_crashreport_key(group_id):
     Returns the ``django.core.cache`` key for groups that have exceeded their
     configured crash report limit.
     """
-    return u"cr:%s" % (group_id,)
+    return f"cr:{group_id}"
 
 
 class EventAttachment(Model):
@@ -29,7 +27,7 @@ class EventAttachment(Model):
     project_id = BoundedBigIntegerField()
     group_id = BoundedBigIntegerField(null=True, db_index=True)
     event_id = models.CharField(max_length=32, db_index=True)
-    file = FlexibleForeignKey("sentry.File")
+    file_id = BoundedBigIntegerField(db_index=True)
     type = models.CharField(max_length=64, db_index=True)
     name = models.TextField()
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
@@ -37,8 +35,8 @@ class EventAttachment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_eventattachment"
-        index_together = (("project_id", "date_added"), ("project_id", "date_added", "file"))
-        unique_together = (("project_id", "event_id", "file"),)
+        index_together = (("project_id", "date_added"), ("project_id", "date_added", "file_id"))
+        unique_together = (("project_id", "event_id", "file_id"),)
 
     __repr__ = sane_repr("event_id", "name", "file_id")
 
@@ -55,7 +53,7 @@ class EventAttachment(Model):
     def delete(self, *args, **kwargs):
         from sentry.models import File
 
-        rv = super(EventAttachment, self).delete(*args, **kwargs)
+        rv = super().delete(*args, **kwargs)
 
         # Always prune the group cache. Even if there are more crash reports
         # stored than the now configured limit, the cache will be repopulated

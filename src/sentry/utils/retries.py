@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import itertools
 import logging
 import random
@@ -13,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class RetryException(Exception):
     def __init__(self, message, exception):
-        super(RetryException, self).__init__(message)
+        super().__init__(message)
         self.message = message
         self.exception = exception
 
@@ -24,10 +22,10 @@ class RetryException(Exception):
         return force_bytes(self.message, errors="replace")
 
     def __repr__(self):
-        return u"<{}: {!r}>".format(type(self).__name__, self.message)
+        return f"<{type(self).__name__}: {self.message!r}>"
 
 
-class RetryPolicy(object):
+class RetryPolicy:
     def __call__(self, function):
         raise NotImplementedError
 

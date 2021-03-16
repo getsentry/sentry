@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry.api.serializers import register, Serializer
 from sentry.incidents.models import AlertRuleTriggerAction
 
@@ -40,8 +36,8 @@ class AlertRuleTriggerActionSerializer(Serializer):
         from sentry.incidents.endpoints.serializers import action_target_type_to_string
 
         return {
-            "id": six.text_type(obj.id),
-            "alertRuleTriggerId": six.text_type(obj.alert_rule_trigger_id),
+            "id": str(obj.id),
+            "alertRuleTriggerId": str(obj.alert_rule_trigger_id),
             "type": AlertRuleTriggerAction.get_registered_type(
                 AlertRuleTriggerAction.Type(obj.type)
             ).slug,

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 
 from django.db.models import F
@@ -18,7 +16,7 @@ from sentry.models import ApiKey, Organization
 from sentry.testutils import TestCase
 
 
-class MockSuperUser(object):
+class MockSuperUser:
     @property
     def is_active(self):
         return True
@@ -27,7 +25,7 @@ class MockSuperUser(object):
 class OrganizationPermissionBase(TestCase):
     def setUp(self):
         self.org = self.create_organization()
-        super(OrganizationPermissionBase, self).setUp()
+        super().setUp()
 
     def has_object_perm(self, method, obj, auth=None, user=None, is_superuser=None):
         perm = OrganizationPermission()
@@ -166,7 +164,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
             self.org,
             include_all_accessible=include_all_accessible,
         )
-        assert set([p.id for p in expected_projects]) == set(p.id for p in result)
+        assert {p.id for p in expected_projects} == {p.id for p in result}
 
     def test_no_ids_no_teams(self):
         # Should get nothing if not part of the org
@@ -269,7 +267,7 @@ class GetEnvironmentsTest(BaseOrganizationEndpointTest):
         if env_names:
             request_args["environment"] = env_names
         result = self.endpoint.get_environments(self.build_request(**request_args), self.org)
-        assert set([e.name for e in expected_envs]) == set([e.name for e in result])
+        assert {e.name for e in expected_envs} == {e.name for e in result}
 
     def test_no_params(self):
         self.run_test([])
@@ -325,11 +323,11 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
             date_filter_optional=date_filter_optional,
         )
 
-        assert set([p.id for p in expected_projects]) == set(result["project_id"])
+        assert {p.id for p in expected_projects} == set(result["project_id"])
         assert expected_start == result["start"]
         assert expected_end == result["end"]
         if expected_envs:
-            assert set([e.name for e in expected_envs]) == set(result["environment"])
+            assert {e.name for e in expected_envs} == set(result["environment"])
         else:
             assert "environment" not in result
 

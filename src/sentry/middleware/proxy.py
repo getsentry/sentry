@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import io
 import logging
 import zlib
@@ -79,7 +77,7 @@ class GzipDecoder(ZDecoder):
         ZDecoder.__init__(self, fp, zlib.decompressobj(16 + zlib.MAX_WBITS))
 
 
-class SetRemoteAddrFromForwardedFor(object):
+class SetRemoteAddrFromForwardedFor:
     def __init__(self):
         if not getattr(settings, "SENTRY_USE_X_FORWARDED_FOR", True):
             raise MiddlewareNotUsed
@@ -107,7 +105,7 @@ class SetRemoteAddrFromForwardedFor(object):
             request.META["REMOTE_ADDR"] = real_ip
 
 
-class DecompressBodyMiddleware(object):
+class DecompressBodyMiddleware:
     def process_request(self, request):
         decode = False
         encoding = request.META.get("HTTP_CONTENT_ENCODING", "").lower()

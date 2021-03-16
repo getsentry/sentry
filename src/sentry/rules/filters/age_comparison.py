@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import operator
 from datetime import timedelta
 from django import forms
@@ -8,7 +6,7 @@ from django.utils import timezone
 from sentry.rules.filters.base import EventFilter
 
 
-class AgeComparisonType(object):
+class AgeComparisonType:
     OLDER = "older"
     NEWER = "newer"
 

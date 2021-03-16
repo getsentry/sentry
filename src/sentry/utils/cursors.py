@@ -1,11 +1,7 @@
-from __future__ import absolute_import
-
-import six
-
 from collections import Sequence
 
 
-class Cursor(object):
+class Cursor:
     def __init__(self, value, offset=0, is_prev=False, has_results=None):
         self.value = value
         self.offset = int(offset)
@@ -13,7 +9,7 @@ class Cursor(object):
         self.has_results = has_results
 
     def __str__(self):
-        return "%s:%s:%s" % (self.value, self.offset, int(self.is_prev))
+        return f"{self.value}:{self.offset}:{int(self.is_prev)}"
 
     def __eq__(self, other):
         return all(
@@ -22,7 +18,7 @@ class Cursor(object):
         )
 
     def __repr__(self):
-        return "<%s: value=%s offset=%s is_prev=%s>" % (
+        return "<{}: value={} offset={} is_prev={}>".format(
             type(self).__name__,
             self.value,
             self.offset,
@@ -41,7 +37,8 @@ class Cursor(object):
         if len(bits) != 3:
             raise ValueError
         try:
-            bits = int(bits[0]), int(bits[1]), int(bits[2])
+            value = float(bits[0]) if "." in bits[0] else int(bits[0])
+            bits = value, int(bits[1]), int(bits[2])
         except (TypeError, ValueError):
             raise ValueError
         return cls(*bits)
@@ -65,7 +62,7 @@ class CursorResult(Sequence):
         return self.results[key]
 
     def __repr__(self):
-        return "<%s: results=%s>" % (type(self).__name__, len(self.results))
+        return f"<{type(self).__name__}: results={len(self.results)}>"
 
 
 def _build_next_values(cursor, results, key, limit, is_desc):
@@ -111,7 +108,7 @@ def _build_next_values(cursor, results, key, limit, is_desc):
     # skipped, as we know we want to start from that item and do not
     # need to offset from it.
     if has_next:
-        six.next(result_iter)
+        next(result_iter)
 
     for result in result_iter:
         result_value = key(result)
@@ -174,11 +171,11 @@ def _build_prev_values(cursor, results, key, limit, is_desc):
     # If we know there are more previous results, we need to move past
     # the item indicating that more items exist.
     if has_prev:
-        six.next(result_iter)
+        next(result_iter)
 
     # Always move past the first item, this is the prev_value item and will
     # already be offset in the next query.
-    six.next(result_iter)
+    next(result_iter)
 
     for result in result_iter:
         result_value = key(result, for_prev=True)

@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
 
@@ -15,7 +11,8 @@ class OrganizationProjectsDocs(APIDocsTestCase):
         self.create_project(name="bar", organization=organization, teams=[])
 
         self.url = reverse(
-            "sentry-api-0-organization-projects", kwargs={"organization_slug": organization.slug},
+            "sentry-api-0-organization-projects",
+            kwargs={"organization_slug": organization.slug},
         )
 
         self.login_as(user=self.user)

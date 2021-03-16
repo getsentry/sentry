@@ -1,6 +1,3 @@
-from __future__ import absolute_import, print_function
-
-
 # TODO(python3): Notes on pickle compatibility between 2 + 3:
 #
 # ## Encoding
@@ -68,7 +65,7 @@ def patch_pickle_loaders():
         # functionality. Sentry isn't really running if kombu isn't available.
         return
 
-    from sentry.utils.compat import pickle
+    import pickle
 
     # TODO(python3): We use the pickles `2` protocol as it is supported in 2 and 3.
     #
@@ -118,7 +115,7 @@ def patch_pickle_loaders():
     # C module we can't subclass, so instead we just delegate with __getattr__.
     # It's very possible we missed some more subtle uses of the classes here.
 
-    class CompatPickler(object):
+    class CompatPickler:
         def __init__(self, *args, **kwargs):
             # Enforce protocol kwarg as DEFAULT_PROTOCOL. See the comment above
             # DEFAULT_PROTOCOL above to understand why we must pass the kwarg due
@@ -135,7 +132,7 @@ def patch_pickle_loaders():
         def __getattr__(self, key):
             return getattr(self.__pickler, key)
 
-    class CompatUnpickler(object):
+    class CompatUnpickler:
         def __init__(self, *args, **kwargs):
             self.__orig_args = args
             self.__orig_kwargs = kwargs

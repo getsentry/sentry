@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -17,4 +15,4 @@ class UserAvatarEndpoint(AvatarMixin, UserEndpoint):
         if user != request.user:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        return super(UserAvatarEndpoint, self).put(request, **kwargs)
+        return super().put(request, **kwargs)

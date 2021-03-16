@@ -4,40 +4,34 @@ import {PlainRoute} from 'react-router/lib/Route';
 
 import {
   addErrorMessage,
-  addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
+  Indicator,
 } from 'app/actionCreators/indicator';
 import {fetchOrganizationTags} from 'app/actionCreators/tags';
 import Access from 'app/components/acl/access';
-import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {t} from 'app/locale';
+import IndicatorStore from 'app/stores/indicatorStore';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {convertDatasetEventTypesToSource} from 'app/views/alerts/utils';
 import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
-import RuleNameForm from 'app/views/settings/incidentRules/ruleNameForm';
+import RuleNameOwnerForm from 'app/views/settings/incidentRules/ruleNameOwnerForm';
 import Triggers from 'app/views/settings/incidentRules/triggers';
 import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
+import {getEventTypeFilter} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
 import hasThresholdValue from 'app/views/settings/incidentRules/utils/hasThresholdValue';
 
 import {addOrUpdateRule} from '../actions';
-import {
-  createDefaultTrigger,
-  DATASET_EVENT_TYPE_FILTERS,
-  DATASOURCE_EVENT_TYPE_FILTERS,
-} from '../constants';
+import {createDefaultTrigger} from '../constants';
 import RuleConditionsForm from '../ruleConditionsForm';
-import RuleConditionsFormWithGuiFilters from '../ruleConditionsFormWithGuiFilters';
 import {
   AlertRuleThresholdType,
   Dataset,
-  Datasource,
   IncidentRule,
   MetricActionTemplate,
   Trigger,
@@ -57,6 +51,7 @@ type Props = {
   project: Project;
   routes: PlainRoute[];
   rule: IncidentRule;
+  userTeamIds: Set<string>;
   ruleId?: string;
   sessionId?: string;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}> & {
@@ -105,6 +100,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
 
       dataset: rule.dataset,
+      eventTypes: rule.eventTypes,
       aggregate: rule.aggregate,
       query: rule.query || '',
       timeWindow: rule.timeWindow,
@@ -115,6 +111,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       resolveThreshold: rule.resolveThreshold,
       thresholdType: rule.thresholdType,
       projects: [this.props.project],
+      owner: rule.owner,
     };
   }
 
@@ -129,17 +126,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     ];
   }
 
-  get eventTypeFilter() {
-    if (this.state.eventTypes) {
-      return DATASOURCE_EVENT_TYPE_FILTERS[
-        convertDatasetEventTypesToSource(this.state.dataset, this.state.eventTypes) ??
-          Datasource.ERROR
-      ];
-    } else {
-      return DATASET_EVENT_TYPE_FILTERS[this.state.dataset ?? Dataset.ERRORS];
-    }
-  }
-
   goBack() {
     const {router} = this.props;
     const {orgId} = this.props.params;
@@ -147,24 +133,33 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     router.push(`/organizations/${orgId}/alerts/rules/`);
   }
 
-  resetPollingState = () => {
+  resetPollingState = (loadingSlackIndicator: Indicator) => {
+    IndicatorStore.remove(loadingSlackIndicator);
     this.setState({loading: false, uuid: undefined});
   };
 
   fetchStatus(model: FormModel) {
+    const loadingSlackIndicator = IndicatorStore.addMessage(
+      t('Looking for your slack channel (this can take a while)'),
+      'loading'
+    );
     // pollHandler calls itself until it gets either a success
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
     setTimeout(() => {
-      this.pollHandler(model, quitTime);
+      this.pollHandler(model, quitTime, loadingSlackIndicator);
     }, 1000);
   }
 
-  pollHandler = async (model: FormModel, quitTime: number) => {
+  pollHandler = async (
+    model: FormModel,
+    quitTime: number,
+    loadingSlackIndicator: Indicator
+  ) => {
     if (Date.now() > quitTime) {
       addErrorMessage(t('Looking for that channel took too long :('));
-      this.resetPollingState();
+      this.resetPollingState(loadingSlackIndicator);
       return;
     }
 
@@ -185,12 +180,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
       if (status === 'pending') {
         setTimeout(() => {
-          this.pollHandler(model, quitTime);
+          this.pollHandler(model, quitTime, loadingSlackIndicator);
         }, 1000);
         return;
       }
 
-      this.resetPollingState();
+      this.resetPollingState(loadingSlackIndicator);
 
       if (status === 'failed') {
         addErrorMessage(error);
@@ -203,7 +198,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       }
     } catch {
       addErrorMessage(t('An error occurred'));
-      this.resetPollingState();
+      this.resetPollingState(loadingSlackIndicator);
     }
   };
 
@@ -433,8 +428,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     // form model has all form state data, however we use local state to keep
     // track of the list of triggers (and actions within triggers)
+    const loadingIndicator = IndicatorStore.addMessage(
+      t('Saving your alert rule, hold on...'),
+      'loading'
+    );
     try {
-      addLoadingMessage();
+      this.setState({loading: true});
       const [resp, , xhr] = await addOrUpdateRule(
         this.api,
         organization.slug,
@@ -458,15 +457,18 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         if (!uuid) {
           this.setState({loading: true, uuid: resp.uuid});
           this.fetchStatus(model);
-          addLoadingMessage(t('Looking through all your channels...'));
         }
       } else {
+        IndicatorStore.remove(loadingIndicator);
+        this.setState({loading: false});
         addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
         if (onSubmitSuccess) {
           onSubmitSuccess(resp, model);
         }
       }
     } catch (err) {
+      IndicatorStore.remove(loadingIndicator);
+      this.setState({loading: false});
       const errors = err?.responseJSON
         ? Array.isArray(err?.responseJSON)
           ? err?.responseJSON
@@ -550,7 +552,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {organization, ruleId, rule, params, onSubmitSuccess} = this.props;
+    const {
+      organization,
+      ruleId,
+      rule,
+      params,
+      onSubmitSuccess,
+      project,
+      userTeamIds,
+    } = this.props;
     const {
       query,
       timeWindow,
@@ -559,9 +569,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       environment,
       thresholdType,
       resolveThreshold,
+      loading,
     } = this.state;
 
-    const queryWithTypeFilter = `${query} ${this.eventTypeFilter}`.trim();
+    const eventTypeFilter = getEventTypeFilter(this.state.dataset, this.state.eventTypes);
+    const queryWithTypeFilter = `${query} ${eventTypeFilter}`.trim();
 
     const chart = (
       <TriggersChart
@@ -577,89 +589,82 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       />
     );
 
+    const ownerId = rule.owner?.split(':')[1];
+    const canEdit = ownerId ? userTeamIds.has(ownerId) : true;
+
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => (
-          <Feature features={['metric-alert-gui-filters']} organization={organization}>
-            {({hasFeature}) => (
-              <Form
-                apiMethod={ruleId ? 'PUT' : 'POST'}
-                apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
-                  ruleId ? `${ruleId}/` : ''
-                }`}
-                submitDisabled={!hasAccess}
-                initialData={{
-                  name: rule.name || '',
-                  dataset: rule.dataset,
-                  eventTypes: hasFeature ? rule.eventTypes : undefined,
-                  aggregate: rule.aggregate,
-                  query: rule.query || '',
-                  timeWindow: rule.timeWindow,
-                  environment: rule.environment || null,
-                }}
-                saveOnBlur={false}
-                onSubmit={this.handleSubmit}
-                onSubmitSuccess={onSubmitSuccess}
-                onCancel={this.handleCancel}
-                onFieldChange={this.handleFieldChange}
-                extraButton={
-                  !!rule.id ? (
-                    <Confirm
-                      disabled={!hasAccess}
-                      message={t('Are you sure you want to delete this alert rule?')}
-                      header={t('Delete Alert Rule?')}
-                      priority="danger"
-                      confirmText={t('Delete Rule')}
-                      onConfirm={this.handleDeleteRule}
-                    >
-                      <Button type="button" priority="danger">
-                        {t('Delete Rule')}
-                      </Button>
-                    </Confirm>
-                  ) : null
-                }
-                submitLabel={t('Save Rule')}
-              >
-                {hasFeature ? (
-                  <RuleConditionsFormWithGuiFilters
-                    api={this.api}
-                    projectSlug={params.projectId}
-                    organization={organization}
-                    disabled={!hasAccess}
-                    thresholdChart={chart}
-                    onFilterSearch={this.handleFilterUpdate}
-                  />
-                ) : (
-                  <RuleConditionsForm
-                    api={this.api}
-                    projectSlug={params.projectId}
-                    organization={organization}
-                    disabled={!hasAccess}
-                    thresholdChart={chart}
-                    onFilterSearch={this.handleFilterUpdate}
-                  />
-                )}
+          <Form
+            apiMethod={ruleId ? 'PUT' : 'POST'}
+            apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
+              ruleId ? `${ruleId}/` : ''
+            }`}
+            submitDisabled={!hasAccess || loading || !canEdit}
+            initialData={{
+              name: rule.name || '',
+              dataset: rule.dataset,
+              eventTypes: rule.eventTypes,
+              aggregate: rule.aggregate,
+              query: rule.query || '',
+              timeWindow: rule.timeWindow,
+              environment: rule.environment || null,
+              owner: rule.owner,
+            }}
+            saveOnBlur={false}
+            onSubmit={this.handleSubmit}
+            onSubmitSuccess={onSubmitSuccess}
+            onCancel={this.handleCancel}
+            onFieldChange={this.handleFieldChange}
+            extraButton={
+              !!rule.id ? (
+                <Confirm
+                  disabled={!hasAccess || !canEdit}
+                  message={t('Are you sure you want to delete this alert rule?')}
+                  header={t('Delete Alert Rule?')}
+                  priority="danger"
+                  confirmText={t('Delete Rule')}
+                  onConfirm={this.handleDeleteRule}
+                >
+                  <Button type="button" priority="danger">
+                    {t('Delete Rule')}
+                  </Button>
+                </Confirm>
+              ) : null
+            }
+            submitLabel={t('Save Rule')}
+          >
+            <RuleConditionsForm
+              api={this.api}
+              projectSlug={params.projectId}
+              organization={organization}
+              disabled={!hasAccess || !canEdit}
+              thresholdChart={chart}
+              onFilterSearch={this.handleFilterUpdate}
+            />
+            <Triggers
+              disabled={!hasAccess || !canEdit}
+              projects={this.state.projects}
+              errors={this.state.triggerErrors}
+              triggers={triggers}
+              resolveThreshold={resolveThreshold}
+              thresholdType={thresholdType}
+              currentProject={params.projectId}
+              organization={organization}
+              ruleId={ruleId}
+              availableActions={this.state.availableActions}
+              onChange={this.handleChangeTriggers}
+              onThresholdTypeChange={this.handleThresholdTypeChange}
+              onResolveThresholdChange={this.handleResolveThresholdChange}
+            />
 
-                <Triggers
-                  disabled={!hasAccess}
-                  projects={this.state.projects}
-                  errors={this.state.triggerErrors}
-                  triggers={triggers}
-                  resolveThreshold={resolveThreshold}
-                  thresholdType={thresholdType}
-                  currentProject={params.projectId}
-                  organization={organization}
-                  ruleId={ruleId}
-                  availableActions={this.state.availableActions}
-                  onChange={this.handleChangeTriggers}
-                  onThresholdTypeChange={this.handleThresholdTypeChange}
-                  onResolveThresholdChange={this.handleResolveThresholdChange}
-                />
-
-                <RuleNameForm disabled={!hasAccess} />
-              </Form>
-            )}
-          </Feature>
+            <RuleNameOwnerForm
+              disabled={!hasAccess || !canEdit}
+              organization={organization}
+              project={project}
+              userTeamIds={userTeamIds}
+            />
+          </Form>
         )}
       </Access>
     );

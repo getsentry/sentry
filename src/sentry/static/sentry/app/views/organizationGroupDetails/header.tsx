@@ -27,6 +27,7 @@ import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Group, Project} from 'app/types';
+import {Event} from 'app/types/event';
 import {getMessage} from 'app/utils/events';
 import withApi from 'app/utils/withApi';
 
@@ -51,6 +52,7 @@ type Props = {
   group: Group;
   project: Project;
   api: Client;
+  event?: Event;
 };
 
 type MemberList = NonNullable<
@@ -81,7 +83,7 @@ class GroupHeader extends React.Component<Props, State> {
   }
 
   render() {
-    const {project, group, currentTab, baseUrl} = this.props;
+    const {project, group, currentTab, baseUrl, event} = this.props;
     const {organization, location} = this.context;
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
@@ -140,12 +142,7 @@ class GroupHeader extends React.Component<Props, State> {
             </TitleWrapper>
             <StyledTagAndMessageWrapper>
               {hasInbox && group.level && <ErrorLevel level={group.level} size="11px" />}
-              {group.isUnhandled &&
-                (hasInbox ? (
-                  <UnhandledInboxTag organization={organization} />
-                ) : (
-                  <UnhandledTag />
-                ))}
+              {group.isUnhandled && (hasInbox ? <UnhandledInboxTag /> : <UnhandledTag />)}
               <EventMessage
                 message={message}
                 level={hasInbox ? undefined : group.level}
@@ -188,7 +185,7 @@ class GroupHeader extends React.Component<Props, State> {
                         )}
                         position="bottom"
                       >
-                        <ExternalLink href="https://docs.sentry.io/learn/releases/#resolving-issues-via-commits">
+                        <ExternalLink href="https://docs.sentry.io/product/integrations/github/#resolve-via-commit-or-pull-request">
                           {t('Issue #')}
                         </ExternalLink>
                       </Tooltip>
@@ -245,6 +242,7 @@ class GroupHeader extends React.Component<Props, State> {
           group={group}
           project={project}
           disabled={isGroupBeingReprocessing}
+          event={event}
         />
         <NavTabs>
           <ListLink

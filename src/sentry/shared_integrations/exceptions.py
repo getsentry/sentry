@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 from bs4 import BeautifulSoup
 from collections import OrderedDict
 from requests.exceptions import RequestException
 
 from simplejson.decoder import JSONDecodeError
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from sentry.utils import json
 
 
@@ -32,7 +30,7 @@ class ApiError(Exception):
                 self.json = None
         else:
             self.json = None
-        super(ApiError, self).__init__(text[:1024])
+        super().__init__(text[:1024])
 
     @classmethod
     def from_response(cls, response, url=None):
@@ -53,7 +51,7 @@ class ApiHostError(ApiError):
     @classmethod
     def from_request(cls, request):
         host = urlparse(request.url).netloc
-        return cls(u"Unable to reach host: {}".format(host))
+        return cls(f"Unable to reach host: {host}")
 
 
 class ApiTimeoutError(ApiError):
@@ -68,7 +66,7 @@ class ApiTimeoutError(ApiError):
     @classmethod
     def from_request(cls, request):
         host = urlparse(request.url).netloc
-        return cls(u"Timed out attempting to reach host: {}".format(host))
+        return cls(f"Timed out attempting to reach host: {host}")
 
 
 class ApiUnauthorized(ApiError):
@@ -89,15 +87,19 @@ class DuplicateDisplayNameError(IntegrationError):
     pass
 
 
-class DeprecatedIntegrationError(IntegrationError):
-    pass
-
-
 class IntegrationFormError(IntegrationError):
     def __init__(self, field_errors):
-        super(IntegrationFormError, self).__init__("Invalid integration action")
+        super().__init__("Invalid integration action")
         self.field_errors = field_errors
 
 
 class IgnorableSentryAppError(RequestException):
     pass
+
+
+class ClientError(RequestException):
+    """4xx Error Occurred"""
+
+    def __init__(self, status_code, url, response=None):
+        http_error_msg = f"{status_code} Client Error: for url: {url}"
+        super().__init__(http_error_msg, response=response)

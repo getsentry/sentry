@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import logging
-import six
 
 from collections import namedtuple
 from datetime import timedelta
@@ -18,7 +15,7 @@ from sentry.utils.safe import safe_execute
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 
-class RuleProcessor(object):
+class RuleProcessor:
     logger = logging.getLogger("sentry.rules")
 
     def __init__(self, event, is_new, is_regression, is_new_group_environment, has_reappeared):
@@ -194,9 +191,9 @@ class RuleProcessor(object):
     def apply(self):
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
-            return six.itervalues({})
+            return {}.values()
 
         self.grouped_futures.clear()
         for rule in self.get_rules():
             self.apply_rule(rule)
-        return six.itervalues(self.grouped_futures)
+        return self.grouped_futures.values()

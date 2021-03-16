@@ -44,7 +44,6 @@ const GroupReleaseStats = ({
 
   const projectId = project.id;
   const projectSlug = project.slug;
-  const orgSlug = organization.slug;
   const hasRelease = new Set(project.features).has('releases');
   const releaseTrackingUrl = `/settings/${organization.slug}/projects/${project.slug}/release-tracking/`;
 
@@ -95,7 +94,7 @@ const GroupReleaseStats = ({
             }
           >
             <SeenInfo
-              orgSlug={orgSlug}
+              organization={organization}
               projectId={projectId}
               projectSlug={projectSlug}
               date={getDynamicText({
@@ -127,7 +126,7 @@ const GroupReleaseStats = ({
             }
           >
             <SeenInfo
-              orgSlug={orgSlug}
+              organization={organization}
               projectId={projectId}
               projectSlug={projectSlug}
               date={getDynamicText({

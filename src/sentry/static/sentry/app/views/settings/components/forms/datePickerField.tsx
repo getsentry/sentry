@@ -1,4 +1,5 @@
 import React from 'react';
+import {Calendar, OnChangeProps} from 'react-date-range';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -14,7 +15,7 @@ type Props = Omit<InputField['props'], 'field'>;
 function handleChangeDate(
   onChange: onEvent,
   onBlur: onEvent,
-  date: Date,
+  date: OnChangeProps,
   close: Function
 ) {
   onChange(date);
@@ -32,7 +33,7 @@ export default function DatePickerField(props: Props) {
   return (
     <InputField
       {...props}
-      field={({onChange, onBlur, value, disabled, id}) => {
+      field={({onChange, onBlur, value, id}) => {
         const dateObj = new Date(value);
         const inputValue = !isNaN(dateObj.getTime()) ? dateObj : new Date();
         const dateString = moment(inputValue).format('LL');
@@ -50,15 +51,12 @@ export default function DatePickerField(props: Props) {
 
                 {isOpen && (
                   <CalendarMenu {...getMenuProps()}>
-                    <React.Suspense fallback={null}>
-                      <Calendar
-                        disabled={disabled}
-                        date={inputValue}
-                        onChange={date =>
-                          handleChangeDate(onChange, onBlur, date, actions.close)
-                        }
-                      />
-                    </React.Suspense>
+                    <Calendar
+                      date={inputValue}
+                      onChange={date =>
+                        handleChangeDate(onChange, onBlur, date, actions.close)
+                      }
+                    />
                   </CalendarMenu>
                 )}
               </div>

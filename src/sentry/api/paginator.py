@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import bisect
 import functools
 import math
@@ -25,7 +23,7 @@ class BadPaginationError(Exception):
     pass
 
 
-class BasePaginator(object):
+class BasePaginator:
     def __init__(
         self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None, post_query_filter=None
     ):
@@ -83,16 +81,12 @@ class BasePaginator(object):
                 col_query, col_params = quote_name(self.key), []
             col_params.append(value)
 
-            if asc:
-                queryset = queryset.extra(
-                    where=["%s.%s >= %%s" % (queryset.model._meta.db_table, col_query)],
-                    params=col_params,
-                )
-            else:
-                queryset = queryset.extra(
-                    where=["%s.%s <= %%s" % (queryset.model._meta.db_table, col_query)],
-                    params=col_params,
-                )
+            col = col_query if "." in col_query else f"{queryset.model._meta.db_table}.{col_query}"
+            operator = ">=" if asc else "<="
+            queryset = queryset.extra(
+                where=[f"{col} {operator} %s"],
+                params=col_params,
+            )
 
         return queryset
 
@@ -192,7 +186,7 @@ class BasePaginator(object):
         except EmptyResultSet:
             return 0
         cursor = connections[self.queryset.db].cursor()
-        cursor.execute(u"SELECT COUNT(*) FROM ({}) as t".format(h_sql), h_params)
+        cursor.execute(f"SELECT COUNT(*) FROM ({h_sql}) as t", h_params)
         return cursor.fetchone()[0]
 
 
@@ -222,7 +216,7 @@ class DateTimePaginator(BasePaginator):
 # TODO(dcramer): previous cursors are too complex at the moment for many things
 # and are only useful for polling situations. The OffsetPaginator ignores them
 # entirely and uses standard paging
-class OffsetPaginator(object):
+class OffsetPaginator:
     def __init__(
         self, queryset, order_by=None, max_limit=MAX_LIMIT, max_offset=None, on_results=None
     ):
@@ -288,9 +282,7 @@ class MergingOffsetPaginator(OffsetPaginator):
         max_limit=MAX_LIMIT,
         on_results=None,
     ):
-        super(MergingOffsetPaginator, self).__init__(
-            queryset, max_limit=max_limit, on_results=on_results
-        )
+        super().__init__(queryset, max_limit=max_limit, on_results=on_results)
         self.data_load_func = data_load_func
         self.apply_to_queryset = apply_to_queryset
         self.key_from_model = key_from_model or (lambda x: x.id)
@@ -362,7 +354,7 @@ def reverse_bisect_left(a, x, lo=0, hi=None):
     return lo
 
 
-class SequencePaginator(object):
+class SequencePaginator:
     def __init__(self, data, reverse=False, max_limit=MAX_LIMIT, on_results=None):
         self.scores, self.values = (
             map(list, zip(*sorted(data, reverse=reverse))) if data else ([], [])
@@ -440,7 +432,7 @@ class SequencePaginator(object):
         )
 
 
-class GenericOffsetPaginator(object):
+class GenericOffsetPaginator:
     """
     A paginator for getting pages of results for a query using the OFFSET/LIMIT
     mechanism.
@@ -491,7 +483,7 @@ class GenericOffsetPaginator(object):
         # date for queries, this should stop drift from new incoming events.
 
 
-class CombinedQuerysetIntermediary(object):
+class CombinedQuerysetIntermediary:
     is_empty = False
 
     def __init__(self, queryset, order_by):
@@ -502,14 +494,14 @@ class CombinedQuerysetIntermediary(object):
             self.instance_type = type(instance)
             assert hasattr(
                 instance, self.order_by
-            ), "Model of type {} does not have field {}".format(self.instance_type, self.order_by)
+            ), f"Model of type {self.instance_type} does not have field {self.order_by}"
             self.order_by_type = type(getattr(instance, self.order_by))
         except ObjectDoesNotExist:
             self.is_empty = True
 
 
-class CombinedQuerysetPaginator(object):
-    """ This paginator can be used to paginate between multiple querysets.
+class CombinedQuerysetPaginator:
+    """This paginator can be used to paginate between multiple querysets.
     It needs to be passed a list of CombinedQuerysetIntermediary. Each CombinedQuerysetIntermediary must be populated with a queryset and an order_by key
         i.e. intermediaries = [
                 CombinedQuerysetIntermediary(AlertRule.objects.all(), "name")
@@ -607,7 +599,8 @@ class CombinedQuerysetPaginator(object):
             return ((key_value, type(item).__name__),)
 
         combined_querysets.sort(
-            key=_sort_combined_querysets, reverse=not asc,
+            key=_sort_combined_querysets,
+            reverse=not asc,
         )
 
         return combined_querysets
@@ -657,7 +650,7 @@ class CombinedQuerysetPaginator(object):
         )
 
 
-class ChainPaginator(object):
+class ChainPaginator:
     """
     Chain multiple datasources together and paginate them as one source.
     The datasources should be provided in the order they should be used.

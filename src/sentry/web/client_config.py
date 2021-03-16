@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import sentry
 
 from django.core.cache import cache
@@ -83,7 +81,7 @@ def _get_public_dsn():
         return settings.SENTRY_FRONTEND_DSN
 
     project_id = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
-    cache_key = "dsn:%s" % (project_id,)
+    cache_key = f"dsn:{project_id}"
 
     result = cache.get(cache_key)
     if result is None:
@@ -179,6 +177,7 @@ def get_client_config(request=None):
                 else list("" if settings.ALLOWED_HOSTS == ["*"] else settings.ALLOWED_HOSTS)
             ),
         },
+        "demoMode": settings.DEMO_MODE,
     }
     if user and user.is_authenticated():
         context.update(

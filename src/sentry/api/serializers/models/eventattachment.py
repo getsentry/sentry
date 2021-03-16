@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry.api.serializers import Serializer, register
 from sentry.models import EventAttachment, File
 
@@ -15,7 +11,7 @@ class EventAttachmentSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         file = attrs["file"]
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "name": obj.name,
             "headers": file.headers,
             "mimetype": obj.mimetype,

@@ -9,8 +9,8 @@ on:
 jobs:
   lint:
     name: backend lint
-    runs-on: ubuntu-16.04
-    timeout-minutes: 3
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v2
@@ -62,9 +62,11 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          # Note this uses a different cache key than other backend-based workflows because this workflows dependencies are different
+          key: |
+            precommit-${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ hashFiles('requirements-pre-commit.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
+            precommit-${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}
 
       - name: Setup pre-commit
         if: steps.changes.outputs.backend == 'true'

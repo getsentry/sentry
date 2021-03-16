@@ -1,14 +1,15 @@
 import React from 'react';
-import {boolean} from '@storybook/addon-knobs';
-import {withInfo} from '@storybook/addon-info';
 
 import ProcessingIssueHint from 'app/components/stream/processingIssueHint';
 
 export default {
-  title: 'Features/Issues/Processing Issue Hint',
+  title: 'Features/Issues/ProcessingIssueHint',
+  args: {
+    showProject: false,
+  },
 };
 
-export const Default = withInfo('default')(() => {
+export const Default = ({showProject}) => {
   const issue = {
     project: 'sentry-test',
     numIssues: 6,
@@ -29,26 +30,24 @@ export const Default = withInfo('default')(() => {
         issue={issue}
         projectId={issue.project}
         orgId="organization-slug"
-        showProject={boolean('Show Project', false)}
+        showProject={showProject}
       />
       <br />
       <ProcessingIssueHint
         issue={warning}
         projectId={warning.project}
         orgId="organization-slug"
-        showProject={boolean('Show Project', false)}
+        showProject={showProject}
       />
       <br />
       <ProcessingIssueHint
         issue={info}
         projectId={info.project}
         orgId="organization-slug"
-        showProject={boolean('Show Project', false)}
+        showProject={showProject}
       />
     </React.Fragment>
   );
-});
-
-Default.story = {
-  name: 'default',
 };
+
+Default.storyName = 'default';

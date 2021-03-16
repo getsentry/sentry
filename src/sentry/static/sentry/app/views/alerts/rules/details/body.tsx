@@ -1,63 +1,70 @@
 import React from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
+import moment from 'moment';
 
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import {SectionHeading} from 'app/components/charts/styles';
+import {getInterval} from 'app/components/charts/utils';
+import DateTime from 'app/components/dateTime';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
 import * as Layout from 'app/components/layouts/thirds';
-import Link from 'app/components/links/link';
-import NavTabs from 'app/components/navTabs';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import SeenByList from 'app/components/seenByList';
-import {IconWarning} from 'app/icons';
+import TimeSince from 'app/components/timeSince';
+import {IconCheckmark} from 'app/icons/iconCheckmark';
+import {IconFire} from 'app/icons/iconFire';
+import {IconWarning} from 'app/icons/iconWarning';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project, SelectValue} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import Projects from 'app/utils/projects';
+import {Theme} from 'app/utils/theme';
+import Timeline from 'app/views/alerts/rules/details/timeline';
 import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
-import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
-import {AlertRuleThresholdType, TimePeriod} from 'app/views/settings/incidentRules/types';
-
-import Activity from '../../details/activity';
+import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {
-  AlertRuleStatus,
-  Incident,
-  IncidentStats,
-  IncidentStatus,
-  IncidentStatusMethod,
-} from '../../types';
-import {DATA_SOURCE_LABELS, getIncidentMetricPreset} from '../../utils';
+  AlertRuleThresholdType,
+  Dataset,
+  IncidentRule,
+} from 'app/views/settings/incidentRules/types';
+import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
 
+import {Incident, IncidentStatus} from '../../types';
+import {DATA_SOURCE_LABELS, getIncidentRuleMetricPreset} from '../../utils';
+
+import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS} from './constants';
 import MetricChart from './metricChart';
+import RelatedIssues from './relatedIssues';
+import RelatedTransactions from './relatedTransactions';
 
 type Props = {
   api: Client;
-  incident?: Incident;
-  stats?: IncidentStats;
+  rule?: IncidentRule;
+  incidents?: Incident[];
+  timePeriod: {
+    start: string;
+    end: string;
+    label: string;
+    custom?: boolean;
+  };
   organization: Organization;
   location: Location;
+  theme: Theme;
+  handleTimePeriodChange: (value: string) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-const TIME_OPTIONS: SelectValue<string>[] = [
-  {label: t('6 hours'), value: TimePeriod.SIX_HOURS},
-  {label: t('24 hours'), value: TimePeriod.ONE_DAY},
-  {label: t('3 days'), value: TimePeriod.THREE_DAYS},
-  {label: t('7 days'), value: TimePeriod.SEVEN_DAYS},
-];
-
-export default class DetailsBody extends React.Component<Props> {
+class DetailsBody extends React.Component<Props> {
   get metricPreset() {
-    const {incident} = this.props;
-    return incident ? getIncidentMetricPreset(incident) : undefined;
+    const {rule} = this.props;
+    return rule ? getIncidentRuleMetricPreset(rule) : undefined;
   }
 
   /**
@@ -65,10 +72,10 @@ export default class DetailsBody extends React.Component<Props> {
    */
   getThresholdText(
     value: number | '' | null | undefined,
-    thresholdType: AlertRuleThresholdType,
+    thresholdType?: AlertRuleThresholdType,
     isAlert: boolean = false
   ) {
-    if (!defined(value)) {
+    if (!defined(value) || !defined(thresholdType)) {
       return '';
     }
 
@@ -78,55 +85,87 @@ export default class DetailsBody extends React.Component<Props> {
     return `${direction} ${value}`;
   }
 
-  getTimePeriod() {
-    const {location} = this.props;
+  getInterval() {
+    const {
+      timePeriod: {start, end},
+      rule,
+    } = this.props;
+    const startDate = moment.utc(start);
+    const endDate = moment.utc(end);
+    const timeWindow = rule?.timeWindow;
 
-    const timePeriod = location.query.period ?? TimePeriod.ONE_DAY;
-    return TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
+    if (
+      timeWindow &&
+      endDate.diff(startDate) < API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000
+    ) {
+      return `${timeWindow}m`;
+    }
+
+    return getInterval({start, end}, true);
   }
 
-  handleTimePeriodChange = (value: string) => {
-    const {location} = this.props;
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        period: value,
-      },
-    });
-  };
+  calculateSummaryPercentages(
+    incidents: Incident[] | undefined,
+    startTime: string,
+    endTime: string
+  ) {
+    const startDate = moment.utc(startTime);
+    const endDate = moment.utc(endTime);
+    const totalTime = endDate.diff(startDate);
+
+    let criticalPercent = '0';
+    let warningPercent = '0';
+    if (incidents) {
+      const filteredIncidents = incidents.filter(incident => {
+        return !incident.dateClosed || moment(incident.dateClosed).isAfter(startDate);
+      });
+      let criticalDuration = 0;
+      const warningDuration = 0;
+      for (const incident of filteredIncidents) {
+        // use the larger of the start of the incident or the start of the time period
+        const incidentStart = moment.max(moment(incident.dateStarted), startDate);
+        const incidentClose = incident.dateClosed ? moment(incident.dateClosed) : endDate;
+        criticalDuration += incidentClose.diff(incidentStart);
+      }
+      criticalPercent = ((criticalDuration / totalTime) * 100).toFixed(2);
+      warningPercent = ((warningDuration / totalTime) * 100).toFixed(2);
+    }
+    const resolvedPercent = (
+      100 -
+      (Number(criticalPercent) + Number(warningPercent))
+    ).toFixed(2);
+
+    return {criticalPercent, warningPercent, resolvedPercent};
+  }
 
   renderRuleDetails() {
-    const {incident} = this.props;
+    const {rule} = this.props;
 
-    if (incident === undefined) {
+    if (rule === undefined) {
       return <Placeholder height="200px" />;
     }
 
-    const criticalTrigger = incident?.alertRule.triggers.find(
-      ({label}) => label === 'critical'
-    );
-    const warningTrigger = incident?.alertRule.triggers.find(
-      ({label}) => label === 'warning'
-    );
+    const criticalTrigger = rule?.triggers.find(({label}) => label === 'critical');
+    const warningTrigger = rule?.triggers.find(({label}) => label === 'warning');
 
     return (
       <RuleDetails>
         <span>{t('Data Source')}</span>
-        <span>{DATA_SOURCE_LABELS[incident.alertRule?.dataset]}</span>
+        <span>{rule?.dataset && DATA_SOURCE_LABELS[rule?.dataset]}</span>
 
         <span>{t('Metric')}</span>
-        <span>{incident.alertRule?.aggregate}</span>
+        <span>{rule?.aggregate}</span>
 
         <span>{t('Time Window')}</span>
-        <span>
-          {incident && <Duration seconds={incident.alertRule.timeWindow * 60} />}
-        </span>
+        <span>{rule?.timeWindow && <Duration seconds={rule?.timeWindow * 60} />}</span>
 
-        {incident.alertRule?.query && (
+        {(rule?.dataset || rule?.query) && (
           <React.Fragment>
             <span>{t('Filter')}</span>
-            <span title={incident.alertRule?.query}>{incident.alertRule?.query}</span>
+            <span>
+              {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
+              {rule?.query}
+            </span>
           </React.Fragment>
         )}
 
@@ -134,7 +173,7 @@ export default class DetailsBody extends React.Component<Props> {
         <span>
           {this.getThresholdText(
             criticalTrigger?.alertThreshold,
-            incident.alertRule?.thresholdType,
+            rule?.thresholdType,
             true
           )}
         </span>
@@ -145,21 +184,18 @@ export default class DetailsBody extends React.Component<Props> {
             <span>
               {this.getThresholdText(
                 warningTrigger?.alertThreshold,
-                incident.alertRule?.thresholdType,
+                rule?.thresholdType,
                 true
               )}
             </span>
           </React.Fragment>
         )}
 
-        {defined(incident.alertRule?.resolveThreshold) && (
+        {defined(rule?.resolveThreshold) && (
           <React.Fragment>
             <span>{t('Resolution')}</span>
             <span>
-              {this.getThresholdText(
-                incident.alertRule?.resolveThreshold,
-                incident.alertRule?.thresholdType
-              )}
+              {this.getThresholdText(rule?.resolveThreshold, rule?.thresholdType)}
             </span>
           </React.Fragment>
         )}
@@ -167,193 +203,275 @@ export default class DetailsBody extends React.Component<Props> {
     );
   }
 
-  renderChartHeader() {
-    const {incident} = this.props;
-    const alertRule = incident?.alertRule;
-
+  renderSummaryStatItems({
+    criticalPercent,
+    warningPercent,
+    resolvedPercent,
+  }: {
+    criticalPercent: string;
+    warningPercent: string;
+    resolvedPercent: string;
+  }) {
     return (
-      <ChartHeader>
-        <div>
-          {this.metricPreset?.name ?? t('Custom metric')}
-          <ChartParameters>
-            {tct('Metric: [metric] over [window]', {
-              metric: <code>{alertRule?.aggregate ?? '\u2026'}</code>,
-              window: (
-                <code>
-                  {incident ? (
-                    <Duration seconds={incident.alertRule.timeWindow * 60} />
-                  ) : (
-                    '\u2026'
-                  )}
-                </code>
-              ),
-            })}
-            {(alertRule?.query || incident?.alertRule?.dataset) &&
-              tct('Filter: [datasetType] [filter]', {
-                datasetType: incident?.alertRule?.dataset && (
-                  <code>{DATASET_EVENT_TYPE_FILTERS[incident.alertRule.dataset]}</code>
-                ),
-                filter: alertRule?.query && <code>{alertRule.query}</code>,
-              })}
-          </ChartParameters>
-        </div>
-      </ChartHeader>
+      <React.Fragment>
+        <StatItem>
+          <IconCheckmark color="green300" isCircled />
+          <StatCount>{resolvedPercent}%</StatCount>
+        </StatItem>
+        <StatItem>
+          <IconWarning color="yellow300" />
+          <StatCount>{warningPercent}%</StatCount>
+        </StatItem>
+        <StatItem>
+          <IconFire color="red300" />
+          <StatCount>{criticalPercent}%</StatCount>
+        </StatItem>
+      </React.Fragment>
     );
   }
 
-  renderChartActions() {
-    const {incident, params, stats} = this.props;
+  renderChartActions(projects: Project[]) {
+    const {rule, params, incidents, timePeriod} = this.props;
+    const preset = this.metricPreset;
+    const ctaOpts = {
+      orgSlug: params.orgId,
+      projects,
+      rule,
+      start: timePeriod.start,
+      end: timePeriod.end,
+    };
+
+    const {buttonText, ...props} = preset
+      ? preset.makeCtaParams(ctaOpts)
+      : makeDefaultCta(ctaOpts);
+
+    const percentages = this.calculateSummaryPercentages(
+      incidents,
+      timePeriod.start,
+      timePeriod.end
+    );
 
     return (
-      // Currently only one button in pannel, hide panel if not available
-      <Feature features={['discover-basic']}>
-        <ChartActions>
-          <Projects slugs={incident?.projects} orgId={params.orgId}>
-            {({initiallyLoaded, fetching, projects}) => {
-              const preset = this.metricPreset;
-              const ctaOpts = {
-                orgSlug: params.orgId,
-                projects: (initiallyLoaded ? projects : []) as Project[],
-                incident,
-                stats,
-              };
+      <ChartActions>
+        <ChartSummary>
+          <SummaryText>{t('SUMMARY')}</SummaryText>
+          <SummaryStats>{this.renderSummaryStatItems(percentages)}</SummaryStats>
+        </ChartSummary>
+        <Feature features={['discover-basic']}>
+          <Button size="small" disabled={!rule} {...props}>
+            {buttonText}
+          </Button>
+        </Feature>
+      </ChartActions>
+    );
+  }
 
-              const {buttonText, ...props} = preset
-                ? preset.makeCtaParams(ctaOpts)
-                : makeDefaultCta(ctaOpts);
+  renderMetricStatus() {
+    const {incidents, theme} = this.props;
 
-              return (
-                <Button
-                  size="small"
-                  priority="primary"
-                  disabled={!incident || fetching || !initiallyLoaded}
-                  {...props}
-                >
-                  {buttonText}
-                </Button>
-              );
-            }}
-          </Projects>
-        </ChartActions>
-      </Feature>
+    // get current status
+    const activeIncident = incidents?.find(({dateClosed}) => !dateClosed);
+    const status = activeIncident ? activeIncident.status : IncidentStatus.CLOSED;
+    let statusText = t('Okay');
+    let Icon = IconCheckmark;
+    let color: string = theme.green300;
+    if (status === IncidentStatus.CRITICAL) {
+      statusText = t('Critical');
+      Icon = IconFire;
+      color = theme.red300;
+    } else if (status === IncidentStatus.WARNING) {
+      statusText = t('Warning');
+      Icon = IconWarning;
+      color = theme.yellow300;
+    }
+
+    const latestIncident = incidents?.length ? incidents[0] : null;
+    // The date at which the alert was triggered or resolved
+    const activityDate = activeIncident
+      ? activeIncident.dateStarted
+      : latestIncident
+      ? latestIncident.dateClosed
+      : null;
+
+    return (
+      <GroupedHeaderItems>
+        <SidebarHeading>{t('Status')}</SidebarHeading>
+        <SidebarHeading>
+          {activeIncident ? t('Last Triggered') : t('Last Resolved')}
+        </SidebarHeading>
+        <ItemValue>
+          <AlertBadge color={color} icon={Icon}>
+            <AlertIconWrapper>
+              <Icon color="white" />
+            </AlertIconWrapper>
+          </AlertBadge>
+          <IncidentStatusValue color={color}>{statusText}</IncidentStatusValue>
+        </ItemValue>
+        <ItemValue>{activityDate ? <TimeSince date={activityDate} /> : '-'}</ItemValue>
+      </GroupedHeaderItems>
+    );
+  }
+
+  renderLoading() {
+    return (
+      <Layout.Body>
+        <Layout.Main>
+          <Placeholder height="38px" />
+          <ChartPanel>
+            <PanelBody withPadding>
+              <Placeholder height="200px" />
+            </PanelBody>
+          </ChartPanel>
+        </Layout.Main>
+        <Layout.Side>
+          <SidebarHeading>
+            <span>{t('Alert Rule')}</span>
+          </SidebarHeading>
+          {this.renderRuleDetails()}
+        </Layout.Side>
+      </Layout.Body>
     );
   }
 
   render() {
-    const {api, params, incident, organization} = this.props;
-    const {query, environment, aggregate, projects: projectSlugs} =
-      incident?.alertRule ?? {};
-    const timePeriod = this.getTimePeriod();
+    const {
+      api,
+      rule,
+      incidents,
+      location,
+      organization,
+      timePeriod,
+      params: {orgId},
+    } = this.props;
+
+    if (!rule) {
+      return this.renderLoading();
+    }
+
+    const {
+      query,
+      environment,
+      aggregate,
+      projects: projectSlugs,
+      timeWindow,
+      triggers,
+    } = rule;
+
+    const criticalTrigger = triggers.find(({label}) => label === 'critical');
+    const warningTrigger = triggers.find(({label}) => label === 'warning');
+    const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
 
     return (
-      <Layout.Body>
-        <Layout.Main>
-          {incident &&
-            incident.status === IncidentStatus.CLOSED &&
-            incident.statusMethod === IncidentStatusMethod.RULE_UPDATED && (
-              <AlertWrapper>
-                <Alert type="warning" icon={<IconWarning size="sm" />}>
-                  {t(
-                    'This alert has been auto-resolved because the rule that triggered it has been modified or deleted'
+      <Projects orgId={orgId} slugs={projectSlugs}>
+        {({initiallyLoaded, projects}) => {
+          return initiallyLoaded ? (
+            <Layout.Body>
+              <Layout.Main>
+                <ChartControls>
+                  <DropdownControl label={timePeriod.label}>
+                    {TIME_OPTIONS.map(({label, value}) => (
+                      <DropdownItem
+                        key={value}
+                        eventKey={value}
+                        onSelect={this.props.handleTimePeriodChange}
+                      >
+                        {label}
+                      </DropdownItem>
+                    ))}
+                  </DropdownControl>
+                  {timePeriod.custom && (
+                    <StyledTimeRange>
+                      <DateTime date={moment.utc(timePeriod.start)} timeAndDate />
+                      {' — '}
+                      <DateTime date={moment.utc(timePeriod.end)} timeAndDate />
+                    </StyledTimeRange>
                   )}
-                </Alert>
-              </AlertWrapper>
-            )}
-          <StyledDropdownControl
-            buttonProps={{prefix: t('Display')}}
-            label={timePeriod.label}
-          >
-            {TIME_OPTIONS.map(({label, value}) => (
-              <DropdownItem
-                key={value}
-                eventKey={value}
-                onSelect={this.handleTimePeriodChange}
-              >
-                {label}
-              </DropdownItem>
-            ))}
-          </StyledDropdownControl>
-          <ChartPanel>
-            <PanelBody withPadding>
-              {this.renderChartHeader()}
-              <Projects orgId={organization.id} slugs={projectSlugs}>
-                {({initiallyLoaded, projects}) => {
-                  return initiallyLoaded && incident && incident.alertRule ? (
+                </ChartControls>
+                <ChartPanel>
+                  <PanelBody withPadding>
+                    <ChartHeader>
+                      <PresetName>
+                        {this.metricPreset?.name ?? t('Custom metric')}
+                      </PresetName>
+                      {tct(' [metric] over [window]', {
+                        metric: aggregate,
+                        window: <Duration seconds={timeWindow * 60} />,
+                      })}
+                    </ChartHeader>
                     <EventsRequest
                       api={api}
                       organization={organization}
-                      query={query}
+                      query={queryWithTypeFilter}
                       environment={environment ? [environment] : undefined}
                       project={(projects as Project[]).map(project => Number(project.id))}
-                      // TODO(davidenwang): allow interval to be changed for larger time periods
-                      interval="5m"
-                      period={timePeriod.value}
+                      interval={this.getInterval()}
+                      start={timePeriod.start}
+                      end={timePeriod.end}
                       yAxis={aggregate}
                       includePrevious={false}
                       currentSeriesName={aggregate}
                     >
                       {({loading, timeseriesData}) =>
                         !loading && timeseriesData ? (
-                          <MetricChart data={timeseriesData} />
+                          <MetricChart
+                            data={timeseriesData}
+                            ruleChangeThreshold={rule?.dateModified}
+                            incidents={incidents}
+                            criticalTrigger={criticalTrigger}
+                            warningTrigger={warningTrigger}
+                          />
                         ) : (
                           <Placeholder height="200px" />
                         )
                       }
                     </EventsRequest>
-                  ) : (
-                    <Placeholder height="200px" />
-                  );
-                }}
-              </Projects>
-            </PanelBody>
-            {this.renderChartActions()}
-          </ChartPanel>
-          <DetailWrapper>
-            <ActivityWrapper>
-              <StyledNavTabs underlined>
-                <li className="active">
-                  <Link to="">{t('Activity')}</Link>
-                </li>
-
-                <SeenByTab>
-                  {incident && (
-                    <StyledSeenByList
-                      iconPosition="right"
-                      seenBy={incident.seenBy}
-                      iconTooltip={t('People who have viewed this alert')}
-                    />
-                  )}
-                </SeenByTab>
-              </StyledNavTabs>
-              <Activity
-                incident={incident}
-                params={params}
-                incidentStatus={!!incident ? incident.status : null}
-              />
-            </ActivityWrapper>
-          </DetailWrapper>
-        </Layout.Main>
-        <Layout.Side>
-          <SidebarHeading>
-            <span>{t('Alert Rule')}</span>
-            {incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
-              <SideHeaderLink
-                disabled={!!incident?.id}
-                to={
-                  incident?.id
-                    ? {
-                        pathname: `/organizations/${params.orgId}/alerts/metric-rules/${incident?.projects[0]}/${incident?.alertRule?.id}/`,
-                      }
-                    : ''
-                }
-              >
-                {t('View Alert Rule')}
-              </SideHeaderLink>
-            )}
-          </SidebarHeading>
-          {this.renderRuleDetails()}
-        </Layout.Side>
-      </Layout.Body>
+                  </PanelBody>
+                  {this.renderChartActions(projects as Project[])}
+                </ChartPanel>
+                <DetailWrapper>
+                  <ActivityWrapper>
+                    {rule?.dataset === Dataset.ERRORS && (
+                      <RelatedIssues
+                        organization={organization}
+                        rule={rule}
+                        projects={((projects as Project[]) || []).filter(project =>
+                          rule.projects.includes(project.slug)
+                        )}
+                        start={timePeriod.start}
+                        end={timePeriod.end}
+                        filter={queryWithTypeFilter}
+                      />
+                    )}
+                    {rule?.dataset === Dataset.TRANSACTIONS && (
+                      <RelatedTransactions
+                        organization={organization}
+                        location={location}
+                        rule={rule}
+                        projects={((projects as Project[]) || []).filter(project =>
+                          rule.projects.includes(project.slug)
+                        )}
+                        start={timePeriod.start}
+                        end={timePeriod.end}
+                        filter={DATASET_EVENT_TYPE_FILTERS[rule.dataset]}
+                      />
+                    )}
+                    <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
+                  </ActivityWrapper>
+                </DetailWrapper>
+              </Layout.Main>
+              <Layout.Side>
+                {this.renderMetricStatus()}
+                <SidebarHeading>
+                  <span>{t('Alert Rule')}</span>
+                </SidebarHeading>
+                {this.renderRuleDetails()}
+              </Layout.Side>
+            </Layout.Body>
+          ) : (
+            <Placeholder height="200px" />
+          );
+        }}
+      </Projects>
     );
   }
 }
@@ -371,6 +489,50 @@ const ActivityWrapper = styled('div')`
   display: flex;
   flex: 1;
   flex-direction: column;
+  width: 100%;
+`;
+
+const GroupedHeaderItems = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  grid-gap: ${space(1)} ${space(4)};
+  text-align: right;
+  margin-top: ${space(1)};
+  margin-bottom: ${space(4)};
+`;
+
+const ItemValue = styled('div')`
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const IncidentStatusValue = styled('div')<{color: string}>`
+  margin-left: ${space(1.5)};
+  color: ${p => p.color};
+`;
+
+const AlertBadge = styled('div')<{color: string; icon: React.ReactNode}>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  /* icon warning needs to be treated differently to look visually centered */
+  line-height: ${p => (p.icon === IconWarning ? undefined : 1)};
+
+  &:before {
+    content: '';
+    width: 30px;
+    height: 30px;
+    border-radius: ${p => p.theme.borderRadius};
+    background-color: ${p => p.color};
+    transform: rotate(45deg);
+  }
+`;
+
+const AlertIconWrapper = styled('div')`
+  position: absolute;
 `;
 
 const SidebarHeading = styled(SectionHeading)`
@@ -378,73 +540,65 @@ const SidebarHeading = styled(SectionHeading)`
   justify-content: space-between;
 `;
 
-const SideHeaderLink = styled(Link)`
-  font-weight: normal;
+const ChartControls = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 `;
 
-const ChartPanel = styled(Panel)``;
+const StyledTimeRange = styled('div')`
+  margin-left: ${space(2)};
+`;
 
-const StyledDropdownControl = styled(DropdownControl)`
-  margin-bottom: ${space(2)};
-  margin-right: ${space(1)};
+const ChartPanel = styled(Panel)`
+  margin-top: ${space(2)};
 `;
 
 const ChartHeader = styled('header')`
   margin-bottom: ${space(1)};
+  display: flex;
+  flex-direction: row;
+`;
+
+const PresetName = styled('div')`
+  text-transform: capitalize;
+  margin-right: ${space(0.5)};
 `;
 
 const ChartActions = styled(PanelFooter)`
   display: flex;
   justify-content: flex-end;
-  padding: ${space(2)};
-`;
-
-const ChartParameters = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: max-content;
-  grid-gap: ${space(4)};
   align-items: center;
-  overflow-x: auto;
-
-  > * {
-    position: relative;
-  }
-
-  > *:not(:last-of-type):after {
-    content: '';
-    display: block;
-    height: 70%;
-    width: 1px;
-    background: ${p => p.theme.gray200};
-    position: absolute;
-    right: -${space(2)};
-    top: 15%;
-  }
+  padding: ${space(1)} 20px;
 `;
 
-const AlertWrapper = styled('div')`
-  padding: ${space(2)} ${space(4)} 0;
-`;
-
-const StyledNavTabs = styled(NavTabs)`
+const ChartSummary = styled('div')`
   display: flex;
+  margin-right: auto;
 `;
 
-const SeenByTab = styled('li')`
-  flex: 1;
-  margin-left: ${space(2)};
-  margin-right: 0;
-
-  .nav-tabs > & {
-    margin-right: 0;
-  }
+const SummaryText = styled('span')`
+  margin-top: ${space(0.25)};
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const StyledSeenByList = styled(SeenByList)`
-  margin-top: 0;
+const SummaryStats = styled('div')`
+  display: flex;
+  align-items: center;
+  margin: 0 ${space(2)};
+`;
+
+const StatItem = styled('div')`
+  display: flex;
+  align-items: center;
+  margin: 0 ${space(2)} 0 0;
+`;
+
+const StatCount = styled('span')`
+  margin-left: ${space(0.5)};
+  margin-top: ${space(0.25)};
+  color: black;
 `;
 
 const RuleDetails = styled('div')`
@@ -474,3 +628,5 @@ const RuleDetails = styled('div')`
     background-color: ${p => p.theme.rowBackground};
   }
 `;
+
+export default withTheme(DetailsBody);

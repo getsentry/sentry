@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import warnings
 from collections import defaultdict
 
@@ -89,7 +87,7 @@ class TeamManager(BaseManager):
 
 
 # TODO(dcramer): pull in enum library
-class TeamStatus(object):
+class TeamStatus:
     VISIBLE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
@@ -113,6 +111,9 @@ class Team(Model):
         ),
         default=TeamStatus.VISIBLE,
     )
+    actor = FlexibleForeignKey(
+        "sentry.Actor", db_index=True, unique=True, null=True, on_delete=models.PROTECT
+    )
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects = TeamManager(cache_fields=("pk", "slug"))
@@ -124,17 +125,17 @@ class Team(Model):
 
     __repr__ = sane_repr("name", "slug")
 
-    def __unicode__(self):
-        return u"%s (%s)" % (self.name, self.slug)
+    def __str__(self):
+        return f"{self.name} ({self.slug})"
 
     def save(self, *args, **kwargs):
         if not self.slug:
             lock = locks.get("slug:team", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
-            super(Team, self).save(*args, **kwargs)
+            super().save(*args, **kwargs)
         else:
-            super(Team, self).save(*args, **kwargs)
+            super().save(*args, **kwargs)
 
     @property
     def member_set(self):

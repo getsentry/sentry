@@ -1,167 +1,270 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+import {withTheme} from 'emotion-theming';
+import isEqual from 'lodash/isEqual';
+import partition from 'lodash/partition';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import ExternalLink from 'app/components/links/externalLink';
+import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
 import {
   DynamicSamplingConditionOperator,
+  DynamicSamplingInnerName,
   DynamicSamplingRule,
+  DynamicSamplingRuleType,
 } from 'app/types/dynamicSampling';
-import {defined} from 'app/utils';
+import {Theme} from 'app/utils/theme';
 import Field from 'app/views/settings/components/forms/field';
-import Form from 'app/views/settings/components/forms/form';
-import NumberField from 'app/views/settings/components/forms/numberField';
-import SelectField from 'app/views/settings/components/forms/selectField';
 
-import MatchField from './matchField';
+import {DYNAMIC_SAMPLING_DOC_LINK} from '../utils';
 
-const conditionChoices = [
-  [DynamicSamplingConditionOperator.ALL, t('All Transactions')],
-  [DynamicSamplingConditionOperator.GLOB_MATCH, t('Releases')],
-  [DynamicSamplingConditionOperator.STR_EQUAL_NO_CASE, t('Enviroments')],
-  [DynamicSamplingConditionOperator.EQUAL, t('Users')],
-];
+import Form from './form';
+import {Transaction} from './utils';
 
-type Props = ModalRenderProps & {
-  organization: Organization;
-  onSubmit: (rule: DynamicSamplingRule) => void;
-  platformDocLink?: string;
+type Props = Form['props'] & {
+  theme: Theme;
 };
 
-type State = {
+type State = Form['state'] & {
   tracing: boolean;
-  condition: DynamicSamplingConditionOperator;
-  match: string;
-  sampleRate?: number;
+  isTracingDisabled: boolean;
 };
 
-class TransactionRuleModal extends React.Component<Props, State> {
-  state: State = {
-    tracing: true,
-    condition: DynamicSamplingConditionOperator.ALL,
-    match: '',
-  };
-
-  handleSubmit = async () => {
-    const {sampleRate} = this.state;
-
-    if (!defined(sampleRate)) {
-      return;
+class TransactionRuleModal extends Form<Props, State> {
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    if (prevState.tracing !== this.state.tracing && !!this.state.conditions.length) {
+      this.updateConditions();
     }
 
-    // TODO(PRISCILA): Finalize this logic according to the new structure
-  };
-
-  handleSubmitSuccess = () => {};
-
-  handleClickTracing = () => {
-    this.setState(prevState => ({tracing: !prevState.tracing}));
-  };
-
-  handleChange = <T extends keyof State>(field: keyof State, value: State[T]) => {
-    if (field === 'sampleRate') {
-      this.setState(prevState => ({
-        ...prevState,
-        sampleRate: value ? Number(value) : undefined,
-      }));
-      return;
+    if (prevState.transaction !== this.state.transaction) {
+      this.setIsTracingDisabled(this.state.transaction !== Transaction.ALL);
     }
-    this.setState(prevState => ({...prevState, [field]: value}));
-  };
 
-  render() {
-    const {Header, Body, closeModal, platformDocLink} = this.props;
-    const {tracing, condition, sampleRate} = this.state;
+    super.componentDidUpdate(prevProps, prevState);
+  }
 
-    const submitDisabled = !defined(sampleRate);
+  updateConditions() {
+    this.setState(state => ({
+      conditions: state.conditions.map(condition => ({
+        ...condition,
+        category: this.getNewConditionCategory(condition.category),
+      })),
+    }));
+  }
+
+  setIsTracingDisabled(isTracingDisabled: boolean) {
+    this.setState({isTracingDisabled});
+  }
+
+  getDefaultState() {
+    const {rule} = this.props;
+
+    if (rule) {
+      const {condition} = rule;
+      const {inner} = condition;
+      return {
+        ...super.getDefaultState(),
+        tracing: rule.type === DynamicSamplingRuleType.TRACE,
+        isTracingDisabled: !!inner.length,
+      };
+    }
+
+    return {
+      ...super.getDefaultState(),
+      tracing: true,
+    };
+  }
+
+  getModalTitle() {
+    const {rule} = this.props;
+
+    if (rule) {
+      return t('Edit a custom rule for transactions');
+    }
+
+    return t('Add a custom rule for transactions');
+  }
+
+  geTransactionFieldDescription() {
+    return {
+      label: t('Transaction'),
+      // help: t('This is a description'),  TODO(Priscila): Add correct descriptions
+    };
+  }
+
+  getNewConditionCategory(category: DynamicSamplingInnerName) {
+    const {tracing} = this.state;
+
+    if (!tracing) {
+      switch (category) {
+        case DynamicSamplingInnerName.TRACE_RELEASE:
+          return DynamicSamplingInnerName.EVENT_RELEASE;
+        case DynamicSamplingInnerName.TRACE_USER:
+          return DynamicSamplingInnerName.EVENT_USER;
+        case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
+          return DynamicSamplingInnerName.EVENT_ENVIRONMENT;
+        default: {
+          Sentry.captureException(
+            new Error('Unknown dynamic sampling rule condition category')
+          );
+          return category; //this shall not happen
+        }
+      }
+    }
+
+    switch (category) {
+      case DynamicSamplingInnerName.EVENT_RELEASE:
+        return DynamicSamplingInnerName.TRACE_RELEASE;
+      case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
+        return DynamicSamplingInnerName.TRACE_ENVIRONMENT;
+      case DynamicSamplingInnerName.EVENT_USER:
+        return DynamicSamplingInnerName.TRACE_USER;
+      default: {
+        Sentry.captureException(
+          new Error('Unknown dynamic sampling rule condition category')
+        );
+        return category; //this shall not happen
+      }
+    }
+  }
+
+  getCategoryOptions(): Array<[DynamicSamplingInnerName, string]> {
+    const {tracing} = this.state;
+
+    if (tracing) {
+      return [
+        [DynamicSamplingInnerName.TRACE_RELEASE, t('Releases')],
+        [DynamicSamplingInnerName.TRACE_ENVIRONMENT, t('Environments')],
+        [DynamicSamplingInnerName.TRACE_USER, t('Users')],
+      ];
+    }
+
+    return [
+      [DynamicSamplingInnerName.EVENT_RELEASE, t('Releases')],
+      [DynamicSamplingInnerName.EVENT_ENVIRONMENT, t('Environments')],
+      [DynamicSamplingInnerName.EVENT_USER, t('Users')],
+      [DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS, t('Browser Extensions')],
+      [DynamicSamplingInnerName.EVENT_LOCALHOST, t('Localhost')],
+      [DynamicSamplingInnerName.EVENT_LEGACY_BROWSER, t('Legacy Browsers')],
+      [DynamicSamplingInnerName.EVENT_WEB_CRAWLERS, t('Web Crawlers')],
+    ];
+  }
+
+  getExtraFields() {
+    const {theme} = this.props;
+    const {tracing, isTracingDisabled} = this.state;
 
     return (
-      <React.Fragment>
-        <Header closeButton onHide={closeModal}>
-          {t('Add a custom rule for transactions')}
-        </Header>
-        <Body>
-          <Form
-            submitLabel={t('Save')}
-            onCancel={closeModal}
-            apiEndpoint=""
-            onSubmit={this.handleSubmit}
-            initialData={{condition}}
-            onFieldChange={this.handleChange as Form['props']['onFieldChange']}
-            submitDisabled={submitDisabled}
-            requireChanges
+      <Field
+        label={t('Tracing')}
+        // help={t('this is a description')} // TODO(Priscila): Add correct descriptions
+        inline={false}
+        flexibleControlStateSize
+        stacked
+        showHelpInTooltip
+      >
+        <Tooltip
+          title={t('This field can only be edited if there are no match conditions')}
+          disabled={!isTracingDisabled}
+          popperStyle={css`
+            @media (min-width: ${theme.breakpoints[0]}) {
+              max-width: 370px;
+            }
+          `}
+        >
+          <TracingWrapper
+            onClick={
+              isTracingDisabled ? undefined : () => this.handleChange('tracing', !tracing)
+            }
           >
-            <Field
-              label={t('Tracing')}
-              help={t('this is a description')}
-              inline={false}
-              flexibleControlStateSize
-              stacked
-              showHelpInTooltip
-            >
-              <TracingWrapper>
-                <StyledCheckboxFancy
-                  onClick={this.handleClickTracing}
-                  isChecked={tracing}
-                />
-                {platformDocLink
-                  ? tct(
-                      'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain. [link:Learn more about tracing].',
-                      {link: <ExternalLink href={platformDocLink} />}
-                    )
-                  : t(
-                      'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain.'
-                    )}
-              </TracingWrapper>
-            </Field>
-            <Field
-              label={t('Condition')}
-              help={t('this is a description')}
-              inline={false}
-              required
-              flexibleControlStateSize
-              stacked
-              showHelpInTooltip
-            >
-              <SelectField
-                name="condition"
-                choices={conditionChoices}
-                inline={false}
-                hideControlState
-                stacked
-              />
-            </Field>
-            {condition !== DynamicSamplingConditionOperator.ALL && (
-              <MatchField condition={condition} />
+            <StyledCheckboxFancy isChecked={tracing} isDisabled={isTracingDisabled} />
+            {tct(
+              'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain. [link:Learn more about tracing].',
+              {
+                link: (
+                  <ExternalLink
+                    href={DYNAMIC_SAMPLING_DOC_LINK}
+                    onClick={event => event.stopPropagation()}
+                  />
+                ),
+              }
             )}
-            <Field
-              label={t('Sampling Rate')}
-              help={t('this is a description')}
-              inline={false}
-              required
-              flexibleControlStateSize
-              stacked
-              showHelpInTooltip
-            >
-              <NumberField name="sampleRate" inline={false} hideControlState stacked />
-            </Field>
-          </Form>
-        </Body>
-      </React.Fragment>
+          </TracingWrapper>
+        </Tooltip>
+      </Field>
     );
   }
+
+  handleDeleteCondition = (index: number) => () => {
+    const newConditions = [...this.state.conditions];
+    newConditions.splice(index, 1);
+
+    if (!newConditions.length) {
+      this.setState({
+        conditions: newConditions,
+        transaction: Transaction.ALL,
+        isTracingDisabled: false,
+      });
+      return;
+    }
+
+    this.setState({conditions: newConditions});
+  };
+
+  handleSubmit = () => {
+    const {tracing, sampleRate, conditions, transaction} = this.state;
+
+    if (!sampleRate) {
+      return;
+    }
+
+    const {rule, errorRules, transactionRules} = this.props;
+
+    const newRule: DynamicSamplingRule = {
+      // All new/updated rules must have id equal to 0
+      id: 0,
+      type: tracing ? DynamicSamplingRuleType.TRACE : DynamicSamplingRuleType.TRANSACTION,
+      condition: {
+        op: DynamicSamplingConditionOperator.AND,
+        inner:
+          transaction === Transaction.ALL ? [] : conditions.map(this.getNewCondition),
+      },
+      sampleRate: sampleRate / 100,
+    };
+
+    const newTransactionRules = rule
+      ? transactionRules.map(transactionRule =>
+          isEqual(transactionRule, rule) ? newRule : transactionRule
+        )
+      : [...transactionRules, newRule];
+
+    const [transactionTraceRules, individualTransactionRules] = partition(
+      newTransactionRules,
+      transactionRule => transactionRule.type === DynamicSamplingRuleType.TRACE
+    );
+
+    const newRules = [
+      ...errorRules,
+      ...transactionTraceRules,
+      ...individualTransactionRules,
+    ];
+
+    const currentRuleIndex = newRules.findIndex(newR => newR === newRule);
+    this.submitRules(newRules, currentRuleIndex);
+  };
 }
 
-export default TransactionRuleModal;
+export default withTheme(TransactionRuleModal);
 
 const TracingWrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   grid-gap: ${space(1)};
+  cursor: ${p => (p.onClick ? 'pointer' : 'not-allowed')};
 `;
 
 const StyledCheckboxFancy = styled(CheckboxFancy)`

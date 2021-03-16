@@ -1,10 +1,8 @@
 import React from 'react';
 import {action} from '@storybook/addon-actions';
-import {withInfo} from '@storybook/addon-info';
-import {boolean, number} from '@storybook/addon-knobs';
 
 import {Panel} from 'app/components/panels';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import NewBooleanField from 'app/views/settings/components/forms/booleanField';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
@@ -19,13 +17,10 @@ import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import TextField from 'app/views/settings/components/forms/textField';
 
 export default {
-  title: 'Core/Forms/Fields',
+  title: 'Forms/Fields',
 };
 
-export const _TextField = withInfo({
-  text: 'Simple text input',
-  propTablesExclude: [Form],
-})(() => (
+export const _TextField = () => (
   <Panel>
     <Form initialData={{context: {location: 'cat'}}}>
       <TextField
@@ -74,16 +69,18 @@ export const _TextField = withInfo({
       />
     </Form>
   </Panel>
-));
+);
 
-_TextField.story = {
-  name: 'TextField',
+_TextField.storyName = 'TextField';
+_TextField.parameters = {
+  docs: {
+    description: {
+      story: 'Simple text field',
+    },
+  },
 };
 
-export const _TextareaField = withInfo({
-  text: 'Textarea input',
-  propTablesExclude: [Form],
-})(() => (
+export const _TextareaField = ({autosize, rows}) => (
   <Panel>
     <Form initialData={{context: {location: 'cat'}}}>
       <TextareaField
@@ -95,9 +92,9 @@ export const _TextareaField = withInfo({
       />
       <TextareaField
         name="simpletextfieldautosize"
-        autosize={boolean('autosize', true)}
+        autosize={autosize}
         label="Textarea field with autosize"
-        rows={number('Number of rows', 2)}
+        rows={rows}
         placeholder="Use knobs to control rows and autosize setting"
       />
       <TextareaField
@@ -141,42 +138,31 @@ export const _TextareaField = withInfo({
       />
     </Form>
   </Panel>
-));
+);
 
-_TextareaField.story = {
-  name: 'TextareaField',
+_TextareaField.storyName = 'TextareaField';
+_TextareaField.args = {
+  autosize: true,
+  rows: 1,
 };
 
-export const __BooleanField = withInfo({
-  text: 'Boolean field (i.e. checkbox)',
-  propTablesExclude: [Form],
-})(() => (
+export const __BooleanField = () => (
   <Form>
     <NewBooleanField name="field" label="New Boolean Field" />
   </Form>
-));
+);
 
-__BooleanField.story = {
-  name: 'BooleanField',
-};
+__BooleanField.storyName = 'BooleanField';
 
-export const _DatePickerField = withInfo({
-  text: 'Date picker field with a popup calendar picker (for a single date)',
-  propTablesExclude: [Form],
-})(() => (
+export const _DatePickerField = () => (
   <Form>
     <DatePickerField name="field" label="Date Picker Field" />
   </Form>
-));
+);
 
-_DatePickerField.story = {
-  name: 'DatePickerField',
-};
+_DatePickerField.storyName = 'DatePickerField';
 
-export const _RadioField = withInfo({
-  text: 'Radio field',
-  propTablesExclude: [Form],
-})(() => (
+export const _RadioField = () => (
   <Form>
     <RadioField
       name="radio"
@@ -197,34 +183,28 @@ export const _RadioField = withInfo({
       ]}
     />
   </Form>
-));
+);
 
-_RadioField.story = {
-  name: 'RadioField',
-};
+_RadioField.storyName = 'RadioField';
 
-export const _RadioBooleanField = withInfo({
-  text: 'RadioBoolean field only two radios',
-  propTablesExclude: [Form],
-})(() => (
+export const _RadioBooleanField = ({disabled}) => (
   <Form>
     <RadioBooleanField
       name="subscribe"
       yesLabel="Yes, I would like to receive updates via email"
       noLabel="No, I'd prefer not to receive these updates"
       help="Help text for making an informed decision"
+      disabled={disabled}
     />
   </Form>
-));
+);
 
-_RadioBooleanField.story = {
-  name: 'RadioBooleanField',
+_RadioBooleanField.storyName = 'RadioBooleanField';
+_RadioBooleanField.args = {
+  disabled: false,
 };
 
-export const _SelectField = withInfo({
-  text: 'Select Field',
-  propTablesExclude: [Form],
-})(() => (
+export const _SelectField = () => (
   <Form>
     <SelectField
       name="select"
@@ -236,16 +216,11 @@ export const _SelectField = withInfo({
       ]}
     />
   </Form>
-));
+);
 
-_SelectField.story = {
-  name: 'SelectField',
-};
+_SelectField.storyName = 'SelectField';
 
-export const SelectFieldMultiple = withInfo({
-  text: 'Select Control w/ multiple',
-  propTablesExclude: [Form],
-})(() => (
+export const SelectFieldMultiple = () => (
   <Form>
     <SelectField
       name="select"
@@ -258,16 +233,11 @@ export const SelectFieldMultiple = withInfo({
       ]}
     />
   </Form>
-));
+);
 
-SelectFieldMultiple.story = {
-  name: 'SelectField multiple',
-};
+SelectFieldMultiple.storyName = 'SelectField multiple';
 
-export const SelectFieldGrouped = withInfo({
-  text: 'Select Control w/ Groups',
-  propTablesExclude: [Form],
-})(() => (
+export const SelectFieldGrouped = () => (
   <Form>
     <SelectField
       name="select"
@@ -290,16 +260,11 @@ export const SelectFieldGrouped = withInfo({
       ]}
     />
   </Form>
-));
+);
 
-SelectFieldGrouped.story = {
-  name: 'SelectField grouped',
-};
+SelectFieldGrouped.storyName = 'SelectField grouped';
 
-export const SelectFieldInFieldLabel = withInfo({
-  text: 'Select Control w/ Label In Field',
-  propTablesExclude: [Form],
-})(() => (
+export const SelectFieldInFieldLabel = () => (
   <Form>
     <SelectField
       name="select"
@@ -312,16 +277,18 @@ export const SelectFieldInFieldLabel = withInfo({
       ]}
     />
   </Form>
-));
+);
 
-SelectFieldInFieldLabel.story = {
-  name: 'SelectField label in field',
+SelectFieldInFieldLabel.storyName = 'SelectField label in field';
+SelectFieldInFieldLabel.parameters = {
+  docs: {
+    description: {
+      story: 'Select Control w/ Label In Field',
+    },
+  },
 };
 
-export const NonInlineField = withInfo({
-  text: 'Radio Group used w/ FormField',
-  propTablesExclude: [Form],
-})(() => (
+export const NonInlineField = () => (
   <Form>
     <FormField name="radio" label="Radio Field" inline={false}>
       {({value, label, onChange}) => (
@@ -338,13 +305,18 @@ export const NonInlineField = withInfo({
       )}
     </FormField>
   </Form>
-));
+);
 
-NonInlineField.story = {
-  name: 'Non-inline field',
+NonInlineField.storyName = 'Non-inline field';
+NonInlineField.parameters = {
+  docs: {
+    description: {
+      story: 'Radio Group used w/ FormField',
+    },
+  },
 };
 
-export const _RangeSlider = withInfo('Range slider')(() => (
+export const _RangeSlider = () => (
   <div style={{backgroundColor: '#fff', padding: 20}}>
     <RangeSlider
       name="rangeField"
@@ -357,32 +329,24 @@ export const _RangeSlider = withInfo('Range slider')(() => (
       }}
     />
   </div>
-));
+);
 
-_RangeSlider.story = {
-  name: 'RangeSlider',
-};
+_RangeSlider.storyName = 'RangeSlider';
 
-export const WithoutAParentForm = withInfo(
-  'New form fields used without having a parent Form'
-)(() => {
+export const WithoutAParentForm = ({onChange}) => {
   return (
     <div>
       <TextField
         name="simpletextfield"
         label="Simple Text Field"
         placeholder="Simple Text Field"
-        onChange={action('TextField onChange')}
+        onChange={onChange}
       />
-      <NewBooleanField
-        name="field"
-        label="New Boolean Field"
-        onChange={action('BooleanField onChange')}
-      />
+      <NewBooleanField name="field" label="New Boolean Field" onChange={onChange} />
       <RadioField
         name="radio"
         label="Radio Field"
-        onChange={action('RadioField onChange')}
+        onChange={onChange}
         choices={[
           ['choice_one', 'Choice One'],
           ['choice_two', 'Choice Two'],
@@ -392,16 +356,22 @@ export const WithoutAParentForm = withInfo(
       <Switch id="test" />
     </div>
   );
-});
-
-WithoutAParentForm.story = {
-  name: 'Without a parent Form',
 };
 
-export const __TextCopyInput = withInfo('Description')(() => (
+WithoutAParentForm.storyName = 'Without a parent Form';
+WithoutAParentForm.argTypes = {
+  onChange: {action: 'onChange'},
+};
+WithoutAParentForm.parameters = {
+  docs: {
+    description: {
+      story: 'New form fields used without having a parent Form',
+    },
+  },
+};
+
+export const __TextCopyInput = () => (
   <TextCopyInput onCopy={action('Copied!')}>Value to be copied </TextCopyInput>
-));
+);
 
-__TextCopyInput.story = {
-  name: 'TextCopyInput',
-};
+__TextCopyInput.storyName = 'TextCopyInput';

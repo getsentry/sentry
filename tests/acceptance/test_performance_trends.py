@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
 import pytz
 
-from six.moves.urllib.parse import urlencode
-from mock import patch
+from urllib.parse import urlencode
+from sentry.utils.compat.mock import patch
 
 from django.db.models import F
 from sentry.models import Project
@@ -16,7 +14,10 @@ from .page_objects.base import BasePage
 
 class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
     def make_trend(
-        self, name, durations, period_mins=60,
+        self,
+        name,
+        durations,
+        period_mins=60,
     ):
         for index, duration in enumerate(durations):
             time_between = period_mins / len(durations)
@@ -26,7 +27,7 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
             event.update(
                 {
                     "transaction": name,
-                    "event_id": "{:02x}".format(index).rjust(32, "0"),
+                    "event_id": f"{index:02x}".rjust(32, "0"),
                     "start_timestamp": iso_format(before_now(minutes=minutes, seconds=duration)),
                     "timestamp": iso_format(before_now(minutes=minutes)),
                 }
@@ -34,7 +35,7 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
             self.store_event(data=event, project_id=self.project.id)
 
     def setUp(self):
-        super(PerformanceTrendsTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
             organization=self.org, name="Mariachi Band", members=[self.user]
@@ -42,7 +43,7 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.group = self.create_group(project=self.project)
         self.login_as(self.user)
-        self.path = u"/organizations/{}/performance/?{}".format(
+        self.path = "/organizations/{}/performance/?{}".format(
             self.org.slug,
             urlencode(
                 {

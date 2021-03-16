@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import re
-import six
 from django.db import IntegrityError
 from django.db.models import Q
 from django.db.models.functions import Coalesce
@@ -264,7 +261,7 @@ class OrganizationReleasesEndpoint(
                 summary_stats_period=summary_stats_period,
                 environments=filter_params.get("environment") or None,
             ),
-            **paginator_kwargs
+            **paginator_kwargs,
         )
 
     def post(self, request, organization):
@@ -401,7 +398,7 @@ class OrganizationReleasesEndpoint(
                         release.set_refs(refs, request.user, fetch=fetch_commits)
                     except InvalidRepository as e:
                         scope.set_tag("failure_reason", "InvalidRepository")
-                        return Response({"refs": [six.text_type(e)]}, status=400)
+                        return Response({"refs": [str(e)]}, status=400)
 
                 if not created and not new_projects:
                     # This is the closest status code that makes sense, and we want
@@ -445,7 +442,9 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
             Release.objects.filter(
                 organization=organization, projects__id__in=filter_params["project_id"]
             )
-            .annotate(date=Coalesce("date_released", "date_added"),)
+            .annotate(
+                date=Coalesce("date_released", "date_added"),
+            )
             .values("version", "date")
             .order_by("-date")
             .distinct()

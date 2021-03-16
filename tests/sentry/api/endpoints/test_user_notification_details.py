@@ -1,21 +1,16 @@
-from __future__ import absolute_import
-
-from sentry.testutils import APITestCase
 from sentry.models import UserOption, UserOptionValue
-
-from django.core.urlresolvers import reverse
+from sentry.testutils import APITestCase
 
 
 class UserNotificationDetailsTest(APITestCase):
+    endpoint = "sentry-api-0-user-notifications"
+
     def test_lookup_self(self):
         user = self.create_user(email="a@example.com")
 
         self.login_as(user=user)
 
-        url = reverse("sentry-api-0-user-notifications", kwargs={"user_id": "me"})
-        resp = self.client.get(url, format="json")
-
-        assert resp.status_code == 200
+        self.get_valid_response("me")
 
     def test_lookup_other_user(self):
         user_a = self.create_user(email="a@example.com")
@@ -23,11 +18,7 @@ class UserNotificationDetailsTest(APITestCase):
 
         self.login_as(user=user_b)
 
-        url = reverse("sentry-api-0-user-notifications", kwargs={"user_id": user_a.id})
-
-        resp = self.client.get(url, format="json")
-
-        assert resp.status_code == 403
+        self.get_valid_response(user_a.id, status_code=403)
 
     def test_superuser(self):
         user = self.create_user(email="a@example.com")
@@ -35,10 +26,7 @@ class UserNotificationDetailsTest(APITestCase):
 
         self.login_as(user=superuser, superuser=True)
 
-        url = reverse("sentry-api-0-user-notifications", kwargs={"user_id": user.id})
-        resp = self.client.get(url, format="json")
-
-        assert resp.status_code == 200
+        self.get_valid_response(user.id)
 
     def test_returns_correct_defaults(self):
         user = self.create_user(email="a@example.com")
@@ -61,38 +49,33 @@ class UserNotificationDetailsTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = reverse("sentry-api-0-user-notifications", kwargs={"user_id": "me"})
-        resp = self.client.get(url, format="json")
+        response = self.get_valid_response("me")
 
-        assert resp.data.get("deployNotifications") == 3
-        assert resp.data.get("personalActivityNotifications") is False
-        assert resp.data.get("selfAssignOnResolve") is False
-        assert resp.data.get("subscribeByDefault") is True
-        assert resp.data.get("workflowNotifications") == int(UserOptionValue.participating_only)
+        assert response.data.get("deployNotifications") == 3
+        assert response.data.get("personalActivityNotifications") is False
+        assert response.data.get("selfAssignOnResolve") is False
+        assert response.data.get("subscribeByDefault") is True
+        assert response.data.get("workflowNotifications") == int(UserOptionValue.participating_only)
 
     def test_saves_and_returns_values(self):
         user = self.create_user(email="a@example.com")
         self.login_as(user=user)
 
-        url = reverse("sentry-api-0-user-notifications", kwargs={"user_id": "me"})
-
-        resp = self.client.put(
-            url,
-            format="json",
-            data={
+        response = self.get_valid_response(
+            "me",
+            method="put",
+            **{
                 "deployNotifications": 2,
                 "personalActivityNotifications": True,
                 "selfAssignOnResolve": True,
             },
         )
 
-        assert resp.status_code == 200
-
-        assert resp.data.get("deployNotifications") == 2
-        assert resp.data.get("personalActivityNotifications") is True
-        assert resp.data.get("selfAssignOnResolve") is True
-        assert resp.data.get("subscribeByDefault") is True
-        assert resp.data.get("workflowNotifications") == int(UserOptionValue.participating_only)
+        assert response.data.get("deployNotifications") == 2
+        assert response.data.get("personalActivityNotifications") is True
+        assert response.data.get("selfAssignOnResolve") is True
+        assert response.data.get("subscribeByDefault") is True
+        assert response.data.get("workflowNotifications") == int(UserOptionValue.participating_only)
 
         assert (
             UserOption.objects.get(
@@ -109,12 +92,9 @@ class UserNotificationDetailsTest(APITestCase):
             user=user, project=None, organization=org, key="deploy-emails", value=1
         )
 
-        url = reverse("sentry-api-0-user-notifications", kwargs={"user_id": "me"})
+        response = self.get_valid_response("me", method="put", **{"deployNotifications": 2})
 
-        resp = self.client.put(url, format="json", data={"deployNotifications": 2})
-
-        assert resp.status_code == 200
-        assert resp.data.get("deployNotifications") == 2
+        assert response.data.get("deployNotifications") == 2
         assert (
             UserOption.objects.get(
                 user=user, project=None, organization=org, key="deploy-emails"
@@ -132,8 +112,4 @@ class UserNotificationDetailsTest(APITestCase):
         user = self.create_user(email="a@example.com")
         self.login_as(user=user)
 
-        url = reverse("sentry-api-0-user-notifications", kwargs={"user_id": "me"})
-
-        resp = self.client.put(url, format="json", data={"deployNotifications": 6})
-
-        assert resp.status_code == 400
+        self.get_valid_response("me", method="put", status_code=400, **{"deployNotifications": 6})

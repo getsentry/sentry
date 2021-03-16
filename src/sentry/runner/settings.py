@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import os
 import click
 
@@ -11,14 +9,14 @@ DEFAULT_SETTINGS_OVERRIDE = "sentry.conf.py"
 def generate_secret_key():
     from django.utils.crypto import get_random_string
 
-    chars = u"abcdefghijklmnopqrstuvwxyz0123456789!@#%^&*(-_=+)"
+    chars = "abcdefghijklmnopqrstuvwxyz0123456789!@#%^&*(-_=+)"
     return get_random_string(50, chars)
 
 
 def load_config_template(path, version="default"):
     from pkg_resources import resource_string
 
-    return resource_string("sentry", "data/config/%s.%s" % (path, version)).decode("utf8")
+    return resource_string("sentry", f"data/config/{path}.{version}").decode("utf8")
 
 
 def generate_settings(dev=False):
@@ -89,15 +87,19 @@ def configure(ctx, py, yaml, skip_service_validation=False):
     if __installed:
         return
 
-    # Make sure that our warnings are always displayed
     import warnings
 
+    # Make sure that our warnings are always displayed.
     warnings.filterwarnings("default", "", Warning, r"^sentry")
 
-    # for now, squelch Django 2 warnings so prod logs aren't clogged
-    from django.utils.deprecation import RemovedInDjango20Warning
+    # This should be kept in-sync with sentry.utils.pytest.sentry,
+    # and pytest warningfilters in pyproject.toml.
+    # See pyproject.toml for explanations.
+    from django.utils.deprecation import RemovedInDjango20Warning, RemovedInDjango21Warning
 
     warnings.filterwarnings(action="ignore", category=RemovedInDjango20Warning)
+    warnings.filterwarnings(action="ignore", category=RemovedInDjango21Warning)
+    warnings.filterwarnings(action="ignore", category=DeprecationWarning)
 
     # Add in additional mimetypes that are useful for our static files
     # which aren't common in default system registries

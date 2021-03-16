@@ -1,16 +1,16 @@
-from __future__ import absolute_import
-
 __all__ = ["timing", "incr"]
 
-import logging
 
 import functools
+import logging
+import time
 from contextlib import contextmanager
+from typing import Mapping, Optional
+
 from django.conf import settings
 from random import random
-from time import time
 from threading import Thread, local
-from six.moves.queue import Queue
+from queue import Queue
 
 
 metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL", False)
@@ -63,7 +63,7 @@ backend = get_default_backend()
 def _get_key(key):
     prefix = settings.SENTRY_METRICS_PREFIX
     if prefix:
-        return u"{}{}".format(prefix, key)
+        return f"{prefix}{key}"
     return key
 
 
@@ -77,7 +77,7 @@ def _sampled_value(value, sample_rate):
     return value
 
 
-class InternalMetrics(object):
+class InternalMetrics:
     def __init__(self):
         self._started = False
 
@@ -91,7 +91,7 @@ class InternalMetrics(object):
                 key, instance, tags, amount, sample_rate = q.get()
                 amount = _sampled_value(amount, sample_rate)
                 if instance:
-                    full_key = u"{}.{}".format(key, instance)
+                    full_key = f"{key}.{instance}"
                 else:
                     full_key = key
                 try:
@@ -125,13 +125,13 @@ internal = InternalMetrics()
 
 
 def incr(
-    key,
-    amount=1,
-    instance=None,
-    tags=None,
-    skip_internal=True,
-    sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE,
-):
+    key: str,
+    amount: int = 1,
+    instance: Optional[str] = None,
+    tags: Optional[Mapping[str, str]] = None,
+    skip_internal: bool = True,
+    sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+) -> None:
     current_tags = _get_current_global_tags()
     if tags is not None:
         current_tags.update(tags)
@@ -173,7 +173,7 @@ def timer(key, instance=None, tags=None, sample_rate=settings.SENTRY_METRICS_SAM
     if tags is not None:
         current_tags.update(tags)
 
-    start = time()
+    start = time.monotonic()
     try:
         yield current_tags
     except Exception:
@@ -182,7 +182,7 @@ def timer(key, instance=None, tags=None, sample_rate=settings.SENTRY_METRICS_SAM
     else:
         current_tags["result"] = "success"
     finally:
-        timing(key, time() - start, instance, current_tags, sample_rate)
+        timing(key, time.monotonic() - start, instance, current_tags, sample_rate)
 
 
 def wraps(key, instance=None, tags=None):

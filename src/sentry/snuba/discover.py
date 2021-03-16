@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import math
 import sentry_sdk
-import six
 import logging
 
 from collections import namedtuple
@@ -95,7 +92,7 @@ def zerofill(data, start, end, rollup, orderby):
         else:
             data_by_time[obj["time"]] = [obj]
 
-    for key in six.moves.xrange(start, end, rollup):
+    for key in range(start, end, rollup):
         if key in data_by_time and len(data_by_time[key]) > 0:
             rv = rv + data_by_time[key]
             data_by_time[key] = []
@@ -252,7 +249,7 @@ def query(
         for having_clause in snuba_filter.having:
             # The first element of the having can be an alias, or a nested array of functions. Loop through to make sure
             # any referenced functions are in the aggregations.
-            error_extra = u", and could not be automatically added" if auto_aggregations else u""
+            error_extra = ", and could not be automatically added" if auto_aggregations else ""
             if isinstance(having_clause[0], (list, tuple)):
                 # Functions are of the form [fn, [args]]
                 args_to_check = [[having_clause[0]]]
@@ -273,8 +270,9 @@ def query(
 
                 if len(conditions_not_in_aggregations) > 0:
                     raise InvalidSearchQuery(
-                        u"Aggregate(s) {} used in a condition but are not in the selected columns{}.".format(
-                            ", ".join(conditions_not_in_aggregations), error_extra,
+                        "Aggregate(s) {} used in a condition but are not in the selected columns{}.".format(
+                            ", ".join(conditions_not_in_aggregations),
+                            error_extra,
                         )
                     )
             else:
@@ -283,8 +281,9 @@ def query(
                 )
                 if not found:
                     raise InvalidSearchQuery(
-                        u"Aggregate {} used in a condition but is not a selected column{}.".format(
-                            having_clause[0], error_extra,
+                        "Aggregate {} used in a condition but is not a selected column{}.".format(
+                            having_clause[0],
+                            error_extra,
                         )
                     )
 
@@ -399,7 +398,7 @@ def create_result_key(result_row, fields, issues):
                     value = value[-1]
                 else:
                     value = ""
-            values.append(six.text_type(value))
+            values.append(str(value))
     return ",".join(values)
 
 
@@ -501,7 +500,7 @@ def top_events_timeseries(
             start=snuba_filter.start,
             end=snuba_filter.end,
             rollup=rollup,
-            orderby="time",
+            orderby=["time"] + snuba_filter.groupby,
             groupby=["time"] + snuba_filter.groupby,
             dataset=Dataset.Discover,
             limit=10000,
@@ -531,7 +530,7 @@ def top_events_timeseries(
         issues = {}
         if "issue" in selected_columns:
             issues = Group.issues_mapping(
-                set([event["issue.id"] for event in top_events["data"]]),
+                {event["issue.id"] for event in top_events["data"]},
                 params["project_id"],
                 organization,
             )
@@ -552,7 +551,7 @@ def top_events_timeseries(
                     "discover.top-events.timeseries.key-mismatch",
                     extra={"result_key": result_key, "top_event_keys": list(results.keys())},
                 )
-        for key, item in six.iteritems(results):
+        for key, item in results.items():
             results[key] = SnubaTSResult(
                 {
                     "data": zerofill(
@@ -684,7 +683,7 @@ def get_facets(query, params, limit=10, referrer=None):
     ) as span:
         span.set_data("tag_count", len(individual_tags))
         for tag_name in individual_tags:
-            tag = u"tags[{}]".format(tag_name)
+            tag = f"tags[{tag_name}]"
             tag_values = raw_query(
                 aggregations=[["count", None, "count"]],
                 conditions=snuba_filter.conditions,
@@ -729,6 +728,110 @@ def get_facets(query, params, limit=10, referrer=None):
             results.extend(
                 [
                     FacetResult(r["tags_key"], r["tags_value"], int(r["count"]) * multiplier)
+                    for r in tag_values["data"]
+                ]
+            )
+
+    return results
+
+
+def get_performance_facets(
+    query,
+    params,
+    orderby=None,
+    aggregate_column="duration",
+    aggregate_function="avg",
+    limit=20,
+    referrer=None,
+):
+    """
+    High-level API for getting 'facet map' results for performance data
+
+    Performance facets are high frequency tags and the aggregate duration of
+    their most frequent values
+
+    query (str) Filter query string to create conditions from.
+    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
+    limit (int) The number of records to fetch.
+    referrer (str|None) A referrer string to help locate the origin of this query.
+
+    Returns Sequence[FacetResult]
+    """
+    with sentry_sdk.start_span(
+        op="discover.discover", description="facets.filter_transform"
+    ) as span:
+        span.set_data("query", query)
+        snuba_filter = get_filter(query, params)
+
+        # Resolve the public aliases into the discover dataset names.
+        snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
+
+    # Exclude tracing tags as they are noisy and generally not helpful.
+    # TODO(markus): Tracing tags are no longer written but may still reside in DB.
+    excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span", "project"]]
+
+    # Sampling keys for multi-project results as we don't need accuracy
+    # with that much data.
+    sample = len(snuba_filter.filter_keys["project_id"]) > 2
+
+    with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
+        # Get the tag keys with the highest deviation
+        key_names = raw_query(
+            aggregations=[["stddevSamp", aggregate_column, "stddev"]],
+            start=snuba_filter.start,
+            end=snuba_filter.end,
+            conditions=snuba_filter.conditions,
+            filter_keys=snuba_filter.filter_keys,
+            orderby=["-stddev", "tags_key"],
+            groupby="tags_key",
+            # TODO(Kevan): Check using having vs where before mainlining
+            having=[excluded_tags],
+            dataset=Dataset.Discover,
+            limit=limit,
+            referrer=referrer,
+            turbo=sample,
+        )
+        top_tags = [r["tags_key"] for r in key_names["data"]]
+        if not top_tags:
+            return []
+
+    results = []
+
+    sampling_enabled = True
+    options_sample_rate = options.get("discover2.tags_performance_facet_sample_rate") or 0.1
+
+    sample_rate = options_sample_rate if sampling_enabled else None
+
+    max_aggregate_tags = 20
+    aggregate_tags = []
+    for i, tag in enumerate(top_tags):
+        if i >= len(top_tags) - max_aggregate_tags:
+            aggregate_tags.append(tag)
+
+    if orderby is None:
+        orderby = []
+
+    if aggregate_tags:
+        with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
+            conditions = snuba_filter.conditions
+            conditions.append(["tags_key", "IN", aggregate_tags])
+            tag_values = raw_query(
+                aggregations=[[aggregate_function, aggregate_column, "aggregate"]],
+                conditions=conditions,
+                start=snuba_filter.start,
+                end=snuba_filter.end,
+                filter_keys=snuba_filter.filter_keys,
+                orderby=orderby + ["tags_key"],
+                groupby=["tags_key", "tags_value"],
+                dataset=Dataset.Discover,
+                referrer=referrer,
+                sample=sample_rate,
+                turbo=sample_rate is not None,
+                limitby=[TOP_VALUES_DEFAULT_LIMIT, "tags_key"],
+            )
+            results.extend(
+                [
+                    FacetResult(r["tags_key"], r["tags_value"], int(r["aggregate"]))
                     for r in tag_values["data"]
                 ]
             )
@@ -788,9 +891,7 @@ def histogram_query(
         for f in fields:
             measurement = get_measurement_name(f)
             if measurement is None:
-                raise InvalidSearchQuery(
-                    u"multihistogram expected all measurements, received: {}".format(f)
-                )
+                raise InvalidSearchQuery(f"multihistogram expected all measurements, received: {f}")
             measurements.append(measurement)
         conditions.append([key_alias, "IN", measurements])
 
@@ -834,12 +935,7 @@ def get_histogram_column(fields, key_column, histogram_params):
     """
 
     field = fields[0] if key_column is None else "measurements_value"
-    return u"histogram({}, {:d}, {:d}, {:d})".format(
-        field,
-        histogram_params.bucket_size,
-        histogram_params.start_offset,
-        histogram_params.multiplier,
-    )
+    return f"histogram({field}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})"
 
 
 def find_histogram_params(num_buckets, min_value, max_value, multiplier):
@@ -877,6 +973,11 @@ def find_histogram_params(num_buckets, min_value, max_value, multiplier):
     if start_offset + num_buckets * bucket_size <= scaled_max:
         bucket_size = nice_int(bucket_size + 1)
 
+    # compute the bin for max value and adjust the number of buckets accordingly
+    # to minimize unnecessary empty bins at the tail
+    last_bin = int((scaled_max - start_offset) / bucket_size) * bucket_size + start_offset
+    num_buckets = (last_bin - start_offset) // bucket_size + 1
+
     return HistogramParams(num_buckets, bucket_size, start_offset, multiplier)
 
 
@@ -903,12 +1004,12 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
     quartiles = []
     for field in fields:
         if min_value is None:
-            min_columns.append("min({})".format(field))
+            min_columns.append(f"min({field})")
         if max_value is None:
-            max_columns.append("max({})".format(field))
+            max_columns.append(f"max({field})")
         if data_filter == "exclude_outliers":
-            quartiles.append("percentile({}, 0.25)".format(field))
-            quartiles.append("percentile({}, 0.75)".format(field))
+            quartiles.append(f"percentile({field}, 0.25)")
+            quartiles.append(f"percentile({field}, 0.75)")
 
     results = query(
         selected_columns=min_columns + max_columns + quartiles,
@@ -940,8 +1041,8 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
         fences = []
         if data_filter == "exclude_outliers":
             for field in fields:
-                q1_alias = get_function_alias("percentile({}, 0.25)".format(field))
-                q3_alias = get_function_alias("percentile({}, 0.75)".format(field))
+                q1_alias = get_function_alias(f"percentile({field}, 0.25)")
+                q3_alias = get_function_alias(f"percentile({field}, 0.75)")
 
                 first_quartile = row[q1_alias]
                 third_quartile = row[q3_alias]
@@ -991,7 +1092,7 @@ def normalize_histogram_results(fields, key_column, histogram_params, results):
     for row in results["data"]:
         # Fall back to the first field name if there is no `key_name`,
         # otherwise, this is a measurement name and format it as such.
-        key = fields[0] if key_name is None else "measurements.{}".format(row[key_name])
+        key = fields[0] if key_name is None else f"measurements.{row[key_name]}"
         # we expect the bin the be an integer, this is because all floating
         # point values are rounded during the calculation
         bucket = int(row[bin_name])

@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from sentry.utils.compat import mock
 import zlib
 import pytest
@@ -13,7 +9,7 @@ from sentry.utils.imports import import_string
 KEY_FMT = "c:1:%s"
 
 
-class FakeClient(object):
+class FakeClient:
     def __init__(self):
         self.data = {}
 
@@ -28,7 +24,7 @@ def mock_client():
 
 @pytest.fixture(params=["rb", "rediscluster"])
 def mocked_attachment_cache(request, mock_client):
-    class RbCluster(object):
+    class RbCluster:
         def get_routing_client(self):
             return mock_client
 

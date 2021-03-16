@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
@@ -13,7 +12,7 @@ import {INTERNAL_SOURCE} from '../utils';
 import Actions from './actions';
 import Features from './features';
 import Processings from './processings';
-import Status from './status';
+import StatusTooltip from './statusTooltip';
 import {getSourceTooltipDescription} from './utils';
 
 type Props = {
@@ -39,7 +38,7 @@ function Candidate({
   return (
     <React.Fragment>
       <Column>
-        <Status candidate={candidate} />
+        <StatusTooltip candidate={candidate} />
       </Column>
 
       <DebugFileColumn>
@@ -58,30 +57,20 @@ function Candidate({
       </Column>
 
       <Column>
-        {isInternalSource && (
-          <Actions
-            onDelete={onDelete}
-            baseUrl={baseUrl}
-            projectId={projectId}
-            organization={organization}
-            candidate={candidate}
-          />
-        )}
+        <Actions
+          onDelete={onDelete}
+          baseUrl={baseUrl}
+          projectId={projectId}
+          organization={organization}
+          candidate={candidate}
+          isInternalSource={isInternalSource}
+        />
       </Column>
     </React.Fragment>
   );
 }
 
 export default Candidate;
-
-Candidate.propTypes = {
-  candidate: PropTypes.shape({
-    download: PropTypes.shape({
-      status: PropTypes.string.isRequired,
-      features: PropTypes.object,
-    }),
-  }),
-};
 
 const Column = styled('div')`
   display: flex;

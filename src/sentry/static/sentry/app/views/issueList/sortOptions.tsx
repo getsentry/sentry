@@ -1,57 +1,79 @@
 import React from 'react';
-import PropTypes from 'prop-types';
+import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
+import {
+  getSortLabel,
+  isForReviewQuery,
+  IssueSortOptions,
+} from 'app/views/issueList/utils';
 
 type Props = {
   sort: string;
+  query: string;
   onSelect: (sort: string) => void;
 };
 
-const IssueListSortOptions = ({onSelect, sort}: Props) => {
-  const sortKey = sort || 'date';
+export function getSortTooltip(key: IssueSortOptions) {
+  switch (key) {
+    case IssueSortOptions.INBOX:
+      return t('When the issue was flagged for review.');
+    case IssueSortOptions.NEW:
+      return t('When the issue was first seen.');
+    case IssueSortOptions.PRIORITY:
+      return t('Issues trending upward recently.');
+    case IssueSortOptions.FREQ:
+      return t('Number of events in the time selected.');
+    case IssueSortOptions.USER:
+      return t('Number of users affected in the time selected.');
+    case IssueSortOptions.TREND:
+      return t('% change in event count over the time selected.');
+    case IssueSortOptions.DATE:
+    default:
+      return t('When an event was last seen in the issue.');
+  }
+}
 
-  const getSortLabel = (key: string) => {
-    switch (key) {
-      case 'new':
-        return t('First Seen');
-      case 'priority':
-        return t('Priority');
-      case 'freq':
-        return t('Events');
-      case 'user':
-        return t('Users');
-      case 'trend':
-        return t('Relative Change');
-      case 'date':
-      default:
-        return t('Last Seen');
-    }
-  };
+const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
+  const sortKey = sort || IssueSortOptions.DATE;
 
-  const getMenuItem = (key: string): React.ReactNode => (
+  const getMenuItem = (key: IssueSortOptions): React.ReactNode => (
     <DropdownItem onSelect={onSelect} eventKey={key} isActive={sortKey === key}>
-      {getSortLabel(key)}
+      <StyledTooltip
+        containerDisplayMode="block"
+        position="top"
+        delay={500}
+        title={getSortTooltip(key)}
+      >
+        {getSortLabel(key)}
+      </StyledTooltip>
     </DropdownItem>
   );
 
   return (
     <DropdownControl buttonProps={{prefix: t('Sort by')}} label={getSortLabel(sortKey)}>
-      {getMenuItem('priority')}
-      {getMenuItem('date')}
-      {getMenuItem('new')}
-      {getMenuItem('freq')}
-      {getMenuItem('user')}
-      <Feature features={['issue-list-trend-sort']}>{getMenuItem('trend')}</Feature>
+      <React.Fragment>
+        <Feature features={['inbox']}>
+          {isForReviewQuery(query) && getMenuItem(IssueSortOptions.INBOX)}
+        </Feature>
+        {getMenuItem(IssueSortOptions.DATE)}
+        {getMenuItem(IssueSortOptions.NEW)}
+        {getMenuItem(IssueSortOptions.PRIORITY)}
+        {getMenuItem(IssueSortOptions.FREQ)}
+        {getMenuItem(IssueSortOptions.USER)}
+        <Feature features={['issue-list-trend-sort']}>
+          {getMenuItem(IssueSortOptions.TREND)}
+        </Feature>
+      </React.Fragment>
     </DropdownControl>
   );
 };
 
-IssueListSortOptions.propTypes = {
-  sort: PropTypes.string.isRequired,
-  onSelect: PropTypes.func.isRequired,
-};
-
 export default IssueListSortOptions;
+
+const StyledTooltip = styled(Tooltip)`
+  width: 100%;
+`;

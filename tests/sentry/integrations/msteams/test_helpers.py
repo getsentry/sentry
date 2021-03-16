@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 GENERIC_EVENT = {
     "serviceUrl": "https://smba.trafficmanager.net/amer/",
     "channelData": {"eventType": "otherEvent"},

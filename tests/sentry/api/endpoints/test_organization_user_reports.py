@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 from datetime import datetime, timedelta
 
-import six
 
 from sentry.models import GroupStatus, UserReport
 from sentry.ingest.userreport import save_userreport
@@ -14,7 +11,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
     method = "get"
 
     def setUp(self):
-        super(OrganizationUserReportListTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("test@test.com")
         self.login_as(user=self.user)
         self.org = self.create_organization()
@@ -71,8 +68,8 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
         response = self.get_response(self.project_1.organization.slug, **params)
 
         assert response.status_code == 200, response.content
-        result_ids = set(report["id"] for report in response.data)
-        assert result_ids == set(six.text_type(report.id) for report in expected)
+        result_ids = {report["id"] for report in response.data}
+        assert result_ids == {str(report.id) for report in expected}
 
     def test_no_filters(self):
         self.run_test([self.report_1, self.report_2])

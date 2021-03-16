@@ -1,9 +1,7 @@
-from __future__ import absolute_import, print_function
 from sentry.utils.compat import map
 
 __all__ = ("Attribute", "Event", "Map")
 
-import six
 from uuid import uuid1
 from base64 import b64encode
 
@@ -13,8 +11,8 @@ from django.utils import timezone
 from sentry.utils.dates import to_timestamp
 
 
-class Attribute(object):
-    def __init__(self, name, type=six.text_type, required=True):
+class Attribute:
+    def __init__(self, name, type=str, required=True):
         self.name = name
         self.type = type
         self.required = required
@@ -56,19 +54,17 @@ class Map(Attribute):
         for attr in self.attributes:
             nv = items.pop(attr.name, None)
             if attr.required and nv is None:
-                raise ValueError(u"{} is required (cannot be None)".format(attr.name))
+                raise ValueError(f"{attr.name} is required (cannot be None)")
 
             data[attr.name] = attr.extract(nv)
 
         if items:
-            raise ValueError(
-                u"Unknown attributes: {}".format(", ".join(map(six.text_type, six.iterkeys(items))))
-            )
+            raise ValueError("Unknown attributes: {}".format(", ".join(map(str, items.keys()))))
 
         return data
 
 
-class Event(object):
+class Event:
     __slots__ = ["uuid", "data", "datetime"]
 
     type = None
@@ -89,11 +85,11 @@ class Event(object):
         for attr in self.attributes:
             nv = items.pop(attr.name, None)
             if attr.required and nv is None:
-                raise ValueError(u"{} is required (cannot be None)".format(attr.name))
+                raise ValueError(f"{attr.name} is required (cannot be None)")
             data[attr.name] = attr.extract(nv)
 
         if items:
-            raise ValueError(u"Unknown attributes: {}".format(", ".join(six.iterkeys(items))))
+            raise ValueError("Unknown attributes: {}".format(", ".join(items.keys())))
 
         self.data = data
 

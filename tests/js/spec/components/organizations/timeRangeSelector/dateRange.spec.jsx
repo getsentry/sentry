@@ -1,7 +1,7 @@
 import React from 'react';
 import MockDate from 'mockdate';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import ConfigStore from 'app/stores/configStore';
@@ -46,8 +46,8 @@ describe('DateRange', function () {
     beforeEach(function () {
       onChange.mockReset();
     });
-    beforeEach(async function () {
-      wrapper = mount(
+    beforeEach(function () {
+      wrapper = mountWithTheme(
         <DateRange
           start={start}
           end={end}
@@ -196,7 +196,7 @@ describe('DateRange', function () {
   describe('UTC', function () {
     beforeEach(function () {
       onChange.mockReset();
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <DateRange
           start={start}
           end={end}

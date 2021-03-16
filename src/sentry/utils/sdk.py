@@ -1,7 +1,4 @@
-from __future__ import absolute_import, print_function
-
 import inspect
-import six
 
 from django.conf import settings
 from django.urls import resolve
@@ -26,7 +23,21 @@ UNSAFE_FILES = (
 
 # URLs that should always be sampled
 SAMPLED_URL_NAMES = {
+    # releases
     "sentry-api-0-organization-releases",
+    "sentry-api-0-organization-release-details",
+    "sentry-api-0-project-releases",
+    "sentry-api-0-project-release-details",
+    # integrations
+    "sentry-extensions-jira-issue-hook",
+    "sentry-extensions-vercel-webhook",
+    "sentry-extensions-vercel-delete",
+    "sentry-extensions-vercel-configure",
+    "sentry-extensions-vercel-ui-hook",
+    "sentry-api-0-group-integration-details",
+    # integration platform
+    "external-issues",
+    "sentry-api-0-sentry-app-authorizations",
 }
 
 UNSAFE_TAG = "_unsafe"
@@ -106,7 +117,7 @@ def get_project_key():
             extra={
                 "project_id": settings.SENTRY_PROJECT,
                 "project_key": settings.SENTRY_PROJECT_KEY,
-                "error_message": six.text_type(exc),
+                "error_message": str(exc),
             },
         )
     if key is None:
@@ -186,6 +197,16 @@ def configure_sdk():
             # Temporarily capture envelope counts to compare to ingested
             # transactions.
             metrics.incr("internal.captured.events.envelopes")
+            transaction = envelope.get_transaction_event()
+
+            # Temporarily also capture counts for one specific transaction to check ingested amount
+            if (
+                transaction
+                and transaction.get("transaction")
+                == "/api/0/organizations/{organization_slug}/issues/"
+            ):
+                metrics.incr("internal.captured.events.envelopes.issues")
+
             # Assume only transactions get sent via envelopes
             if options.get("transaction-events.force-disable-internal-project"):
                 return
@@ -232,11 +253,11 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
         ],
-        **sdk_options
+        **sdk_options,
     )
 
 
-class RavenShim(object):
+class RavenShim:
     """Wrapper around sentry-sdk in case people are writing their own
     integrations that rely on this being here."""
 

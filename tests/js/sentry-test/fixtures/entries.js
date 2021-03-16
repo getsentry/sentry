@@ -279,7 +279,7 @@ export function Entries() {
               },
               name: '',
               current: true,
-              crashed: false,
+              crashed: true,
               raw_stacktrace: {
                 frames: [
                   {

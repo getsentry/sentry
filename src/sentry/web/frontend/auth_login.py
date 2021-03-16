@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -26,7 +24,7 @@ ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On 
 # Stores callbacks that are called to get additional template context data before the login page
 # is rendered. Callbacks are called in any order. If an error is encountered in a callback it is
 # ignored. This works like HookStore in Javascript.
-class AdditionalContext(object):
+class AdditionalContext:
     def __init__(self):
         self._callbacks = set()
 
@@ -173,14 +171,14 @@ class AuthLoginView(BaseView):
             )
 
             if login_attempt and ratelimiter.is_limited(
-                u"auth:login:username:{}".format(
+                "auth:login:username:{}".format(
                     md5_text(login_form.clean_username(request.POST["username"])).hexdigest()
                 ),
                 limit=10,
                 window=60,  # 10 per minute should be enough for anyone
             ):
                 login_form.errors["__all__"] = [
-                    u"You have made too many login attempts. Please try again later."
+                    "You have made too many login attempts. Please try again later."
                 ]
                 metrics.incr(
                     "login.attempt", instance="rate_limited", skip_internal=True, sample_rate=1.0
@@ -224,7 +222,7 @@ class AuthLoginView(BaseView):
     @never_cache
     @transaction.atomic
     def handle(self, request, *args, **kwargs):
-        return super(AuthLoginView, self).handle(request, *args, **kwargs)
+        return super().handle(request, *args, **kwargs)
 
     # XXX(dcramer): OAuth provider hooks this view
     def get(self, request, **kwargs):

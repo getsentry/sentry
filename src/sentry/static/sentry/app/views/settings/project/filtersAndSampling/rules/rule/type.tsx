@@ -12,16 +12,13 @@ type Props = {
 function Type({type}: Props) {
   switch (type) {
     case DynamicSamplingRuleType.ERROR:
-      return <ErrorLabel>{t('Error')}</ErrorLabel>;
+      return <ErrorLabel>{t('Errors only')}</ErrorLabel>;
     case DynamicSamplingRuleType.TRANSACTION:
       return <TransactionLabel>{t('Individual transactions')}</TransactionLabel>;
     case DynamicSamplingRuleType.TRACE:
       return <TransactionLabel>{t('Transaction traces')}</TransactionLabel>;
     default: {
-      Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
-        Sentry.captureException(new Error('Unknown dynamic sampling rule type'));
-      });
+      Sentry.captureException(new Error('Unknown dynamic sampling rule type'));
       return null; //this shall never happen
     }
   }
@@ -30,9 +27,10 @@ function Type({type}: Props) {
 export default Type;
 
 const ErrorLabel = styled('div')`
-  color: ${p => p.theme.active};
+  color: ${p => p.theme.pink300};
+  white-space: pre-wrap;
 `;
 
-const TransactionLabel = styled('div')`
+const TransactionLabel = styled(ErrorLabel)`
   color: ${p => p.theme.linkColor};
 `;

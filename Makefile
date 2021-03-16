@@ -53,22 +53,15 @@ apply-migrations: ensure-venv
 reset-db: drop-db create-db apply-migrations
 
 setup-pyenv:
-ifdef BIG_SUR
-	# NOTE: Once we have a new release of pyenv and once a newer Python version we can remove these
-	# https://github.com/pyenv/pyenv/pull/1711
-	# cat is used since pyenv would finish to soon when the Python version is already installed
-	curl -sSL https://github.com/python/cpython/commit/8ea6353.patch | cat | \
-		LDFLAGS="-L$(shell xcrun --show-sdk-path)/usr/lib ${LDFLAGS}" \
-		pyenv install --skip-existing --patch 3.6.10
-else
-	@cat .python-version | xargs -n1 pyenv install --skip-existing
-endif
+	./scripts/pyenv_setup.sh
 
 ensure-venv:
-	@./scripts/ensure-venv.sh
+	./scripts/ensure-venv.sh
 
-ensure-pinned-pip: ensure-venv
-	$(PIP) install --no-cache-dir --upgrade "pip>=20.0.2"
+ensure-pinned-pip: ensure-venv upgrade-pip
+
+upgrade-pip:
+	./scripts/python.sh upgrade-pip
 
 setup-git-config:
 	@git config --local branch.autosetuprebase always
@@ -79,8 +72,7 @@ setup-git: ensure-venv setup-git-config
 	@echo "--> Installing git hooks"
 	mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./
 	@python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
-	@# pre-commit loosely pins virtualenv, which has caused problems in the past.
-	$(PIP) install "pre-commit==1.18.2" "virtualenv==20.0.32"
+	$(PIP) install -r requirements-pre-commit.txt
 	@pre-commit install --install-hooks
 	@echo ""
 
@@ -99,12 +91,8 @@ install-js-dev: node-version-check
 	# Add an additional check against `node_modules`
 	yarn check --verify-tree || yarn install --check-files
 
-install-py-dev: ensure-pinned-pip
-	@echo "--> Installing Sentry (for development)"
-	# SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
-	# Webpacked assets are only necessary for devserver (which does it lazily anyways)
-	# and acceptance tests, which webpack automatically if run.
-	SENTRY_LIGHT_BUILD=1 $(PIP) install -e ".[dev]"
+install-py-dev:
+	./scripts/python.sh install-py-dev
 
 build-js-po: node-version-check
 	mkdir -p build
@@ -140,7 +128,7 @@ fetch-release-registry:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	py.test tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html" --self-contained-html
+	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml"
 	@echo ""
 
 test-cli:
@@ -173,22 +161,22 @@ test-js-ci: node-version-check
 test-python:
 	@echo "--> Running Python tests"
 	# This gets called by getsentry
-	py.test tests/integration tests/sentry
+	pytest tests/integration tests/sentry
 
 test-python-ci:
 	make build-platform-assets
 	@echo "--> Running CI Python tests"
-	py.test tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+	pytest tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 	@echo ""
 
 test-snuba:
 	@echo "--> Running snuba tests"
-	py.test tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
+	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 	@echo ""
 
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
-	py.test tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=".artifacts/symbolicator.junit.xml"
+	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=".artifacts/symbolicator.junit.xml"
 	@echo ""
 
 test-acceptance: node-version-check
@@ -198,7 +186,7 @@ test-acceptance: node-version-check
 
 test-plugins:
 	@echo "--> Running plugin tests"
-	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
+	pytest tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
 	@echo ""
 
 test-relay-integration:
@@ -232,4 +220,4 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
+.PHONY: develop bootstrap build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js

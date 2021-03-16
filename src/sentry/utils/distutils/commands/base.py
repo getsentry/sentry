@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 import os.path
 import shutil
@@ -99,7 +97,7 @@ class BaseBuildCommand(Command):
             for path in self.get_dist_paths():
                 try:
                     shutil.rmtree(path)
-                except (OSError, IOError):
+                except OSError:
                     pass
 
         # In place means build_lib is src.  We also log this.
@@ -125,11 +123,11 @@ class BaseBuildCommand(Command):
         try:
             node_version = self._run_command(["node", "--version"]).rstrip().decode("utf-8")
         except OSError:
-            log.fatal(u"Cannot find node executable. Please install node" " and try again.")
+            log.fatal("Cannot find node executable. Please install node" " and try again.")
             sys.exit(1)
 
         if node_version[2] is not None:
-            log.info(u"using node ({0})".format(node_version))
+            log.info(f"using node ({node_version})")
             self._run_command(["yarn", "install", "--production", "--frozen-lockfile", "--quiet"])
 
     def _run_command(self, cmd, env=None):

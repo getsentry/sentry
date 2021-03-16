@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from base64 import b64encode
 
 from django.core.urlresolvers import reverse
@@ -19,7 +15,7 @@ class OrganizationAvatarTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(organization.id)
+        assert response.data["id"] == str(organization.id)
         assert response.data["avatar"]["avatarType"] == "letter_avatar"
         assert response.data["avatar"]["avatarUuid"] is None
 

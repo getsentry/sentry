@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from collections import namedtuple
 from datetime import timedelta
 from django.utils import timezone
@@ -17,14 +13,14 @@ StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 @register(Environment)
 class EnvironmentSerializer(Serializer):
     def serialize(self, obj, attrs, user):
-        return {"id": six.text_type(obj.id), "name": obj.name}
+        return {"id": str(obj.id), "name": obj.name}
 
 
 @register(EnvironmentProject)
 class EnvironmentProjectSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "name": obj.environment.name,
             "isHidden": obj.is_hidden is True,
         }
@@ -47,7 +43,7 @@ class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
         for item in item_list:
             items[self.group.id].append(item.id)
 
-        for key, (segments, interval) in six.iteritems(self.STATS_PERIODS):
+        for key, (segments, interval) in self.STATS_PERIODS.items():
             until = self.until or timezone.now()
             since = self.since or until - (segments * interval)
 
@@ -71,6 +67,6 @@ class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        result = super(GroupEnvironmentWithStatsSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
         result["stats"] = attrs["stats"]
         return result

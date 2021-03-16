@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from copy import deepcopy
 
 from exam import fixture
@@ -332,9 +328,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         # And it comes back successfully changed:
         assert resp.data["triggers"][0]["actions"][0]["targetType"] == "user"
-        assert resp.data["triggers"][0]["actions"][0]["targetIdentifier"] == six.text_type(
-            self.user.id
-        )
+        assert resp.data["triggers"][0]["actions"][0]["targetIdentifier"] == str(self.user.id)
 
         # And make sure we still only have two triggers, the first with 1 action and the second with 2 actions
         # This is ensures they were updated and not new ones created, etc.
@@ -375,6 +369,27 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             self.get_valid_response(
                 self.organization.slug, alert_rule.id, status_code=404, **serialized_alert_rule
             )
+
+    def test_no_owner(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["owner"] = None
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        assert resp.data == serialize(alert_rule, self.user)
+        assert (
+            resp.data["owner"] == self.user.actor.get_actor_identifier()
+        )  # Doesn't unassign yet - TDB in future though
 
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):

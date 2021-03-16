@@ -1,10 +1,8 @@
 import flatMap from 'lodash/flatMap';
 
-import type Menu from './menu';
 import type {Item, ItemsAfterFilter, ItemsBeforeFilter} from './types';
 
-type MenuProps = React.ComponentProps<typeof Menu>;
-type Items = MenuProps['items'];
+type Items = ItemsBeforeFilter;
 type ItemsWithChildren = Array<
   Omit<Item, 'index'> & {
     items: Array<Omit<Item, 'index'>>;
@@ -38,7 +36,7 @@ function filterGroupedItems(
 }
 
 function autoCompleteFilter(
-  items: ItemsBeforeFilter,
+  items: ItemsBeforeFilter | null,
   inputValue: string
 ): ItemsAfterFilter {
   let itemCount = 0;

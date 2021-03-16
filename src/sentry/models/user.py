@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import warnings
 
@@ -12,7 +10,7 @@ from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, sane_repr
+from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, FlexibleForeignKey, sane_repr
 from sentry.models import LostPasswordHash
 from sentry.utils.http import absolute_uri
 
@@ -47,12 +45,12 @@ class User(BaseModel, AbstractBaseUser):
     username = models.CharField(_("username"), max_length=128, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
-    name = models.CharField(_("name"), max_length=200, blank=True, db_column=u"first_name")
+    name = models.CharField(_("name"), max_length=200, blank=True, db_column="first_name")
     email = models.EmailField(_("email address"), blank=True, max_length=75)
     is_staff = models.BooleanField(
         _("staff status"),
         default=False,
-        help_text=_("Designates whether the user can log into this admin " "site."),
+        help_text=_("Designates whether the user can log into this admin site."),
     )
     is_active = models.BooleanField(
         _("active"),
@@ -66,7 +64,7 @@ class User(BaseModel, AbstractBaseUser):
         _("superuser status"),
         default=False,
         help_text=_(
-            "Designates that this user has all permissions without " "explicitly assigning them."
+            "Designates that this user has all permissions without explicitly assigning them."
         ),
     )
     is_managed = models.BooleanField(
@@ -103,18 +101,20 @@ class User(BaseModel, AbstractBaseUser):
 
     flags = BitField(
         flags=(
-            (u"newsletter_consent_prompt", u"Do we need to ask this user for newsletter consent?"),
+            ("newsletter_consent_prompt", "Do we need to ask this user for newsletter consent?"),
         ),
         default=0,
         null=True,
     )
 
     session_nonce = models.CharField(max_length=12, null=True)
-
+    actor = FlexibleForeignKey(
+        "sentry.Actor", db_index=True, unique=True, null=True, on_delete=models.PROTECT
+    )
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
 
-    objects = UserManager(cache_fields=[u"pk"])
+    objects = UserManager(cache_fields=["pk"])
 
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = ["email"]
@@ -133,12 +133,12 @@ class User(BaseModel, AbstractBaseUser):
         avatar = self.avatar.first()
         if avatar:
             avatar.delete()
-        return super(User, self).delete()
+        return super().delete()
 
     def save(self, *args, **kwargs):
         if not self.username:
             self.username = self.email
-        return super(User, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def has_perm(self, perm_name):
         warnings.warn("User.has_perm is deprecated", DeprecationWarning)
@@ -197,7 +197,7 @@ class User(BaseModel, AbstractBaseUser):
             "is_new_user": is_new_user,
         }
         msg = MessageBuilder(
-            subject="%sConfirm Email" % (options.get("mail.subject-prefix"),),
+            subject="{}Confirm Email".format(options.get("mail.subject-prefix")),
             template="sentry/emails/confirm_email.txt",
             html_template="sentry/emails/confirm_email.html",
             type="user.confirm_email",
@@ -301,7 +301,7 @@ class User(BaseModel, AbstractBaseUser):
         AuthIdentity.objects.filter(user=from_user).update(user=to_user)
 
     def set_password(self, raw_password):
-        super(User, self).set_password(raw_password)
+        super().set_password(raw_password)
         self.last_password_change = timezone.now()
         self.is_password_expired = False
 
@@ -335,6 +335,7 @@ class User(BaseModel, AbstractBaseUser):
 
 # HACK(dcramer): last_login needs nullable for Django 1.8
 User._meta.get_field("last_login").null = True
+
 
 # When a user logs out, we want to always log them out of all
 # sessions and refresh their nonce.

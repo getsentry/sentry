@@ -1,13 +1,10 @@
-from __future__ import absolute_import
-
 import logging
 import re
-import six
 
 from django.conf import settings
 from django.conf.urls import url
 from rest_framework.response import Response
-from six.moves.urllib.parse import (
+from urllib.parse import (
     parse_qs,
     quote_plus,
     unquote_plus,
@@ -55,7 +52,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
     ]
 
     def get_group_urls(self):
-        _patterns = super(JiraPlugin, self).get_group_urls()
+        _patterns = super().get_group_urls()
         _patterns.append(
             url(
                 r"^autocomplete",
@@ -97,8 +94,8 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             schema.get("items") == "user" or schema["type"] == "user"
         ):
             fieldtype = "select"
-            sentry_url = u"/api/0/issues/%s/plugins/%s/autocomplete" % (group.id, self.slug)
-            fkwargs["url"] = u"%s?jira_url=%s" % (
+            sentry_url = f"/api/0/issues/{group.id}/plugins/{self.slug}/autocomplete"
+            fkwargs["url"] = "{}?jira_url={}".format(
                 sentry_url,
                 quote_plus(field_meta["autoCompleteUrl"]),
             )
@@ -143,7 +140,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         return issue_type_meta
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(JiraPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
 
         jira_project_key = self.get_option("default_project", group.project)
 
@@ -152,7 +149,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             meta = client.get_create_meta_for_project(jira_project_key)
         except ApiError as e:
             raise PluginError(
-                u"JIRA responded with an error. We received a status code of {}".format(e.code)
+                f"JIRA responded with an error. We received a status code of {e.code}"
             )
         except ApiUnauthorized:
             raise PluginError(
@@ -163,7 +160,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         if not meta:
             raise PluginError(
-                u"Error in JIRA configuration, no projects " "found for user %s." % client.username
+                "Error in JIRA configuration, no projects " "found for user %s." % client.username
             )
 
         # check if the issuetype was passed as a GET parameter
@@ -184,7 +181,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         # make sure default issue type is actually
         # one that is allowed for project
         if issue_type:
-            if not any((c for c in issue_type_choices if c[0] == issue_type)):
+            if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
         fields = (
@@ -281,12 +278,12 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
     def get_issue_url(self, group, issue_id, **kwargs):
         instance = self.get_option("instance_url", group.project)
-        return u"%s/browse/%s" % (instance, issue_id)
+        return f"{instance}/browse/{issue_id}"
 
     def _get_formatted_user(self, user):
-        display = u"%s %s(%s)" % (
+        display = "{} {}({})".format(
             user.get("displayName", user["name"]),
-            u"- %s " % user.get("emailAddress") if user.get("emailAddress") else "",
+            "- %s " % user.get("emailAddress") if user.get("emailAddress") else "",
             user["name"],
         )
         return {"id": user["name"], "text": display}
@@ -310,7 +307,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
                 )
             else:
                 issues = [
-                    {"text": u"(%s) %s" % (i["key"], i["fields"]["summary"]), "id": i["key"]}
+                    {"text": "({}) {}".format(i["key"], i["fields"]["summary"]), "id": i["key"]}
                     for i in response.get("issues", [])
                 ]
                 return Response({field: issues})
@@ -397,7 +394,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
     def message_from_error(self, exc):
         if isinstance(exc, ApiUnauthorized):
             return "Unauthorized: either your username and password were invalid or you do not have access"
-        return super(JiraPlugin, self).message_from_error(exc)
+        return super().message_from_error(exc)
 
     def error_message_from_json(self, data):
         message = ""
@@ -406,7 +403,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         if data.get("errors"):
             if message:
                 message += " "
-            message += " ".join([u"%s: %s" % (k, v) for k, v in data.get("errors").items()])
+            message += " ".join([f"{k}: {v}" for k, v in data.get("errors").items()])
         return message
 
     def create_issue(self, request, group, form_data, **kwargs):
@@ -497,7 +494,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         return [(y["id"], y["name"] if "name" in y else y["value"]) for y in x] if x else []
 
     def validate_config_field(self, project, name, value, actor=None):
-        value = super(JiraPlugin, self).validate_config_field(project, name, value, actor)
+        value = super().validate_config_field(project, name, value, actor)
         # Don't make people update password every time
         if name == "password":
             value = value or self.get_option("password", project)
@@ -541,7 +538,8 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             else:
                 if projects:
                     project_choices = [
-                        (p.get("key"), u"%s (%s)" % (p.get("name"), p.get("key"))) for p in projects
+                        (p.get("key"), "{} ({})".format(p.get("name"), p.get("key")))
+                        for p in projects
                     ]
                     jira_project = jira_project or projects[0]["key"]
 
@@ -553,7 +551,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
                 else:
                     if priorities:
                         priority_choices = [
-                            (p.get("id"), u"%s" % (p.get("name"))) for p in priorities
+                            (p.get("id"), "%s" % (p.get("name"))) for p in priorities
                         ]
 
                         default_priority = default_priority or priorities[0]["id"]
@@ -641,7 +639,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         # XXX(dcramer): Sentry doesn't expect GroupMeta referenced here so we
         # need to populate the cache
         GroupMeta.objects.populate_cache([group])
-        if GroupMeta.objects.get_value(group, u"%s:tid" % self.get_conf_key(), None):
+        if GroupMeta.objects.get_value(group, "%s:tid" % self.get_conf_key(), None):
             return False
 
         return True
@@ -653,7 +651,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         fields = self.get_new_issue_fields(None, group, event, **kwargs)
 
         post_data = {}
-        included_fields = set(["priority", "issuetype", "title", "description", "project"])
+        included_fields = {"priority", "issuetype", "title", "description", "project"}
         for field in fields:
             name = field["name"]
             if name in included_fields:
@@ -667,14 +665,14 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         interface = event.interfaces.get("sentry.interfaces.Exception")
 
         if interface:
-            post_data["description"] += u"\n{code}%s{code}" % interface.get_stacktrace(
+            post_data["description"] += "\n{code}%s{code}" % interface.get_stacktrace(
                 event, system_frames=False, max_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES
             )
 
         try:
             issue_id = self.create_issue(request={}, group=group, form_data=post_data)
         except PluginError as e:
-            logger.info("post_process.fail", extra={"error": six.text_type(e)})
+            logger.info("post_process.fail", extra={"error": str(e)})
         else:
             prefix = self.get_conf_key()
-            GroupMeta.objects.set_value(group, u"%s:tid" % prefix, issue_id)
+            GroupMeta.objects.set_value(group, "%s:tid" % prefix, issue_id)

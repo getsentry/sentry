@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry.constants import SentryAppInstallationStatus
 from sentry.coreapi import APIError
 from sentry.testutils import APITestCase
@@ -31,7 +27,7 @@ class SentryAppComponentsTest(APITestCase):
         response = self.get_valid_response(self.sentry_app.slug)
 
         assert response.data[0] == {
-            "uuid": six.text_type(self.component.uuid),
+            "uuid": str(self.component.uuid),
             "type": "issue-link",
             "schema": self.component.schema,
             "sentryApp": {
@@ -89,7 +85,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         assert self.component3.uuid not in [d["uuid"] for d in response.data]
         assert response.data == [
             {
-                "uuid": six.text_type(self.component1.uuid),
+                "uuid": str(self.component1.uuid),
                 "type": "issue-link",
                 "schema": self.component1.schema,
                 "sentryApp": {
@@ -99,7 +95,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 },
             },
             {
-                "uuid": six.text_type(self.component2.uuid),
+                "uuid": str(self.component2.uuid),
                 "type": "issue-link",
                 "schema": self.component2.schema,
                 "sentryApp": {
@@ -141,7 +137,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
         assert response.data == [
             {
-                "uuid": six.text_type(component.uuid),
+                "uuid": str(component.uuid),
                 "type": "alert-rule",
                 "schema": component.schema,
                 "sentryApp": {
@@ -173,7 +169,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         # during preparation.
         assert response.data == [
             {
-                "uuid": six.text_type(self.component2.uuid),
+                "uuid": str(self.component2.uuid),
                 "type": self.component2.type,
                 "schema": self.component2.schema,
                 "sentryApp": {

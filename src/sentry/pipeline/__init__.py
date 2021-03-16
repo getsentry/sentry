@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 
 from types import LambdaType
@@ -12,8 +10,11 @@ from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
 from sentry import analytics
 
+# give users an hour to complete
+INTEGRATION_EXPIRATION_TTL = 60 * 60
 
-class PipelineProvider(object):
+
+class PipelineProvider:
     """
     A class implementing the PipelineProvider interface provides the pipeline
     views that the Pipeline will traverse through.
@@ -106,7 +107,7 @@ class NestedPipelineView(PipelineView):
         return nested_pipeline.current_step()
 
 
-class Pipeline(object):
+class Pipeline:
     """
     Pipeline provides a mechanism to guide the user through a request
     'pipeline', where each view may be completed by calling the ``next_step``
@@ -138,7 +139,7 @@ class Pipeline(object):
 
     @classmethod
     def get_for_request(cls, request):
-        state = RedisSessionStore(request, cls.pipeline_name)
+        state = RedisSessionStore(request, cls.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
         if not state.is_valid():
             return None
 
@@ -167,7 +168,7 @@ class Pipeline(object):
 
         self.request = request
         self.organization = organization
-        self.state = RedisSessionStore(request, self.pipeline_name)
+        self.state = RedisSessionStore(request, self.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
         self.provider = self.provider_manager.get(provider_key)
         self.provider_model = provider_model
 
@@ -180,9 +181,7 @@ class Pipeline(object):
         # we serialize the pipeline to be ['fqn.PipelineView', ...] which
         # allows us to determine if the pipeline has changed during the auth
         # flow or if the user is somehow circumventing a chunk of it
-        pipe_ids = [
-            u"{}.{}".format(type(v).__module__, type(v).__name__) for v in self.pipeline_views
-        ]
+        pipe_ids = [f"{type(v).__module__}.{type(v).__name__}" for v in self.pipeline_views]
         self.signature = md5_text(*pipe_ids).hexdigest()
 
     def get_pipeline_views(self):
@@ -279,4 +278,4 @@ class Pipeline(object):
         return data if key is None else data.get(key)
 
     def get_logger(self):
-        return logging.getLogger("sentry.integration.%s" % (self.provider.key,))
+        return logging.getLogger(f"sentry.integration.{self.provider.key}")

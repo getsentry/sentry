@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 import uuid
 import itertools
 import hmac
@@ -54,14 +51,14 @@ UUID_CHARS_IN_SLUG = 6
 
 
 def default_uuid():
-    return six.text_type(uuid.uuid4())
+    return str(uuid.uuid4())
 
 
 def generate_slug(name, is_internal=False):
     slug = slugify(name)
     # for internal, add some uuid to make it unique
     if is_internal:
-        slug = u"{}-{}".format(slug, default_uuid()[:UUID_CHARS_IN_SLUG])
+        slug = f"{slug}-{default_uuid()[:UUID_CHARS_IN_SLUG]}"
 
     return slug
 
@@ -172,11 +169,12 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
     def save(self, *args, **kwargs):
         self.date_updated = timezone.now()
-        return super(SentryApp, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def is_installed_on(self, organization):
         return SentryAppInstallation.objects.filter(
-            organization=organization, sentry_app=self,
+            organization=organization,
+            sentry_app=self,
         ).exists()
 
     def build_signature(self, body):
@@ -186,5 +184,5 @@ class SentryApp(ParanoidModel, HasApiScopes):
         ).hexdigest()
 
     def show_auth_info(self, access):
-        encoded_scopes = set({u"%s" % scope for scope in list(access.scopes)})
+        encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
         return set(self.scope_list).issubset(encoded_scopes)

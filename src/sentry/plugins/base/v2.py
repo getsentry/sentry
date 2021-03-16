@@ -1,9 +1,6 @@
-from __future__ import absolute_import, print_function
-
 __all__ = ("Plugin2",)
 
 import logging
-import six
 
 from django.http import HttpResponseRedirect
 from threading import local
@@ -26,7 +23,7 @@ class PluginMount(type):
         if not new_cls.slug:
             new_cls.slug = new_cls.title.replace(" ", "-").lower()
         if not hasattr(new_cls, "logger"):
-            new_cls.logger = logging.getLogger("sentry.plugins.%s" % (new_cls.slug,))
+            new_cls.logger = logging.getLogger(f"sentry.plugins.{new_cls.slug}")
         return new_cls
 
 
@@ -76,7 +73,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     required_field = None
 
     def _get_option_key(self, key):
-        return "%s:%s" % (self.get_conf_key(), key)
+        return f"{self.get_conf_key()}:{key}"
 
     def get_plugin_type(self):
         return "default"
@@ -207,9 +204,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>> plugin.get_conf_version(project)
         """
         options = self.get_conf_options(project)
-        return md5_text("&".join(sorted("%s=%s" % o for o in six.iteritems(options)))).hexdigest()[
-            :3
-        ]
+        return md5_text("&".join(sorted("%s=%s" % o for o in options.items()))).hexdigest()[:3]
 
     def get_conf_title(self):
         """
@@ -475,8 +470,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         pass
 
 
-@six.add_metaclass(PluginMount)
-class Plugin2(IPlugin2):
+class Plugin2(IPlugin2, metaclass=PluginMount):
     """
     A plugin should be treated as if it were a singleton. The owner does not
     control when or how the plugin gets instantiated, nor is it guaranteed that

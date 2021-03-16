@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     build_action_response,
 )
@@ -26,7 +24,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     pagerduty = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.PAGERDUTY)
 
     def setUp(self):
-        super(OrganizationAlertRuleAvailableActionIndexEndpointTest, self).setUp()
+        super().setUp()
         self.login_as(self.user)
 
     def install_new_sentry_app(self, name, **kwargs):

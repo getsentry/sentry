@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-
 import functools
 import inspect
 import itertools
 import logging
 import threading
 
-import six
 from django.utils.functional import empty, LazyObject
 
 from sentry.utils import warnings, metrics
@@ -26,7 +23,7 @@ def raises(exceptions):
     return decorator
 
 
-class Service(object):
+class Service:
     __all__ = ()
 
     def validate(self):
@@ -57,7 +54,7 @@ class LazyServiceWrapper(LazyObject):
     """
 
     def __init__(self, backend_base, backend_path, options, dangerous=(), metrics_path=None):
-        super(LazyServiceWrapper, self).__init__()
+        super().__init__()
         self.__dict__.update(
             {
                 "_backend": backend_path,
@@ -90,7 +87,7 @@ class LazyServiceWrapper(LazyObject):
         if backend in self._dangerous:
             warnings.warn(
                 warnings.UnsupportedBackend(
-                    u"The {!r} backend for {} is not recommended "
+                    "The {!r} backend for {} is not recommended "
                     "for production use.".format(self._backend, self._base)
                 )
             )
@@ -110,13 +107,13 @@ class LazyServiceWrapper(LazyObject):
 def resolve_callable(value):
     if callable(value):
         return value
-    elif isinstance(value, six.string_types):
+    elif isinstance(value, str):
         return import_string(value)
     else:
         raise TypeError("Expected callable or string")
 
 
-class Context(object):
+class Context:
     def __init__(self, request, backends):
         self.request = request
         self.backends = backends
@@ -313,7 +310,7 @@ class ServiceDelegator(Service):
             # request is going to fail anyway.
             if selected_backend_names[0] not in self.__backends:
                 raise self.InvalidBackend(
-                    u"{!r} is not a registered backend.".format(selected_backend_names[0])
+                    f"{selected_backend_names[0]!r} is not a registered backend."
                 )
 
             def call_backend_method(context, backend, is_primary):

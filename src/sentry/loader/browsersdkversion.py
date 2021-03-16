@@ -1,15 +1,10 @@
-from __future__ import absolute_import
-
+import functools
 import os
 import re
 import logging
-import six
-
 from pkg_resources import parse_version
-from sentry.utils.compat import functools
 
 import sentry
-
 from django.conf import settings
 from sentry.utils import json
 from sentry.utils.compat import map
@@ -28,21 +23,21 @@ def load_registry(path):
     try:
         with open(fn, "rb") as f:
             return json.load(f)
-    except IOError:
+    except OSError:
         return None
 
 
 def get_highest_browser_sdk_version(versions):
     full_versions = [x for x in versions if _version_regexp.match(x)]
     return (
-        six.text_type(max(map(parse_version, full_versions)))
+        str(max(map(parse_version, full_versions)))
         if full_versions
         else settings.JS_SDK_LOADER_SDK_VERSION
     )
 
 
 def get_browser_sdk_version_versions():
-    return ["latest", "5.x", "4.x"]
+    return ["latest", "6.x", "5.x", "4.x"]
 
 
 def get_browser_sdk_version_choices():

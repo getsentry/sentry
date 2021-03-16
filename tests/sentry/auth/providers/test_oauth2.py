@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import pytest
 from exam import fixture
 
@@ -13,7 +11,7 @@ class OAuth2ProviderTest(TestCase):
     def setUp(self):
         self.org = self.create_organization(owner=self.user)
         self.user = self.create_user("foo@example.com")
-        super(OAuth2ProviderTest, self).setUp()
+        super().setUp()
 
     @fixture
     def auth_provider(self):

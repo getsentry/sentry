@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
 from sentry import options
@@ -27,14 +25,10 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             status=SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR,
         )
 
-        message = "User %s of organization %s wants to publish %s\n" % (
-            request.user.email,
-            sentry_app.owner.slug,
-            sentry_app.slug,
-        )
+        message = f"User {request.user.email} of organization {sentry_app.owner.slug} wants to publish {sentry_app.slug}\n"
 
         for question_pair in request.data.get("questionnaire"):
-            message += "\n\n>%s\n%s" % (question_pair["question"], question_pair["answer"])
+            message += "\n\n>{}\n{}".format(question_pair["question"], question_pair["answer"])
 
         subject = "Sentry Integration Publication Request from %s" % sentry_app.owner.slug
 

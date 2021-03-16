@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.compat.mock import patch
 
 from django.core.urlresolvers import reverse
@@ -34,9 +32,7 @@ class OrganizationMemberSerializerTest(TestCase):
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
         assert not serializer.is_valid()
-        assert serializer.errors == {
-            "email": ["The user %s is already a member" % (self.user.email,)]
-        }
+        assert serializer.errors == {"email": [f"The user {self.user.email} is already a member"]}
 
     def test_invalid_team_invites(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
@@ -58,6 +54,8 @@ class OrganizationMemberSerializerTest(TestCase):
 
 
 class OrganizationMemberListTest(APITestCase):
+    endpoint = "sentry-api-0-organization-member-index"
+
     def setUp(self):
         self.owner_user = self.create_user("foo@localhost", username="foo")
         self.user_2 = self.create_user("bar@localhost", username="bar")
@@ -66,6 +64,7 @@ class OrganizationMemberListTest(APITestCase):
         self.org = self.create_organization(owner=self.owner_user)
         self.org.member_set.create(user=self.user_2)
         self.team = self.create_team(organization=self.org)
+        self.external_user = self.create_external_user(self.user_2, self.org)
 
         self.login_as(user=self.owner_user)
 
@@ -237,11 +236,11 @@ class OrganizationMemberListTest(APITestCase):
         assert response.data[0]["email"] == self.user_2.email
         assert response.data[1]["email"] == self.owner_user.email
 
-        response = self.client.get(self.url + "?query=email:{}".format(join_request))
+        response = self.client.get(self.url + f"?query=email:{join_request}")
         assert response.status_code == 200
         assert response.data == []
 
-        response = self.client.get(self.url + "?query=email:{}".format(invite_request))
+        response = self.client.get(self.url + f"?query=email:{invite_request}")
         assert response.status_code == 200
         assert response.data == []
 
@@ -275,7 +274,7 @@ class OrganizationMemberListTest(APITestCase):
 
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == ["foo@example.com"]
-        assert mail.outbox[0].subject == u"Join {} in using Sentry".format(self.org.name)
+        assert mail.outbox[0].subject == f"Join {self.org.name} in using Sentry"
 
     def test_existing_user_for_invite(self):
         self.login_as(user=self.owner_user)
@@ -476,6 +475,26 @@ class OrganizationMemberListTest(APITestCase):
         assert OrganizationMember.objects.filter(organization=self.org, email=email).exists()
         assert len(mail.outbox) == 1
 
+    def test_user_has_external_user_association(self):
+        response = self.get_valid_response(self.org.slug, qs_params={"expand": "externalUsers"})
+        assert len(response.data) == 2
+        member = next(filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data))
+        assert member
+        assert len(member["externalUsers"]) == 1
+        assert member["externalUsers"][0]["id"] == str(self.external_user.id)
+        assert member["externalUsers"][0]["memberId"] == member["id"]
+
+    def test_user_has_external_user_associations_across_multiple_orgs(self):
+        self.org_2 = self.create_organization(owner=self.user_2)
+        self.external_user_2 = self.create_external_user(self.user_2, self.org_2)
+        response = self.get_valid_response(self.org.slug, qs_params={"expand": "externalUsers"})
+        assert len(response.data) == 2
+        member = next(filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data))
+        assert member
+        assert len(member["externalUsers"]) == 1
+        assert member["externalUsers"][0]["id"] == str(self.external_user.id)
+        assert member["externalUsers"][0]["memberId"] == member["id"]
+
 
 class OrganizationMemberListPostTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-index"
@@ -542,6 +561,10 @@ class OrganizationMemberListPostTest(APITestCase):
     def test_rate_limited(self, mock_rate_limit):
         mock_rate_limit.return_value = True
 
-        resp = self.get_response(self.org.slug, email="jane@gmail.com", role="member",)
+        resp = self.get_response(
+            self.org.slug,
+            email="jane@gmail.com",
+            role="member",
+        )
         assert resp.status_code == 429
         assert not OrganizationMember.objects.filter(email="jane@gmail.com").exists()

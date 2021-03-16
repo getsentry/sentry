@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from sentry import tsdb, ratelimits
@@ -37,7 +35,7 @@ class DataForwardingPlugin(Plugin):
         return "data-forwarding"
 
     def get_rl_key(self, event):
-        return u"{}:{}".format(self.conf_key, event.project.organization_id)
+        return f"{self.conf_key}:{event.project.organization_id}"
 
     def initialize_variables(self, event):
         return

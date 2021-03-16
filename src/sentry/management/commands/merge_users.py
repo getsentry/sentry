@@ -1,12 +1,9 @@
-from __future__ import absolute_import, print_function
-
 import operator
 import sys
 
 from collections import defaultdict
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Q
-from six.moves import input
 
 from sentry.models import Organization, OrganizationMember, User
 from functools import reduce
@@ -48,7 +45,7 @@ class Command(BaseCommand):
         return list(members_by_email.values())
 
     def _confirm_merge(self, primary_user, other_users):
-        message = u"Merge {} into {}? [Yn] ".format(
+        message = "Merge {} into {}? [Yn] ".format(
             ", ".join(o.username for o in other_users), primary_user.username
         )
         while True:
@@ -94,7 +91,7 @@ class Command(BaseCommand):
             return
 
         sys.stdout.write(
-            u"Found {} unique account(s) with duplicate identities.\n".format(len(unique_users))
+            f"Found {len(unique_users)} unique account(s) with duplicate identities.\n"
         )
 
         for user_list in unique_users:
@@ -108,9 +105,7 @@ class Command(BaseCommand):
 
             for user in user_list[1:]:
                 user.merge_to(primary_user)
-                sys.stdout.write(
-                    u"{} was merged into {}\n".format(user.username, primary_user.username)
-                )
+                sys.stdout.write(f"{user.username} was merged into {primary_user.username}\n")
 
             if options["delete"]:
                 for user in user_list[1:]:

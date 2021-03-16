@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from collections import defaultdict, namedtuple
 
 FEATURE_LOCATION = {"language", "integration", "code", "web", "admin", "api"}
@@ -11,7 +9,7 @@ class UnknownFeature(KeyError):
     pass
 
 
-class AdoptionManager(object):
+class AdoptionManager:
     def __init__(self):
         self._id_registry = {}
         self._slug_registry = {}

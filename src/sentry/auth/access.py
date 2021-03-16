@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = ["from_user", "from_member", "DEFAULT"]
 
 import warnings
@@ -66,7 +64,7 @@ def _sso_params(member):
     return requires_sso, sso_is_valid
 
 
-class BaseAccess(object):
+class BaseAccess:
     is_active = False
     sso_is_valid = False
     requires_sso = False

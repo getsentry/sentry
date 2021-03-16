@@ -1,14 +1,5 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
-from sentry.utils.compat import mock
-import six
-
 from datetime import timedelta
-
 from django.utils import timezone
-from sentry.utils.compat.mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
@@ -24,6 +15,8 @@ from sentry.models import (
     UserOptionValue,
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
+from sentry.utils.compat.mock import patch
 
 
 class GroupSerializerTest(TestCase):
@@ -74,7 +67,7 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group, user)
         assert result["status"] == "ignored"
-        assert result["statusDetails"]["actor"]["id"] == six.text_type(user.id)
+        assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
     def test_resolved_in_next_release(self):
         release = self.create_release(project=self.project, version="a")
@@ -110,7 +103,7 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group, user)
         assert result["status"] == "resolved"
-        assert result["statusDetails"]["actor"]["id"] == six.text_type(user.id)
+        assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
     def test_resolved_in_commit(self):
         repo = self.create_repo(project=self.project)

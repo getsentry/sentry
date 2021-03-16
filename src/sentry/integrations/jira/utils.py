@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 def build_user_choice(user_response, user_id_field):
     """
     Build an (id, label) tuple from the given Jira REST API User resource,
@@ -14,7 +11,7 @@ def build_user_choice(user_response, user_id_field):
     name = user_response.get("name", "")
     email = user_response.get("emailAddress")
 
-    display = "%s %s%s" % (
+    display = "{} {}{}".format(
         user_response.get("displayName", name),
         "- %s " % email if email else "",
         "(%s)" % name if name else "",
