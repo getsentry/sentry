@@ -1,7 +1,6 @@
 import logging
 from collections import defaultdict
 
-from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import (
     ExternalIssue,
