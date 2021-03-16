@@ -401,6 +401,11 @@ def _single_stacktrace_variant(stacktrace, context, meta):
         similarity_self_encoder=_stacktrace_encoder,
     )
 
+    if inverted_hierarchy is None:
+        inverted_hierarchy = stacktrace.snapshot
+
+    inverted_hierarchy = bool(inverted_hierarchy)
+
     if not context["hierarchical_grouping"]:
         return {variant: main_variant}
 

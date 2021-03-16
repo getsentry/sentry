@@ -432,7 +432,7 @@ class Enhancements:
                 hint = stacktrace_state.add_to_hint(hint, var="min-frames")
                 contributes = False
 
-        inverted_hierarchy = bool(stacktrace_state.get("invert-stacktrace"))
+        inverted_hierarchy = stacktrace_state.get("invert-stacktrace")
         component = GroupingComponent(
             id="stacktrace", values=components, hint=hint, contributes=contributes, **kw
         )
