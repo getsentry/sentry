@@ -417,7 +417,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
             response = self.client.post(
                 url,
                 {
-                    "name": "project query",
+                    "name": "with team query",
                     "projects": [project.id],
                     "fields": ["title", "count()"],
                     "range": "24h",
@@ -425,7 +425,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                 },
             )
         assert response.status_code == 201, response.content
-        assert DiscoverSavedQuery.objects.filter(name="project query").exists()
+        assert DiscoverSavedQuery.objects.filter(name="with team query").exists()
 
     def test_save_without_team(self):
         team = self.create_team(organization=self.org, members=[])
@@ -435,7 +435,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
             response = self.client.post(
                 url,
                 {
-                    "name": "project query",
+                    "name": "without team query",
                     "projects": [],
                     "fields": ["title", "count()"],
                     "range": "24h",
