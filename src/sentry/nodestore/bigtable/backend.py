@@ -172,7 +172,10 @@ class BigtableNodeStorage(NodeStorage):
 
     def _set_bytes(self, id, data, ttl=None):
         row = self.encode_row(id, data, ttl)
-        row.commit()
+
+        status = row.commit()
+        if status.code != 0:
+            raise Exception(status.code, status.message)
 
     def encode_row(self, id, data, ttl=None):
         row = self.connection.row(id)
@@ -231,7 +234,11 @@ class BigtableNodeStorage(NodeStorage):
 
         row = self.connection.row(id)
         row.delete()
-        row.commit()
+
+        status = row.commit()
+        if status.code != 0:
+            raise Exception(status.code, status.message)
+
         self._delete_cache_item(id)
 
     def delete_multi(self, id_list):
