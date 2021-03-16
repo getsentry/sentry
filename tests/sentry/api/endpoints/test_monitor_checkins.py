@@ -166,6 +166,7 @@ class CreateMonitorCheckInTest(APITestCase):
             )
 
         assert resp.status_code == 201, resp.content
+        assert type(resp.data["id"]) == str
         # DSN auth should only return id
         assert list(resp.data.keys()) == ["id"]
 
