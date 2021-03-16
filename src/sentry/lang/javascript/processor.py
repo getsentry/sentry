@@ -39,7 +39,7 @@ from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
 from sentry.utils.safe import get_path
 from sentry.utils import metrics
-from sentry.utils.retries import ConditionalRetryPolicy
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.urls import non_standard_url_join
 from sentry.stacktraces.processing import StacktraceProcessor
 
@@ -225,6 +225,9 @@ def should_retry_fetch(attempt: int, e: Exception) -> bool:
     return not attempt > 3 and isinstance(e, OSError) and e.errno == errno.ESTALE
 
 
+fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(0.05))
+
+
 def fetch_release_file(filename, release, dist=None):
     """
     Attempt to retrieve a release artifact from the database.
@@ -304,7 +307,7 @@ def fetch_release_file(filename, release, dist=None):
 
         try:
             with metrics.timer("sourcemaps.release_file_read"):
-                z_body, body = ConditionalRetryPolicy(should_retry_fetch)(fetch_release_body)
+                z_body, body = fetch_retry_policy(fetch_release_body)
         except Exception:
             logger.error("sourcemap.compress_read_failed", exc_info=sys.exc_info())
             result = None
