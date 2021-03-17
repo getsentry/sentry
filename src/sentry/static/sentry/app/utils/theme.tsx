@@ -515,6 +515,10 @@ const commonTheme = {
   },
 
   space: [0, 8, 16, 20, 30],
+
+  demo: {
+    headerSize: '70px',
+  },
 } as const;
 
 const darkAliases = {

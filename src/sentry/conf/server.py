@@ -931,6 +931,8 @@ SENTRY_FEATURES = {
     "organizations:performance-tag-explorer": False,
     # Enable the new Project Detail page
     "organizations:project-detail": False,
+    # Enable links to Project Detail page from all over the app
+    "organizations:project-detail-links": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -938,10 +940,10 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable the new charts on top of the Releases page
     "organizations:releases-top-charts": False,
+    # Enable Session Stats down to a minute resolution
+    "organizations:minute-resolution-sessions": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
-    # Enable calculating release adoption based on sessions
-    "organizations:session-adoption": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -974,6 +976,8 @@ SENTRY_FEATURES = {
     "organizations:images-loaded-v2": False,
     # Enable teams to have ownership of alert rules
     "organizations:team-alerts-ownership": False,
+    # Enable the new alert creation wizard
+    "organizations:alert-wizard": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
