@@ -88,6 +88,11 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         issue_rules = Rule.objects.filter(
             status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=project_ids
         )
+        name = request.GET.get("name", None)
+        if name:
+            alert_rules = alert_rules.filter(Q(name__icontains=name))
+            issue_rules = issue_rules.filter(Q(label__icontains=name))
+
         if team_filter_query:
             alert_rules = alert_rules.filter(team_filter_query)
             issue_rules = issue_rules.filter(team_filter_query)
