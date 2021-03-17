@@ -190,6 +190,14 @@ class NotificationsManager(BaseManager):
             if not created and setting.value != value.value:
                 setting.update(value=value.value)
 
+            UserOption.objects.set_value(
+                user,
+                key=get_legacy_key(type),
+                value=get_legacy_value(type, value),
+                project=project,
+                organization=organization,
+            )
+
     def remove_settings(
         self,
         provider: ExternalProviders,
@@ -216,13 +224,16 @@ class NotificationsManager(BaseManager):
         )
         target = _get_target(user, team)
 
-        self.filter(
-            provider=provider.value,
-            type=type.value,
-            scope_type=scope_type,
-            scope_identifier=scope_identifier,
-            target=target,
-        ).delete()
+        with transaction.atomic():
+            self.filter(
+                provider=provider.value,
+                type=type.value,
+                scope_type=scope_type,
+                scope_identifier=scope_identifier,
+                target=target,
+            ).delete()
+
+            UserOption.objects.unset_value(user, project, get_legacy_key(type))
 
     def remove_settings_for_user(self, user, type: NotificationSettingTypes = None):
         if type:
