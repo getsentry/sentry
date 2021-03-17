@@ -124,17 +124,37 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     const teamQuery = location.query?.team;
     const filteredTeams: Set<string> =
       typeof teamQuery === 'string' ? new Set([teamQuery]) : new Set(teamQuery);
-    const teamIds = teams.map(({id}) => id);
+    const additionalOptions = [
+      {label: t('My Teams'), value: 'myteams'},
+      {label: t('Unassigned'), value: 'unassigned'},
+    ];
+    const optionValues = [
+      ...teams.map(({id}) => id),
+      ...additionalOptions.map(({value}) => value),
+    ];
     return (
       <FilterWrapper>
         <Filter
           header={t('Team')}
           onFilterChange={this.handleChangeFilter}
-          filterList={teamIds}
+          filterList={optionValues}
           selection={filteredTeams}
         >
           {({toggleFilter}) => (
             <List>
+              {additionalOptions.map(({label, value}) => (
+                <ListItem
+                  key={value}
+                  isChecked={filteredTeams.has(value)}
+                  onClick={event => {
+                    event.stopPropagation();
+                    toggleFilter(value);
+                  }}
+                >
+                  <TeamName>{label}</TeamName>
+                  <CheckboxFancy isChecked={filteredTeams.has(value)} />
+                </ListItem>
+              ))}
               {teams.map(({id, name}) => (
                 <ListItem
                   key={id}
