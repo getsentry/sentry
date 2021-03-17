@@ -2,13 +2,16 @@ import React from 'react';
 import copy from 'copy-text-to-clipboard';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
 
 type Props = {
   children: React.ReactElement<{onClick: () => void}>;
+  /** Text to be copied on click */
   value: string;
   successMessage?: string;
   errorMessage?: string;
   hideMessages?: boolean;
+  /** Hide children if browser does not support copy */
   hideUnsupported?: boolean;
   onSuccess?: () => void;
   onError?: () => void;
@@ -25,8 +28,8 @@ function isSupported() {
 function Clipboard({
   children,
   value,
-  successMessage = 'Copied to clipboard',
-  errorMessage = 'Error copying to clipboard',
+  successMessage = t('Copied to clipboard'),
+  errorMessage = t('Error copying to clipboard'),
   hideMessages = false,
   hideUnsupported,
   onSuccess,
@@ -35,17 +38,18 @@ function Clipboard({
   function handleClick() {
     // Copy returns whether it succeeded to copy the text
     const success = copy(value);
-    if (success) {
-      if (!hideMessages) {
-        addSuccessMessage(successMessage);
-      }
-      onSuccess?.();
-    } else {
+    if (!success) {
       if (!hideMessages) {
         addErrorMessage(errorMessage);
       }
       onError?.();
+      return;
     }
+
+    if (!hideMessages) {
+      addSuccessMessage(successMessage);
+    }
+    onSuccess?.();
   }
 
   if (hideUnsupported && !isSupported()) {
@@ -57,7 +61,7 @@ function Clipboard({
   }
 
   return React.cloneElement(children, {
-    onClick: () => handleClick(),
+    onClick: handleClick,
   });
 }
 
