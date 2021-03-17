@@ -372,7 +372,6 @@ class ProjectUpdateTest(APITestCase):
 
     def test_subscription(self):
         self.get_valid_response(self.org_slug, self.proj_slug, isSubscribed="true")
-        # TODO MARCOS
         assert UserOption.objects.get(user=self.user, project=self.project).value == 1
 
         self.get_valid_response(self.org_slug, self.proj_slug, isSubscribed="false")
@@ -389,11 +388,8 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["securityToken"] == ""
 
     def test_security_token_header(self):
-        resp = self.get_valid_response(
-            self.org_slug,
-            self.proj_slug,
-            securityTokenHeader="X-Hello-World",
-        )
+        value = "X-Hello-World"
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, securityTokenHeader=value)
         assert self.project.get_option("sentry:token_header") == "X-Hello-World"
         assert resp.data["securityTokenHeader"] == "X-Hello-World"
 
@@ -441,11 +437,8 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["resolveAge"] == 0
 
     def test_allowed_domains(self):
-        resp = self.get_valid_response(
-            self.org_slug,
-            self.proj_slug,
-            allowedDomains=["foobar.com", "https://example.com"],
-        )
+        value = ["foobar.com", "https://example.com"]
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, allowedDomains=value)
         assert self.project.get_option("sentry:origins") == ["foobar.com", "https://example.com"]
         assert resp.data["allowedDomains"] == ["foobar.com", "https://example.com"]
 
@@ -467,11 +460,8 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["allowedDomains"] == ["*"]
 
     def test_safe_fields(self):
-        resp = self.get_valid_response(
-            self.org_slug,
-            self.proj_slug,
-            safeFields=["foobar.com", "https://example.com"],
-        )
+        value = ["foobar.com", "https://example.com"]
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, safeFields=value)
         assert self.project.get_option("sentry:safe_fields") == [
             "foobar.com",
             "https://example.com",
