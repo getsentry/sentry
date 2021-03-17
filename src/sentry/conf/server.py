@@ -940,6 +940,8 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable the new charts on top of the Releases page
     "organizations:releases-top-charts": False,
+    # Enable Session Stats down to a minute resolution
+    "organizations:minute-resolution-sessions": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable basic SSO functionality, providing configurable single sign on
