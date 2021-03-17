@@ -1,18 +1,17 @@
 name: python versions
 on:
-  pull_request:
-    paths:
-    - 'requirements*'
-    - '.github/workflows/python-versions.yml'
+  schedule:
+    # Notifications will be sent to whoever touches this last
+    # You will be able to trigger this workflow manually if need be
+    - cron:  '0 0 * * 7'
 
 jobs:
   # This workflow makes sure that Python dependencies install correctly for
-  # a) our current version b) the next version we're targetting and
-  # optionally c) a team request
+  # a) our current version b) the next version we're targetting and c) a futher along version
   python-versions:
     name: set up
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 10
     strategy:
       matrix:
         # macosx-10.15 is Catalina
