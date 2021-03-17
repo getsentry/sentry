@@ -148,9 +148,6 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
         statusCountByReleaseInPeriod,
         totalCountByReleaseIn24h,
         totalCountByProjectIn24h,
-        // statusCountByReleaseInPeriod: {groups: [], intervals: [], query: ''},
-        // totalCountByReleaseIn24h: {groups: [], intervals: [], query: ''},
-        // totalCountByProjectIn24h: {groups: [], intervals: [], query: ''},
       });
     } catch (error) {
       addErrorMessage(error.responseJSON?.detail ?? t('Error loading health data'));

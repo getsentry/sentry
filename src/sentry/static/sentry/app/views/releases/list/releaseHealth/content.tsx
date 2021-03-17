@@ -136,7 +136,7 @@ const Content = ({
                   <AdoptionColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder width="150px" />
-                    ) : adoption ? (
+                    ) : defined(adoption) ? (
                       <AdoptionWrapper>
                         <ReleaseAdoption
                           adoption={adoption}
