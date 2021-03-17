@@ -33,7 +33,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             user,
             request.user,
             notifications,
-            notification_option_key=get_legacy_key_from_fine_tuning_key(notification_type),
+            notification_type=notification_type,
         )
         return Response(serialized)
 

@@ -35,10 +35,8 @@ from sentry.models import (
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import (
-    NotificationSettingTypes,
-    NotificationSettingOptionValues,
-)
+from sentry.notifications.legacy_mappings import get_option_value_from_boolean
+from sentry.notifications.types import NotificationSettingTypes
 from sentry.tasks.deletion import delete_project
 from sentry.utils import json
 from sentry.utils.compat import filter
@@ -538,15 +536,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
 
         if "isSubscribed" in result:
-            value = (
-                NotificationSettingOptionValues.ALWAYS
-                if result.get("isSubscribed")
-                else NotificationSettingOptionValues.NEVER
-            )
             NotificationSetting.objects.update_settings(
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.ISSUE_ALERTS,
-                value,
+                get_option_value_from_boolean(result.get("isSubscribed")),
                 user=request.user,
                 project=project,
             )
