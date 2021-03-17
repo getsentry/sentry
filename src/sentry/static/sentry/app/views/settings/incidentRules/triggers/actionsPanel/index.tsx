@@ -11,6 +11,7 @@ import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, SelectValue} from 'app/types';
+import {uniqueId} from 'app/utils/guid';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import withOrganization from 'app/utils/withOrganization';
@@ -49,6 +50,7 @@ type Props = {
  */
 const getCleanAction = (actionConfig, dateCreated?: string): Action => {
   return {
+    unsavedId: uniqueId(),
     unsavedDateCreated: dateCreated ?? new Date().toISOString(),
     type: actionConfig.type,
     targetType:
@@ -257,9 +259,9 @@ class ActionsPanel extends React.PureComponent<Props> {
         </PanelBody>
         <PanelBody>
           {loading && <LoadingIndicator />}
-          {actions.map(({action, actionIdx, triggerIndex, availableAction}, idx) => {
+          {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {
             return (
-              <PanelItemWrapper key={idx}>
+              <PanelItemWrapper key={action.id ?? action.unsavedId}>
                 <RuleRowContainer>
                   <PanelItemGrid>
                     <PanelItemSelects>
