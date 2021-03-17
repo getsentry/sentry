@@ -316,6 +316,7 @@ const MoreOptions = styled('span')`
 
 const DropdownTarget = styled('div')`
   display: flex;
+  cursor: pointer;
 `;
 
 const ContextWrapper = styled('div')`
