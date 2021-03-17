@@ -212,7 +212,7 @@ class SnubaProtocolEventStream(EventStream):
         state["datetime"] = datetime.now(tz=pytz.utc)
         self._send(state["project_id"], "end_delete_tag", extra_data=(state,), asynchronous=False)
 
-    def tombstone_events_unsafe(self, project_id, event_ids):
+    def tombstone_events_unsafe(self, project_id, event_ids, old_primary_hash=False):
         """
         Tell Snuba to eventually delete these events.
 
@@ -228,11 +228,17 @@ class SnubaProtocolEventStream(EventStream):
         (re-insert with new group_id) and events-to-be-deleted
         (`tombstone_events`), then excludes the group from all queries
         (`exclude_groups`).
+
+        :param old_primary_hash: If present, the event is only tombstoned
+            to be reinserted over with a guaranteed-different primary hash.
+            This is necessary with Snuba's errors table as the primary_hash is
+            part of the PK/sortkey.
         """
 
         state = {
             "project_id": project_id,
             "event_ids": event_ids,
+            "old_primary_hash": old_primary_hash,
         }
         self._send(project_id, "tombstone_events", extra_data=(state,), asynchronous=False)
 
