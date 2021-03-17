@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
-      # There's a check that prevents make install-py-dev to work if the develop has not
+      # There's a check that prevents make install-py-dev to work if the developer has not
       # explicitely set the intention to use a non-default Python version
       SENTRY_PYTHON_VERSION: ${{ matrix.python-version }}
 
