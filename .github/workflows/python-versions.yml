@@ -3,7 +3,8 @@ on:
   schedule:
     # Notifications will be sent to whoever touches this last
     # You will be able to trigger this workflow manually if need be
-    - cron:  '0 0 * * 0'
+    # This runs at 4:00 every Saturday, where GHA should in theory be less busy.
+    - cron:  '0 4 * * 6'
 
 jobs:
   # This workflow makes sure that Python dependencies install correctly for
