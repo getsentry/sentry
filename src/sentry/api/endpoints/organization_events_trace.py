@@ -74,11 +74,18 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 orderby=["-root", "-timestamp", "id"],
                 params=params,
                 query=f"event.type:transaction trace:{trace_id}",
-                limit=MAX_TRACE_SIZE,
-                referrer="api.trace-view.get_ids",
+                # get 1 more so we know if the attempted trace was over 100
+                limit=MAX_TRACE_SIZE + 1,
+                referrer="api.trace-view.get-ids",
             )
             if len(result["data"]) == 0:
                 return Response(status=404)
+            len_transactions = len(result["data"])
+            sentry_sdk.set_tag("trace.num_transactions", len_transactions)
+            sentry_sdk.set_tag(
+                "trace.num_transactions.grouped",
+                "<10" if len_transactions < 10 else "<100" if len_transactions < 100 else ">100",
+            )
 
         event_id = request.GET.get("event_id")
         warning_extra = {"trace": trace_id, "organization": organization}
@@ -92,6 +99,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             snuba_event = None
 
         if not is_root(result["data"][0]):
+            sentry_sdk.set_tag("discover.trace-view.warning", "root.not-found")
             logger.warning(
                 "discover.trace-view.root.not-found",
                 extra=warning_extra,
@@ -108,6 +116,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             else:
                 break
         if extra_roots > 0:
+            sentry_sdk.set_tag("discover.trace-view.warning", "root.extra-found")
             logger.warning(
                 "discover.trace-view.root.extra-found",
                 {"extra_roots": extra_roots, **warning_extra},
@@ -200,7 +209,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 limit=MAX_TRACE_SIZE,
                 # we can get project from the associated transaction, which can save us a db query
                 auto_fields=False,
-                referrer="api.trace-view.get_errors",
+                referrer="api.trace-view.get-errors",
             )
 
             # Use issue ids to get the error's short id
@@ -276,6 +285,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 # Limit iterations just to be safe
                 iteration += 1
                 if iteration > MAX_TRACE_SIZE:
+                    sentry_sdk.set_tag("discover.trace-view.warning", "surpassed-trace-limit")
                     logger.warning(
                         "discover.trace-view.surpassed-trace-limit",
                         extra=warning_extra,
