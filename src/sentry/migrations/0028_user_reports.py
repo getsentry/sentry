@@ -35,7 +35,9 @@ def backfill_user_reports(apps, schema_editor):
             continue
 
         if event:
-            report.update(group_id=event.group_id, environment_id=event.get_environment().id)
+            report.group_id = event.group_id
+            report.environment_id = event.get_environment().id
+            report.save(update_fields=["group_id", "environment_id"])
 
 
 class Migration(migrations.Migration):
