@@ -51,7 +51,7 @@ class ExternalTeamSerializer(CamelSnakeModelSerializer):
 class ExternalTeamMixin:
     def has_feature(self, request, team):
         return features.has(
-            "organizations:external-team-associations", team.organization, actor=request.user
+            "organizations:import-codeowners", team.organization, actor=request.user
         )
 
 
