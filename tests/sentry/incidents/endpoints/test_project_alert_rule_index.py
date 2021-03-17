@@ -269,7 +269,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                                 "type": "slack",
                                 "targetIdentifier": "my-channel",
                                 "targetType": "specific",
-                                "integration": self.integration.id,
+                                "integrationId": self.integration.id,
                             },
                         ],
                     },
