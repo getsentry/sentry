@@ -88,6 +88,6 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                 ).update(**monitor_params)
 
         if isinstance(request.auth, ProjectKey):
-            return self.respond({"id": str(checkin.id)}, status=201)
+            return self.respond({"id": str(checkin.guid)}, status=201)
 
         return self.respond(serialize(checkin, request.user), status=201)
