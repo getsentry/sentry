@@ -44,7 +44,7 @@ export default class DetailsHeader extends React.Component<Props> {
           />
           <Controls>
             <Button icon={<IconEdit />} label={t('Settings')} to={settingsLink}>
-              Edit
+              Edit Rule
             </Button>
           </Controls>
         </BreadCrumbBar>

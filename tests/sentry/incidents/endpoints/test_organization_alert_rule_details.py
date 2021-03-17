@@ -370,6 +370,27 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 self.organization.slug, alert_rule.id, status_code=404, **serialized_alert_rule
             )
 
+    def test_no_owner(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["owner"] = None
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        assert resp.data == serialize(alert_rule, self.user)
+        assert (
+            resp.data["owner"] == self.user.actor.get_actor_identifier()
+        )  # Doesn't unassign yet - TDB in future though
+
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
     method = "delete"

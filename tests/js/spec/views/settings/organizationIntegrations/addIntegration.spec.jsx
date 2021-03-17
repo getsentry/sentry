@@ -1,7 +1,7 @@
 /*global global*/
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 
@@ -18,7 +18,7 @@ describe('AddIntegration', function () {
     const open = jest.fn().mockReturnValue({focus});
     global.open = open;
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AddIntegration provider={provider} onInstall={onAdd}>
         {onClick => (
           <a href="#" onClick={onClick}>

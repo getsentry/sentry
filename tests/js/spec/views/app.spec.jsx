@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ConfigStore from 'app/stores/configStore';
 import App from 'app/views/app';
@@ -31,7 +31,7 @@ describe('App', function () {
     // XXX(dcramer): shouldnt need to re-set
     ConfigStore.set('user', user);
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>
     );
 
@@ -44,7 +44,7 @@ describe('App', function () {
     // XXX(dcramer): shouldnt need to re-set
     ConfigStore.set('user', user);
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>
     );
 

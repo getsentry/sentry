@@ -14,6 +14,7 @@ import {getInterval} from 'app/components/charts/utils';
 import DateTime from 'app/components/dateTime';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
+import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
 import * as Layout from 'app/components/layouts/thirds';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
@@ -21,7 +22,7 @@ import TimeSince from 'app/components/timeSince';
 import {IconCheckmark} from 'app/icons/iconCheckmark';
 import {IconFire} from 'app/icons/iconFire';
 import {IconWarning} from 'app/icons/iconWarning';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
@@ -149,57 +150,53 @@ class DetailsBody extends React.Component<Props> {
     const warningTrigger = rule?.triggers.find(({label}) => label === 'warning');
 
     return (
-      <RuleDetails>
-        <span>{t('Data Source')}</span>
-        <span>{rule?.dataset && DATA_SOURCE_LABELS[rule?.dataset]}</span>
-
-        <span>{t('Metric')}</span>
-        <span>{rule?.aggregate}</span>
-
-        <span>{t('Time Window')}</span>
-        <span>{rule?.timeWindow && <Duration seconds={rule?.timeWindow * 60} />}</span>
-
+      <KeyValueTable>
+        <KeyValueTableRow
+          keyName={t('Data Source')}
+          value={rule?.dataset && DATA_SOURCE_LABELS[rule?.dataset]}
+        />
+        <KeyValueTableRow keyName={t('Metric')} value={rule?.aggregate} />
+        <KeyValueTableRow
+          keyName={t('Time Window')}
+          value={rule?.timeWindow && <Duration seconds={rule?.timeWindow * 60} />}
+        />
         {(rule?.dataset || rule?.query) && (
-          <React.Fragment>
-            <span>{t('Filter')}</span>
-            <span>
-              {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
-              {rule?.query}
-            </span>
-          </React.Fragment>
+          <KeyValueTableRow
+            keyName={t('Filter')}
+            value={
+              <span title={rule?.query}>
+                {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
+                {rule?.query}
+              </span>
+            }
+          />
         )}
-
-        <span>{t('Critical Trigger')}</span>
-        <span>
-          {this.getThresholdText(
+        <KeyValueTableRow
+          keyName={t('Critical Trigger')}
+          value={this.getThresholdText(
             criticalTrigger?.alertThreshold,
             rule?.thresholdType,
             true
           )}
-        </span>
-
+        />
         {defined(warningTrigger) && (
-          <React.Fragment>
-            <span>{t('Warning Trigger')}</span>
-            <span>
-              {this.getThresholdText(
-                warningTrigger?.alertThreshold,
-                rule?.thresholdType,
-                true
-              )}
-            </span>
-          </React.Fragment>
+          <KeyValueTableRow
+            keyName={t('Warning Trigger')}
+            value={this.getThresholdText(
+              warningTrigger?.alertThreshold,
+              rule?.thresholdType,
+              true
+            )}
+          />
         )}
 
         {defined(rule?.resolveThreshold) && (
-          <React.Fragment>
-            <span>{t('Resolution')}</span>
-            <span>
-              {this.getThresholdText(rule?.resolveThreshold, rule?.thresholdType)}
-            </span>
-          </React.Fragment>
+          <KeyValueTableRow
+            keyName={t('Resolution')}
+            value={this.getThresholdText(rule?.resolveThreshold, rule?.thresholdType)}
+          />
         )}
-      </RuleDetails>
+      </KeyValueTable>
     );
   }
 
@@ -294,21 +291,25 @@ class DetailsBody extends React.Component<Props> {
       : null;
 
     return (
-      <GroupedHeaderItems>
-        <SidebarHeading>{t('Status')}</SidebarHeading>
-        <SidebarHeading>
-          {activeIncident ? t('Last Triggered') : t('Last Resolved')}
-        </SidebarHeading>
-        <ItemValue>
-          <AlertBadge color={color} icon={Icon}>
-            <AlertIconWrapper>
-              <Icon color="white" />
-            </AlertIconWrapper>
-          </AlertBadge>
-          <IncidentStatusValue color={color}>{statusText}</IncidentStatusValue>
-        </ItemValue>
-        <ItemValue>{activityDate ? <TimeSince date={activityDate} /> : '-'}</ItemValue>
-      </GroupedHeaderItems>
+      <StatusContainer>
+        <div>
+          <SidebarHeading>{t('Status')}</SidebarHeading>
+          <ItemValue>
+            <AlertBadge color={color} icon={Icon}>
+              <AlertIconWrapper>
+                <Icon color="white" />
+              </AlertIconWrapper>
+            </AlertBadge>
+            <IncidentStatusValue color={color}>{statusText}</IncidentStatusValue>
+          </ItemValue>
+        </div>
+        <div>
+          <SidebarHeading>
+            {activeIncident ? t('Last Triggered') : t('Last Resolved')}
+          </SidebarHeading>
+          <ItemValue>{activityDate ? <TimeSince date={activityDate} /> : '-'}</ItemValue>
+        </div>
+      </StatusContainer>
     );
   }
 
@@ -348,7 +349,14 @@ class DetailsBody extends React.Component<Props> {
       return this.renderLoading();
     }
 
-    const {query, environment, aggregate, projects: projectSlugs, triggers} = rule;
+    const {
+      query,
+      environment,
+      aggregate,
+      projects: projectSlugs,
+      timeWindow,
+      triggers,
+    } = rule;
 
     const criticalTrigger = triggers.find(({label}) => label === 'critical');
     const warningTrigger = triggers.find(({label}) => label === 'warning');
@@ -374,16 +382,22 @@ class DetailsBody extends React.Component<Props> {
                   </DropdownControl>
                   {timePeriod.custom && (
                     <StyledTimeRange>
-                      <DateTime date={timePeriod.start} timeAndDate />
+                      <DateTime date={moment.utc(timePeriod.start)} timeAndDate />
                       {' — '}
-                      <DateTime date={timePeriod.end} timeAndDate />
+                      <DateTime date={moment.utc(timePeriod.end)} timeAndDate />
                     </StyledTimeRange>
                   )}
                 </ChartControls>
                 <ChartPanel>
                   <PanelBody withPadding>
                     <ChartHeader>
-                      {this.metricPreset?.name ?? t('Custom metric')}
+                      <PresetName>
+                        {this.metricPreset?.name ?? t('Custom metric')}
+                      </PresetName>
+                      {tct(' [metric] over [window]', {
+                        metric: aggregate,
+                        window: <Duration seconds={timeWindow * 60} />,
+                      })}
                     </ChartHeader>
                     <EventsRequest
                       api={api}
@@ -442,12 +456,12 @@ class DetailsBody extends React.Component<Props> {
                         filter={DATASET_EVENT_TYPE_FILTERS[rule.dataset]}
                       />
                     )}
-                    <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
                   </ActivityWrapper>
                 </DetailWrapper>
               </Layout.Main>
               <Layout.Side>
                 {this.renderMetricStatus()}
+                <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
                 <SidebarHeading>
                   <span>{t('Alert Rule')}</span>
                 </SidebarHeading>
@@ -479,39 +493,33 @@ const ActivityWrapper = styled('div')`
   width: 100%;
 `;
 
-const GroupedHeaderItems = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
-  grid-gap: ${space(1)} ${space(4)};
-  text-align: right;
-  margin-top: ${space(1)};
-  margin-bottom: ${space(4)};
-`;
-
 const ItemValue = styled('div')`
   display: flex;
   justify-content: flex-start;
   align-items: center;
+  position: relative;
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 const IncidentStatusValue = styled('div')<{color: string}>`
-  margin-left: ${space(1.5)};
+  margin-left: 30px;
   color: ${p => p.color};
 `;
 
 const AlertBadge = styled('div')<{color: string; icon: React.ReactNode}>`
   display: flex;
+  position: absolute;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   /* icon warning needs to be treated differently to look visually centered */
   line-height: ${p => (p.icon === IconWarning ? undefined : 1)};
+  left: 3px;
 
   &:before {
     content: '';
-    width: 30px;
-    height: 30px;
+    width: 20px;
+    height: 20px;
     border-radius: ${p => p.theme.borderRadius};
     background-color: ${p => p.color};
     transform: rotate(45deg);
@@ -520,11 +528,26 @@ const AlertBadge = styled('div')<{color: string; icon: React.ReactNode}>`
 
 const AlertIconWrapper = styled('div')`
   position: absolute;
+
+  svg {
+    width: 13px;
+    position: relative;
+    top: 1px;
+  }
+`;
+
+const StatusContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 50% 50%;
+  grid-row-gap: 16px;
+  margin-bottom: 20px;
 `;
 
 const SidebarHeading = styled(SectionHeading)`
   display: flex;
   justify-content: space-between;
+  margin-top: 0;
+  line-height: 1;
 `;
 
 const ChartControls = styled('div')`
@@ -543,6 +566,13 @@ const ChartPanel = styled(Panel)`
 
 const ChartHeader = styled('header')`
   margin-bottom: ${space(1)};
+  display: flex;
+  flex-direction: row;
+`;
+
+const PresetName = styled('div')`
+  text-transform: capitalize;
+  margin-right: ${space(0.5)};
 `;
 
 const ChartActions = styled(PanelFooter)`
@@ -579,34 +609,6 @@ const StatCount = styled('span')`
   margin-left: ${space(0.5)};
   margin-top: ${space(0.25)};
   color: black;
-`;
-
-const RuleDetails = styled('div')`
-  display: grid;
-  font-size: ${p => p.theme.fontSizeSmall};
-  grid-template-columns: auto max-content;
-  margin-bottom: ${space(2)};
-
-  & > span {
-    padding: ${space(0.5)} ${space(1)};
-  }
-
-  & > span:nth-child(2n + 1) {
-    width: 125px;
-  }
-
-  & > span:nth-child(2n + 2) {
-    text-align: right;
-    width: 215px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-  }
-
-  & > span:nth-child(4n + 1),
-  & > span:nth-child(4n + 2) {
-    background-color: ${p => p.theme.rowBackground};
-  }
 `;
 
 export default withTheme(DetailsBody);

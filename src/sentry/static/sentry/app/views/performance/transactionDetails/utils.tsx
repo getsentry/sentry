@@ -6,14 +6,14 @@ import {OrganizationSummary} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
 import {generateEventSlug} from 'app/utils/discover/urls';
-import {EventLite} from 'app/utils/performance/quickTrace/types';
+import {EventLite, TraceError} from 'app/utils/performance/quickTrace/types';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
-import {getTraceSummaryUrl} from '../traceDetails/utils';
+import {getTraceDetailsUrl} from '../traceDetails/utils';
 import {getTransactionDetailsUrl} from '../utils';
 
 export function generateSingleEventTarget(
-  event: EventLite,
+  event: EventLite | TraceError,
   organization: OrganizationSummary,
   location: Location
 ): LocationDescriptor {
@@ -74,14 +74,15 @@ export function generateTraceTarget(
 ): LocationDescriptor {
   const traceId = event.contexts?.trace?.trace_id ?? '';
 
-  if (organization.features.includes('trace-view-summary')) {
-    return getTraceSummaryUrl(organization, traceId, {});
-  }
-
   const {start, end} = getTraceDateTimeRange({
     start: event.startTimestamp,
     end: event.endTimestamp,
   });
+
+  if (organization.features.includes('trace-view-summary')) {
+    return getTraceDetailsUrl(organization, traceId, start, end, {});
+  }
+
   const eventView = EventView.fromSavedQuery({
     id: undefined,
     name: `Transactions with Trace ID ${traceId}`,

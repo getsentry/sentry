@@ -30,6 +30,7 @@ from sentry.incidents.logic import (
     update_alert_rule_trigger_action,
     WARNING_TRIGGER_LABEL,
 )
+from sentry.models import ActorTuple
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
@@ -165,6 +166,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     {"sentry_app": "SentryApp must be provided for sentry_app"}
                 )
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
+        attrs["input_channel_id"] = self.context.get("input_channel_id")
         return attrs
 
     def create(self, validated_data):
@@ -258,6 +260,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                         "organization": self.context["organization"],
                         "access": self.context["access"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
+                        "input_channel_id": action_data.pop("input_channel_id", None),
                     },
                     instance=action_instance,
                     data=action_data,
@@ -303,11 +306,16 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     )
     threshold_period = serializers.IntegerField(default=1, min_value=1, max_value=20)
     aggregate = serializers.CharField(required=True, min_length=1)
+    owner = serializers.CharField(
+        required=False,
+        allow_null=True,
+    )  # This will be set to required=True once the frontend starts sending it.
 
     class Meta:
         model = AlertRule
         fields = [
             "name",
+            "owner",
             "dataset",
             "query",
             "time_window",
@@ -328,6 +336,23 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "threshold_type": {"required": True},
             "resolve_threshold": {"required": False},
         }
+
+    def validate_owner(self, owner):
+        # owner should be team:id or user:id
+        if owner is None:
+            return
+
+        try:
+            actor = ActorTuple.from_actor_identifier(owner)
+        except serializers.ValidationError:
+            raise serializers.ValidationError(
+                "Could not parse owner. Format should be `type:id` where type is `team` or `user`."
+            )
+        try:
+            if actor.resolve():
+                return actor
+        except (User.DoesNotExist, Team.DoesNotExist):
+            raise serializers.ValidationError("Could not resolve owner to existing team or user.")
 
     def validate_query(self, query):
         query_terms = query.split()
@@ -556,6 +581,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         "organization": self.context["organization"],
                         "access": self.context["access"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
+                        "input_channel_id": self.context.get("input_channel_id"),
                     },
                     instance=trigger_instance,
                     data=trigger_data,

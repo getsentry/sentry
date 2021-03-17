@@ -18,59 +18,67 @@ type Props = {
   meta?: Meta;
 };
 
-const RichHttpContentClippedBoxBodySection = ({
-  data: value,
-  meta,
-  inferredContentType,
-}: Props) => {
-  const getContent = () => {
-    if (!defined(value)) {
-      return null;
-    }
+function RichHttpContentClippedBoxBodySection({data, meta, inferredContentType}: Props) {
+  if (!defined(data)) {
+    return null;
+  }
 
+  function getContent() {
     switch (inferredContentType) {
       case 'application/json':
         return (
           <ContextData
             data-test-id="rich-http-content-body-context-data"
-            data={value}
+            data={data}
             preserveQuotes
           />
         );
       case 'application/x-www-form-urlencoded':
-      case 'multipart/form-data':
+      case 'multipart/form-data': {
+        const transformedData = getTransformedData(data).map(([key, v]) => ({
+          key,
+          subject: key,
+          value: v,
+          meta,
+        }));
+
+        if (!transformedData.length) {
+          return null;
+        }
+
         return (
           <KeyValueList
             data-test-id="rich-http-content-body-key-value-list"
-            data={getTransformedData(value).map(([key, v]) => ({
-              key,
-              subject: key,
-              value: v,
-              meta,
-            }))}
+            data={transformedData}
             isContextData
           />
         );
+      }
+
       default:
         return (
           <pre data-test-id="rich-http-content-body-section-pre">
             <AnnotatedText
-              value={value && JSON.stringify(value, null, 2)}
+              value={data && JSON.stringify(data, null, 2)}
               meta={meta}
               data-test-id="rich-http-content-body-context-data"
             />
           </pre>
         );
     }
-  };
+  }
 
   const content = getContent();
 
-  return content ? (
+  if (!content) {
+    return null;
+  }
+
+  return (
     <ClippedBox title={t('Body')} defaultClipped>
       <ErrorBoundary mini>{content}</ErrorBoundary>
     </ClippedBox>
-  ) : null;
-};
+  );
+}
 
 export default RichHttpContentClippedBoxBodySection;

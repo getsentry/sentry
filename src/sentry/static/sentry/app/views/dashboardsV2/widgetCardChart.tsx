@@ -1,6 +1,7 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -23,7 +24,7 @@ import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {getFieldFormatter} from 'app/utils/discover/fieldRenderers';
 import {getAggregateArg, getMeasurementSlug} from 'app/utils/discover/fields';
 import getDynamicText from 'app/utils/getDynamicText';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 import {Widget} from './types';
 import WidgetQueries from './widgetQueries';
@@ -38,6 +39,7 @@ type WidgetCardChartProps = Pick<ReactRouter.WithRouterProps, 'router'> &
     WidgetQueries['state'],
     'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
   > & {
+    theme: Theme;
     organization: Organization;
     location: Location;
     widget: Widget;
@@ -155,7 +157,14 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
   }
 
   render() {
-    const {tableResults, timeseriesResults, errorMessage, loading, widget} = this.props;
+    const {
+      theme,
+      tableResults,
+      timeseriesResults,
+      errorMessage,
+      loading,
+      widget,
+    } = this.props;
 
     if (widget.displayType === 'table') {
       return (
@@ -184,7 +193,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     }
 
     const {location, router, selection} = this.props;
-    const {start, end, period} = selection.datetime;
+    const {start, end, period, utc} = selection.datetime;
 
     if (widget.displayType === 'world_map') {
       const DEFAULT_GEO_DATA = {
@@ -249,8 +258,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
     const legend = {
       left: 0,
-      top: 3,
-      type: 'plain',
+      top: 0,
       selected: getSeriesSelection(location),
       formatter: (seriesName: string) => {
         const arg = getAggregateArg(seriesName);
@@ -288,7 +296,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     };
 
     return (
-      <ChartZoom router={router} period={period} start={start} end={end}>
+      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
           if (errorMessage) {
             return (
@@ -371,4 +379,4 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
   border-bottom-right-radius: ${p => p.theme.borderRadius};
 `;
 
-export default WidgetCardChart;
+export default withTheme(WidgetCardChart);

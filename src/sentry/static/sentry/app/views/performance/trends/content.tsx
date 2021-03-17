@@ -5,6 +5,7 @@ import {Location} from 'history';
 
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
+import {MAX_QUERY_LENGTH} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
@@ -157,6 +158,7 @@ class TrendsContent extends React.Component<Props, State> {
             query={query}
             fields={fields}
             onSearch={this.handleSearch}
+            maxQueryLength={MAX_QUERY_LENGTH}
           />
           <TrendsDropdown>
             <DropdownControl

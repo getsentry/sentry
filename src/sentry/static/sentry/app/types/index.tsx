@@ -92,11 +92,6 @@ export type Actor = {
   email?: string;
 };
 
-export type SuggestedAssignee = Actor & {
-  suggestedReason: SuggestedOwnerReason;
-  assignee: Team | User;
-};
-
 /**
  * Organization summaries are sent when you request a
  * list of all organizations
@@ -203,6 +198,7 @@ export type SharedViewOrganization = {
 export type AvatarProject = {
   slug: string;
   platform?: PlatformKey;
+  id?: string | number;
 };
 
 /**
@@ -231,6 +227,7 @@ export type Project = {
 
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {
+    next_id: number;
     rules: DynamicSamplingRules;
   } | null;
   plugins: Plugin[];
@@ -280,15 +277,17 @@ export type ProjectKey = {
 export type Health = {
   totalUsers: number;
   totalUsers24h: number | null;
+  totalProjectUsers24h: number | null;
   totalSessions: number;
   totalSessions24h: number | null;
+  totalProjectSessions24h: number | null;
   crashFreeUsers: number | null;
   crashFreeSessions: number | null;
   stats: HealthGraphData;
   sessionsCrashed: number;
   sessionsErrored: number;
   adoption: number | null;
-  sessions_adoption: number | null;
+  sessionsAdoption: number | null;
   hasHealthData: boolean;
   durationP50: number | null;
   durationP90: number | null;
@@ -1476,7 +1475,14 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear' | 'zepel';
+    slug:
+      | 'clickup'
+      | 'clubhouse'
+      | 'linear'
+      | 'rookout'
+      | 'spikesh'
+      | 'teamwork'
+      | 'zepel';
     name: string;
   };
 };

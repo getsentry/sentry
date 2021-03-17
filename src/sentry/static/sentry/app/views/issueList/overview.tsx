@@ -21,6 +21,7 @@ import {fetchTagValues, loadOrganizationTags} from 'app/actionCreators/tags';
 import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
@@ -48,6 +49,7 @@ import {analytics, logExperiment, metric, trackAnalyticsEvent} from 'app/utils/a
 import {callIfFunction} from 'app/utils/callIfFunction';
 import CursorPoller from 'app/utils/cursorPoller';
 import {getUtcDateString} from 'app/utils/dates';
+import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import StreamManager from 'app/utils/streamManager';
@@ -514,6 +516,8 @@ class IssueListOverview extends React.Component<Props, State> {
   fetchData = (selectionChanged?: boolean) => {
     GroupStore.loadInitialData([]);
     this._streamManager.reset();
+    const transaction = getCurrentSentryReactTransaction();
+    transaction?.setTag('query.sort', this.getSort());
 
     this.setState({
       issuesLoading: true,
@@ -1127,6 +1131,10 @@ class IssueListOverview extends React.Component<Props, State> {
                 )}
               </SidebarContainer>
             </StyledPageContent>
+
+            {hasFeature && isForReviewQuery(query) && (
+              <GuideAnchor target="is_inbox_tab" />
+            )}
           </React.Fragment>
         )}
       </Feature>

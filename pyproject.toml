@@ -6,3 +6,42 @@ build-backend = "setuptools.build_meta"
 # File filtering is taken care of in pre-commit.
 line-length=100
 target-version=['py36']
+
+[tool.pytest.ini_options]
+# note: When updating the traceback format, make sure to update .github/pytest.json
+# We don't use the celery pytest plugin.
+addopts = "-ra --tb=short --strict-markers -p no:celery"
+# TODO: --import-mode=importlib will become the default soon,
+# currently we have a few relative imports that don't work with that.
+markers = [
+    "snuba: mark a test as requiring snuba",
+]
+selenium_driver = "chrome"
+filterwarnings = [
+    # Consider all warnings to be errors other than the ignored ones.
+    "error",
+    # This is just to prevent pytest from exiting if pytest-xdist isn't installed.
+    "ignore:Unknown config option.*looponfailroots:pytest.PytestConfigWarning",
+
+    # The following warning filters should be kept in sync with
+    # sentry.utils.pytest.sentry, and sentry.runner.settings.
+    # TODO(joshuarli): Address these as a prerequisite to testing on Django 2.1.
+    "ignore::django.utils.deprecation.RemovedInDjango20Warning",
+    "ignore::django.utils.deprecation.RemovedInDjango21Warning",
+    # DeprecationWarnings from Python 3.6's sre_parse are just so painful,
+    # and I haven't found a way to ignore it specifically from a module.
+    # This one in particular is from the "cookies" packages as depended
+    # on by an outdated version of responses, and shows up all over tests.
+    # TODO(joshuarli): Upgrade responses, then revisit this.
+    #                  It'll probably show up in other dependencies.
+    "ignore::DeprecationWarning",
+
+    # The following warning filters are for pytest only.
+    # This is so we don't have to wrap most datetime objects in testing code
+    # with django.utils.timezone.
+    "ignore:DateTimeField.*naive datetime:RuntimeWarning",
+    "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
+]
+# This is for people who install pytest-xdist locally,
+# and use the -f/--looponfail feature.
+looponfailroots = ["src", "tests"]

@@ -302,6 +302,70 @@ describe('Dashboards > WidgetQueries', function () {
     expect(childProps.tableResults[1].data[0].title).toBeDefined();
   });
 
+  it('stops loading state once all queries finish even if some fail', async function () {
+    const firstQuery = MockApiClient.addMockResponse(
+      {
+        statusCode: 500,
+        url: '/organizations/org-slug/eventsv2/',
+        body: {detail: 'it didnt work'},
+      },
+      {
+        predicate(_url, options) {
+          return options.query.query === 'event.type:error';
+        },
+      }
+    );
+    const secondQuery = MockApiClient.addMockResponse(
+      {
+        url: '/organizations/org-slug/eventsv2/',
+        body: {
+          meta: {title: 'string'},
+          data: [{title: 'ValueError'}],
+        },
+      },
+      {
+        predicate(_url, options) {
+          return options.query.query === 'title:ValueError';
+        },
+      }
+    );
+
+    const widget = {
+      title: 'SDK',
+      interval: '5m',
+      displayType: 'table',
+      queries: [
+        {conditions: 'event.type:error', fields: ['sdk.name'], name: 'sdk'},
+        {conditions: 'title:ValueError', fields: ['title'], name: 'title'},
+      ],
+    };
+
+    let childProps = undefined;
+    const wrapper = mountWithTheme(
+      <WidgetQueries
+        api={api}
+        widget={widget}
+        organization={initialData.organization}
+        selection={selection}
+      >
+        {props => {
+          childProps = props;
+          return <div data-test-id="child" />;
+        }}
+      </WidgetQueries>,
+      initialData.routerContext
+    );
+    await tick();
+    await tick();
+
+    // Child should be rendered and 2 requests should be sent.
+    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    expect(firstQuery).toHaveBeenCalledTimes(1);
+    expect(secondQuery).toHaveBeenCalledTimes(1);
+
+    expect(childProps.loading).toEqual(false);
+  });
+
   it('sets bar charts to 1d interval', async function () {
     const errorMock = MockApiClient.addMockResponse(
       {

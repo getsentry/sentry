@@ -1,8 +1,10 @@
+from django.db import models
 from enum import Enum
 
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    FlexibleForeignKey,
     Model,
     sane_repr,
 )
@@ -75,7 +77,7 @@ class NotificationSetting(Model):
     """
     A setting of when to notify a user or team about activity within the app.
     Each row is a notification setting where a key is:
-    ("scope_type", "scope_identifier", "target_type", "target_identifier", "provider", "type"),
+    ("scope_type", "scope_identifier", "target", "provider", "type"),
     and the value is ("value").
     """
 
@@ -91,17 +93,9 @@ class NotificationSetting(Model):
     )
     # user_id, organization_id, project_id
     scope_identifier = BoundedBigIntegerField(null=False)
-
-    target_type = BoundedPositiveIntegerField(
-        choices=(
-            (NotificationTargetType.USER, "user"),
-            (NotificationTargetType.TEAM, "team"),
-        ),
-        null=False,
+    target = FlexibleForeignKey(
+        "sentry.Actor", db_index=True, unique=False, null=False, on_delete=models.CASCADE
     )
-    # user_id, team_id
-    target_identifier = BoundedBigIntegerField(null=False)
-
     provider = BoundedPositiveIntegerField(
         choices=(
             (ExternalProviders.EMAIL, "email"),
@@ -136,19 +130,16 @@ class NotificationSetting(Model):
             (
                 "scope_type",
                 "scope_identifier",
-                "target_type",
-                "target_identifier",
+                "target",
                 "provider",
                 "type",
             ),
         )
-        index_together = (("target_type", "target_identifier"),)
 
     __repr__ = sane_repr(
         "scope_type",
         "scope_identifier",
-        "target_type",
-        "target_identifier",
+        "target",
         "provider",
         "type",
         "value",

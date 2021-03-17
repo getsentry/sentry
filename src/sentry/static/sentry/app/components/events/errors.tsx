@@ -21,12 +21,13 @@ import {BannerContainer, BannerSummary} from './styles';
 
 const MAX_ERRORS = 100;
 
-type Error = ErrorItem['props']['error'];
+export type Error = ErrorItem['props']['error'];
 
 type Props = {
   api: Client;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
+  proGuardErrors: Array<Error>;
   event: Event;
 };
 
@@ -87,7 +88,7 @@ class Errors extends React.Component<Props, State> {
     const {event} = this.props;
     const {errors} = event;
 
-    const sourceCodeErrors = errors.filter(
+    const sourceCodeErrors = (errors ?? []).filter(
       error => error.type === 'js_no_source' && error.data.url
     );
 
@@ -124,19 +125,21 @@ class Errors extends React.Component<Props, State> {
   };
 
   render() {
-    const {event} = this.props;
+    const {event, proGuardErrors} = this.props;
     const {isOpen, releaseArtifacts} = this.state;
-    const {dist} = event;
+    const {dist, errors: eventErrors = []} = event;
 
     // XXX: uniqWith returns unique errors and is not performant with large datasets
-    const errors: Array<Error> =
-      event.errors.length > MAX_ERRORS ? event.errors : uniqWith(event.errors, isEqual);
+    const otherErrors: Array<Error> =
+      eventErrors.length > MAX_ERRORS ? eventErrors : uniqWith(eventErrors, isEqual);
+
+    const errors = [...otherErrors, ...proGuardErrors];
 
     return (
       <StyledBanner priority="danger">
         <BannerSummary>
           <StyledIconWarning />
-          <span>
+          <span data-test-id="errors-banner-summary-info">
             {tn(
               'There was %s error encountered while processing this event',
               'There were %s errors encountered while processing this event',

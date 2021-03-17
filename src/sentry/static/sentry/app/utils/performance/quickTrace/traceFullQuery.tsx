@@ -4,18 +4,16 @@ import GenericDiscoverQuery from 'app/utils/discover/genericDiscoverQuery';
 import {
   TraceFull,
   TraceFullQueryChildrenProps,
-  TraceProps,
   TraceRequestProps,
 } from 'app/utils/performance/quickTrace/types';
 import {
   beforeFetch,
   getQuickTraceRequestPayload,
-  isTransaction,
   makeEventView,
 } from 'app/utils/performance/quickTrace/utils';
 import withApi from 'app/utils/withApi';
 
-type QueryProps = Omit<TraceRequestProps, 'eventView'> & {
+type QueryProps = Omit<TraceRequestProps, 'eventId' | 'eventView'> & {
   children: (props: TraceFullQueryChildrenProps) => React.ReactNode;
 };
 
@@ -32,22 +30,15 @@ function EmptyTrace({children}: Pick<QueryProps, 'children'>) {
   );
 }
 
-function TraceFullQuery({event, children, ...props}: QueryProps) {
-  // non transaction events are currently unsupported
-  if (!isTransaction(event)) {
-    return <EmptyTrace>{children}</EmptyTrace>;
-  }
-
-  const traceId = event.contexts?.trace?.trace_id;
+function TraceFullQuery({traceId, start, end, children, ...props}: QueryProps) {
   if (!traceId) {
     return <EmptyTrace>{children}</EmptyTrace>;
   }
 
-  const eventView = makeEventView(event);
+  const eventView = makeEventView(start, end);
 
   return (
-    <GenericDiscoverQuery<TraceFull, TraceProps>
-      event={event}
+    <GenericDiscoverQuery<TraceFull, {}>
       route={`events-trace/${traceId}`}
       getRequestPayload={getQuickTraceRequestPayload}
       beforeFetch={beforeFetch}
@@ -60,7 +51,9 @@ function TraceFullQuery({event, children, ...props}: QueryProps) {
           // the client returns a empty string when the response
           // is 204. And we want the empty string, undefined and
           // null to be converted to null.
-          trace: tableData || null,
+          // TODO(wmak): replace once the backend starts returning arrays
+          // `(tableData || null)?.[0] ?? null,`
+          trace: (tableData || null)?.[0] ?? (tableData || null),
           type: 'full',
           ...rest,
         })
