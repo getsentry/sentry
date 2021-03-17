@@ -188,6 +188,7 @@ class SaltedComponentVariant(ComponentVariant):
 # existing groups)
 HIERARCHICAL_VARIANTS = [
     "app-depth-1",  # hashing by 1 level of stacktrace (eg just crashing frame)
+    "exception-type",
     "app-depth-2",
     "app-depth-3",
     "app-depth-4",
