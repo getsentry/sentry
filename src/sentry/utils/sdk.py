@@ -1,5 +1,6 @@
 import inspect
 import random
+import os
 
 from django.conf import settings
 from django.urls import resolve
@@ -214,6 +215,10 @@ def configure_sdk():
     internal_project_key = get_project_key()
     upstream_dsn = sdk_options.pop("dsn", None)
     sdk_options["traces_sampler"] = traces_sampler
+
+    # This allows reporting issues from the development environment
+    if not upstream_dsn and os.environ.get("SENTRY_DEVENV_DSN"):
+        upstream_dsn = os.environ["SENTRY_DEVENV_DSN"]
 
     if upstream_dsn:
         upstream_transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
