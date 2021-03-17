@@ -1,4 +1,3 @@
-import random
 import logging
 from datetime import datetime
 
@@ -29,7 +28,6 @@ info_logger = logging.getLogger("sentry.store")
 # Is reprocessing on or off by default?
 REPROCESSING_DEFAULT = False
 
-SYMBOLICATE_EVENT_APM_SAMPLING = settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING
 SYMBOLICATOR_MAX_RETRY_AFTER = settings.SYMBOLICATOR_MAX_RETRY_AFTER
 
 
@@ -84,10 +82,6 @@ def submit_process(
     )
 
 
-def sample_symbolicate_event_apm():
-    return random.random() < SYMBOLICATE_EVENT_APM_SAMPLING
-
-
 def submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_time, data):
     task = symbolicate_event_from_reprocessing if from_reprocessing else symbolicate_event
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
@@ -106,10 +100,6 @@ def submit_save_event(project, from_reprocessing, cache_key, event_id, start_tim
         event_id=event_id,
         project_id=project.id,
     )
-
-
-def sample_process_event_apm():
-    return random.random() < getattr(settings, "SENTRY_PROCESS_EVENT_APM_SAMPLING", 0)
 
 
 def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, project):
@@ -331,17 +321,12 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
     :param int start_time: the timestamp when the event was ingested
     :param string event_id: the event identifier
     """
-    with sentry_sdk.start_transaction(
-        op="tasks.store.symbolicate_event",
-        name="TaskSymbolicateEvent",
-        sampled=sample_symbolicate_event_apm(),
-    ):
-        return _do_symbolicate_event(
-            cache_key=cache_key,
-            start_time=start_time,
-            event_id=event_id,
-            symbolicate_task=symbolicate_event,
-        )
+    return _do_symbolicate_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        symbolicate_task=symbolicate_event,
+    )
 
 
 @instrumented_task(
@@ -352,17 +337,12 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
     acks_late=True,
 )
 def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
-    with sentry_sdk.start_transaction(
-        op="tasks.store.symbolicate_event_from_reprocessing",
-        name="TaskSymbolicateEvent",
-        sampled=sample_symbolicate_event_apm(),
-    ):
-        return _do_symbolicate_event(
-            cache_key=cache_key,
-            start_time=start_time,
-            event_id=event_id,
-            symbolicate_task=symbolicate_event_from_reprocessing,
-        )
+    return _do_symbolicate_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        symbolicate_task=symbolicate_event_from_reprocessing,
+    )
 
 
 @instrumented_task(
@@ -558,18 +538,13 @@ def process_event(cache_key, start_time=None, event_id=None, data_has_changed=No
     :param string event_id: the event identifier
     :param boolean data_has_changed: set to True if the event data was changed in previous tasks
     """
-    with sentry_sdk.start_transaction(
-        op="tasks.store.process_event",
-        name="TaskProcessEvent",
-        sampled=sample_process_event_apm(),
-    ):
-        return _do_process_event(
-            cache_key=cache_key,
-            start_time=start_time,
-            event_id=event_id,
-            process_task=process_event,
-            data_has_changed=data_has_changed,
-        )
+    return _do_process_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        process_task=process_event,
+        data_has_changed=data_has_changed,
+    )
 
 
 @instrumented_task(
@@ -581,18 +556,13 @@ def process_event(cache_key, start_time=None, event_id=None, data_has_changed=No
 def process_event_from_reprocessing(
     cache_key, start_time=None, event_id=None, data_has_changed=None, **kwargs
 ):
-    with sentry_sdk.start_transaction(
-        op="tasks.store.process_event_from_reprocessing",
-        name="TaskProcessEvent",
-        sampled=sample_process_event_apm(),
-    ):
-        return _do_process_event(
-            cache_key=cache_key,
-            start_time=start_time,
-            event_id=event_id,
-            process_task=process_event_from_reprocessing,
-            data_has_changed=data_has_changed,
-        )
+    return _do_process_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        process_task=process_event_from_reprocessing,
+        data_has_changed=data_has_changed,
+    )
 
 
 def delete_raw_event(project_id, event_id, allow_hint_clear=False):
