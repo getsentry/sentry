@@ -515,6 +515,10 @@ const commonTheme = {
   },
 
   space: [0, 8, 16, 20, 30],
+
+  demo: {
+    headerSize: '70px',
+  },
 } as const;
 
 const darkAliases = {
@@ -547,7 +551,7 @@ const darkAliases = {
   chartLineColor: colors.gray500,
   chartLabel: colors.gray400,
   progressBar: colors.purple200,
-  progressBackground: colors.gray500,
+  progressBackground: colors.gray400,
   badgeBackground: colors.gray400,
   alertBackgroundAlpha: 0.1,
 } as const;

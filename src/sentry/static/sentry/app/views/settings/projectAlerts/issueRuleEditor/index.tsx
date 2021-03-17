@@ -129,7 +129,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   getDefaultState() {
-    const {teams} = this.props;
+    const {organization, teams, project} = this.props;
     const defaultState = {
       ...super.getDefaultState(),
       configs: null,
@@ -138,8 +138,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       environments: [],
       uuid: null,
     };
-    const userTeam = teams.find(({isMember}) => !!isMember);
-    defaultState.rule.owner = userTeam ? `team:${userTeam.id}` : undefined;
+    if (organization.features.includes('team-alerts-ownership')) {
+      const projectTeamIds = new Set(project.teams.map(({id}) => id));
+      const userTeam =
+        teams.find(({isMember, id}) => !!isMember && projectTeamIds.has(id)) ?? null;
+      defaultState.rule.owner = userTeam && `team:${userTeam.id}`;
+    }
     return defaultState;
   }
 
@@ -450,19 +454,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   getTeamId = () => {
     const {rule} = this.state;
-    const owner = rule?.owner ?? '';
+    const owner = rule?.owner;
     // ownership follows the format team:<id>, just grab the id
-    return owner.split(':')[1];
+    return owner && owner.split(':')[1];
   };
 
-  handleOwnerChange = ({value}: {value?: string; label: string}) => {
-    if (value) {
-      // currently only supporting teams as owners
-      this.handleChange('owner', `team:${value}`);
-    } else {
-      // allow owner to be set to undefined (unassigned option)
-      this.handleChange('owner', value);
-    }
+  handleOwnerChange = ({value}: {value: string; label: string}) => {
+    const ownerValue = value && `team:${value}`;
+    this.handleChange('owner', ownerValue);
   };
 
   renderLoading() {

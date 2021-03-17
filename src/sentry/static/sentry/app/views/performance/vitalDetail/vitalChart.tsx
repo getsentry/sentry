@@ -211,6 +211,7 @@ class VitalChart extends React.Component<Props> {
                 query={query}
                 includePrevious={false}
                 yAxis={yAxis}
+                partial
               >
                 {({timeseriesData: results, errored, loading, reloading}) => {
                   if (errored) {

@@ -11,11 +11,13 @@ import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import TraceFullQuery from 'app/utils/performance/quickTrace/traceFullQuery';
+import {TraceFull} from 'app/utils/performance/quickTrace/types';
 import {decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 import {MetaData} from 'app/views/performance/transactionDetails/styles';
 
 import TraceView from './traceView';
+import {TraceInfo} from './types';
 import {getTraceInfo} from './utils';
 
 type Props = {
@@ -38,7 +40,7 @@ class TraceDetailsContent extends React.Component<Props> {
     return <LoadingError message={t('The trace you are looking for was not found.')} />;
   }
 
-  renderTraceHeader(traceInfo) {
+  renderTraceHeader(traceInfo: TraceInfo) {
     return (
       <TraceDetailHeader>
         <MetaData
@@ -46,20 +48,30 @@ class TraceDetailsContent extends React.Component<Props> {
           tooltipText={t('All the transactions that are a part of this trace.')}
           bodyText={t(
             '%s of %s',
-            traceInfo.relevantTransactions,
-            traceInfo.totalTransactions
+            traceInfo.transactions.size,
+            traceInfo.transactions.size
           )}
           subtext={tn(
             'Across %s project',
             'Across %s projects',
-            traceInfo.relevantProjects
+            traceInfo.relevantProjectsWithTransactions.size
+          )}
+        />
+        <MetaData
+          headingText={t('Errors')}
+          tooltipText={t('All the errors that are a part of this trace.')}
+          bodyText={t('%s of %s', traceInfo.errors.size, traceInfo.errors.size)}
+          subtext={tn(
+            'Across %s project',
+            'Across %s projects',
+            traceInfo.relevantProjectsWithErrors.size
           )}
         />
       </TraceDetailHeader>
     );
   }
 
-  renderTraceView(trace, traceInfo) {
+  renderTraceView(trace: TraceFull, traceInfo: TraceInfo) {
     return (
       <TraceDetailBody>
         <TraceView trace={trace} traceInfo={traceInfo} />

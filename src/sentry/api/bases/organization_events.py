@@ -222,6 +222,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         query_column="count()",
         params=None,
         query=None,
+        allow_partial_buckets=False,
     ):
         with self.handle_query_errors():
             with sentry_sdk.start_span(
@@ -277,24 +278,33 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 for key, event_result in result.items():
                     if len(query_columns) > 1:
                         results[key] = self.serialize_multiple_axis(
-                            serializer, event_result, columns, query_columns
+                            serializer, event_result, columns, query_columns, allow_partial_buckets
                         )
                     else:
                         # Need to get function alias if count is a field, but not the axis
                         results[key] = serializer.serialize(
-                            event_result, column=get_function_alias(query_columns[0])
+                            event_result,
+                            column=get_function_alias(query_columns[0]),
+                            allow_partial_buckets=allow_partial_buckets,
                         )
                 return results
             elif len(query_columns) > 1:
-                return self.serialize_multiple_axis(serializer, result, columns, query_columns)
+                return self.serialize_multiple_axis(
+                    serializer, result, columns, query_columns, allow_partial_buckets
+                )
             else:
-                return serializer.serialize(result)
+                return serializer.serialize(result, allow_partial_buckets=allow_partial_buckets)
 
-    def serialize_multiple_axis(self, serializer, event_result, columns, query_columns):
+    def serialize_multiple_axis(
+        self, serializer, event_result, columns, query_columns, allow_partial_buckets
+    ):
         # Return with requested yAxis as the key
         result = {
             columns[index]: serializer.serialize(
-                event_result, get_function_alias(query_column), order=index
+                event_result,
+                get_function_alias(query_column),
+                order=index,
+                allow_partial_buckets=allow_partial_buckets,
             )
             for index, query_column in enumerate(query_columns)
         }

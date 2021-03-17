@@ -79,6 +79,7 @@ class Container extends React.Component<Props> {
           query={eventView.getEventsAPIPayload(location).query}
           includePrevious={false}
           yAxis={axisOptions.map(opt => opt.value)}
+          partial
         >
           {({loading, reloading, errored, results}) => {
             if (errored) {
