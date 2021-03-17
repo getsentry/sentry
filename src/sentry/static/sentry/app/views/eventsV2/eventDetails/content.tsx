@@ -270,9 +270,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     );
 
     const hasQuickTraceView =
-      event.type === 'transaction' &&
-      (organization.features.includes('trace-view-quick') ||
-        organization.features.includes('trace-view-summary'));
+      (event.type === 'transaction' &&
+        organization.features.includes('trace-view-quick')) ||
+      organization.features.includes('trace-view-summary');
 
     if (hasQuickTraceView) {
       return (
