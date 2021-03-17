@@ -1477,9 +1477,12 @@ def get_slack_actions_with_async_lookups(organization, user, data):
                         and not a_s.validated_data["input_channel_id"]
                     ):
                         slack_actions.append(a_s.validated_data)
+        return slack_actions
     except KeyError:
-        pass
-    return slack_actions
+        # If we have any KeyErrors reading the data, we can just return nothing
+        # This will cause the endpoint to try creating the rule synchronously
+        # which will capture the error properly.
+        return {}
 
 
 def get_slack_channel_ids(organization, user, data):
