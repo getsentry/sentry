@@ -169,6 +169,7 @@ class VitalsChart extends React.Component<Props> {
               query={query}
               includePrevious={false}
               yAxis={YAXIS_VALUES}
+              partial
             >
               {({results, errored, loading, reloading}) => {
                 if (errored) {

@@ -213,6 +213,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
               yAxis={aggregate}
               includePrevious={false}
               currentSeriesName={aggregate}
+              partial={false}
             >
               {({loading, reloading, timeseriesData}) => {
                 let maxValue: SeriesDataUnit | undefined;

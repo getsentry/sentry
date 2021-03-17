@@ -161,6 +161,7 @@ class MiniGraph extends React.Component<Props> {
         orderby={orderby}
         expired={expired}
         name={name}
+        partial
       >
         {({loading, timeseriesData, results, errored}) => {
           if (errored) {

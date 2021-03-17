@@ -280,6 +280,7 @@ class WidgetQueries extends React.Component<Props, State> {
         orderby: query.orderby,
         includePrevious: false,
         referrer: 'api.dashboards.timeserieswidget',
+        partial: true,
       };
       return doEventsRequest(api, requestData);
     });

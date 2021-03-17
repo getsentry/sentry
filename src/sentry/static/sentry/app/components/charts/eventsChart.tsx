@@ -476,6 +476,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             orderby={orderby}
             topEvents={topEvents}
             confirmedQuery={confirmedQuery}
+            partial
           >
             {eventData =>
               chartImplementation({

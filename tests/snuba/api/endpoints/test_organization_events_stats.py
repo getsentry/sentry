@@ -80,6 +80,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 "start": iso_format(self.day_ago - timedelta(minutes=30)),
                 "end": iso_format(self.day_ago + timedelta(hours=1, minutes=30)),
                 "interval": "1h",
+                "partial": "1",
             },
             format="json",
         )

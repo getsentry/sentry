@@ -28,6 +28,7 @@ type Options = {
   field?: string[];
   topEvents?: number;
   orderby?: string;
+  partial: boolean;
 };
 
 /**
@@ -60,6 +61,7 @@ export const doEventsRequest = (
     field,
     topEvents,
     orderby,
+    partial,
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
@@ -73,6 +75,7 @@ export const doEventsRequest = (
       field,
       topEvents,
       orderby,
+      partial: partial ? '1' : undefined,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 

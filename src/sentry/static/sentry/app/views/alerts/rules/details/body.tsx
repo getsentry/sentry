@@ -411,6 +411,7 @@ class DetailsBody extends React.Component<Props> {
                       yAxis={aggregate}
                       includePrevious={false}
                       currentSeriesName={aggregate}
+                      partial={false}
                     >
                       {({loading, timeseriesData}) =>
                         !loading && timeseriesData ? (
