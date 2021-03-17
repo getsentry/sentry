@@ -21,7 +21,7 @@ const event = {
 };
 
 export default {
-  title: 'Core/Tables/TagsTable',
+  title: 'Features/Discover/TagsTable',
   args: {
     title: 'title',
   },
