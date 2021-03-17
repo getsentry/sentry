@@ -212,12 +212,6 @@ type SavedActionFields = {
    * date created
    */
   dateCreated: string;
-
-  /**
-   * Human readable name of the target, Can be user name/email, team name, slack channel,
-   * pagerduty service name, ms teams name, etc.
-   */
-  targetDisplay: string | null;
 };
 
 export type UnsavedAction = {

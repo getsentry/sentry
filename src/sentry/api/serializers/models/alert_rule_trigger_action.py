@@ -9,23 +9,17 @@ class AlertRuleTriggerActionSerializer(Serializer):
         if action.type == action.Type.EMAIL.value:
             if action.target:
                 if action.target_type == action.TargetType.USER.value:
-                    return "Send an email to " + action.target.email, action.target.email
+                    return "Send an email to " + action.target.email
                 elif action.target_type == action.TargetType.TEAM.value:
-                    return "Send an email to members of #" + action.target.slug, action.target.slug
+                    return "Send an email to members of #" + action.target.slug
         elif action.type == action.Type.PAGERDUTY.value:
-            return (
-                "Send a PagerDuty notification to " + action.target_display,
-                action.target_display,
-            )
+            return "Send a PagerDuty notification to " + action.target_display
         elif action.type == action.Type.SLACK.value:
-            return "Send a Slack notification to " + action.target_display, action.target_display
+            return "Send a Slack notification to " + action.target_display
         elif action.type == action.Type.MSTEAMS.value:
-            return (
-                "Send a Microsoft Teams notification to " + action.target_display,
-                action.target_display,
-            )
+            return "Send a Microsoft Teams notification to " + action.target_display
         elif action.type == action.Type.SENTRY_APP.value:
-            return "Send a notification via " + action.target_display, action.target_display
+            return "Send a notification via " + action.target_display
 
     def get_identifier_from_action(self, action):
         if action.type in [
@@ -41,8 +35,6 @@ class AlertRuleTriggerActionSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         from sentry.incidents.endpoints.serializers import action_target_type_to_string
 
-        (desc, target_display) = self.human_desc(obj)
-
         return {
             "id": str(obj.id),
             "alertRuleTriggerId": str(obj.alert_rule_trigger_id),
@@ -52,10 +44,9 @@ class AlertRuleTriggerActionSerializer(Serializer):
             "targetType": action_target_type_to_string[
                 AlertRuleTriggerAction.TargetType(obj.target_type)
             ],
-            "targetDisplay": target_display,
             "targetIdentifier": self.get_identifier_from_action(obj),
             "integrationId": obj.integration_id,
             "sentryAppId": obj.sentry_app_id,
             "dateCreated": obj.date_added,
-            "desc": desc,
+            "desc": self.human_desc(obj),
         }
