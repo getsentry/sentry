@@ -160,6 +160,7 @@ export const PanelTableHeader = styled('div')`
   text-transform: uppercase;
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   background: ${p => p.theme.backgroundSecondary};
+  line-height: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
