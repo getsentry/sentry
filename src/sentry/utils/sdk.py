@@ -1,3 +1,4 @@
+import logging
 import inspect
 import random
 import os
@@ -14,6 +15,8 @@ from sentry_sdk.utils import logger as sdk_logger
 from sentry import options
 from sentry.utils import metrics
 from sentry.utils.rust import RustInfoIntegration
+
+logger = logging.getLogger("sentry.utils.sdk")
 
 UNSAFE_FILES = (
     "sentry/event_manager.py",
@@ -218,6 +221,10 @@ def configure_sdk():
 
     # This allows reporting issues from the development environment
     if not upstream_dsn and os.environ.get("SENTRY_DEVENV_DSN"):
+        logger.warning(
+            "The Sentry runner will report development issues to Sentry.io."
+            "Use SENTRY_DEVENV_NO_REPORT to avoid reporting issues."
+        )
         upstream_dsn = os.environ["SENTRY_DEVENV_DSN"]
 
     if upstream_dsn:

@@ -1,10 +1,14 @@
+import logging
 import os
 import click
 import sys
 import sentry
 import datetime
+import sentry_sdk
 from sentry.utils.imports import import_string
 from sentry.utils.compat import map
+
+logger = logging.getLogger("sentry.runner")
 
 # We need to run this here because of a concurrency bug in Python's locale
 # with the lazy initialization.
@@ -161,4 +165,22 @@ def call_command(name, obj=None, **kwargs):
 
 
 def main():
-    cli(prog_name=get_prog(), obj={}, max_content_width=100)
+    try:
+        if os.environ.get("SENTRY_DEVENV_DSN"):
+            logger.warning(
+                "The Sentry runner will report development issues to Sentry.io."
+                "Use SENTRY_DEVENV_NO_REPORT to avoid reporting issues."
+            )
+        cli(prog_name=get_prog(), obj={}, max_content_width=100)
+    except Exception as e:
+        if os.environ.get("SENTRY_DEVENV_DSN"):
+            # This reports to the project sentry-dev-env
+            sentry_sdk.init(
+                dsn=os.environ["SENTRY_DEVENV_DSN"],
+            )
+            if os.environ.get("USER"):
+                sentry_sdk.set_user({"username": os.environ.get("USER")})
+            sentry_sdk.capture_exception(e)
+            logger.info("We have reported the error below to Sentry")
+
+        raise (e)
