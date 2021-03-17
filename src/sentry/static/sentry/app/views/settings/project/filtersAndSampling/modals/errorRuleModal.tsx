@@ -44,20 +44,12 @@ class ErrorRuleModal extends Form<Props, State> {
       [DynamicSamplingInnerName.EVENT_RELEASE, t('Releases')],
       [DynamicSamplingInnerName.EVENT_ENVIRONMENT, t('Environments')],
       [DynamicSamplingInnerName.EVENT_USER, t('Users')],
+      [DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS, t('Browser Extensions')],
+      [DynamicSamplingInnerName.EVENT_LOCALHOST, t('Localhost')],
+      [DynamicSamplingInnerName.EVENT_LEGACY_BROWSER, t('Legacy Browsers')],
+      [DynamicSamplingInnerName.EVENT_WEB_CRAWLERS, t('Web Crawlers')],
     ];
   }
-
-  handleAddCondition = () => {
-    this.setState(state => ({
-      conditions: [
-        ...state.conditions,
-        {
-          category: DynamicSamplingInnerName.EVENT_RELEASE,
-          match: '',
-        },
-      ],
-    }));
-  };
 
   handleSubmit = () => {
     const {sampleRate, conditions, transaction} = this.state;
@@ -69,6 +61,8 @@ class ErrorRuleModal extends Form<Props, State> {
     const {rule, errorRules, transactionRules} = this.props;
 
     const newRule: DynamicSamplingRule = {
+      // All new/updated rules must have id equal to 0
+      id: 0,
       type: DynamicSamplingRuleType.ERROR,
       condition: {
         op: DynamicSamplingConditionOperator.AND,

@@ -1,7 +1,7 @@
 import progressbar
 import re
 
-from django.db import connections, router
+from django.db import connections, models, router
 from sentry import eventstore
 
 
@@ -237,3 +237,12 @@ def bulk_delete_objects(
         )
 
     return has_more
+
+
+def drop_column_indexes(schema_editor, model, indexes):
+    for column_name in indexes:
+        index_names = schema_editor._constraint_names(
+            model, [column_name], index=True, type_=models.indexes.Index.suffix
+        )
+        for index_name in index_names:
+            schema_editor.execute(f'DROP INDEX CONCURRENTLY IF EXISTS "{index_name}"')

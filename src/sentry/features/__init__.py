@@ -68,6 +68,8 @@ default_manager.add("organizations:enterprise-perf", OrganizationFeature)  # NOQ
 default_manager.add("organizations:event-attachments", OrganizationFeature)  # NOQA
 default_manager.add("organizations:event-attachments-viewer", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events", OrganizationFeature)  # NOQA
+default_manager.add("organizations:external-team-associations", OrganizationFeature)  # NOQA
+default_manager.add("organizations:external-user-associations", OrganizationFeature)  # NOQA
 default_manager.add("organizations:filters-and-sampling", OrganizationFeature)  # NOQA
 default_manager.add("organizations:global-views", OrganizationFeature)  # NOQA
 default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
@@ -94,6 +96,7 @@ default_manager.add("organizations:performance-view", OrganizationFeature)  # NO
 default_manager.add("organizations:trace-view-quick", OrganizationFeature)  # NOQA
 default_manager.add("organizations:trace-view-summary", OrganizationFeature)  # NOQA
 default_manager.add("organizations:project-detail", OrganizationFeature)  # NOQA
+default_manager.add("organizations:project-detail-links", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
 default_manager.add("organizations:releases-top-charts", OrganizationFeature)  # NOQA
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)  # NOQA
@@ -120,7 +123,8 @@ default_manager.add("organizations:performance-landing-v2", OrganizationFeature)
 default_manager.add("organizations:performance-vitals-overview", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-ops-breakdown", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-tag-explorer", OrganizationFeature)  # NOQA
-
+default_manager.add("organizations:team-alerts-ownership", OrganizationFeature)  # NOQA
+default_manager.add("organizations:alert-wizard", OrganizationFeature)  # NOQA
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 
@@ -129,8 +133,10 @@ default_manager.add("projects:alert-filters", ProjectFeature)  # NOQA
 default_manager.add("projects:custom-inbound-filters", ProjectFeature)  # NOQA
 default_manager.add("projects:data-forwarding", ProjectFeature)  # NOQA
 default_manager.add("projects:discard-groups", ProjectFeature)  # NOQA
+default_manager.add("projects:import-codeowners", ProjectFeature)  # NOQA
 default_manager.add("projects:issue-alerts-targeting", ProjectFeature)  # NOQA
 default_manager.add("projects:minidump", ProjectFeature)  # NOQA
+default_manager.add("projects:race-free-group-creation", ProjectFeature)  # NOQA
 default_manager.add("projects:rate-limits", ProjectFeature)  # NOQA
 default_manager.add("projects:sample-events", ProjectFeature)  # NOQA
 default_manager.add("projects:servicehooks", ProjectFeature)  # NOQA

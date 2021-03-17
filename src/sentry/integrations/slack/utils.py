@@ -6,13 +6,13 @@ from django.http import Http404
 from urllib.parse import urlparse, urlencode, parse_qs
 
 from sentry import tagstore
-from sentry.api.fields.actor import Actor
 from sentry.constants import ObjectStatus
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 from sentry.models import (
+    ActorTuple,
     GroupStatus,
     GroupAssignee,
     OrganizationMember,
@@ -124,7 +124,7 @@ def build_attachment_text(group, event=None):
 
 
 def build_assigned_text(group, identity, assignee):
-    actor = Actor.from_actor_identifier(assignee)
+    actor = ActorTuple.from_actor_identifier(assignee)
 
     try:
         assigned_actor = actor.resolve()
@@ -390,16 +390,13 @@ def get_channel_id_with_timeout(integration, name, timeout):
         3. timed_out: boolean (whether we hit our self-imposed time limit)
     """
 
-    token_payload = {"token": integration.metadata["access_token"]}
+    headers = {"Authorization": "Bearer %s" % integration.metadata["access_token"]}
 
-    payload = dict(
-        token_payload,
-        **{
-            "exclude_archived": False,
-            "exclude_members": True,
-            "types": "public_channel,private_channel",
-        },
-    )
+    payload = {
+        "exclude_archived": False,
+        "exclude_members": True,
+        "types": "public_channel,private_channel",
+    }
 
     list_types = LIST_TYPES
 
@@ -414,7 +411,9 @@ def get_channel_id_with_timeout(integration, name, timeout):
             endpoint = "/%s.list" % list_type
             try:
                 # Slack limits the response of `<list_type>.list` to 1000 channels
-                items = client.get(endpoint, params=dict(payload, cursor=cursor, limit=1000))
+                items = client.get(
+                    endpoint, headers=headers, params=dict(payload, cursor=cursor, limit=1000)
+                )
             except ApiError as e:
                 logger.info("rule.slack.%s_list_failed" % list_type, extra={"error": str(e)})
                 return (prefix, None, False)

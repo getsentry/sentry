@@ -122,13 +122,19 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == {"detail": 'Invalid groupBy: "envriomnent"'}
 
     def test_invalid_query(self):
-        response = self.do_request({"field": ["sum(session)"], "query": ["foo:bar"]})
+        response = self.do_request(
+            {"statsPeriod": "1d", "field": ["sum(session)"], "query": ["foo:bar"]}
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {"detail": 'Invalid query field: "foo"'}
 
         response = self.do_request(
-            {"field": ["sum(session)"], "query": ["release:foo-bar@1.2.3 (123)"]}
+            {
+                "statsPeriod": "1d",
+                "field": ["sum(session)"],
+                "query": ["release:foo-bar@1.2.3 (123)"],
+            }
         )
 
         assert response.status_code == 400, response.content
@@ -137,13 +143,14 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == {"detail": 'Invalid query field: "message"'}
 
     def test_too_many_points(self):
-        # TODO: looks like this is well within the range of valid points
-        return
         # default statsPeriod is 90d
         response = self.do_request({"field": ["sum(session)"], "interval": "1h"})
 
         assert response.status_code == 400, response.content
-        assert response.data == {}
+        assert response.data == {
+            "detail": "Your interval and date range would create too many results. "
+            "Use a larger interval, or a smaller date range."
+        }
 
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_timeseries_interval(self):
@@ -205,7 +212,14 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(
             {"project": [-1], "statsPeriod": "2h", "interval": "5m", "field": ["sum(session)"]}
         )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "The interval has to be a multiple of the minimum interval of one hour."
+        }
 
+        response = self.do_request(
+            {"project": [-1], "statsPeriod": "2h", "interval": "1h", "field": ["sum(session)"]}
+        )
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
             "query": "",

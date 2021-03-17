@@ -169,17 +169,22 @@ def get_release_adoption(project_releases, environments=None, now=None):
     if environments is not None:
         total_conditions.append(["environment", "IN", environments])
 
+    # Users Adoption
     total_users = {}
+    # Session Adoption
+    total_sessions = {}
+
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["project_id", "users"],
+        selected_columns=["project_id", "users", "sessions"],
         groupby=["project_id"],
         start=start,
         conditions=total_conditions,
         filter_keys=filter_keys,
-        referrer="sessions.release-adoption-total-users",
+        referrer="sessions.release-adoption-total-users-and-sessions",
     )["data"]:
         total_users[x["project_id"]] = x["users"]
+        total_sessions[x["project_id"]] = x["sessions"]
 
     rv = {}
     for x in raw_query(
@@ -191,15 +196,27 @@ def get_release_adoption(project_releases, environments=None, now=None):
         filter_keys=filter_keys,
         referrer="sessions.release-adoption-list",
     )["data"]:
-        total = total_users.get(x["project_id"])
-        if not total:
-            adoption = None
-        else:
-            adoption = float(x["users"]) / total * 100
+        # Users Adoption
+        total_users_count = total_users.get(x["project_id"])
+
+        users_adoption = None
+        if total_users_count:
+            users_adoption = float(x["users"]) / total_users_count * 100
+
+        # Sessions Adoption
+        total_sessions_count = total_sessions.get(x["project_id"])
+
+        sessions_adoption = None
+        if total_sessions_count:
+            sessions_adoption = float(x["sessions"] / total_sessions_count * 100)
+
         rv[x["project_id"], x["release"]] = {
-            "adoption": adoption,
+            "adoption": users_adoption,
+            "sessions_adoption": sessions_adoption,
             "users_24h": x["users"],
             "sessions_24h": x["sessions"],
+            "project_users_24h": total_users_count,
+            "project_sessions_24h": total_sessions_count,
         }
 
     return rv
@@ -314,8 +331,11 @@ def get_release_health_data_overview(
     for key in rv:
         adoption_info = release_adoption.get(key) or {}
         rv[key]["adoption"] = adoption_info.get("adoption")
+        rv[key]["sessions_adoption"] = adoption_info.get("sessions_adoption")
         rv[key]["total_users_24h"] = adoption_info.get("users_24h")
+        rv[key]["total_project_users_24h"] = adoption_info.get("project_users_24h")
         rv[key]["total_sessions_24h"] = adoption_info.get("sessions_24h")
+        rv[key]["total_project_sessions_24h"] = adoption_info.get("project_sessions_24h")
 
     if health_stats_period:
         for x in raw_query(

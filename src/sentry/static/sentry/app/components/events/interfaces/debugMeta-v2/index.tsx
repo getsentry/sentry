@@ -42,7 +42,7 @@ const IMAGE_INFO_UNAVAILABLE = '-1';
 
 type DefaultProps = {
   data: {
-    images: Array<Image>;
+    images: Array<Image | null>;
   };
 };
 
@@ -86,7 +86,11 @@ class DebugMeta extends React.PureComponent<Props, State> {
   };
 
   componentDidMount() {
-    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange, undefined);
+    this.unsubscribeFromDebugMetaStore = DebugMetaStore.listen(
+      this.onDebugMetaStoreChange,
+      undefined
+    );
+
     cache.clearAll();
     this.getRelevantImages();
     this.openImageDetailsModal();
@@ -101,17 +105,17 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   componentWillUnmount() {
-    if (this.unsubscribeFromStore) {
-      this.unsubscribeFromStore();
+    if (this.unsubscribeFromDebugMetaStore) {
+      this.unsubscribeFromDebugMetaStore();
     }
   }
 
-  unsubscribeFromStore: any;
+  unsubscribeFromDebugMetaStore: any;
 
   panelTableRef = React.createRef<HTMLDivElement>();
   listRef: List | null = null;
 
-  onStoreChange = (store: {filter: string}) => {
+  onDebugMetaStoreChange = (store: {filter: string}) => {
     const {searchTerm} = this.state;
 
     if (store.filter !== searchTerm) {
@@ -142,7 +146,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
   };
 
-  isValidImage(image: Image) {
+  isValidImage(image: Image | null) {
     // in particular proguard images do not have a code file, skip them
     if (image === null || image.code_file === null || image.type === 'proguard') {
       return false;
@@ -203,7 +207,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   openImageDetailsModal() {
-    const {location, organization, projectId, data} = this.props;
+    const {location, organization, projectId} = this.props;
     const {query} = location;
 
     const {imageCodeId, imageDebugId} = query;
@@ -212,10 +216,10 @@ class DebugMeta extends React.PureComponent<Props, State> {
       return;
     }
 
-    const {images} = data;
+    const {filteredImages} = this.state;
     const image =
       imageCodeId !== IMAGE_INFO_UNAVAILABLE || imageDebugId !== IMAGE_INFO_UNAVAILABLE
-        ? images.find(
+        ? filteredImages.find(
             ({code_id, debug_id}) => code_id === imageCodeId || debug_id === imageDebugId
           )
         : undefined;
@@ -264,12 +268,12 @@ class DebugMeta extends React.PureComponent<Props, State> {
     // component. Filter those out to reduce the noise. Most importantly, this
     // includes proguard images, which are rendered separately.
     const relevantImages = images.filter(this.isValidImage).map(releventImage => {
-      const {debug_status, unwind_status} = releventImage;
+      const {debug_status, unwind_status} = releventImage as Image;
       return {
         ...releventImage,
         status: combineStatus(debug_status, unwind_status),
       };
-    });
+    }) as Images;
 
     // Sort images by their start address. We assume that images have
     // non-overlapping ranges. Each address is given as hex string (e.g.

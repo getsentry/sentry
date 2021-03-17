@@ -20,6 +20,7 @@ from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
     parse_datetime_value,
+    parse_numeric_value,
     parse_release,
     InvalidQuery,
 )
@@ -144,7 +145,7 @@ numeric_filter       = search_key sep operator? numeric_value
 # Boolean comparison filter
 boolean_filter       = negation? search_key sep boolean_value
 # Aggregate numeric filter
-aggregate_filter          = negation? aggregate_key sep operator? (numeric_value / duration_format / percentage_format)
+aggregate_filter          = negation? aggregate_key sep operator? (duration_format / numeric_value / percentage_format)
 aggregate_date_filter     = negation? aggregate_key sep operator? (date_format / alt_date_format)
 aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
 
@@ -157,7 +158,7 @@ aggregate_key        = key open_paren function_arg* closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
-numeric_value        = ~r"[-]?[0-9\.]+(?=\s|\)|$)"
+numeric_value        = ~r"([-]?[0-9\.]+)([k|m|b])?(?=\s|\)|$)"
 boolean_value        = ~r"(true|1|false|0)(?=\s|\)|$)"i
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
@@ -443,9 +444,9 @@ class SearchVisitor(NodeVisitor):
 
         if self.is_numeric_key(search_key.name):
             try:
-                search_value = SearchValue(float(search_value.text))
-            except ValueError:
-                raise InvalidSearchQuery(f"Invalid numeric query: {search_key}")
+                search_value = SearchValue(parse_numeric_value(*search_value.match.groups()))
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, search_value)
         else:
             search_value = SearchValue(
@@ -483,7 +484,7 @@ class SearchVisitor(NodeVisitor):
                         aggregate_value = parse_duration(*search_value.match.groups())
 
             if aggregate_value is None:
-                aggregate_value = float(search_value.text)
+                aggregate_value = parse_numeric_value(*search_value.match.groups())
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:
@@ -541,7 +542,7 @@ class SearchVisitor(NodeVisitor):
             return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
 
     def visit_duration_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
+        (search_key, sep, operator, search_value) = children
 
         operator = operator[0] if not isinstance(operator, Node) else "="
         if self.is_duration_key(search_key.name):
@@ -550,6 +551,8 @@ class SearchVisitor(NodeVisitor):
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
+        elif self.is_numeric_key(search_key.name):
+            return self.visit_numeric_filter(node, (search_key, sep, operator, search_value))
         else:
             search_value = operator + search_value.text if operator != "=" else search_value.text
             return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
@@ -781,6 +784,11 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     name = search_filter.key.name if key is None else key
     value = search_filter.value.value
 
+    # We want to use group_id elsewhere so shouldn't be removed from the dataset
+    # but if a user has a tag with the same name we want to make sure that works
+    if name in {"group_id"}:
+        name = f"tags[{name}]"
+
     if name in no_conversion:
         return
     elif name == "id" and search_filter.value.is_wildcard():
@@ -975,6 +983,8 @@ def format_search_filter(term, params):
     name = term.key.name
     value = term.value.value
     if name in (PROJECT_ALIAS, PROJECT_NAME_ALIAS):
+        if term.operator == "=" and value == "":
+            raise InvalidSearchQuery("Invalid query for 'has' search: 'project' cannot be empty.")
         project = None
         try:
             project = Project.objects.get(id__in=params.get("project_id", []), slug=value)
@@ -1388,6 +1398,12 @@ FIELD_ALIASES = {
     for field in [
         PseudoField("project", "project.id"),
         PseudoField("issue", "issue.id"),
+        PseudoField(
+            "timestamp.to_hour", "timestamp.to_hour", expression=["toStartOfHour", ["timestamp"]]
+        ),
+        PseudoField(
+            "timestamp.to_day", "timestamp.to_day", expression=["toStartOfDay", ["timestamp"]]
+        ),
         PseudoField(ERROR_UNHANDLED_ALIAS, ERROR_UNHANDLED_ALIAS, expression=["notHandled", []]),
         PseudoField(
             USER_DISPLAY_ALIAS,
@@ -2157,6 +2173,20 @@ FUNCTIONS = {
             aggregate=["avg", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
+        ),
+        Function(
+            "var",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["varSamp", ArgValue("column"), None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
+            "stddev",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["stddevSamp", ArgValue("column"), None],
+            default_result_type="number",
             redundant_grouping=True,
         ),
         Function(

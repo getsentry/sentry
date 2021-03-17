@@ -1,5 +1,5 @@
 ---
-created: '2021-02-15T18:20:10.249278Z'
+created: '2021-03-08T16:39:06.504172Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,6 +25,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "9bb5de55b854491dacc677184c9b019a"
+  tree_label: "<lambda>::operator()"
   component:
     system*
       exception*

@@ -8,7 +8,7 @@ import {Body, Main} from 'app/components/layouts/thirds';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tn} from 'app/locale';
-import {CommitFile, Organization, Repository} from 'app/types';
+import {CommitFile, Organization, Project, Repository} from 'app/types';
 import {formatVersion} from 'app/utils/formatters';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
@@ -22,6 +22,7 @@ type Props = RouteComponentProps<{orgId: string; release: string}, {}> & {
   location: Location;
   router: InjectedRouter;
   orgSlug: Organization['slug'];
+  projectSlug: Project['slug'];
   release: string;
   releaseRepos: Repository[];
   activeReleaseRepo?: Repository;
@@ -33,13 +34,14 @@ type State = {
 
 class FilesChanged extends AsyncView<Props, State> {
   getTitle() {
-    const {params} = this.props;
+    const {params, projectSlug} = this.props;
     const {orgId} = params;
 
     return routeTitleGen(
       t('Files Changed - Release %s', formatVersion(params.release)),
       orgId,
-      false
+      false,
+      projectSlug
     );
   }
 

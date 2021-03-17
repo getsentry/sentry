@@ -205,8 +205,8 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
         } else if (user?.isSuperuser) {
           return true;
         } else if (dateThreshold) {
-          // Don't show the guide to users who've joined after the date threshold
-          return userDateJoined > dateThreshold;
+          // Show the guide to users who've joined before the date threshold
+          return userDateJoined < dateThreshold;
         } else {
           return userDateJoined > assistantThreshold;
         }

@@ -40,10 +40,12 @@ class AccountSettingsLayout extends React.Component<Props> {
   }
 
   render() {
+    const {organization} = this.props;
+
     return (
       <SettingsLayout
         {...this.props}
-        renderNavigation={() => <AccountSettingsNavigation />}
+        renderNavigation={() => <AccountSettingsNavigation organization={organization} />}
       >
         {this.props.children}
       </SettingsLayout>
