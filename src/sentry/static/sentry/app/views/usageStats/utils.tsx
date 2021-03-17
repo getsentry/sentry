@@ -19,8 +19,7 @@ type FormatOptions = {
 };
 
 /**
- * This expects usage values/quantities for the data categories that we sell and
- * the base unit for it is KB is different from reserved values/quantities
+ * This expects usage values/quantities for the data categories that we sell.
  *
  * Note: usageQuantity for Attachments should be in BYTES
  */
@@ -31,7 +30,7 @@ export function formatUsageWithUnits(
 ) {
   if (dataCategory !== DataCategory.ATTACHMENTS) {
     return options.isAbbreviated
-      ? _abbreviateUsageNumber(usageQuantity)
+      ? abbreviateUsageNumber(usageQuantity)
       : usageQuantity.toLocaleString();
   }
 
@@ -41,15 +40,21 @@ export function formatUsageWithUnits(
 
   const usageGb = usageQuantity / GIGABYTE;
   return options.isAbbreviated
-    ? `${_abbreviateUsageNumber(usageGb)} GB`
+    ? `${abbreviateUsageNumber(usageGb)} GB`
     : `${usageGb.toLocaleString(undefined, {maximumFractionDigits: 2})} GB`;
 }
 
 /**
- * Do not use! Exporting only for re-use getsentry.
- * Use formatReservedWithUnits or formatUsageWithUnits with options.isAbbreviated to true
+ * Instead of using this function directly, use formatReservedWithUnits or
+ * formatUsageWithUnits with options.isAbbreviated to true instead.
+ *
+ * This function display different precision for billion/million/thousand to
+ * provide clarity on usage of errors/transactions/attachments to the user.
+ *
+ * If you are not displaying usage numbers, it might be better to use
+ * `formatAbbreviatedNumber` in 'app/utils/formatters'
  */
-export function _abbreviateUsageNumber(n: number) {
+export function abbreviateUsageNumber(n: number) {
   if (n >= BILLION) {
     return (n / BILLION).toLocaleString(undefined, {maximumFractionDigits: 2}) + 'B';
   }
