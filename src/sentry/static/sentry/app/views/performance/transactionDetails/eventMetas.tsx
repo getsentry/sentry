@@ -8,7 +8,7 @@ import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
-import {Event, EventTransaction} from 'app/types/event';
+import {Event} from 'app/types/event';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
 import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
@@ -28,7 +28,6 @@ type Props = {
 
 function EventMetas({event, organization, projectId, location, quickTrace}: Props) {
   const type = isTransaction(event) ? 'transaction' : 'event';
-  const transaction = event as EventTransaction;
 
   const projectBadge = (
     <Projects orgId={organization.slug} slugs={[projectId]}>
@@ -61,11 +60,7 @@ function EventMetas({event, organization, projectId, location, quickTrace}: Prop
           tooltipText={t(
             'The total time elapsed between the start and end of this transaction.'
           )}
-          bodyText={getDuration(
-            transaction.endTimestamp - transaction.startTimestamp,
-            2,
-            true
-          )}
+          bodyText={getDuration(event.endTimestamp - event.startTimestamp, 2, true)}
           subtext={timestamp}
         />
       ) : (

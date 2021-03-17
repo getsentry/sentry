@@ -25,12 +25,13 @@ function isCurrentEvent(
   event: TraceFull | QuickTraceEvent,
   currentEvent: Event
 ): boolean {
-  return (
-    event.event_id === currentEvent.id ||
-    (!isTransaction(currentEvent) &&
-      event.errors !== undefined &&
-      event.errors.filter(e => e.event_id === currentEvent.id).length > 0)
-  );
+  if (isTransaction(currentEvent)) {
+    return event.event_id === currentEvent.id;
+  } else {
+    return (
+      event.errors !== undefined && event.errors.some(e => e.event_id === currentEvent.id)
+    );
+  }
 }
 
 type PathNode = {

@@ -341,7 +341,7 @@ function EventNodeSelector({
   events = currentEvent ? events.filter(e => e.event_id !== currentEvent.id) : events;
 
   let type: keyof Theme['tag'] = nodeKey === 'current' ? 'black' : 'white';
-  if (errors.length > 0 || currentEvent?.type !== 'transaction') {
+  if (errors.length > 0 || (currentEvent && currentEvent?.type !== 'transaction')) {
     type = nodeKey === 'current' ? 'error' : 'warning';
     text = (
       <div>
