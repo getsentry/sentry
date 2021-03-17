@@ -296,7 +296,10 @@ def create_sample_event(
         data["contexts"]["trace"]["parent_span_id"] = kwargs.pop("parent_span_id")
 
     data.update(kwargs)
+    return create_sample_event_basic(data, project.id, raw=raw)
 
+
+def create_sample_event_basic(data, project_id, raw=True):
     manager = EventManager(data)
     manager.normalize()
-    return manager.save(project.id, raw=raw)
+    return manager.save(project_id, raw=raw)

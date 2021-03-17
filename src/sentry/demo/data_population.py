@@ -14,12 +14,19 @@ from typing import List
 from sentry.interfaces.user import User as UserInterface
 from sentry.models import Project
 from sentry.utils import json
-from sentry.utils.samples import random_geo, random_ip, create_sample_event, random_normal
+from sentry.utils.dates import to_timestamp
+from sentry.utils.samples import (
+    random_geo,
+    random_ip,
+    create_sample_event,
+    create_sample_event_basic,
+    random_normal,
+)
 from sentry.utils.snuba import SnubaError
 
 
 MAX_DAYS = 2
-SCALE_FACTOR = 0.5
+SCALE_FACTOR = 1
 BASE_OFFSET = 0.5
 NAME_STEP_SIZE = 20
 
@@ -98,17 +105,21 @@ def generate_user():
     return get_user_by_id(id_0_offset)
 
 
-def safe_send_event(data):
+def safe_send_event(data, basic=False):
     # TODO: make a batched update version of create_sample_event
     try:
-        create_sample_event(
-            **data,
-        )
+        if basic:
+            project = data.pop("project")
+            data["timestamp"] = to_timestamp(data["timestamp"])
+            create_sample_event_basic(data, project.id)
+        else:
+            create_sample_event(
+                **data,
+            )
     except SnubaError:
         # if snuba fails, just back off and continue
         logger.info("safe_send_event.snuba_error")
         time.sleep(0.2)
-        raise
 
 
 def clean_event(event_json):
@@ -352,4 +363,6 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                     contexts=backend_context,
                 )
                 fix_breadrumbs(local_event)
-                safe_send_event(local_event)
+                # use basic here so we don't get interference from the python.json file
+                # that would mess up the stack trace
+                safe_send_event(local_event, basic=True)
