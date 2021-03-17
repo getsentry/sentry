@@ -17,7 +17,7 @@ const VERTICAL_PADDING = 22;
 
 type Props = {
   data: Series[];
-  rule: IncidentRule,
+  rule: IncidentRule;
   incidents?: Incident[];
   warningTrigger?: Trigger;
   criticalTrigger?: Trigger;
@@ -41,7 +41,11 @@ function createThresholdSeries(lineColor: string, threshold: number): LineChartS
   };
 }
 
-function createStatusAreaSeries(lineColor: string, startTime: number, endTime: number): LineChartSeries {
+function createStatusAreaSeries(
+  lineColor: string,
+  startTime: number,
+  endTime: number
+): LineChartSeries {
   return {
     seriesName: 'Status Area',
     type: 'line',
@@ -51,10 +55,14 @@ function createStatusAreaSeries(lineColor: string, startTime: number, endTime: n
       data: [[{coord: [startTime, 0]}, {coord: [endTime, 0]}] as any],
     }),
     data: [],
-  }
+  };
 }
 
-function createIncidentSeries(lineColor: string, incidentTimestamp: number, label?: string) {
+function createIncidentSeries(
+  lineColor: string,
+  incidentTimestamp: number,
+  label?: string
+) {
   return {
     seriesName: 'Incident Line',
     type: 'line',
@@ -71,7 +79,7 @@ function createIncidentSeries(lineColor: string, incidentTimestamp: number, labe
       } as any,
     }),
     data: [],
-  }
+  };
 }
 
 export default class MetricChart extends React.PureComponent<Props, State> {
@@ -114,7 +122,10 @@ export default class MetricChart extends React.PureComponent<Props, State> {
 
   getRuleCreatedThresholdElements = () => {
     const {height, width} = this.state;
-    const {data, rule: {dateModified}} = this.props;
+    const {
+      data,
+      rule: {dateModified},
+    } = this.props;
 
     if (!data.length || !data[0].data.length) {
       return [];
@@ -189,12 +200,24 @@ export default class MetricChart extends React.PureComponent<Props, State> {
       // select incidents that fall within the graph range
       const periodStart = moment.utc(firstPoint);
 
-      incidents.filter(incident => !incident.dateClosed || moment(incident.dateClosed).isAfter(periodStart))
-        .forEach((incident) => {
-          const statusChanges = incident.activities?.filter(({type, value}) =>
-            type === IncidentActivityType.STATUS_CHANGE &&
-            value && [`${IncidentStatus.WARNING}`, `${IncidentStatus.CRITICAL}`].includes(value))
-            .sort((a, b) => moment(a.dateCreated).valueOf() - moment(b.dateCreated).valueOf())
+      incidents
+        .filter(
+          incident =>
+            !incident.dateClosed || moment(incident.dateClosed).isAfter(periodStart)
+        )
+        .forEach(incident => {
+          const statusChanges = incident.activities
+            ?.filter(
+              ({type, value}) =>
+                type === IncidentActivityType.STATUS_CHANGE &&
+                value &&
+                [`${IncidentStatus.WARNING}`, `${IncidentStatus.CRITICAL}`].includes(
+                  value
+                )
+            )
+            .sort(
+              (a, b) => moment(a.dateCreated).valueOf() - moment(b.dateCreated).valueOf()
+            );
 
           const incidentEnd = incident.dateClosed ?? moment().valueOf();
 
@@ -203,27 +226,44 @@ export default class MetricChart extends React.PureComponent<Props, State> {
           let currColor: string = rule.triggers.find(({label}) => label === 'warning')
             ? theme.yellow300
             : theme.red300;
-          series.push(createIncidentSeries(theme.yellow300, moment(incident.dateStarted).valueOf(), incident.identifier));
-          series.push(createStatusAreaSeries(
-            currColor,
-            moment(incident.dateStarted).valueOf(),
-            statusChanges?.length && statusChanges[0].dateCreated ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs : moment(incidentEnd).valueOf(),
-          ));
+          series.push(
+            createIncidentSeries(
+              theme.yellow300,
+              moment(incident.dateStarted).valueOf(),
+              incident.identifier
+            )
+          );
+          series.push(
+            createStatusAreaSeries(
+              currColor,
+              moment(incident.dateStarted).valueOf(),
+              statusChanges?.length && statusChanges[0].dateCreated
+                ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
+                : moment(incidentEnd).valueOf()
+            )
+          );
 
           statusChanges?.forEach((activity, idx) => {
             const dateCreated = moment(activity.dateCreated).valueOf() - timeWindowMs;
-            const activityColor = activity.value === `${IncidentStatus.CRITICAL}` ? theme.red300 : theme.yellow300;
+            const activityColor =
+              activity.value === `${IncidentStatus.CRITICAL}`
+                ? theme.red300
+                : theme.yellow300;
             if (activityColor !== currColor) {
               series.push(createIncidentSeries(activityColor, dateCreated));
-              currColor = activityColor
+              currColor = activityColor;
             }
-            series.push(createStatusAreaSeries(
-              activityColor,
-              dateCreated,
-              idx === statusChanges.length - 1 ? moment(incidentEnd).valueOf() : moment(statusChanges[idx + 1].dateCreated).valueOf() - timeWindowMs,
-            ));
+            series.push(
+              createStatusAreaSeries(
+                activityColor,
+                dateCreated,
+                idx === statusChanges.length - 1
+                  ? moment(incidentEnd).valueOf()
+                  : moment(statusChanges[idx + 1].dateCreated).valueOf() - timeWindowMs
+              )
+            );
           });
-        })
+        });
     }
 
     let maxThresholdValue = 0;
