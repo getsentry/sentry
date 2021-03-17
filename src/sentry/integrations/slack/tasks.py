@@ -21,8 +21,9 @@ from sentry.incidents.endpoints.serializers import (
 )
 from sentry.incidents.models import AlertRule
 from sentry.incidents.logic import (
-    alert_rule_data_requires_async_lookup,
+    get_slack_channel_ids,
     ChannelLookupTimeoutError,
+    InvalidTriggerActionError,
 )
 from sentry.integrations.slack.utils import get_channel_id_with_timeout, strip_channel_name
 from sentry.utils.redis import redis_clusters
@@ -177,9 +178,13 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
 
     # This function call will write "input_channel_id" to the appropriate actions before we create the serializer
     # I wasn't sure of a way to use the same loop to return True in the endpoints and to also do the lookup and didn't want to duplicate the loop
-    mapped_ids = alert_rule_data_requires_async_lookup(
-        organization, user, data, return_input_channel_id=True
-    )
+    try:
+        mapped_ids = get_slack_channel_ids(organization, user, data)
+    except (serializers.ValidationError, ChannelLookupTimeoutError, InvalidTriggerActionError):
+        # channel doesn't exist error or validation error
+        redis_rule_status.set_value("failed")
+        return
+
     for trigger in data["triggers"]:
         for action in trigger["actions"]:
             if action["targetIdentifier"] in mapped_ids:

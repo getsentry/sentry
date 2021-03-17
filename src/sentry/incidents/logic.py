@@ -1455,7 +1455,9 @@ def translate_aggregate_field(aggregate, reverse=False):
     return aggregate
 
 
-def alert_rule_data_requires_async_lookup(organization, user, data, return_input_channel_id=False):
+def get_slack_channel_ids(organization, user, data, peek=False):
+    # If peek is True, we do no actual lookups.
+    # We simply return True if there is a lookup to do. Otherwise {}.
     try:
         from sentry.incidents.endpoints.serializers import AlertRuleTriggerActionSerializer
 
@@ -1467,7 +1469,6 @@ def alert_rule_data_requires_async_lookup(organization, user, data, return_input
                         "organization": organization,
                         "access": SystemAccess(),
                         "user": user,
-                        "use_async_lookup": True,
                     },
                     data=action,
                 )
@@ -1475,27 +1476,27 @@ def alert_rule_data_requires_async_lookup(organization, user, data, return_input
                     if (
                         a_s.validated_data["type"].value == AlertRuleTriggerAction.Type.SLACK.value
                         and not a_s.validated_data["input_channel_id"]
+                        and not a_s.validated_data["target_identifier"] in mapped_ids
                     ):
-                        if not return_input_channel_id:
+                        if peek:
                             return True
-                        elif not a_s.validated_data["target_identifier"] in mapped_ids:
-                            (
-                                mapped_ids[a_s.validated_data["target_identifier"]],
-                                _,
-                            ) = get_target_identifier_display_for_integration(
-                                a_s.validated_data["type"].value,
-                                a_s.validated_data["target_identifier"],
-                                organization,
-                                a_s.validated_data["integration"].id,
-                                use_async_lookup=True,
-                                input_channel_id=None,
-                            )
+
+                        (
+                            mapped_ids[a_s.validated_data["target_identifier"]],
+                            _,
+                        ) = get_target_identifier_display_for_integration(
+                            a_s.validated_data["type"].value,
+                            a_s.validated_data["target_identifier"],
+                            organization,
+                            a_s.validated_data["integration"].id,
+                            use_async_lookup=True,
+                            input_channel_id=None,
+                        )
     except KeyError:
-        # Maybe data is invalid, no triggers/actions.
-        # Just return False - we'll serialize it, get the validation error, and give it to the user.
         pass
 
-    if return_input_channel_id:
-        return mapped_ids
+    return mapped_ids
 
-    return False
+
+def alert_rule_has_async_lookups(organization, user, data):
+    return get_slack_channel_ids(organization, user, data, peek=True)

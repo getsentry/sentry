@@ -6,7 +6,7 @@ from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.incidents.endpoints.bases import ProjectAlertRuleEndpoint
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.logic import (
-    alert_rule_data_requires_async_lookup,
+    alert_rule_has_async_lookups,
     AlreadyDeletedError,
     delete_alert_rule,
 )
@@ -36,7 +36,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
             partial=True,
         )
         if serializer.is_valid():
-            if alert_rule_data_requires_async_lookup(project.organization, request.user, data):
+            if alert_rule_has_async_lookups(project.organization, request.user, data):
                 # need to kick off an async job for Slack
                 client = tasks.RedisRuleStatus()
                 task_args = {
