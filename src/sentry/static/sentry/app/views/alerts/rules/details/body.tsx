@@ -215,9 +215,7 @@ class DetailsBody extends React.Component<Props> {
     const warningTrigger = rule?.triggers.find(({label}) => label === 'warning');
 
     const ownerId = rule.owner?.split(':')[1];
-    const teamActor = ownerId
-      ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
-      : null;
+    const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''}
 
     return (
       <React.Fragment>

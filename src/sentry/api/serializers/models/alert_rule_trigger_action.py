@@ -8,14 +8,10 @@ class AlertRuleTriggerActionSerializer(Serializer):
         # Returns a human readable description to display in the UI
         if action.type == action.Type.EMAIL.value:
             if action.target:
-                if action.target_type == action.TargetType.SPECIFIC.value:
-                    return "Send an email to " + action.target, action.target
-                elif action.target_type == action.TargetType.USER.value:
+                if action.target_type == action.TargetType.USER.value:
                     return "Send an email to " + action.target.email, action.target.email
                 elif action.target_type == action.TargetType.TEAM.value:
                     return "Send an email to members of #" + action.target.slug, action.target.slug
-                elif action.target_type == action.TargetType.SENTRY_APP.value:
-                    return "Send an email to " + action.target_display, action.target_display
         elif action.type == action.Type.PAGERDUTY.value:
             return (
                 "Send a PagerDuty notification to " + action.target_display,
