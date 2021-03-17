@@ -212,13 +212,11 @@ def process_individual_attachment(message, projects):
     # Attachments may be uploaded for events that already exist. Fetch the
     # existing group_id, so that the attachment can be fetched by group-level
     # APIs. This is inherently racy.
-    events = eventstore.get_unfetched_events(
-        filter=eventstore.Filter(event_ids=[event_id], project_ids=[project.id]), limit=1
-    )
+    event = eventstore.get_event_by_id(project.id, event_id)
 
     group_id = None
-    if events:
-        group_id = events[0].group_id
+    if event is not None:
+        group_id = event.group_id
 
     attachment = message["attachment"]
     attachment = attachment_cache.get_from_chunks(

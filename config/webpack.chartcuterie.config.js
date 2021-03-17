@@ -13,6 +13,7 @@ const findLoader = loaderName =>
   baseConfig.module.rules.find(rule => rule.use.loader === loaderName);
 
 const config = {
+  mode: process.env.NODE_ENV || 'development',
   context: baseConfig.context,
   resolve: baseConfig.resolve,
 

@@ -1,13 +1,6 @@
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
 
-UNAME := $(shell command -v uname 2> /dev/null)
-ifdef UNAME
-	ifeq ($(shell uname), Darwin)
-		BIG_SUR := $(shell sw_vers -productVersion | egrep "11\.")
-	endif
-endif
-
 bootstrap: develop init-config run-dependent-services create-db apply-migrations build-platform-assets
 
 develop: ensure-pinned-pip setup-git install-js-dev install-py-dev

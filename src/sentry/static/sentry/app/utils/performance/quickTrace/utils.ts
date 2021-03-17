@@ -1,6 +1,7 @@
 import omit from 'lodash/omit';
 
 import {Client} from 'app/api';
+import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {Event, EventTransaction} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
@@ -14,6 +15,23 @@ import {
 
 export function isTransaction(event: Event): event is EventTransaction {
   return event.type === 'transaction';
+}
+
+/**
+ * An event can be an error or a transaction. We need to check whether the current
+ * event id is in the list of errors as well
+ */
+function isCurrentEvent(
+  event: TraceFull | QuickTraceEvent,
+  currentEvent: Event
+): boolean {
+  if (isTransaction(currentEvent)) {
+    return event.event_id === currentEvent.id;
+  } else {
+    return (
+      event.errors !== undefined && event.errors.some(e => e.event_id === currentEvent.id)
+    );
+  }
 }
 
 type PathNode = {
@@ -47,7 +65,7 @@ export function flattenRelevantPaths(
   const paths: PathNode[] = [{event: traceFull, path: []}];
   while (paths.length) {
     const current = paths.shift()!;
-    if (current.event.event_id === currentEvent.id) {
+    if (isCurrentEvent(current.event, currentEvent)) {
       for (const node of current.path) {
         relevantPath.push(node);
       }
@@ -122,7 +140,7 @@ export function parseQuickTrace(
 
   const isFullTrace = type === 'full';
 
-  const current = trace.find(e => e.event_id === event.id) ?? null;
+  const current = trace.find(e => isCurrentEvent(e, event)) ?? null;
   if (current === null) {
     throw new Error('Current event not in quick trace!');
   }
@@ -145,7 +163,7 @@ export function parseQuickTrace(
     trace.find(
       e =>
         // a root can't be the current event
-        e.event_id !== event.id &&
+        e.event_id !== current.event_id &&
         // a root can't be the direct parent
         e.event_id !== parent?.event_id &&
         // a root has to to be the first generation
@@ -244,4 +262,12 @@ export function reduceTrace<T>(
   }
 
   return result;
+}
+
+export function getTraceTimeRangeFromEvent(event: Event): {start: string; end: string} {
+  const start = isTransaction(event)
+    ? event.startTimestamp
+    : new Date(event.dateCreated).getTime();
+  const end = isTransaction(event) ? event.endTimestamp : start;
+  return getTraceDateTimeRange({start, end});
 }
