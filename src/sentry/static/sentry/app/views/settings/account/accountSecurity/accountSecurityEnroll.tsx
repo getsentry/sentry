@@ -15,6 +15,7 @@ import CircleIndicator from 'app/components/circleIndicator';
 import {PanelItem} from 'app/components/panels';
 import U2fsign from 'app/components/u2f/u2fsign';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Authenticator} from 'app/types';
 import getPendingInvite from 'app/utils/getPendingInvite';
 import AsyncView from 'app/views/asyncView';
@@ -418,7 +419,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
 
 const StyledQRCode = styled(QRCode)`
   background: white;
-  padding: 10px;
+  padding: ${space(2)};
 `;
 
 export default withRouter(AccountSecurityEnroll);
