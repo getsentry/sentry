@@ -1,4 +1,9 @@
-from sentry.models import Organization, OrganizationStatus, User, UserOption
+from sentry.models import (
+    Organization,
+    OrganizationStatus,
+    User,
+    UserOption,
+)
 from sentry.testutils import APITestCase
 
 
@@ -12,6 +17,11 @@ class UserDetailsTest(APITestCase):
 
 
 class UserDetailsGetTest(UserDetailsTest):
+    # TODO(dcramer): theres currently no way to look up other users
+    def test_look_up_other_user(self):
+        user2 = self.create_user(email="b@example.com")
+        self.get_valid_response(user2.id, status_code=403)
+
     def test_lookup_self(self):
         resp = self.get_valid_response("me")
 
