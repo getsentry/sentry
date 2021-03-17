@@ -1,3 +1,5 @@
+import logging
+
 from uuid import uuid4
 
 from django.conf import settings
@@ -16,12 +18,20 @@ from sentry.models import (
     Organization,
     User,
 )
-from sentry.incidents.endpoints.serializers import AlertRuleSerializer
+from sentry.incidents.endpoints.serializers import (
+    AlertRuleSerializer,
+)
 from sentry.incidents.models import AlertRule
-from sentry.incidents.logic import ChannelLookupTimeoutError
+from sentry.incidents.logic import (
+    get_slack_channel_ids,
+    ChannelLookupTimeoutError,
+    InvalidTriggerActionError,
+)
 from sentry.integrations.slack.utils import get_channel_id_with_timeout, strip_channel_name
 from sentry.utils.redis import redis_clusters
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+
+logger = logging.getLogger("sentry.integrations.slack.tasks")
 
 
 class RedisRuleStatus:
@@ -169,6 +179,30 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
         except AlertRule.DoesNotExist:
             redis_rule_status.set_value("failed")
             return
+
+    try:
+        mapped_ids = get_slack_channel_ids(organization, user, data)
+    except (serializers.ValidationError, ChannelLookupTimeoutError, InvalidTriggerActionError) as e:
+        # channel doesn't exist error or validation error
+        logger.info(
+            "get_slack_channel_ids.failed",
+            extra={
+                "exception": e,
+            },
+        )
+        redis_rule_status.set_value("failed")
+        return
+
+    for trigger in data["triggers"]:
+        for action in trigger["actions"]:
+            if action["type"] == "slack":
+                if action["targetIdentifier"] in mapped_ids:
+                    action["input_channel_id"] = mapped_ids[action["targetIdentifier"]]
+                    # We can early exit because we couldn't map this action's slack channel name to a slack id
+                    # This is a fail safe, but I think we shouldn't really hit this.
+                else:
+                    redis_rule_status.set_value("failed")
+                    return
 
     # we use SystemAccess here because we can't pass the access instance from the request into the task
     # this means at this point we won't raise any validation errors associated with permissions
