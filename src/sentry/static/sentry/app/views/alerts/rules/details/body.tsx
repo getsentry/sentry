@@ -176,8 +176,8 @@ class DetailsBody extends React.Component<Props> {
 
     return (
       <TriggerCondition>
-          {icon}
-          <TriggerText>{`${thresholdTypeText} ${trigger.alertThreshold}`}</TriggerText>
+        {icon}
+        <TriggerText>{`${thresholdTypeText} ${trigger.alertThreshold}`}</TriggerText>
       </TriggerCondition>
     );
   }
@@ -193,7 +193,7 @@ class DetailsBody extends React.Component<Props> {
     const warningTrigger = rule?.triggers.find(({label}) => label === 'warning');
 
     const ownerId = rule.owner?.split(':')[1];
-    const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''}
+    const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
 
     return (
       <React.Fragment>
@@ -220,11 +220,13 @@ class DetailsBody extends React.Component<Props> {
           <Feature features={['organizations:team-alerts-ownership']}>
             <KeyValueTableRow
               keyName={t('Team')}
-              value={teamActor ? (
-                <ActorAvatar actor={teamActor} size={24} />
-              ) : (
-                <IconUser size="20px" color="gray400" />
-              )}
+              value={
+                teamActor ? (
+                  <ActorAvatar actor={teamActor} size={24} />
+                ) : (
+                  <IconUser size="20px" color="gray400" />
+                )
+              }
             />
           </Feature>
 
