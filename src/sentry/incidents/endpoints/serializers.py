@@ -24,7 +24,6 @@ from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     delete_alert_rule_trigger,
     delete_alert_rule_trigger_action,
-    rewrite_trigger_action_fields,
     translate_aggregate_field,
     update_alert_rule,
     update_alert_rule_trigger,
@@ -242,14 +241,18 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                 delete_alert_rule_trigger_action(action)
 
             for action_data in actions:
-                action_data = rewrite_trigger_action_fields(action_data)
+                if "integration_id" in action_data:
+                    action_data["integration"] = action_data.pop("integration_id")
+
+                if "sentry_app_id" in action_data:
+                    action_data["sentry_app"] = action_data.pop("sentry_app_id")
+
                 if "id" in action_data:
                     action_instance = AlertRuleTriggerAction.objects.get(
                         alert_rule_trigger=alert_rule_trigger, id=action_data["id"]
                     )
                 else:
                     action_instance = None
-
                 action_serializer = AlertRuleTriggerActionSerializer(
                     context={
                         "alert_rule": alert_rule_trigger.alert_rule,
