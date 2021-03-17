@@ -11,6 +11,8 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.http import urlencode
 from uuid import uuid1
 
+import sentry_sdk
+
 from sentry import projectoptions
 from sentry.app import locks
 from sentry.constants import ObjectStatus, RESERVED_PROJECT_SLUGS
@@ -128,7 +130,10 @@ class Project(Model, PendingDeletionMixin):
     def next_short_id(self):
         from sentry.models import Counter
 
-        return Counter.increment(self)
+        with sentry_sdk.start_span(op="project.next_short_id") as span:
+            span.set_data("project_id", self.id)
+            span.set_data("project_slug", self.slug)
+            return Counter.increment(self)
 
     def save(self, *args, **kwargs):
         if not self.slug:
