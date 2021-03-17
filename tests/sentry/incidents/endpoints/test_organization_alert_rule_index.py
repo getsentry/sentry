@@ -748,3 +748,72 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 400
+
+    def test_name_filter(self):
+        self.setup_project_and_rules()
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "name": "yet",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 1
+        assert result[0]["name"] == "yet another alert rule"
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "name": "issue rule",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 1
+        assert result[0]["name"] == "Issue Rule Test"
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id, self.project2.id],
+                "name": "aLeRt RuLe",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 3
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id, self.project2.id],
+                "name": "aLeRt this RuLe",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 0
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id, self.project2.id],
+                "name": "RuLe",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 4
