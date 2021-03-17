@@ -1,4 +1,5 @@
 import inspect
+import random
 
 from django.conf import settings
 from django.urls import resolve
@@ -39,6 +40,26 @@ SAMPLED_URL_NAMES = {
     "external-issues",
     "sentry-api-0-sentry-app-authorizations",
 }
+
+_SYMBOLICATE_EVENT_TASKS = {
+    "sentry.tasks.store.symbolicate_event",
+    "sentry.tasks.store.symbolicate_event_from_reprocessing",
+}
+
+
+def _sample_process_event_tasks():
+    return random.random() < settings.SENTRY_PROCESS_EVENT_APM_SAMPLING
+
+
+_PROCESS_EVENT_TASKS = {
+    "sentry.tasks.store.process_event",
+    "sentry.tasks.store.process_event_from_reprocessing",
+}
+
+
+def _sample_symbolicate_event_tasks():
+    return random.random() < settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING
+
 
 UNSAFE_TAG = "_unsafe"
 
@@ -145,6 +166,15 @@ def traces_sampler(sampling_context):
     # If there's already a sampling decision, just use that
     if sampling_context["parent_sampled"] is not None:
         return sampling_context["parent_sampled"]
+
+    if "celery_job" in sampling_context:
+        task_name = sampling_context["celery_job"].get("task")
+
+        if task_name in _PROCESS_EVENT_TASKS:
+            return _sample_process_event_tasks()
+
+        if task_name in _SYMBOLICATE_EVENT_TASKS:
+            return _sample_symbolicate_event_tasks()
 
     # Resolve the url, and see if we want to set our own sampling
     if "wsgi_environ" in sampling_context:
