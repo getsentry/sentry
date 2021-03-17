@@ -11,6 +11,7 @@ import {
   DividerLine,
   DividerLineGhostContainer,
   DurationPill,
+  OperationName,
   StyledIconChevron,
   TRANSACTION_ROW_HEIGHT,
   TransactionBarRectangle,
@@ -38,6 +39,7 @@ type Props = {
   isLast: boolean;
   continuingDepths: Array<number>;
   isExpanded: boolean;
+  isVisible: boolean;
   toggleExpandedState: () => void;
   theme: Theme;
 };
@@ -166,7 +168,15 @@ class TransactionBar extends React.Component<Props> {
             width: '100%',
           }}
         >
-          <span>{transaction.transaction}</span>
+          <span>
+            <strong>
+              <OperationName spanErrors={transaction.errors}>
+                {transaction['transaction.op']}
+              </OperationName>
+              {' \u2014 '}
+            </strong>
+            {transaction.transaction}
+          </span>
         </TransactionBarTitle>
       </TransactionBarTitleContainer>
     );
@@ -302,8 +312,10 @@ class TransactionBar extends React.Component<Props> {
   }
 
   render() {
+    const {isVisible} = this.props;
+
     return (
-      <TransactionRow visible>
+      <TransactionRow visible={isVisible}>
         <DividerHandlerManager.Consumer>
           {dividerHandlerChildrenProps =>
             this.renderHeader({dividerHandlerChildrenProps})

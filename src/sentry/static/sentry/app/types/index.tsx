@@ -198,6 +198,7 @@ export type SharedViewOrganization = {
 export type AvatarProject = {
   slug: string;
   platform?: PlatformKey;
+  id?: string | number;
 };
 
 /**
@@ -683,6 +684,12 @@ export interface Config {
   apmSampling: number;
   dsn_requests: string;
   demoMode: boolean;
+}
+
+export enum DataCategory {
+  ERRORS = 'errors',
+  TRANSACTIONS = 'transactions',
+  ATTACHMENTS = 'attachments',
 }
 
 export type EventOrGroupType =

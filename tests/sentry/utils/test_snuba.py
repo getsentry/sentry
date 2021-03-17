@@ -154,6 +154,8 @@ class SnubaUtilsTest(TestCase):
         assert get_json_type("Float64") == "number"
         assert get_json_type("Nullable(Float64)") == "number"
         assert get_json_type("Array(String)") == "array"
+        assert get_json_type("DateTime") == "date"
+        assert get_json_type("DateTime('UTC')") == "date"
         assert get_json_type("Char") == "string"
         assert get_json_type("unknown") == "string"
         assert get_json_type("") == "string"

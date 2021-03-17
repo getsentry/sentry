@@ -45,7 +45,7 @@ const StyledIconUser = styled(IconUser)`
 `;
 
 const unassignedOption = {
-  value: undefined,
+  value: null,
   label: (
     <UnassignedWrapper>
       <StyledIconUser size="20px" color="gray400" />
@@ -53,7 +53,7 @@ const unassignedOption = {
     </UnassignedWrapper>
   ),
   searchKey: 'unassigned',
-  actor: undefined,
+  actor: null,
 };
 type MentionableUnassigned = typeof unassignedOption;
 
@@ -257,7 +257,7 @@ class SelectMembers extends React.Component<Props, State> {
     const {options} = this.state;
 
     // Copy old value
-    const oldValue = [...value];
+    const oldValue = value ? [...value] : {value};
 
     // Optimistic update
     this.props.onChange(this.createMentionableTeam(team));

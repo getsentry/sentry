@@ -185,7 +185,7 @@ describe('EventsV2 > EventDetails', function () {
     await wrapper.update();
 
     // Get the first link as we wrap react-router's link
-    const browserTagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
+    const browserTagLink = wrapper.find('EventDetails KeyValueTable Value Link').first();
 
     // Should append tag value and other event attributes to results view query.
     const browserTagTarget = browserTagLink.props().to;
@@ -197,7 +197,7 @@ describe('EventsV2 > EventDetails', function () {
     );
 
     // Get the second link
-    const deviceUUIDTagLink = wrapper.find('EventDetails TagsTable TagValue Link').at(2);
+    const deviceUUIDTagLink = wrapper.find('EventDetails KeyValueTable Value Link').at(2);
 
     // Should append tag value wrapped with tags[] as device.uuid is part of our fields
     const deviceUUIDTagTarget = deviceUUIDTagLink.props().to;
@@ -233,7 +233,7 @@ describe('EventsV2 > EventDetails', function () {
     await wrapper.update();
 
     // Get the first link as we wrap react-router's link
-    const browserTagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
+    const browserTagLink = wrapper.find('EventDetails KeyValueTable Value Link').first();
 
     // Should append tag value and other event attributes to results view query.
     const browserTagTarget = browserTagLink.props().to;
@@ -245,7 +245,7 @@ describe('EventsV2 > EventDetails', function () {
     );
 
     // Get the second link
-    const deviceUUIDTagLink = wrapper.find('EventDetails TagsTable TagValue Link').at(2);
+    const deviceUUIDTagLink = wrapper.find('EventDetails KeyValueTable Value Link').at(2);
 
     // Should append tag value wrapped with tags[] as device.uuid is part of our fields
     const deviceUUIDTagTarget = deviceUUIDTagLink.props().to;

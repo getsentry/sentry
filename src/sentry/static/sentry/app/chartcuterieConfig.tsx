@@ -8,12 +8,6 @@
  * into the configuration file loaded by the service.
  */
 
-import type {
-  ChartcuterieConfig,
-  RenderConfig,
-  RenderDescriptor,
-} from '@sentry/chartcuterie/lib/types';
-
 import Grid from 'app/components/charts/components/grid';
 import Legend from 'app/components/charts/components/legend';
 import XAxis from 'app/components/charts/components/xAxis';
@@ -21,6 +15,11 @@ import YAxis from 'app/components/charts/components/yAxis';
 import AreaSeries from 'app/components/charts/series/areaSeries';
 import {getColorPalette} from 'app/components/charts/utils';
 import {EventsStatsData} from 'app/types';
+import type {
+  ChartcuterieConfig,
+  RenderConfig,
+  RenderDescriptor,
+} from 'app/types/chartcuterie';
 import {lightTheme as theme} from 'app/utils/theme';
 
 /**
