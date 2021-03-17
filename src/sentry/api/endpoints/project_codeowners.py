@@ -153,7 +153,9 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
 
 class ProjectCodeOwnersMixin:
     def has_feature(self, request, project):
-        return features.has("projects:import-codeowners", project, actor=request.user)
+        return features.has(
+            "organizations:import-codeowners", project.organization, actor=request.user
+        )
 
 
 class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin):
