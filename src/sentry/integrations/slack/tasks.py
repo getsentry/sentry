@@ -210,7 +210,7 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
     # we use SystemAccess here because we can't pass the access instance from the request into the task
     # this means at this point we won't raise any validation errors associated with permissions
     # however, we should only be calling this task after we tried saving the alert rule first
-    # which will catch those kinthatds of validation errors
+    # which will catch those kinds of validation errors
     serializer = AlertRuleSerializer(
         context={
             "organization": organization,
