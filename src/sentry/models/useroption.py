@@ -55,7 +55,7 @@ class UserOptionManager(OptionManager):
                     project=project,
                 )
 
-                self.filter(user=user, project=project, key=key).delete()
+            self.filter(user=user, project=project, key=key).delete()
 
         if not hasattr(self, "_metadata"):
             return
