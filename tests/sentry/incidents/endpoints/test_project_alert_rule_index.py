@@ -299,13 +299,13 @@ class AlertRuleCreateEndpointTest(APITestCase):
                             "type": "slack",
                             "targetIdentifier": "my-channel",
                             "targetType": "specific",
-                            "integration": self.integration.id,
+                            "integrationId": self.integration.id,
                         },
                         {
                             "type": "slack",
                             "targetIdentifier": "another-channel",
                             "targetType": "specific",
-                            "integration": self.integration.id,
+                            "integrationId": self.integration.id,
                         },
                     ],
                 },
@@ -327,6 +327,31 @@ class AlertRuleCreateEndpointTest(APITestCase):
             assert actions[0].target_display == "my-channel"
             assert actions[1].target_identifier == "20"
             assert actions[1].target_display == "another-channel"
+
+            # Now an invalid action (we want to early out with a good validationerror and not schedule the task):
+            name = "MyInvalidActionRule"
+            test_params["name"] = name
+            test_params["triggers"] = [
+                {
+                    "label": "critical",
+                    "alertThreshold": 75,
+                    "actions": [
+                        {
+                            "type": "element",
+                            "targetIdentifier": "my-channel",
+                            "targetType": "arbitrary",
+                            "integrationId": self.integration.id,
+                        },
+                    ],
+                },
+            ]
+            with self.feature("organizations:incidents"), self.tasks():
+                resp = self.get_response(self.organization.slug, self.project.slug, **test_params)
+            assert resp.status_code == 400
+            assert (
+                mock_get_channel_id.call_count == 3
+            )  # Did not increment from the last assertion because we early out on the validation error
+            # # Using get deliberately as there should only be one. Test should fail otherwise.
 
 
 class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):

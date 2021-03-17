@@ -1296,7 +1296,7 @@ def get_alert_rule_trigger_action_slack_channel_id(
 
         raise InvalidTriggerActionError(
             'Multiple users were found with display name "%s". Please use your username, found at %s/account/settings.'
-            % (e.message, domain)
+            % (e, domain)
         )
 
     if timed_out:
@@ -1464,6 +1464,8 @@ def get_slack_channel_ids(organization, user, data, peek=False):
         mapped_ids = {}
         for trigger in data["triggers"]:
             for action in trigger["actions"]:
+                action = rewrite_trigger_action_fields(action)
+
                 a_s = AlertRuleTriggerActionSerializer(
                     context={
                         "organization": organization,
@@ -1492,6 +1494,7 @@ def get_slack_channel_ids(organization, user, data, peek=False):
                             use_async_lookup=True,
                             input_channel_id=None,
                         )
+
     except KeyError:
         pass
 
@@ -1500,3 +1503,17 @@ def get_slack_channel_ids(organization, user, data, peek=False):
 
 def alert_rule_has_async_lookups(organization, user, data):
     return get_slack_channel_ids(organization, user, data, peek=True)
+
+
+def rewrite_trigger_action_fields(action_data):
+    if "integration_id" in action_data:
+        action_data["integration"] = action_data.pop("integration_id")
+    elif "integrationId" in action_data:
+        action_data["integration"] = action_data.pop("integrationId")
+
+    if "sentry_app_id" in action_data:
+        action_data["sentry_app"] = action_data.pop("sentry_app_id")
+    elif "sentryAppId" in action_data:
+        action_data["sentry_app"] = action_data.pop("sentryAppId")
+
+    return action_data

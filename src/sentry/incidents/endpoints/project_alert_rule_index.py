@@ -91,7 +91,6 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
             },
             data=data,
         )
-
         if serializer.is_valid():
             if alert_rule_has_async_lookups(project.organization, request.user, data):
                 # need to kick off an async job for Slack
