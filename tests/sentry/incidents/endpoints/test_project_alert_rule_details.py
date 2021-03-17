@@ -400,7 +400,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             assert (
                 mock_get_channel_id.call_count == 3
             )  # Did not increment from the last assertion because we early out on the validation error
-            # # Using get deliberately as there should only be one. Test should fail otherwise.
 
     def test_no_owner(self):
         self.create_member(

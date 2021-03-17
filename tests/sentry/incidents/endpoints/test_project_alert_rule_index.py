@@ -316,7 +316,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             assert (
                 mock_get_channel_id.call_count == 3
             )  # just made 2 calls, plus the call from the single action test
-            # # Using get deliberately as there should only be one. Test should fail otherwise.
+            # Using get deliberately as there should only be one. Test should fail otherwise.
             alert_rule = AlertRule.objects.get(name=name)
 
             trigger = AlertRuleTrigger.objects.get(alert_rule_id=alert_rule.id)
@@ -351,7 +351,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
             assert (
                 mock_get_channel_id.call_count == 3
             )  # Did not increment from the last assertion because we early out on the validation error
-            # # Using get deliberately as there should only be one. Test should fail otherwise.
 
 
 class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
