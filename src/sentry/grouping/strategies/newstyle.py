@@ -567,7 +567,10 @@ def single_exception(exception, context, **meta):
     rv = {}
 
     for variant, stacktrace_component in stacktrace_variants.items():
-        values = [stacktrace_component, type_component]
+        values = [stacktrace_component]
+        if variant != "app-depth-1":
+            # XXX(markus): Validate if this is a smart idea
+            values.append(type_component)
 
         if ns_error_component is not None:
             values.append(ns_error_component)
