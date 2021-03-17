@@ -68,12 +68,11 @@ default_manager.add("organizations:enterprise-perf", OrganizationFeature)  # NOQ
 default_manager.add("organizations:event-attachments", OrganizationFeature)  # NOQA
 default_manager.add("organizations:event-attachments-viewer", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events", OrganizationFeature)  # NOQA
-default_manager.add("organizations:external-team-associations", OrganizationFeature)  # NOQA
-default_manager.add("organizations:external-user-associations", OrganizationFeature)  # NOQA
 default_manager.add("organizations:filters-and-sampling", OrganizationFeature)  # NOQA
 default_manager.add("organizations:global-views", OrganizationFeature)  # NOQA
 default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
 default_manager.add("organizations:metric-alert-builder-aggregate", OrganizationFeature)  # NOQA
+default_manager.add("organizations:import-codeowners", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-event-hooks", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-issue-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)  # NOQA
@@ -134,7 +133,6 @@ default_manager.add("projects:alert-filters", ProjectFeature)  # NOQA
 default_manager.add("projects:custom-inbound-filters", ProjectFeature)  # NOQA
 default_manager.add("projects:data-forwarding", ProjectFeature)  # NOQA
 default_manager.add("projects:discard-groups", ProjectFeature)  # NOQA
-default_manager.add("projects:import-codeowners", ProjectFeature)  # NOQA
 default_manager.add("projects:issue-alerts-targeting", ProjectFeature)  # NOQA
 default_manager.add("projects:minidump", ProjectFeature)  # NOQA
 default_manager.add("projects:race-free-group-creation", ProjectFeature)  # NOQA

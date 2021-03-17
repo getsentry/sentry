@@ -5,15 +5,14 @@ import {TraceFull} from 'app/utils/performance/quickTrace/types';
 import TransactionBar from './transactionBar';
 import {TraceInfo} from './types';
 
-type DefaultProps = {
-  index: number;
-  isLast: boolean;
-  continuingDepths: Array<number>;
-};
-
-type Props = DefaultProps & {
+type Props = {
   transaction: TraceFull;
   traceInfo: TraceInfo;
+  continuingDepths: Array<number>;
+  isLast: boolean;
+  index: number;
+  isVisible: boolean;
+  renderedChildren: React.ReactNode[];
 };
 
 type State = {
@@ -21,12 +20,6 @@ type State = {
 };
 
 class TransactionGroup extends React.Component<Props, State> {
-  static defaultProps: DefaultProps = {
-    index: 0,
-    isLast: true,
-    continuingDepths: [],
-  };
-
   state = {
     isExpanded: true,
   };
@@ -36,9 +29,16 @@ class TransactionGroup extends React.Component<Props, State> {
   };
 
   render() {
-    const {index, continuingDepths, isLast, transaction, traceInfo} = this.props;
+    const {
+      transaction,
+      traceInfo,
+      continuingDepths,
+      isLast,
+      index,
+      isVisible,
+      renderedChildren,
+    } = this.props;
     const {isExpanded} = this.state;
-    const {children} = transaction;
 
     return (
       <React.Fragment>
@@ -50,28 +50,9 @@ class TransactionGroup extends React.Component<Props, State> {
           isLast={isLast}
           isExpanded={isExpanded}
           toggleExpandedState={this.toggleExpandedState}
+          isVisible={isVisible}
         />
-        {isExpanded &&
-          children.map((child, idx) => {
-            const isLastChild = idx === children.length - 1;
-            const hasChildren = child.children.length > 0;
-
-            const newContinuingDepths =
-              !isLastChild && hasChildren
-                ? [...continuingDepths, transaction.generation]
-                : [...continuingDepths];
-
-            // TODO(tonyx): figure out the index
-            return (
-              <TransactionGroup
-                key={child.event_id}
-                transaction={child}
-                traceInfo={traceInfo}
-                isLast={isLastChild}
-                continuingDepths={newContinuingDepths}
-              />
-            );
-          })}
+        {isExpanded && renderedChildren}
       </React.Fragment>
     );
   }

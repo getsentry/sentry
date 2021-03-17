@@ -1,6 +1,8 @@
 from rest_framework import status
 from rest_framework.response import Response
 
+from django.db.models import Q
+
 from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationAlertRulePermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -13,7 +15,13 @@ from sentry.api.serializers import serialize, CombinedRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.snuba.dataset import Dataset
-from sentry.models import Rule, RuleStatus, Project, OrganizationMemberTeam, Team
+from sentry.models import (
+    Rule,
+    RuleStatus,
+    Project,
+    OrganizationMemberTeam,
+    Team,
+)
 
 
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
@@ -37,14 +45,52 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 "id", flat=True
             )
 
+        teams = set(request.GET.getlist("team", []))
+        team_filter_query = None
+        if teams:
+            verified_ids = set()
+            unassigned = None
+            if "unassigned" in teams:
+                teams.remove("unassigned")
+                unassigned = Q(owner_id=None)
+
+            if "myteams" in teams:
+                teams.remove("myteams")
+                myteams = [t.id for t in request.access.teams]
+                verified_ids.update(myteams)
+
+            for team_id in teams:  # Verify each passed Team id is numeric
+                if type(team_id) is not int and not team_id.isdigit():
+                    return Response(
+                        f"Invalid Team ID: {team_id}", status=status.HTTP_400_BAD_REQUEST
+                    )
+            teams.update(verified_ids)
+
+            teams = Team.objects.filter(id__in=teams)
+            for team in teams:
+                if team.id in verified_ids:
+                    continue
+
+                if not request.access.has_team_access(team):
+                    return Response(
+                        f"Error: You do not have permission to access {team.name}",
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            team_filter_query = Q(owner_id__in=teams.values_list("actor_id", flat=True))
+            if unassigned:
+                team_filter_query = team_filter_query | unassigned
+
         alert_rules = AlertRule.objects.fetch_for_organization(organization, project_ids)
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
-
         issue_rules = Rule.objects.filter(
             status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=project_ids
         )
+        if team_filter_query:
+            alert_rules = alert_rules.filter(team_filter_query)
+            issue_rules = issue_rules.filter(team_filter_query)
 
         is_asc = request.GET.get("asc", False) == "1"
         sort_key = request.GET.get("sort", "date_added")
