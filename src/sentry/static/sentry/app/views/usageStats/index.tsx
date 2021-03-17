@@ -66,67 +66,67 @@ class OrganizationStats extends React.Component<Props, State> {
     filtered: string;
     overQuota: string;
   } {
-    const {orgStats} = this.props;
+    // const {orgStats} = this.props;
     const {dataCategory} = this.state;
 
-    if (!orgStats) {
-      return {
-        stats: [],
-        total: '—',
-        accepted: '—',
-        dropped: '—',
-        filtered: '—',
-        overQuota: '—',
-      };
-    }
+    // if (!orgStats) {
+    //   return {
+    //     stats: [],
+    //     total: '—',
+    //     accepted: '—',
+    //     dropped: '—',
+    //     filtered: '—',
+    //     overQuota: '—',
+    //   };
+    // }
 
-    const rawStats =
-      dataCategory === DataCategory.ERRORS
-        ? orgStats?.statsErrors
-        : dataCategory === DataCategory.TRANSACTIONS
-        ? orgStats?.statsTransactions
-        : orgStats?.statsAttachments;
+    // const rawStats =
+    //   dataCategory === DataCategory.ERRORS
+    //     ? orgStats?.statsErrors
+    //     : dataCategory === DataCategory.TRANSACTIONS
+    //     ? orgStats?.statsTransactions
+    //     : orgStats?.statsAttachments;
 
-    // TODO(leedongwei): Handle quantity for Attachments
-    const stats = rawStats.reduce(
-      (acc, m) => {
-        // Calculate tallies for the specified interval
-        let dropped = 0;
-        if (m.dropped) {
-          Object.keys(m.dropped).forEach(k => {
-            dropped += m.dropped[k].timesSeen;
-          });
-        }
+    // // TODO(leedongwei): Handle quantity for Attachments
+    // const stats = rawStats.reduce(
+    //   (acc, m) => {
+    //     // Calculate tallies for the specified interval
+    //     let dropped = 0;
+    //     if (m.dropped) {
+    //       Object.keys(m.dropped).forEach(k => {
+    //         dropped += m.dropped[k].timesSeen;
+    //       });
+    //     }
 
-        const total = m.accepted.timesSeen + m.filtered.timesSeen + dropped;
+    //     const total = m.accepted.timesSeen + m.filtered.timesSeen + dropped;
 
-        // Calculate tallies for the entire time period
-        acc.total += total;
-        acc.accepted += m.accepted.timesSeen;
-        acc.dropped += dropped;
-        acc.filtered += m.filtered.timesSeen;
-        acc.overQuota += m.dropped.overQuota?.timesSeen || 0;
+    //     // Calculate tallies for the entire time period
+    //     acc.total += total;
+    //     acc.accepted += m.accepted.timesSeen;
+    //     acc.dropped += dropped;
+    //     acc.filtered += m.filtered.timesSeen;
+    //     acc.overQuota += m.dropped.overQuota?.timesSeen || 0;
 
-        acc.stats.push({
-          date: moment.unix((m as any).time).format('MMM D'),
-          total,
-          accepted: m.accepted.timesSeen,
-          dropped,
-          filtered: m.filtered.timesSeen,
-          rateLimited: m.dropped.overQuota?.timesSeen || 0,
-        });
+    //     acc.stats.push({
+    //       date: moment.unix((m as any).time).format('MMM D'),
+    //       total,
+    //       accepted: m.accepted.timesSeen,
+    //       dropped,
+    //       filtered: m.filtered.timesSeen,
+    //       rateLimited: m.dropped.overQuota?.timesSeen || 0,
+    //     });
 
-        return acc;
-      },
-      {
-        stats: [] as any[], // TODO/(ts)
-        total: 0,
-        accepted: 0,
-        dropped: 0,
-        filtered: 0,
-        overQuota: 0,
-      }
-    );
+    //     return acc;
+    //   },
+    //   {
+    //     stats: [] as any[], // TODO/(ts)
+    //     total: 0,
+    //     accepted: 0,
+    //     dropped: 0,
+    //     filtered: 0,
+    //     overQuota: 0,
+    //   }
+    // );
 
     const formatOptions = {
       isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
@@ -134,12 +134,12 @@ class OrganizationStats extends React.Component<Props, State> {
     };
 
     return {
-      ...stats,
-      total: formatUsageWithUnits(stats.total, dataCategory, formatOptions),
-      accepted: formatUsageWithUnits(stats.accepted, dataCategory, formatOptions),
-      dropped: formatUsageWithUnits(stats.dropped, dataCategory, formatOptions),
-      filtered: formatUsageWithUnits(stats.filtered, dataCategory, formatOptions),
-      overQuota: formatUsageWithUnits(stats.overQuota, dataCategory, formatOptions),
+      stats: [],
+      total: formatUsageWithUnits(0, dataCategory, formatOptions),
+      accepted: formatUsageWithUnits(0, dataCategory, formatOptions),
+      dropped: formatUsageWithUnits(0, dataCategory, formatOptions),
+      filtered: formatUsageWithUnits(0, dataCategory, formatOptions),
+      overQuota: formatUsageWithUnits(0, dataCategory, formatOptions),
     };
   }
 
@@ -194,10 +194,11 @@ class OrganizationStats extends React.Component<Props, State> {
   }
 
   renderChart() {
+    // TODO(leedongwei): Poke someone for a error-state design
     if (this.props.orgStatsError) {
       return (
         <Panel>
-          <PanelBody>Error. Check console.</PanelBody>
+          <PanelBody>Error. Check console. {this.props.orgStatsError.message}</PanelBody>
         </Panel>
       );
     }
@@ -212,7 +213,6 @@ class OrganizationStats extends React.Component<Props, State> {
       );
     }
 
-    // const {orgStats} = this.props;
     const {dataCategory} = this.state;
     const {stats} = this.formattedOrgStats;
 
