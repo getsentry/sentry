@@ -228,7 +228,7 @@ export default class MetricChart extends React.PureComponent<Props, State> {
             : theme.red300;
           series.push(
             createIncidentSeries(
-              theme.yellow300,
+              currColor,
               moment(incident.dateStarted).valueOf(),
               incident.identifier
             )
