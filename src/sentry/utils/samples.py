@@ -16,6 +16,13 @@ from sentry.utils.canonical import CanonicalKeyDict
 epoch = datetime.utcfromtimestamp(0)
 
 
+def random_normal(mu, sigma, minimum, maximum=None):
+    random_value = max(random.normalvariate(mu, sigma), minimum)
+    if maximum is not None:
+        random_value = min(random_value, maximum)
+    return random_value
+
+
 def milliseconds_ago(now, milliseconds):
     ago = now - timedelta(milliseconds=milliseconds)
     return (ago - epoch).total_seconds()
