@@ -159,7 +159,9 @@ class ActionsPanel extends React.PureComponent<Props> {
     value: SelectValue<number>
   ) => {
     const {triggers, onChange} = this.props;
-    const action = triggers[triggerIndex].actions[index];
+    // Convert saved action to unsaved by removing id
+    const {id: _, ...action} = triggers[triggerIndex].actions[index];
+    action.unsavedId = uniqueId();
     triggers[value.value].actions.push(action);
     onChange(value.value, triggers, triggers[value.value].actions);
     this.handleDeleteAction(triggerIndex, index);
