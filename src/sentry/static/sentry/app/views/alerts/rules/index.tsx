@@ -7,6 +7,7 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
+import Input from 'app/components/forms/input';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
@@ -43,6 +44,7 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 
 type State = {
   ruleList?: IssueAlertRule[];
+  teamFilterSearch?: string;
 };
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
@@ -121,8 +123,9 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
   renderFilterBar() {
     const {teams, location} = this.props;
+    const {teamFilterSearch} = this.state;
     const teamQuery = location.query?.team;
-    const filteredTeams: Set<string> =
+    const selectedTeams: Set<string> =
       typeof teamQuery === 'string' ? new Set([teamQuery]) : new Set(teamQuery);
     const additionalOptions = [
       {label: t('My Teams'), value: 'myteams'},
@@ -132,40 +135,59 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       ...teams.map(({id}) => id),
       ...additionalOptions.map(({value}) => value),
     ];
+
+    const filteredTeams = teams.filter(({name}) =>
+      teamFilterSearch
+        ? name.toLowerCase().includes(teamFilterSearch.toLowerCase())
+        : true
+    );
     return (
       <FilterWrapper>
         <Filter
-          header={t('Team')}
+          header={
+            <StyledInput
+              placeholder={t('Filter by team name')}
+              onClick={event => {
+                event.stopPropagation();
+              }}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                this.setState({teamFilterSearch: event.target.value});
+              }}
+              value={this.state.teamFilterSearch || ''}
+              autoFocus
+            />
+          }
+          headerLabel={t('Team')}
           onFilterChange={this.handleChangeFilter}
           filterList={optionValues}
-          selection={filteredTeams}
+          selection={selectedTeams}
         >
           {({toggleFilter}) => (
             <List>
               {additionalOptions.map(({label, value}) => (
                 <ListItem
                   key={value}
-                  isChecked={filteredTeams.has(value)}
+                  isChecked={selectedTeams.has(value)}
                   onClick={event => {
                     event.stopPropagation();
                     toggleFilter(value);
                   }}
                 >
                   <TeamName>{label}</TeamName>
-                  <CheckboxFancy isChecked={filteredTeams.has(value)} />
+                  <CheckboxFancy isChecked={selectedTeams.has(value)} />
                 </ListItem>
               ))}
-              {teams.map(({id, name}) => (
+              {filteredTeams.map(({id, name}) => (
                 <ListItem
                   key={id}
-                  isChecked={filteredTeams.has(id)}
+                  isChecked={selectedTeams.has(id)}
                   onClick={event => {
                     event.stopPropagation();
                     toggleFilter(id);
                   }}
                 >
                   <TeamName>{name}</TeamName>
-                  <CheckboxFancy isChecked={filteredTeams.has(id)} />
+                  <CheckboxFancy isChecked={selectedTeams.has(id)} />
                 </ListItem>
               ))}
             </List>
@@ -329,6 +351,12 @@ const List = styled('ul')`
   list-style: none;
   margin: 0;
   padding: 0;
+`;
+
+const StyledInput = styled(Input)`
+  border: none;
+  border-bottom: 1px solid #c9c0d1;
+  border-radius: 0;
 `;
 
 const ListItem = styled('li')<{isChecked?: boolean}>`

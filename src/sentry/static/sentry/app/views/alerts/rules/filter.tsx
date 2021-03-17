@@ -17,7 +17,8 @@ export type RenderProps = {
 type RenderFunc = (props: RenderProps) => React.ReactElement;
 
 type Props = {
-  header: string;
+  header: React.ReactElement;
+  headerLabel: string;
   onFilterChange: (filterSelection: Set<string>) => void;
   filterList: string[];
   children: RenderFunc;
@@ -50,7 +51,7 @@ class Filter extends React.Component<Props> {
   };
 
   render() {
-    const {children, header, filterList} = this.props;
+    const {children, header, headerLabel, filterList} = this.props;
     const checkedQuantity = this.getNumberOfActiveFilters();
 
     const dropDownButtonProps: Pick<DropdownButtonProps, 'children' | 'priority'> & {
@@ -91,8 +92,9 @@ class Filter extends React.Component<Props> {
         )}
       >
         <MenuContent>
+          {header}
           <Header>
-            <span>{header}</span>
+            <span>{headerLabel}</span>
             <CheckboxFancy
               isChecked={checkedQuantity > 0}
               isIndeterminate={
