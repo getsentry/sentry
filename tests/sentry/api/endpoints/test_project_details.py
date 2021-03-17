@@ -61,6 +61,7 @@ def _remove_ids_from_dynamic_rules(dynamic_rules):
         del dynamic_rules["next_id"]
     for rule in dynamic_rules["rules"]:
         del rule["id"]
+    return dynamic_rules
 
 
 class ProjectDetailsTest(APITestCase):
@@ -588,12 +589,12 @@ class ProjectUpdateTest(APITestCase):
         """
         Tests that we get the same dynamic sampling rules that previously set
         """
+        data = _dyn_sampling_data()
         with Feature({"organizations:filters-and-sampling": True}):
-            response = self.get_valid_response(
-                self.org_slug, self.proj_slug, dynamicSampling=_dyn_sampling_data()
-            )
+            self.get_valid_response(self.org_slug, self.proj_slug, dynamicSampling=data)
+            response = self.get_valid_response(self.org_slug, self.proj_slug, method="get")
         saved_config = _remove_ids_from_dynamic_rules(response.data["dynamicSampling"])
-        original_data = _remove_ids_from_dynamic_rules(_dyn_sampling_data())
+        original_data = _remove_ids_from_dynamic_rules(data)
         assert saved_config == original_data
 
     def test_dynamic_sampling_rule_id_handling(self):
