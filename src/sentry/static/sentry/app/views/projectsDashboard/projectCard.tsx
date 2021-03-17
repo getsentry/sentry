@@ -11,6 +11,7 @@ import BookmarkStar from 'app/components/projects/bookmarkStar';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t, tn} from 'app/locale';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
@@ -196,6 +197,9 @@ const HeaderRow = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  & > * {
+    ${overflowEllipsis};
+  }
 `;
 
 const StyledProjectCard = styled('div')`
