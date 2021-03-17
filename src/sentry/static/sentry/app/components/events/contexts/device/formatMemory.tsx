@@ -1,4 +1,4 @@
-import {formatBytes} from 'app/utils';
+import {formatBytesBase2} from 'app/utils';
 
 function formatMemory(memory_size: number, free_memory: number, usable_memory: number) {
   if (
@@ -10,9 +10,11 @@ function formatMemory(memory_size: number, free_memory: number, usable_memory: n
     return null;
   }
 
-  let memory = `Total: ${formatBytes(memory_size)} / Free: ${formatBytes(free_memory)}`;
+  let memory = `Total: ${formatBytesBase2(memory_size)} / Free: ${formatBytesBase2(
+    free_memory
+  )}`;
   if (Number.isInteger(usable_memory) && usable_memory > 0) {
-    memory = `${memory} / Usable: ${formatBytes(usable_memory)}`;
+    memory = `${memory} / Usable: ${formatBytesBase2(usable_memory)}`;
   }
 
   return memory;

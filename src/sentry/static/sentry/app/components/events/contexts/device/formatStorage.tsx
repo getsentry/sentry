@@ -1,4 +1,4 @@
-import {formatBytes} from 'app/utils';
+import {formatBytesBase2} from 'app/utils';
 
 function formatStorage(
   storage_size: number,
@@ -10,9 +10,9 @@ function formatStorage(
     return null;
   }
 
-  let storage = `Total: ${formatBytes(storage_size)}`;
+  let storage = `Total: ${formatBytesBase2(storage_size)}`;
   if (Number.isInteger(free_storage) && free_storage > 0) {
-    storage = `${storage} / Free: ${formatBytes(free_storage)}`;
+    storage = `${storage} / Free: ${formatBytesBase2(free_storage)}`;
   }
 
   if (
@@ -21,9 +21,9 @@ function formatStorage(
     Number.isInteger(external_free_storage) &&
     external_free_storage > 0
   ) {
-    storage = `${storage} (External Total: ${formatBytes(
+    storage = `${storage} (External Total: ${formatBytesBase2(
       external_storage_size
-    )} / Free: ${formatBytes(external_free_storage)})`;
+    )} / Free: ${formatBytesBase2(external_free_storage)})`;
   }
 
   return storage;
