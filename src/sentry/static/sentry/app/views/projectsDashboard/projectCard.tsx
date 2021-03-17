@@ -11,7 +11,6 @@ import BookmarkStar from 'app/components/projects/bookmarkStar';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t, tn} from 'app/locale';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
@@ -75,6 +74,7 @@ class ProjectCard extends React.Component<Props> {
                 <StyledIdBadge
                   project={project}
                   avatarSize={18}
+                  hideOverflow
                   displayName={
                     hasProjectAccess ? (
                       <Link to={projectLink}>
@@ -194,12 +194,10 @@ const CardHeader = styled('div')`
 `;
 
 const HeaderRow = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   justify-content: space-between;
   align-items: center;
-  & > * {
-    ${overflowEllipsis};
-  }
 `;
 
 const StyledProjectCard = styled('div')`
@@ -218,6 +216,7 @@ const LoadingCard = styled('div')`
 const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
+  flex-shrink: 1;
 `;
 
 const SummaryLinks = styled('div')`
