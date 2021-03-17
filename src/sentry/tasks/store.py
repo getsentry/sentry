@@ -18,7 +18,7 @@ from sentry.utils.safe import safe_execute
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
-from sentry.utils.sdk import set_current_project
+from sentry.utils.sdk import set_current_event_project
 from sentry.models import ProjectOption, Activity, Project, Organization
 from sentry.eventstore.processing import event_processing_store
 
@@ -116,7 +116,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
     original_data = data
     data = CanonicalKeyDict(data)
     project_id = data["project"]
-    set_current_project(project_id)
+    set_current_event_project(project_id)
 
     if project is None:
         project = Project.objects.get_from_cache(id=project_id)
@@ -205,7 +205,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     data = CanonicalKeyDict(data)
 
     project_id = data["project"]
-    set_current_project(project_id)
+    set_current_event_project(project_id)
 
     event_id = data["event_id"]
 
@@ -393,7 +393,7 @@ def _do_process_event(
     data = CanonicalKeyDict(data)
 
     project_id = data["project"]
-    set_current_project(project_id)
+    set_current_event_project(project_id)
 
     event_id = data["event_id"]
 
@@ -566,7 +566,7 @@ def process_event_from_reprocessing(
 
 
 def delete_raw_event(project_id, event_id, allow_hint_clear=False):
-    set_current_project(project_id)
+    set_current_event_project(project_id)
 
     if event_id is None:
         error_logger.error("process.failed_delete_raw_event", extra={"project_id": project_id})
@@ -598,7 +598,7 @@ def create_failed_event(
     """If processing failed we put the original data from the cache into a
     raw event.  Returns `True` if a failed event was inserted
     """
-    set_current_project(project_id)
+    set_current_event_project(project_id)
 
     # We can only create failed events for events that can potentially
     # create failed events.
@@ -689,7 +689,7 @@ def _do_save_event(
     Saves an event to the database.
     """
 
-    set_current_project(project_id)
+    set_current_event_project(project_id)
 
     from sentry.event_manager import EventManager, HashDiscarded
 
@@ -712,7 +712,7 @@ def _do_save_event(
         # the task.
         if project_id is None:
             project_id = data.pop("project")
-            set_current_project(project_id)
+            set_current_event_project(project_id)
 
         # We only need to delete raw events for events that support
         # reprocessing.  If the data cannot be found we want to assume
