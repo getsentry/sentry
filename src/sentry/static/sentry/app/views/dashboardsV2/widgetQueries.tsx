@@ -1,5 +1,4 @@
 import React from 'react';
-import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import {doEventsRequest} from 'app/actionCreators/events';
@@ -18,15 +17,15 @@ import {
   Organization,
 } from 'app/types';
 import {Series} from 'app/types/echarts';
-import {getUtcDateString, parsePeriodToHours} from 'app/utils/dates';
+import {parsePeriodToHours} from 'app/utils/dates';
 import {TableData} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
 } from 'app/utils/discover/genericDiscoverQuery';
 
 import {Widget, WidgetQuery} from './types';
+import {eventViewFromWidget} from './utils';
 
 // Don't fetch more than 4000 bins as we're plotting on a small area.
 const MAX_BIN_COUNT = 4000;
@@ -179,27 +178,13 @@ class WidgetQueries extends React.Component<Props, State> {
   fetchEventData(queryFetchID: symbol) {
     const {selection, api, organization, widget} = this.props;
 
-    const {start, end, period: statsPeriod} = selection.datetime;
-    const {projects} = selection;
-
     let tableResults: TableDataWithTitle[] = [];
     // Table, world map, and stat widgets use table results and need
     // to do a discover 'table' query instead of a 'timeseries' query.
     this.setState({tableResults: []});
 
     const promises = widget.queries.map(query => {
-      const eventView = EventView.fromSavedQuery({
-        id: undefined,
-        name: query.name,
-        version: 2,
-        fields: query.fields,
-        query: query.conditions,
-        orderby: query.orderby,
-        projects,
-        range: statsPeriod,
-        start: start ? getUtcDateString(start) : undefined,
-        end: end ? getUtcDateString(end) : undefined,
-      });
+      const eventView = eventViewFromWidget(widget.title, query, selection);
 
       let url: string = '';
       const params: DiscoverQueryRequestParams = {
@@ -239,7 +224,6 @@ class WidgetQueries extends React.Component<Props, State> {
         // Overwrite the local var to work around state being stale in tests.
         tableResults = [...tableResults, tableData];
 
-        completed++;
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
@@ -249,17 +233,24 @@ class WidgetQueries extends React.Component<Props, State> {
           return {
             ...prevState,
             tableResults,
-            loading: completed === promises.length ? false : true,
           };
         });
       } catch (err) {
         const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({errorMessage});
+      } finally {
+        completed++;
+        this.setState(prevState => {
+          if (prevState.queryFetchID !== queryFetchID) {
+            // invariant: a different request was initiated after this request
+            return prevState;
+          }
 
-        // We always want to make sure an useful error message is set.
-        if (!err?.responseJSON?.detail) {
-          Sentry.captureException(err);
-        }
+          return {
+            ...prevState,
+            loading: completed === promises.length ? false : true,
+          };
+        });
       }
     });
   }
@@ -297,7 +288,6 @@ class WidgetQueries extends React.Component<Props, State> {
     promises.forEach(async (promise, i) => {
       try {
         const rawResults = await promise;
-        completed++;
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
@@ -312,12 +302,24 @@ class WidgetQueries extends React.Component<Props, State> {
             ...prevState,
             timeseriesResults,
             rawResults: (prevState.rawResults ?? []).concat(rawResults),
-            loading: completed === promises.length ? false : true,
           };
         });
       } catch (err) {
         const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({errorMessage});
+      } finally {
+        completed++;
+        this.setState(prevState => {
+          if (prevState.queryFetchID !== queryFetchID) {
+            // invariant: a different request was initiated after this request
+            return prevState;
+          }
+
+          return {
+            ...prevState,
+            loading: completed === promises.length ? false : true,
+          };
+        });
       }
     });
   }
