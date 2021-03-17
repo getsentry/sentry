@@ -96,7 +96,7 @@ class ProjectOwnershipTestCase(TestCase):
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.js"}]}}
             ),
             (
-                [Actor(self.team.id, Team)],
+                [ActorTuple(self.team.id, Team)],
                 [rule_a],
             ),
         )
@@ -130,7 +130,7 @@ class ProjectOwnershipTestCase(TestCase):
                 self.project.id, {"stacktrace": {"frames": [{"filename": "api/foo.py"}]}}
             ),
             (
-                [Actor(self.team.id, Team), Actor(self.team2.id, Team)],
+                [ActorTuple(self.team.id, Team), ActorTuple(self.team2.id, Team)],
                 [rule_a, rule_c],
             ),
         )
