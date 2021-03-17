@@ -17,11 +17,13 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Release, ReleaseProject} from 'app/types';
 import {defined} from 'app/utils';
+import {decodeScalar} from 'app/utils/queryString';
 
 import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
+import {ReleaseHealthRequestRenderProps} from '../../utils/releaseHealthRequest';
 import CrashFree from '../crashFree';
 import HealthStatsChart from '../healthStatsChart';
-import HealthStatsPeriod, {StatsPeriod} from '../healthStatsPeriod';
+import HealthStatsPeriod from '../healthStatsPeriod';
 import ReleaseAdoption from '../releaseAdoption';
 import {DisplayOption} from '../utils';
 
@@ -36,6 +38,7 @@ type Props = {
   location: Location;
   showPlaceholders: boolean;
   isTopRelease: boolean;
+  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
 };
 
 const Content = ({
@@ -46,12 +49,8 @@ const Content = ({
   activeDisplay,
   showPlaceholders,
   isTopRelease,
+  getHealthData,
 }: Props) => {
-  const activeStatsPeriod = (location.query.healthStatsPeriod || '24h') as StatsPeriod;
-  const healthStatsPeriod = (
-    <HealthStatsPeriod location={location} activePeriod={activeStatsPeriod} />
-  );
-
   return (
     <React.Fragment>
       <Header>
@@ -69,7 +68,7 @@ const Content = ({
           <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
           <CountColumn>
             <span>{t('Count')}</span>
-            {healthStatsPeriod}
+            <HealthStatsPeriod location={location} />
           </CountColumn>
           <CrashesColumn>{t('Crashes')}</CrashesColumn>
           <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
@@ -97,28 +96,35 @@ const Content = ({
           )}
         >
           {projects.map(project => {
-            const {slug, healthData, newGroups} = project;
-            const {
-              hasHealthData,
-              adoption,
-              sessionsAdoption,
-              stats,
-              crashFreeUsers,
-              crashFreeSessions,
-              sessionsCrashed,
-              totalUsers24h,
-              totalProjectUsers24h,
-              totalSessions24h,
-              totalProjectSessions24h,
-            } = healthData || {};
-            const selectedAdoption =
-              activeDisplay === DisplayOption.USERS ? adoption : sessionsAdoption;
-            const selected24hCount =
-              activeDisplay === DisplayOption.USERS ? totalUsers24h : totalSessions24h;
-            const selectedProject24hCount =
-              activeDisplay === DisplayOption.USERS
-                ? totalProjectUsers24h
-                : totalProjectSessions24h;
+            const {id, slug, newGroups} = project;
+
+            const crashCount = getHealthData.getCrashCount(
+              releaseVersion,
+              id,
+              DisplayOption.SESSIONS
+            );
+            const crashFreeRate = getHealthData.getCrashFreeRate(
+              releaseVersion,
+              id,
+              activeDisplay
+            );
+            const get24hCountByRelease = getHealthData.get24hCountByRelease(
+              releaseVersion,
+              id,
+              activeDisplay
+            );
+            const get24hCountByProject = getHealthData.get24hCountByProject(
+              id,
+              activeDisplay
+            );
+            const timeSeries = getHealthData.getTimeSeries(
+              releaseVersion,
+              id,
+              activeDisplay,
+              decodeScalar(location.query.healthStatsPeriod)
+            );
+
+            const adoption = getHealthData.getAdoption(releaseVersion, id, activeDisplay);
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
@@ -130,52 +136,40 @@ const Content = ({
                   <AdoptionColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder width="150px" />
-                    ) : defined(selectedAdoption) ? (
+                    ) : adoption ? (
                       <AdoptionWrapper>
                         <ReleaseAdoption
-                          adoption={selectedAdoption}
-                          releaseCount={selected24hCount ?? 0}
-                          projectCount={selectedProject24hCount ?? 0}
+                          adoption={adoption}
+                          releaseCount={get24hCountByRelease ?? 0}
+                          projectCount={get24hCountByProject ?? 0}
                           displayOption={activeDisplay}
                         />
-                        <Count value={selected24hCount ?? 0} />
+                        <Count value={get24hCountByRelease ?? 0} />
                       </AdoptionWrapper>
                     ) : (
                       <NotAvailable />
                     )}
                   </AdoptionColumn>
 
-                  {activeDisplay === DisplayOption.USERS ? (
-                    <CrashFreeRateColumn>
-                      {showPlaceholders ? (
-                        <StyledPlaceholder width="60px" />
-                      ) : defined(crashFreeUsers) ? (
-                        <CrashFree percent={crashFreeUsers} />
-                      ) : (
-                        <NotAvailable />
-                      )}
-                    </CrashFreeRateColumn>
-                  ) : (
-                    <CrashFreeRateColumn>
-                      {showPlaceholders ? (
-                        <StyledPlaceholder width="60px" />
-                      ) : defined(crashFreeSessions) ? (
-                        <CrashFree percent={crashFreeSessions} />
-                      ) : (
-                        <NotAvailable />
-                      )}
-                    </CrashFreeRateColumn>
-                  )}
+                  <CrashFreeRateColumn>
+                    {showPlaceholders ? (
+                      <StyledPlaceholder width="60px" />
+                    ) : defined(crashFreeRate) ? (
+                      <CrashFree percent={crashFreeRate} />
+                    ) : (
+                      <NotAvailable />
+                    )}
+                  </CrashFreeRateColumn>
 
                   <CountColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder />
-                    ) : hasHealthData && defined(stats) ? (
+                    ) : // we currently don't support sub-hour session intervals, we rather hide the count histogram than to show only two bars
+                    timeSeries && timeSeries[0].data.length > 7 ? (
                       <ChartWrapper>
                         <HealthStatsChart
-                          data={stats}
+                          data={timeSeries}
                           height={20}
-                          period={activeStatsPeriod}
                           activeDisplay={activeDisplay}
                         />
                       </ChartWrapper>
@@ -187,7 +181,7 @@ const Content = ({
                   <CrashesColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder width="30px" />
-                    ) : hasHealthData && defined(sessionsCrashed) ? (
+                    ) : defined(crashCount) ? (
                       <Tooltip title={t('Open in Issues')}>
                         <GlobalSelectionLink
                           to={getReleaseUnhandledIssuesUrl(
@@ -196,7 +190,7 @@ const Content = ({
                             releaseVersion
                           )}
                         >
-                          <Count value={sessionsCrashed} />
+                          <Count value={crashCount} />
                         </GlobalSelectionLink>
                       </Tooltip>
                     ) : (

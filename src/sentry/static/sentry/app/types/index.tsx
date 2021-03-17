@@ -1982,7 +1982,7 @@ export type SessionApiResponse = {
   query: string;
   intervals: string[];
   groups: {
-    by: Record<string, string>;
+    by: Record<string, string | number>;
     totals: Record<string, number>;
     series: Record<string, number[]>;
   }[];

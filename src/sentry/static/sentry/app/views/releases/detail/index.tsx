@@ -23,12 +23,18 @@ import {
   ReleaseMeta,
   ReleaseProject,
   ReleaseWithHealth,
+  SessionApiResponse,
 } from 'app/types';
 import {formatVersion} from 'app/utils/formatters';
 import routeTitleGen from 'app/utils/routeTitle';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
+
+import {DisplayOption} from '../list/utils';
+import ReleaseHealthRequest, {
+  ReleaseHealthRequestRenderProps,
+} from '../utils/releaseHealthRequest';
 
 import PickProjectToContinue from './pickProjectToContinue';
 import ReleaseHeader from './releaseHeader';
@@ -42,6 +48,9 @@ type ReleaseContext = {
   releaseMeta: ReleaseMeta;
   refetchData: () => void;
   defaultStatsPeriod: string;
+  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
+  isHealthLoading: ReleaseHealthRequestRenderProps['isHealthLoading'];
+  hasHealthData: boolean;
 };
 const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
 
@@ -55,11 +64,14 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   selection: GlobalSelection;
   releaseMeta: ReleaseMeta;
   defaultStatsPeriod: string;
+  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
+  isHealthLoading: ReleaseHealthRequestRenderProps['isHealthLoading'];
 };
 
 type State = {
   release: ReleaseWithHealth;
   deploys: Deploy[];
+  sessions: SessionApiResponse | null;
 } & AsyncView['state'];
 
 class ReleasesDetail extends AsyncView<Props, State> {
@@ -84,30 +96,50 @@ class ReleasesDetail extends AsyncView<Props, State> {
     return {
       ...super.getDefaultState(),
       deploys: [],
+      sessions: null,
     };
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location, params, releaseMeta, defaultStatsPeriod} = this.props;
 
-    const query = {
-      ...getParams(pick(location.query, [...Object.values(URL_PARAM)]), {
-        defaultStatsPeriod,
-      }),
-      health: 1,
-    };
-
     const basePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
       params.release
     )}/`;
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
-      ['release', basePath, {query}],
+      [
+        'release',
+        basePath,
+        {
+          query: {
+            ...getParams(pick(location.query, [...Object.values(URL_PARAM)]), {
+              defaultStatsPeriod,
+            }),
+          },
+        },
+      ],
     ];
 
     if (releaseMeta.deployCount > 0) {
       endpoints.push(['deploys', `${basePath}deploys/`]);
     }
+
+    // Used to figure out if the release has any health data
+    endpoints.push([
+      'sessions',
+      `/organizations/${organization.slug}/sessions/`,
+      {
+        query: {
+          project: location.query.project,
+          environment: location.query.environment ?? [],
+          query: `release:"${params.release}"`,
+          field: 'sum(session)',
+          statsPeriod: '90d',
+          interval: '1d',
+        },
+      },
+    ]);
 
     return endpoints;
   }
@@ -145,8 +177,10 @@ class ReleasesDetail extends AsyncView<Props, State> {
       selection,
       releaseMeta,
       defaultStatsPeriod,
+      getHealthData,
+      isHealthLoading,
     } = this.props;
-    const {release, deploys, reloading} = this.state;
+    const {release, deploys, sessions, reloading} = this.state;
     const project = release?.projects.find(p => p.id === selection.projects[0]);
 
     if (!project || !release) {
@@ -176,6 +210,9 @@ class ReleasesDetail extends AsyncView<Props, State> {
               releaseMeta,
               refetchData: this.fetchData,
               defaultStatsPeriod,
+              getHealthData,
+              isHealthLoading,
+              hasHealthData: !!sessions?.groups[0].totals['sum(session)'],
             }}
           >
             {this.props.children}
@@ -186,7 +223,9 @@ class ReleasesDetail extends AsyncView<Props, State> {
   }
 }
 
-class ReleasesDetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>> {
+class ReleasesDetailContainer extends AsyncComponent<
+  Omit<Props, 'releaseMeta' | 'getHealthData' | 'isHealthLoading'>
+> {
   shouldReload = true;
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -242,7 +281,7 @@ class ReleasesDetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>>
   }
 
   renderBody() {
-    const {organization, params, router} = this.props;
+    const {organization, params, router, location, selection} = this.props;
     const {releaseMeta} = this.state;
     const {projects} = releaseMeta;
     const isFreshRelease = moment(releaseMeta.released).isAfter(
@@ -281,11 +320,23 @@ class ReleasesDetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>>
           },
         }}
       >
-        <ReleasesDetail
-          {...this.props}
-          releaseMeta={releaseMeta}
-          defaultStatsPeriod={defaultStatsPeriod}
-        />
+        <ReleaseHealthRequest
+          releases={[params.release]}
+          organization={organization}
+          selection={selection}
+          location={location}
+          display={[DisplayOption.SESSIONS, DisplayOption.USERS]}
+        >
+          {({isHealthLoading, getHealthData}) => (
+            <ReleasesDetail
+              {...this.props}
+              releaseMeta={releaseMeta}
+              defaultStatsPeriod={defaultStatsPeriod}
+              getHealthData={getHealthData}
+              isHealthLoading={isHealthLoading}
+            />
+          )}
+        </ReleaseHealthRequest>
       </GlobalSelectionHeader>
     );
   }

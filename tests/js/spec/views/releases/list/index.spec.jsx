@@ -152,7 +152,6 @@ describe('ReleasesList', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           sort: SortOption.SESSIONS,
-          healthStat: 'sessions',
         }),
       })
     );
@@ -256,29 +255,29 @@ describe('ReleasesList', function () {
     );
   });
 
-  it('toggles health stats chart period/subject', function () {
-    expect(endpointMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/releases/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          healthStatsPeriod: '24h',
-        }),
-      })
-    );
+  // it('toggles health stats chart period/subject', function () {
+  //   expect(endpointMock).toHaveBeenCalledWith(
+  //     '/organizations/org-slug/releases/',
+  //     expect.objectContaining({
+  //       query: expect.objectContaining({
+  //         healthStatsPeriod: '24h',
+  //       }),
+  //     })
+  //   );
 
-    const healthStatsControls = wrapper.find('CountColumn').first();
+  //   const healthStatsControls = wrapper.find('CountColumn').first();
 
-    expect(healthStatsControls.find('Period[selected=true]').text()).toEqual('24h');
+  //   expect(healthStatsControls.find('Period[selected=true]').text()).toEqual('24h');
 
-    const period14d = healthStatsControls.find('Period[selected=false] Link').first();
+  //   const period14d = healthStatsControls.find('Period[selected=false] Link').first();
 
-    expect(period14d.prop('to')).toEqual({
-      pathname: undefined,
-      query: expect.objectContaining({
-        healthStatsPeriod: '14d',
-      }),
-    });
-  });
+  //   expect(period14d.prop('to')).toEqual({
+  //     pathname: undefined,
+  //     query: expect.objectContaining({
+  //       healthStatsPeriod: '14d',
+  //     }),
+  //   });
+  // });
 
   it('shows health rows only for selected projects in global header', function () {
     MockApiClient.addMockResponse({

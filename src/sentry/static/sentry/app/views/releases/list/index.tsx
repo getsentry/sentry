@@ -26,6 +26,7 @@ import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
+import ReleaseHealthRequest from '../utils/releaseHealthRequest';
 
 import ReleaseCard from './releaseCard';
 import ReleaseDisplayOptions from './releaseDisplayOptions';
@@ -46,7 +47,6 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   releases: Release[];
-  loadingHealth: boolean;
 } & AsyncView['state'];
 
 class ReleasesList extends AsyncView<Props, State> {
@@ -61,21 +61,11 @@ class ReleasesList extends AsyncView<Props, State> {
     const {statsPeriod} = location.query;
     const activeSort = this.getSort();
     const activeStatus = this.getStatus();
-    const activeDisplay = this.getDisplay();
 
     const query = {
-      ...pick(location.query, [
-        'project',
-        'environment',
-        'cursor',
-        'query',
-        'sort',
-        'healthStatsPeriod',
-      ]),
+      ...pick(location.query, ['project', 'environment', 'cursor', 'query', 'sort']),
       summaryStatsPeriod: statsPeriod,
-      per_page: 25,
-      health: 1,
-      healthStat: activeDisplay === DisplayOption.USERS ? 'users' : 'sessions',
+      per_page: 20,
       flatten: activeSort === SortOption.DATE ? 0 : 1,
       status:
         activeStatus === StatusOption.ARCHIVED
@@ -84,34 +74,10 @@ class ReleasesList extends AsyncView<Props, State> {
     };
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
-      ['releasesWithHealth', `/organizations/${organization.slug}/releases/`, {query}],
+      ['releases', `/organizations/${organization.slug}/releases/`, {query}],
     ];
 
-    // when sorting by date we fetch releases without health and then fetch health lazily
-    if (activeSort === SortOption.DATE) {
-      endpoints.push([
-        'releasesWithoutHealth',
-        `/organizations/${organization.slug}/releases/`,
-        {query: {...query, health: 0}},
-      ]);
-    }
-
     return endpoints;
-  }
-
-  onRequestSuccess({stateKey, data, jqXHR}) {
-    const {remainingRequests} = this.state;
-
-    // make sure there's no withHealth/withoutHealth race condition and set proper loading state
-    if (stateKey === 'releasesWithHealth' || remainingRequests === 1) {
-      this.setState({
-        reloading: false,
-        loading: false,
-        loadingHealth: stateKey === 'releasesWithoutHealth',
-        releases: data,
-        releasesPageLinks: jqXHR?.getResponseHeader('Link'),
-      });
-    }
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -279,7 +245,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderInnerBody(activeDisplay: DisplayOption) {
     const {location, selection, organization} = this.props;
-    const {releases, reloading, loadingHealth, releasesPageLinks} = this.state;
+    const {releases, reloading, releasesPageLinks} = this.state;
 
     if (this.shouldShowLoadingIndicator()) {
       return <LoadingIndicator />;
@@ -290,22 +256,33 @@ class ReleasesList extends AsyncView<Props, State> {
     }
 
     return (
-      <React.Fragment>
-        {releases.map((release, index) => (
-          <ReleaseCard
-            key={`${release.version}-${release.projects[0].slug}`}
-            activeDisplay={activeDisplay}
-            release={release}
-            organization={organization}
-            location={location}
-            selection={selection}
-            reloading={reloading}
-            showHealthPlaceholders={loadingHealth}
-            isTopRelease={index === 0}
-          />
-        ))}
-        <Pagination pageLinks={releasesPageLinks} />
-      </React.Fragment>
+      <ReleaseHealthRequest
+        releases={releases.map(({version}) => version)}
+        organization={organization}
+        selection={selection}
+        location={location}
+        display={[this.getDisplay()]}
+      >
+        {({isHealthLoading, getHealthData}) => (
+          <React.Fragment>
+            {releases.map((release, index) => (
+              <ReleaseCard
+                key={`${release.version}-${release.projects[0].slug}`}
+                activeDisplay={activeDisplay}
+                release={release}
+                organization={organization}
+                location={location}
+                selection={selection}
+                reloading={reloading}
+                showHealthPlaceholders={isHealthLoading}
+                isTopRelease={index === 0}
+                getHealthData={getHealthData}
+              />
+            ))}
+            <Pagination pageLinks={releasesPageLinks} />
+          </React.Fragment>
+        )}
+      </ReleaseHealthRequest>
     );
   }
 
