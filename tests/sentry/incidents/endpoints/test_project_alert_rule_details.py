@@ -257,7 +257,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         side_effect=[("#", 10, False), ("#", 10, False), ("#", 20, False)],
     )
     @patch("sentry.integrations.slack.tasks.uuid4")
-    def test_async_slack_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
+    def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
         class uuid:
             hex = "abc123"
 
