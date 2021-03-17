@@ -19,15 +19,23 @@ export function getTraceDetailsUrl(
   };
 }
 
-function traceVisitor() {
+function traceVisitor(isRelevant: (transaction: TraceFull) => boolean) {
   return (accumulator: TraceInfo, event: TraceFull) => {
+    const relevant = isRelevant(event);
+
     for (const error of event.errors ?? []) {
-      accumulator.errors.add(error.project_slug);
-      accumulator.relevantProjectsWithErrors.add(error.project_slug);
+      accumulator.errors.add(error.event_id);
+      if (relevant) {
+        accumulator.relevantErrors.add(error.event_id);
+        accumulator.relevantProjectsWithErrors.add(error.project_slug);
+      }
     }
 
     accumulator.transactions.add(event.event_id);
-    accumulator.relevantProjectsWithTransactions.add(event.project_slug);
+    if (relevant) {
+      accumulator.relevantTransactions.add(event.event_id);
+      accumulator.relevantProjectsWithTransactions.add(event.project_slug);
+    }
 
     accumulator.startTimestamp = Math.min(
       accumulator.startTimestamp,
@@ -41,10 +49,15 @@ function traceVisitor() {
   };
 }
 
-export function getTraceInfo(trace: TraceFull) {
-  return reduceTrace<TraceInfo>(trace, traceVisitor(), {
+export function getTraceInfo(
+  trace: TraceFull,
+  isRelevant: (transaction: TraceFull) => boolean
+) {
+  return reduceTrace<TraceInfo>(trace, traceVisitor(isRelevant), {
     relevantProjectsWithErrors: new Set<string>(),
     relevantProjectsWithTransactions: new Set<string>(),
+    relevantErrors: new Set<string>(),
+    relevantTransactions: new Set<string>(),
     errors: new Set<string>(),
     transactions: new Set<string>(),
     startTimestamp: Number.MAX_SAFE_INTEGER,
