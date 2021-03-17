@@ -153,6 +153,7 @@ class TrendChart extends React.Component<Props> {
               includePrevious={false}
               yAxis={trendDisplay}
               currentSeriesName={trendDisplay}
+              partial
             >
               {({errored, loading, reloading, timeseriesData}) => {
                 if (errored) {
