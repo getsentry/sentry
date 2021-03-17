@@ -180,18 +180,14 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
             redis_rule_status.set_value("failed")
             return
 
-    # This function call will write "input_channel_id" to the appropriate actions before we create the serializer
-    # I wasn't sure of a way to use the same loop to return True in the endpoints and to also do the lookup and didn't want to duplicate the loop
     try:
         mapped_ids = get_slack_channel_ids(organization, user, data)
-    except (serializers.ValidationError, ChannelLookupTimeoutError, InvalidTriggerActionError):
+    except (serializers.ValidationError, ChannelLookupTimeoutError, InvalidTriggerActionError) as e:
         # channel doesn't exist error or validation error
         logger.info(
             "get_slack_channel_ids.failed",
             extra={
-                "user_id": user.id if user is not None else None,
-                "organization_id": organization_id,
-                "data": data,
+                "exception": e,
             },
         )
         redis_rule_status.set_value("failed")
@@ -199,13 +195,14 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
 
     for trigger in data["triggers"]:
         for action in trigger["actions"]:
-            if action["targetIdentifier"] in mapped_ids:
-                action["input_channel_id"] = mapped_ids[action["targetIdentifier"]]
-            elif action["type"] == "slack":
-                # We can early exit because we couldn't map this action's slack channel name to a slack id
-                # This is a fail safe, but I think we shouldn't really hit this.
-                redis_rule_status.set_value("failed")
-                return
+            if action["type"] == "slack":
+                if action["targetIdentifier"] in mapped_ids:
+                    action["input_channel_id"] = mapped_ids[action["targetIdentifier"]]
+                    # We can early exit because we couldn't map this action's slack channel name to a slack id
+                    # This is a fail safe, but I think we shouldn't really hit this.
+                else:
+                    redis_rule_status.set_value("failed")
+                    return
 
     # we use SystemAccess here because we can't pass the access instance from the request into the task
     # this means at this point we won't raise any validation errors associated with permissions

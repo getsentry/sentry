@@ -375,6 +375,33 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             assert actions[3].target_identifier == "10"
             assert actions[3].target_display == "my-channel"
 
+            # Now an invalid action (we want to early out with a good validationerror and not schedule the task):
+            name = "MyInvalidActionRule"
+            test_params["name"] = name
+            test_params["triggers"] = [
+                {
+                    "label": "critical",
+                    "alertThreshold": 75,
+                    "actions": [
+                        {
+                            "type": "element",
+                            "targetIdentifier": "my-channel",
+                            "targetType": "arbitrary",
+                            "integrationId": self.integration.id,
+                        },
+                    ],
+                },
+            ]
+            with self.feature("organizations:incidents"), self.tasks():
+                resp = self.get_response(
+                    self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
+                )
+            assert resp.status_code == 400
+            assert (
+                mock_get_channel_id.call_count == 3
+            )  # Did not increment from the last assertion because we early out on the validation error
+            # # Using get deliberately as there should only be one. Test should fail otherwise.
+
     def test_no_owner(self):
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
