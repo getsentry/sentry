@@ -326,6 +326,7 @@ class ReleasesDetailContainer extends AsyncComponent<
           selection={selection}
           location={location}
           display={[DisplayOption.SESSIONS, DisplayOption.USERS]}
+          defaultStatsPeriod={defaultStatsPeriod}
         >
           {({isHealthLoading, getHealthData}) => (
             <ReleasesDetail
