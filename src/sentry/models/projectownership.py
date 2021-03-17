@@ -12,7 +12,6 @@ from sentry.ownership.grammar import load_schema
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from functools import reduce
-from .projectcodeowners import ProjectCodeOwners
 
 READ_CACHE_DURATION = 3600
 
@@ -75,6 +74,8 @@ class ProjectOwnership(Model):
         If an empty list is returned, this means there are explicitly
         no owners.
         """
+        from sentry.models import ProjectCodeOwners
+
         ownership = cls.get_ownership_cached(project_id)
         if not ownership:
             ownership = cls(project_id=project_id)
@@ -116,6 +117,8 @@ class ProjectOwnership(Model):
 
         Returns a tuple of (auto_assignment_enabled, list_of_owners).
         """
+        from sentry.models import ProjectCodeOwners
+
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
             codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
