@@ -83,6 +83,8 @@ export default function ActionTargetSelector(props: Props) {
         />
       ) : (
         <Input
+          type="text"
+          autoComplete="off"
           disabled={disabled}
           key={action.type}
           value={action.targetIdentifier || ''}
