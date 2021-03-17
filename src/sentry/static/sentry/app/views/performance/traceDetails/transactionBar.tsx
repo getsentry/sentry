@@ -39,6 +39,7 @@ type Props = {
   isLast: boolean;
   continuingDepths: Array<number>;
   isExpanded: boolean;
+  isVisible: boolean;
   toggleExpandedState: () => void;
   theme: Theme;
 };
@@ -311,8 +312,10 @@ class TransactionBar extends React.Component<Props> {
   }
 
   render() {
+    const {isVisible} = this.props;
+
     return (
-      <TransactionRow visible>
+      <TransactionRow visible={isVisible}>
         <DividerHandlerManager.Consumer>
           {dividerHandlerChildrenProps =>
             this.renderHeader({dividerHandlerChildrenProps})
