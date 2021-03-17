@@ -3,6 +3,7 @@ import {Location} from 'history';
 
 import {EventQuery} from 'app/actionCreators/events';
 import {Client} from 'app/api';
+import {t} from 'app/locale';
 import EventView, {
   isAPIPayloadSimilar,
   LocationQuery,
@@ -185,7 +186,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
         tableData,
       }));
     } catch (err) {
-      const error = err?.responseJSON?.detail ?? null;
+      const error = err?.responseJSON?.detail || t('An unknown error occurred.');
       this.setState({
         isLoading: false,
         tableFetchID: undefined,

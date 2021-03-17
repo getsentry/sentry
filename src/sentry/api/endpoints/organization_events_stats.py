@@ -37,6 +37,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 elif top_events <= 0:
                     return Response({"detail": "If topEvents needs to be at least 1"}, status=400)
 
+            # The partial parameter determins whether or not partial buckets are allowed.
+            # The last bucket of the time series can potentially be a partial bucket when
+            # the start of the bucket does not align with the rollup.
+            allow_partial_buckets = request.GET.get("partial") == "1"
+
         def get_event_stats(query_columns, query, params, rollup):
             if top_events > 0:
                 return discover.top_events_timeseries(
@@ -60,7 +65,13 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             )
 
         return Response(
-            self.get_event_stats_data(request, organization, get_event_stats, top_events),
+            self.get_event_stats_data(
+                request,
+                organization,
+                get_event_stats,
+                top_events,
+                allow_partial_buckets=allow_partial_buckets,
+            ),
             status=200,
         )
 

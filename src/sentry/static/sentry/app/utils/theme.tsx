@@ -502,10 +502,10 @@ const commonTheme = {
   },
 
   diff: {
-    removedRow: '#fcefee',
-    addedRow: '#f5fbf8',
-    removed: '#f7ceca',
-    added: '#d8f0e4',
+    removedRow: 'hsl(358deg 89% 65% / 15%)',
+    removed: 'hsl(358deg 89% 65% / 30%)',
+    addedRow: 'hsl(100deg 100% 87% / 18%)',
+    added: 'hsl(166deg 58% 47% / 32%)',
   },
 
   // Similarity spectrum used in "Similar Issues" in group details
@@ -515,6 +515,10 @@ const commonTheme = {
   },
 
   space: [0, 8, 16, 20, 30],
+
+  demo: {
+    headerSize: '70px',
+  },
 } as const;
 
 const darkAliases = {

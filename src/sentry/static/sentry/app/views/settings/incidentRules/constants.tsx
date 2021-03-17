@@ -15,6 +15,7 @@ import {
 } from 'app/views/settings/incidentRules/types';
 
 export const DEFAULT_AGGREGATE = 'count()';
+export const DEFAULT_TRANSACTION_AGGREGATE = 'p95(transaction.duration)';
 
 export const DATASET_EVENT_TYPE_FILTERS = {
   [Dataset.ERRORS]: 'event.type:error',
@@ -97,7 +98,11 @@ export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRu
     ...createDefaultRule(),
     ...datasetAndEventtypes,
     query: parsedQuery?.query ?? eventView.query,
-    aggregate: eventView.getYAxis(),
+    // If creating a metric alert for transactions, default to the p95 metric
+    aggregate:
+      datasetAndEventtypes.dataset === 'transactions'
+        ? 'p95(transaction.duration)'
+        : eventView.getYAxis(),
     environment: eventView.environment.length ? eventView.environment[0] : null,
   };
 }

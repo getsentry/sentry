@@ -282,4 +282,6 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     )
                     break
 
-        return result
+        # TODO(wmak): return an array of traces with the same trace, which includes orphan traces (ie. not connected
+        # with the root)
+        return [result]

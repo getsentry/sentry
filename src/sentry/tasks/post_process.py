@@ -9,7 +9,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import safe_execute
-from sentry.utils.sdk import set_current_project, bind_organization_context
+from sentry.utils.sdk import set_current_event_project, bind_organization_context
 
 logger = logging.getLogger("sentry")
 
@@ -195,7 +195,7 @@ def post_process_group(
             project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
         )
 
-        set_current_project(event.project_id)
+        set_current_event_project(event.project_id)
 
         is_reprocessed = is_reprocessed_event(event.data)
 
@@ -407,7 +407,7 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
     """
-    set_current_project(event.project_id)
+    set_current_event_project(event.project_id)
 
     from sentry.plugins.base import plugins
 

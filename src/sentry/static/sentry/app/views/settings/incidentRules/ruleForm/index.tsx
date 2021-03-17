@@ -20,7 +20,7 @@ import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
-import RuleNameForm from 'app/views/settings/incidentRules/ruleNameForm';
+import RuleNameOwnerForm from 'app/views/settings/incidentRules/ruleNameOwnerForm';
 import Triggers from 'app/views/settings/incidentRules/triggers';
 import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
 import {getEventTypeFilter} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
@@ -51,6 +51,7 @@ type Props = {
   project: Project;
   routes: PlainRoute[];
   rule: IncidentRule;
+  userTeamIds: Set<string>;
   ruleId?: string;
   sessionId?: string;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}> & {
@@ -110,6 +111,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       resolveThreshold: rule.resolveThreshold,
       thresholdType: rule.thresholdType,
       projects: [this.props.project],
+      owner: rule.owner,
     };
   }
 
@@ -550,7 +552,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {organization, ruleId, rule, params, onSubmitSuccess} = this.props;
+    const {
+      organization,
+      ruleId,
+      rule,
+      params,
+      onSubmitSuccess,
+      project,
+      userTeamIds,
+    } = this.props;
     const {
       query,
       timeWindow,
@@ -579,6 +589,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       />
     );
 
+    const ownerId = rule.owner?.split(':')[1];
+    const canEdit = ownerId ? userTeamIds.has(ownerId) : true;
+
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => (
@@ -587,7 +600,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
               ruleId ? `${ruleId}/` : ''
             }`}
-            submitDisabled={!hasAccess || loading}
+            submitDisabled={!hasAccess || loading || !canEdit}
             initialData={{
               name: rule.name || '',
               dataset: rule.dataset,
@@ -596,6 +609,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               query: rule.query || '',
               timeWindow: rule.timeWindow,
               environment: rule.environment || null,
+              owner: rule.owner,
             }}
             saveOnBlur={false}
             onSubmit={this.handleSubmit}
@@ -605,7 +619,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             extraButton={
               !!rule.id ? (
                 <Confirm
-                  disabled={!hasAccess}
+                  disabled={!hasAccess || !canEdit}
                   message={t('Are you sure you want to delete this alert rule?')}
                   header={t('Delete Alert Rule?')}
                   priority="danger"
@@ -624,12 +638,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               api={this.api}
               projectSlug={params.projectId}
               organization={organization}
-              disabled={!hasAccess}
+              disabled={!hasAccess || !canEdit}
               thresholdChart={chart}
               onFilterSearch={this.handleFilterUpdate}
             />
             <Triggers
-              disabled={!hasAccess}
+              disabled={!hasAccess || !canEdit}
               projects={this.state.projects}
               errors={this.state.triggerErrors}
               triggers={triggers}
@@ -644,7 +658,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               onResolveThresholdChange={this.handleResolveThresholdChange}
             />
 
-            <RuleNameForm disabled={!hasAccess} />
+            <RuleNameOwnerForm
+              disabled={!hasAccess || !canEdit}
+              organization={organization}
+              project={project}
+              userTeamIds={userTeamIds}
+            />
           </Form>
         )}
       </Access>

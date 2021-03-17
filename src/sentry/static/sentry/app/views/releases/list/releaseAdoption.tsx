@@ -54,22 +54,22 @@ function ReleaseAdoption({
           <TooltipWrapper>
             <TooltipRow>
               <Title>
-                <Dot color={theme.progressBar} />
-                {t('This Release')}
-              </Title>
-              <Value>
-                <Count value={releaseCount} />{' '}
-                {releaseDisplayLabel(displayOption, releaseCount)}
-              </Value>
-            </TooltipRow>
-            <TooltipRow>
-              <Title>
                 <Dot color={theme.progressBackground} />
                 {t('Total Project')}
               </Title>
               <Value>
                 <Count value={projectCount} />{' '}
                 {releaseDisplayLabel(displayOption, projectCount)}
+              </Value>
+            </TooltipRow>
+            <TooltipRow>
+              <Title>
+                <Dot color={theme.progressBar} />
+                {t('This Release')}
+              </Title>
+              <Value>
+                <Count value={releaseCount} />{' '}
+                {releaseDisplayLabel(displayOption, releaseCount)}
               </Value>
             </TooltipRow>
 
