@@ -24,7 +24,11 @@ from sentry.incidents.models import (
     TriggerStatus,
     INCIDENT_STATUS,
 )
-from sentry.models import Integration, NotificationSetting, PagerDutyService, UserOption
+from sentry.models import (
+    Integration,
+    NotificationSetting,
+    PagerDutyService,
+)
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
     NotificationSettingTypes,
@@ -85,7 +89,12 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             project=self.project,
         )
         disabled_user = self.create_user()
-        UserOption.objects.set_value(user=disabled_user, key="subscribe_by_default", value="0")
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=disabled_user,
+        )
 
         new_user = self.create_user()
         self.create_team_membership(team=self.team, user=new_user)

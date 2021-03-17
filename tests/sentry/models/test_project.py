@@ -11,7 +11,6 @@ from sentry.models import (
     ReleaseProject,
     ReleaseProjectEnvironment,
     Rule,
-    UserOption,
 )
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
@@ -306,17 +305,32 @@ class FilterToSubscribedUsersTest(TestCase):
 
     def test_global_enabled(self):
         user = self.create_user()
-        UserOption.objects.set_value(user, "subscribe_by_default", "1")
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=user,
+        )
         self.run_test([user], [user])
 
     def test_global_disabled(self):
         user = self.create_user()
-        UserOption.objects.set_value(user, "subscribe_by_default", "0")
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=user,
+        )
         self.run_test([user], [])
 
     def test_project_enabled(self):
         user = self.create_user()
-        UserOption.objects.set_value(user, "subscribe_by_default", "0")
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=user,
+        )
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
@@ -328,7 +342,12 @@ class FilterToSubscribedUsersTest(TestCase):
 
     def test_project_disabled(self):
         user = self.create_user()
-        UserOption.objects.set_value(user, "subscribe_by_default", "1")
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=user,
+        )
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
@@ -340,11 +359,28 @@ class FilterToSubscribedUsersTest(TestCase):
 
     def test_mixed(self):
         user_global_enabled = self.create_user()
-        UserOption.objects.set_value(user_global_enabled, "subscribe_by_default", "1")
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=user_global_enabled,
+        )
+
         user_global_disabled = self.create_user()
-        UserOption.objects.set_value(user_global_disabled, "subscribe_by_default", "0")
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=user_global_disabled,
+        )
+
         user_project_enabled = self.create_user()
-        UserOption.objects.set_value(user_project_enabled, "subscribe_by_default", "0")
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=user_project_enabled,
+        )
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
@@ -352,8 +388,14 @@ class FilterToSubscribedUsersTest(TestCase):
             user=user_project_enabled,
             project=self.project,
         )
+
         user_project_disabled = self.create_user()
-        UserOption.objects.set_value(user_project_disabled, "subscribe_by_default", "1")
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=user_project_disabled,
+        )
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,

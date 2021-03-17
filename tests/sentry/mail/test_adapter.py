@@ -23,7 +23,6 @@ from sentry.models import (
     Repository,
     Rule,
     User,
-    UserOption,
     UserReport,
 )
 from sentry.models.integration import ExternalProviders
@@ -188,16 +187,26 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
         assert user4.pk in self.adapter.get_sendable_users(project)
 
         # disabled by default user4
-        uo1 = UserOption.objects.create(
-            key="subscribe_by_default", value="0", project=project, user=user4
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=user4,
         )
 
         assert user4.pk not in self.adapter.get_sendable_users(project)
 
-        uo1.delete()
+        NotificationSetting.objects.remove_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            user=user4,
+        )
 
-        UserOption.objects.create(
-            key="subscribe_by_default", value="0", project=project, user=user4
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=user4,
         )
 
         assert user4.pk not in self.adapter.get_sendable_users(project)
