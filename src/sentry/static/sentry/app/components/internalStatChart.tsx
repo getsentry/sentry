@@ -46,7 +46,7 @@ class InternalStatChart extends React.Component<Props, State> {
     }
   }
 
-  fetchData() {
+  fetchData = () => {
     this.setState({loading: true});
     this.props.api.request('/internal/stats/', {
       method: 'GET',
@@ -61,9 +61,9 @@ class InternalStatChart extends React.Component<Props, State> {
           loading: false,
           error: false,
         }),
-      error: () => this.setState({error: true}),
+      error: () => this.setState({error: true, loading: false}),
     });
-  }
+  };
 
   render() {
     const {loading, error, data} = this.state;
