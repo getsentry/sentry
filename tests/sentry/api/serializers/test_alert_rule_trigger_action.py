@@ -29,8 +29,8 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         action = create_alert_rule_trigger_action(
             trigger,
             AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            str(self.user.id),
+            AlertRuleTriggerAction.TargetType.SPECIFIC,
+            "hello",
         )
         result = serialize(action)
         self.assert_action_serialized(action, result)
