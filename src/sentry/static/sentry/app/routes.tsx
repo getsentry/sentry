@@ -1568,6 +1568,16 @@ function routes() {
                   )
                 }
               />
+              <Route
+                path="wizard/"
+                name="Alert Creation Wizard"
+                component={errorHandler(LazyLoad)}
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "ProjectAlertsCreate" */ 'app/views/alerts/wizard'
+                  )
+                }
+              />
             </Route>
           </Route>
 
