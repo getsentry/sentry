@@ -1455,17 +1455,14 @@ def translate_aggregate_field(aggregate, reverse=False):
     return aggregate
 
 
-def get_slack_channel_ids(organization, user, data, peek=False):
-    # If peek is True, we do no actual lookups.
-    # We simply return True if there is a lookup to do. Otherwise {}.
+def get_slack_actions_with_async_lookups(organization, user, data):
     try:
         from sentry.incidents.endpoints.serializers import AlertRuleTriggerActionSerializer
 
-        mapped_ids = {}
+        slack_actions = []
         for trigger in data["triggers"]:
             for action in trigger["actions"]:
                 action = rewrite_trigger_action_fields(action)
-
                 a_s = AlertRuleTriggerActionSerializer(
                     context={
                         "organization": organization,
@@ -1478,31 +1475,30 @@ def get_slack_channel_ids(organization, user, data, peek=False):
                     if (
                         a_s.validated_data["type"].value == AlertRuleTriggerAction.Type.SLACK.value
                         and not a_s.validated_data["input_channel_id"]
-                        and not a_s.validated_data["target_identifier"] in mapped_ids
                     ):
-                        if peek:
-                            return True
-
-                        (
-                            mapped_ids[a_s.validated_data["target_identifier"]],
-                            _,
-                        ) = get_target_identifier_display_for_integration(
-                            a_s.validated_data["type"].value,
-                            a_s.validated_data["target_identifier"],
-                            organization,
-                            a_s.validated_data["integration"].id,
-                            use_async_lookup=True,
-                            input_channel_id=None,
-                        )
-
+                        slack_actions.append(a_s.validated_data)
     except KeyError:
         pass
+    return slack_actions
 
-    return mapped_ids
 
-
-def alert_rule_has_async_lookups(organization, user, data):
-    return get_slack_channel_ids(organization, user, data, peek=True)
+def get_slack_channel_ids(organization, user, data):
+    slack_actions = get_slack_actions_with_async_lookups(organization, user, data)
+    mapped_slack_channels = {}
+    for action in slack_actions:
+        if not action["target_identifier"] in mapped_slack_channels:
+            (
+                mapped_slack_channels[action["target_identifier"]],
+                _,
+            ) = get_target_identifier_display_for_integration(
+                action["type"].value,
+                action["target_identifier"],
+                organization,
+                action["integration"].id,
+                use_async_lookup=True,
+                input_channel_id=None,
+            )
+    return mapped_slack_channels
 
 
 def rewrite_trigger_action_fields(action_data):

@@ -1,3 +1,5 @@
+import logging
+
 from uuid import uuid4
 
 from django.conf import settings
@@ -28,6 +30,8 @@ from sentry.incidents.logic import (
 from sentry.integrations.slack.utils import get_channel_id_with_timeout, strip_channel_name
 from sentry.utils.redis import redis_clusters
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+
+logger = logging.getLogger("sentry.integrations.slack.tasks")
 
 
 class RedisRuleStatus:
@@ -182,6 +186,14 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
         mapped_ids = get_slack_channel_ids(organization, user, data)
     except (serializers.ValidationError, ChannelLookupTimeoutError, InvalidTriggerActionError):
         # channel doesn't exist error or validation error
+        logger.info(
+            "get_slack_channel_ids.failed",
+            extra={
+                "user_id": user.id if user is not None else None,
+                "organization_id": organization_id,
+                "data": data,
+            },
+        )
         redis_rule_status.set_value("failed")
         return
 
@@ -189,11 +201,16 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
         for action in trigger["actions"]:
             if action["targetIdentifier"] in mapped_ids:
                 action["input_channel_id"] = mapped_ids[action["targetIdentifier"]]
+            elif action["type"] == "slack":
+                # We can early exit because we couldn't map this action's slack channel name to a slack id
+                # This is a fail safe, but I think we shouldn't really hit this.
+                redis_rule_status.set_value("failed")
+                return
 
     # we use SystemAccess here because we can't pass the access instance from the request into the task
     # this means at this point we won't raise any validation errors associated with permissions
     # however, we should only be calling this task after we tried saving the alert rule first
-    # which will catch those kinds of validation errors
+    # which will catch those kinthatds of validation errors
     serializer = AlertRuleSerializer(
         context={
             "organization": organization,
