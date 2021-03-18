@@ -102,13 +102,28 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_unknown_field(self):
-        response = self.do_request({"field": ["summ(qarntenty)"]})
+        response = self.do_request(
+            {
+                "field": ["summ(qarntenty)"],
+                "statsPeriod": "1d",
+                "interval": "1d",
+            }
+        )
 
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Invalid field: "summ(qarntenty)"'}
+        assert response.data == {
+            "detail": 'Invalid field: "summ(qarntenty)"',
+        }
 
     def test_unknown_groupby(self):
-        response = self.do_request({"field": ["sum(quantity)"], "groupBy": ["cattygory"]})
+        response = self.do_request(
+            {
+                "field": ["sum(quantity)"],
+                "groupBy": ["cattygory"],
+                "statsPeriod": "1d",
+                "interval": "1d",
+            }
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {"detail": 'Invalid groupBy: "cattygory"'}
@@ -410,27 +425,62 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-        @freeze_time("2021-03-14T12:27:28.303Z")
-        def test_category_filter(self):
-            make_request = functools.partial(
-                self.client.get,
-                reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
-            )
-            response = make_request(
-                {
-                    "statsPeriod": "1d",
-                    "interval": "1d",
-                    "field": ["sum(quantity)"],
-                    "category": "error",
-                }
-            )
-            assert response.status_code == 200, response.content
-            assert response.data == {
-                "intervals": ["2021-03-14T00:00:00Z"],
-                "groups": [
-                    {"by": {}, "totals": {"sum(quantity)": 1}, "series": {"sum(quantity)": [1]}}
-                ],
+    @freeze_time("2021-03-14T12:27:28.303Z")
+    def test_category_filter(self):
+        make_request = functools.partial(
+            self.client.get,
+            reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
+        )
+        response = make_request(
+            {
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "category": "error",
             }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "intervals": ["2021-03-14T00:00:00Z"],
+            "groups": [
+                {"by": {}, "totals": {"sum(quantity)": 2}, "series": {"sum(quantity)": [2]}}
+            ],
+        }
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
+    def test_minute_interval(self):
+        make_request = functools.partial(
+            self.client.get,
+            reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
+        )
+        response = make_request(
+            {
+                "statsPeriod": "1h",
+                "interval": "15m",
+                "field": ["sum(quantity)"],
+                "category": "error",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data) == {
+            "intervals": [
+                "2021-03-14T11:00:00Z",
+                "2021-03-14T11:15:00Z",
+                "2021-03-14T11:30:00Z",
+                "2021-03-14T11:45:00Z",
+                "2021-03-14T12:00:00Z",
+                "2021-03-14T12:15:00Z",
+                "2021-03-14T12:30:00Z",
+                "2021-03-14T12:45:00Z",
+            ],
+            "groups": [
+                {
+                    "by": {},
+                    "totals": {"sum(quantity)": 2},
+                    "series": {"sum(quantity)": [0, 2, 0, 0, 0, 0, 0, 0]},
+                }
+            ],
+        }
 
 
 def result_sorted(result):

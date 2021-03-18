@@ -248,7 +248,7 @@ class QueryDefinition:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
-        start, end, rollup = _get_constrained_date_range(query, allow_minute_resolution)
+        start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
         self.rollup = rollup
         self.start = start
         self.end = end
@@ -289,7 +289,7 @@ class InvalidParams(Exception):
     pass
 
 
-def _get_constrained_date_range(params, allow_minute_resolution=False):
+def get_constrained_date_range(params, allow_minute_resolution=False):
     interval = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval is None else interval.total_seconds())
 
@@ -392,7 +392,7 @@ def run_sessions_query(query):
     return result_totals["data"], result_timeseries["data"]
 
 
-def massage_sessions_result(query, result_totals, result_timeseries):
+def massage_sessions_result(query, result_totals, result_timeseries, ts_col=TS_COL):
     """
     Post-processes the query result.
 
@@ -430,22 +430,22 @@ def massage_sessions_result(query, result_totals, result_timeseries):
 
     def make_timeseries(rows, group):
         for row in rows:
-            row[TS_COL] = row[TS_COL][:19] + "Z"
+            row[ts_col] = row[ts_col][:19] + "Z"
 
-        rows.sort(key=lambda row: row[TS_COL])
+        rows.sort(key=lambda row: row[ts_col])
         fields = [(name, field, list()) for name, field in query.fields.items()]
         group_index = 0
 
         while group_index < len(rows):
             row = rows[group_index]
-            if row[TS_COL] < timestamps[0]:
+            if row[ts_col] < timestamps[0]:
                 group_index += 1
             else:
                 break
 
         for ts in timestamps:
             row = rows[group_index] if group_index < len(rows) else None
-            if row is not None and row[TS_COL] == ts:
+            if row is not None and row[ts_col] == ts:
                 group_index += 1
             else:
                 row = None

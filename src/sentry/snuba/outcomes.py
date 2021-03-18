@@ -1,11 +1,12 @@
 from sentry.utils.snuba import Dataset, raw_query
 from sentry_relay import DataCategory
 
-from sentry.api.utils import get_date_range_rollup_from_params
-from sentry.utils.dates import to_timestamp
+from sentry.snuba.sessions_v2 import (
+    get_constrained_date_range,
+    massage_sessions_result,
+)
 from sentry.utils.outcomes import Outcome
 from datetime import datetime
-import itertools
 
 """
 The new Outcomes API defines a "metrics"-like interface which is can be used in
@@ -190,6 +191,14 @@ class QueryDefinition:
 
         self.fields = {}
         self.aggregations = []
+        self.query = []
+
+        start, end, rollup = get_constrained_date_range(query, allow_minute_resolution=True)
+        self.dataset = _outcomes_dataset(rollup)
+        self.rollup = rollup
+        self.start = start
+        self.end = end
+
         for key in raw_fields:
             if key not in COLUMN_MAP:
                 raise InvalidField(f'Invalid field: "{key}"')
@@ -197,18 +206,16 @@ class QueryDefinition:
             if key == "sum(quantity)":
                 self.aggregations.append(["sum", "quantity", "quantity"])
             if key == "sum(times_seen)":
-                self.aggregations.append(["sum", "times_seen", "times_seen"])
+                if self.dataset == Dataset.Outcomes:
+                    self.aggregations.append(["sum", "times_seen", "times_seen"])
+                else:
+                    self.aggregations.append(["count()", "", "times_seen"])
 
         self.groupby = []
         for key in raw_groupby:
             if key not in GROUPBY_MAP:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
-
-        start, end, rollup = get_date_range_rollup_from_params(query, "1h", round_range=True)
-        self.rollup = rollup
-        self.start = start
-        self.end = end
 
         query_columns = set()
         for field in self.fields.values():
@@ -229,7 +236,7 @@ class QueryDefinition:
 
 def run_outcomes_query(query):
     result = raw_query(
-        dataset=Dataset.Outcomes,
+        dataset=query.dataset,
         start=query.start,
         end=query.end,
         groupby=query.query_groupby,
@@ -241,7 +248,7 @@ def run_outcomes_query(query):
         # orderby=query.orderby, TODO: add orderby?
     )
     result_timeseries = raw_query(
-        dataset=Dataset.Outcomes,
+        dataset=query.dataset,
         # selected_columns=[TS_COL] + query.query_columns,
         groupby=[TS_COL] + query.query_groupby,
         aggregations=query.aggregations,
@@ -304,113 +311,6 @@ def _outcomes_dataset(rollup):
 
 
 def massage_outcomes_result(query, result_totals, result_timeseries):
-    """
-    Post-processes the query result.
-
-    Given the `query` as defined by [`QueryDefinition`] and its totals and
-    timeseries results from snuba, groups and transforms the result into the
-    expected format.
-
-    For example:
-    ```json
-    {
-      "intervals": [
-        "2020-12-16T00:00:00Z",
-        "2020-12-16T12:00:00Z",
-        "2020-12-17T00:00:00Z"
-      ],
-      "groups": [
-        {
-          "by": { "release": "99b8edc5a3bb49d01d16426d7bb9c511ec41f81e" },
-          "series": { "sum(session)": [0, 1, 0] },
-          "totals": { "sum(session)": 1 }
-        },
-        {
-          "by": { "release": "test-example-release" },
-          "series": { "sum(session)": [0, 10, 20] },
-          "totals": { "sum(session)": 30 }
-        }
-      ]
-    }
-    ```
-    """
-    timestamps = _get_timestamps(query)
-
-    total_groups = _split_rows_groupby(result_totals, query.groupby)
-    timeseries_groups = _split_rows_groupby(result_timeseries, query.groupby)
-
-    def make_timeseries(rows, group):
-        for row in rows:
-            row[TS_COL] = row[TS_COL][:19] + "Z"  # TODO: what is going on with this?
-
-        rows.sort(key=lambda row: row[TS_COL])
-        fields = [(name, field, list()) for name, field in query.fields.items()]
-        group_index = 0
-
-        while group_index < len(rows):
-            row = rows[group_index]
-            if row[TS_COL] < timestamps[0]:
-                group_index += 1
-            else:
-                break
-
-        for ts in timestamps:
-            row = rows[group_index] if group_index < len(rows) else None
-            if row is not None and row[TS_COL] == ts:
-                group_index += 1
-            else:
-                row = None
-            for (name, field, series) in fields:
-                series.append(field.extract_from_row(row, group))
-
-        return {name: series for (name, field, series) in fields}
-
-    def make_totals(totals, group):
-        return {
-            name: field.extract_from_row(totals[0], group) for name, field in query.fields.items()
-        }
-
-    groups = []
-    keys = set(total_groups.keys()) | set(timeseries_groups.keys())
-    for key in keys:
-        by = dict(key)
-
-        group = {
-            "by": by,
-            "totals": make_totals(total_groups.get(key, [None]), by),
-            "series": make_timeseries(timeseries_groups.get(key, []), by),
-        }
-
-        groups.append(group)
-
-    return {
-        "intervals": timestamps,
-        "groups": groups,
-    }
-
-
-def _get_timestamps(query):
-    """
-    Generates a list of timestamps according to `query`.
-    The timestamps are returned as ISO strings for now.
-    """
-    rollup = query.rollup
-    start = int(to_timestamp(query.start))
-    end = int(to_timestamp(query.end))
-    return [datetime.utcfromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]
-
-
-def _split_rows_groupby(rows, groupby):
-    groups = {}
-    for row in rows:
-        key_parts = (group.get_keys_for_row(row) for group in groupby)
-        keys = itertools.product(*key_parts)
-
-        for key in keys:
-            key = frozenset(key)
-
-            if key not in groups:
-                groups[key] = []
-            groups[key].append(row)
-
-    return groups
+    result = massage_sessions_result(query, result_totals, result_timeseries, ts_col=TS_COL)
+    del result["query"]
+    return result
