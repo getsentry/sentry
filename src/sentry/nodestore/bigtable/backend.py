@@ -65,6 +65,10 @@ def get_connection(project, instance, table, options):
     return _connection_cache[key]
 
 
+class BigtableError(Exception):
+    pass
+
+
 class BigtableNodeStorage(NodeStorage):
     """
     A Bigtable-based backend for storing node data.
@@ -175,7 +179,7 @@ class BigtableNodeStorage(NodeStorage):
 
         status = row.commit()
         if status.code != 0:
-            raise Exception(status.code, status.message)
+            raise BigtableError(status.code, status.message)
 
     def encode_row(self, id, data, ttl=None):
         row = self.connection.row(id)
@@ -237,7 +241,7 @@ class BigtableNodeStorage(NodeStorage):
 
         status = row.commit()
         if status.code != 0:
-            raise Exception(status.code, status.message)
+            raise BigtableError(status.code, status.message)
 
         self._delete_cache_item(id)
 
