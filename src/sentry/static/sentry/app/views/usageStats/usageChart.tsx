@@ -50,10 +50,10 @@ type State = {
   // WIP(leedongwei)
 };
 
-class ReservedUsageChart extends React.Component<Props, State> {
+class UsageChart extends React.Component<Props, State> {
   render() {
     return <Panel id="usage-chart">UsageStatsOrganization Chart</Panel>;
   }
 }
 
-export default withTheme(ReservedUsageChart);
+export default withTheme(UsageChart);

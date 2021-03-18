@@ -16,8 +16,8 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, Organization} from 'app/types';
 
-import Chart from './chart';
 import {OrganizationUsageStats} from './types';
+import UsageChart from './usageChart';
 import {formatUsageWithUnits} from './utils';
 
 type Props = {
@@ -162,7 +162,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     return (
       <Panel>
-        <Chart
+        <UsageChart
           hasTransactions
           hasAttachments={false}
           usagePeriodStart={start}
