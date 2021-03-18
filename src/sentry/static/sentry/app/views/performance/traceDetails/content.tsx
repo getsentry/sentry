@@ -35,6 +35,7 @@ type Props = {
   traceSlug: string;
   start: string | undefined;
   end: string | undefined;
+  statsPeriod: string | undefined;
   isLoading: boolean;
   error: string | null;
   trace: TraceFull | null;
@@ -171,9 +172,9 @@ class TraceDetailsContent extends React.Component<Props> {
   }
 
   renderContent() {
-    const {traceSlug, start, end, isLoading, error, trace} = this.props;
+    const {traceSlug, start, end, statsPeriod, isLoading, error, trace} = this.props;
 
-    if (!start || !end) {
+    if (!statsPeriod && (!start || !end)) {
       Sentry.setTag('current.trace_id', traceSlug);
       Sentry.captureException(new Error('No date range selection found.'));
       return this.renderTraceRequiresDateRangeSelection();

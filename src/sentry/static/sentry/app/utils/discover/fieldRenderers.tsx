@@ -166,6 +166,7 @@ type SpecialField = {
 
 type SpecialFields = {
   id: SpecialField;
+  trace: SpecialField;
   project: SpecialField;
   user: SpecialField;
   'user.display': SpecialField;
@@ -188,6 +189,17 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'id',
     renderFunc: data => {
       const id: string | unknown = data?.id;
+      if (typeof id !== 'string') {
+        return null;
+      }
+
+      return <Container>{getShortEventId(id)}</Container>;
+    },
+  },
+  trace: {
+    sortField: 'trace',
+    renderFunc: data => {
+      const id: string | unknown = data?.trace;
       if (typeof id !== 'string') {
         return null;
       }

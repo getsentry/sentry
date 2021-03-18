@@ -228,7 +228,15 @@ export function getQuickTraceRequestPayload({eventView, location}: DiscoverQuery
   return omit(eventView.getEventsAPIPayload(location), ['field', 'sort', 'per_page']);
 }
 
-export function makeEventView(start: string, end: string) {
+export function makeEventView({
+  start,
+  end,
+  statsPeriod,
+}: {
+  start?: string;
+  end?: string;
+  statsPeriod?: string;
+}) {
   return EventView.fromSavedQuery({
     id: undefined,
     version: 2,
@@ -239,9 +247,9 @@ export function makeEventView(start: string, end: string) {
     projects: [ALL_ACCESS_PROJECTS],
     query: '',
     environment: [],
-    range: '',
     start,
     end,
+    range: statsPeriod,
   });
 }
 
