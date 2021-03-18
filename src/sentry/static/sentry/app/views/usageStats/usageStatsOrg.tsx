@@ -65,7 +65,6 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     accepted: string;
     dropped: string;
     filtered: string;
-    overQuota: string;
   } {
     const {dataCategory} = this.state;
 
@@ -80,13 +79,12 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       accepted: formatUsageWithUnits(0, dataCategory, formatOptions),
       dropped: formatUsageWithUnits(0, dataCategory, formatOptions),
       filtered: formatUsageWithUnits(0, dataCategory, formatOptions),
-      overQuota: formatUsageWithUnits(0, dataCategory, formatOptions),
     };
   }
 
   renderCards() {
     const {dataCategory, dataCategoryName} = this.props;
-    const {total, accepted, overQuota: overQuota, filtered} = this.formattedOrgStats;
+    const {total, accepted, dropped, filtered} = this.formattedOrgStats;
 
     const cardData = [
       {
@@ -108,10 +106,10 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       {
         title: t('Dropped'),
         description: tct(
-          "Rate-limited [dataCategory] were discarded due to usage exceeding your plan's quota.",
+          'Dropped [dataCategory] were discarded due to rate-limits, quota limits, or spike protection',
           {dataCategory}
         ),
-        value: overQuota,
+        value: dropped,
       },
     ];
 
