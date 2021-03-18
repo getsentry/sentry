@@ -119,10 +119,6 @@ class TransactionSummary extends React.Component<Props, State> {
       },
       {
         kind: 'function',
-        function: ['new_user_misery', threshold, undefined],
-      },
-      {
-        kind: 'function',
         function: ['p95', '', undefined],
       },
       {
@@ -140,6 +136,10 @@ class TransactionSummary extends React.Component<Props, State> {
       {
         kind: 'function',
         function: ['tpm', '', undefined],
+      },
+      {
+        kind: 'field',
+        field: `new_user_misery(${organization.apdexThreshold})`,
       },
       ...vitals.map(
         vital =>
