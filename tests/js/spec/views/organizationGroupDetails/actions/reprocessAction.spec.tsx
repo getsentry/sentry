@@ -5,9 +5,9 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {Event} from 'app/types/event';
 import ReprocessAction from 'app/views/organizationGroupDetails/actions/reprocessAction';
 
-function renderComponent(event?: Event) {
+function renderComponent(event?: Event, onClick = () => {}) {
   return mountWithTheme(
-    <ReprocessAction disabled={false} onClick={jest.fn()} event={event} />
+    <ReprocessAction disabled={false} onClick={onClick} event={event} />
   );
 }
 
@@ -42,7 +42,7 @@ describe('ReprocessAction', function () {
             platform: 'native',
           });
 
-          const wrapper = renderComponent(event);
+          const wrapper = renderComponent(event, onClick);
 
           const actionButton = wrapper.find('ActionButton');
           expect(actionButton).toBeTruthy();
@@ -59,7 +59,7 @@ describe('ReprocessAction', function () {
             platform: 'cocoa',
           });
 
-          const wrapper = renderComponent(event);
+          const wrapper = renderComponent(event, onClick);
 
           const actionButton = wrapper.find('ActionButton');
           expect(actionButton).toBeTruthy();
@@ -79,7 +79,7 @@ describe('ReprocessAction', function () {
           });
 
           event.entries[0].data.values[0].stacktrace.frames[0].platform = 'native';
-          const wrapper = renderComponent(event);
+          const wrapper = renderComponent(event, onClick);
 
           const actionButton = wrapper.find('ActionButton');
           expect(actionButton).toBeTruthy();
@@ -97,7 +97,7 @@ describe('ReprocessAction', function () {
           });
 
           event.entries[0].data.values[0].stacktrace.frames[0].platform = 'cocoa';
-          const wrapper = renderComponent(event);
+          const wrapper = renderComponent(event, onClick);
 
           const actionButton = wrapper.find('ActionButton');
           expect(actionButton).toBeTruthy();
@@ -123,7 +123,7 @@ describe('ReprocessAction', function () {
         },
       };
 
-      const wrapper = renderComponent(event);
+      const wrapper = renderComponent(event, onClick);
 
       const actionButton = wrapper.find('ActionButton');
       expect(actionButton).toBeTruthy();
@@ -147,7 +147,7 @@ describe('ReprocessAction', function () {
         },
       };
 
-      const wrapper = renderComponent(event);
+      const wrapper = renderComponent(event, onClick);
 
       const actionButton = wrapper.find('ActionButton');
       expect(actionButton).toBeTruthy();
