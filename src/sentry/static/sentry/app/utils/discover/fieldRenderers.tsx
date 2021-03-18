@@ -175,6 +175,8 @@ type SpecialFields = {
   release: SpecialField;
   key_transaction: SpecialField;
   'trend_percentage()': SpecialField;
+  'timestamp.to_hour': SpecialField;
+  'timestamp.to_day': SpecialField;
 };
 
 /**
@@ -339,6 +341,28 @@ const SPECIAL_FIELDS: SpecialFields = {
           ? formatPercentage(data.trend_percentage - 1)
           : emptyValue}
       </NumberContainer>
+    ),
+  },
+  'timestamp.to_hour': {
+    sortField: 'timestamp.to_hour',
+    renderFunc: data => (
+      <Container>
+        {getDynamicText({
+          value: <StyledDateTime date={data['timestamp.to_hour']} format="lll z" />,
+          fixed: 'timestamp.to_hour',
+        })}
+      </Container>
+    ),
+  },
+  'timestamp.to_day': {
+    sortField: 'timestamp.to_day',
+    renderFunc: data => (
+      <Container>
+        {getDynamicText({
+          value: <StyledDateTime date={data['timestamp.to_day']} format="MMM D, YYYY" />,
+          fixed: 'timestamp.to_day',
+        })}
+      </Container>
     ),
   },
 };
