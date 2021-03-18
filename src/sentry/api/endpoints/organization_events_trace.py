@@ -8,11 +8,13 @@ from rest_framework.response import Response
 from sentry import features, eventstore
 from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
 from sentry.snuba import discover
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE = 100
 NODESTORE_KEYS = ["timestamp", "start_timestamp"]
+DETAILED_NODESTORE_KEYS = ["environment", "release"]
 
 
 def find_event(items, function, default=None):
@@ -54,21 +56,32 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response(status=404)
 
+        detailed = request.GET.get("detailed", "0") == "1"
+        event_id = request.GET.get("event_id")
+
+        # selected_columns is a set list, since we only want to include the minimum to render the trace
+        selected_columns = [
+            "id",
+            "timestamp",
+            "transaction.duration",
+            "transaction.op",
+            "transaction",
+            # project gets the slug, and project.id gets added automatically
+            "project",
+            "trace.span",
+            "trace.parent_span",
+            'to_other(trace.parent_span, "", 0, 1) AS root',
+        ]
+        # but if we're getting the detailed view load some extra columns
+        if detailed:
+            # TODO(wmak): Move op and timestamp here once we pass detailed for trace summary
+            selected_columns += [
+                "transaction.status",
+            ]
+
         with self.handle_query_errors():
             result = discover.query(
-                # selected_columns is a set list, since we only want to include the minimum to render the trace
-                selected_columns=[
-                    "id",
-                    "timestamp",
-                    "transaction.duration",
-                    "transaction.op",
-                    "transaction",
-                    # project gets the slug, and project.id gets added automatically
-                    "project",
-                    "trace.span",
-                    "trace.parent_span",
-                    'to_other(trace.parent_span, "", 0, 1) AS root',
-                ],
+                selected_columns=selected_columns,
                 # We want to guarantee at least getting the root, and hopefully events near it with timestamp
                 # id is just for consistent results
                 orderby=["-root", "-timestamp", "id"],
@@ -80,7 +93,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             if len(result["data"]) == 0:
                 return Response(status=404)
 
-        event_id = request.GET.get("event_id")
         warning_extra = {"trace": trace_id, "organization": organization}
 
         if event_id:
@@ -125,7 +137,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         return Response(
             self.serialize(
-                parent_map, error_map, root, warning_extra, params, snuba_event, event_id
+                parent_map, error_map, root, warning_extra, params, snuba_event, event_id, detailed
             )
         )
 
@@ -140,7 +152,15 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         return {}
 
     def serialize(
-        self, parent_map, error_map, root, warning_extra, params, snuba_event, event_id=None
+        self,
+        parent_map,
+        error_map,
+        root,
+        warning_extra,
+        params,
+        snuba_event,
+        event_id=None,
+        detailed=False,
     ):
         """ Because the light endpoint could potentially have gaps between root and event we return a flattened list """
         trace_results = [self.serialize_event(root, None, 0)]
@@ -218,18 +238,34 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             "project_slug": event["project"],
         }
 
-    def serialize_event(self, *args, **kwargs):
-        event = super().serialize_event(*args, **kwargs)
-        event.update(
+    def serialize_event(self, event, *args, **kwargs):
+        result = super().serialize_event(event, *args, **kwargs)
+        if "transaction.status" in event:
+            result.update(
+                {
+                    "transaction.status": SPAN_STATUS_CODE_TO_NAME.get(
+                        event["transaction.status"], "unknown"
+                    ),
+                }
+            )
+        result.update(
             {
                 "children": [],
                 "errors": [],
             }
         )
-        return event
+        return result
 
     def serialize(
-        self, parent_map, error_map, root, warning_extra, params, snuba_event=None, event_id=None
+        self,
+        parent_map,
+        error_map,
+        root,
+        warning_extra,
+        params,
+        snuba_event=None,
+        event_id=None,
+        detailed=False,
     ):
         """ For the full event trace, we return the results as a graph instead of a flattened list """
         parent_events = {}
@@ -252,6 +288,18 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 previous_event.update(
                     {event_key: event.data.get(event_key) for event_key in NODESTORE_KEYS}
                 )
+                if detailed:
+                    previous_event.update(
+                        {
+                            event_key: event.data.get(event_key)
+                            for event_key in DETAILED_NODESTORE_KEYS
+                        }
+                    )
+                    if "measurements" in event.data:
+                        previous_event["measurements"] = event.data.get("measurements")
+                    previous_event["tags"] = {}
+                    for [tag_key, tag_value] in event.data.get("tags"):
+                        previous_event["tags"][tag_key] = tag_value
 
                 spans = event.data.get("spans", [])
                 # Need to include the transaction as a span as well
