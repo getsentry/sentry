@@ -179,6 +179,7 @@ class Actions extends React.Component<Props, State> {
       }
     );
   }
+
   onToggleShare = () => {
     this.onShare(!this.props.group.isPublic);
   };
