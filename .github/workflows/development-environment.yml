@@ -82,6 +82,9 @@ jobs:
           restore-keys: |
             ${{ matrix.os }}-yarn-
 
-      - name: Set up development environment (mostly as per docs)
+      # make develop calls "ensure-venv", thus, needing to be within a venv
+      - name: Set up development environment
         run: |
+          python -m venv .venv
+          source .venv/bin/activate
           make bootstrap
