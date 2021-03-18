@@ -153,7 +153,7 @@ def clean_event(event_json):
 
 def fix_spans(event_json, old_span_id):
     """
-    This function will uupdate the span IDs and timstampes for a transaction
+    This function will update the span IDs and timestamps for a transaction
     event
     """
     trace = event_json["contexts"]["trace"]
