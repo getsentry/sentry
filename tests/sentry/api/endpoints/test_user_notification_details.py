@@ -74,15 +74,12 @@ class UserNotificationDetailsTest(APITestCase):
         user = self.create_user(email="a@example.com")
         self.login_as(user=user)
 
-        response = self.get_valid_response(
-            "me",
-            method="put",
-            **{
-                "deployNotifications": 2,
-                "personalActivityNotifications": True,
-                "selfAssignOnResolve": True,
-            },
-        )
+        data = {
+            "deployNotifications": 2,
+            "personalActivityNotifications": True,
+            "selfAssignOnResolve": True,
+        }
+        response = self.get_valid_response("me", method="put", **data)
 
         assert response.data.get("deployNotifications") == 2
         assert response.data.get("personalActivityNotifications") is True
@@ -116,7 +113,7 @@ class UserNotificationDetailsTest(APITestCase):
             UserOption.objects.get(
                 user=user, project=None, organization=org, key="deploy-emails"
             ).value
-            == 1
+            == "4"
         )
         assert (
             UserOption.objects.get(

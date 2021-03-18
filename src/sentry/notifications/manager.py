@@ -178,6 +178,15 @@ class NotificationsManager(BaseManager):
         )
         target = _get_target(user, team)
 
+        key = get_legacy_key(type)
+        legacy_value = get_legacy_value(type, value)
+
+        # Annoying HACK to translate "subscribe_by_default"
+        if type == NotificationSettingTypes.ISSUE_ALERTS:
+            legacy_value = int(legacy_value)
+            if project is None:
+                key = "subscribe_by_default"
+
         with transaction.atomic():
             setting, created = self.get_or_create(
                 provider=provider.value,
@@ -191,11 +200,7 @@ class NotificationsManager(BaseManager):
                 setting.update(value=value.value)
 
             UserOption.objects.set_value(
-                user,
-                key=get_legacy_key(type),
-                value=get_legacy_value(type, value),
-                project=project,
-                organization=organization,
+                user, key=key, value=legacy_value, project=project, organization=organization
             )
 
     def remove_settings(
@@ -239,7 +244,7 @@ class NotificationsManager(BaseManager):
         if type:
             # We don't need a transaction because this is only used in tests.
             UserOption.objects.filter(user=user, key=get_legacy_key(type)).delete()
-            self.filter(target=user.actor, type=type).delete()
+            self.filter(target=user.actor, type=type.value).delete()
         else:
             UserOption.objects.filter(user=user, key__in=KEYS_TO_LEGACY_KEYS.values()).delete()
             self.filter(target=user.actor).delete()

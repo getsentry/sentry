@@ -44,7 +44,7 @@ class UserNotificationFineTuningTest(APITestCase):
             organization=self.org,
         )
         response = self.get_valid_response("me", "deploy")
-        assert response.data.get(self.org.id) == 1
+        assert response.data.get(self.org.id) == "2"
 
         UserOption.objects.create(
             user=self.user,
@@ -71,7 +71,7 @@ class UserNotificationFineTuningTest(APITestCase):
             "alerts",
             method="put",
             status_code=204,
-            **{str(self.project.id): 1, str(self.project2.id): 2},
+            **{str(self.project.id): 1, str(self.project2.id): 0},
         )
 
         assert (
@@ -81,7 +81,7 @@ class UserNotificationFineTuningTest(APITestCase):
 
         assert (
             UserOption.objects.get(user=self.user, project=self.project2, key="mail:alert").value
-            == 2
+            == 0
         )
 
         # Can return to default
@@ -95,7 +95,7 @@ class UserNotificationFineTuningTest(APITestCase):
 
         assert (
             UserOption.objects.get(user=self.user, project=self.project2, key="mail:alert").value
-            == 2
+            == 0
         )
 
     def test_saves_and_returns_workflow(self):
@@ -140,13 +140,8 @@ class UserNotificationFineTuningTest(APITestCase):
     def test_saves_and_returns_email_routing(self):
         UserEmail.objects.create(user=self.user, email="alias@example.com", is_verified=True).save()
 
-        self.get_valid_response(
-            "me",
-            "email",
-            method="put",
-            status_code=204,
-            **{str(self.project.id): "a@example.com", str(self.project2.id): "alias@example.com"},
-        )
+        data = {str(self.project.id): "a@example.com", str(self.project2.id): "alias@example.com"}
+        self.get_valid_response("me", "email", method="put", status_code=204, **data)
 
         assert (
             UserOption.objects.get(user=self.user, project=self.project, key="mail:email").value
@@ -185,22 +180,20 @@ class UserNotificationFineTuningTest(APITestCase):
 
     def test_saves_and_returns_deploy(self):
         self.get_valid_response(
-            "me", "deploy", method="put", status_code=204, **{str(self.org.id): 0}
+            "me", "deploy", method="put", status_code=204, **{str(self.org.id): 4}
         )
 
         assert (
-            UserOption.objects.get(
-                user=self.user, organization=self.org.id, key="deploy-emails"
-            ).value
-            == "0"
+            UserOption.objects.get(user=self.user, organization=self.org, key="deploy-emails").value
+            == "4"
         )
 
         self.get_valid_response(
-            "me", "deploy", method="put", status_code=204, **{str(self.org.id): 1}
+            "me", "deploy", method="put", status_code=204, **{str(self.org.id): 2}
         )
         assert (
             UserOption.objects.get(user=self.user, organization=self.org, key="deploy-emails").value
-            == "1"
+            == "2"
         )
 
         self.get_valid_response(

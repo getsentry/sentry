@@ -7,16 +7,24 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserNotificationsSerializer
 from sentry.models import (
     NotificationSetting,
+    Project,
     UserOption,
     UserEmail,
 )
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.legacy_mappings import (
-    get_legacy_key_from_fine_tuning_key,
     get_option_value_from_int,
-    get_type_from_fine_tuning_key, 
+    get_type_from_fine_tuning_key,
 )
 from sentry.notifications.types import FineTuningAPIKey
+
+
+INVALID_EMAIL_MSG = (
+    "Invalid email value(s) provided. Email values must be verified emails for the given user."
+)
+INVALID_USER_MSG = (
+    "User does not belong to at least one of the requested organizations (org_id: %s)."
+)
 
 
 class UserNotificationFineTuningEndpoint(UserEndpoint):
@@ -125,11 +133,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             # make sure user is in org
             if org_id not in org_ids:
                 return Response(
-                    {
-                        "detail": "User does not belong to at least one of the requested orgs (org_id: %s)."
-                        % org_id
-                    },
-                    status=status.HTTP_403_FORBIDDEN,
+                    {"detail": INVALID_USER_MSG % org_id}, status=status.HTTP_403_FORBIDDEN
                 )
 
             # The list contains organization IDs that should have reports
@@ -149,23 +153,21 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         emails_to_check = set(data.values())
         emails = UserEmail.objects.filter(user=user, email__in=emails_to_check, is_verified=True)
 
-        # Is there a better way to check this?
+        # TODO(mgaeta): Is there a better way to check this?
         if len(emails) != len(emails_to_check):
-            return Response(
-                {
-                    "detail": "Invalid email value(s) provided. Email values must be verified emails for the given user."
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"detail": INVALID_EMAIL_MSG}, status=status.HTTP_400_BAD_REQUEST)
+
+        project_ids = [int(id) for id in data.keys()]
+        projects_map = {
+            int(project.id): project for project in Project.objects.filter(id__in=project_ids)
+        }
 
         with transaction.atomic():
             for id, value in data.items():
-                user_option, _ = UserOption.objects.get_or_create(
-                    {
-                        "user": user,
-                        "key": "mail:email",
-                        "project_id": id,
-                    }
+                user_option, CREATED = UserOption.objects.get_or_create(
+                    user=user,
+                    key="mail:email",
+                    project=projects_map[int(id)],
                 )
                 user_option.update(value=str(value))
 
@@ -175,6 +177,10 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
     def _handle_put_notification_settings(user, notification_type: FineTuningAPIKey, parents, data):
         with transaction.atomic():
             for parent in parents:
+                # We fetched every available parent but only care about the ones in `request.data`.
+                if str(parent.id) not in data:
+                    continue
+
                 # This partitioning always does the same thing because notification_type stays constant.
                 project_option, organization_option = (
                     (None, parent)
@@ -183,10 +189,11 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                 )
 
                 type = get_type_from_fine_tuning_key(notification_type)
+                value = int(data[str(parent.id)])
                 NotificationSetting.objects.update_settings(
                     ExternalProviders.EMAIL,
                     type,
-                    get_option_value_from_int(type, int(data[parent.id])),
+                    get_option_value_from_int(type, value),
                     user=user,
                     project=project_option,
                     organization=organization_option,

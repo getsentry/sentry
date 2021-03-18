@@ -269,7 +269,7 @@ class Project(Model, PendingDeletionMixin):
                 for uo in UserOption.objects.filter(
                     key="subscribe_by_default", user__in=members_to_check
                 )
-                if uo.value == "0"
+                if str(uo.value) == "0"
             }
             member_set = [x for x in member_set if x not in disabled]
 

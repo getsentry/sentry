@@ -176,8 +176,8 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user2,
-            project=self.project,
+            user=user2,
+            project=project,
         )
 
         assert user2.pk not in self.adapter.get_sendable_users(project)
