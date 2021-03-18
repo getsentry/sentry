@@ -37,7 +37,7 @@ jobs:
           stale-pr-message: |-
             This pull request has gone three weeks without activity. In another week, I will close it.
 
-            But! If you comment or otherwise update it, I will reset the clock, and if you label it `Status: Accepted`, I will leave it alone ... forever!
+          But! If you comment or otherwise update it, I will reset the clock, and if you label it `Status: Backlog` or `Status: In Progress`, I will leave it alone ... forever!
 
             ----
 
