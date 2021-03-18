@@ -277,6 +277,16 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
 class AlertRulesListContainer extends React.Component<Props> {
   componentDidMount() {
+    const {organization, router, location} = this.props;
+    if (organization.features.includes('team-alerts')) {
+      router.replace({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          team: ['myteams', 'unassigned'],
+        },
+      });
+    }
     this.trackView();
   }
 
