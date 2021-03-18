@@ -1,12 +1,14 @@
 import os
 import struct
 from threading import Lock
-import zstandard
 import zlib
 
+import zstandard
+import sentry_sdk
 from google.cloud import bigtable
 from google.cloud.bigtable.row_set import RowSet
 from django.utils import timezone
+
 
 from sentry.nodestore.base import NodeStorage
 
@@ -229,27 +231,31 @@ class BigtableNodeStorage(NodeStorage):
         if self.skip_deletes:
             return
 
-        row = self.connection.row(id)
-        row.delete()
-        row.commit()
-        self._delete_cache_item(id)
+        with sentry_sdk.start_span(op="nodestore.bigtable.delete"):
+            row = self.connection.row(id)
+            row.delete()
+            row.commit()
+            self._delete_cache_item(id)
 
     def delete_multi(self, id_list):
         if self.skip_deletes:
             return
 
-        if len(id_list) == 1:
-            self.delete(id_list[0])
-            return
+        with sentry_sdk.start_span(op="nodestore.bigtable.delete_multi") as span:
+            span.set_tag("num_ids", len(id_list))
 
-        rows = []
-        for id in id_list:
-            row = self.connection.row(id)
-            row.delete()
-            rows.append(row)
+            if len(id_list) == 1:
+                self.delete(id_list[0])
+                return
 
-        self.connection.mutate_rows(rows)
-        self._delete_cache_items(id_list)
+            rows = []
+            for id in id_list:
+                row = self.connection.row(id)
+                row.delete()
+                rows.append(row)
+
+            self.connection.mutate_rows(rows)
+            self._delete_cache_items(id_list)
 
     def cleanup(self, cutoff_timestamp):
         raise NotImplementedError
