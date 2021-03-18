@@ -153,8 +153,9 @@ def clean_event(event_json):
 
 def fix_spans(event_json, old_span_id):
     """
-    This function will update the span IDs and timestamps for a transaction
-    event
+    This function does the folowing:
+    1. Give spans fresh span_ids & update the parent span ids accordingly
+    2. Update span offsets and durations based on transaction duration and some randomness
     """
     trace = event_json["contexts"]["trace"]
     new_span_id = trace["span_id"]
@@ -229,6 +230,7 @@ def fix_spans(event_json, old_span_id):
             if i == last_index:
                 duration = remaining_time
             else:
+                # the max duration should give some breathging room to the remaining spans
                 max_duration = remaining_time - (avg_span_length / 4.0) * (last_index - i)
                 # pick a random length for the span that's at most 2x the average span length
                 duration = min(max_duration, random.uniform(0, 2 * avg_span_length))
