@@ -9,12 +9,10 @@ import itertools
 
 """
 The new Outcomes API defines a "metrics"-like interface which is can be used in
-a similar way to "discover".
-See https://www.notion.so/sentry/Session-Stats-API-0016d3713d1a4276be0396a338c7930a
-
+a similar way to "sessions" and "disover"
 # "Metrics"
 
-We have basically 3 "metrics" that we can query:
+We have 2 "metrics" that we can query:
 
 - `quantity` (counter): The relevant stat based on category:
         standard event: # of outcomes
@@ -25,14 +23,12 @@ We have basically 3 "metrics" that we can query:
             it would count # of attachments, and sessions
             if we ever aggregate multiple events into one outcome,
             this would be used to get the number of outcomes
-- `event_ids` (set): The set of `distinct_id`s. TODO: add this in
 
 # "Operations" on metrics
 
 Depending on the metric *type*, we can query different things:
 
 - `counter`: Can only be accessed via the `sum` function.
-- `set`: Can only be accessed via the `count_unique` function.
 
 # Tags / Grouping
 
@@ -60,7 +56,7 @@ class QuantityField:
     def unit_value(self, row, group):
         if row is None:
             return 0
-        return row["quantity"]
+        return
 
 
 class TimesSeenField:
@@ -140,18 +136,12 @@ def get_filter(query, params):
     conditions = []
 
     category = query.getlist("category", [])
-    # category = [DataCategory.error_categories() if c == DataCategory.ERROR else DataCategory.parse(c) for c in category]
-    resolved_categories = set()
-    for c in category:
-        if DataCategory.parse(c) == DataCategory.ERROR:
-            resolved_categories.update(DataCategory.error_categories())
-        else:
-            resolved_categories.add(DataCategory.parse(c))
-    category = resolved_categories
+    category = _resolve_category_filters(category)
 
     outcome = query.getlist("outcome", [])
     outcome = [Outcome.parse(o) for o in outcome]
     reason = query.getlist("reason", [])
+    reason = _resolve_reason_filters(reason)
     if "project_id" in params:
         filter_keys["project_id"] = params["project_id"]
     if "organization" in params:
@@ -163,6 +153,26 @@ def get_filter(query, params):
     if len(reason) > 0:
         conditions.append(["reason", "IN", reason])
     return {"filter_keys": filter_keys, "conditions": conditions}
+
+
+def _resolve_category_filters(categories):
+    resolved_categories = set()
+    for c in categories:
+        if DataCategory.parse(c) == DataCategory.ERROR:
+            resolved_categories.update(DataCategory.error_categories())
+        else:
+            resolved_categories.add(DataCategory.parse(c))
+    return list(resolved_categories)
+
+
+def _resolve_reason_filters(reasons):
+    resolved_reasons = set()
+    for reason in reasons:
+        if reason == "spike_protection":
+            resolved_reasons.add("smart_rate_limit")
+        else:
+            resolved_reasons.add(reason)
+    return list(resolved_reasons)
 
 
 class QueryDefinition:
@@ -218,7 +228,6 @@ class QueryDefinition:
 
 
 def run_outcomes_query(query):
-    # TODO: add spans, referer
     result = raw_query(
         dataset=Dataset.Outcomes,
         start=query.start,
@@ -262,6 +271,11 @@ def _format_rows(rows, query):
             row["category"] = category.api_name()
         if "outcome" in row:
             row["outcome"] = Outcome(row["outcome"]).api_name()
+        if "reason" in row:
+            row["reason"] = (
+                "spike_protection" if row["reason"] == "smart_rate_limit" else row["reason"]
+            )  # return spike protection to be consistent with naming in other places
+
         if TS_COL in row:
             # have to use "time" column -- "timestamp" column doesnt
             # rollup correctly. TODO: look into this

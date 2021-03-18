@@ -2,8 +2,8 @@ from rest_framework.response import Response
 from sentry.snuba.outcomes import (
     run_outcomes_query,
     QueryDefinition,
-    massage_outcomes_result,
     InvalidField,
+    massage_outcomes_result,
 )
 
 from rest_framework.exceptions import ParseError

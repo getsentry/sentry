@@ -65,7 +65,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "timestamp": self.now - timedelta(hours=1),
                 "project_id": self.project.id,
                 "outcome": Outcome.RATE_LIMITED,
-                "reason": "usage_exceeded",
+                "reason": "smart_rate_limit",
                 "category": DataCategory.ATTACHMENT,
                 "quantity": 1024,
             }
@@ -76,7 +76,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "timestamp": self.now - timedelta(hours=1),
                 "project_id": self.other_project.id,
                 "outcome": Outcome.RATE_LIMITED,
-                "reason": "usage_exceeded",
+                "reason": "smart_rate_limit",
                 "category": DataCategory.TRANSACTION,
                 "quantity": 1,
             }
@@ -240,7 +240,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 {
                     "by": {
                         "outcome": "rate_limited",
-                        "reason": "usage_exceeded",
+                        "reason": "spike_protection",
                         "category": "attachment",
                     },
                     "totals": {"sum(quantity)": 1024},
@@ -254,7 +254,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 {
                     "by": {
                         "category": "transaction",
-                        "reason": "usage_exceeded",
+                        "reason": "spike_protection",
                         "outcome": "rate_limited",
                     },
                     "totals": {"sum(quantity)": 1},
@@ -286,7 +286,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                     "by": {
                         "outcome": "rate_limited",
                         "category": "attachment",
-                        "reason": "usage_exceeded",
+                        "reason": "spike_protection",
                     },
                     "totals": {"sum(quantity)": 1024, "sum(times_seen)": 1},
                     "series": {"sum(quantity)": [0, 1024], "sum(times_seen)": [0, 1]},
@@ -299,7 +299,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 {
                     "by": {
                         "category": "transaction",
-                        "reason": "usage_exceeded",
+                        "reason": "spike_protection",
                         "outcome": "rate_limited",
                     },
                     "totals": {"sum(quantity)": 1, "sum(times_seen)": 1},
@@ -376,7 +376,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(times_seen)"],
-                "reason": ["usage_exceeded"],
+                "reason": ["spike_protection"],
             }
         )
 
