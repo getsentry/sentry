@@ -258,7 +258,21 @@ let appConfig = {
       },
       {
         test: /\.css/,
-        use: ['style-loader', 'css-loader'],
+        use: [
+          {
+            loader: 'style-loader',
+            options: {
+              // allow emotion to override style-loader.
+              // note that it must be injected after sentry.css, otherwise
+              // it breaks onboarding prism styling.
+              insert: function (element) {
+                // insertBefore(element, null) appends the element
+                document.head.insertBefore(element, document.head.querySelector('style'));
+              },
+            },
+          },
+          'css-loader',
+        ],
       },
       {
         test: /\.less$/,
