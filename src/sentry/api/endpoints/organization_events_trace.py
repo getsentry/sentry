@@ -256,6 +256,19 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         )
         return result
 
+    def update_event_extra(self, event, nodestore_data, detailed=False):
+        """ Add extra data that we get from Nodestore """
+        event.update({event_key: nodestore_data.get(event_key) for event_key in NODESTORE_KEYS})
+        if detailed:
+            event.update(
+                {event_key: nodestore_data.get(event_key) for event_key in DETAILED_NODESTORE_KEYS}
+            )
+            if "measurements" in nodestore_data:
+                event["measurements"] = nodestore_data.get("measurements")
+            event["tags"] = {}
+            for [tag_key, tag_value] in nodestore_data.get("tags"):
+                event["tags"][tag_key] = tag_value
+
     def serialize(
         self,
         parent_map,
@@ -280,28 +293,14 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 # This is faster than doing a call to get_events, since get_event_by_id only makes a call to snuba
                 # when non transaction events are included.
                 with sentry_sdk.start_span(op="nodestore", description="get_event_by_id"):
-                    event = eventstore.get_event_by_id(
+                    nodestore_event = eventstore.get_event_by_id(
                         current_event["project.id"], current_event["id"]
                     )
 
                 previous_event = parent_events[current_event["id"]]
-                previous_event.update(
-                    {event_key: event.data.get(event_key) for event_key in NODESTORE_KEYS}
-                )
-                if detailed:
-                    previous_event.update(
-                        {
-                            event_key: event.data.get(event_key)
-                            for event_key in DETAILED_NODESTORE_KEYS
-                        }
-                    )
-                    if "measurements" in event.data:
-                        previous_event["measurements"] = event.data.get("measurements")
-                    previous_event["tags"] = {}
-                    for [tag_key, tag_value] in event.data.get("tags"):
-                        previous_event["tags"][tag_key] = tag_value
+                self.update_event_extra(previous_event, nodestore_event.data, detailed)
 
-                spans = event.data.get("spans", [])
+                spans = nodestore_event.data.get("spans", [])
                 # Need to include the transaction as a span as well
                 spans.append({"span_id": previous_event["span_id"]})
 
