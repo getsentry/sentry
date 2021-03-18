@@ -4,8 +4,9 @@ WEBPACK := yarn build-acceptance
 bootstrap: develop init-config run-dependent-services create-db apply-migrations build-platform-assets
 
 develop: ensure-venv upgrade-pip
-	./scripts/develop.sh main
-	./scripts/python.sh install-py-dev
+	@./scripts/do.sh setup-git
+	@./scripts/do.sh install-js-dev
+	@./scripts/do.sh install-py-dev
 
 clean:
 	@echo "--> Cleaning static cache"
@@ -48,19 +49,19 @@ apply-migrations: ensure-venv
 reset-db: drop-db create-db apply-migrations
 
 setup-pyenv:
-	./scripts/pyenv_setup.sh
+	@./scripts/pyenv_setup.sh
 
 ensure-venv:
-	./scripts/ensure-venv.sh
+	@./scripts/ensure-venv.sh
 
 upgrade-pip:
-	./scripts/python.sh upgrade-pip
+	@./scripts/do.sh upgrade-pip
 
 setup-git-config:
-	./scripts/develop.sh setup-git-config
+	@./scripts/do.sh setup-git-config
 
 setup-git: ensure-venv setup-git-config
-	./scripts/develop.sh setup-git
+	@./scripts/do.sh setup-git
 
 node-version-check:
 	@# Checks to see if node's version matches the one specified in package.json for Volta.
@@ -68,10 +69,10 @@ node-version-check:
 	(echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'; exit 1)
 
 install-js-dev: node-version-check
-	./scripts/develop.sh install-js-dev
+	@./scripts/do.sh install-js-dev
 
 install-py-dev:
-	./scripts/python.sh install-py-dev
+	@./scripts/do.sh install-py-dev
 
 build-js-po: node-version-check
 	mkdir -p build
