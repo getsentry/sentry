@@ -8,7 +8,7 @@ describe('DiffModal', function () {
   it('renders', function () {
     const project = TestStubs.ProjectDetails();
 
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <DiffModal
         orgId="123"
         baseIssueId="123"
@@ -17,7 +17,5 @@ describe('DiffModal', function () {
         Body={({children}) => <div>{children}</div>}
       />
     );
-    console.log(wrapper.debug());
-    expect(wrapper).toSnapshot();
   });
 });
