@@ -10,7 +10,7 @@ require() {
 }
 
 sudo_askpass() {
-  if [ -n "$SUDO_ASKPASS" ]; then
+  if [ -z "${SUDO_ASKPASS-x}" ]; then
     sudo --askpass "$@"
   else
     sudo "$@"
