@@ -251,7 +251,7 @@ describe('DropdownLink', function () {
       wrapper.find('a.nested-menu').simulate('mouseEnter');
       jest.runAllTimers();
       wrapper.update();
-      wrapper.find('a.nested-menu-2 span').simulate('click');
+      wrapper.find('a.nested-menu-2').simulate('click');
       expect(wrapper.find('.dropdown-menu')).toHaveLength(2);
     });
 
