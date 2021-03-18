@@ -5,9 +5,9 @@ import {Location} from 'history';
 import Feature from 'app/components/acl/feature';
 import {SectionHeading} from 'app/components/charts/styles';
 import Link from 'app/components/links/link';
+import NewUserMisery from 'app/components/newUserMisery';
 import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
-import UserMisery from 'app/components/userMisery';
 import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -54,12 +54,14 @@ function UserStats({
 
   if (!isLoading && error === null && totals) {
     const miserableUsers = Number(totals[`user_misery_${threshold}`]);
+    const userMiseryScore = Number(totals[`new_user_misery_${threshold}`]);
     const totalUsers = Number(totals.count_unique_user);
     if (!isNaN(miserableUsers) && !isNaN(totalUsers)) {
       userMisery = (
-        <UserMisery
+        <NewUserMisery
           bars={40}
           barHeight={30}
+          userMisery={userMiseryScore}
           miseryLimit={threshold}
           totalUsers={totalUsers}
           miserableUsers={miserableUsers}

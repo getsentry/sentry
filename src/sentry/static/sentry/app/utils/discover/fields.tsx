@@ -289,6 +289,22 @@ export const AGGREGATIONS = {
     isSortable: false,
     multiPlotType: 'area',
   },
+  new_user_misery: {
+    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
+      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+    },
+    parameters: [
+      {
+        kind: 'value',
+        dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
   eps: {
     parameters: [],
     outputType: 'number',
@@ -542,6 +558,7 @@ export const TRACING_FIELDS = [
   'failure_rate',
   'apdex',
   'user_misery',
+  'new_user_misery',
   'eps',
   'epm',
   ...Object.keys(MEASUREMENTS),

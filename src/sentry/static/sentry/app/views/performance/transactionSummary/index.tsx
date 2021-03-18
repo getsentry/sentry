@@ -119,6 +119,10 @@ class TransactionSummary extends React.Component<Props, State> {
       },
       {
         kind: 'function',
+        function: ['new_user_misery', threshold, undefined],
+      },
+      {
+        kind: 'function',
         function: ['p95', '', undefined],
       },
       {
