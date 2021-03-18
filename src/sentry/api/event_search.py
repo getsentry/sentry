@@ -266,7 +266,9 @@ class SearchKey(namedtuple("SearchKey", "name")):
     @cached_property
     def is_tag(self):
         return TAG_KEY_RE.match(self.name) or (
-            self.name not in SEARCH_MAP and not self.is_measurement
+            self.name not in SEARCH_MAP
+            and self.name not in FIELD_ALIASES
+            and not self.is_measurement
         )
 
     @cached_property
@@ -941,7 +943,7 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
-        elif search_filter.key.is_tag:
+        if search_filter.key.is_tag:
             name = ["ifNull", [name, "''"]]
 
         # Handle checks for existence
