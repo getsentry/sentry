@@ -59,6 +59,9 @@ class QuantityField:
             return 0
         return
 
+    def aggregation(self, dataset):
+        return ["sum", "quantity", "quantity"]
+
 
 class TimesSeenField:
     def get_snuba_columns(self, raw_groupby):
@@ -72,20 +75,11 @@ class TimesSeenField:
     def unit_value(self, row, group):
         return "count"
 
-
-class ErrorGroupby:
-    def __init__(self, row_name, name=None):
-        self.row_name = row_name
-        self.name = name or row_name
-
-    def get_snuba_columns(self):
-        return [self.row_name]
-
-    def get_snuba_groupby(self):
-        return [self.row_name]
-
-    def get_keys_for_row(self, row):
-        return [(self.name, row[self.row_name])]
+    def aggregation(self, dataset):
+        if dataset == Dataset.Outcomes:
+            return ["sum", "times_seen", "times_seen"]
+        else:
+            return ["count()", "", "times_seen"]
 
 
 class SimpleGroupBy:
@@ -143,16 +137,15 @@ def get_filter(query, params):
     outcome = [Outcome.parse(o) for o in outcome]
     reason = query.getlist("reason", [])
     reason = _resolve_reason_filters(reason)
+    for name, qfilter in [("category", category), ("outcome", outcome), ("reason", reason)]:
+        if len(qfilter) > 0:
+            conditions.append([name, "IN", qfilter])
+
     if "project_id" in params:
         filter_keys["project_id"] = params["project_id"]
     if "organization" in params:
         filter_keys["organization_id"] = params["organization_id"]
-    if len(category) > 0:
-        conditions.append(["category", "IN", category])
-    if len(outcome) > 0:
-        conditions.append(["outcome", "IN", outcome])
-    if len(reason) > 0:
-        conditions.append(["reason", "IN", reason])
+
     return {"filter_keys": filter_keys, "conditions": conditions}
 
 
@@ -202,14 +195,9 @@ class QueryDefinition:
         for key in raw_fields:
             if key not in COLUMN_MAP:
                 raise InvalidField(f'Invalid field: "{key}"')
-            self.fields[key] = COLUMN_MAP[key]
-            if key == "sum(quantity)":
-                self.aggregations.append(["sum", "quantity", "quantity"])
-            if key == "sum(times_seen)":
-                if self.dataset == Dataset.Outcomes:
-                    self.aggregations.append(["sum", "times_seen", "times_seen"])
-                else:
-                    self.aggregations.append(["count()", "", "times_seen"])
+            field = COLUMN_MAP[key]
+            self.aggregations.append(field.aggregation(self.dataset))
+            self.fields[key] = field
 
         self.groupby = []
         for key in raw_groupby:
