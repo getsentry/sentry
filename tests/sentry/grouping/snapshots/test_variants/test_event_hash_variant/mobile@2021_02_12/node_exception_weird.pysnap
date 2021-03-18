@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:30.552146Z'
+created: '2021-03-18T10:36:26.171414Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "f3ec8ea1fb4f1f7f6598f6f935cd43a6"
+  hash: "751b520d04be204be801f2bf8fb1d205"
   tree_label: "eventFromException"
   component:
     app-depth-1*
@@ -17,8 +17,6 @@ app-depth-1:
               "backend.ts"
             function* (trimmed javascript function)
               "eventFromException"
-        type*
-          "Error"
         value (ignored because stacktrace takes precedence)
           "bla"
 --------------------------------------------------------------------------
@@ -285,6 +283,15 @@ app-depth-max:
           "Error"
         value (ignored because stacktrace takes precedence)
           "bla"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "902b0d55fddef6f8d651fe1035b7d4bd"
+  tree_label: "Error"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "Error"
 --------------------------------------------------------------------------
 system:
   hash: "252dc79eb5653bf822e2684d90734cb8"

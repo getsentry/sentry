@@ -1,5 +1,5 @@
 ---
-created: '2021-03-12T14:08:30.740454Z'
+created: '2021-03-18T10:37:55.987596Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,8 +13,6 @@ app-depth-1:
           frame*
             function*
               "<lambda>::operator()"
-        type (ignored because exception is synthetic)
-          "log_demo"
         value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------

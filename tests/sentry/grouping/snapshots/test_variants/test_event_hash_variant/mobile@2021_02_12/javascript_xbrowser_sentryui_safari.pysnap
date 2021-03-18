@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:31.335754Z'
+created: '2021-03-18T10:36:27.011747Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "37431f5f13e61c1a604e54d097c98cc5"
+  hash: "0384985c3ae3565fb346211fce0d91ba"
   component:
     app-depth-1*
       exception*
@@ -18,8 +18,6 @@ app-depth-1:
               "fetchGroupEventAndMarkSeen"
             context-line*
               "const preservedError = new Error();"
-        type*
-          "NotFoundError"
         value (ignored because stacktrace takes precedence)
           "GET /issues/<int>/events/latest/ <int>"
 --------------------------------------------------------------------------
@@ -339,6 +337,15 @@ app-depth-max:
           "NotFoundError"
         value (ignored because stacktrace takes precedence)
           "GET /issues/<int>/events/latest/ <int>"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "f0898994338172ae40f4f901ab9b1b43"
+  tree_label: "NotFoundError"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "NotFoundError"
 --------------------------------------------------------------------------
 system:
   hash: "0b81da6ea3d7cc82b1d4825b7aac0b8d"

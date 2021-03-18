@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:31.203438Z'
+created: '2021-03-18T10:36:26.872921Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "5652852c2e0f030ff2aab75531859300"
+  hash: "14879919b337ac3bb295f31979601ee0"
   tree_label: "callCallback"
   component:
     app-depth-1*
@@ -15,8 +15,6 @@ app-depth-1:
               "react-dom.development.js"
             function* (trimmed javascript function)
               "callCallback"
-        type*
-          "ReferenceError"
         value (ignored because stacktrace takes precedence)
           "varant is not defined"
 --------------------------------------------------------------------------
@@ -209,6 +207,15 @@ app-depth-max:
           "ReferenceError"
         value (ignored because stacktrace takes precedence)
           "varant is not defined"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "f0c115b5c5c017cd42bb8050e8d82306"
+  tree_label: "ReferenceError"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "ReferenceError"
 --------------------------------------------------------------------------
 system:
   hash: "c0f3f7d6deb17aec9d07259ac684fad0"

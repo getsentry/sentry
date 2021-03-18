@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:30.078690Z'
+created: '2021-03-18T10:36:25.689460Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "ece063cb16d50a586062ce99b3d8ede2"
+  hash: "115b0ffa86897853eb26fb2215188aa3"
   tree_label: "main"
   component:
     app-depth-1*
@@ -17,11 +17,9 @@ app-depth-1:
               "zygoteinit.java"
             function*
               "main"
-        type*
-          "ApplicationNotResponding"
         value (ignored because stacktrace takes precedence)
           "Application Not Responding for at least <int> ms."
-      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
         stacktrace*
           frame*
             module*
@@ -56,7 +54,7 @@ app-depth-2:
           "ApplicationNotResponding"
         value (ignored because stacktrace takes precedence)
           "Application Not Responding for at least <int> ms."
-      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
         stacktrace*
           frame*
             module*
@@ -105,7 +103,7 @@ app-depth-3:
           "ApplicationNotResponding"
         value (ignored because stacktrace takes precedence)
           "Application Not Responding for at least <int> ms."
-      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
         stacktrace*
           frame*
             module*
@@ -161,7 +159,7 @@ app-depth-4:
           "ApplicationNotResponding"
         value (ignored because stacktrace takes precedence)
           "Application Not Responding for at least <int> ms."
-      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
         stacktrace*
           frame*
             module*
@@ -224,7 +222,7 @@ app-depth-5:
           "ApplicationNotResponding"
         value (ignored because stacktrace takes precedence)
           "Application Not Responding for at least <int> ms."
-      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
         stacktrace*
           frame*
             module*
@@ -1008,7 +1006,7 @@ app-depth-max:
           "ApplicationNotResponding"
         value (ignored because stacktrace takes precedence)
           "Application Not Responding for at least <int> ms."
-      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
         stacktrace*
           frame*
             module*
@@ -1024,6 +1022,15 @@ app-depth-max:
               "vmstack.java"
             function*
               "getThreadStackTrace"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "8e25fd0dc40b237af6e54a498daf4619"
+  tree_label: "ApplicationNotResponding"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "ApplicationNotResponding"
 --------------------------------------------------------------------------
 system:
   hash: "2e41d71bc38b212d73f8d68415389f45"
@@ -1792,7 +1799,7 @@ system:
           "ApplicationNotResponding"
         value (ignored because stacktrace takes precedence)
           "Application Not Responding for at least <int> ms."
-      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
         stacktrace*
           frame*
             module*

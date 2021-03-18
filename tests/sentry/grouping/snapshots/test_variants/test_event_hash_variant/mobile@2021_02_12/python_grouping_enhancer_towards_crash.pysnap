@@ -1,13 +1,13 @@
 ---
-created: '2021-03-12T14:08:30.511511Z'
+created: '2021-03-18T10:36:26.128905Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: null
+  hash: "33f8774afd1783f97fc06781add97f36"
   component:
-    app-depth-1 (exception of app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but others do)
+    app-depth-1*
+      exception*
         stacktrace
           frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
@@ -18,8 +18,6 @@ app-depth-1:
               "__getitem__"
             context-line*
               "raise MultiValueDictKeyError(repr(key))"
-        type*
-          "MultiValueDictKeyError"
         value*
           "\"'user'\""
 --------------------------------------------------------------------------
@@ -289,6 +287,15 @@ app-depth-max:
           "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
           "\"'user'\""
+--------------------------------------------------------------------------
+exception-type:
+  hash: "71706b786411aa372fb1b48ea763363b"
+  tree_label: "MultiValueDictKeyError"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "MultiValueDictKeyError"
 --------------------------------------------------------------------------
 system:
   hash: "90888e813b09fa25061af2883c0fb9bd"

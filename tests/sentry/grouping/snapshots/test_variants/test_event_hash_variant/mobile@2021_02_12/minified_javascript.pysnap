@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:31.239344Z'
+created: '2021-03-18T10:36:26.909351Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "26c7e56e7ca2afe463a03d055f388082"
+  hash: "aeead2cb53296480d428b2fcbd7e2bb5"
   tree_label: "wrapTimeFunction/<"
   component:
     app-depth-1*
@@ -19,8 +19,6 @@ app-depth-1:
               "wrapTimeFunction/<"
             context-line (discarded because line too long)
               "{snip} ism:{data:{function:Dt(t)},handled:!0,type:\"instrument\"}}),t.apply(this,e)}},t.prototype.wrapRAF=function(t){return function(e){return t(Et( {snip}"
-        type*
-          "NS_ERROR_NOT_INITIALIZED"
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "f1434ba679e6b1155a535a19738c3be2"
@@ -393,6 +391,15 @@ app-depth-max:
               "wrapTimeFunction/<"
             context-line (discarded because line too long)
               "{snip} ism:{data:{function:Dt(t)},handled:!0,type:\"instrument\"}}),t.apply(this,e)}},t.prototype.wrapRAF=function(t){return function(e){return t(Et( {snip}"
+        type*
+          "NS_ERROR_NOT_INITIALIZED"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "fc370a55338a8eab50cef81666096af3"
+  tree_label: "NS_ERROR_NOT_INITIALIZED"
+  component:
+    exception-type*
+      exception-type*
         type*
           "NS_ERROR_NOT_INITIALIZED"
 --------------------------------------------------------------------------

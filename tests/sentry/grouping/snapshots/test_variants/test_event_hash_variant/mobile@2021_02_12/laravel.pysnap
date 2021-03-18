@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:30.495292Z'
+created: '2021-03-18T10:36:26.107354Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "085111c76fa557709d40f7410014247a"
+  hash: "5624cdca64aa8e29b51ac2529bd9dace"
   tree_label: "Illuminate\Routing\RouteFileRegistrar::{closure}"
   component:
     app-depth-1*
@@ -17,8 +17,6 @@ app-depth-1:
               "Illuminate\\Routing\\RouteFileRegistrar::{closure}"
             context-line*
               "throw new Exception('LARAVEL TEST');"
-        type*
-          "Exception"
         value (ignored because stacktrace takes precedence)
           "LARAVEL TEST"
 --------------------------------------------------------------------------
@@ -527,6 +525,15 @@ app-depth-max:
           "Exception"
         value (ignored because stacktrace takes precedence)
           "LARAVEL TEST"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "b0d4998a26f5b5742ad38c4af8817e32"
+  tree_label: "Exception"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "Exception"
 --------------------------------------------------------------------------
 system:
   hash: "107ed03036d901157372f260bc3df446"

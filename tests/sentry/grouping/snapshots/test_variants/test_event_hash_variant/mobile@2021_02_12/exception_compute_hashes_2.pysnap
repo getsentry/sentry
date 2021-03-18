@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:30.448223Z'
+created: '2021-03-18T10:36:26.051449Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "9509e122c6175606d52862fa4f64853c"
+  hash: "e1a96181d8c7db4518bb9c17c3dcd7a4"
   component:
     app-depth-1*
       exception*
@@ -12,8 +12,6 @@ app-depth-1:
           frame*
             filename*
               "baz.py"
-        type*
-          "ValueError"
         value (ignored because stacktrace takes precedence)
           "hello world"
 --------------------------------------------------------------------------
@@ -31,6 +29,15 @@ app-depth-2:
           "ValueError"
         value (ignored because stacktrace takes precedence)
           "hello world"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "5a2cfd89b7b171fd7b4794b08023d04f"
+  tree_label: "ValueError"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "ValueError"
 --------------------------------------------------------------------------
 system:
   hash: "9509e122c6175606d52862fa4f64853c"

@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:31.174756Z'
+created: '2021-03-18T10:36:26.840129Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "a997f8d355456021a562ab49e90fbf00"
+  hash: "1ec8a4173037d3dfc84e2fd298f3ff6a"
   tree_label: "handle"
   component:
     app-depth-1*
@@ -19,8 +19,6 @@ app-depth-1:
               "handle"
             context-line*
               "email = request.POST['user']"
-        type*
-          "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
           "\"'user'\""
 --------------------------------------------------------------------------
@@ -281,6 +279,15 @@ app-depth-max:
           "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
           "\"'user'\""
+--------------------------------------------------------------------------
+exception-type:
+  hash: "71706b786411aa372fb1b48ea763363b"
+  tree_label: "MultiValueDictKeyError"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "MultiValueDictKeyError"
 --------------------------------------------------------------------------
 system:
   hash: "a5af2577d4caca8f983657c5d1919e14"

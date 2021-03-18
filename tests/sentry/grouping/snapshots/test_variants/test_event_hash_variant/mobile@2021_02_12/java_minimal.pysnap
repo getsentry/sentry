@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:29.657641Z'
+created: '2021-03-18T10:36:25.290392Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "52ea220ca35556ebb03e1991e153c653"
+  hash: "335c0ac6b8a2f5905c3b6273014346d5"
   tree_label: "home"
   component:
     app-depth-1*
@@ -17,8 +17,6 @@ app-depth-1:
               "application.java"
             function*
               "home"
-        type*
-          "ArithmeticException"
         value (ignored because stacktrace takes precedence)
           "/ by zero"
 --------------------------------------------------------------------------
@@ -568,9 +566,18 @@ app-depth-max:
 default:
   hash: null
   component:
-    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
-      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
+      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
         "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "83661bfca7422cbab6c9bb849514e26b"
+  tree_label: "ArithmeticException"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "ArithmeticException"
 --------------------------------------------------------------------------
 system:
   hash: "ec87dd10e4f7512ecccb4a068c5774ae"

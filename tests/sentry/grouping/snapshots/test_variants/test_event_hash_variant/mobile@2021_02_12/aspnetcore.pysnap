@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:29.442419Z'
+created: '2021-03-18T10:36:25.038809Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "8916e86cfaa7898cdeece0f4d8035ba5"
+  hash: "75c06f01cb4cb57f79d076bcdece59e7"
   tree_label: "Get"
   component:
     app-depth-1*
@@ -17,8 +17,7 @@ app-depth-1:
               "valuescontroller.cs"
             function*
               "Get"
-        type*
-          "System.Exception"
+            package (ignored because function takes precedence)
         value (ignored because stacktrace takes precedence)
           "sync exception"
 --------------------------------------------------------------------------
@@ -41,6 +40,7 @@ app-depth-2:
               "valuescontroller.cs"
             function*
               "Get"
+            package (ignored because function takes precedence)
         type*
           "System.Exception"
         value (ignored because stacktrace takes precedence)
@@ -58,6 +58,7 @@ app-depth-3:
               "Microsoft.Extensions.Internal.ObjectMethodExecutor"
             function*
               "Execute"
+            package (ignored because function takes precedence)
           frame*
             module*
               "(unknown)"
@@ -70,6 +71,7 @@ app-depth-3:
               "valuescontroller.cs"
             function*
               "Get"
+            package (ignored because function takes precedence)
         type*
           "System.Exception"
         value (ignored because stacktrace takes precedence)
@@ -87,11 +89,13 @@ app-depth-4:
               "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor"
             function*
               "Execute"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.Extensions.Internal.ObjectMethodExecutor"
             function*
               "Execute"
+            package (ignored because function takes precedence)
           frame*
             module*
               "(unknown)"
@@ -104,6 +108,7 @@ app-depth-4:
               "valuescontroller.cs"
             function*
               "Get"
+            package (ignored because function takes precedence)
         type*
           "System.Exception"
         value (ignored because stacktrace takes precedence)
@@ -121,16 +126,19 @@ app-depth-5:
               "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
               "InvokeActionMethodAsync"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor"
             function*
               "Execute"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.Extensions.Internal.ObjectMethodExecutor"
             function*
               "Execute"
+            package (ignored because function takes precedence)
           frame*
             module*
               "(unknown)"
@@ -143,6 +151,7 @@ app-depth-5:
               "valuescontroller.cs"
             function*
               "Get"
+            package (ignored because function takes precedence)
         type*
           "System.Exception"
         value (ignored because stacktrace takes precedence)
@@ -160,146 +169,175 @@ app-depth-max:
               "Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware"
             function*
               "Invoke"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.CompilerServices.TaskAwaiter"
             function*
               "HandleNonSuccessAndDebuggerNotification"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware"
             function*
               "Invoke"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.CompilerServices.TaskAwaiter"
             function*
               "HandleNonSuccessAndDebuggerNotification"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Routing.EndpointMiddleware"
             function*
               "Invoke"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.CompilerServices.TaskAwaiter"
             function*
               "HandleNonSuccessAndDebuggerNotification"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
               "InvokeAsync"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.CompilerServices.TaskAwaiter"
             function*
               "HandleNonSuccessAndDebuggerNotification"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
               "InvokeFilterPipelineAsync"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
               "Next"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
               "Rethrow"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
               "InvokeNextResourceFilter"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.CompilerServices.TaskAwaiter"
             function*
               "HandleNonSuccessAndDebuggerNotification"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
               "InvokeInnerFilterAsync"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
               "Next"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
               "Rethrow"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
               "InvokeNextActionFilterAsync"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.CompilerServices.TaskAwaiter"
             function*
               "HandleNonSuccessAndDebuggerNotification"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
               "InvokeActionMethodAsync"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor"
             function*
               "Execute"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.Extensions.Internal.ObjectMethodExecutor"
             function*
               "Execute"
+            package (ignored because function takes precedence)
           frame*
             module*
               "(unknown)"
@@ -312,6 +350,7 @@ app-depth-max:
               "valuescontroller.cs"
             function*
               "Get"
+            package (ignored because function takes precedence)
         type*
           "System.Exception"
         value (ignored because stacktrace takes precedence)
@@ -320,9 +359,18 @@ app-depth-max:
 default:
   hash: null
   component:
-    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
-      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
+      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
         "An unhandled exception has occurred while executing the request."
+--------------------------------------------------------------------------
+exception-type:
+  hash: "d1546df68cd784043f201b7375878b7a"
+  tree_label: "System.Exception"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "System.Exception"
 --------------------------------------------------------------------------
 system:
   hash: "4ccd0f1953483581ba360c7518f90332"
@@ -336,146 +384,175 @@ system:
               "Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware"
             function*
               "Invoke"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.CompilerServices.TaskAwaiter"
             function*
               "HandleNonSuccessAndDebuggerNotification"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware"
             function*
               "Invoke"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.CompilerServices.TaskAwaiter"
             function*
               "HandleNonSuccessAndDebuggerNotification"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Routing.EndpointMiddleware"
             function*
               "Invoke"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.CompilerServices.TaskAwaiter"
             function*
               "HandleNonSuccessAndDebuggerNotification"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
               "InvokeAsync"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.CompilerServices.TaskAwaiter"
             function*
               "HandleNonSuccessAndDebuggerNotification"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
               "InvokeFilterPipelineAsync"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
               "Next"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
               "Rethrow"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
             function*
               "InvokeNextResourceFilter"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.CompilerServices.TaskAwaiter"
             function*
               "HandleNonSuccessAndDebuggerNotification"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
               "InvokeInnerFilterAsync"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
               "Next"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
               "Rethrow"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
               "InvokeNextActionFilterAsync"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.CompilerServices.TaskAwaiter"
             function*
               "HandleNonSuccessAndDebuggerNotification"
+            package (ignored because function takes precedence)
           frame*
             module*
               "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
             function*
               "Throw"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
             function*
               "InvokeActionMethodAsync"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor"
             function*
               "Execute"
+            package (ignored because function takes precedence)
           frame*
             module*
               "Microsoft.Extensions.Internal.ObjectMethodExecutor"
             function*
               "Execute"
+            package (ignored because function takes precedence)
           frame*
             module*
               "(unknown)"
@@ -488,6 +565,7 @@ system:
               "valuescontroller.cs"
             function*
               "Get"
+            package (ignored because function takes precedence)
         type*
           "System.Exception"
         value (ignored because stacktrace takes precedence)

@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:30.329820Z'
+created: '2021-03-18T10:36:25.926768Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "2c93c07fa1d6e07a4de03fb5c4d3876a"
+  hash: "b90d9b33bc5f85926f28a732b091e118"
   tree_label: "call_script"
   component:
     app-depth-1*
@@ -19,8 +19,6 @@ app-depth-1:
               "call_script"
             context-line*
               "return script(keys, args, client)"
-        type*
-          "ConnectionError"
         value (ignored because stacktrace takes precedence)
           "Error while reading from socket: ('Connection closed by server.',)"
 --------------------------------------------------------------------------
@@ -402,9 +400,18 @@ app-depth-max:
 default:
   hash: null
   component:
-    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
-      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
+      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
         "%s.process_error"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "094a6f6b0868122a9dd008cb91c083e4"
+  tree_label: "ConnectionError"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "ConnectionError"
 --------------------------------------------------------------------------
 system:
   hash: "013d3477a774fe20c468dc8accd516f1"

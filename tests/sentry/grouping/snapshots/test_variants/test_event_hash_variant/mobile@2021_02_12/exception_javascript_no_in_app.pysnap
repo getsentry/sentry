@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:30.379405Z'
+created: '2021-03-18T10:36:25.977930Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "2f2dc85b9b0cd1e3be91984802c7b1b7"
+  hash: "1ed737b4494056d261bdc6b8a48e0669"
   component:
     app-depth-1*
       exception*
@@ -18,8 +18,6 @@ app-depth-1:
               "onError"
             context-line*
               "this.model.submitError(error);"
-        type*
-          "TypeError"
         value (ignored because stacktrace takes precedence)
           "Cannot read property 'submitError' of null"
 --------------------------------------------------------------------------
@@ -162,6 +160,15 @@ app-depth-max:
           "TypeError"
         value (ignored because stacktrace takes precedence)
           "Cannot read property 'submitError' of null"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "137bf8cff2d59f0883c600f9524b3eed"
+  tree_label: "TypeError"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "TypeError"
 --------------------------------------------------------------------------
 system:
   hash: "26552f86ca2368e708afa1df6effc1c5"

@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:30.157213Z'
+created: '2021-03-18T10:36:25.764244Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "e37a6991567f96367fac9ba5c34f1d68"
+  hash: "635789392bcec07d663858a3585077b9"
   tree_label: "bind0"
   component:
     app-depth-1*
@@ -18,8 +18,6 @@ app-depth-1:
                 "net.java"
               function*
                 "bind0"
-          type*
-            "BindException"
           value (ignored because stacktrace takes precedence)
             "Address already in use"
         exception*
@@ -31,8 +29,6 @@ app-depth-1:
                 "connector.java"
               function*
                 "startInternal"
-          type*
-            "LifecycleException"
           value (ignored because stacktrace takes precedence)
             "service.getName(): \"Tomcat\";  Protocol handler start failed"
         exception*
@@ -44,8 +40,6 @@ app-depth-1:
                 "application.java"
               function*
                 "main"
-          type*
-            "LifecycleException"
           value (ignored because stacktrace takes precedence)
             "Failed to start component [Connector[HTTP/<float><int>]]"
 --------------------------------------------------------------------------
@@ -835,9 +829,25 @@ app-depth-max:
 default:
   hash: null
   component:
-    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
-      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
+      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
         "Failed to start connector [Connector[HTTP/<float><int>]]"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "f270e0f04671088d9389654a65a783f7"
+  tree_label: "BindException"
+  component:
+    exception-type*
+      chained-exception*
+        exception-type*
+          type*
+            "BindException"
+        exception-type*
+          type*
+            "LifecycleException"
+        exception-type*
+          type*
+            "LifecycleException"
 --------------------------------------------------------------------------
 system:
   hash: "8924849495809d42431719c2b9ab65c8"

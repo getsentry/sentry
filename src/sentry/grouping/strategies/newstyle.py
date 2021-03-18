@@ -294,6 +294,7 @@ def frame(frame, event, context, **meta):
         context["discard_native_filename"]
         and get_behavior_family_for_platform(platform) == "native"
         and function_component.contributes
+        and filename_component.contributes
     ):
         # In native, function names usually describe a full namespace. Adding
         # the filename there just brings extra instability into grouping.
@@ -645,8 +646,10 @@ def single_exception(exception, context, **meta):
 
         rv[variant] = GroupingComponent(id="exception", values=values)
 
-    if context["hierarchical_grouping"]:
-        rv["exception-type"] = type_component
+    if context["hierarchical_grouping"] and type_component.contributes:
+        rv["exception-type"] = GroupingComponent(
+            id="exception-type", values=[type_component], tree_label=exception.type
+        )
 
     return rv
 

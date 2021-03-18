@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:29.482299Z'
+created: '2021-03-18T10:36:25.076136Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "b00d16c0cfb749738aa97ab643b896d6"
+  hash: "185c4a9ce0ca59c55f20d5970853de96"
   tree_label: "aha"
   component:
     app-depth-1*
@@ -17,8 +17,6 @@ app-depth-1:
               "test.html"
             function*
               "aha"
-        type*
-          "Error"
         value (ignored because stacktrace takes precedence)
           "bad"
 --------------------------------------------------------------------------
@@ -247,6 +245,15 @@ app-depth-max:
           "Error"
         value (ignored because stacktrace takes precedence)
           "bad"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "902b0d55fddef6f8d651fe1035b7d4bd"
+  tree_label: "Error"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "Error"
 --------------------------------------------------------------------------
 system:
   hash: "b2602ad455472dede8e4c340d8a7eaba"

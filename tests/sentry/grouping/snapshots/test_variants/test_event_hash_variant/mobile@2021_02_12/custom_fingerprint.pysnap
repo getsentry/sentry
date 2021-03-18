@@ -1,5 +1,5 @@
 ---
-created: '2021-03-12T14:08:30.350050Z'
+created: '2021-03-18T10:36:25.947690Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -19,8 +19,6 @@ app-depth-1:
               "_prefetch"
             context-line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-        type*
-          "SoftTimeLimitExceeded"
         value (ignored because stacktrace takes precedence)
           "SoftTimeLimitExceeded()"
 --------------------------------------------------------------------------
@@ -457,6 +455,15 @@ custom-fingerprint:
   hash: "f30afa00b85f5cac5ee0bce01b31f08d"
   info: null
   values: ["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]
+--------------------------------------------------------------------------
+exception-type:
+  hash: null
+  tree_label: "SoftTimeLimitExceeded"
+  component:
+    exception-type (custom fingerprint takes precedence)
+      exception-type*
+        type*
+          "SoftTimeLimitExceeded"
 --------------------------------------------------------------------------
 system:
   hash: null

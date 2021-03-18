@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:29.671988Z'
+created: '2021-03-18T10:36:25.309781Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "a12d579fed7636c2a5d2fae110c95ce5"
+  hash: "322fdd72eb1a88cd025bae79e09f2bd7"
   tree_label: "SampleScript.ThrowNull ()"
   component:
     app-depth-1*
@@ -15,8 +15,6 @@ app-depth-1:
               "samplescript.cs"
             function*
               "SampleScript.ThrowNull ()"
-        type*
-          "NullReferenceException"
         value (ignored because stacktrace takes precedence)
           "Object reference not set to an instance of an object"
 --------------------------------------------------------------------------
@@ -189,6 +187,15 @@ app-depth-max:
           "NullReferenceException"
         value (ignored because stacktrace takes precedence)
           "Object reference not set to an instance of an object"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "b8c5dd1ecb5eecf639e9f49b4de29379"
+  tree_label: "NullReferenceException"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "NullReferenceException"
 --------------------------------------------------------------------------
 system:
   hash: "c0dbeebf0430b3310ad1f7ceb48553a6"

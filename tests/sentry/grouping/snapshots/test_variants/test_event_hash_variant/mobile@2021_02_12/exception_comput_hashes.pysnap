@@ -1,5 +1,5 @@
 ---
-created: '2021-02-12T22:47:13.975546Z'
+created: '2021-03-18T10:36:25.119763Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,3 +12,12 @@ app:
           "ValueError"
         value*
           "hello world"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "5a2cfd89b7b171fd7b4794b08023d04f"
+  tree_label: "ValueError"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "ValueError"

@@ -1,10 +1,10 @@
 ---
-created: '2021-03-12T14:08:30.414471Z'
+created: '2021-03-18T10:36:26.014464Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "a728cdf5d62c8e017c35c3fe04051b6e"
+  hash: "47c4c284c425698681258497d3ff9af9"
   component:
     app-depth-1*
       exception*
@@ -14,8 +14,6 @@ app-depth-1:
               "server.php"
             context-line*
               "require_once __DIR__.'/public/index.php';"
-        type*
-          "Exception"
         value (ignored because stacktrace takes precedence)
           "LARAVEL TEST"
 --------------------------------------------------------------------------
@@ -166,6 +164,15 @@ app-depth-max:
           "Exception"
         value (ignored because stacktrace takes precedence)
           "LARAVEL TEST"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "b0d4998a26f5b5742ad38c4af8817e32"
+  tree_label: "Exception"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "Exception"
 --------------------------------------------------------------------------
 system:
   hash: "63c67781779781d9b0a442a5b2bdb976"

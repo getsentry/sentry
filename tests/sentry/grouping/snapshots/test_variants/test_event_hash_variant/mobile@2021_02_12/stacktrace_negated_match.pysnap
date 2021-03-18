@@ -1,19 +1,19 @@
 ---
-created: '2021-03-12T14:08:31.315735Z'
+created: '2021-03-18T10:37:56.600121Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: null
+  hash: "161075c9f303ee880a2a874ad05bd706"
   component:
-    app-depth-1 (exception of app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but others do)
+    app-depth-1*
+      exception*
         stacktrace
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "log::__private_api_log"
-        type*
-          "log_demo"
+            package (ignored because function takes precedence)
+              "log"
         value*
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
@@ -27,9 +27,13 @@ app-depth-2:
           frame*
             function*
               "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
         type*
           "log_demo"
         value (ignored because stacktrace takes precedence)
@@ -45,9 +49,13 @@ app-depth-3:
           frame*
             function*
               "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
         type*
           "log_demo"
         value (ignored because stacktrace takes precedence)
@@ -63,9 +71,13 @@ app-depth-4:
           frame*
             function*
               "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
         type*
           "log_demo"
         value (ignored because stacktrace takes precedence)
@@ -81,9 +93,13 @@ app-depth-5:
           frame*
             function*
               "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
         type*
           "log_demo"
         value (ignored because stacktrace takes precedence)
@@ -102,25 +118,44 @@ app-depth-max:
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "std::rt::lang_start_internal"
+            package (ignored because function takes precedence)
+              "std"
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "___rust_maybe_catch_panic"
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "std::panicking::try::do_call"
+            package (ignored because function takes precedence)
+              "std"
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "std::rt::lang_start::{{closure}}"
+            package (ignored because function takes precedence)
+              "std"
           frame*
             function*
               "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
         type*
           "log_demo"
         value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+exception-type:
+  hash: "fed4f6eb500e04f59e97d31e8743ec8f"
+  tree_label: "log_demo"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "log_demo"
 --------------------------------------------------------------------------
 system:
   hash: "eb87c1031dba55b67df86fb9fff59dc6"
@@ -135,21 +170,31 @@ system:
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "std::rt::lang_start_internal"
+            package (ignored because function takes precedence)
+              "std"
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "___rust_maybe_catch_panic"
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "std::panicking::try::do_call"
+            package (ignored because function takes precedence)
+              "std"
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "std::rt::lang_start::{{closure}}"
+            package (ignored because function takes precedence)
+              "std"
           frame*
             function*
               "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
         type*
           "log_demo"
         value (ignored because stacktrace takes precedence)

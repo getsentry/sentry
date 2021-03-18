@@ -1,5 +1,5 @@
 ---
-created: '2021-02-16T18:30:06.325590Z'
+created: '2021-03-18T10:36:26.723304Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -16,3 +16,12 @@ app:
         value (ignored because ns-error info takes precedence)
           "Code=<int> Description=The operation couldn\u2019t be completed. (iOS_Swift.SampleError error <int>.)"
       threads (ignored because contains 11 threads)
+--------------------------------------------------------------------------
+exception-type:
+  hash: "d2c9101a635052530386106ded5aabc7"
+  tree_label: "iOS_Swift.SampleError"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "iOS_Swift.SampleError"

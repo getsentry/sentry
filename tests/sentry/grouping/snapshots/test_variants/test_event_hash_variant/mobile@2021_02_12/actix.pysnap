@@ -1,44 +1,46 @@
 ---
-created: '2021-03-12T14:08:29.981187Z'
+created: '2021-03-18T10:37:55.277098Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "ea56167628576b6a5ef91fb59775f168"
+  hash: "59c0434e3624d23495e047f18d5615c5"
   tree_label: "log::__private_api_log"
   component:
     app-depth-1*
       exception*
         stacktrace*
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "log::__private_api_log"
-        type*
-          "actix_web::pipeline"
+            package (ignored because function takes precedence)
+              "log"
         value (ignored because stacktrace takes precedence)
           "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "52ca913fefb2c66702771b60e2b678ff"
+  hash: "4c9aea199e5ed84c00a6d4d1bb7576c2"
   tree_label: "actix_web::pipeline::ProcessResponse<T>::poll_io | ... | sentry::integrations::log::Logger::log"
   component:
     app-depth-2*
       exception*
         stacktrace*
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "<::log::macros::log macros>"
             function*
               "actix_web::pipeline::ProcessResponse<T>::poll_io"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "log.rs"
             function*
               "sentry::integrations::log::Logger::log"
@@ -48,138 +50,154 @@ app-depth-2:
           "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
 --------------------------------------------------------------------------
 app-depth-3:
-  hash: "5dadb24b31c49fd3bb6daa7940632d58"
+  hash: "cb20e13a0ac481e2d961ddb5ec5b737c"
   tree_label: "actix_web::pipeline::Pipeline<T>::poll_io | actix_web::pipeline::ProcessResponse<T>::poll_io | ... | sentry::integrations::log::Logger::log | sentry::hub::Hub::with_active"
   component:
     app-depth-3*
       exception*
         stacktrace*
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "pipeline.rs"
             function*
               "actix_web::pipeline::Pipeline<T>::poll_io"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "<::log::macros::log macros>"
             function*
               "actix_web::pipeline::ProcessResponse<T>::poll_io"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "log.rs"
             function*
               "sentry::integrations::log::Logger::log"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "hub.rs"
             function*
               "sentry::hub::Hub::with_active"
+            package (ignored because function takes precedence)
+              "sentry"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
           "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
 --------------------------------------------------------------------------
 app-depth-4:
-  hash: "4d7ea748c4b6651559d5fa3d2a40f1ee"
+  hash: "46035a02eac7b0ace4d4f740e8075d7f"
   tree_label: "actix_web::server::h1::Http1Dispatcher<T>::parse | actix_web::pipeline::Pipeline<T>::poll_io | actix_web::pipeline::ProcessResponse<T>::poll_io | ... | sentry::integrations::log::Logger::log | sentry::hub::Hub::with_active | sentry::hub::Hub::with"
   component:
     app-depth-4*
       exception*
         stacktrace*
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "h1.rs"
             function*
               "actix_web::server::h1::Http1Dispatcher<T>::parse"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "pipeline.rs"
             function*
               "actix_web::pipeline::Pipeline<T>::poll_io"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "<::log::macros::log macros>"
             function*
               "actix_web::pipeline::ProcessResponse<T>::poll_io"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "log.rs"
             function*
               "sentry::integrations::log::Logger::log"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "hub.rs"
             function*
               "sentry::hub::Hub::with_active"
+            package (ignored because function takes precedence)
+              "sentry"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "hub.rs"
             function*
               "sentry::hub::Hub::with"
+            package (ignored because function takes precedence)
+              "sentry"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
           "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
 --------------------------------------------------------------------------
 app-depth-5:
-  hash: "1d6d3181680fd992d672f28200fcd0ea"
+  hash: "5e293439c562dbd9e43df32419d45b6a"
   tree_label: "actix_web::server::h1::Http1Dispatcher<T>::poll_io | actix_web::server::h1::Http1Dispatcher<T>::parse | actix_web::pipeline::Pipeline<T>::poll_io | actix_web::pipeline::ProcessResponse<T>::poll_io | ... | sentry::integrations::log::Logger::log | sentry::hub::Hub::with_active | sentry::hub::Hub::with | std::thread::local::LocalKey<T>::with"
   component:
     app-depth-5*
       exception*
         stacktrace*
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "h1.rs"
             function*
               "actix_web::server::h1::Http1Dispatcher<T>::poll_io"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "h1.rs"
             function*
               "actix_web::server::h1::Http1Dispatcher<T>::parse"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "pipeline.rs"
             function*
               "actix_web::pipeline::Pipeline<T>::poll_io"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "<::log::macros::log macros>"
             function*
               "actix_web::pipeline::ProcessResponse<T>::poll_io"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "log.rs"
             function*
               "sentry::integrations::log::Logger::log"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "hub.rs"
             function*
               "sentry::hub::Hub::with_active"
+            package (ignored because function takes precedence)
+              "sentry"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "hub.rs"
             function*
               "sentry::hub::Hub::with"
+            package (ignored because function takes precedence)
+              "sentry"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
@@ -189,7 +207,7 @@ app-depth-5:
           "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "1df163ce3be65319df4fcc9cb34b60c1"
+  hash: "06b56949c15328f2e72506a2259c3ae5"
   tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
@@ -202,387 +220,456 @@ app-depth-max:
             function*
               "__pthread_body"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "thread.rs"
             function*
               "std::sys::unix::thread::Thread::new::thread_start"
+            package (ignored because function takes precedence)
+              "std"
           frame* (marked out of app by stack trace rule (family:native function:alloc::* -app))
-            filename*
+            filename (discarded native filename for grouping stability)
               "boxed.rs"
             function*
               "alloc::boxed::FnBox<T>::call_box"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}"
+            package (ignored because function takes precedence)
+              "std"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "panic.rs"
             function*
               "std::panic::catch_unwind"
+            package (ignored because function takes precedence)
+              "std"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "panicking.rs"
             function*
               "std::panicking::try"
+            package (ignored because function takes precedence)
+              "std"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "___rust_maybe_catch_panic"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "panicking.rs"
             function*
               "std::panicking::try::do_call"
+            package (ignored because function takes precedence)
+              "std"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "panic.rs"
             function*
               "std::panic::AssertUnwindSafe<T>::call_once"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"
+            package (ignored because function takes precedence)
+              "std"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "backtrace.rs"
             function*
               "std::sys_common::backtrace::__rust_begin_short_backtrace"
+            package (ignored because function takes precedence)
+              "std"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "arbiter.rs"
             function*
               "actix::arbiter::Arbiter::new_with_builder::{{closure}}"
+            package (ignored because function takes precedence)
+              "actix"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::block_on"
+            package (ignored because function takes precedence)
+              "tokio"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter"
+            package (ignored because function takes precedence)
+              "tokio"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_reactor::with_default"
+            package (ignored because function takes precedence)
+              "tokio_reactor"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::try_with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_reactor::with_default::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio_reactor"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "clock.rs"
             function*
               "tokio_timer::clock::clock::with_default"
+            package (ignored because function takes precedence)
+              "tokio_timer"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::try_with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "clock.rs"
             function*
               "tokio_timer::clock::clock::with_default::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio_timer"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "handle.rs"
             function*
               "tokio_timer::timer::handle::with_default"
+            package (ignored because function takes precedence)
+              "tokio_timer"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::try_with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "handle.rs"
             function*
               "tokio_timer::timer::handle::with_default::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio_timer"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "global.rs"
             function*
               "tokio_executor::global::with_default"
+            package (ignored because function takes precedence)
+              "tokio_executor"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::try_with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "global.rs"
             function*
               "tokio_executor::global::with_default::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio_executor"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_current_thread::Entered<T>::block_on"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_current_thread::Entered<T>::tick"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "scheduler.rs"
             function*
               "tokio_current_thread::scheduler::Scheduler<T>::tick"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_current_thread::Borrow<T>::enter"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::try_with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_current_thread::Borrow<T>::enter::{{closure}}"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_current_thread::CurrentRunner::set_spawn"
+            package (ignored because function takes precedence)
+              "tokio_current_thread"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_current_thread::Borrow<T>::enter::{{closure}}::{{closure}}"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "scheduler.rs"
             function*
               "tokio_current_thread::scheduler::Scheduler<T>::tick::{{closure}}"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "scheduler.rs"
             function*
               "tokio_current_thread::scheduler::Scheduled<T>::tick"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "futures::task_impl::Spawn<T>::poll_future_notify"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "futures::task_impl::Spawn<T>::poll_fn_notify"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "futures::task_impl::Spawn<T>::enter"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "futures::task_impl::std::set"
+            package (ignored because function takes precedence)
+              "futures"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "futures::task_impl::Spawn<T>::enter::{{closure}}"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "futures::task_impl::Spawn<T>::poll_future_notify::{{closure}}"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "alloc::boxed::Box<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "then.rs"
             function*
               "futures::future::then::Then<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "chain.rs"
             function*
               "futures::future::chain::Chain<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "either.rs"
             function*
               "futures::future::either::Either<T>::poll"
           frame (ignored due to recursion)
-            filename*
+            filename (discarded native filename for grouping stability)
               "either.rs"
             function*
               "futures::future::either::Either<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "acceptor.rs"
             function*
               "actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "and_then.rs"
             function*
               "actix_net::service::and_then::AndThenFuture<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "map_err.rs"
             function*
               "actix_net::service::map_err::MapErrFuture<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "channel.rs"
             function*
               "actix_web::server::channel::HttpChannel<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "channel.rs"
             function*
               "actix_web::server::channel::HttpChannel<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "h1.rs"
             function*
               "actix_web::server::h1::Http1Dispatcher<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "h1.rs"
             function*
               "actix_web::server::h1::Http1Dispatcher<T>::poll_handler"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "h1.rs"
             function*
               "actix_web::server::h1::Http1Dispatcher<T>::poll_io"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "h1.rs"
             function*
               "actix_web::server::h1::Http1Dispatcher<T>::parse"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "pipeline.rs"
             function*
               "actix_web::pipeline::Pipeline<T>::poll_io"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "<::log::macros::log macros>"
             function*
               "actix_web::pipeline::ProcessResponse<T>::poll_io"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "log.rs"
             function*
               "sentry::integrations::log::Logger::log"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "hub.rs"
             function*
               "sentry::hub::Hub::with_active"
+            package (ignored because function takes precedence)
+              "sentry"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "hub.rs"
             function*
               "sentry::hub::Hub::with"
+            package (ignored because function takes precedence)
+              "sentry"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::try_with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "hub.rs"
             function*
               "sentry::hub::Hub::with::{{closure}}"
+            package (ignored because function takes precedence)
+              "sentry"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "hub.rs"
             function*
               "sentry::hub::Hub::with_active::{{closure}}"
+            package (ignored because function takes precedence)
+              "sentry"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
           "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
 --------------------------------------------------------------------------
+exception-type:
+  hash: "68c16946d5a3e3ba0e4ef603182fc03c"
+  tree_label: "actix_web::pipeline"
+  component:
+    exception-type*
+      exception-type*
+        type*
+          "actix_web::pipeline"
+--------------------------------------------------------------------------
 system:
-  hash: "1df163ce3be65319df4fcc9cb34b60c1"
+  hash: "06b56949c15328f2e72506a2259c3ae5"
   tree_label: "<entire stacktrace>"
   component:
     system*
@@ -595,380 +682,440 @@ system:
             function*
               "__pthread_body"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "thread.rs"
             function*
               "std::sys::unix::thread::Thread::new::thread_start"
+            package (ignored because function takes precedence)
+              "std"
           frame* (marked out of app by stack trace rule (family:native function:alloc::* -app))
-            filename*
+            filename (discarded native filename for grouping stability)
               "boxed.rs"
             function*
               "alloc::boxed::FnBox<T>::call_box"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}"
+            package (ignored because function takes precedence)
+              "std"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "panic.rs"
             function*
               "std::panic::catch_unwind"
+            package (ignored because function takes precedence)
+              "std"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "panicking.rs"
             function*
               "std::panicking::try"
+            package (ignored because function takes precedence)
+              "std"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "___rust_maybe_catch_panic"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "panicking.rs"
             function*
               "std::panicking::try::do_call"
+            package (ignored because function takes precedence)
+              "std"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "panic.rs"
             function*
               "std::panic::AssertUnwindSafe<T>::call_once"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"
+            package (ignored because function takes precedence)
+              "std"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "backtrace.rs"
             function*
               "std::sys_common::backtrace::__rust_begin_short_backtrace"
+            package (ignored because function takes precedence)
+              "std"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "arbiter.rs"
             function*
               "actix::arbiter::Arbiter::new_with_builder::{{closure}}"
+            package (ignored because function takes precedence)
+              "actix"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::block_on"
+            package (ignored because function takes precedence)
+              "tokio"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter"
+            package (ignored because function takes precedence)
+              "tokio"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_reactor::with_default"
+            package (ignored because function takes precedence)
+              "tokio_reactor"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::try_with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_reactor::with_default::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio_reactor"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "clock.rs"
             function*
               "tokio_timer::clock::clock::with_default"
+            package (ignored because function takes precedence)
+              "tokio_timer"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::try_with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "clock.rs"
             function*
               "tokio_timer::clock::clock::with_default::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio_timer"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "handle.rs"
             function*
               "tokio_timer::timer::handle::with_default"
+            package (ignored because function takes precedence)
+              "tokio_timer"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::try_with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "handle.rs"
             function*
               "tokio_timer::timer::handle::with_default::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio_timer"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "global.rs"
             function*
               "tokio_executor::global::with_default"
+            package (ignored because function takes precedence)
+              "tokio_executor"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::try_with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "global.rs"
             function*
               "tokio_executor::global::with_default::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio_executor"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}"
+            package (ignored because function takes precedence)
+              "tokio"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_current_thread::Entered<T>::block_on"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_current_thread::Entered<T>::tick"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "scheduler.rs"
             function*
               "tokio_current_thread::scheduler::Scheduler<T>::tick"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_current_thread::Borrow<T>::enter"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::try_with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_current_thread::Borrow<T>::enter::{{closure}}"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_current_thread::CurrentRunner::set_spawn"
+            package (ignored because function takes precedence)
+              "tokio_current_thread"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_current_thread::Borrow<T>::enter::{{closure}}::{{closure}}"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "scheduler.rs"
             function*
               "tokio_current_thread::scheduler::Scheduler<T>::tick::{{closure}}"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "scheduler.rs"
             function*
               "tokio_current_thread::scheduler::Scheduled<T>::tick"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "futures::task_impl::Spawn<T>::poll_future_notify"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "futures::task_impl::Spawn<T>::poll_fn_notify"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "futures::task_impl::Spawn<T>::enter"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "futures::task_impl::std::set"
+            package (ignored because function takes precedence)
+              "futures"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "futures::task_impl::Spawn<T>::enter::{{closure}}"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "futures::task_impl::Spawn<T>::poll_future_notify::{{closure}}"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "alloc::boxed::Box<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "then.rs"
             function*
               "futures::future::then::Then<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "chain.rs"
             function*
               "futures::future::chain::Chain<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "either.rs"
             function*
               "futures::future::either::Either<T>::poll"
           frame (ignored due to recursion)
-            filename*
+            filename (discarded native filename for grouping stability)
               "either.rs"
             function*
               "futures::future::either::Either<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "acceptor.rs"
             function*
               "actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "and_then.rs"
             function*
               "actix_net::service::and_then::AndThenFuture<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "map_err.rs"
             function*
               "actix_net::service::map_err::MapErrFuture<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "channel.rs"
             function*
               "actix_web::server::channel::HttpChannel<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "channel.rs"
             function*
               "actix_web::server::channel::HttpChannel<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "h1.rs"
             function*
               "actix_web::server::h1::Http1Dispatcher<T>::poll"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "h1.rs"
             function*
               "actix_web::server::h1::Http1Dispatcher<T>::poll_handler"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "h1.rs"
             function*
               "actix_web::server::h1::Http1Dispatcher<T>::poll_io"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "h1.rs"
             function*
               "actix_web::server::h1::Http1Dispatcher<T>::parse"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "pipeline.rs"
             function*
               "actix_web::pipeline::Pipeline<T>::poll_io"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "<::log::macros::log macros>"
             function*
               "actix_web::pipeline::ProcessResponse<T>::poll_io"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "log.rs"
             function*
               "sentry::integrations::log::Logger::log"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "hub.rs"
             function*
               "sentry::hub::Hub::with_active"
+            package (ignored because function takes precedence)
+              "sentry"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "hub.rs"
             function*
               "sentry::hub::Hub::with"
+            package (ignored because function takes precedence)
+              "sentry"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::try_with"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "hub.rs"
             function*
               "sentry::hub::Hub::with::{{closure}}"
+            package (ignored because function takes precedence)
+              "sentry"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "hub.rs"
             function*
               "sentry::hub::Hub::with_active::{{closure}}"
+            package (ignored because function takes precedence)
+              "sentry"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
