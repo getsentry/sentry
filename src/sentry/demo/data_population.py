@@ -7,6 +7,7 @@ import time
 
 from collections import defaultdict
 from datetime import timedelta
+from django.conf import settings
 from django.utils import timezone
 from uuid import uuid4
 from typing import List
@@ -24,13 +25,13 @@ from sentry.utils.samples import (
 from sentry.utils.snuba import SnubaError
 
 
-MAX_DAYS = 2
-SCALE_FACTOR = 0.2
-BASE_OFFSET = 0.5
-NAME_STEP_SIZE = 20
-
-# seconds
-BREADCRUMB_LOOKBACK_TIME = 5
+MAX_DAYS = settings.DEMO_DATA_GEN_PARAMS["MAX_DAYS"]
+SCALE_FACTOR = settings.DEMO_DATA_GEN_PARAMS["SCALE_FACTOR"]
+BASE_OFFSET = settings.DEMO_DATA_GEN_PARAMS["BASE_OFFSET"]
+NAME_STEP_SIZE = settings.DEMO_DATA_GEN_PARAMS["NAME_STEP_SIZE"]
+BREADCRUMB_LOOKBACK_TIME = settings.DEMO_DATA_GEN_PARAMS["BREADCRUMB_LOOKBACK_TIME"]
+DEFAULT_BACKOFF_TIME = settings.DEMO_DATA_GEN_PARAMS["DEFAULT_BACKOFF_TIME"]
+ERROR_BACKOFF_TIME = settings.DEMO_DATA_GEN_PARAMS["ERROR_BACKOFF_TIME"]
 
 
 logger = logging.getLogger(__name__)
@@ -109,10 +110,11 @@ def safe_send_event(data):
     # TODO: make a batched update version of create_sample_event
     try:
         create_sample_event_basic(data, project.id)
+        time.sleep(DEFAULT_BACKOFF_TIME)
     except SnubaError:
         # if snuba fails, just back off and continue
         logger.info("safe_send_event.snuba_error")
-        time.sleep(0.2)
+        time.sleep(ERROR_BACKOFF_TIME)
 
 
 def clean_event(event_json):
