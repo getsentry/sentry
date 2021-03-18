@@ -13,16 +13,17 @@ def delete_duplicate_useroption_rows(apps, schema_editor):
     UserOption = apps.get_model("sentry", "UserOption")
 
     for user_option in RangeQuerySetWrapperWithProgressBar(UserOption.objects.all()):
-        if (
-            user_option.key == "workflow:notifications"
-            or user_option.key == "mail:alert"
-            or user_option.key == "deploy-emails"
+        if user_option.key in (
+            "workflow:notifications",
+            "mail:alert",
+            "deploy-emails",
+            "subscribe_by_default",
         ):
             user_option.delete()
 
 
 class Migration(migrations.Migration):
-    # This flag is used to mark that a migration shouldn"t be automatically run in
+    # This flag is used to mark that a migration shouldn't be automatically run in
     # production. We set this to True for operations that we think are risky and want
     # someone from ops to run manually and monitor.
     # General advice is that if in doubt, mark your migration as `is_dangerous`.
