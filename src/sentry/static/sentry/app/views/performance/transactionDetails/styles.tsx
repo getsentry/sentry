@@ -8,7 +8,7 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import Tag, {Background} from 'app/components/tag';
 import Truncate from 'app/components/truncate';
 import space from 'app/styles/space';
-import theme, {aliases} from 'app/utils/theme';
+import theme from 'app/utils/theme';
 
 type MetaDataProps = {
   headingText: string;
@@ -72,7 +72,7 @@ const nodeColors = {
   black: {
     color: theme.white,
     background: theme.gray500,
-    border: aliases.border,
+    border: theme.gray500,
   },
 };
 
@@ -88,7 +88,7 @@ export const EventNode = styled(Tag)<{pad?: 'left' | 'right'}>`
 
 export const TraceConnector = styled('div')`
   width: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.textColor};
 `;
 
 export const QuickTraceContainer = styled('div')`
