@@ -63,6 +63,9 @@ setup-git-config:
 setup-git: ensure-venv setup-git-config
 	@./scripts/do.sh setup-git
 
+init-docker:
+	@./scripts/do.sh init-docker
+
 node-version-check:
 	@# Checks to see if node's version matches the one specified in package.json for Volta.
 	@node -pe "process.exit(Number(!(process.version == 'v' + require('./package.json').volta.node )))" || \
