@@ -102,11 +102,10 @@ class DetailedIncidentSerializer(IncidentSerializer):
         )
 
 
-class RichIncidentSerializer(DetailedIncidentSerializer):
+class IncidentActivitySerializer(DetailedIncidentSerializer):
     def serialize(self, obj, attrs, user):
         context = super().serialize(obj, attrs, user)
         context["activities"] = serialize(
             list(IncidentActivity.objects.filter(incident=obj).select_related("user", "incident"))
         )
-
         return context
