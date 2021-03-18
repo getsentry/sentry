@@ -39,8 +39,11 @@ describe('UserFeedback', function () {
 
     expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
 
-    expect(wrapper.text()).toContain('This is my chart');
-    expect(wrapper.text()).not.toContain('Error. Check console.');
+    expect(wrapper.text()).toContain('UsageStatsOrganization Chart');
+    expect(wrapper.text()).not.toContain('UsageStatsOrganization has an error');
+
+    expect(wrapper.text()).toContain('UsageStatsProjects is okay');
+    expect(wrapper.text()).not.toContain('UsageStatsProjects has an error');
   });
 
   it('renders with error on organization stats endpoint', async function () {
@@ -59,7 +62,33 @@ describe('UserFeedback', function () {
 
     expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
 
-    expect(wrapper.text()).not.toContain('This is my chart');
-    expect(wrapper.text()).toContain('Error. Check console.');
+    expect(wrapper.text()).not.toContain('UsageStatsOrganization Chart');
+    expect(wrapper.text()).toContain('UsageStatsOrganization has an error');
+
+    expect(wrapper.text()).toContain('UsageStatsProjects is okay');
+    expect(wrapper.text()).not.toContain('UsageStatsProjects has an error');
+  });
+
+  it('renders with error on project stats endpoint', async function () {
+    MockApiClient.addMockResponse({
+      url: projectUrl,
+      statusCode: 500,
+    });
+
+    const wrapper = mountWithTheme(
+      <UsageStats api={api} organization={organization} />,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.text()).toContain('Organization Usage Stats for Errors');
+
+    expect(wrapper.text()).toContain('UsageStatsOrganization Chart');
+    expect(wrapper.text()).not.toContain('UsageStatsOrganization has an error');
+
+    expect(wrapper.text()).not.toContain('UsageStatsProjects is okay');
+    expect(wrapper.text()).toContain('UsageStatsProjects has an error');
   });
 });

@@ -52,7 +52,7 @@ type State = {
 
 class ReservedUsageChart extends React.Component<Props, State> {
   render() {
-    return <Panel id="usage-chart">This is my chart</Panel>;
+    return <Panel id="usage-chart">UsageStatsOrganization Chart</Panel>;
   }
 }
 
