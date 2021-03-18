@@ -2,33 +2,32 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {Event} from 'app/types/event';
 import ReprocessAction from 'app/views/organizationGroupDetails/actions/reprocessAction';
+
+function renderComponent(event?: Event) {
+  return mountWithTheme(
+    <ReprocessAction disabled={false} onClick={jest.fn()} event={event} />
+  );
+}
 
 describe('ReprocessAction', function () {
   it('returns null in case of no event', function () {
-    const wrapper = mountWithTheme(
-      <ReprocessAction disabled={false} onClick={jest.fn()} event={undefined} />
-    );
+    const wrapper = renderComponent();
     expect(wrapper.isEmptyRender()).toBe(true);
   });
 
   it('returns null if no exception entry is found', function () {
     // @ts-expect-error
     const event = TestStubs.EventStacktraceMessage();
-
-    const wrapper = mountWithTheme(
-      <ReprocessAction disabled={false} onClick={jest.fn()} event={event} />
-    );
+    const wrapper = renderComponent(event);
     expect(wrapper.isEmptyRender()).toBe(true);
   });
 
   it('returns null if the event is not a mini-dump event or an Apple crash report event or a Native event', function () {
     // @ts-expect-error
     const event = TestStubs.EventStacktraceException();
-
-    const wrapper = mountWithTheme(
-      <ReprocessAction disabled={false} onClick={jest.fn()} event={event} />
-    );
+    const wrapper = renderComponent(event);
     expect(wrapper.isEmptyRender()).toBe(true);
   });
 
@@ -43,9 +42,7 @@ describe('ReprocessAction', function () {
             platform: 'native',
           });
 
-          const wrapper = mountWithTheme(
-            <ReprocessAction disabled={false} onClick={onClick} event={event} />
-          );
+          const wrapper = renderComponent(event);
 
           const actionButton = wrapper.find('ActionButton');
           expect(actionButton).toBeTruthy();
@@ -62,9 +59,7 @@ describe('ReprocessAction', function () {
             platform: 'cocoa',
           });
 
-          const wrapper = mountWithTheme(
-            <ReprocessAction disabled={false} onClick={onClick} event={event} />
-          );
+          const wrapper = renderComponent(event);
 
           const actionButton = wrapper.find('ActionButton');
           expect(actionButton).toBeTruthy();
@@ -84,10 +79,7 @@ describe('ReprocessAction', function () {
           });
 
           event.entries[0].data.values[0].stacktrace.frames[0].platform = 'native';
-
-          const wrapper = mountWithTheme(
-            <ReprocessAction disabled={false} onClick={onClick} event={event} />
-          );
+          const wrapper = renderComponent(event);
 
           const actionButton = wrapper.find('ActionButton');
           expect(actionButton).toBeTruthy();
@@ -105,10 +97,7 @@ describe('ReprocessAction', function () {
           });
 
           event.entries[0].data.values[0].stacktrace.frames[0].platform = 'cocoa';
-
-          const wrapper = mountWithTheme(
-            <ReprocessAction disabled={false} onClick={onClick} event={event} />
-          );
+          const wrapper = renderComponent(event);
 
           const actionButton = wrapper.find('ActionButton');
           expect(actionButton).toBeTruthy();
@@ -134,9 +123,7 @@ describe('ReprocessAction', function () {
         },
       };
 
-      const wrapper = mountWithTheme(
-        <ReprocessAction disabled={false} onClick={onClick} event={event} />
-      );
+      const wrapper = renderComponent(event);
 
       const actionButton = wrapper.find('ActionButton');
       expect(actionButton).toBeTruthy();
@@ -160,9 +147,7 @@ describe('ReprocessAction', function () {
         },
       };
 
-      const wrapper = mountWithTheme(
-        <ReprocessAction disabled={false} onClick={onClick} event={event} />
-      );
+      const wrapper = renderComponent(event);
 
       const actionButton = wrapper.find('ActionButton');
       expect(actionButton).toBeTruthy();
