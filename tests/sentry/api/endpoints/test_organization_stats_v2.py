@@ -93,13 +93,15 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
     def test_empty_request(self):
         response = self.do_request({})
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Request is missing a "field"'}
+        assert result_sorted(response.data) == {"detail": 'Request is missing a "field"'}
 
     def test_inaccessible_project(self):
         response = self.do_request({"project": [self.project3.id]})
 
         assert response.status_code == 403, response.content
-        assert response.data == {"detail": "You do not have permission to perform this action."}
+        assert result_sorted(response.data) == {
+            "detail": "You do not have permission to perform this action."
+        }
 
     def test_unknown_field(self):
         response = self.do_request(
@@ -111,7 +113,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert response.status_code == 400, response.content
-        assert response.data == {
+        assert result_sorted(response.data) == {
             "detail": 'Invalid field: "summ(qarntenty)"',
         }
 
@@ -126,7 +128,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Invalid groupBy: "cattygory"'}
+        assert result_sorted(response.data) == {"detail": 'Invalid groupBy: "cattygory"'}
 
     def test_invalid_parameter(self):
         response = self.do_request(
@@ -140,7 +142,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
         # TODO: should we error here?
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Invalid parameter: "dragon"'}
+        assert result_sorted(response.data) == {"detail": 'Invalid parameter: "dragon"'}
 
     def test_resolution_invalid(self):
         self.login_as(user=self.user)
@@ -156,6 +158,24 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert response.status_code == 400, response.content
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
+    def test_attachment_filter_only(self):
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "category": ["error", "attachment"],
+            },
+            user=self.user2,
+        )
+
+        assert response.status_code == 400, response.content
+        assert result_sorted(response.data) == {
+            "detail": "if filtering by attachment no other category may be present"
+        }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
     def test_timeseries_interval(self):
@@ -232,7 +252,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": "No projects available"}
+        assert result_sorted(response.data) == {"detail": "No projects available"}
 
     @freeze_time("2021-03-14T12:27:28.303Z")
     def test_org_simple(self):
@@ -373,7 +393,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data == {
+        assert result_sorted(response.data) == {
             "intervals": ["2021-03-14T00:00:00Z"],
             "groups": [
                 {"by": {}, "totals": {"sum(quantity)": 2}, "series": {"sum(quantity)": [2]}}
@@ -397,7 +417,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data == {
+        assert result_sorted(response.data) == {
             "intervals": ["2021-03-14T00:00:00Z"],
             "groups": [
                 {
@@ -429,7 +449,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             }
         )
         assert response.status_code == 200, response.content
-        assert response.data == {
+        assert result_sorted(response.data) == {
             "intervals": ["2021-03-14T00:00:00Z"],
             "groups": [
                 {"by": {}, "totals": {"sum(quantity)": 2}, "series": {"sum(quantity)": [2]}}
@@ -451,7 +471,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             }
         )
         assert response.status_code == 200, response.content
-        assert response.data == {
+        assert result_sorted(response.data) == {
             "intervals": ["2021-03-14T00:00:00Z"],
             "groups": [
                 {"by": {}, "totals": {"sum(quantity)": 2}, "series": {"sum(quantity)": [2]}}
@@ -500,7 +520,8 @@ def result_sorted(result):
     def stable_dict(d):
         return tuple(sorted(d.items(), key=lambda t: t[0]))
 
-    result["groups"].sort(key=lambda group: stable_dict(group["by"]))
+    if "groups" in result:
+        result["groups"].sort(key=lambda group: stable_dict(group["by"]))
     return result
 
 

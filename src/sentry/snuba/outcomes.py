@@ -8,6 +8,7 @@ from sentry.snuba.sessions_v2 import (
 )
 from sentry.utils.outcomes import Outcome
 from datetime import datetime
+from sentry.search.utils import InvalidQuery
 
 """
 The new Outcomes API defines a "metrics"-like interface which is can be used in
@@ -92,6 +93,8 @@ class CategoryDimension(SimpleGroupBy):
                 resolved_categories.update(DataCategory.error_categories())
             else:
                 resolved_categories.add(DataCategory.parse(category))
+        if DataCategory.ATTACHMENT in resolved_categories and len(resolved_categories) > 1:
+            raise InvalidQuery("if filtering by attachment no other category may be present")
         return list(resolved_categories)
 
     def map_row(self, row):
@@ -214,7 +217,7 @@ class QueryDefinition:
             self.groupby.append(DIMENSION_MAP[key])
 
         if len(query.getlist("category", [])) == 0 and "category" not in raw_groupby:
-            raise InvalidField("Query must have category as groupby or filter")
+            raise InvalidQuery("Query must have category as groupby or filter")
 
         query_columns = set()
         for field in self.fields.values():
@@ -244,12 +247,13 @@ def run_outcomes_query(query):
         rollup=query.rollup,
         filter_keys=query.filter_keys,
         conditions=query.conditions,
-        # selected_columns=query.query_columns,
+        selected_columns=query.query_columns,
+        referrer="outcomes.totals",
         # orderby=query.orderby, TODO: add orderby?
     )
     result_timeseries = raw_query(
         dataset=query.dataset,
-        # selected_columns=[TS_COL] + query.query_columns,
+        selected_columns=[TS_COL] + query.query_columns,
         groupby=[TS_COL] + query.query_groupby,
         aggregations=query.aggregations,
         conditions=query.conditions,
@@ -257,6 +261,7 @@ def run_outcomes_query(query):
         start=query.start,
         end=query.end,
         rollup=query.rollup,
+        referrer="outcomes.timeseries",
     )
 
     result = _format_rows(result["data"], query)

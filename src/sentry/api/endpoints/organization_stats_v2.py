@@ -9,8 +9,9 @@ from sentry.snuba.outcomes import (
 from rest_framework.exceptions import ParseError
 from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
 from sentry.api.utils import InvalidParams
-
+from sentry.search.utils import InvalidQuery
 from contextlib import contextmanager
+import sentry_sdk
 
 
 # TODO: see if there's a better way to do parameter validation, or just not?
@@ -31,9 +32,12 @@ VALID_PARAMETERS = {
 class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
     def get(self, request, organization):
         with self.handle_query_errors():
-            query = self.build_outcomes_query(request, organization)
-            result_totals, result_timeseries = run_outcomes_query(query)
-            result = massage_outcomes_result(query, result_totals, result_timeseries)
+            with sentry_sdk.start_span(op="outcomes.endpoint", description="build_outcomes_query"):
+                query = self.build_outcomes_query(request, organization)
+            with sentry_sdk.start_span(op="outcomes.endpoint", description="run_outcomes_query"):
+                result_totals, result_timeseries = run_outcomes_query(query)
+            with sentry_sdk.start_span(op="sessions.endpoint", description="run_sessions_query"):
+                result = massage_outcomes_result(query, result_totals, result_timeseries)
             return Response(result, status=200)
 
     def build_outcomes_query(self, request, organization):
@@ -53,5 +57,5 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
             # TODO: this context manager should be decoupled from `OrganizationEventsEndpointBase`?
             with super().handle_query_errors():
                 yield
-        except (InvalidField, NoProjects, InvalidParams) as error:
+        except (InvalidField, NoProjects, InvalidParams, InvalidQuery) as error:
             raise ParseError(detail=str(error))
