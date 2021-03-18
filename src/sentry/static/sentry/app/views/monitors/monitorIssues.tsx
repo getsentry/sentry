@@ -21,7 +21,6 @@ const MonitorIssues = ({orgId, monitor}: Props) => (
     statsPeriod="0"
     pagination={false}
     emptyText={t('No issues found')}
-    showActions={false}
     noBorder
     noMargin
   />

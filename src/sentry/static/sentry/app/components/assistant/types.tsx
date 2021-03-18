@@ -18,7 +18,6 @@ export type Guide = {
   guide: string;
   requiredTargets: string[];
   dateThreshold?: Date;
-  carryAssistantForward?: boolean;
   steps: GuideStep[];
   seen: boolean;
 };
@@ -31,7 +30,6 @@ export type GuidesContent = {
    */
   requiredTargets: string[];
   dateThreshold?: Date;
-  carryAssistantForward?: boolean;
   steps: GuideStep[];
 }[];
 

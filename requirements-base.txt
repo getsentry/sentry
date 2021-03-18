@@ -3,9 +3,10 @@ boto3==1.10.49
 botocore==1.13.50
 celery==4.4.7
 click==7.1.2
-confluent-kafka==1.5.0
+confluent-kafka==1.5.0; python_version <= '3.8'
+confluent-kafka==1.6.0; python_version == '3.9'
 croniter==0.3.34
-datadog==0.15.0
+datadog==0.29.3
 django-crispy-forms==1.7.2
 django-picklefield==1.0.0
 django-sudo==3.1.0
@@ -29,16 +30,18 @@ petname==2.6
 phonenumberslite==8.11.3
 Pillow==8.1.0
 progressbar2==3.32.0
-psycopg2-binary==2.7.7
+# If we bump it to 2.8.4 or greater then Python 3.6 & 3.8 would use the same version
+psycopg2-binary==2.7.7; python_version == '3.6'
+psycopg2-binary==2.8.6; python_version > '3.6'
 PyJWT==1.5.3
-python-dateutil>=2.0.0,<3.0.0
+python-dateutil==2.8.1
 python-memcached==1.59
 python-u2flib-server==5.0.0
 python3-saml==1.4.1
 PyYAML==5.3
-rb==1.8
+rb==1.9.0
 redis-py-cluster==2.1.0
-redis==3.3.11
+redis==3.4.1
 requests-oauthlib==1.2.0
 requests[security]==2.20.1
 # [start] jsonschema format validators
@@ -47,7 +50,7 @@ rfc3986-validator==0.1.1
 # [end] jsonschema format validators
 sentry-relay==0.8.4
 sentry-sdk>=0.20.0,<0.21.0
-simplejson==3.11.1
+simplejson==3.17.2
 statsd==3.1
 structlog==17.1.0
 symbolic==8.0.3
@@ -55,7 +58,7 @@ toronado==0.1.0
 ua-parser==0.10.0
 unidiff==0.5.5
 urllib3==1.24.2
-uWSGI==2.0.18
+uWSGI==2.0.19.1
 zstandard==0.14.1
 
 msgpack==1.0.0
@@ -73,7 +76,8 @@ grpcio==1.35.0
 hiredis==0.3.1
 
 # not directly used, but pinned for at least semaphore/symbolic
-cffi==1.12.2
+cffi==1.12.2; python_version <= '3.8'
+cffi==1.14.4; python_version == '3.9'
 
 # not directly used, but pinned for toronado because it doesn't pin these
 cssutils==1.0.2

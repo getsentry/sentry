@@ -1,30 +1,48 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
+import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import TraceFullQuery from 'app/utils/performance/quickTrace/traceFullQuery';
-import {decodeScalar} from 'app/utils/queryString';
+import {TraceFull} from 'app/utils/performance/quickTrace/types';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 import {MetaData} from 'app/views/performance/transactionDetails/styles';
 
+import {
+  StyledPanel,
+  TraceDetailBody,
+  TraceDetailHeader,
+  TraceViewContainer,
+} from './styles';
+import TransactionGroup from './transactionGroup';
+import {TraceInfo} from './types';
 import {getTraceInfo} from './utils';
+
+type AccType = {
+  renderedChildren: React.ReactNode[];
+  lastIndex: number;
+};
 
 type Props = {
   location: Location;
   organization: Organization;
   params: Params;
   traceSlug: string;
+  start: string | undefined;
+  end: string | undefined;
+  isLoading: boolean;
+  error: string | null;
+  trace: TraceFull | null;
 };
 
 class TraceDetailsContent extends React.Component<Props> {
+  traceViewRef = React.createRef<HTMLDivElement>();
+
   renderTraceLoading() {
     return <LoadingIndicator />;
   }
@@ -37,9 +55,7 @@ class TraceDetailsContent extends React.Component<Props> {
     return <LoadingError message={t('The trace you are looking for was not found.')} />;
   }
 
-  renderTrace(trace) {
-    const traceInfo = getTraceInfo(trace);
-
+  renderTraceHeader(traceInfo: TraceInfo) {
     return (
       <TraceDetailHeader>
         <MetaData
@@ -47,50 +63,133 @@ class TraceDetailsContent extends React.Component<Props> {
           tooltipText={t('All the transactions that are a part of this trace.')}
           bodyText={t(
             '%s of %s',
-            traceInfo.relevantTransactions,
-            traceInfo.totalTransactions
+            traceInfo.transactions.size,
+            traceInfo.transactions.size
           )}
           subtext={tn(
             'Across %s project',
             'Across %s projects',
-            traceInfo.relevantProjects
+            traceInfo.relevantProjectsWithTransactions.size
+          )}
+        />
+        <MetaData
+          headingText={t('Errors')}
+          tooltipText={t('All the errors that are a part of this trace.')}
+          bodyText={t('%s of %s', traceInfo.errors.size, traceInfo.errors.size)}
+          subtext={tn(
+            'Across %s project',
+            'Across %s projects',
+            traceInfo.relevantProjectsWithErrors.size
           )}
         />
       </TraceDetailHeader>
     );
   }
 
+  renderTransaction(
+    transaction: TraceFull,
+    {
+      continuingDepths,
+      isLast,
+      index,
+      traceInfo,
+    }: {
+      continuingDepths: number[];
+      isLast: boolean;
+      index: number;
+      traceInfo: TraceInfo;
+    }
+  ) {
+    const accumulated: AccType = transaction.children.reduce(
+      (acc: AccType, child: TraceFull, idx: number) => {
+        const isLastChild = idx === transaction.children.length - 1;
+        const hasChildren = child.children.length > 0;
+
+        const result = this.renderTransaction(child, {
+          continuingDepths:
+            !isLastChild && hasChildren
+              ? [...continuingDepths, transaction.generation]
+              : continuingDepths,
+          isLast: isLastChild,
+          index: acc.lastIndex + 1,
+          traceInfo,
+        });
+
+        acc.lastIndex = result.lastIndex;
+        acc.renderedChildren.push(result.transactionGroup);
+
+        return acc;
+      },
+      {
+        renderedChildren: [],
+        lastIndex: index,
+      }
+    );
+
+    return {
+      transactionGroup: (
+        <TransactionGroup
+          key={transaction.event_id}
+          traceInfo={traceInfo}
+          transaction={transaction}
+          continuingDepths={continuingDepths}
+          isLast={isLast}
+          index={index}
+          isVisible
+          renderedChildren={accumulated.renderedChildren}
+        />
+      ),
+      lastIndex: accumulated.lastIndex,
+    };
+  }
+
+  renderTraceView(traceInfo: TraceInfo) {
+    const {trace} = this.props;
+
+    if (trace === null) {
+      return this.renderTraceNotFound();
+    }
+
+    const {transactionGroup} = this.renderTransaction(trace, {
+      continuingDepths: [],
+      isLast: true,
+      index: 0,
+      traceInfo,
+    });
+
+    return (
+      <TraceDetailBody>
+        <StyledPanel>
+          <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
+            <TraceViewContainer ref={this.traceViewRef}>
+              {transactionGroup}
+            </TraceViewContainer>
+          </DividerHandlerManager.Provider>
+        </StyledPanel>
+      </TraceDetailBody>
+    );
+  }
+
   renderContent() {
-    const {location, organization, traceSlug} = this.props;
-    const {query} = location;
-    const start = decodeScalar(query.start);
-    const end = decodeScalar(query.end);
+    const {traceSlug, start, end, isLoading, error, trace} = this.props;
 
     if (!start || !end) {
       Sentry.setTag('current.trace_id', traceSlug);
       Sentry.captureException(new Error('No date range selection found.'));
       return this.renderTraceRequiresDateRangeSelection();
+    } else if (isLoading) {
+      return this.renderTraceLoading();
+    } else if (error !== null || trace === null) {
+      return this.renderTraceNotFound();
+    } else {
+      const traceInfo = getTraceInfo(trace);
+      return (
+        <React.Fragment>
+          {this.renderTraceHeader(traceInfo)}
+          {this.renderTraceView(traceInfo)}
+        </React.Fragment>
+      );
     }
-
-    return (
-      <TraceFullQuery
-        location={location}
-        orgSlug={organization.slug}
-        traceId={traceSlug}
-        start={start}
-        end={end}
-      >
-        {({isLoading, error, trace}) => {
-          if (isLoading) {
-            return this.renderTraceLoading();
-          } else if (error !== null || trace === null) {
-            return this.renderTraceNotFound();
-          } else {
-            return this.renderTrace(trace);
-          }
-        }}
-      </TraceFullQuery>
-    );
   }
 
   render() {
@@ -117,19 +216,5 @@ class TraceDetailsContent extends React.Component<Props> {
     );
   }
 }
-
-const TraceDetailHeader = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, auto);
-  grid-gap: ${space(2)};
-  margin-bottom: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;
-    grid-row-gap: 0;
-    margin-bottom: 0;
-  }
-`;
 
 export default TraceDetailsContent;

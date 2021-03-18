@@ -658,9 +658,12 @@ def bulk_raw_query(snuba_param_list, referrer=None, use_cache=False):
         to_query = []
         for (query_pos, query_params), cache_key in zip(query_param_list, cache_keys):
             cached_result = cache_data.get(cache_key)
+            metric_tags = {"referrer": referrer} if referrer else None
             if cached_result is None:
+                metrics.incr("snuba.query_cache.miss", tags=metric_tags)
                 to_query.append((query_pos, query_params, cache_key))
             else:
+                metrics.incr("snuba.query_cache.hit", tags=metric_tags)
                 results.append((query_pos, json.loads(cached_result)))
     else:
         to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
@@ -1139,15 +1142,16 @@ def get_json_type(snuba_type):
         return "string"
 
     # Ignore Nullable part
-    nullable_match = re.search(r"^Nullable\((.+)\)$", snuba_type)
+    if snuba_type.startswith("Nullable("):
+        snuba_type = snuba_type[9:-1]
 
-    if nullable_match:
-        snuba_type = nullable_match.group(1)
-
-    # Check for array
-    array_match = re.search(r"^Array\(.+\)$", snuba_type)
-    if array_match:
+    if snuba_type.startswith("Array("):
         return "array"
+
+    # timestamp is DateTime, whereas toStartOf{Hour,Day} are
+    # DateTime('UTC') or DateTime('Universal')
+    if snuba_type.startswith("DateTime("):
+        return "date"
 
     return JSON_TYPE_MAP.get(snuba_type, "string")
 

@@ -49,6 +49,12 @@ class OrganizationUserPermission(UserPermission):
 
 
 class UserEndpoint(Endpoint):
+    """
+    The base endpoint for APIs that deal with Users. Inherit from this class to
+    get permission checks and to automatically convert user ID "me" to the
+    currently logged in user's ID.
+    """
+
     permission_classes = (UserPermission,)
 
     def convert_args(self, request, user_id, *args, **kwargs):

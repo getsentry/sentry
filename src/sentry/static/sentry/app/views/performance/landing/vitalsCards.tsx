@@ -174,6 +174,7 @@ function _BackendCards(props: BackendCardsProps) {
           query={eventView.getEventsAPIPayload(location).query}
           includePrevious={false}
           yAxis={eventView.getFields()}
+          partial
         >
           {({results}) => {
             const series = results?.reduce((allSeries, oneSeries) => {

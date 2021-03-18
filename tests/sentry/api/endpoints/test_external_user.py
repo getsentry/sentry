@@ -20,7 +20,7 @@ class ExternalUserTest(APITestCase):
         }
 
     def test_basic_post(self):
-        with self.feature({"organizations:external-user-associations": True}):
+        with self.feature({"organizations:import-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 201, response.content
         assert response.data == {
@@ -36,28 +36,28 @@ class ExternalUserTest(APITestCase):
 
     def test_missing_provider(self):
         self.data.pop("provider")
-        with self.feature({"organizations:external-user-associations": True}):
+        with self.feature({"organizations:import-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"provider": ["This field is required."]}
 
     def test_missing_externalName(self):
         self.data.pop("externalName")
-        with self.feature({"organizations:external-user-associations": True}):
+        with self.feature({"organizations:import-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"externalName": ["This field is required."]}
 
     def test_missing_memberId(self):
         self.data.pop("memberId")
-        with self.feature({"organizations:external-user-associations": True}):
+        with self.feature({"organizations:import-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"memberId": ["This field is required."]}
 
     def test_invalid_provider(self):
         self.data.update(provider="unknown")
-        with self.feature({"organizations:external-user-associations": True}):
+        with self.feature({"organizations:import-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"provider": ['"unknown" is not a valid choice.']}
@@ -67,7 +67,7 @@ class ExternalUserTest(APITestCase):
             self.user, self.organization, external_name=self.data["externalName"]
         )
 
-        with self.feature({"organizations:external-user-associations": True}):
+        with self.feature({"organizations:import-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 200
         assert response.data == {

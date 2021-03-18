@@ -32,7 +32,7 @@ const getPublicFormFields = (): Field[] => [
       'All webhook requests for your integration will be sent to this URL. Visit the [webhook_docs:documentation] to see the different types and payloads.',
       {
         webhook_docs: (
-          <ExternalLink href="https://docs.sentry.io/workflow/integrations/integration-platform/webhooks/" />
+          <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/webhooks/" />
         ),
       }
     ),
@@ -60,7 +60,7 @@ const getPublicFormFields = (): Field[] => [
       'If enabled, this integration will be available in Issue Alert rules and Metric Alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learn_more:here].',
       {
         learn_more: (
-          <ExternalLink href="https://docs.sentry.io/product/notifications/#actions" />
+          <ExternalLink href="https://docs.sentry.io/product/alerts-notifications/notifications/" />
         ),
       }
     ),
@@ -70,11 +70,12 @@ const getPublicFormFields = (): Field[] => [
     type: 'textarea',
     label: 'Schema',
     autosize: true,
+    rows: 1,
     help: tct(
       'Schema for your UI components. Click [schema_docs:here] for documentation.',
       {
         schema_docs: (
-          <ExternalLink href="https://docs.sentry.io/workflow/integrations/integration-platform/ui-components/" />
+          <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/ui-components/" />
         ),
       }
     ),
@@ -104,6 +105,7 @@ const getPublicFormFields = (): Field[] => [
     type: 'textarea',
     label: 'Overview',
     autosize: true,
+    rows: 1,
     help: 'Description of your Integration and its functionality.',
   },
   {

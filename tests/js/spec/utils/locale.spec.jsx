@@ -1,12 +1,12 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {tct} from 'app/locale';
 
 describe('locale.gettextComponentTemplate', () => {
   it('should render two component templates inside the same parent', async () => {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <div>
         {tct('1st: [one]', {
           one: 'one',

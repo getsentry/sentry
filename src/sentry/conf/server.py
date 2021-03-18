@@ -905,10 +905,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
-    # Enable the API to create/update/delete external team associations
-    "organizations:external-team-associations": False,
-    # Enable the API to create/update/delete external user associations
-    "organizations:external-user-associations": False,
+    # Enable the API to importing CODEOWNERS for a project
+    "organizations:import-codeowners": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
@@ -931,6 +929,8 @@ SENTRY_FEATURES = {
     "organizations:performance-tag-explorer": False,
     # Enable the new Project Detail page
     "organizations:project-detail": False,
+    # Enable links to Project Detail page from all over the app
+    "organizations:project-detail-links": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -938,10 +938,10 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable the new charts on top of the Releases page
     "organizations:releases-top-charts": False,
+    # Enable Session Stats down to a minute resolution
+    "organizations:minute-resolution-sessions": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
-    # Enable calculating release adoption based on sessions
-    "organizations:session-adoption": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -974,6 +974,8 @@ SENTRY_FEATURES = {
     "organizations:images-loaded-v2": False,
     # Enable teams to have ownership of alert rules
     "organizations:team-alerts-ownership": False,
+    # Enable the new alert creation wizard
+    "organizations:alert-wizard": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -984,8 +986,6 @@ SENTRY_FEATURES = {
     "projects:discard-groups": False,
     # DEPRECATED: pending removal
     "projects:dsym": False,
-    # Enable the API to importing CODEOWNERS for a project
-    "projects:import-codeowners": False,
     # Enable selection of members, teams or code owners as email targets for issue alerts.
     "projects:issue-alerts-targeting": True,
     # Enable functionality for attaching  minidumps to events and displaying
@@ -1576,10 +1576,10 @@ SENTRY_DEVSERVICES = {
         "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
         "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
         "healthcheck": {
-            "test": ["CMD", "pg_isready"],
-            "interval": 1000000000,  # Test every 1 second (in ns).
-            "timeout": 1000000000,  # Time we should expect the test to take.
-            "retries": 5,
+            "test": ["CMD", "pg_isready", "-U", "postgres"],
+            "interval": 30000000000,  # Test every 30 seconds (in ns).
+            "timeout": 5000000000,  # Time we should expect the test to take.
+            "retries": 3,
         },
     },
     "zookeeper": {
@@ -2125,6 +2125,9 @@ SENTRY_EXTRA_WORKERS = None
 # This controls whether Sentry is run in a demo mode.
 # Enabling this will allow users to create accounts without an email or password.
 DEMO_MODE = False
+
+# if set to true, create demo organizations on-demand instead of using a buffer
+DEMO_NO_ORG_BUFFER = False
 
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None

@@ -109,7 +109,9 @@ class GroupingComponent:
                 if value.id == id:
                     yield value
                 if recursive:
-                    yield from value.iter_subcomponents(id, recursive=True)
+                    yield from value.iter_subcomponents(
+                        id, recursive=True, only_contributing=only_contributing
+                    )
 
     def update(
         self,

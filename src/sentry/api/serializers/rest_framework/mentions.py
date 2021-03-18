@@ -1,18 +1,17 @@
 from rest_framework import serializers
 
-from sentry.api.fields.actor import Actor
-from sentry.models import Team, User
+from sentry.models import ActorTuple, Team, User
 
 
 def extract_user_ids_from_mentions(organization_id, mentions):
     """
     Extracts user ids from a set of mentions. Mentions should be a list of
-    `Actor` instances. Returns a dictionary with 'users' and 'team_users' keys.
+    `ActorTuple` instances. Returns a dictionary with 'users' and 'team_users' keys.
     'users' is the user ids for all explicitly mentioned users, and 'team_users'
     is all user ids from explicitly mentioned teams, excluding any already
     mentioned users.
     """
-    actors = Actor.resolve_many(mentions)
+    actors = ActorTuple.resolve_many(mentions)
     actor_mentions = separate_resolved_actors(actors)
 
     mentioned_team_users = list(

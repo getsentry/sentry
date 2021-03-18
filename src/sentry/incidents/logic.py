@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from sentry import analytics, quotas
 from sentry.api.event_search import get_filter, resolve_field
+from sentry.auth.access import SystemAccess
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.incidents import tasks
 from sentry.incidents.models import (
@@ -590,6 +591,7 @@ def create_alert_rule(
     time_window,
     threshold_type,
     threshold_period,
+    owner=None,
     resolve_threshold=None,
     environment=None,
     include_all_projects=False,
@@ -607,6 +609,7 @@ def create_alert_rule(
     if `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project
+    :param owner: ActorTuple (sentry.models.actor.ActorTuple) or None
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes
@@ -639,6 +642,10 @@ def create_alert_rule(
             environment,
             event_types=event_types,
         )
+        actor = None
+        if owner:
+            actor = owner.resolve_to_actor()
+
         alert_rule = AlertRule.objects.create(
             organization=organization,
             snuba_query=snuba_query,
@@ -647,6 +654,7 @@ def create_alert_rule(
             resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
+            owner=actor,
         )
 
         if include_all_projects:
@@ -713,6 +721,7 @@ def update_alert_rule(
     dataset=None,
     projects=None,
     name=None,
+    owner=None,
     query=None,
     aggregate=None,
     time_window=None,
@@ -734,6 +743,7 @@ def update_alert_rule(
     `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project.
+    :param owner: ActorTuple (sentry.models.actor.ActorTuple) or None
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes.
@@ -780,6 +790,8 @@ def update_alert_rule(
         updated_query_fields["dataset"] = dataset
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
+    if owner is not None:
+        updated_fields["owner"] = owner.resolve_to_actor()
 
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
@@ -1284,7 +1296,7 @@ def get_alert_rule_trigger_action_slack_channel_id(
 
         raise InvalidTriggerActionError(
             'Multiple users were found with display name "%s". Please use your username, found at %s/account/settings.'
-            % (e.message, domain)
+            % (e, domain)
         )
 
     if timed_out:
@@ -1441,3 +1453,66 @@ def translate_aggregate_field(aggregate, reverse=False):
                 if translated_field == column:
                     return aggregate.replace(column, field)
     return aggregate
+
+
+def get_slack_actions_with_async_lookups(organization, user, data):
+    try:
+        from sentry.incidents.endpoints.serializers import AlertRuleTriggerActionSerializer
+
+        slack_actions = []
+        for trigger in data["triggers"]:
+            for action in trigger["actions"]:
+                action = rewrite_trigger_action_fields(action)
+                a_s = AlertRuleTriggerActionSerializer(
+                    context={
+                        "organization": organization,
+                        "access": SystemAccess(),
+                        "user": user,
+                    },
+                    data=action,
+                )
+                if a_s.is_valid():
+                    if (
+                        a_s.validated_data["type"].value == AlertRuleTriggerAction.Type.SLACK.value
+                        and not a_s.validated_data["input_channel_id"]
+                    ):
+                        slack_actions.append(a_s.validated_data)
+        return slack_actions
+    except KeyError:
+        # If we have any KeyErrors reading the data, we can just return nothing
+        # This will cause the endpoint to try creating the rule synchronously
+        # which will capture the error properly.
+        return {}
+
+
+def get_slack_channel_ids(organization, user, data):
+    slack_actions = get_slack_actions_with_async_lookups(organization, user, data)
+    mapped_slack_channels = {}
+    for action in slack_actions:
+        if not action["target_identifier"] in mapped_slack_channels:
+            (
+                mapped_slack_channels[action["target_identifier"]],
+                _,
+            ) = get_target_identifier_display_for_integration(
+                action["type"].value,
+                action["target_identifier"],
+                organization,
+                action["integration"].id,
+                use_async_lookup=True,
+                input_channel_id=None,
+            )
+    return mapped_slack_channels
+
+
+def rewrite_trigger_action_fields(action_data):
+    if "integration_id" in action_data:
+        action_data["integration"] = action_data.pop("integration_id")
+    elif "integrationId" in action_data:
+        action_data["integration"] = action_data.pop("integrationId")
+
+    if "sentry_app_id" in action_data:
+        action_data["sentry_app"] = action_data.pop("sentry_app_id")
+    elif "sentryAppId" in action_data:
+        action_data["sentry_app"] = action_data.pop("sentryAppId")
+
+    return action_data
