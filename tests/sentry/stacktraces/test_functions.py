@@ -89,6 +89,8 @@ from sentry.stacktraces.functions import (
         ["main::{lambda()#42}", "main::lambda"],
         ["lambda_7156c3ceaa11256748687ab67e3ef4cd", "lambda"],
         ["<lambda_7156c3ceaa11256748687ab67e3ef4cd>::operator()", "<lambda>::operator()"],
+        ["abccore::threads::(anonymous namespace)::FunctionQueue::ExecuteOneFunction", ""],
+        ["abccore::threads::`anonymous namespace'::FunctionQueue::ExecuteOneFunction", ""],
     ],
 )
 def test_trim_native_function_name(input, output):
