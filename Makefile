@@ -3,7 +3,9 @@ WEBPACK := yarn build-acceptance
 
 bootstrap: develop init-config run-dependent-services create-db apply-migrations build-platform-assets
 
-develop: ensure-pinned-pip setup-git install-js-dev install-py-dev
+develop: ensure-venv upgrade-pip
+	@./scripts/develop.sh main
+	@./scripts/python.sh install-py-dev
 
 clean:
 	@echo "--> Cleaning static cache"
@@ -46,28 +48,19 @@ apply-migrations: ensure-venv
 reset-db: drop-db create-db apply-migrations
 
 setup-pyenv:
-	./scripts/pyenv_setup.sh
+	@./scripts/pyenv_setup.sh
 
 ensure-venv:
-	./scripts/ensure-venv.sh
-
-ensure-pinned-pip: ensure-venv upgrade-pip
+	@./scripts/ensure-venv.sh
 
 upgrade-pip:
-	./scripts/python.sh upgrade-pip
+	@./scripts/python.sh upgrade-pip
 
 setup-git-config:
-	@git config --local branch.autosetuprebase always
-	@git config --local core.ignorecase false
-	@git config --local blame.ignoreRevsFile .git-blame-ignore-revs
+	@./scripts/develop.sh setup-git-config
 
 setup-git: ensure-venv setup-git-config
-	@echo "--> Installing git hooks"
-	mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./
-	@python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
-	$(PIP) install -r requirements-pre-commit.txt
-	@pre-commit install --install-hooks
-	@echo ""
+	@./scripts/develop.sh setup-git
 
 node-version-check:
 	@# Checks to see if node's version matches the one specified in package.json for Volta.
@@ -75,17 +68,10 @@ node-version-check:
 	(echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'; exit 1)
 
 install-js-dev: node-version-check
-	@echo "--> Installing Yarn packages (for development)"
-	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
-	NODE_ENV=development yarn install --frozen-lockfile
-	# A common problem is with node packages not existing in `node_modules` even though `yarn install`
-	# says everything is up to date. Even though `yarn install` is run already, it doesn't take into
-	# account the state of the current filesystem (it only checks .yarn-integrity).
-	# Add an additional check against `node_modules`
-	yarn check --verify-tree || yarn install --check-files
+	@./scripts/develop.sh install-js-dev
 
 install-py-dev:
-	./scripts/python.sh install-py-dev
+	@./scripts/python.sh install-py-dev
 
 build-js-po: node-version-check
 	mkdir -p build

@@ -12,10 +12,3 @@ query_big_sur() {
     fi
     return 1
 }
-
-if ! require sentry-cli; then
-    curl -sL https://sentry.io/get-cli/ | bash
-fi
-# SENTRY_DSN already defined in .envrc
-[ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ] && \
-    eval "$(sentry-cli bash-hook)"
