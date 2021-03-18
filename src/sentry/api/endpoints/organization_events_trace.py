@@ -309,7 +309,6 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     # We need to connect back to an existing orphan trace
                     if has_orphans and child["span_id"] in results_map:
                         previous_event["children"].extend(results_map.pop(child["span_id"]))
-                        self.update_generations(previous_event)
                     if child["span_id"] not in parent_map:
                         continue
                     # Avoid potential span loops by popping, so we don't traverse the same nodes twice
@@ -335,5 +334,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
         results = []
         for result in results_map.values():
+            # Only need to update generation values when there are orphans since otherwise we stepped through in order
+            if has_orphans:
+                for root in result:
+                    self.update_generations(root)
             results.extend(result)
         return results
