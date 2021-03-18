@@ -1,5 +1,6 @@
 import datetime
 import pytz
+import pytest
 
 from uuid import uuid4
 from freezegun import freeze_time
@@ -28,7 +29,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def setup_fixture(self):
         self.timestamp = to_timestamp(datetime.datetime(2021, 1, 14, 12, 27, 28, tzinfo=pytz.utc))
         self.received = self.timestamp
-        self.session_started = self.timestamp // 60 * 60
+        self.session_started = self.timestamp // 3600 * 3600  # round to the hour
 
         self.organization1 = self.organization
         self.organization2 = self.create_organization()
@@ -68,8 +69,10 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 **kwargs,
             )
 
-        self.store_session(make_session(self.project1))
-        self.store_session(make_session(self.project1, release="foo@1.1.0"))
+        self.store_session(make_session(self.project1, started=self.session_started + 12 * 60))
+        self.store_session(
+            make_session(self.project1, started=self.session_started + 24 * 60, release="foo@1.1.0")
+        )
         self.store_session(make_session(self.project1, started=self.session_started - 60 * 60))
         self.store_session(make_session(self.project1, started=self.session_started - 12 * 60 * 60))
         self.store_session(make_session(self.project2, status="crashed"))
@@ -228,6 +231,38 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 {"by": {}, "series": {"sum(session)": [2, 6]}, "totals": {"sum(session)": 8}}
             ],
         }
+
+    @pytest.mark.skip(reason="requires unflagging minute-resolution sessions in snuba")
+    @freeze_time("2021-01-14T12:37:28.303Z")
+    def test_minute_resolution(self):
+        with self.feature("organizations:minute-resolution-sessions"):
+            response = self.do_request(
+                {
+                    "project": [self.project1.id, self.project2.id],
+                    "statsPeriod": "30m",
+                    "interval": "10m",
+                    "field": ["sum(session)"],
+                }
+            )
+            assert response.status_code == 200, response.content
+            assert result_sorted(response.data) == {
+                "query": "",
+                "intervals": [
+                    "2021-01-14T12:00:00Z",
+                    "2021-01-14T12:10:00Z",
+                    "2021-01-14T12:20:00Z",
+                    "2021-01-14T12:30:00Z",
+                    "2021-01-14T12:40:00Z",
+                    "2021-01-14T12:50:00Z",
+                ],
+                "groups": [
+                    {
+                        "by": {},
+                        "series": {"sum(session)": [2, 1, 1, 0, 0, 0]},
+                        "totals": {"sum(session)": 4},
+                    }
+                ],
+            }
 
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_filter_projects(self):

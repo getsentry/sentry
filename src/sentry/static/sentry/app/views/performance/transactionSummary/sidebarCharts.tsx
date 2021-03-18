@@ -13,6 +13,7 @@ import {SectionHeading} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval} from 'app/components/charts/utils';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
@@ -26,7 +27,6 @@ import {
   formatFloat,
   formatPercentage,
 } from 'app/utils/formatters';
-import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
@@ -45,6 +45,7 @@ type Props = ReactRouter.WithRouterProps & {
 function SidebarCharts({
   theme,
   api,
+  location,
   eventView,
   organization,
   router,
@@ -55,7 +56,7 @@ function SidebarCharts({
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
-  const utc = decodeScalar(router.location.query.utc) !== 'false';
+  const {utc} = getParams(location.query);
 
   const colors = theme.charts.getColorPalette(3);
   const axisLineConfig = {
@@ -135,7 +136,7 @@ function SidebarCharts({
         ...axisLineConfig,
       },
     ],
-    utc,
+    utc: utc === 'true',
     isGroupedByDate: true,
     showTimeInTooltip: true,
     colors: [colors[0], colors[1], colors[2]] as string[],
@@ -213,7 +214,7 @@ function SidebarCharts({
         period={statsPeriod}
         start={start}
         end={end}
-        utc={utc}
+        utc={utc === 'true'}
         xAxisIndex={[0, 1, 2]}
       >
         {zoomRenderProps => (
@@ -230,6 +231,7 @@ function SidebarCharts({
             query={eventView.query}
             includePrevious={false}
             yAxis={[`apdex(${organization.apdexThreshold})`, 'failure_rate()', 'epm()']}
+            partial
           >
             {({results, errored, loading, reloading}) => {
               if (errored) {

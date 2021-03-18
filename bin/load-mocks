@@ -804,6 +804,19 @@ def create_mock_transactions(project_map, load_trends=False, slow=False):
                     }
                 },
             )
+            create_sample_event(
+                project=frontend_project,
+                platform="javascript",
+                user=transaction_user,
+                transaction="/plants/:plantId/",
+                contexts={
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": frontend_span_id,
+                    }
+                },
+            )
             # try to give clickhouse some breathing room
             if slow:
                 time.sleep(0.05)

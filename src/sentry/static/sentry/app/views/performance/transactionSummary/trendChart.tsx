@@ -14,6 +14,7 @@ import {HeaderTitleLegend} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
@@ -23,7 +24,6 @@ import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
-import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
@@ -83,7 +83,7 @@ class TrendChart extends React.Component<Props> {
 
     const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
     const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : null;
-    const utc = decodeScalar(router.location.query.utc) !== 'false';
+    const {utc} = getParams(location.query);
 
     const legend = {
       right: 10,
@@ -131,7 +131,13 @@ class TrendChart extends React.Component<Props> {
             title={t(`Trends shows the smoothed value of an aggregate over time.`)}
           />
         </HeaderTitleLegend>
-        <ChartZoom router={router} period={statsPeriod}>
+        <ChartZoom
+          router={router}
+          period={statsPeriod}
+          start={start}
+          end={end}
+          utc={utc === 'true'}
+        >
           {zoomRenderProps => (
             <EventsRequest
               api={api}
@@ -147,6 +153,7 @@ class TrendChart extends React.Component<Props> {
               includePrevious={false}
               yAxis={trendDisplay}
               currentSeriesName={trendDisplay}
+              partial
             >
               {({errored, loading, reloading, timeseriesData}) => {
                 if (errored) {
@@ -195,7 +202,7 @@ class TrendChart extends React.Component<Props> {
                     end={end}
                     queryExtra={queryExtra}
                     period={statsPeriod}
-                    utc={utc}
+                    utc={utc === 'true'}
                     projects={project}
                     environments={environment}
                   >
