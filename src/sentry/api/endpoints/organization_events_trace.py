@@ -1,7 +1,7 @@
 import logging
 import sentry_sdk
 
-from collections import defaultdict, deque
+from collections import defaultdict, deque, OrderedDict
 
 from rest_framework.response import Response
 
@@ -124,7 +124,8 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         parent_map = defaultdict(list)
         for item in result["data"]:
-            parent_map[item["trace.parent_span"]].append(item)
+            if not is_root(item):
+                parent_map[item["trace.parent_span"]].append(item)
 
         # Temporarily feature flagging this out, since errors will impact performance
         if not features.has("organizations:trace-view-summary", organization, actor=request.user):
@@ -237,18 +238,55 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         )
         return event
 
+    def update_generations(self, event):
+        parents = [event]
+        iteration = 0
+        while parents and iteration < MAX_TRACE_SIZE:
+            iteration += 1
+            parent = parents.pop()
+            for child in parent["children"]:
+                child["generation"] = parent["generation"] + 1
+                parents.append(child)
+
     def serialize(
         self, parent_map, error_map, root, warning_extra, params, snuba_event=None, event_id=None
     ):
         """ For the full event trace, we return the results as a graph instead of a flattened list """
         parent_events = {}
-        result = parent_events[root["id"]] = self.serialize_event(root, None, 0)
+        parent_events[root["id"]] = self.serialize_event(root, None, 0)
+        # TODO(wmak): Dictionary ordering in py3.6 is an implementation detail, using an OrderedDict because this way
+        # we can guarantee in py3.6 that the first item is the root
+        # So we can switch back to a normal dict when either the frontend doesn't depend on the root being the first
+        # element, or if we're on python 3.7
+        results_map = OrderedDict({None: [parent_events[root["id"]]]})
 
         with sentry_sdk.start_span(op="building.trace", description="full trace"):
             to_check = deque([root])
             iteration = 0
-            while to_check:
-                current_event = to_check.popleft()
+            has_orphans = False
+            while parent_map or to_check:
+                if len(to_check) == 0:
+                    has_orphans = True
+                    # Grab any set of events from the parent map
+                    parent_span_id, current_events = parent_map.popitem()
+
+                    current_event, *siblings = current_events
+                    # If there were any siblings put them back
+                    if siblings:
+                        parent_map[parent_span_id] = siblings
+
+                    previous_event = parent_events[current_event["id"]] = self.serialize_event(
+                        current_event, None, 0
+                    )
+
+                    # not using a defaultdict here as a DefaultOrderedDict isn't worth the effort
+                    if parent_span_id in results_map:
+                        results_map[parent_span_id].append(previous_event)
+                    else:
+                        results_map[parent_span_id] = [previous_event]
+                else:
+                    current_event = to_check.popleft()
+                    previous_event = parent_events[current_event["id"]]
 
                 # This is faster than doing a call to get_events, since get_event_by_id only makes a call to snuba
                 # when non transaction events are included.
@@ -257,7 +295,6 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         current_event["project.id"], current_event["id"]
                     )
 
-                previous_event = parent_events[current_event["id"]]
                 previous_event.update(
                     {event_key: event.data.get(event_key) for event_key in NODESTORE_KEYS}
                 )
@@ -269,6 +306,10 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 for child in spans:
                     if child["span_id"] in error_map:
                         previous_event["errors"].extend(error_map.pop(child["span_id"]))
+                    # We need to connect back to an existing orphan trace
+                    if has_orphans and child["span_id"] in results_map:
+                        previous_event["children"].extend(results_map.pop(child["span_id"]))
+                        self.update_generations(previous_event)
                     if child["span_id"] not in parent_map:
                         continue
                     # Avoid potential span loops by popping, so we don't traverse the same nodes twice
@@ -292,6 +333,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     )
                     break
 
-        # TODO(wmak): return an array of traces with the same trace, which includes orphan traces (ie. not connected
-        # with the root)
-        return [result]
+        results = []
+        for result in results_map.values():
+            results.extend(result)
+        return results

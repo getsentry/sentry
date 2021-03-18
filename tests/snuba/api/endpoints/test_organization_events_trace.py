@@ -555,6 +555,128 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         for child in gen2_parent["children"]:
             assert child["event_id"] in gen3_event_siblings
 
+    def test_with_orphan_siblings(self):
+        parent_span_id = uuid4().hex[:16]
+        root_event = self.create_event(
+            trace=self.trace_id,
+            transaction="/orphan/root",
+            spans=[],
+            # Some random id so its separated from the rest of the trace
+            parent_span_id=parent_span_id,
+            project_id=self.project.id,
+            duration=1000,
+        )
+        root_sibling_event = self.create_event(
+            trace=self.trace_id,
+            transaction="/orphan/root-sibling",
+            spans=[],
+            parent_span_id=parent_span_id,
+            project_id=self.project.id,
+            duration=1000,
+        )
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        import pprint
+
+        pprint.pprint(response.data)
+        assert len(response.data) == 3
+        # The first item of the response should be the main trace
+        main, *orphans = response.data
+        self.assert_trace_data(main)
+        assert root_event.event_id in [orphan["event_id"] for orphan in orphans]
+        assert root_sibling_event.event_id in [orphan["event_id"] for orphan in orphans]
+
+    def test_with_orphan_trace(self):
+        orphan_span_ids = {
+            key: uuid4().hex[:16]
+            for key in ["root", "root_span", "child", "child_span", "grandchild", "grandchild_span"]
+        }
+        # Create the orphan transactions
+        root_event = self.create_event(
+            trace=self.trace_id,
+            transaction="/orphan/root",
+            spans=[
+                {
+                    "same_process_as_parent": True,
+                    "op": "http",
+                    "description": "GET gen1 orphan",
+                    "span_id": orphan_span_ids["root_span"],
+                    "trace_id": self.trace_id,
+                }
+            ],
+            # Some random id so its separated from the rest of the trace
+            parent_span_id=uuid4().hex[:16],
+            span_id=orphan_span_ids["root"],
+            project_id=self.project.id,
+            duration=1000,
+        )
+        child_event = self.create_event(
+            trace=self.trace_id,
+            transaction="/orphan/child1-0",
+            spans=[
+                {
+                    "same_process_as_parent": True,
+                    "op": "http",
+                    "description": "GET gen1 orphan",
+                    "span_id": orphan_span_ids["child_span"],
+                    "trace_id": self.trace_id,
+                }
+            ],
+            # Some random id so its separated from the rest of the trace
+            parent_span_id=orphan_span_ids["root_span"],
+            span_id=orphan_span_ids["child"],
+            project_id=self.gen1_project.id,
+            duration=500,
+        )
+        grandchild_event = self.create_event(
+            trace=self.trace_id,
+            transaction="/orphan/grandchild1-0",
+            spans=[
+                {
+                    "same_process_as_parent": True,
+                    "op": "http",
+                    "description": "GET gen1 orphan",
+                    "span_id": orphan_span_ids["grandchild_span"],
+                    "trace_id": self.trace_id,
+                }
+            ],
+            # Some random id so its separated from the rest of the trace
+            parent_span_id=orphan_span_ids["child_span"],
+            span_id=orphan_span_ids["grandchild"],
+            project_id=self.gen1_project.id,
+            duration=1500,
+        )
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        # The first item of the response should be the main trace
+        main, orphans = response.data
+        self.assert_trace_data(main)
+        self.assert_event(orphans, root_event, "orphan-root")
+        assert len(orphans["children"]) == 1
+        assert orphans["generation"] == 0
+        child = orphans["children"][0]
+        self.assert_event(child, child_event, "orphan-child")
+        assert len(child["children"]) == 1
+        assert child["generation"] == 1
+        grandchild = child["children"][0]
+        self.assert_event(grandchild, grandchild_event, "orphan-grandchild")
+        assert grandchild["generation"] == 2
+
     def test_with_errors(self):
         start, _ = self.get_start_end(1000)
         error_data = load_data(
