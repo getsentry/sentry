@@ -128,4 +128,5 @@ const GlobalModalContainer = createReactClass<Partial<Props>>({
     );
   },
 });
+
 export default GlobalModalContainer;

@@ -192,7 +192,7 @@ class SlackActionEndpoint(Endpoint):
                 id=group_id,
             )
         except Group.DoesNotExist:
-            logger.error("slack.action.invalid-issue", extra=logging_data)
+            logger.error("slack.action.invalid-issue", extra=logging_data, exc_info=True)
             return self.respond(status=403)
 
         logging_data["organization_id"] = group.organization.id
