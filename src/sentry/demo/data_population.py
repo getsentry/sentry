@@ -18,7 +18,6 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.samples import (
     random_geo,
     random_ip,
-    create_sample_event,
     create_sample_event_basic,
     random_normal,
 )
@@ -26,7 +25,7 @@ from sentry.utils.snuba import SnubaError
 
 
 MAX_DAYS = 2
-SCALE_FACTOR = 1
+SCALE_FACTOR = 0.2
 BASE_OFFSET = 0.5
 NAME_STEP_SIZE = 20
 
@@ -105,17 +104,11 @@ def generate_user():
     return get_user_by_id(id_0_offset)
 
 
-def safe_send_event(data, basic=False):
+def safe_send_event(data):
+    project = data.pop("project")
     # TODO: make a batched update version of create_sample_event
     try:
-        if basic:
-            project = data.pop("project")
-            data["timestamp"] = to_timestamp(data["timestamp"])
-            create_sample_event_basic(data, project.id)
-        else:
-            create_sample_event(
-                **data,
-            )
+        create_sample_event_basic(data, project.id)
     except SnubaError:
         # if snuba fails, just back off and continue
         logger.info("safe_send_event.snuba_error")
@@ -151,6 +144,28 @@ def clean_event(event_json):
     return event_json
 
 
+def fix_timestamps(event_json):
+    """
+    Convert a time zone aware datetime timestamps to a POSIX timestamp
+    for an evnet
+    """
+    event_json["timestamp"] = to_timestamp(event_json["timestamp"])
+    start_timestamp = event_json.get("start_timestamp")
+    if start_timestamp:
+        event_json["start_timestamp"] = to_timestamp(start_timestamp)
+
+
+def fix_error_event(event_json):
+    fix_timestamps(event_json)
+    fix_breadrumbs(event_json)
+
+
+def fix_transaction_event(event_json, old_span_id):
+    fix_timestamps(event_json)
+    fix_spans(event_json, old_span_id)
+    fix_measurements(event_json)
+
+
 def fix_spans(event_json, old_span_id):
     """
     This function does the folowing:
@@ -164,7 +179,7 @@ def fix_spans(event_json, old_span_id):
     update_id_map = {old_span_id: new_span_id}
     spans = event_json.get("spans", [])
 
-    full_duration = (event_json["timestamp"] - event_json["start_timestamp"]).total_seconds()
+    full_duration = event_json["timestamp"] - event_json["start_timestamp"]
 
     while True:
         found_any = False
@@ -223,6 +238,7 @@ def fix_spans(event_json, old_span_id):
         for i, span in enumerate(children):
             if "data" not in span:
                 span["data"] = {}
+
             span["data"]["offset"] = span_offset
             remaining_time = end_of_parent_span - span_offset
             # if we are the last child of a span, then
@@ -235,8 +251,27 @@ def fix_spans(event_json, old_span_id):
                 # pick a random length for the span that's at most 2x the average span length
                 duration = min(max_duration, random.uniform(0, 2 * avg_span_length))
             span["data"]["duration"] = duration
+            span["start_timestamp"] = event_json["start_timestamp"] + span_offset
+            span.setdefault("timestamp", span["start_timestamp"] + duration)
+            # calcualate the next span offset
             span_offset = duration + span_offset
             id_list.append(span["span_id"])
+
+
+def fix_measurements(event_json):
+    """
+    Convert measurment data from durations into timestamps
+    """
+    measurements = event_json.get("measurements")
+
+    if measurements:
+        measurement_markers = {}
+        for key, entry in measurements.items():
+            if key in ["fp", "fcp", "lcp", "fid"]:
+                measurement_markers[f"mark.{key}"] = {
+                    "value": round(event_json["start_timestamp"] + entry["value"] / 1000, 3)
+                }
+        measurements.update(measurement_markers)
 
 
 def fix_breadrumbs(event_json):
@@ -248,10 +283,10 @@ def fix_breadrumbs(event_json):
     num_breadcrumbs = len(breadcrumbs)
     breadcrumb_time_step = BREADCRUMB_LOOKBACK_TIME * 1.0 / num_breadcrumbs
 
-    curr_time = event_json["timestamp"] - timedelta(seconds=BREADCRUMB_LOOKBACK_TIME)
+    curr_time = event_json["timestamp"] - BREADCRUMB_LOOKBACK_TIME
     for breadcrumb in breadcrumbs:
-        breadcrumb["timestamp"] = curr_time.replace(tzinfo=pytz.utc).timestamp()
-        curr_time += timedelta(seconds=breadcrumb_time_step)
+        breadcrumb["timestamp"] = curr_time
+        curr_time += breadcrumb_time_step
 
 
 def populate_connected_event_scenario_1(react_project: Project, python_project: Project):
@@ -297,7 +332,7 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                 local_event = copy.deepcopy(react_transaction)
                 local_event.update(
                     project=react_project,
-                    platform="javascript-transaction",
+                    platform=react_project.platform,
                     event_id=uuid4().hex,
                     user=transaction_user,
                     timestamp=timestamp,
@@ -309,14 +344,10 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                         "lcp": {"value": random_normal(2800 - 50 * day, 400, 2000)},
                         "fid": {"value": random_normal(5 - 0.125 * day, 2, 1)},
                     },
-                    # Root
-                    parent_span_id=None,
-                    span_id=frontend_root_span_id,
-                    trace=trace_id,
                     contexts=frontend_context,
                 )
 
-                fix_spans(local_event, old_span_id)
+                fix_transaction_event(local_event, old_span_id)
                 safe_send_event(local_event)
 
                 # note picking the 0th span is arbitrary
@@ -331,7 +362,7 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                     user=transaction_user,
                     contexts=frontend_context,
                 )
-                fix_breadrumbs(local_event)
+                fix_error_event(local_event)
                 safe_send_event(local_event)
 
                 # python transaction
@@ -350,13 +381,13 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                 local_event = copy.deepcopy(python_transaction)
                 local_event.update(
                     project=python_project,
-                    platform="transaction",
+                    platform=python_project.platform,
                     timestamp=timestamp,
                     start_timestamp=timestamp - timedelta(milliseconds=backend_duration),
                     user=transaction_user,
                     contexts=backend_context,
                 )
-                fix_spans(local_event, old_span_id)
+                fix_transaction_event(local_event, old_span_id)
                 safe_send_event(local_event)
 
                 # python error
@@ -368,7 +399,5 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                     user=transaction_user,
                     contexts=backend_context,
                 )
-                fix_breadrumbs(local_event)
-                # use basic here so we don't get interference from the python.json file
-                # that would mess up the stack trace
-                safe_send_event(local_event, basic=True)
+                fix_error_event(local_event)
+                safe_send_event(local_event)
