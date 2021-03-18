@@ -30,7 +30,7 @@ const PanelHeader = styled('div')<Props>`
   align-items: center;
   justify-content: space-between;
   color: ${p => (p.lightText ? p.theme.gray300 : p.theme.gray400)};
-  font-size: 13px;
+  font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   text-transform: uppercase;
   border-bottom: 1px solid ${p => p.theme.border};
