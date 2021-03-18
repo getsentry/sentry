@@ -8,7 +8,7 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import Tag, {Background} from 'app/components/tag';
 import Truncate from 'app/components/truncate';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 type MetaDataProps = {
   headingText: string;
@@ -53,36 +53,38 @@ export const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const nodeColors = {
-  error: {
-    color: theme.white,
-    background: theme.red300,
-    border: theme.red300,
-  },
-  warning: {
-    color: theme.red300,
-    background: theme.white,
-    border: theme.red300,
-  },
-  white: {
-    color: theme.gray500,
-    background: theme.white,
-    border: theme.gray500,
-  },
-  black: {
-    color: theme.white,
-    background: theme.gray500,
-    border: theme.gray500,
-  },
+const nodeColors = (theme: Theme) => {
+  return {
+    error: {
+      color: theme.white,
+      background: theme.red300,
+      border: theme.red300,
+    },
+    warning: {
+      color: theme.red300,
+      background: theme.white,
+      border: theme.red300,
+    },
+    white: {
+      color: theme.textColor,
+      background: theme.background,
+      border: theme.textColor,
+    },
+    black: {
+      color: theme.background,
+      background: theme.textColor,
+      border: theme.textColor,
+    },
+  };
 };
 
 export const EventNode = styled(Tag)<{pad?: 'left' | 'right'}>`
-  div {
-    color: ${p => nodeColors[p.type || 'white'].color};
+  span {
+    color: ${p => nodeColors(p.theme)[p.type || 'white'].color};
   }
   & ${/* sc-selector */ Background} {
-    background-color: ${p => nodeColors[p.type || 'white'].background};
-    border: 1px solid ${p => nodeColors[p.type || 'white'].border};
+    background-color: ${p => nodeColors(p.theme)[p.type || 'white'].background};
+    border: 1px solid ${p => nodeColors(p.theme)[p.type || 'white'].border};
   }
 `;
 
