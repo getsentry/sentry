@@ -106,7 +106,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         value: filtered,
       },
       {
-        title: t('Rate-limited'),
+        title: t('Dropped'),
         description: tct(
           "Rate-limited [dataCategory] were discarded due to usage exceeding your plan's quota.",
           {dataCategory}
