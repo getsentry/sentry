@@ -1,0 +1,47 @@
+import logging
+
+from typing import Any, Union
+
+from sentry import options
+from sentry.utils.services import Service
+
+from .types import ChartType
+
+logger = logging.getLogger("sentry.charts")
+
+
+class ChartRenderer(Service):
+    """
+    The chart rendering service is used to transalte arbitrary data into a
+    image representation of that data, usually a chart.
+
+    This service should handle C
+
+
+    The Chartcuterie service is responsible for converting series data into a
+    chart of the data as an image.
+
+    This uses the external Chartcuterie API to produce charts
+    """
+
+    __all__ = (
+        "is_enabled",
+        "generate_chart",
+    )
+
+    def __init__(self, **options):
+        pass
+
+    @property
+    def is_enabled(self):
+        """
+        Checks that the chart rendering service is enabled
+        """
+        return options.get("chart-rendering.enabled", False)
+
+    def generate_chart(self, style: ChartType, data: Any, upload: bool = True) -> Union[str, bytes]:
+        """
+        Produces a chart. You may specify the upload kwarg to have the chart
+        uploaded to storage and recieve a public URL for the chart
+        """
+        raise NotImplementedError

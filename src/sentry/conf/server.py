@@ -1259,6 +1259,10 @@ SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
+# Render charts on the backend. This uses the Chartcuterie external service.
+SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
+SENTRY_CHART_RENDERER_OPTIONS = {}
+
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
 SENTRY_ENDPOINT = None
