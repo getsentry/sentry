@@ -462,10 +462,8 @@ def _single_stacktrace_variant(stacktrace, context, meta):
 
     blaming_frame_component = values[blaming_frame_idx]
 
-    prev_variant = GroupingComponent(id="stacktrace", values=[blaming_frame_component])
-    all_variants = {
-        "app-depth-1": prev_variant,
-    }
+    prev_variant = GroupingComponent(id="stacktrace", values=[])
+    all_variants = {}
 
     while len(all_variants) < 5:
         depth = len(all_variants) + 1
@@ -494,7 +492,7 @@ def _single_stacktrace_variant(stacktrace, context, meta):
             elif frame.tree_label:
                 tree_label.append(frame.tree_label)
 
-        all_variants[key] = GroupingComponent(
+        all_variants[key] = prev_variant = GroupingComponent(
             id="stacktrace",
             values=pre_frames,
             tree_label=" | ".join(tree_label),
@@ -516,7 +514,7 @@ def _accumulate_frame_levels(values, blaming_frame_idx, depth, direction):
     depth -= 1
 
     idx = blaming_frame_idx + direction
-    while 0 <= idx < len(values):
+    while 0 <= idx < len(values) and depth > 0:
         component = values[idx]
         idx += direction
 
@@ -526,9 +524,6 @@ def _accumulate_frame_levels(values, blaming_frame_idx, depth, direction):
         rv.append(component)
         if not component.is_prefix_frame:
             depth -= 1
-
-            if depth == 0:
-                break
 
     return rv
 

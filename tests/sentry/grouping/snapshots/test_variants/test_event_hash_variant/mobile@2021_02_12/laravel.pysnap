@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T10:36:26.107354Z'
+created: '2021-03-18T11:30:03.859518Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -48,7 +48,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "412af8b5b341a73f526e2f9a6d4761b8"
-  tree_label: "Illuminate\Routing\Route::run | Illuminate\Routing\Route::runCallable | ..."
+  tree_label: "Illuminate\Routing\Route::run | ..."
   component:
     app-depth-3*
       exception*
@@ -81,7 +81,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "287d1bc162651ea2b799796d9b1c0da8"
-  tree_label: "Illuminate\Routing\Router::Illuminate\Routing\{closure} | Illuminate\Routing\Route::run | Illuminate\Routing\Route::runCallable | ..."
+  tree_label: "Illuminate\Routing\Router::Illuminate\Routing\{closure} | ..."
   component:
     app-depth-4*
       exception*
@@ -121,7 +121,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "0eb1d26aa9a5022cec623d0ddf53173f"
-  tree_label: "Illuminate\Routing\Pipeline::Illuminate\Routing\{closure} | Illuminate\Routing\Router::Illuminate\Routing\{closure} | Illuminate\Routing\Route::run | Illuminate\Routing\Route::runCallable | ..."
+  tree_label: "Illuminate\Routing\Pipeline::Illuminate\Routing\{closure} | ..."
   component:
     app-depth-5*
       exception*

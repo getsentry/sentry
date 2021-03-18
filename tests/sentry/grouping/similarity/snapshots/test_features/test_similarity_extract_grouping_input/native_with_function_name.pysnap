@@ -1,11 +1,11 @@
 ---
-created: '2020-08-19T12:18:49.162882Z'
+created: '2021-03-18T11:30:15.398650Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","main.cpp"],["function","(anonymous namespace)::crash"]],[["filename","main.cpp"],["function","(anonymous namespace)::something::nested::Foo<T>::crash"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","main.cpp"],["function","(anonymous namespace)::start"]],[["filename","main.cpp"],["function","(anonymous namespace)::crash"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","main.cpp"],["function","main"]],[["filename","main.cpp"],["function","(anonymous namespace)::start"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","main.cpp"],["function","`anonymous namespace'::start"]],[["filename","main.cpp"],["function","(anonymous namespace)::crash"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","main.cpp"],["function","main"]],[["filename","main.cpp"],["function","`anonymous namespace'::start"]]]
 similarity:2020-07-23:value:character-5-shingle: " / KE"
 similarity:2020-07-23:value:character-5-shingle: " EXC_"
 similarity:2020-07-23:value:character-5-shingle: " Erro"

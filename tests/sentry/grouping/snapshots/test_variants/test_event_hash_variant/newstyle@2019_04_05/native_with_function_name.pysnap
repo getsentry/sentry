@@ -1,5 +1,5 @@
 ---
-created: '2021-02-12T22:47:17.654076Z'
+created: '2021-03-18T11:30:06.921846Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,23 +18,23 @@ app:
             filename*
               "main.cpp"
             function* (isolated function)
-              "(anonymous namespace)::start"
+              "`anonymous namespace'::start"
           frame (non app frame)
             filename*
               "main.cpp"
             function* (isolated function)
-              "(anonymous namespace)::crash"
+              "`anonymous namespace'::crash"
           frame (non app frame)
             filename*
               "main.cpp"
             function* (isolated function)
-              "(anonymous namespace)::something::nested::Foo"
+              "`anonymous namespace'::something::nested::Foo"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
       threads (thread has no stacktrace)
 --------------------------------------------------------------------------
 system:
-  hash: "282d9d4e85027e073026ace9ad3d05fd"
+  hash: "85da85d9a2ef4672c4c4137f9413785c"
   component:
     system*
       exception*
@@ -48,16 +48,16 @@ system:
             filename*
               "main.cpp"
             function* (isolated function)
-              "(anonymous namespace)::start"
+              "`anonymous namespace'::start"
           frame*
             filename*
               "main.cpp"
             function* (isolated function)
-              "(anonymous namespace)::crash"
+              "`anonymous namespace'::crash"
           frame*
             filename*
               "main.cpp"
             function* (isolated function)
-              "(anonymous namespace)::something::nested::Foo"
+              "`anonymous namespace'::something::nested::Foo"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"

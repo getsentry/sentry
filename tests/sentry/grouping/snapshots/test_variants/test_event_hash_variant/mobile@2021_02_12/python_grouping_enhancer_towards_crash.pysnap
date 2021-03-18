@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T10:36:26.128905Z'
+created: '2021-03-18T11:30:03.883760Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -53,7 +53,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "fffce8f5341aba04611ac9a2e2b69aec"
-  tree_label: "view | _wrapper | ..."
+  tree_label: "view | ..."
   component:
     app-depth-3*
       exception*
@@ -92,7 +92,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "90888e813b09fa25061af2883c0fb9bd"
-  tree_label: "get_response | view | _wrapper | ..."
+  tree_label: "get_response | ..."
   component:
     app-depth-4*
       exception*
@@ -140,57 +140,9 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "90888e813b09fa25061af2883c0fb9bd"
-  tree_label: "get_response | view | _wrapper | ..."
-  component:
-    app-depth-5*
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "django.core.handlers.base"
-            filename (module takes precedence)
-              "base.py"
-            function*
-              "get_response"
-            context-line*
-              "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
-          frame*
-            module*
-              "django.views.generic.base"
-            filename (module takes precedence)
-              "base.py"
-            function*
-              "view"
-            context-line*
-              "return self.dispatch(request, *args, **kwargs)"
-          frame*
-            module*
-              "django.utils.decorators"
-            filename (module takes precedence)
-              "decorators.py"
-            function*
-              "_wrapper"
-            context-line*
-              "return bound_func(*args, **kwargs)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
-            module*
-              "django.utils.datastructures"
-            filename (module takes precedence)
-              "datastructures.py"
-            function*
-              "__getitem__"
-            context-line*
-              "raise MultiValueDictKeyError(repr(key))"
-        type*
-          "MultiValueDictKeyError"
-        value (ignored because stacktrace takes precedence)
-          "\"'user'\""
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "90888e813b09fa25061af2883c0fb9bd"
   tree_label: "<entire stacktrace>"
   component:
-    app-depth-max*
+    app-depth-5*
       exception*
         stacktrace*
           frame*

@@ -1,5 +1,5 @@
 ---
-created: '2021-02-12T22:47:10.140603Z'
+created: '2021-03-18T11:29:58.510526Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,7 +18,7 @@ app:
             filename*
               "main.cpp"
             function*
-              "(anonymous namespace)::start"
+              "`anonymous namespace'::start"
           frame (non app frame)
             filename*
               "main.cpp"
@@ -36,7 +36,7 @@ app:
       threads (thread has no stacktrace)
 --------------------------------------------------------------------------
 system:
-  hash: "c29439027eafcf7642f641554ab0f0ef"
+  hash: "72e3ce74a0c25e3f14c8aaf34f875a3e"
   component:
     system*
       exception*
@@ -50,7 +50,7 @@ system:
             filename*
               "main.cpp"
             function*
-              "(anonymous namespace)::start"
+              "`anonymous namespace'::start"
           frame*
             filename*
               "main.cpp"

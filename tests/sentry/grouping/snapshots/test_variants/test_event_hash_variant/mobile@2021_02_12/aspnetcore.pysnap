@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T10:36:25.038809Z'
+created: '2021-03-18T11:30:02.505718Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -48,7 +48,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "1a74c747b5cea2b8c2ac2f5753a03116"
-  tree_label: "Execute | lambda_method | ..."
+  tree_label: "Execute | ..."
   component:
     app-depth-3*
       exception*
@@ -79,7 +79,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "14a57462092f01a0042382359f958006"
-  tree_label: "Execute | Execute | lambda_method | ..."
+  tree_label: "Execute | ..."
   component:
     app-depth-4*
       exception*
@@ -116,7 +116,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "8bd7d4553a8f5d58ad65bea951793080"
-  tree_label: "InvokeActionMethodAsync | Execute | Execute | lambda_method | ..."
+  tree_label: "InvokeActionMethodAsync | ..."
   component:
     app-depth-5*
       exception*

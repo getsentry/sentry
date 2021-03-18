@@ -1,12 +1,12 @@
 ---
-created: '2021-03-12T14:08:30.011267Z'
+created: '2021-03-18T11:30:03.214737Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: null
   component:
-    app-depth-1 (stacktrace of app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+    app-depth-1 (stacktrace of app-depth-2/app-depth-3/app-depth-4/system takes precedence)
       stacktrace
         frame
           filename (ignored because frame points to a URL)
@@ -35,7 +35,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "e04dce7550635e05dbd7f656102cf304"
-  tree_label: "test | test | ..."
+  tree_label: "test | ..."
   component:
     app-depth-3*
       stacktrace*
@@ -61,61 +61,9 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "e04dce7550635e05dbd7f656102cf304"
-  tree_label: "test | test | ..."
-  component:
-    app-depth-4*
-      stacktrace*
-        frame*
-          filename (ignored because frame points to a URL)
-            "foo.js"
-          function*
-            "test"
-          context-line*
-            "hello world"
-        frame*
-          filename*
-            "foo.js"
-          function*
-            "test"
-          context-line*
-            "hello world"
-        frame
-          filename (ignored because frame points to a URL)
-            "foo.js"
-          context-line (discarded because from URL origin and no function)
-            "hello world"
---------------------------------------------------------------------------
-app-depth-5:
-  hash: "e04dce7550635e05dbd7f656102cf304"
-  tree_label: "test | test | ..."
-  component:
-    app-depth-5*
-      stacktrace*
-        frame*
-          filename (ignored because frame points to a URL)
-            "foo.js"
-          function*
-            "test"
-          context-line*
-            "hello world"
-        frame*
-          filename*
-            "foo.js"
-          function*
-            "test"
-          context-line*
-            "hello world"
-        frame
-          filename (ignored because frame points to a URL)
-            "foo.js"
-          context-line (discarded because from URL origin and no function)
-            "hello world"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "e04dce7550635e05dbd7f656102cf304"
   tree_label: "<entire stacktrace>"
   component:
-    app-depth-max*
+    app-depth-4*
       stacktrace*
         frame*
           filename (ignored because frame points to a URL)

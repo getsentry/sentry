@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T10:36:27.011747Z'
+created: '2021-03-18T11:30:05.172917Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -140,7 +140,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "10d59ebf3acfdfe7057e631360f3937a"
-  tree_label: "Xg | ih | ..."
+  tree_label: "Xg | ..."
   component:
     app-depth-5*
       exception*

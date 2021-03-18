@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T10:37:56.199856Z'
+created: '2021-03-18T11:30:04.507999Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -36,7 +36,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "61d21e6d53c0837718af047c20e5e7ea"
-  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated | Scaleform::GFx::AS3::IMEManager::DispatchEvent | ..."
+  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated | ..."
   component:
     app-depth-3*
       exception*
@@ -57,51 +57,9 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "61d21e6d53c0837718af047c20e5e7ea"
-  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated | Scaleform::GFx::AS3::IMEManager::DispatchEvent | ..."
-  component:
-    app-depth-4*
-      exception*
-        stacktrace*
-          frame*
-            function*
-              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
-          frame*
-            function*
-              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame*
-            function*
-              "<lambda>::operator()"
-        type (ignored because exception is synthetic)
-          "log_demo"
-        value (ignored because stacktrace takes precedence)
-          "Holy shit everything is on fire!"
---------------------------------------------------------------------------
-app-depth-5:
-  hash: "61d21e6d53c0837718af047c20e5e7ea"
-  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated | Scaleform::GFx::AS3::IMEManager::DispatchEvent | ..."
-  component:
-    app-depth-5*
-      exception*
-        stacktrace*
-          frame*
-            function*
-              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
-          frame*
-            function*
-              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame*
-            function*
-              "<lambda>::operator()"
-        type (ignored because exception is synthetic)
-          "log_demo"
-        value (ignored because stacktrace takes precedence)
-          "Holy shit everything is on fire!"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "61d21e6d53c0837718af047c20e5e7ea"
   tree_label: "<entire stacktrace>"
   component:
-    app-depth-max*
+    app-depth-4*
       exception*
         stacktrace*
           frame*

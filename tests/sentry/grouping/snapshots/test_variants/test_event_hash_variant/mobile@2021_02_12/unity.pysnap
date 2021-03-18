@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T10:36:25.309781Z'
+created: '2021-03-18T11:30:02.780374Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -42,7 +42,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "cc2160edfd340d734321a9bf33eb91e3"
-  tree_label: "UnityEngine.Events.UnityEvent.Invoke () | UnityEngine.Events.InvokableCall.Invoke () | ..."
+  tree_label: "UnityEngine.Events.UnityEvent.Invoke () | ..."
   component:
     app-depth-3*
       exception*
@@ -69,7 +69,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "8b1f3b176a539129232c8cc8d94be95c"
-  tree_label: "UnityEngine.UI.Button.Press () | UnityEngine.Events.UnityEvent.Invoke () | UnityEngine.Events.InvokableCall.Invoke () | ..."
+  tree_label: "UnityEngine.UI.Button.Press () | ..."
   component:
     app-depth-4*
       exception*
@@ -101,7 +101,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "b7a54608ccd4adaa5b40fe92c155d3e0"
-  tree_label: "UnityEngine.UI.Button.OnPointerClick (UnityEngine.EventSystems.PointerEventData eventData) | UnityEngine.UI.Button.Press () | UnityEngine.Events.UnityEvent.Invoke () | UnityEngine.Events.InvokableCall.Invoke () | ..."
+  tree_label: "UnityEngine.UI.Button.OnPointerClick (UnityEngine.EventSystems.PointerEventData eventData) | ..."
   component:
     app-depth-5*
       exception*

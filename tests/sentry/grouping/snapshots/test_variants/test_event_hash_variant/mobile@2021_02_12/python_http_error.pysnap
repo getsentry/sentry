@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T10:36:25.962955Z'
+created: '2021-03-18T11:30:03.674476Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -63,126 +63,9 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "133db3f366b1327dab4e661f66dfb961"
-  tree_label: "safe_execute | ... | raise_for_status"
-  component:
-    app-depth-3*
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "sentry.utils.safe"
-            filename (module takes precedence)
-              "safe.py"
-            function*
-              "safe_execute"
-            context-line*
-              "result = func(*args, **kwargs)"
-          frame*
-            module*
-              "sentry.integrations.slack.notify_action"
-            filename (module takes precedence)
-              "notify_action.py"
-            function*
-              "send_notification"
-            context-line*
-              "resp.raise_for_status()"
-          frame*
-            module*
-              "requests.models"
-            filename (module takes precedence)
-              "models.py"
-            function*
-              "raise_for_status"
-            context-line*
-              "raise HTTPError(http_error_msg, response=self)"
-        type*
-          "HTTPError"
-        value (ignored because stacktrace takes precedence)
-          "<int> Client Error: Too Many Requests for url: <url>"
---------------------------------------------------------------------------
-app-depth-4:
-  hash: "133db3f366b1327dab4e661f66dfb961"
-  tree_label: "safe_execute | ... | raise_for_status"
-  component:
-    app-depth-4*
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "sentry.utils.safe"
-            filename (module takes precedence)
-              "safe.py"
-            function*
-              "safe_execute"
-            context-line*
-              "result = func(*args, **kwargs)"
-          frame*
-            module*
-              "sentry.integrations.slack.notify_action"
-            filename (module takes precedence)
-              "notify_action.py"
-            function*
-              "send_notification"
-            context-line*
-              "resp.raise_for_status()"
-          frame*
-            module*
-              "requests.models"
-            filename (module takes precedence)
-              "models.py"
-            function*
-              "raise_for_status"
-            context-line*
-              "raise HTTPError(http_error_msg, response=self)"
-        type*
-          "HTTPError"
-        value (ignored because stacktrace takes precedence)
-          "<int> Client Error: Too Many Requests for url: <url>"
---------------------------------------------------------------------------
-app-depth-5:
-  hash: "133db3f366b1327dab4e661f66dfb961"
-  tree_label: "safe_execute | ... | raise_for_status"
-  component:
-    app-depth-5*
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "sentry.utils.safe"
-            filename (module takes precedence)
-              "safe.py"
-            function*
-              "safe_execute"
-            context-line*
-              "result = func(*args, **kwargs)"
-          frame*
-            module*
-              "sentry.integrations.slack.notify_action"
-            filename (module takes precedence)
-              "notify_action.py"
-            function*
-              "send_notification"
-            context-line*
-              "resp.raise_for_status()"
-          frame*
-            module*
-              "requests.models"
-            filename (module takes precedence)
-              "models.py"
-            function*
-              "raise_for_status"
-            context-line*
-              "raise HTTPError(http_error_msg, response=self)"
-        type*
-          "HTTPError"
-        value (ignored because stacktrace takes precedence)
-          "<int> Client Error: Too Many Requests for url: <url>"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "133db3f366b1327dab4e661f66dfb961"
   tree_label: "<entire stacktrace>"
   component:
-    app-depth-max*
+    app-depth-3*
       exception*
         stacktrace*
           frame*
@@ -220,8 +103,8 @@ app-depth-max:
 default:
   hash: null
   component:
-    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
-      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/exception-type/system takes precedence)
+    default (exception of app-depth-1/app-depth-2/app-depth-3/exception-type/system takes precedence)
+      message (exception of app-depth-1/app-depth-2/app-depth-3/exception-type/system takes precedence)
         "%s.process_error"
 --------------------------------------------------------------------------
 exception-type:

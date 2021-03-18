@@ -1,5 +1,5 @@
 ---
-created: '2021-03-12T14:08:29.580585Z'
+created: '2021-03-18T11:30:02.658055Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -34,60 +34,9 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "c | ..."
-  component:
-    app-depth-3*
-      stacktrace*
-        frame*
-          filename*
-            "dojo.js"
-          function*
-            "c"
-        frame*
-          filename*
-            "dojo.js"
-          function* (trimmed javascript function)
-            "_createDocumentViewModel"
---------------------------------------------------------------------------
-app-depth-4:
-  hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "c | ..."
-  component:
-    app-depth-4*
-      stacktrace*
-        frame*
-          filename*
-            "dojo.js"
-          function*
-            "c"
-        frame*
-          filename*
-            "dojo.js"
-          function* (trimmed javascript function)
-            "_createDocumentViewModel"
---------------------------------------------------------------------------
-app-depth-5:
-  hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "c | ..."
-  component:
-    app-depth-5*
-      stacktrace*
-        frame*
-          filename*
-            "dojo.js"
-          function*
-            "c"
-        frame*
-          filename*
-            "dojo.js"
-          function* (trimmed javascript function)
-            "_createDocumentViewModel"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "c5da56c71b31f34c5880d734cbc8f5bb"
   tree_label: "<entire stacktrace>"
   component:
-    app-depth-max*
+    app-depth-3*
       stacktrace*
         frame (ignored low quality javascript frame)
           filename (anonymous filename discarded)

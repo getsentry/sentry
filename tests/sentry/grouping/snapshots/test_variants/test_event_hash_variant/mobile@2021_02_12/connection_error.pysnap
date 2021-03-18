@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T10:36:25.926768Z'
+created: '2021-03-18T11:30:03.615670Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -63,7 +63,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "8538e8eb15b0b93e3355cf9d08268131"
-  tree_label: "is_rate_limited | is_rate_limited | ... | __call__ | evalsha"
+  tree_label: "is_rate_limited | ... | evalsha"
   component:
     app-depth-3*
       exception*
@@ -120,7 +120,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "a4f739f3240d6c4fc5ed50428442abc1"
-  tree_label: "<lambda> | is_rate_limited | is_rate_limited | ... | __call__ | evalsha | execute_command"
+  tree_label: "<lambda> | ... | execute_command"
   component:
     app-depth-4*
       exception*
@@ -195,7 +195,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "acb23d293e6a73416ad00df1bb35d8a8"
-  tree_label: "safe_execute | <lambda> | is_rate_limited | is_rate_limited | ... | __call__ | evalsha | execute_command | parse_response"
+  tree_label: "safe_execute | ... | parse_response"
   component:
     app-depth-5*
       exception*

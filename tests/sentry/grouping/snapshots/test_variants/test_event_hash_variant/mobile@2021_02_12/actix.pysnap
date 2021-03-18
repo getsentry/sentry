@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T10:37:55.277098Z'
+created: '2021-03-18T11:30:03.184879Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -51,7 +51,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "cb20e13a0ac481e2d961ddb5ec5b737c"
-  tree_label: "actix_web::pipeline::Pipeline<T>::poll_io | actix_web::pipeline::ProcessResponse<T>::poll_io | ... | sentry::integrations::log::Logger::log | sentry::hub::Hub::with_active"
+  tree_label: "actix_web::pipeline::Pipeline<T>::poll_io | ... | sentry::hub::Hub::with_active"
   component:
     app-depth-3*
       exception*
@@ -92,7 +92,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "46035a02eac7b0ace4d4f740e8075d7f"
-  tree_label: "actix_web::server::h1::Http1Dispatcher<T>::parse | actix_web::pipeline::Pipeline<T>::poll_io | actix_web::pipeline::ProcessResponse<T>::poll_io | ... | sentry::integrations::log::Logger::log | sentry::hub::Hub::with_active | sentry::hub::Hub::with"
+  tree_label: "actix_web::server::h1::Http1Dispatcher<T>::parse | ... | sentry::hub::Hub::with"
   component:
     app-depth-4*
       exception*
@@ -145,7 +145,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "5e293439c562dbd9e43df32419d45b6a"
-  tree_label: "actix_web::server::h1::Http1Dispatcher<T>::poll_io | actix_web::server::h1::Http1Dispatcher<T>::parse | actix_web::pipeline::Pipeline<T>::poll_io | actix_web::pipeline::ProcessResponse<T>::poll_io | ... | sentry::integrations::log::Logger::log | sentry::hub::Hub::with_active | sentry::hub::Hub::with | std::thread::local::LocalKey<T>::with"
+  tree_label: "actix_web::server::h1::Http1Dispatcher<T>::poll_io | ... | std::thread::local::LocalKey<T>::with"
   component:
     app-depth-5*
       exception*
