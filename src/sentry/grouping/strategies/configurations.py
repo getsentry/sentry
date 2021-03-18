@@ -61,6 +61,9 @@ BASE_STRATEGY = create_strategy_configuration(
         # Whether to discard filenames of native events for grouping if
         # function is present.
         "discard_native_filename": False,
+        # Use the `package` component of a frame as fallback where other
+        # information would be used but is not available.
+        "use_package_fallback": False,
     },
 )
 
@@ -152,6 +155,7 @@ register_strategy_config(
     initial_context={
         "hierarchical_grouping": True,
         "discard_native_filename": True,
+        "use_package_fallback": True,
     },
 )
 

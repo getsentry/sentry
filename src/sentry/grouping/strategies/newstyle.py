@@ -63,6 +63,17 @@ def is_recursion_v1(frame1, frame2):
     return True
 
 
+def get_package_component(package, platform):
+    if package is None or platform != "native":
+        return GroupingComponent(id="package")
+
+    package = _basename_re.split(package)[-1].lower()
+    package_component = GroupingComponent(
+        id="package", values=[package], similarity_encoder=ident_encoder
+    )
+    return package_component
+
+
 def get_filename_component(abs_path, filename, platform, allow_file_origin=False):
     """Attempt to normalize filenames by detecting special filenames and by
     using the basename only.
@@ -289,6 +300,21 @@ def frame(frame, event, context, **meta):
         filename_component.update(
             contributes=False, hint="discarded native filename for grouping stability"
         )
+
+    if context["use_package_fallback"] and frame.package:
+        # If function did not symbolicate properly and we also have no filename, use package as fallback.
+        package_component = get_package_component(package=frame.package, platform=platform)
+        use_package_component = all(not component.contributes for component in values)
+        if use_package_component:
+            package_component.update(
+                contributes=True, hint="used as fallback because function name is not available"
+            )
+        else:
+            package_component.update(
+                contributes=False, hint="ignored because function takes precedence"
+            )
+
+        values.append(package_component)
 
     rv = GroupingComponent(id="frame", values=values)
 
