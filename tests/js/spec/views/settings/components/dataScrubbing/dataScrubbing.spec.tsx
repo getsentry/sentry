@@ -46,6 +46,7 @@ function renderComponent({
       />
     );
   }
+
   return mountWithTheme(
     <DataScrubbing
       additionalContext={additionalContext}
