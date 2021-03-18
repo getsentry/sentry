@@ -4,6 +4,7 @@ from sentry_relay import DataCategory
 from sentry.snuba.sessions_v2 import (
     get_constrained_date_range,
     massage_sessions_result,
+    SimpleGroupBy,
 )
 from sentry.utils.outcomes import Outcome
 from datetime import datetime
@@ -79,22 +80,54 @@ class TimesSeenField:
         if dataset == Dataset.Outcomes:
             return ["sum", "times_seen", "times_seen"]
         else:
+            # rawoutcomes doesnt have times_seen, do a count instead
             return ["count()", "", "times_seen"]
 
 
-class SimpleGroupBy:
-    def __init__(self, row_name, name=None):
-        self.row_name = row_name
-        self.name = name or row_name
+class CategoryDimension(SimpleGroupBy):
+    def resolve_filter(self, raw_filter):
+        resolved_categories = set()
+        for category in raw_filter:
+            if DataCategory.parse(category) == DataCategory.ERROR:
+                resolved_categories.update(DataCategory.error_categories())
+            else:
+                resolved_categories.add(DataCategory.parse(category))
+        return list(resolved_categories)
 
-    def get_snuba_columns(self):
-        return [self.row_name]
+    def map_row(self, row):
+        if "category" in row:
+            category = (
+                DataCategory.ERROR
+                if row["category"] in DataCategory.error_categories()
+                else DataCategory(row["category"])
+            )
+            row["category"] = category.api_name()
 
-    def get_snuba_groupby(self):
-        return [self.row_name]
 
-    def get_keys_for_row(self, row):
-        return [(self.name, row[self.row_name])]
+class OutcomeDimension(SimpleGroupBy):
+    def resolve_filter(self, raw_filter):
+        return [Outcome.parse(o) for o in raw_filter]
+
+    def map_row(self, row):
+        if "outcome" in row:
+            row["outcome"] = Outcome(row["outcome"]).api_name()
+
+
+class ReasonDimension(SimpleGroupBy):
+    def resolve_filter(self, raw_filter):
+        resolved_reasons = set()
+        for reason in raw_filter:
+            if reason == "spike_protection":
+                resolved_reasons.add("smart_rate_limit")
+            else:
+                resolved_reasons.add(reason)
+        return list(resolved_reasons)
+
+    def map_row(self, row):
+        if "reason" in row:
+            row["reason"] = (
+                "spike_protection" if row["reason"] == "smart_rate_limit" else row["reason"]
+            )  # return spike protection to be consistent with naming in other places
 
 
 class InvalidField(Exception):  # TODO: move to common
@@ -106,12 +139,12 @@ COLUMN_MAP = {
     "sum(times_seen)": TimesSeenField(),
 }
 
-GROUPBY_MAP = {
+DIMENSION_MAP = {
     "project": SimpleGroupBy("project_id", "project"),
     "key": SimpleGroupBy("key_id"),
-    "outcome": SimpleGroupBy("outcome"),
-    "category": SimpleGroupBy("category"),
-    "reason": SimpleGroupBy("reason"),
+    "outcome": OutcomeDimension("outcome"),
+    "category": CategoryDimension("category"),
+    "reason": ReasonDimension("reason"),
 }
 
 CONDITION_COLUMNS = ["project", "key", "outcome", "category", "reason"]
@@ -130,16 +163,11 @@ def get_filter(query, params):
     filter_keys = {}
     conditions = []
 
-    category = query.getlist("category", [])
-    category = _resolve_category_filters(category)
-
-    outcome = query.getlist("outcome", [])
-    outcome = [Outcome.parse(o) for o in outcome]
-    reason = query.getlist("reason", [])
-    reason = _resolve_reason_filters(reason)
-    for name, qfilter in [("category", category), ("outcome", outcome), ("reason", reason)]:
-        if len(qfilter) > 0:
-            conditions.append([name, "IN", qfilter])
+    for filter_name in ["category", "outcome", "reason"]:
+        raw_filter = query.getlist(filter_name, [])
+        resolved_filter = DIMENSION_MAP[filter_name].resolve_filter(raw_filter)
+        if len(resolved_filter) > 0:
+            conditions.append([filter_name, "IN", resolved_filter])
 
     if "project_id" in params:
         filter_keys["project_id"] = params["project_id"]
@@ -147,26 +175,6 @@ def get_filter(query, params):
         filter_keys["organization_id"] = params["organization_id"]
 
     return {"filter_keys": filter_keys, "conditions": conditions}
-
-
-def _resolve_category_filters(categories):
-    resolved_categories = set()
-    for c in categories:
-        if DataCategory.parse(c) == DataCategory.ERROR:
-            resolved_categories.update(DataCategory.error_categories())
-        else:
-            resolved_categories.add(DataCategory.parse(c))
-    return list(resolved_categories)
-
-
-def _resolve_reason_filters(reasons):
-    resolved_reasons = set()
-    for reason in reasons:
-        if reason == "spike_protection":
-            resolved_reasons.add("smart_rate_limit")
-        else:
-            resolved_reasons.add(reason)
-    return list(resolved_reasons)
 
 
 class QueryDefinition:
@@ -201,9 +209,12 @@ class QueryDefinition:
 
         self.groupby = []
         for key in raw_groupby:
-            if key not in GROUPBY_MAP:
+            if key not in DIMENSION_MAP:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
-            self.groupby.append(GROUPBY_MAP[key])
+            self.groupby.append(DIMENSION_MAP[key])
+
+        if len(query.getlist("category", [])) == 0 and "category" not in raw_groupby:
+            raise InvalidField("Query must have category as groupby or filter")
 
         query_columns = set()
         for field in self.fields.values():
@@ -218,6 +229,7 @@ class QueryDefinition:
         self.query_groupby = list(query_groupby)
 
         snuba_filter = get_filter(query, params)
+
         self.conditions = snuba_filter["conditions"]
         self.filter_keys = snuba_filter["filter_keys"]
 
@@ -249,33 +261,14 @@ def run_outcomes_query(query):
 
     result = _format_rows(result["data"], query)
     result_timeseries = _format_rows(result_timeseries["data"], query)
-    # TODO: what to do about coalescing reasons?
     return result, result_timeseries
 
 
 def _format_rows(rows, query):
     category_grouping = {}
 
-    for row in rows:
-        if "category" in row:
-            category = (
-                DataCategory.ERROR
-                if row["category"] in DataCategory.error_categories()
-                else DataCategory(row["category"])
-            )
-            row["category"] = category.api_name()
-        if "outcome" in row:
-            row["outcome"] = Outcome(row["outcome"]).api_name()
-        if "reason" in row:
-            row["reason"] = (
-                "spike_protection" if row["reason"] == "smart_rate_limit" else row["reason"]
-            )  # return spike protection to be consistent with naming in other places
-
+    def _group_rows(row):
         if TS_COL in row:
-            # have to use "time" column -- "timestamp" column doesnt
-            # rollup correctly. TODO: look into this
-            row[TS_COL] = datetime.utcfromtimestamp(row[TS_COL]).isoformat()
-
             grouping_key = "-".join([row[TS_COL]] + [str(row[col]) for col in query.query_groupby])
         else:
             grouping_key = "-".join([str(row[col]) for col in query.query_groupby])
@@ -287,7 +280,21 @@ def _format_rows(rows, query):
         else:
             category_grouping[grouping_key] = row
 
+    for row in rows:
+        _rename_row_fields(row)
+        _group_rows(row)
+
     return list(category_grouping.values())
+
+
+def _rename_row_fields(row):
+    for dimension in ["category", "reason", "outcome"]:
+        DIMENSION_MAP[dimension].map_row(row)
+    if TS_COL in row:
+        # have to use "time" column -- "timestamp" column doesnt
+        # rollup correctly. TODO: look into this
+        row[TS_COL] = datetime.utcfromtimestamp(row[TS_COL]).isoformat()
+    return row
 
 
 def _outcomes_dataset(rollup):

@@ -392,6 +392,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "interval": "1d",
                 "field": ["sum(times_seen)"],
                 "reason": ["spike_protection"],
+                "groupBy": ["category"],
             }
         )
 
@@ -399,7 +400,16 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert response.data == {
             "intervals": ["2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "totals": {"sum(times_seen)": 2}, "series": {"sum(times_seen)": [2]}}
+                {
+                    "by": {"category": "attachment"},
+                    "totals": {"sum(times_seen)": 1},
+                    "series": {"sum(times_seen)": [1]},
+                },
+                {
+                    "by": {"category": "transaction"},
+                    "totals": {"sum(times_seen)": 1},
+                    "series": {"sum(times_seen)": [1]},
+                },
             ],
         }
 
@@ -415,6 +425,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "interval": "1d",
                 "field": ["sum(quantity)"],
                 "outcome": "accepted",
+                "category": "error",
             }
         )
         assert response.status_code == 200, response.content
