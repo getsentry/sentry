@@ -266,7 +266,10 @@ class Table extends React.Component<Props, State> {
       .getColumns()
       // remove key_transactions from the column order as we'll be rendering it
       // via a prepended column
-      .filter((col: TableColumn<React.ReactText>) => col.name !== 'key_transaction')
+      .filter(
+        (col: TableColumn<React.ReactText>) =>
+          col.name !== 'key_transaction' && col.name !== 'user_misery(300)'
+      )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};

@@ -7,6 +7,7 @@ import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
+import NewUserMisery from 'app/components/newUserMisery';
 import UserMisery from 'app/components/userMisery';
 import Version from 'app/components/version';
 import {t} from 'app/locale';
@@ -345,6 +346,7 @@ const SPECIAL_FIELDS: SpecialFields = {
 
 type SpecialFunctions = {
   user_misery: SpecialFieldRenderFunc;
+  new_user_misery: SpecialFieldRenderFunc;
 };
 
 /**
@@ -383,6 +385,49 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
           miseryLimit={miseryLimit}
           totalUsers={uniqueUsers}
           miserableUsers={userMisery}
+        />
+      </BarContainer>
+    );
+  },
+  new_user_misery: data => {
+    const uniqueUsers = data.count_unique_user;
+    let newUserMiseryField: string = '';
+    let userMiseryField: string = '';
+    for (const field in data) {
+      if (field.startsWith('new_user_misery')) {
+        newUserMiseryField = field;
+      }
+      if (field.startsWith('user_misery')) {
+        userMiseryField = field;
+      }
+    }
+
+    if (!newUserMiseryField) {
+      return <NumberContainer>{emptyValue}</NumberContainer>;
+    }
+
+    const miserableUsers = userMiseryField ? data[userMiseryField] : 0;
+
+    const userMisery = data[newUserMiseryField];
+    if (!uniqueUsers && uniqueUsers !== 0) {
+      return (
+        <NumberContainer>
+          {typeof userMisery === 'number' ? formatFloat(userMisery, 4) : emptyValue}
+        </NumberContainer>
+      );
+    }
+
+    const miseryLimit = parseInt(newUserMiseryField.split('_').pop() || '', 10);
+
+    return (
+      <BarContainer>
+        <NewUserMisery
+          bars={10}
+          barHeight={20}
+          miseryLimit={miseryLimit}
+          totalUsers={uniqueUsers}
+          userMisery={userMisery}
+          miserableUsers={miserableUsers}
         />
       </BarContainer>
     );
