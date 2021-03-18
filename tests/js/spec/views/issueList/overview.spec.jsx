@@ -1812,4 +1812,16 @@ describe('IssueList', function () {
       expect(paginationWrapper.text()).toBe('Showing 49 of 74 issues');
     });
   });
+
+  describe('with relative change feature', function () {
+    it('defaults to larger graph selection', function () {
+      organization.features = ['issue-list-trend-sort'];
+      props.location = {
+        query: {query: 'is:unresolved', sort: 'trend'},
+        search: 'query=is:unresolved',
+      };
+      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      expect(wrapper.instance().getGroupStatsPeriod()).toBe('auto');
+    });
+  });
 });
