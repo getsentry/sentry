@@ -72,3 +72,32 @@ install-js-dev() {
 	# Add an additional check against `node_modules`
 	yarn check --verify-tree || yarn install --check-files
 }
+
+init-config() {
+    sentry init --dev
+}
+
+run-dependent-services() {
+    sentry devservices up
+}
+
+create-db() {
+    local CREATEDB
+    CREATEDB=$(command -v createdb 2> /dev/null)
+    if [ -z "${CREATEDB:+}" ]; then
+        # This command works when sentry devservices have first been started
+        CREATEDB=$(docker exec sentry_postgres createdb)
+    fi
+    echo "--> Creating 'sentry' database"
+	"$CREATEDB" -h 127.0.0.1 -U postgres -E utf-8 sentry || true
+}
+
+apply-migrations() {
+    echo "--> Applying migrations"
+	sentry upgrade
+}
+
+build-platform-assets() {
+    echo "--> Building platform assets"
+	echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
+}

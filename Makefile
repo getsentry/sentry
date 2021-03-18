@@ -20,18 +20,14 @@ clean:
 	@echo ""
 
 init-config: ensure-venv
-	sentry init --dev
+	@./scripts/do.sh init-config
 
 run-dependent-services: ensure-venv
-	sentry devservices up
+	@./scripts/do.sh run-dependent-services
 
 DROPDB := $(shell command -v dropdb 2> /dev/null)
 ifndef DROPDB
 	DROPDB = docker exec sentry_postgres dropdb
-endif
-CREATEDB := $(shell command -v createdb 2> /dev/null)
-ifndef CREATEDB
-	CREATEDB = docker exec sentry_postgres createdb
 endif
 
 drop-db:
@@ -39,12 +35,10 @@ drop-db:
 	$(DROPDB) -h 127.0.0.1 -U postgres sentry || true
 
 create-db:
-	@echo "--> Creating 'sentry' database"
-	$(CREATEDB) -h 127.0.0.1 -U postgres -E utf-8 sentry || true
+	@./scripts/do.sh create-db
 
 apply-migrations: ensure-venv
-	@echo "--> Applying migrations"
-	sentry upgrade
+	@./scripts/do.sh apply-migrations
 
 reset-db: drop-db create-db apply-migrations
 
@@ -99,8 +93,7 @@ sync-transifex: merge-locale-catalogs
 update-transifex: sync-transifex compile-locale
 
 build-platform-assets:
-	@echo "--> Building platform assets"
-	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
+	@./scripts/do.sh build-platform-assets
 
 fetch-release-registry:
 	@echo "--> Fetching release registry"
