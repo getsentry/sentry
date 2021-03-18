@@ -16,7 +16,7 @@ import {
   SDKUpdatesSuggestion,
 } from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {snoozedDays} from 'app/utils/promptsActivity';
+import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -87,7 +87,7 @@ class InnerGlobalSdkSuggestions extends React.Component<Props, State> {
     });
 
     this.setState({
-      isDismissed: !prompt?.snoozedTime ? false : snoozedDays(prompt?.snoozedTime) < 14,
+      isDismissed: promptIsDismissed(prompt),
     });
   }
 
