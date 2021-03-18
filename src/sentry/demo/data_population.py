@@ -319,6 +319,9 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                 fix_spans(local_event, old_span_id)
                 safe_send_event(local_event)
 
+                # note picking the 0th span is arbitrary
+                backend_parent_id = local_event["spans"][0]["span_id"]
+
                 # React error
                 local_event = copy.deepcopy(react_error)
                 local_event.update(
@@ -340,6 +343,7 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                         "type": "trace",
                         "trace_id": trace_id,
                         "span_id": uuid4().hex[:16],
+                        "parent_span_id": backend_parent_id,
                     }
                 }
 
