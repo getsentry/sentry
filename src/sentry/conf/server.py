@@ -384,7 +384,7 @@ STATICFILES_FINDERS = (
 ASSET_VERSION = 0
 
 # setup a default media root to somewhere useless
-MEDIA_ROOT = "/tmp/sentry-files/media"
+MEDIA_ROOT = "/tmp/sentry-files"
 MEDIA_URL = "_media/"
 
 LOCALE_PATHS = (os.path.join(PROJECT_ROOT, "locale"),)
