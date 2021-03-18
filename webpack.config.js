@@ -261,7 +261,21 @@ let appConfig = {
       },
       {
         test: /\.css/,
-        use: ['style-loader', 'css-loader'],
+        use: [
+          {
+            loader: 'style-loader',
+            options: {
+              // allow emotion to override style-loader
+              // style-loader 1.0.0 uses 'insert' but we're on 0.23.1
+              // insertAt: 'top' breaks onboarding prism styling. it needs to be
+              // injected *before* emotion, but *after* sentry.css.
+              insertAt: {
+                before: 'style',
+              },
+            },
+          },
+          'css-loader',
+        ],
       },
       {
         test: /\.less$/,
