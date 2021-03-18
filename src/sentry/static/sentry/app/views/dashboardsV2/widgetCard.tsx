@@ -1,18 +1,23 @@
-import React from 'react';
+import React, {MouseEvent} from 'react';
 import * as ReactRouter from 'react-router';
+import {browserHistory} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
 import {HeaderTitle} from 'app/components/charts/styles';
+import DropdownMenu from 'app/components/dropdownMenu';
 import ErrorBoundary from 'app/components/errorBoundary';
+import MenuItem from 'app/components/menuItem';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import {IconDelete, IconEdit, IconGrabbable} from 'app/icons';
+import {IconDelete, IconEdit, IconEllipsis, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
@@ -20,6 +25,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
 import {Widget} from './types';
+import {eventViewFromWidget} from './utils';
 import WidgetCardChart from './widgetCardChart';
 import WidgetQueries from './widgetQueries';
 
@@ -36,6 +42,7 @@ type Props = ReactRouter.WithRouterProps & {
   onEdit: () => void;
   isSorting: boolean;
   currentWidgetDragging: boolean;
+  showContextMenu?: boolean;
   hideToolbar?: boolean;
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
@@ -93,6 +100,52 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
+  renderContextMenu() {
+    const {widget, selection, organization, showContextMenu} = this.props;
+
+    if (!showContextMenu) {
+      return null;
+    }
+
+    const menuOptions: React.ReactNode[] = [];
+
+    if (
+      widget.displayType === 'table' &&
+      organization.features.includes('discover-basic')
+    ) {
+      // Open table widget in Discover
+
+      if (widget.queries.length) {
+        // We expect Table widgets to have only one query.
+        const query = widget.queries[0];
+
+        const eventView = eventViewFromWidget(widget.title, query, selection);
+
+        menuOptions.push(
+          <MenuItem
+            key="open-discover"
+            onClick={event => {
+              event.preventDefault();
+              browserHistory.push(eventView.getResultsViewUrlTarget(organization.slug));
+            }}
+          >
+            {t('Open in Discover')}
+          </MenuItem>
+        );
+      }
+    }
+
+    if (!menuOptions.length) {
+      return null;
+    }
+
+    return (
+      <ContextWrapper>
+        <ContextMenu>{menuOptions}</ContextMenu>
+      </ContextWrapper>
+    );
+  }
+
   render() {
     const {
       widget,
@@ -108,7 +161,10 @@ class WidgetCard extends React.Component<Props> {
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
         <StyledPanel isDragging={false}>
-          <WidgetTitle>{widget.title}</WidgetTitle>
+          <WidgetHeader>
+            <WidgetTitle>{widget.title}</WidgetTitle>
+            {this.renderContextMenu()}
+          </WidgetHeader>
           <WidgetQueries
             api={api}
             organization={organization}
@@ -208,6 +264,61 @@ const StyledIconGrabbable = styled(IconGrabbable)`
 `;
 
 const WidgetTitle = styled(HeaderTitle)`
+  ${overflowEllipsis};
+`;
+
+const WidgetHeader = styled('div')`
   padding: ${space(2)} ${space(3)} 0 ${space(3)};
   width: 100%;
+  display: flex;
+  justify-content: space-between;
+`;
+
+const ContextMenu = ({children}) => (
+  <DropdownMenu>
+    {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+      const topLevelCx = classNames('dropdown', {
+        'anchor-right': true,
+        open: isOpen,
+      });
+
+      return (
+        <MoreOptions
+          {...getRootProps({
+            className: topLevelCx,
+          })}
+        >
+          <DropdownTarget
+            {...getActorProps({
+              onClick: (event: MouseEvent) => {
+                event.stopPropagation();
+                event.preventDefault();
+              },
+            })}
+          >
+            <IconEllipsis data-test-id="context-menu" size="md" />
+          </DropdownTarget>
+          {isOpen && (
+            <ul {...getMenuProps({})} className={classNames('dropdown-menu')}>
+              {children}
+            </ul>
+          )}
+        </MoreOptions>
+      );
+    }}
+  </DropdownMenu>
+);
+
+const MoreOptions = styled('span')`
+  display: flex;
+  color: ${p => p.theme.textColor};
+`;
+
+const DropdownTarget = styled('div')`
+  display: flex;
+  cursor: pointer;
+`;
+
+const ContextWrapper = styled('div')`
+  margin-left: ${space(1)};
 `;

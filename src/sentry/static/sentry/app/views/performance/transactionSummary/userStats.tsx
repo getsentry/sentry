@@ -29,19 +29,30 @@ import VitalInfo from '../vitalDetail/vitalInfo';
 
 type Props = {
   eventView: EventView;
+  isLoading: boolean;
+  error: string | null;
   totals: Record<string, number> | null;
   location: Location;
   organization: Organization;
   transactionName: string;
 };
 
-function UserStats({eventView, totals, location, organization, transactionName}: Props) {
-  let userMisery = <Placeholder height="34px" />;
+function UserStats({
+  eventView,
+  isLoading,
+  error,
+  totals,
+  location,
+  organization,
+  transactionName,
+}: Props) {
+  let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
   const threshold = organization.apdexThreshold;
-  let apdex: React.ReactNode = <Placeholder height="24px" />;
+  let apdex: React.ReactNode =
+    error !== null ? <div>{'\u2014'}</div> : <Placeholder height="24px" />;
   let vitalsPassRate: React.ReactNode = null;
 
-  if (totals) {
+  if (!isLoading && error === null && totals) {
     const miserableUsers = Number(totals[`user_misery_${threshold}`]);
     const totalUsers = Number(totals.count_unique_user);
     if (!isNaN(miserableUsers) && !isNaN(totalUsers)) {

@@ -51,7 +51,9 @@ function TraceFullQuery({traceId, start, end, children, ...props}: QueryProps) {
           // the client returns a empty string when the response
           // is 204. And we want the empty string, undefined and
           // null to be converted to null.
-          trace: tableData || null,
+          // TODO(wmak): replace once the backend starts returning arrays
+          // `(tableData || null)?.[0] ?? null,`
+          trace: (tableData || null)?.[0] ?? (tableData || null),
           type: 'full',
           ...rest,
         })

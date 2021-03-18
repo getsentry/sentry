@@ -193,7 +193,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     }
 
     const {location, router, selection} = this.props;
-    const {start, end, period} = selection.datetime;
+    const {start, end, period, utc} = selection.datetime;
 
     if (widget.displayType === 'world_map') {
       const DEFAULT_GEO_DATA = {
@@ -296,7 +296,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     };
 
     return (
-      <ChartZoom router={router} period={period} start={start} end={end}>
+      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
           if (errorMessage) {
             return (
@@ -372,11 +372,15 @@ const ChartWrapper = styled('div')`
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`
-  /* align with other card charts */
-  height: 216px;
   margin-top: ${space(1.5)};
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSizeMedium};
+  box-shadow: none;
+
+  > div {
+    padding: ${space(1)} ${space(3)};
+  }
 `;
 
 export default withTheme(WidgetCardChart);

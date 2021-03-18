@@ -1,19 +1,19 @@
 import {Location, LocationDescriptor} from 'history';
 
-import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {OrganizationSummary} from 'app/types';
-import {EventTransaction} from 'app/types/event';
+import {Event} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
 import {generateEventSlug} from 'app/utils/discover/urls';
-import {EventLite} from 'app/utils/performance/quickTrace/types';
+import {EventLite, TraceError} from 'app/utils/performance/quickTrace/types';
+import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 import {getTraceDetailsUrl} from '../traceDetails/utils';
 import {getTransactionDetailsUrl} from '../utils';
 
 export function generateSingleEventTarget(
-  event: EventLite,
+  event: EventLite | TraceError,
   organization: OrganizationSummary,
   location: Location
 ): LocationDescriptor {
@@ -30,7 +30,7 @@ export function generateSingleEventTarget(
 }
 
 export function generateMultiEventsTarget(
-  currentEvent: EventTransaction,
+  currentEvent: Event,
   events: EventLite[],
   organization: OrganizationSummary,
   location: Location,
@@ -50,10 +50,7 @@ export function generateMultiEventsTarget(
     }
   }
 
-  const {start, end} = getTraceDateTimeRange({
-    start: currentEvent.startTimestamp,
-    end: currentEvent.endTimestamp,
-  });
+  const {start, end} = getTraceTimeRangeFromEvent(currentEvent);
   const traceEventView = EventView.fromSavedQuery({
     id: undefined,
     name: `${groupType} Transactions of Event ID ${currentEvent.id}`,
@@ -69,15 +66,12 @@ export function generateMultiEventsTarget(
 }
 
 export function generateTraceTarget(
-  event: EventTransaction,
+  event: Event,
   organization: OrganizationSummary
 ): LocationDescriptor {
   const traceId = event.contexts?.trace?.trace_id ?? '';
 
-  const {start, end} = getTraceDateTimeRange({
-    start: event.startTimestamp,
-    end: event.endTimestamp,
-  });
+  const {start, end} = getTraceTimeRangeFromEvent(event);
 
   if (organization.features.includes('trace-view-summary')) {
     return getTraceDetailsUrl(organization, traceId, start, end, {});

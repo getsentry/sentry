@@ -558,7 +558,7 @@ const StyledSidebar = styled('div')<{collapsed: boolean}>`
   padding: 12px 0 2px; /* Allows for 32px avatars  */
   width: ${p => p.theme.sidebar.expandedWidth};
   position: fixed;
-  top: 0;
+  top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   left: 0;
   bottom: 0;
   justify-content: space-between;

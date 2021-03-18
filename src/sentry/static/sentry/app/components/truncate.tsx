@@ -5,6 +5,7 @@ import space from 'app/styles/space';
 
 type DefaultProps = {
   className: string;
+  minLength: number;
   maxLength: number;
   leftTrim: boolean;
   expandable: boolean;
@@ -23,6 +24,7 @@ type State = {
 class Truncate extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     className: '',
+    minLength: 15,
     maxLength: 50,
     leftTrim: false,
     expandable: true,
@@ -52,6 +54,7 @@ class Truncate extends React.Component<Props, State> {
       className,
       leftTrim,
       trimRegex,
+      minLength,
       maxLength,
       value,
       expandable,
@@ -66,20 +69,25 @@ class Truncate extends React.Component<Props, State> {
         : value.slice(0, maxLength - 4);
 
       // Try to trim to values from the regex
-      if (trimRegex && slicedValue.search(trimRegex) >= 0) {
-        if (leftTrim) {
-          shortValue = (
-            <span>
-              … {slicedValue.slice(slicedValue.search(trimRegex), slicedValue.length)}
-            </span>
-          );
-        } else {
-          const matches = slicedValue.match(trimRegex);
-          const lastIndex = matches
-            ? slicedValue.lastIndexOf(matches[matches.length - 1]) + 1
-            : slicedValue.length;
-          shortValue = <span>{slicedValue.slice(0, lastIndex)} …</span>;
+      if (trimRegex && leftTrim) {
+        const valueIndex = slicedValue.search(trimRegex);
+        shortValue = (
+          <span>
+            …{' '}
+            {valueIndex > 0 && valueIndex <= maxLength - minLength
+              ? slicedValue.slice(slicedValue.search(trimRegex), slicedValue.length)
+              : slicedValue}
+          </span>
+        );
+      } else if (trimRegex && !leftTrim) {
+        const matches = slicedValue.match(trimRegex);
+        let lastIndex = matches
+          ? slicedValue.lastIndexOf(matches[matches.length - 1]) + 1
+          : slicedValue.length;
+        if (lastIndex <= minLength) {
+          lastIndex = slicedValue.length;
         }
+        shortValue = <span>{slicedValue.slice(0, lastIndex)} …</span>;
       } else if (leftTrim) {
         shortValue = <span>… {slicedValue}</span>;
       } else {

@@ -1142,15 +1142,16 @@ def get_json_type(snuba_type):
         return "string"
 
     # Ignore Nullable part
-    nullable_match = re.search(r"^Nullable\((.+)\)$", snuba_type)
+    if snuba_type.startswith("Nullable("):
+        snuba_type = snuba_type[9:-1]
 
-    if nullable_match:
-        snuba_type = nullable_match.group(1)
-
-    # Check for array
-    array_match = re.search(r"^Array\(.+\)$", snuba_type)
-    if array_match:
+    if snuba_type.startswith("Array("):
         return "array"
+
+    # timestamp is DateTime, whereas toStartOf{Hour,Day} are
+    # DateTime('UTC') or DateTime('Universal')
+    if snuba_type.startswith("DateTime("):
+        return "date"
 
     return JSON_TYPE_MAP.get(snuba_type, "string")
 

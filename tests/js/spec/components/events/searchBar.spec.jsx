@@ -168,6 +168,46 @@ describe('Events > SearchBar', function () {
     expect(onSearch).toHaveBeenCalledTimes(1);
   });
 
+  it('filters dropdown to accomodate for num characters left in query', async function () {
+    const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={5} />, options);
+    await tick();
+    await wrapper.update();
+    wrapper.setState;
+
+    setQuery(wrapper, 'g');
+    await tick();
+    await wrapper.update();
+
+    expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('g');
+    expect(wrapper.find('SearchDropdown Description')).toEqual({});
+    expect(
+      wrapper.find('SearchListItem[data-test-id="search-autocomplete-item"]')
+    ).toHaveLength(1);
+  });
+
+  it('returns zero dropdown suggestions if out of characters', async function () {
+    const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={2} />, options);
+    await tick();
+    await wrapper.update();
+    wrapper.setState;
+
+    setQuery(wrapper, 'g');
+    await tick();
+    await wrapper.update();
+
+    expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('g');
+    expect(wrapper.find('SearchDropdown Description')).toEqual({});
+    expect(
+      wrapper.find('SearchListItem[data-test-id="search-autocomplete-item"]')
+    ).toHaveLength(0);
+  });
+
+  it('sets maxLength property', async function () {
+    const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={10} />, options);
+    await tick();
+    expect(wrapper.find('input').prop('maxLength')).toBe(10);
+  });
+
   it('does not requery for event field values if query does not change', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();

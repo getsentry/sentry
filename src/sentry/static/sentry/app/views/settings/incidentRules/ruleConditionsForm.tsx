@@ -22,7 +22,7 @@ import {
 import FormField from 'app/views/settings/components/forms/formField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
-import {DEFAULT_AGGREGATE} from './constants';
+import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
 import MetricField from './metricField';
 import {Datasource, TimeWindow} from './types';
 
@@ -204,7 +204,9 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                         // Reset the aggregate to the default (which works across
                         // datatypes), otherwise we may send snuba an invalid query
                         // (transaction aggregate on events datasource = bad).
-                        model.setValue('aggregate', DEFAULT_AGGREGATE);
+                        optionValue === 'transaction'
+                          ? model.setValue('aggregate', DEFAULT_TRANSACTION_AGGREGATE)
+                          : model.setValue('aggregate', DEFAULT_AGGREGATE);
 
                         // set the value of the dataset and event type from data source
                         const {dataset, eventTypes} =

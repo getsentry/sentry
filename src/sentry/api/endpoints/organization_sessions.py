@@ -5,9 +5,11 @@ from rest_framework.exceptions import ParseError
 
 import sentry_sdk
 
+from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
 from sentry.snuba.sessions_v2 import (
     InvalidField,
+    InvalidParams,
     QueryDefinition,
     run_sessions_query,
     massage_sessions_result,
@@ -36,7 +38,10 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             raise NoProjects("No projects available")  # give it a description
 
-        return QueryDefinition(request.GET, params)
+        allow_minute_resolution = features.has(
+            "organizations:minute-resolution-sessions", organization, actor=request.user
+        )
+        return QueryDefinition(request.GET, params, allow_minute_resolution=allow_minute_resolution)
 
     @contextmanager
     def handle_query_errors(self):
@@ -44,5 +49,5 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
             # TODO: this context manager should be decoupled from `OrganizationEventsEndpointBase`?
             with super().handle_query_errors():
                 yield
-        except (InvalidField, NoProjects) as error:
+        except (InvalidField, InvalidParams, NoProjects) as error:
             raise ParseError(detail=str(error))
