@@ -1,5 +1,4 @@
 import React from 'react';
-import * as Sentry from '@sentry/react';
 
 import {Event} from 'app/types/event';
 import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
@@ -59,9 +58,8 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
                   ...traceFullResults,
                   trace,
                 });
-              } catch (error) {
-                Sentry.setTag('current.trace_id', traceId);
-                Sentry.captureException(error);
+              } catch {
+                // let this fall through and use the lite results
               }
             }
 
