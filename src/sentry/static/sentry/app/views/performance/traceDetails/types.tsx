@@ -8,6 +8,14 @@ export type TraceInfo = {
    */
   relevantProjectsWithTransactions: Set<string>;
   /**
+   * The errors in the trace that matched the user conditions.
+   */
+  relevantErrors: Set<string>;
+  /**
+   * The transactions in the trace that matched the user conditions.
+   */
+  relevantTransactions: Set<string>;
+  /**
    * The errors in the trace.
    */
   errors: Set<string>;
