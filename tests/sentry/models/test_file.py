@@ -1,8 +1,11 @@
 import os
+import pytest
 
 from django.core.files.base import ContentFile
+from django.db import DatabaseError
+from unittest.mock import patch
 
-from sentry.models import File, FileBlob, FileBlobIndex
+from sentry.models import File, FileBlob, FileBlobIndex, get_storage
 from sentry.testutils import TestCase
 from sentry.utils.compat import map
 
@@ -69,6 +72,25 @@ class FileTest(TestCase):
 
         # Check that raz_file blob indexes are there.
         assert len(raz_file.blobs.all()) == 3
+
+    @patch("sentry.models.FileBlob.delete")
+    def test_delete_handles_blob_deletion_error(self, blob_delete):
+        fileobj = ContentFile(b"foo bar")
+        baz_file = File.objects.create(name="baz-v1.js", type="default", size=7)
+        baz_file.putfile(fileobj)
+        baz_id = baz_file.id
+        blob_path = baz_file.blobs.all()[0].path
+
+        blob_delete.side_effect = DatabaseError("server closed connection")
+
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
+            baz_file.delete()
+
+        assert FileBlobIndex.objects.filter(file_id=baz_id).count() == 0
+        assert FileBlob.objects.count() == 1
+
+        with pytest.raises(FileNotFoundError):
+            get_storage().open(blob_path)
 
     def test_file_handling(self):
         fileobj = ContentFile(b"foo bar")
