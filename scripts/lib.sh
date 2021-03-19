@@ -73,7 +73,6 @@ ensure_docker_server() {
       sleep 1
     done
     (( i )) && printf '\n'
-    echok
   fi
 }
 
