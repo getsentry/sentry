@@ -122,4 +122,3 @@ class DraggableList extends React.Component<Props, State> {
 }
 
 export default DraggableList;
-export {ItemProps, SortableItemProps};
