@@ -312,14 +312,14 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
         assert (
             response.data["detail"]
-            == 'Your search query could not be parsed: Boolean statements containing "OR" or "AND" are not supported in this search'
+            == 'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search'
         )
 
         response = self.get_response(sort_by="date", query="title:hello AND title:goodbye")
         assert response.status_code == 400
         assert (
             response.data["detail"]
-            == 'Your search query could not be parsed: Boolean statements containing "OR" or "AND" are not supported in this search'
+            == 'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search'
         )
 
     def test_invalid_query(self):
@@ -329,7 +329,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.get_response(sort_by="date", query="timesSeen:>1t")
         assert response.status_code == 400
-        assert "Invalid format for numeric field" in response.data["detail"]
+        assert "Invalid number" in response.data["detail"]
 
     def test_valid_numeric_query(self):
         now = timezone.now()

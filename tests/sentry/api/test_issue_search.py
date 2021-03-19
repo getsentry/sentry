@@ -118,9 +118,7 @@ class ParseSearchQueryTest(TestCase):
             'times_seen:"<10"',
         ]
         for invalid_query in invalid_queries:
-            with self.assertRaises(
-                InvalidSearchQuery, expected_regex="Invalid format for numeric search"
-            ):
+            with self.assertRaises(InvalidSearchQuery, expected_regex="Invalid number"):
                 parse_search_query(invalid_query)
 
     def test_boolean_operators_not_allowed(self):
