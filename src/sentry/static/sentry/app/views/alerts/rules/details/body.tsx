@@ -7,6 +7,7 @@ import moment from 'moment';
 
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Button from 'app/components/button';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import {SectionHeading} from 'app/components/charts/styles';
@@ -19,12 +20,11 @@ import * as Layout from 'app/components/layouts/thirds';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import TimeSince from 'app/components/timeSince';
-import {IconCheckmark} from 'app/icons/iconCheckmark';
-import {IconFire} from 'app/icons/iconFire';
-import {IconWarning} from 'app/icons/iconWarning';
+import {IconCheckmark, IconFire, IconUser, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Actor, Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
@@ -35,11 +35,12 @@ import {
   AlertRuleThresholdType,
   Dataset,
   IncidentRule,
+  Trigger,
 } from 'app/views/settings/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
 
 import {Incident, IncidentStatus} from '../../types';
-import {DATA_SOURCE_LABELS, getIncidentRuleMetricPreset} from '../../utils';
+import {getIncidentRuleMetricPreset} from '../../utils';
 
 import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS} from './constants';
 import MetricChart from './metricChart';
@@ -84,6 +85,21 @@ class DetailsBody extends React.Component<Props> {
     const direction = isAbove === isAlert ? '>' : '<';
 
     return `${direction} ${value}`;
+  }
+
+  getMetricText(): React.ReactNode {
+    const {rule} = this.props;
+
+    if (!rule) {
+      return '';
+    }
+
+    const {aggregate, timeWindow} = rule;
+
+    return tct(' [metric] over [window]', {
+      metric: aggregate,
+      window: <Duration seconds={timeWindow * 60} />,
+    });
   }
 
   getInterval() {
@@ -139,6 +155,33 @@ class DetailsBody extends React.Component<Props> {
     return {criticalPercent, warningPercent, resolvedPercent};
   }
 
+  renderTrigger(trigger: Trigger): React.ReactNode {
+    const {rule} = this.props;
+
+    if (!rule) {
+      return null;
+    }
+
+    const icon =
+      trigger.label === 'critical' ? (
+        <IconFire color="red300" size="sm" />
+      ) : trigger.label === 'warning' ? (
+        <IconWarning color="yellow300" size="sm" />
+      ) : (
+        <IconCheckmark color="green300" size="sm" isCircled />
+      );
+
+    const thresholdTypeText =
+      rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('Above') : t('Below');
+
+    return (
+      <TriggerCondition>
+        {icon}
+        <TriggerText>{`${thresholdTypeText} ${trigger.alertThreshold}`}</TriggerText>
+      </TriggerCondition>
+    );
+  }
+
   renderRuleDetails() {
     const {rule} = this.props;
 
@@ -149,54 +192,59 @@ class DetailsBody extends React.Component<Props> {
     const criticalTrigger = rule?.triggers.find(({label}) => label === 'critical');
     const warningTrigger = rule?.triggers.find(({label}) => label === 'warning');
 
-    return (
-      <KeyValueTable>
-        <KeyValueTableRow
-          keyName={t('Data Source')}
-          value={rule?.dataset && DATA_SOURCE_LABELS[rule?.dataset]}
-        />
-        <KeyValueTableRow keyName={t('Metric')} value={rule?.aggregate} />
-        <KeyValueTableRow
-          keyName={t('Time Window')}
-          value={rule?.timeWindow && <Duration seconds={rule?.timeWindow * 60} />}
-        />
-        {(rule?.dataset || rule?.query) && (
-          <KeyValueTableRow
-            keyName={t('Filter')}
-            value={
-              <span title={rule?.query}>
-                {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
-                {rule?.query}
-              </span>
-            }
-          />
-        )}
-        <KeyValueTableRow
-          keyName={t('Critical Trigger')}
-          value={this.getThresholdText(
-            criticalTrigger?.alertThreshold,
-            rule?.thresholdType,
-            true
-          )}
-        />
-        {defined(warningTrigger) && (
-          <KeyValueTableRow
-            keyName={t('Warning Trigger')}
-            value={this.getThresholdText(
-              warningTrigger?.alertThreshold,
-              rule?.thresholdType,
-              true
-            )}
-          />
-        )}
+    const ownerId = rule.owner?.split(':')[1];
+    const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
 
-        {defined(rule?.resolveThreshold) && (
-          <KeyValueTableRow
-            keyName={t('Resolution')}
-            value={this.getThresholdText(rule?.resolveThreshold, rule?.thresholdType)}
-          />
-        )}
-      </KeyValueTable>
+    return (
+      <React.Fragment>
+        <SidebarHeading>{t('Metric')}</SidebarHeading>
+        <RuleText>{this.getMetricText()}</RuleText>
+
+        <SidebarHeading>{t('Environment')}</SidebarHeading>
+        <RuleText>{rule.environment ?? 'All'}</RuleText>
+
+        <SidebarHeading>{t('Filters')}</SidebarHeading>
+        <Filters>
+          <span>
+            {rule?.dataset && <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>}
+          </span>
+          <span>{rule?.query && <code>{rule?.query}</code>}</span>
+        </Filters>
+
+        <SidebarHeading>{t('Conditions')}</SidebarHeading>
+        {criticalTrigger && this.renderTrigger(criticalTrigger)}
+        {warningTrigger && this.renderTrigger(warningTrigger)}
+
+        <SidebarHeading>{t('Other Details')}</SidebarHeading>
+        <KeyValueTable>
+          <Feature features={['organizations:team-alerts-ownership']}>
+            <KeyValueTableRow
+              keyName={t('Team')}
+              value={
+                teamActor ? (
+                  <ActorAvatar actor={teamActor} size={24} />
+                ) : (
+                  <IconUser size="20px" color="gray400" />
+                )
+              }
+            />
+          </Feature>
+
+          {rule.createdBy && (
+            <KeyValueTableRow
+              keyName={t('Created By')}
+              value={<CreatedBy>{rule.createdBy.name ?? '-'}</CreatedBy>}
+            />
+          )}
+
+          {rule.dateModified && (
+            <KeyValueTableRow
+              keyName={t('Last Modified')}
+              value={<TimeSince date={rule.dateModified} suffix={t('ago')} />}
+            />
+          )}
+        </KeyValueTable>
+      </React.Fragment>
     );
   }
 
@@ -293,7 +341,7 @@ class DetailsBody extends React.Component<Props> {
     return (
       <StatusContainer>
         <div>
-          <SidebarHeading>{t('Status')}</SidebarHeading>
+          <SidebarHeading noMargin>{t('Status')}</SidebarHeading>
           <ItemValue>
             <AlertBadge color={color} icon={Icon}>
               <AlertIconWrapper>
@@ -304,7 +352,7 @@ class DetailsBody extends React.Component<Props> {
           </ItemValue>
         </div>
         <div>
-          <SidebarHeading>
+          <SidebarHeading noMargin>
             {activeIncident ? t('Last Triggered') : t('Last Resolved')}
           </SidebarHeading>
           <ItemValue>{activityDate ? <TimeSince date={activityDate} /> : '-'}</ItemValue>
@@ -325,10 +373,7 @@ class DetailsBody extends React.Component<Props> {
           </ChartPanel>
         </Layout.Main>
         <Layout.Side>
-          <SidebarHeading>
-            <span>{t('Alert Rule')}</span>
-          </SidebarHeading>
-          {this.renderRuleDetails()}
+          <Placeholder height="200px" />
         </Layout.Side>
       </Layout.Body>
     );
@@ -349,14 +394,7 @@ class DetailsBody extends React.Component<Props> {
       return this.renderLoading();
     }
 
-    const {
-      query,
-      environment,
-      aggregate,
-      projects: projectSlugs,
-      timeWindow,
-      triggers,
-    } = rule;
+    const {query, environment, aggregate, projects: projectSlugs, triggers} = rule;
 
     const criticalTrigger = triggers.find(({label}) => label === 'critical');
     const warningTrigger = triggers.find(({label}) => label === 'warning');
@@ -394,10 +432,7 @@ class DetailsBody extends React.Component<Props> {
                       <PresetName>
                         {this.metricPreset?.name ?? t('Custom metric')}
                       </PresetName>
-                      {tct(' [metric] over [window]', {
-                        metric: aggregate,
-                        window: <Duration seconds={timeWindow * 60} />,
-                      })}
+                      {this.getMetricText()}
                     </ChartHeader>
                     <EventsRequest
                       api={api}
@@ -463,9 +498,6 @@ class DetailsBody extends React.Component<Props> {
               <Layout.Side>
                 {this.renderMetricStatus()}
                 <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
-                <SidebarHeading>
-                  <span>{t('Alert Rule')}</span>
-                </SidebarHeading>
                 {this.renderRuleDetails()}
               </Layout.Side>
             </Layout.Body>
@@ -544,10 +576,10 @@ const StatusContainer = styled('div')`
   margin-bottom: 20px;
 `;
 
-const SidebarHeading = styled(SectionHeading)`
+const SidebarHeading = styled(SectionHeading)<{noMargin?: boolean}>`
   display: flex;
   justify-content: space-between;
-  margin-top: 0;
+  margin-top: ${p => (p.noMargin ? 0 : space(2))};
   line-height: 1;
 `;
 
@@ -610,6 +642,30 @@ const StatCount = styled('span')`
   margin-left: ${space(0.5)};
   margin-top: ${space(0.25)};
   color: black;
+`;
+
+const RuleText = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  margin-left: ${space(0.5)};
+`;
+
+const Filters = styled('div')`
+  width: 100%;
+  overflow-wrap: break-word;
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const TriggerCondition = styled('div')`
+  display: flex;
+`;
+
+const TriggerText = styled('div')`
+  margin-left: ${space(1)};
+  white-space: nowrap;
+`;
+
+const CreatedBy = styled('div')`
+  ${overflowEllipsis}
 `;
 
 export default withTheme(DetailsBody);

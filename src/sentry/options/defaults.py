@@ -110,6 +110,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
+# Backend chart rendering via chartcuterie
+register("chart-rendering.enabled", default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    "chart-rendering.chartcuterie",
+    default={"url": "http://localhost:7901"},
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)

@@ -1,9 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
 import ProgressBar from 'app/components/progressBar';
-import {IconRefresh} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {percent} from 'app/utils';
@@ -19,11 +17,6 @@ function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
     remainingEventsToReprocess,
     totalEvents
   );
-
-  // this is a temp solution
-  function handleRefresh() {
-    window.location.reload();
-  }
 
   return (
     <Wrapper>
@@ -41,9 +34,6 @@ function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
             totalEvents,
             event: tn('event', 'events', totalEvents),
           })}
-          <Button icon={<IconRefresh />} onClick={handleRefresh}>
-            {t('Refresh')}
-          </Button>
         </Content>
       </Inner>
     </Wrapper>
