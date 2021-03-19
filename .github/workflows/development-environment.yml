@@ -87,4 +87,5 @@ jobs:
         run: |
           python -m venv .venv
           source .venv/bin/activate
+          curl https://get.volta.sh | bash
           make bootstrap
