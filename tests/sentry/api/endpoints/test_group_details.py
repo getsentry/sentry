@@ -431,7 +431,6 @@ class GroupUpdateTest(APITestCase):
         team = self.create_team(organization=group.project.organization, members=[self.user])
 
         url = f"/api/0/issues/{group.id}/"
-
         response = self.client.put(url, data={"assignedTo": f"team:{team.id}"}, format="json")
 
         assert response.status_code == 400, response.content

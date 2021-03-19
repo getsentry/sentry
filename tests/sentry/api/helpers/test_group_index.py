@@ -77,7 +77,9 @@ class UpdateGroupsTest(TestCase):
         request.GET = QueryDict(query_string=f"id={resolved_group.id}")
 
         search_fn = Mock()
-        update_groups(request, [self.project], self.organization.id, search_fn)
+        update_groups(
+            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
+        )
 
         resolved_group.refresh_from_db()
 
@@ -97,7 +99,9 @@ class UpdateGroupsTest(TestCase):
         request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
 
         search_fn = Mock()
-        update_groups(request, [self.project], self.organization.id, search_fn)
+        update_groups(
+            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
+        )
 
         unresolved_group.refresh_from_db()
 
@@ -116,7 +120,9 @@ class UpdateGroupsTest(TestCase):
         request.GET = QueryDict(query_string=f"id={group.id}")
 
         search_fn = Mock()
-        update_groups(request, [self.project], self.organization.id, search_fn)
+        update_groups(
+            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
+        )
 
         group.refresh_from_db()
 
@@ -134,7 +140,9 @@ class UpdateGroupsTest(TestCase):
         request.GET = QueryDict(query_string=f"id={group.id}")
 
         search_fn = Mock()
-        update_groups(request, [self.project], self.organization.id, search_fn)
+        update_groups(
+            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
+        )
 
         group.refresh_from_db()
 
@@ -153,7 +161,9 @@ class UpdateGroupsTest(TestCase):
             request.GET = QueryDict(query_string=f"id={group.id}")
 
             search_fn = Mock()
-            update_groups(request, [self.project], self.organization.id, search_fn)
+            update_groups(
+                request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
+            )
 
             group.refresh_from_db()
 

@@ -17,6 +17,7 @@ from sentry.api.helpers.group_index import (
     delete_groups,
     get_by_short_id,
     rate_limit_endpoint,
+    track_slo_response,
     update_groups,
     ValidationError,
 )
@@ -161,6 +162,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             result = search.query(**query_kwargs)
         return result, query_kwargs
 
+    @track_slo_response("workflow")
     @rate_limit_endpoint(limit=10, window=1)
     def get(self, request, organization):
         """
@@ -334,6 +336,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         # TODO(jess): add metrics that are similar to project endpoint here
         return response
 
+    @track_slo_response("workflow")
     @rate_limit_endpoint(limit=10, window=1)
     def put(self, request, organization):
         """
@@ -412,8 +415,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             projects,
             self.get_environments(request, organization),
         )
-        return update_groups(request, projects, organization.id, search_fn, has_inbox)
 
+        return update_groups(
+            request, request.GET.getlist("id"), projects, organization.id, search_fn, has_inbox
+        )
+
+    @track_slo_response("workflow")
     @rate_limit_endpoint(limit=10, window=1)
     def delete(self, request, organization):
         """
