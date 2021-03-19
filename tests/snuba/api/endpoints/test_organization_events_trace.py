@@ -583,9 +583,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
 
         assert response.status_code == 200, response.content
-        import pprint
 
-        pprint.pprint(response.data)
         assert len(response.data) == 3
         # The first item of the response should be the main trace
         main, *orphans = response.data
