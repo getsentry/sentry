@@ -259,8 +259,18 @@ class BigtableNodeStorage(NodeStorage):
             row.delete()
             rows.append(row)
 
-        self.connection.mutate_rows(rows)
-        self._delete_cache_items(id_list)
+        deleted_ids = []
+        errors = []
+        for id, status in zip(id_list, self.connection.mutate_rows(rows)):
+            if status.code == 0:
+                deleted_ids.append(id)
+            else:
+                errors.append(BigtableError(status.code, status.message))
+
+        self._delete_cache_items(deleted_ids)
+
+        if errors:
+            raise BigtableError(errors)
 
     def cleanup(self, cutoff_timestamp):
         raise NotImplementedError
