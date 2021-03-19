@@ -330,7 +330,7 @@ class Candidates extends React.Component<Props, State> {
         <StyledPanelTable
           headers={[
             t('Status'),
-            t('Debug File'),
+            t('Location'),
             t('Processing'),
             t('Features'),
             t('Actions'),
