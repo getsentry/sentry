@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import NotAvailable from 'app/components/notAvailable';
+import Tooltip from 'app/components/tooltip';
 import {IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -36,7 +37,11 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
         <Status status={status} />
       </StatusColumn>
       <ImageColumn>
-        {fileName && <FileName>{fileName}</FileName>}
+        {fileName && (
+          <Tooltip title={code_file}>
+            <FileName>{fileName}</FileName>
+          </Tooltip>
+        )}
         <ImageAddress>{imageAddress}</ImageAddress>
       </ImageColumn>
       <Column>
