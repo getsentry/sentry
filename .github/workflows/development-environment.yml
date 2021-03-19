@@ -44,7 +44,6 @@ jobs:
         run: |
           brew bundle || brew update && brew bundle
           make init_docker
-          make start_docker
 
       - name: Install Python (via Pyenv)
         id: python-version
@@ -89,4 +88,5 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           curl https://get.volta.sh | bash
+          ./scripts/do.sh ensure_docker_server
           make bootstrap

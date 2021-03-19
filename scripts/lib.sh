@@ -32,6 +32,7 @@ init_docker() {
     sudo_askpass /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
     sudo_askpass /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
   fi
+  start_docker
 }
 
 start_docker() {
@@ -40,6 +41,23 @@ start_docker() {
     # At a later stage in the script, we're going to execute
     # ensure_docker_server which waits for it to be ready
     open -g -a Docker.app
+    logk
+  fi
+}
+
+# Open Docker.app and wait for docker server to be ready
+ensure_docker_server() {
+  if [ -d "/Applications/Docker.app" ]; then
+    log "Starting Docker.app, if necessary..."
+
+    # taken from https://github.com/docker/for-mac/issues/2359#issuecomment-607154849
+    # Wait for the server to start up, if applicable.
+    local i=0
+    while ! docker system info &>/dev/null; do
+      (( i++ == 0 )) && printf %s '-- Waiting for Docker to finish starting up...' || printf '.'
+      sleep 1
+    done
+    (( i )) && printf '\n'
     logk
   fi
 }
