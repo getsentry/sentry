@@ -10,7 +10,6 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import NotAvailable from 'app/components/notAvailable';
-import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -307,14 +306,15 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
               {t('Read the docs')}
             </Button>
             {debugFilesSettingsLink && (
-              <Tooltip
+              <Button
                 title={t(
                   'Search for this debug file in all images for the %s project',
                   projectId
                 )}
+                to={debugFilesSettingsLink}
               >
-                <Button to={debugFilesSettingsLink}>{t('Search in Settings')}</Button>
-              </Tooltip>
+                {t('Search in Settings')}
+              </Button>
             )}
           </StyledButtonBar>
         </Footer>
