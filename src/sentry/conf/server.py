@@ -2137,11 +2137,12 @@ DEMO_ORG_OWNER_EMAIL = None
 DEMO_DATA_GEN_PARAMS = {
     "MAX_DAYS": 7,  # how many days of data
     "SCALE_FACTOR": 1,  # scales the frequency of events
-    "BASE_OFFSET": 0.5,  # higher values increases the minum number of events in an hour
-    "NAME_STEP_SIZE": 20,  # higher value means fewr possible test users in sample
+    "BASE_OFFSET": 0.5,  # higher values increases the minimum number of events in an hour
+    "NAME_STEP_SIZE": 20,  # higher value means fewer possible test users in sample
     "BREADCRUMB_LOOKBACK_TIME": 5,  # how far back should breadcrumbs go from the time of the event
     "DEFAULT_BACKOFF_TIME": 0,  # backoff time between sending events
     "ERROR_BACKOFF_TIME": 0.5,  # backoff time after a snuba error
+    "NUM_RELEASES": 3,
 }
 
 # adds an extra JS to HTML template

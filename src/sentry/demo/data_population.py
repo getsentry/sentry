@@ -9,12 +9,23 @@ from collections import defaultdict
 from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
+from hashlib import sha1
 from uuid import uuid4
 from typing import List
 
 from sentry.interfaces.user import User as UserInterface
-from sentry.models import Project
-from sentry.utils import json
+from sentry.models import (
+    File,
+    Project,
+    Release,
+    Repository,
+    CommitAuthor,
+    Commit,
+    ReleaseFile,
+    CommitFileChange,
+    ReleaseCommit,
+)
+from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_timestamp
 from sentry.utils.samples import (
     random_geo,
@@ -32,6 +43,17 @@ NAME_STEP_SIZE = settings.DEMO_DATA_GEN_PARAMS["NAME_STEP_SIZE"]
 BREADCRUMB_LOOKBACK_TIME = settings.DEMO_DATA_GEN_PARAMS["BREADCRUMB_LOOKBACK_TIME"]
 DEFAULT_BACKOFF_TIME = settings.DEMO_DATA_GEN_PARAMS["DEFAULT_BACKOFF_TIME"]
 ERROR_BACKOFF_TIME = settings.DEMO_DATA_GEN_PARAMS["ERROR_BACKOFF_TIME"]
+NUM_RELEASES = settings.DEMO_DATA_GEN_PARAMS["NUM_RELEASES"]
+
+
+commit_message_base_messages = [
+    "feat: Do something to",
+    "feat: Update code in",
+    "ref: Refactor code in",
+    "fix: Fix bug in",
+]
+
+base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
 
 logger = logging.getLogger(__name__)
@@ -103,6 +125,180 @@ def generate_user():
     name_list = get_list_of_names()
     id_0_offset = random.randrange(0, len(name_list), NAME_STEP_SIZE)
     return get_user_by_id(id_0_offset)
+
+
+def gen_random_author():
+    return (
+        "{} {}".format(random.choice(loremipsum.words), random.choice(loremipsum.words)),
+        "{}@example.com".format(random.choice(loremipsum.words)),
+    )
+
+
+def make_sentence(words=None):
+    if words is None:
+        words = int(random.weibullvariate(8, 3))
+    return " ".join(random.choice(loremipsum.words) for _ in range(words))
+
+
+def get_release_from_time(org_id, timestamp):
+    return (
+        Release.objects.filter(organization_id=org_id, date_added__lte=timestamp)
+        .order_by("-date_added")
+        .first()
+    )
+
+
+def generate_commits(required_files, file_extensions):
+    commits = []
+    for i in range(random.randint(len(required_files), 20)):
+        if i < len(required_files):
+            filename = required_files[i]
+        else:
+            # create a realistic file path based off the extension we choose
+            extension = random.choice(file_extensions)
+            base_path = random.choice(base_paths_by_file_type[extension])
+            filename = base_path + random.choice(loremipsum.words) + "." + extension
+
+        # TODO: pass in user list for commits
+        author = gen_random_author()
+
+        base_message = random.choice(commit_message_base_messages)
+
+        commits.append(
+            {
+                "key": sha1(uuid4().bytes).hexdigest(),
+                "message": f"{base_message} {filename}",
+                "author": author,
+                "files": [(filename, "M")],
+            }
+        )
+    return commits
+
+
+def generate_releases(projects):
+    release_time = timezone.now() - timedelta(days=MAX_DAYS)
+    hourly_release_cadence = MAX_DAYS * 24.0 / NUM_RELEASES
+    org = projects[0].organization
+    org_id = org.id
+    for i in range(NUM_RELEASES):
+        release = Release.objects.create(
+            # version=sha1(uuid4().bytes).hexdigest(),
+            version=f"V{i + 1}",
+            organization_id=org_id,
+            date_added=release_time,
+        )
+        for project in projects:
+            release.add_project(project)
+
+        # TODO: unhardcode params when we add more scenarios
+        raw_commits = generate_commits(["components/ShoppingCart.js", "flask/app.py"], ["js", "py"])
+
+        repo, _ = Repository.objects.get_or_create(
+            organization_id=org.id,
+            external_id="example/example",
+            defaults={
+                "name": "Example Repo",
+            },
+        )
+        authors = set()
+
+        for commit_index, raw_commit in enumerate(raw_commits):
+            author = CommitAuthor.objects.get_or_create(
+                organization_id=org.id,
+                email=raw_commit["author"][1],
+                defaults={"name": raw_commit["author"][0]},
+            )[0]
+            commit = Commit.objects.get_or_create(
+                organization_id=org.id,
+                repository_id=repo.id,
+                key=raw_commit["key"],
+                defaults={
+                    "author": author,
+                    "message": raw_commit["message"],
+                    "date_added": release_time,
+                },
+            )[0]
+            authors.add(author)
+
+            for file in raw_commit["files"]:
+                ReleaseFile.objects.get_or_create(
+                    organization_id=project.organization_id,
+                    release=release,
+                    name=file[0],
+                    file=File.objects.get_or_create(
+                        name=file[0], type="release.file", checksum="abcde" * 8, size=13043
+                    )[0],
+                    defaults={"organization_id": project.organization_id},
+                )
+
+                CommitFileChange.objects.get_or_create(
+                    organization_id=org.id, commit=commit, filename=file[0], type=file[1]
+                )
+
+            ReleaseCommit.objects.get_or_create(
+                organization_id=org.id, release=release, commit=commit, order=commit_index
+            )
+
+        release_time += timedelta(hours=hourly_release_cadence)
+
+
+def gen_suspect_commit(project, timestamp, filename):
+    org = project.organization
+
+    release = get_release_from_time(org.id, timestamp)
+
+    author = (
+        "{} {}".format(random.choice(loremipsum.words), random.choice(loremipsum.words)),
+        "{}@example.com".format(random.choice(loremipsum.words)),
+    )
+
+    raw_commit = {
+        "key": sha1(uuid4().bytes).hexdigest(),
+        "message": f"feat: Do something to {filename}\n{make_sentence()}",
+        "author": author,
+        "files": [(filename, "M")],
+    }
+
+    repo, _ = Repository.objects.get_or_create(
+        organization_id=org.id,
+        provider="integrations:github",
+        external_id="example/example",
+        defaults={
+            "name": "Example Repo",
+        },
+    )
+
+    author = CommitAuthor.objects.get_or_create(
+        organization_id=org.id,
+        email=raw_commit["author"][1],
+        defaults={"name": raw_commit["author"][0]},
+    )[0]
+
+    commit = Commit.objects.get_or_create(
+        organization_id=org.id,
+        repository_id=repo.id,
+        key=raw_commit["key"],
+        defaults={"author": author, "message": raw_commit["message"]},
+    )[0]
+
+    for file in raw_commit["files"]:
+        ReleaseFile.objects.get_or_create(
+            organization_id=project.organization_id,
+            release=release,
+            name=file[0],
+            file=File.objects.get_or_create(
+                name=file[0], type="release.file", checksum="abcde" * 8, size=13043
+            )[0],
+            defaults={"organization_id": project.organization_id},
+        )
+
+        CommitFileChange.objects.get_or_create(
+            organization_id=org.id, commit=commit, filename=file[0], type=file[1]
+        )
+
+    ReleaseCommit.objects.get_or_create(
+        organization_id=org.id, release=release, commit=commit, defaults={"order": 0}
+    )
 
 
 def safe_send_event(data):
@@ -305,18 +501,30 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
     python_transaction = get_event_from_file("src/sentry/demo/data/python_transaction_1.json")
     python_error = get_event_from_file("src/sentry/demo/data/python_error_1.json")
 
+    start_time = timezone.now() - timedelta(days=MAX_DAYS)
+    # gen_suspect_commit(react_project, start_time, "components/ShoppingCart.js")
+
     for day in range(MAX_DAYS):
         for hour in range(24):
             base = distribution_v1(hour)
             # determine the number of events we want in this hour
             num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
+            timestamps = []
             for i in range(num_events):
-                # pick the minutes randomly (which means events will sent be out of order)
+                # randomly determine the minute
                 minute = random.randint(0, 60)
-                timestamp = timezone.now() - timedelta(days=day, hours=hour, minutes=minute)
+                timestamp = start_time + timedelta(days=day, hours=hour, minutes=minute)
                 timestamp = timestamp.replace(tzinfo=pytz.utc)
+                timestamps.append(timestamp)
+
+            # sort the timestamps
+            timestamps.sort()
+
+            for timestamp in timestamps:
                 transaction_user = generate_user()
                 trace_id = uuid4().hex
+                release = get_release_from_time(react_project.organization_id, timestamp)
+                release_sha = release.version
 
                 old_span_id = react_transaction["contexts"]["trace"]["span_id"]
                 frontend_root_span_id = uuid4().hex[:16]
@@ -337,6 +545,7 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                     platform=react_project.platform,
                     event_id=uuid4().hex,
                     user=transaction_user,
+                    release=release_sha,
                     timestamp=timestamp,
                     # start_timestamp decreases based on day so that there's a trend
                     start_timestamp=timestamp - timedelta(seconds=frontend_duration),
@@ -362,6 +571,7 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                     platform=react_project.platform,
                     timestamp=timestamp,
                     user=transaction_user,
+                    release=release_sha,
                     contexts=frontend_context,
                 )
                 fix_error_event(local_event)
@@ -387,6 +597,7 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                     timestamp=timestamp,
                     start_timestamp=timestamp - timedelta(milliseconds=backend_duration),
                     user=transaction_user,
+                    release=release_sha,
                     contexts=backend_context,
                 )
                 fix_transaction_event(local_event, old_span_id)
@@ -399,6 +610,7 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                     platform=python_project.platform,
                     timestamp=timestamp,
                     user=transaction_user,
+                    release=release_sha,
                     contexts=backend_context,
                 )
                 fix_error_event(local_event)

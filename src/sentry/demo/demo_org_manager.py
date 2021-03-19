@@ -16,9 +16,7 @@ from sentry.models import (
 )
 from sentry.utils.email import create_fake_email
 
-from .data_population import (
-    populate_connected_event_scenario_1,
-)
+from .data_population import populate_connected_event_scenario_1, generate_releases
 from .utils import NoDemoOrgReady, generate_random_name
 from .models import DemoUser, DemoOrganization, DemoOrgStatus
 
@@ -51,7 +49,7 @@ def create_demo_org() -> Organization:
         )
 
     # TODO: delete org if data population fails
-
+    generate_releases([react_project, python_project])
     populate_connected_event_scenario_1(react_project, python_project)
 
     return org
