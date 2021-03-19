@@ -17,6 +17,7 @@ const TextOverflow = styled(({isParagraph, className, children}: Props) => {
 })`
   ${p => (p.ellipsisDirection === 'right' ? overflowEllipsis : overflowEllipsisLeft)};
   width: auto;
+  line-height: 1.1;
 `;
 
 TextOverflow.defaultProps = {
