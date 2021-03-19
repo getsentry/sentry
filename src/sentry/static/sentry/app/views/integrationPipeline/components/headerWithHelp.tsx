@@ -2,14 +2,14 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/actions/button';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconSentryFull} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 export default function HeaderWithHelp({docsUrl}: {docsUrl: string}) {
   return (
     <Header>
-      <StyledInlineSvg src="logo" />
+      <StyledIconSentryFull />
       <Button external href={docsUrl} size="xsmall">
         {t('Need Help?')}
       </Button>
@@ -29,7 +29,7 @@ const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;
 
-const StyledInlineSvg = styled(InlineSvg)`
+const StyledIconSentryFull = styled(IconSentryFull)`
   width: 130px;
   height: 30px;
   color: ${p => p.theme.textColor};
