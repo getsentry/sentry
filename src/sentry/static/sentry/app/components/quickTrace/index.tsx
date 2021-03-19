@@ -1,27 +1,21 @@
 import React from 'react';
-import * as ReactRouter from 'react-router';
+import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'app/components/dropdownLink';
-import ErrorBoundary from 'app/components/errorBoundary';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
-import Link from 'app/components/links/link';
-import Placeholder from 'app/components/placeholder';
 import Tooltip from 'app/components/tooltip';
-import Truncate from 'app/components/truncate';
 import {IconFire} from 'app/icons';
 import {t, tn} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
 import {toTitleCase} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
 import {
   QuickTrace as QuickTraceType,
   QuickTraceEvent,
-  QuickTraceQueryChildrenProps,
   TraceError,
 } from 'app/utils/performance/quickTrace/types';
 import {parseQuickTrace} from 'app/utils/performance/quickTrace/utils';
@@ -32,109 +26,27 @@ import {
   DropdownItem,
   DropdownItemSubContainer,
   EventNode,
-  MetaData,
   QuickTraceContainer,
   SectionSubtext,
+  SingleEventHoverText,
   StyledTruncate,
   TraceConnector,
 } from './styles';
-import {
-  generateMultiEventsTarget,
-  generateSingleEventTarget,
-  generateTraceTarget,
-} from './utils';
+import {generateMultiEventsTarget, generateSingleEventTarget} from './utils';
 
-type Props = {
-  event: Event;
-  location: Location;
-  organization: OrganizationSummary;
-  quickTrace: QuickTraceQueryChildrenProps;
-};
-
-function handleTraceLink(organization: OrganizationSummary) {
-  trackAnalyticsEvent({
-    eventKey: 'quick_trace.trace_id.clicked',
-    eventName: 'Quick Trace: Trace ID clicked',
-    organization_id: parseInt(organization.id, 10),
-  });
-}
-
-export default function QuickTrace({
-  event,
-  location,
-  organization,
-  quickTrace: {isLoading, error, trace, type},
-}: Props) {
-  const traceId = event.contexts?.trace?.trace_id ?? null;
-  const traceTarget = generateTraceTarget(event, organization);
-
-  const body = isLoading ? (
-    <Placeholder height="27px" />
-  ) : error || trace === null ? (
-    '\u2014'
-  ) : (
-    <ErrorBoundary mini>
-      <QuickTracePills
-        event={event}
-        quickTrace={{type, trace}}
-        location={location}
-        organization={organization}
-      />
-    </ErrorBoundary>
-  );
-
-  return (
-    <MetaData
-      headingText={t('Quick Trace')}
-      tooltipText={t('A minified version of the full trace.')}
-      bodyText={body}
-      subtext={
-        traceId === null ? (
-          '\u2014'
-        ) : (
-          <Link to={traceTarget} onClick={() => handleTraceLink(organization)}>
-            {t('Trace ID: %s', getShortEventId(traceId))}
-          </Link>
-        )
-      }
-    />
-  );
-}
-
-type QuickTracePillsProps = {
+type QuickTraceProps = {
   quickTrace: QuickTraceType;
   event: Event;
   location: Location;
   organization: OrganizationSummary;
 };
 
-function singleEventHoverText(event: QuickTraceEvent) {
-  return (
-    <div>
-      <Truncate
-        value={event.transaction}
-        maxLength={30}
-        leftTrim
-        trimRegex={/\.|\//g}
-        expandable={false}
-      />
-      <div>
-        {getDuration(
-          event['transaction.duration'] / 1000,
-          event['transaction.duration'] < 1000 ? 0 : 2,
-          true
-        )}
-      </div>
-    </div>
-  );
-}
-
-function QuickTracePills({
+export default function QuickTrace({
   event,
   quickTrace,
   location,
   organization,
-}: QuickTracePillsProps) {
+}: QuickTraceProps) {
   let parsedQuickTrace;
   try {
     parsedQuickTrace = parseQuickTrace(quickTrace, event);
@@ -156,7 +68,7 @@ function QuickTracePills({
         organization={organization}
         events={[root]}
         text={t('Root')}
-        hoverText={singleEventHoverText(root)}
+        hoverText={<SingleEventHoverText event={root} />}
         pad="right"
         nodeKey="root"
       />
@@ -166,9 +78,11 @@ function QuickTracePills({
 
   if (ancestors?.length) {
     const ancestorHoverText =
-      ancestors.length === 1
-        ? singleEventHoverText(ancestors[0])
-        : t('View all ancestor transactions of this event');
+      ancestors.length === 1 ? (
+        <SingleEventHoverText event={ancestors[0]} />
+      ) : (
+        t('View all ancestor transactions of this event')
+      );
     nodes.push(
       <EventNodeSelector
         key="ancestors-node"
@@ -199,7 +113,7 @@ function QuickTracePills({
         organization={organization}
         events={[parent]}
         text={t('Parent')}
-        hoverText={singleEventHoverText(parent)}
+        hoverText={<SingleEventHoverText event={parent} />}
         pad="right"
         nodeKey="parent"
       />
@@ -223,9 +137,11 @@ function QuickTracePills({
   if (children.length) {
     nodes.push(<TraceConnector key="children-connector" />);
     const childHoverText =
-      children.length === 1
-        ? singleEventHoverText(children[0])
-        : t('View all child transactions of this event');
+      children.length === 1 ? (
+        <SingleEventHoverText event={children[0]} />
+      ) : (
+        t('View all child transactions of this event')
+      );
     nodes.push(
       <EventNodeSelector
         key="children-node"
@@ -250,9 +166,11 @@ function QuickTracePills({
   if (descendants?.length) {
     nodes.push(<TraceConnector key="descendants-connector" />);
     const descendantHoverText =
-      descendants.length === 1
-        ? singleEventHoverText(descendants[0])
-        : t('View all child descendants of this event');
+      descendants.length === 1 ? (
+        <SingleEventHoverText event={descendants[0]} />
+      ) : (
+        t('View all child descendants of this event')
+      );
     nodes.push(
       <EventNodeSelector
         key="descendants-node"
@@ -298,7 +216,7 @@ function handleDropdownItem(
     organization_id: parseInt(organization.id, 10),
     node_key: key,
   });
-  ReactRouter.browserHistory.push(target);
+  browserHistory.push(target);
 }
 
 type EventNodeSelectorProps = {
