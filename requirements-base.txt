@@ -11,7 +11,7 @@ django-crispy-forms==1.7.2
 django-picklefield==1.0.0
 django-sudo==3.1.0
 Django==1.11.29
-djangorestframework==3.6.4
+djangorestframework==3.11.2
 email-reply-parser==0.5.12
 google-api-core==1.25.1
 google-auth==1.24.0
