@@ -89,3 +89,7 @@ class NotificationSetting(Model):
         "type",
         "value",
     )
+
+
+# REQUIRED for migrations to run
+from sentry.trash import *  # NOQA
