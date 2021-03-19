@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.db import transaction
 from django.db.models import F
@@ -22,6 +24,8 @@ from .data_population import (
 from .utils import NoDemoOrgReady, generate_random_name
 from .models import DemoUser, DemoOrganization, DemoOrgStatus
 
+logger = logging.getLogger(__name__)
+
 
 def create_demo_org() -> Organization:
     # wrap the main org setup in transaction
@@ -31,6 +35,8 @@ def create_demo_org() -> Organization:
         slug = slugify(name)
 
         org = DemoOrganization.create_org(name=name, slug=slug)
+
+        logger.info("create_demo_org.created_org", {"organization_slug": slug})
 
         owner = User.objects.get(email=settings.DEMO_ORG_OWNER_EMAIL)
         OrganizationMember.objects.create(organization=org, user=owner, role=roles.get_top_dog().id)
@@ -51,7 +57,6 @@ def create_demo_org() -> Organization:
         )
 
     # TODO: delete org if data population fails
-
     populate_connected_event_scenario_1(react_project, python_project)
 
     return org

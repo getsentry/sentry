@@ -305,12 +305,23 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
     python_transaction = get_event_from_file("src/sentry/demo/data/python_transaction_1.json")
     python_error = get_event_from_file("src/sentry/demo/data/python_error_1.json")
 
+    log_extra = {
+        "organization_slug": react_project.organization.slug,
+        "MAX_DAYS": MAX_DAYS,
+        "SCALE_FACTOR": SCALE_FACTOR,
+    }
+    logger.info("populate_connected_event_scenario_1.start", extra=log_extra)
+
     for day in range(MAX_DAYS):
         for hour in range(24):
             base = distribution_v1(hour)
             # determine the number of events we want in this hour
             num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
             for i in range(num_events):
+                logger.info(
+                    "populate_connected_event_scenario_1.send_event_series", extra=log_extra
+                )
+
                 # pick the minutes randomly (which means events will sent be out of order)
                 minute = random.randint(0, 60)
                 timestamp = timezone.now() - timedelta(days=day, hours=hour, minutes=minute)
@@ -403,3 +414,4 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                 )
                 fix_error_event(local_event)
                 safe_send_event(local_event)
+    logger.info("populate_connected_event_scenario_1.finished", extra=log_extra)
