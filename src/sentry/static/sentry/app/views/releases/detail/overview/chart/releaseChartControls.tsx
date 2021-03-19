@@ -119,7 +119,7 @@ const ReleaseChartControls = ({
     {
       value: YAxis.EVENTS,
       label: t('Event Count'),
-      disabled: !hasDiscover,
+      disabled: !hasDiscover && !hasPerformance,
       tooltip: noDiscoverTooltip,
     },
   ];

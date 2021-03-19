@@ -64,6 +64,11 @@ type Props = Omit<ChartProps, 'series'> &
      */
     hideDelay?: number;
 
+    /**
+     * Function to format tooltip values
+     */
+    tooltipFormatter?: (value: number) => string;
+
     series?: BarChartProps['series'];
   };
 
@@ -80,6 +85,7 @@ class MiniBarChart extends React.Component<Props> {
       stacked,
       series,
       hideDelay,
+      tooltipFormatter,
       ...props
     } = this.props;
 
@@ -168,6 +174,9 @@ class MiniBarChart extends React.Component<Props> {
       tooltip: {
         trigger: 'axis' as const,
         hideDelay,
+        valueFormatter: tooltipFormatter
+          ? (value: number) => tooltipFormatter(value)
+          : undefined,
       },
       yAxis: {
         max(value) {
