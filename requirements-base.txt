@@ -6,7 +6,7 @@ click==7.1.2
 confluent-kafka==1.5.0; python_version <= '3.8'
 confluent-kafka==1.6.0; python_version == '3.9'
 croniter==0.3.34
-datadog==0.15.0
+datadog==0.29.3
 django-crispy-forms==1.7.2
 django-picklefield==1.0.0
 django-sudo==3.1.0
@@ -50,7 +50,7 @@ rfc3986-validator==0.1.1
 # [end] jsonschema format validators
 sentry-relay==0.8.4
 sentry-sdk>=0.20.0,<0.21.0
-simplejson==3.11.1
+simplejson==3.17.2
 statsd==3.1
 structlog==17.1.0
 symbolic==8.0.3

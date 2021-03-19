@@ -89,7 +89,9 @@ class ReprocessingDialogForm extends React.Component<Props, State> {
 
     return (
       <React.Fragment>
-        <Header closeButton>{title}</Header>
+        <Header closeButton>
+          <span data-test-id="modal-title">{title}</span>
+        </Header>
         <Body>
           <Introduction>
             {t(

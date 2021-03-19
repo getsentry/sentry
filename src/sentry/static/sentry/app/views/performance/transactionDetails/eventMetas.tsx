@@ -103,8 +103,8 @@ const EventDetailHeader = styled('div')<{type?: 'transaction' | 'event'}>`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     ${p =>
       p.type === 'transaction'
-        ? 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;'
-        : 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) 6fr;'};
+        ? 'grid-template-columns: minmax(190px, 1fr) minmax(190px, 1fr) minmax(190px, 1fr) 6fr;'
+        : 'grid-template-columns: minmax(190px, 1fr) minmax(190px, 1fr) 6fr;'};
     grid-row-gap: 0;
     margin-bottom: 0;
   }

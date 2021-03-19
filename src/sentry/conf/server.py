@@ -131,6 +131,10 @@ RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
 
 SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
 
+# XXX(epurkhiser): The generated chartucterie config.js file will be stored
+# here. This directory may not exist until that file is generated.
+CHARTCUTERIE_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "chartcuterie")
+
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -384,7 +388,8 @@ STATICFILES_FINDERS = (
 ASSET_VERSION = 0
 
 # setup a default media root to somewhere useless
-MEDIA_ROOT = "/tmp/sentry-media"
+MEDIA_ROOT = "/tmp/sentry-files"
+MEDIA_URL = "_media/"
 
 LOCALE_PATHS = (os.path.join(PROJECT_ROOT, "locale"),)
 
@@ -1681,6 +1686,17 @@ SENTRY_DEVSERVICES = {
         "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
         "with_devserver": True,
     },
+    "chartcuterie": {
+        "image": "us.gcr.io/sentryio/chartcuterie:nightly",
+        "pull": True,
+        "volumes": {CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
+        "environment": {
+            "CHARTCUTERIE_CONFIG": "/etc/chartcuterie/config.js",
+            "CHARTCUTERIE_CONFIG_POLLING": "true",
+        },
+        "ports": {"9090/tcp": 7901},
+        "only_if": lambda settings, options: options.get("chart-rendering.enabled"),
+    },
 }
 
 # Max file size for avatar photo uploads
@@ -2131,6 +2147,17 @@ DEMO_NO_ORG_BUFFER = False
 
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None
+
+# paramters that determine how demo events are generated
+DEMO_DATA_GEN_PARAMS = {
+    "MAX_DAYS": 7,  # how many days of data
+    "SCALE_FACTOR": 1,  # scales the frequency of events
+    "BASE_OFFSET": 0.5,  # higher values increases the minum number of events in an hour
+    "NAME_STEP_SIZE": 20,  # higher value means fewr possible test users in sample
+    "BREADCRUMB_LOOKBACK_TIME": 5,  # how far back should breadcrumbs go from the time of the event
+    "DEFAULT_BACKOFF_TIME": 0,  # backoff time between sending events
+    "ERROR_BACKOFF_TIME": 0.5,  # backoff time after a snuba error
+}
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []

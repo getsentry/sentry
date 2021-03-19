@@ -686,6 +686,12 @@ export interface Config {
   demoMode: boolean;
 }
 
+export enum DataCategory {
+  ERRORS = 'errors',
+  TRANSACTIONS = 'transactions',
+  ATTACHMENTS = 'attachments',
+}
+
 export type EventOrGroupType =
   | 'error'
   | 'csp'
@@ -1983,7 +1989,7 @@ export type SessionApiResponse = {
   query: string;
   intervals: string[];
   groups: {
-    by: Record<string, string>;
+    by: Record<string, string | number>;
     totals: Record<string, number>;
     series: Record<string, number[]>;
   }[];
