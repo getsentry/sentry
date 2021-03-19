@@ -62,6 +62,7 @@ type Props = {
   location: Location;
   display: DisplayOption[];
   defaultStatsPeriod?: string;
+  releasesReloading?: boolean;
 };
 type State = {
   loading: boolean;
@@ -85,9 +86,13 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
+    if (this.props.releasesReloading) {
+      return;
+    }
     if (isEqual(omitIgnoredProps(prevProps), omitIgnoredProps(this.props))) {
       return;
     }
+
     this.fetchData();
   }
 
