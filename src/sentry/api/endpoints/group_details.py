@@ -16,7 +16,6 @@ from sentry.models import (
     Activity,
     Group,
     GroupSeen,
-    Organization,
     Release,
     User,
     UserReport,
@@ -306,8 +305,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             discard = request.data.get("discard")
             project = group.project
             search_fn = functools.partial(prep_search, self, request, project)
-            organization = Organization.objects.get_from_cache(id=project.organization_id)
-            has_inbox = features.has("organizations:inbox", organization, actor=request.user)
+            has_inbox = features.has(
+                "organizations:inbox", project.organization, actor=request.user
+            )
             response = update_groups(
                 request, [group.id], [project], project.organization_id, search_fn, has_inbox
             )
