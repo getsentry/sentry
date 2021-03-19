@@ -47,7 +47,7 @@ import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
 
-const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH = /^(\w|\w{2}\.\w{1,2}|\w{3}((\.\w)|(\.\w{2}){2}))(\.|$)/g;
+const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH = /^(\w|(\w|\$){2}\.(\w|\$)|(\w|\$){3}((\.(\w|\$))|((\w|\$)){2}))(\.|$)/g;
 
 const defaultProps = {
   isShare: false,
