@@ -40,37 +40,37 @@ install-py-dev() {
         SENTRY_LIGHT_BUILD=1 SYSTEM_VERSION_COMPAT=1 pip install -e '.[dev]'
     else
         # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
-	    # Webpacked assets are only necessary for devserver (which does it lazily anyways)
-	    # and acceptance tests, which webpack automatically if run.
+        # Webpacked assets are only necessary for devserver (which does it lazily anyways)
+        # and acceptance tests, which webpack automatically if run.
         SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
     fi
 }
 
 setup-git-config() {
     git config --local branch.autosetuprebase always
-	git config --local core.ignorecase false
-	git config --local blame.ignoreRevsFile .git-blame-ignore-revs
+    git config --local core.ignorecase false
+    git config --local blame.ignoreRevsFile .git-blame-ignore-revs
 }
 
 setup-git() {
     echo "--> Installing git hooks"
-	mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./ && cd - || exit
-	# shellcheck disable=SC2016
-	python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
-	pip install -r requirements-pre-commit.txt
-	pre-commit install --install-hooks
-	echo ""
+    mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./ && cd - || exit
+    # shellcheck disable=SC2016
+    python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
+    pip install -r requirements-pre-commit.txt
+    pre-commit install --install-hooks
+    echo ""
 }
 
 install-js-dev() {
     echo "--> Installing Yarn packages (for development)"
-	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
-	NODE_ENV=development yarn install --frozen-lockfile
-	# A common problem is with node packages not existing in `node_modules` even though `yarn install`
-	# says everything is up to date. Even though `yarn install` is run already, it doesn't take into
-	# account the state of the current filesystem (it only checks .yarn-integrity).
-	# Add an additional check against `node_modules`
-	yarn check --verify-tree || yarn install --check-files
+    # Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
+    NODE_ENV=development yarn install --frozen-lockfile
+    # A common problem is with node packages not existing in `node_modules` even though `yarn install`
+    # says everything is up to date. Even though `yarn install` is run already, it doesn't take into
+    # account the state of the current filesystem (it only checks .yarn-integrity).
+    # Add an additional check against `node_modules`
+    yarn check --verify-tree || yarn install --check-files
 }
 
 init-config() {
@@ -89,15 +89,15 @@ create-db() {
         CREATEDB=$(docker exec sentry_postgres createdb)
     fi
     echo "--> Creating 'sentry' database"
-	"$CREATEDB" -h 127.0.0.1 -U postgres -E utf-8 sentry || true
+    "$CREATEDB" -h 127.0.0.1 -U postgres -E utf-8 sentry || true
 }
 
 apply-migrations() {
     echo "--> Applying migrations"
-	sentry upgrade
+    sentry upgrade
 }
 
 build-platform-assets() {
     echo "--> Building platform assets"
-	echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
+    echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
 }
