@@ -26,13 +26,7 @@
 {% block auth_container %}
 <div>
   <div class="align-center p-t-2">
-    {% if organization.avatar.all|length %}
-      {% with organization.avatar.all|first as avatar %}
-    <img src="/organization-avatar/{{ avatar.ident }}/?s=120" class="org-avatar" style="background: none">
-      {% endwith %}
-    {% else %}
-    <img src="{% asset_url "sentry" "images/logos/default-organization-logo.png" %}" class="org-avatar">
-    {% endif %}
+    <img src="{% organization_avatar organization %}" class="org-avatar">
     <h3>{{ organization.name }}</h3>
   </div>
 

@@ -133,3 +133,12 @@ class ScriptNode(template.Node):
         if matches:
             return matches.group(1).strip()
         return text
+
+
+@register.simple_tag
+def organization_avatar(organization):
+    avatar = organization.avatar.first()
+    if avatar is None:
+        return get_asset_url("sentry", "images/logos/sentry-avatar.png")
+
+    return f"/organization-avatar/{ avatar.ident }/?s=120"
