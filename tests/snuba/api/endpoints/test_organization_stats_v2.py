@@ -377,6 +377,39 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
+    def test_org_group_by_key(self):
+        make_request = functools.partial(
+            self.client.get,
+            reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
+        )
+        response = make_request(
+            {
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(times_seen)"],
+                "groupBy": ["key"],
+                "category": ["error", "transaction"],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data) == {
+            "intervals": ["2021-03-14T00:00:00Z"],
+            "groups": [
+                {
+                    "by": {"project": self.project.id},
+                    "totals": {"sum(times_seen)": 2},
+                    "series": {"sum(times_seen)": [2]},
+                },
+                {
+                    "by": {"project": self.other_project.id},
+                    "totals": {"sum(times_seen)": 1},
+                    "series": {"sum(times_seen)": [1]},
+                },
+            ],
+        }
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
     def test_project_filter(self):
         make_request = functools.partial(
             self.client.get,

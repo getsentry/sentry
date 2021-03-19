@@ -1,3 +1,5 @@
+from typing import Any, Dict, List, Optional, Tuple, Union
+from django.http import QueryDict
 from sentry.utils.snuba import raw_query
 from .dataset import Dataset
 from sentry_relay import DataCategory
@@ -10,8 +12,6 @@ from sentry.snuba.sessions_v2 import (
 from sentry.utils.outcomes import Outcome
 from datetime import datetime
 from sentry.search.utils import InvalidQuery
-
-from typing import Any, Dict, List, Optional, Tuple, Union
 
 
 """
@@ -183,7 +183,7 @@ class QueryDefinition:
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, query: Any, params: Dict[Any, Any]):
+    def __init__(self, query: QueryDict, params: Dict[Any, Any], allow_minute_resolution=True):
         raw_fields = query.getlist("field", [])
         raw_groupby = query.getlist("groupBy", [])
         if len(raw_fields) == 0:
@@ -192,7 +192,7 @@ class QueryDefinition:
         self.fields = {}
         self.aggregations = []
         self.query: List[Any] = []  # not used but needed for compat with sessions logic
-        start, end, rollup = get_constrained_date_range(query, allow_minute_resolution=True)
+        start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
         self.dataset = _outcomes_dataset(rollup)
         self.rollup = rollup
         self.start = start

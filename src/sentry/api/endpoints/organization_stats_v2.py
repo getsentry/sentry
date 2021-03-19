@@ -26,6 +26,7 @@ VALID_PARAMETERS = {
     "category",
     "reason",
     "groupBy",
+    "key",
 }
 
 
@@ -33,7 +34,10 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
     def get(self, request, organization):
         with self.handle_query_errors():
             with sentry_sdk.start_span(op="outcomes.endpoint", description="build_outcomes_query"):
-                query = self.build_outcomes_query(request, organization)
+                query = self.build_outcomes_query(
+                    request,
+                    organization,
+                )
             with sentry_sdk.start_span(op="outcomes.endpoint", description="run_outcomes_query"):
                 result_totals, result_timeseries = run_outcomes_query(query)
             with sentry_sdk.start_span(op="sessions.endpoint", description="run_sessions_query"):
@@ -49,7 +53,10 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
         except NoProjects:
             raise NoProjects("No projects available")
 
-        return QueryDefinition(request.GET, params)
+        return QueryDefinition(
+            request.GET,
+            params,
+        )
 
     @contextmanager
     def handle_query_errors(self):
