@@ -279,7 +279,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 class AlertRulesListContainer extends React.Component<Props> {
   componentDidMount() {
     const {organization, router, location} = this.props;
-    if (organization.features.includes('team-alerts')) {
+    if (organization.features.includes('team-alerts-ownership')) {
       router.replace({
         pathname: location.pathname,
         query: {
