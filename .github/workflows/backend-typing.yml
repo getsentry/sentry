@@ -65,10 +65,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
 
-      - name: Setup backend typing
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
         if: steps.changes.outputs.backend == 'true'
-        run: |
-          pip install -r requirements-dev.txt
+        id: setup
+        with:
+          snuba: true
+          kafka: true
 
       - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: steps.changes.outputs.backend == 'true'
