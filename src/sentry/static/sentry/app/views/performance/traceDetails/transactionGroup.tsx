@@ -1,11 +1,15 @@
 import React from 'react';
+import {Location} from 'history';
 
+import {Organization} from 'app/types';
 import {TraceFull} from 'app/utils/performance/quickTrace/types';
 
 import TransactionBar from './transactionBar';
 import {TraceInfo} from './types';
 
 type Props = {
+  location: Location;
+  organization: Organization;
   transaction: TraceFull;
   traceInfo: TraceInfo;
   continuingDepths: Array<number>;
@@ -30,6 +34,8 @@ class TransactionGroup extends React.Component<Props, State> {
 
   render() {
     const {
+      location,
+      organization,
       transaction,
       traceInfo,
       continuingDepths,
@@ -43,6 +49,8 @@ class TransactionGroup extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <TransactionBar
+          location={location}
+          organization={organization}
           index={index}
           transaction={transaction}
           traceInfo={traceInfo}
