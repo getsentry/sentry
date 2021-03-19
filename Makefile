@@ -49,7 +49,10 @@ apply-migrations: ensure-venv
 reset-db: drop-db create-db apply-migrations
 
 init-docker:
-	@./scripts/do.sh init-docker
+	@./scripts/do.sh init_docker
+
+start-docker:
+	@./scripts/do.sh start_docker
 
 setup-pyenv:
 	./scripts/pyenv_setup.sh
