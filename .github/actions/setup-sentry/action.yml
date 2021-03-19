@@ -9,6 +9,10 @@ inputs:
     description: 'Is kafka required?'
     required: false
     default: 'false'
+  chartcuterie:
+    description: 'Is chartcuterie required?'
+    required: false
+    default: 'false'
 
 outputs:
   yarn-cache-dir:
@@ -96,6 +100,7 @@ runs:
       env:
         NEED_KAFKA: ${{ inputs.kafka }}
         NEED_SNUBA: ${{ inputs.snuba }}
+        NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
       run: |
         sentry init
 
@@ -124,6 +129,11 @@ runs:
 
         if [ "$NEED_SNUBA" = "true" ]; then
           sentry devservices up clickhouse snuba
+        fi
+
+        if [ "$NEED_CHARTCUTERIE" = "true" ]; then
+          sentry config set chart-rendering.enabled true
+          sentry devservices up chartcuterie
         fi
 
         docker ps -a
