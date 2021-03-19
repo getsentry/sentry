@@ -37,18 +37,17 @@ init_docker() {
 
 start_docker() {
   if ! docker system info &>/dev/null; then
-    log "About to open Docker.app"
+    echo "About to open Docker.app"
     # At a later stage in the script, we're going to execute
     # ensure_docker_server which waits for it to be ready
     open -g -a Docker.app
-    logk
   fi
 }
 
 # Open Docker.app and wait for docker server to be ready
 ensure_docker_server() {
   if [ -d "/Applications/Docker.app" ]; then
-    log "Starting Docker.app, if necessary..."
+    echo "Starting Docker.app, if necessary..."
 
     # taken from https://github.com/docker/for-mac/issues/2359#issuecomment-607154849
     # Wait for the server to start up, if applicable.
@@ -58,14 +57,13 @@ ensure_docker_server() {
       sleep 1
     done
     (( i )) && printf '\n'
-    logk
   fi
 }
 
 # Open Docker.app and wait for docker server to be ready
 ensure_docker_server() {
   if [ -d "/Applications/Docker.app" ]; then
-    log "Starting Docker.app, if necessary..."
+    echo "Starting Docker.app, if necessary..."
 
     # taken from https://github.com/docker/for-mac/issues/2359#issuecomment-607154849
     # Wait for the server to start up, if applicable.
@@ -75,7 +73,7 @@ ensure_docker_server() {
       sleep 1
     done
     (( i )) && printf '\n'
-    logk
+    echok
   fi
 }
 
