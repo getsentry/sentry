@@ -292,7 +292,7 @@ class ReleaseChartContainer extends React.Component<Props> {
         {({loading, reloading, errored, chartData, chartSummary}) => (
           <Panel>
             <ChartContainer>
-              {(hasDiscover && yAxis === YAxis.EVENTS) ||
+              {((hasDiscover || hasPerformance) && yAxis === YAxis.EVENTS) ||
               (hasPerformance && PERFORMANCE_AXIS.includes(yAxis))
                 ? this.renderStackedChart()
                 : this.renderHealthChart(loading, reloading, errored, chartData)}
