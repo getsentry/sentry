@@ -8,14 +8,18 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.models.useroption import UserOption
-from sentry.notifications.legacy_mappings import KEYS_TO_LEGACY_KEYS, KEY_VALUE_TO_LEGACY_VALUE
+from sentry.notifications.legacy_mappings import (
+    KEYS_TO_LEGACY_KEYS,
+    get_legacy_key,
+    get_legacy_value,
+)
 
 
 def validate(type: NotificationSettingTypes, value: NotificationSettingOptionValues):
     """
     :return: boolean. True if the "value" is valid for the "type".
     """
-    return _get_legacy_value(type, value) is not None
+    return get_legacy_value(type, value) is not None
 
 
 def _get_scope(user_id, project=None, organization=None):
@@ -53,27 +57,6 @@ def _get_target(user=None, team=None):
         return team.actor
 
     raise Exception("target must be either a user or a team")
-
-
-def _get_legacy_key(type: NotificationSettingTypes):
-    """
-    Temporary mapping from new enum types to legacy strings.
-    :param type: NotificationSettingTypes enum
-    :return: String
-    """
-
-    return KEYS_TO_LEGACY_KEYS.get(type)
-
-
-def _get_legacy_value(type: NotificationSettingTypes, value: NotificationSettingOptionValues):
-    """
-    Temporary mapping from new enum types to legacy strings. Each type has a separate mapping.
-    :param type: NotificationSettingTypes enum
-    :param value: NotificationSettingOptionValues enum
-    :return: String
-    """
-
-    return str(KEY_VALUE_TO_LEGACY_VALUE.get(type, {}).get(value))
 
 
 class NotificationsManager(BaseManager):
@@ -143,7 +126,7 @@ class NotificationsManager(BaseManager):
         )
 
         legacy_value = UserOption.objects.get_value(
-            user, _get_legacy_key(type), project=project, organization=organization
+            user, get_legacy_key(type), project=project, organization=organization
         )
 
         # TODO(mgaeta): This line will be valid after the "copy migration".
@@ -195,6 +178,15 @@ class NotificationsManager(BaseManager):
         )
         target = _get_target(user, team)
 
+        key = get_legacy_key(type)
+        legacy_value = get_legacy_value(type, value)
+
+        # Annoying HACK to translate "subscribe_by_default"
+        if type == NotificationSettingTypes.ISSUE_ALERTS:
+            legacy_value = int(legacy_value)
+            if project is None:
+                key = "subscribe_by_default"
+
         with transaction.atomic():
             setting, created = self.get_or_create(
                 provider=provider.value,
@@ -206,6 +198,10 @@ class NotificationsManager(BaseManager):
             )
             if not created and setting.value != value.value:
                 setting.update(value=value.value)
+
+            UserOption.objects.set_value(
+                user, key=key, value=legacy_value, project=project, organization=organization
+            )
 
     def remove_settings(
         self,
@@ -233,22 +229,25 @@ class NotificationsManager(BaseManager):
         )
         target = _get_target(user, team)
 
-        self.filter(
-            provider=provider.value,
-            type=type.value,
-            scope_type=scope_type,
-            scope_identifier=scope_identifier,
-            target=target,
-        ).delete()
+        with transaction.atomic():
+            self.filter(
+                provider=provider.value,
+                type=type.value,
+                scope_type=scope_type,
+                scope_identifier=scope_identifier,
+                target=target,
+            ).delete()
+
+            UserOption.objects.unset_value(user, project, get_legacy_key(type))
 
     def remove_settings_for_user(self, user, type: NotificationSettingTypes = None):
         if type:
             # We don't need a transaction because this is only used in tests.
-            UserOption.objects.filter(user=user, key=_get_legacy_key(type)).delete()
-            self.filter(target=user, type=type.value).delete()
+            UserOption.objects.filter(user=user, key=get_legacy_key(type)).delete()
+            self.filter(target=user.actor, type=type.value).delete()
         else:
             UserOption.objects.filter(user=user, key__in=KEYS_TO_LEGACY_KEYS.values()).delete()
-            self.filter(target=user).delete()
+            self.filter(target=user.actor).delete()
 
     @staticmethod
     def remove_settings_for_team():
