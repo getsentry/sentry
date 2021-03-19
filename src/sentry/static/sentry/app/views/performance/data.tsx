@@ -233,7 +233,7 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t('Largest contentful paint (LCP) is a web vital meant to represent user load times'),
   misery: organization =>
     t(
-      "User misery estimates the percentage of user who will experience load times 4x your organization's apdex threshold of %sms.",
+      "User misery estimates the percentage of users who will experience load times 4x your organization's apdex threshold of %sms.",
       organization.apdexThreshold
     ),
   statusBreakdown: () =>
