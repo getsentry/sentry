@@ -37,6 +37,7 @@ async function renderComponent(event: Event, errors?: Array<Error>) {
   const toggleButton = bannerSummary
     .find('[data-test-id="event-error-toggle"]')
     .hostNodes();
+
   toggleButton.simulate('click');
 
   // @ts-expect-error
@@ -178,7 +179,7 @@ describe('GroupEventEntries', function () {
                             colNo: null,
                             vars: {},
                             symbol: null,
-                            module: 'aB.a.Class',
+                            module: 'a.$a.a.a',
                           },
                         ],
                         framesOmitted: null,
@@ -229,7 +230,7 @@ describe('GroupEventEntries', function () {
                             colNo: null,
                             vars: {},
                             symbol: null,
-                            module: 'aB.a.Class',
+                            module: 'a.$a.a.a',
                           },
                         ],
                         framesOmitted: null,
@@ -258,7 +259,7 @@ describe('GroupEventEntries', function () {
                           {
                             function: 'start',
                             package: 'libdyld.dylib',
-                            module: 'aB.a.Class',
+                            module: 'a.$a.a.a',
                           },
                           {
                             function: 'main',
