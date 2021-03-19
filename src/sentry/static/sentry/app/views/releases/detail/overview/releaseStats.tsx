@@ -188,7 +188,7 @@ function ReleaseStats({
                   <ReleaseAdoption
                     releaseCount={get24hSessionCountByRelease ?? 0}
                     projectCount={get24hSessionCountByProject ?? 0}
-                    adoption={sessionAdoption}
+                    adoption={sessionAdoption ?? 0}
                     displayOption={DisplayOption.SESSIONS}
                     withLabels
                   />
@@ -198,7 +198,7 @@ function ReleaseStats({
                   <ReleaseAdoption
                     releaseCount={get24hUserCountByRelease ?? 0}
                     projectCount={get24hUserCountByProject ?? 0}
-                    adoption={userAdoption}
+                    adoption={userAdoption ?? 0}
                     displayOption={DisplayOption.USERS}
                     withLabels
                   />

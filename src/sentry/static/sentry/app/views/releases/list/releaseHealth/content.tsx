@@ -139,7 +139,7 @@ const Content = ({
                     ) : get24hCountByProject ? (
                       <AdoptionWrapper>
                         <ReleaseAdoption
-                          adoption={adoption}
+                          adoption={adoption ?? 0}
                           releaseCount={get24hCountByRelease ?? 0}
                           projectCount={get24hCountByProject ?? 0}
                           displayOption={activeDisplay}
