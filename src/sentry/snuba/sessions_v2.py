@@ -356,7 +356,7 @@ def _get_constrained_date_range(params, allow_minute_resolution=False):
 
     # snuba <-> sentry has a 5 minute cache for *exact* queries, which these
     # are because of the way we do our rounding. For that reason we round the end
-    # of "realtime" queries to one minute to get a one-minute cache instead.
+    # of "realtime" queries to one minute into the future to get a one-minute cache instead.
     if end > now:
         end = to_datetime(ONE_MINUTE * (math.floor(to_timestamp(now) / ONE_MINUTE) + 1))
 
