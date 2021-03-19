@@ -244,9 +244,18 @@ class ReleaseOverview extends AsyncView<Props> {
 
     return (
       <ReleaseContext.Consumer>
-        {({release, project, deploys, releaseMeta, refetchData, defaultStatsPeriod}) => {
+        {({
+          release,
+          project,
+          deploys,
+          releaseMeta,
+          refetchData,
+          defaultStatsPeriod,
+          isHealthLoading,
+          getHealthData,
+          hasHealthData,
+        }) => {
           const {commitCount, version} = release;
-          const {hasHealthData} = project.healthData || {};
           const hasDiscover = organization.features.includes('discover-basic');
           const hasPerformance = organization.features.includes('performance-view');
           const yAxis = this.getYAxis(hasHealthData, hasPerformance);
@@ -338,6 +347,9 @@ class ReleaseOverview extends AsyncView<Props> {
                   project={project}
                   location={location}
                   selection={selection}
+                  hasHealthData={hasHealthData}
+                  getHealthData={getHealthData}
+                  isHealthLoading={isHealthLoading}
                 />
                 <ProjectReleaseDetails
                   release={release}

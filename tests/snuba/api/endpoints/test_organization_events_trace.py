@@ -20,7 +20,15 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         return start, start + timedelta(milliseconds=duration)
 
     def create_event(
-        self, trace, transaction, spans, parent_span_id, project_id, duration=4000, span_id=None
+        self,
+        trace,
+        transaction,
+        spans,
+        parent_span_id,
+        project_id,
+        duration=4000,
+        span_id=None,
+        measurements=None,
     ):
         start, end = self.get_start_end(duration)
         data = load_data(
@@ -34,6 +42,9 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
         if span_id:
             data["contexts"]["trace"]["span_id"] = span_id
+        if measurements:
+            for key, value in measurements.items():
+                data["measurements"][key]["value"] = value
         return self.store_event(data, project_id=project_id)
 
     def setUp(self):
@@ -68,6 +79,10 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
                 }
                 for i, root_span_id in enumerate(self.root_span_ids)
             ],
+            measurements={
+                "lcp": 1000,
+                "fcp": 750,
+            },
             parent_span_id=None,
             project_id=self.project.id,
             duration=3000,
@@ -473,6 +488,26 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
         assert response.status_code == 200, response.content
         self.assert_trace_data(response.data[0])
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in response.data[0]
+        assert "tags" not in response.data[0]
+        assert "measurements" not in response.data[0]
+
+    def test_detailed_trace(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1, "detailed": 1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        self.assert_trace_data(response.data[0])
+        root = response.data[0]
+        assert root["transaction.status"] == "ok"
+        for [key, value] in self.root_event.tags:
+            assert root["tags"][key] == value, f"tags - {key}"
+        assert root["measurements"]["lcp"]["value"] == 1000
+        assert root["measurements"]["fcp"]["value"] == 750
 
     def test_bad_span_loop(self):
         """Maliciously create a loop in the span structure

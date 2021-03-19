@@ -1,13 +1,10 @@
-// TODO(matej): this is very similar to app/components/stream/groupChart, will refactor to reusable component in a follow-up PR
 import React from 'react';
 import LazyLoad from 'react-lazyload';
 
 import MiniBarChart from 'app/components/charts/miniBarChart';
-import {t} from 'app/locale';
+import {tn} from 'app/locale';
 import {Series} from 'app/types/echarts';
-import theme from 'app/utils/theme';
 
-import {StatsPeriod} from './healthStatsPeriod';
 import {DisplayOption} from './utils';
 
 type DefaultProps = {
@@ -15,11 +12,8 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  period: StatsPeriod;
   activeDisplay: DisplayOption;
-  data: {
-    [statsPeriod: string]: [number, number][];
-  };
+  data: Series[];
 };
 
 class HealthStatsChart extends React.Component<Props> {
@@ -27,48 +21,29 @@ class HealthStatsChart extends React.Component<Props> {
     height: 24,
   };
 
-  shouldComponentUpdate(nextProps: Props) {
-    // Sometimes statsPeriod updates before graph data has been
-    // pulled from server / propagated down to components ...
-    // don't update until data is available
-    const {data, period} = nextProps;
-    return data.hasOwnProperty(period);
-  }
-
-  getChartLabel() {
+  formatTooltip = (value: number) => {
     const {activeDisplay} = this.props;
-    if (activeDisplay === DisplayOption.USERS) {
-      return t('Users');
-    }
 
-    return t('Sessions');
-  }
+    const suffix =
+      activeDisplay === DisplayOption.USERS
+        ? tn('user', 'users', value)
+        : tn('session', 'sessions', value);
+
+    return `${value.toLocaleString()} ${suffix}`;
+  };
 
   render() {
-    const {height, period, data} = this.props;
-    const stats = period ? data[period] : null;
-    if (!stats || !stats.length) {
-      return null;
-    }
-
-    const colors = [theme.gray300];
-    const emphasisColors = [theme.purple300];
-    const series: Series[] = [
-      {
-        seriesName: this.getChartLabel(),
-        data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
-      },
-    ];
+    const {height, data} = this.props;
 
     return (
       <LazyLoad debounce={50} height={height}>
         <MiniBarChart
-          series={series}
+          series={data}
           height={height}
-          colors={colors}
-          emphasisColors={emphasisColors}
           isGroupedByDate
           showTimeInTooltip
+          hideDelay={50}
+          tooltipFormatter={this.formatTooltip}
         />
       </LazyLoad>
     );

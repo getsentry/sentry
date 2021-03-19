@@ -1,5 +1,6 @@
 import {Location, LocationDescriptor} from 'history';
 
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
@@ -71,10 +72,10 @@ export function generateTraceTarget(
 ): LocationDescriptor {
   const traceId = event.contexts?.trace?.trace_id ?? '';
 
-  const {start, end} = getTraceTimeRangeFromEvent(event);
+  const dateSelection = getParams(getTraceTimeRangeFromEvent(event));
 
   if (organization.features.includes('trace-view-summary')) {
-    return getTraceDetailsUrl(organization, traceId, start, end, {});
+    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
   }
 
   const eventView = EventView.fromSavedQuery({
@@ -85,8 +86,7 @@ export function generateTraceTarget(
     query: `event.type:transaction trace:${traceId}`,
     projects: [ALL_ACCESS_PROJECTS],
     version: 2,
-    start,
-    end,
+    ...dateSelection,
   });
   return eventView.getResultsViewUrlTarget(organization.slug);
 }

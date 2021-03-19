@@ -101,19 +101,22 @@ const EventDetailHeader = styled('div')<{type?: 'transaction' | 'event'}>`
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-bottom: 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
     ${p =>
       p.type === 'transaction'
         ? 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;'
-        : 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) 6fr;'};
+        : 'grid-template-columns: minmax(160px, 1fr) minmax(200px, 1fr) 6fr;'};
     grid-row-gap: 0;
-    margin-bottom: 0;
   }
 `;
 
 const QuickTraceContainer = styled('div')`
   grid-column: 1/4;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
     justify-self: flex-end;
     min-width: 325px;
     grid-column: unset;

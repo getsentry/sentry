@@ -8,11 +8,13 @@ from rest_framework.response import Response
 from sentry import features, eventstore
 from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
 from sentry.snuba import discover
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE = 100
 NODESTORE_KEYS = ["timestamp", "start_timestamp"]
+DETAILED_NODESTORE_KEYS = ["environment", "release"]
 
 
 def find_event(items, function, default=None):
@@ -54,21 +56,32 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response(status=404)
 
+        detailed = request.GET.get("detailed", "0") == "1"
+        event_id = request.GET.get("event_id")
+
+        # selected_columns is a set list, since we only want to include the minimum to render the trace
+        selected_columns = [
+            "id",
+            "timestamp",
+            "transaction.duration",
+            "transaction.op",
+            "transaction",
+            # project gets the slug, and project.id gets added automatically
+            "project",
+            "trace.span",
+            "trace.parent_span",
+            'to_other(trace.parent_span, "", 0, 1) AS root',
+        ]
+        # but if we're getting the detailed view load some extra columns
+        if detailed:
+            # TODO(wmak): Move op and timestamp here once we pass detailed for trace summary
+            selected_columns += [
+                "transaction.status",
+            ]
+
         with self.handle_query_errors():
             result = discover.query(
-                # selected_columns is a set list, since we only want to include the minimum to render the trace
-                selected_columns=[
-                    "id",
-                    "timestamp",
-                    "transaction.duration",
-                    "transaction.op",
-                    "transaction",
-                    # project gets the slug, and project.id gets added automatically
-                    "project",
-                    "trace.span",
-                    "trace.parent_span",
-                    'to_other(trace.parent_span, "", 0, 1) AS root',
-                ],
+                selected_columns=selected_columns,
                 # We want to guarantee at least getting the root, and hopefully events near it with timestamp
                 # id is just for consistent results
                 orderby=["-root", "-timestamp", "id"],
@@ -87,7 +100,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 "<10" if len_transactions < 10 else "<100" if len_transactions < 100 else ">100",
             )
 
-        event_id = request.GET.get("event_id")
         warning_extra = {"trace": trace_id, "organization": organization}
 
         if event_id:
@@ -135,7 +147,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         return Response(
             self.serialize(
-                parent_map, error_map, root, warning_extra, params, snuba_event, event_id
+                parent_map, error_map, root, warning_extra, params, snuba_event, event_id, detailed
             )
         )
 
@@ -150,7 +162,15 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         return {}
 
     def serialize(
-        self, parent_map, error_map, root, warning_extra, params, snuba_event, event_id=None
+        self,
+        parent_map,
+        error_map,
+        root,
+        warning_extra,
+        params,
+        snuba_event,
+        event_id=None,
+        detailed=False,
     ):
         """ Because the light endpoint could potentially have gaps between root and event we return a flattened list """
         trace_results = [self.serialize_event(root, None, 0)]
@@ -228,15 +248,36 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             "project_slug": event["project"],
         }
 
-    def serialize_event(self, *args, **kwargs):
-        event = super().serialize_event(*args, **kwargs)
-        event.update(
+    def serialize_event(self, event, *args, **kwargs):
+        result = super().serialize_event(event, *args, **kwargs)
+        if "transaction.status" in event:
+            result.update(
+                {
+                    "transaction.status": SPAN_STATUS_CODE_TO_NAME.get(
+                        event["transaction.status"], "unknown"
+                    ),
+                }
+            )
+        result.update(
             {
                 "children": [],
                 "errors": [],
             }
         )
-        return event
+        return result
+
+    def update_event_extra(self, event, nodestore_data, detailed=False):
+        """ Add extra data that we get from Nodestore """
+        event.update({event_key: nodestore_data.get(event_key) for event_key in NODESTORE_KEYS})
+        if detailed:
+            event.update(
+                {event_key: nodestore_data.get(event_key) for event_key in DETAILED_NODESTORE_KEYS}
+            )
+            if "measurements" in nodestore_data:
+                event["measurements"] = nodestore_data.get("measurements")
+            event["tags"] = {}
+            for [tag_key, tag_value] in nodestore_data.get("tags"):
+                event["tags"][tag_key] = tag_value
 
     def update_generations(self, event):
         parents = [event]
@@ -249,7 +290,15 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 parents.append(child)
 
     def serialize(
-        self, parent_map, error_map, root, warning_extra, params, snuba_event=None, event_id=None
+        self,
+        parent_map,
+        error_map,
+        root,
+        warning_extra,
+        params,
+        snuba_event=None,
+        event_id=None,
+        detailed=False,
     ):
         """ For the full event trace, we return the results as a graph instead of a flattened list """
         parent_events = {}
@@ -291,15 +340,13 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 # This is faster than doing a call to get_events, since get_event_by_id only makes a call to snuba
                 # when non transaction events are included.
                 with sentry_sdk.start_span(op="nodestore", description="get_event_by_id"):
-                    event = eventstore.get_event_by_id(
+                    nodestore_event = eventstore.get_event_by_id(
                         current_event["project.id"], current_event["id"]
                     )
 
-                previous_event.update(
-                    {event_key: event.data.get(event_key) for event_key in NODESTORE_KEYS}
-                )
+                self.update_event_extra(previous_event, nodestore_event.data, detailed)
 
-                spans = event.data.get("spans", [])
+                spans = nodestore_event.data.get("spans", [])
                 # Need to include the transaction as a span as well
                 spans.append({"span_id": previous_event["span_id"]})
 

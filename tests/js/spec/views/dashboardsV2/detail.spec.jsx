@@ -124,12 +124,16 @@ describe('Dashboards > Detail', function () {
     });
 
     it('disables buttons based on features', async function () {
+      initialData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: ['global-views', 'dashboards-basic', 'discover-query'],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
       wrapper = mountWithTheme(
         <DashboardDetail
-          organization={{
-            ...initialData.organization,
-            features: ['dashboards-basic', 'discover-basic'],
-          }}
+          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
           location={initialData.router.location}

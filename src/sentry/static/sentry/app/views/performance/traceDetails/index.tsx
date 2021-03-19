@@ -4,10 +4,13 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
+import TraceFullQuery from 'app/utils/performance/quickTrace/traceFullQuery';
+import {decodeScalar} from 'app/utils/queryString';
 import withOrganization from 'app/utils/withOrganization';
 
 import TraceDetailsContent from './content';
@@ -28,20 +31,59 @@ class TraceSummary extends React.Component<Props> {
     return [t('Trace Details'), t('Performance')].join(' - ');
   }
 
-  render() {
+  renderContent() {
     const {location, organization, params} = this.props;
-    this.getTraceSlug();
+    const traceSlug = this.getTraceSlug();
+    const queryParams = getParams(location.query);
+    const start = decodeScalar(queryParams.start);
+    const end = decodeScalar(queryParams.end);
+    const statsPeriod = decodeScalar(queryParams.statsPeriod);
+
+    const content = ({isLoading, error, trace}) => (
+      <TraceDetailsContent
+        location={location}
+        organization={organization}
+        params={params}
+        traceSlug={traceSlug}
+        start={start}
+        end={end}
+        statsPeriod={statsPeriod}
+        isLoading={isLoading}
+        error={error}
+        trace={trace}
+      />
+    );
+
+    if (!statsPeriod && (!start || !end)) {
+      return content({
+        isLoading: false,
+        error: 'date selection not specified',
+        trace: null,
+      });
+    }
+
+    return (
+      <TraceFullQuery
+        location={location}
+        orgSlug={organization.slug}
+        traceId={traceSlug}
+        start={start}
+        end={end}
+        statsPeriod={statsPeriod}
+      >
+        {content}
+      </TraceFullQuery>
+    );
+  }
+
+  render() {
+    const {organization} = this.props;
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
         <StyledPageContent>
           <LightWeightNoProjectMessage organization={organization}>
-            <TraceDetailsContent
-              location={location}
-              organization={organization}
-              params={params}
-              traceSlug={this.getTraceSlug()}
-            />
+            {this.renderContent()}
           </LightWeightNoProjectMessage>
         </StyledPageContent>
       </SentryDocumentTitle>

@@ -2,7 +2,6 @@ from bs4 import BeautifulSoup
 from collections import OrderedDict
 from requests.exceptions import RequestException
 
-from simplejson.decoder import JSONDecodeError
 from urllib.parse import urlparse
 from sentry.utils import json
 
@@ -22,7 +21,7 @@ class ApiError(Exception):
         if text:
             try:
                 self.json = json.loads(text, object_pairs_hook=OrderedDict)
-            except (JSONDecodeError, ValueError):
+            except (json.JSONDecodeError, ValueError):
                 if self.text[:5] == "<?xml":
                     # perhaps it's XML?
                     self.xml = BeautifulSoup(self.text, "xml")

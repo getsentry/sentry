@@ -61,9 +61,7 @@ class ExternalUserSerializer(CamelSnakeModelSerializer):
 
 class ExternalUserMixin:
     def has_feature(self, request, organization):
-        return features.has(
-            "organizations:external-user-associations", organization, actor=request.user
-        )
+        return features.has("organizations:import-codeowners", organization, actor=request.user)
 
 
 class ExternalUserEndpoint(OrganizationEndpoint, ExternalUserMixin):
