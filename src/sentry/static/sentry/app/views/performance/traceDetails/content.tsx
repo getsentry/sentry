@@ -87,9 +87,14 @@ class TraceDetailsContent extends React.Component<Props, State> {
       return;
     }
 
+    const query = searchQuery.toLowerCase();
+
     // TODO(tonyx): this should perform a fuzzy search
-    const matched = filterTrace(trace, ({transaction}) =>
-      transaction.includes(searchQuery)
+    const matched = filterTrace(
+      trace,
+      transaction =>
+        transaction['transaction.op'].toLowerCase().includes(query) ||
+        transaction.transaction.toLowerCase().includes(query)
     );
 
     this.setState({
