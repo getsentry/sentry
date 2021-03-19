@@ -182,9 +182,9 @@ function ReleaseStats({
           <Placeholder height="88px" />
         ) : (
           <SectionContent>
-            {defined(sessionAdoption) || defined(userAdoption) ? (
+            {get24hSessionCountByProject || get24hUserCountByProject ? (
               <AdoptionWrapper>
-                {defined(sessionAdoption) && (
+                {get24hSessionCountByProject && (
                   <ReleaseAdoption
                     releaseCount={get24hSessionCountByRelease ?? 0}
                     projectCount={get24hSessionCountByProject ?? 0}
@@ -194,7 +194,7 @@ function ReleaseStats({
                   />
                 )}
 
-                {defined(userAdoption) && (
+                {get24hUserCountByProject && (
                   <ReleaseAdoption
                     releaseCount={get24hUserCountByRelease ?? 0}
                     projectCount={get24hUserCountByProject ?? 0}

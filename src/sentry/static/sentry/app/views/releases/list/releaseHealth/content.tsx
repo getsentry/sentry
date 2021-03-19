@@ -136,7 +136,7 @@ const Content = ({
                   <AdoptionColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder width="150px" />
-                    ) : defined(adoption) ? (
+                    ) : get24hCountByProject ? (
                       <AdoptionWrapper>
                         <ReleaseAdoption
                           adoption={adoption}
