@@ -1,14 +1,20 @@
 import React from 'react';
+import styled from '@emotion/styled';
+
+import space from 'app/styles/space';
 
 type DefaultProps = {
+  className: string;
+  minLength: number;
   maxLength: number;
   leftTrim: boolean;
   expandable: boolean;
+  expandDirection: 'left' | 'right';
 };
 
 type Props = DefaultProps & {
   value: string;
-  className?: string;
+  trimRegex?: RegExp;
 };
 
 type State = {
@@ -17,9 +23,12 @@ type State = {
 
 class Truncate extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
+    className: '',
+    minLength: 15,
     maxLength: 50,
     leftTrim: false,
     expandable: true,
+    expandDirection: 'right',
   };
 
   state = {
@@ -41,41 +50,97 @@ class Truncate extends React.Component<Props, State> {
   };
 
   render() {
-    const {leftTrim, maxLength, value, expandable} = this.props;
+    const {
+      className,
+      leftTrim,
+      trimRegex,
+      minLength,
+      maxLength,
+      value,
+      expandable,
+      expandDirection,
+    } = this.props;
     const isTruncated = value.length > maxLength;
     let shortValue: React.ReactNode = '';
 
     if (isTruncated) {
-      if (leftTrim) {
+      const slicedValue = leftTrim
+        ? value.slice(value.length - (maxLength - 4), value.length)
+        : value.slice(0, maxLength - 4);
+
+      // Try to trim to values from the regex
+      if (trimRegex && leftTrim) {
+        const valueIndex = slicedValue.search(trimRegex);
         shortValue = (
-          <span>… {value.slice(value.length - (maxLength - 4), value.length)}</span>
+          <span>
+            …{' '}
+            {valueIndex > 0 && valueIndex <= maxLength - minLength
+              ? slicedValue.slice(slicedValue.search(trimRegex), slicedValue.length)
+              : slicedValue}
+          </span>
         );
+      } else if (trimRegex && !leftTrim) {
+        const matches = slicedValue.match(trimRegex);
+        let lastIndex = matches
+          ? slicedValue.lastIndexOf(matches[matches.length - 1]) + 1
+          : slicedValue.length;
+        if (lastIndex <= minLength) {
+          lastIndex = slicedValue.length;
+        }
+        shortValue = <span>{slicedValue.slice(0, lastIndex)} …</span>;
+      } else if (leftTrim) {
+        shortValue = <span>… {slicedValue}</span>;
       } else {
-        shortValue = <span>{value.slice(0, maxLength - 4)} …</span>;
+        shortValue = <span>{slicedValue} …</span>;
       }
     } else {
       shortValue = value;
     }
 
-    let className = this.props.className || '';
-    className += ' truncated';
-    if (this.state.isExpanded) {
-      className += ' expanded';
-    }
-
     return (
-      <span
+      <Wrapper
         className={className}
         onMouseOver={expandable ? this.onFocus : undefined}
         onMouseOut={expandable ? this.onBlur : undefined}
         onFocus={expandable ? this.onFocus : undefined}
         onBlur={expandable ? this.onBlur : undefined}
       >
-        <span className="short-value">{shortValue}</span>
-        {isTruncated && <span className="full-value">{value}</span>}
-      </span>
+        <span>{shortValue}</span>
+        {isTruncated && (
+          <FullValue expanded={this.state.isExpanded} expandDirection={expandDirection}>
+            {value}
+          </FullValue>
+        )}
+      </Wrapper>
     );
   }
 }
+
+const Wrapper = styled('span')`
+  position: relative;
+`;
+
+export const FullValue = styled('span')<{
+  expanded: boolean;
+  expandDirection: 'left' | 'right';
+}>`
+  display: none;
+  position: absolute;
+  background: ${p => p.theme.background};
+  padding: ${space(0.5)};
+  border: 1px solid ${p => p.theme.innerBorder};
+  white-space: nowrap;
+  border-radius: ${space(0.5)};
+  top: -5px;
+  ${p => p.expandDirection === 'left' && 'right: -5px;'}
+  ${p => p.expandDirection === 'right' && 'left: -5px;'}
+
+  ${p =>
+    p.expanded &&
+    `
+    z-index: ${p.theme.zIndex.truncationFullValue};
+    display: block;
+    `}
+`;
 
 export default Truncate;

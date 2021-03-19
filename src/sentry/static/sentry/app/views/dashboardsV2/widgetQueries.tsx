@@ -1,5 +1,4 @@
 import React from 'react';
-import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import {doEventsRequest} from 'app/actionCreators/events';
@@ -18,15 +17,15 @@ import {
   Organization,
 } from 'app/types';
 import {Series} from 'app/types/echarts';
-import {getUtcDateString, parsePeriodToHours} from 'app/utils/dates';
+import {parsePeriodToHours} from 'app/utils/dates';
 import {TableData} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
 } from 'app/utils/discover/genericDiscoverQuery';
 
 import {Widget, WidgetQuery} from './types';
+import {eventViewFromWidget} from './utils';
 
 // Don't fetch more than 4000 bins as we're plotting on a small area.
 const MAX_BIN_COUNT = 4000;
@@ -105,15 +104,19 @@ type TableDataWithTitle = TableData & {title: string};
 type State = {
   errorMessage: undefined | string;
   loading: boolean;
+  queryFetchID: symbol | undefined;
   timeseriesResults: undefined | Series[];
+  rawResults: undefined | RawResult[];
   tableResults: undefined | TableDataWithTitle[];
 };
 
 class WidgetQueries extends React.Component<Props, State> {
   state: State = {
     loading: true,
+    queryFetchID: undefined,
     errorMessage: undefined,
     timeseriesResults: undefined,
+    rawResults: undefined,
     tableResults: undefined,
   };
 
@@ -123,22 +126,57 @@ class WidgetQueries extends React.Component<Props, State> {
 
   componentDidUpdate(prevProps: Props) {
     const {selection, widget} = this.props;
+
+    // We do not fetch data whenever the query name changes.
+    const [prevWidgetQueryNames, prevWidgetQueries] = prevProps.widget.queries.reduce(
+      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+        names.push(name);
+        queries.push(rest);
+        return [names, queries];
+      },
+      [[], []]
+    );
+
+    const [widgetQueryNames, widgetQueries] = widget.queries.reduce(
+      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+        names.push(name);
+        queries.push(rest);
+        return [names, queries];
+      },
+      [[], []]
+    );
+
     if (
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isEqual(widget.interval, prevProps.widget.interval) ||
-      !isEqual(widget.queries, prevProps.widget.queries) ||
+      !isEqual(widgetQueries, prevWidgetQueries) ||
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isSelectionEqual(selection, prevProps.selection)
     ) {
       this.fetchData();
+      return;
+    }
+
+    if (
+      !this.state.loading &&
+      !isEqual(prevWidgetQueryNames, widgetQueryNames) &&
+      this.state.rawResults?.length === widget.queries.length
+    ) {
+      // If the query names has changed, then update timeseries labels
+
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState(prevState => {
+        const timeseriesResults = widget.queries.reduce((acc: Series[], query, index) => {
+          return acc.concat(transformResult(query, prevState.rawResults![index]));
+        }, []);
+
+        return {...prevState, timeseriesResults};
+      });
     }
   }
 
-  fetchEventData() {
+  fetchEventData(queryFetchID: symbol) {
     const {selection, api, organization, widget} = this.props;
-
-    const {start, end, period: statsPeriod} = selection.datetime;
-    const {projects} = selection;
 
     let tableResults: TableDataWithTitle[] = [];
     // Table, world map, and stat widgets use table results and need
@@ -146,18 +184,7 @@ class WidgetQueries extends React.Component<Props, State> {
     this.setState({tableResults: []});
 
     const promises = widget.queries.map(query => {
-      const eventView = EventView.fromSavedQuery({
-        id: undefined,
-        name: query.name,
-        version: 2,
-        fields: query.fields,
-        query: query.conditions,
-        orderby: query.orderby,
-        projects,
-        range: statsPeriod,
-        start: start ? getUtcDateString(start) : undefined,
-        end: end ? getUtcDateString(end) : undefined,
-      });
+      const eventView = eventViewFromWidget(widget.title, query, selection);
 
       let url: string = '';
       const params: DiscoverQueryRequestParams = {
@@ -197,29 +224,40 @@ class WidgetQueries extends React.Component<Props, State> {
         // Overwrite the local var to work around state being stale in tests.
         tableResults = [...tableResults, tableData];
 
-        completed++;
         this.setState(prevState => {
+          if (prevState.queryFetchID !== queryFetchID) {
+            // invariant: a different request was initiated after this request
+            return prevState;
+          }
+
           return {
             ...prevState,
             tableResults,
-            loading: completed === promises.length ? false : true,
           };
         });
       } catch (err) {
         const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({errorMessage});
+      } finally {
+        completed++;
+        this.setState(prevState => {
+          if (prevState.queryFetchID !== queryFetchID) {
+            // invariant: a different request was initiated after this request
+            return prevState;
+          }
 
-        // We always want to make sure an useful error message is set.
-        if (!err?.responseJSON?.detail) {
-          Sentry.captureException(err);
-        }
+          return {
+            ...prevState,
+            loading: completed === promises.length ? false : true,
+          };
+        });
       }
     });
   }
 
-  fetchTimeseriesData() {
+  fetchTimeseriesData(queryFetchID: symbol) {
     const {selection, api, organization, widget} = this.props;
-    this.setState({timeseriesResults: []});
+    this.setState({timeseriesResults: [], rawResults: []});
 
     const {environments, projects} = selection;
     const {start, end, period: statsPeriod} = selection.datetime;
@@ -242,6 +280,7 @@ class WidgetQueries extends React.Component<Props, State> {
         orderby: query.orderby,
         includePrevious: false,
         referrer: 'api.dashboards.timeserieswidget',
+        partial: true,
       };
       return doEventsRequest(api, requestData);
     });
@@ -250,20 +289,38 @@ class WidgetQueries extends React.Component<Props, State> {
     promises.forEach(async (promise, i) => {
       try {
         const rawResults = await promise;
-        completed++;
         this.setState(prevState => {
-          const timeseriesResults = prevState.timeseriesResults?.concat(
+          if (prevState.queryFetchID !== queryFetchID) {
+            // invariant: a different request was initiated after this request
+            return prevState;
+          }
+
+          const timeseriesResults = (prevState.timeseriesResults ?? []).concat(
             transformResult(widget.queries[i], rawResults)
           );
+
           return {
             ...prevState,
             timeseriesResults,
-            loading: completed === promises.length ? false : true,
+            rawResults: (prevState.rawResults ?? []).concat(rawResults),
           };
         });
       } catch (err) {
         const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({errorMessage});
+      } finally {
+        completed++;
+        this.setState(prevState => {
+          if (prevState.queryFetchID !== queryFetchID) {
+            // invariant: a different request was initiated after this request
+            return prevState;
+          }
+
+          return {
+            ...prevState,
+            loading: completed === promises.length ? false : true,
+          };
+        });
       }
     });
   }
@@ -271,12 +328,13 @@ class WidgetQueries extends React.Component<Props, State> {
   fetchData() {
     const {widget} = this.props;
 
-    this.setState({loading: true, errorMessage: undefined});
+    const queryFetchID = Symbol('queryFetchID');
+    this.setState({loading: true, errorMessage: undefined, queryFetchID});
 
     if (['table', 'world_map', 'big_number'].includes(widget.displayType)) {
-      this.fetchEventData();
+      this.fetchEventData(queryFetchID);
     } else {
-      this.fetchTimeseriesData();
+      this.fetchTimeseriesData(queryFetchID);
     }
   }
 

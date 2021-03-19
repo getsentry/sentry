@@ -78,16 +78,65 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["id"] == str(group.id)
 
     def test_sort_by_trend(self):
-        event = self.store_event(
-            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=10)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=10)),
+                "fingerprint": ["group-1"],
+            },
             project_id=self.project.id,
         )
-        group = event.group
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(hours=13)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        group_2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=5)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(hours=13)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(sort="trend", query="is:unresolved")
+        response = self.get_valid_response(
+            sort="trend",
+            query="is:unresolved",
+            limit=1,
+            start=iso_format(before_now(days=1)),
+            end=iso_format(before_now(seconds=1)),
+        )
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(group.id)
+        assert [item["id"] for item in response.data] == [str(group.id)]
+
+        header_links = parse_link_header(response["Link"])
+        cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
+        response = self.get_valid_response(
+            sort="trend",
+            query="is:unresolved",
+            limit=1,
+            start=iso_format(before_now(days=1)),
+            end=iso_format(before_now(seconds=1)),
+            cursor=cursor,
+        )
+        assert [item["id"] for item in response.data] == [str(group_2.id)]
 
     def test_sort_by_inbox(self):
         group_1 = self.store_event(
@@ -278,9 +327,17 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.create_group(checksum="a" * 32, last_seen=now - timedelta(seconds=1))
         self.login_as(user=self.user)
 
-        response = self.get_response(sort_by="date", query="timesSeen:>1k")
+        response = self.get_response(sort_by="date", query="timesSeen:>1t")
         assert response.status_code == 400
         assert "Invalid format for numeric field" in response.data["detail"]
+
+    def test_valid_numeric_query(self):
+        now = timezone.now()
+        self.create_group(checksum="a" * 32, last_seen=now - timedelta(seconds=1))
+        self.login_as(user=self.user)
+
+        response = self.get_response(sort_by="date", query="timesSeen:>1k")
+        assert response.status_code == 200
 
     def test_invalid_sort_key(self):
         now = timezone.now()
@@ -850,6 +907,21 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert int(response.data[0]["id"]) == event.group.id
             assert response.data[0]["inbox"] is not None
             assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
+
+    def test_inbox_search_outside_retention(self):
+        with self.feature("organizations:inbox"):
+            self.login_as(user=self.user)
+            response = self.get_response(
+                sort="inbox",
+                limit=10,
+                query="is:unresolved is:for_review",
+                collapse="stats",
+                expand=["inbox", "owners"],
+                start=iso_format(before_now(days=20)),
+                end=iso_format(before_now(days=15)),
+            )
+            assert response.status_code == 200
+            assert len(response.data) == 0
 
     def test_assigned_or_suggested_search(self):
         event = self.store_event(

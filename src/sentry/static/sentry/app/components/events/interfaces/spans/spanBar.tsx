@@ -164,7 +164,7 @@ const MARGIN_LEFT = 0;
 
 type DurationDisplay = 'left' | 'right' | 'inset';
 
-const getDurationDisplay = ({
+export const getDurationDisplay = ({
   width,
   left,
 }: {
@@ -1034,9 +1034,9 @@ type TogglerTypes = OmitHtmlDivProps<{
 export const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
   position: relative;
   height: ${SPAN_ROW_HEIGHT}px;
-  width: ${p => (p.hasToggler ? '40px' : '12px')};
-  min-width: ${p => (p.hasToggler ? '40px' : '12px')};
-  margin-right: ${p => (p.hasToggler ? space(0.5) : space(1))};
+  width: 40px;
+  min-width: 40px;
+  margin-right: ${space(1)};
   z-index: ${zIndex.spanTreeToggler};
   display: flex;
   justify-content: flex-end;
@@ -1121,6 +1121,7 @@ export const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
   align-items: center;
   justify-content: center;
   border-radius: 99px;
+  padding: 0px ${space(0.5)};
   transition: all 0.15s ease-in-out;
   font-size: 10px;
   line-height: 0;
@@ -1151,7 +1152,7 @@ const getDurationPillAlignment = ({
   }
 };
 
-const DurationPill = styled('div')<{
+export const DurationPill = styled('div')<{
   durationDisplay: DurationDisplay;
   showDetail: boolean;
   spanBarHatch: boolean;
@@ -1209,7 +1210,7 @@ export const StyledIconChevron = styled(IconChevron)`
   margin-left: ${space(0.25)};
 `;
 
-export const OperationName = styled('span')<{spanErrors: TableDataRow[]}>`
+export const OperationName = styled('span')<{spanErrors: any[]}>`
   color: ${p => (p.spanErrors.length ? p.theme.error : 'inherit')};
 `;
 

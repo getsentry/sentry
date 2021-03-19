@@ -1,32 +1,29 @@
-from sentry.utils.compat import mock
-from sentry.testutils.helpers import Feature
 import pytest
-
-from django.core.urlresolvers import reverse
 
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.models import (
+    AuditLogEntry,
+    AuditLogEntryEvent,
+    DeletedProject,
+    EnvironmentProject,
     OrganizationMember,
     OrganizationOption,
     Project,
-    EnvironmentProject,
-    ProjectOwnership,
     ProjectBookmark,
+    ProjectOwnership,
+    ProjectRedirect,
     ProjectStatus,
     ProjectTeam,
     Rule,
     UserOption,
-    DeletedProject,
-    ProjectRedirect,
-    AuditLogEntry,
-    AuditLogEntryEvent,
 )
 from sentry.api.endpoints.project_details import (
-    DynamicSamplingRuleSerializer,
+    DynamicSamplingSerializer,
     DynamicSamplingConditionSerializer,
 )
 from sentry.testutils import APITestCase
-from sentry.utils.compat import zip
+from sentry.testutils.helpers import Feature
+from sentry.utils.compat import mock, zip
 
 
 def _dyn_sampling_data():
@@ -38,25 +35,43 @@ def _dyn_sampling_data():
                 "condition": {
                     "op": "and",
                     "inner": [
-                        {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
+                        {"op": "eq", "name": "field1", "value": ["val"]},
                         {"op": "glob", "name": "field1", "value": ["val"]},
                     ],
                 },
-            }
+                "id": 0,
+            },
+            {
+                "sampleRate": 0.8,
+                "type": "trace",
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": "field1", "value": ["val"]},
+                    ],
+                },
+                "id": 0,
+            },
         ]
     }
 
 
+def _remove_ids_from_dynamic_rules(dynamic_rules):
+    if dynamic_rules.get("next_id") is not None:
+        del dynamic_rules["next_id"]
+    for rule in dynamic_rules["rules"]:
+        del rule["id"]
+    return dynamic_rules
+
+
 class ProjectDetailsTest(APITestCase):
+    endpoint = "sentry-api-0-project-details"
+
     def test_simple(self):
         project = self.project  # force creation
         self.login_as(user=self.user)
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.get(url)
-        assert response.status_code == 200
+
+        response = self.get_valid_response(project.organization.slug, project.slug)
         assert response.data["id"] == str(project.id)
 
     def test_numeric_org_slug(self):
@@ -65,6 +80,7 @@ class ProjectDetailsTest(APITestCase):
         org = self.create_organization(name="baz", slug="1", owner=self.user)
         team = self.create_team(organization=org, name="foo", slug="foo")
         project = self.create_project(name="Bar", slug="bar", teams=[team])
+
         # We want to make sure we don't hit the LegacyProjectRedirect view at all.
         url = f"/api/0/projects/{org.slug}/{project.slug}/"
         response = self.client.get(url)
@@ -75,40 +91,30 @@ class ProjectDetailsTest(APITestCase):
         project = self.create_project()
         self.create_group(project=project)
         self.login_as(user=self.user)
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+
+        response = self.get_valid_response(
+            project.organization.slug, project.slug, qs_params={"include": "stats"}
         )
-        response = self.client.get(url + "?include=stats")
-        assert response.status_code == 200
         assert response.data["stats"]["unresolved"] == 1
 
     def test_with_dynamic_sampling_rules(self):
         project = self.project  # force creation
         project.update_option("sentry:dynamic_sampling", _dyn_sampling_data())
         self.login_as(user=self.user)
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.get(url)
-        assert response.status_code == 200
+
+        response = self.get_valid_response(project.organization.slug, project.slug)
         assert response.data["dynamicSampling"] == _dyn_sampling_data()
 
     def test_project_renamed_302(self):
         project = self.create_project()
         self.login_as(user=self.user)
 
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        # Rename the project
+        self.get_valid_response(
+            project.organization.slug, project.slug, method="put", slug="foobar"
         )
 
-        # Rename the project
-        self.client.put(url, data={"slug": "foobar"})
-
-        response = self.client.get(url)
-        assert response.status_code == 302
+        response = self.get_valid_response(project.organization.slug, project.slug, status_code=302)
         assert response.data["slug"] == "foobar"
         assert (
             response.data["detail"]["extra"]["url"]
@@ -128,50 +134,40 @@ class ProjectDetailsTest(APITestCase):
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
         ProjectRedirect.record(other_project, "old_slug")
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={"organization_slug": other_org.slug, "project_slug": "old_slug"},
-        )
         self.login_as(user=user)
-        response = self.client.get(url)
-        assert response.status_code == 403
+
+        self.get_valid_response(other_org.slug, "old_slug", status_code=403)
 
 
 class ProjectUpdateTest(APITestCase):
+    endpoint = "sentry-api-0-project-details"
+    method = "put"
+
     def setUp(self):
         super().setUp()
-        self.path = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
+        self.org_slug = self.project.organization.slug
+        self.proj_slug = self.project.slug
         self.login_as(user=self.user)
 
     def test_blank_subject_prefix(self):
         project = Project.objects.get(id=self.project.id)
         options = {"mail:subject_prefix": "[Sentry]"}
-        resp = self.client.put(self.path, data={"options": options})
-        assert resp.status_code == 200, resp.content
+
+        self.get_valid_response(self.org_slug, self.proj_slug, options=options)
         assert project.get_option("mail:subject_prefix") == "[Sentry]"
 
         options["mail:subject_prefix"] = ""
-        resp = self.client.put(self.path, data={"options": options})
-        assert resp.status_code == 200, resp.content
+        self.get_valid_response(self.org_slug, self.proj_slug, options=options)
         assert project.get_option("mail:subject_prefix") == ""
 
     def test_team_changes_deprecated(self):
         project = self.create_project()
         team = self.create_team(members=[self.user])
         self.login_as(user=self.user)
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+
+        resp = self.get_valid_response(
+            self.org_slug, self.proj_slug, team=team.slug, status_code=400
         )
-        resp = self.client.put(url, data={"team": team.slug})
-        assert resp.status_code == 400, resp.content
         assert resp.data["detail"][0] == "Editing a team via this endpoint has been deprecated."
 
         project = Project.objects.get(id=project.id)
@@ -187,8 +183,14 @@ class ProjectUpdateTest(APITestCase):
             role="member",
         )
         self.login_as(user)
-        resp = self.client.put(self.path, data={"slug": "zzz", "isBookmarked": "true"})
-        assert resp.status_code == 403
+
+        self.get_valid_response(
+            self.org_slug,
+            self.proj_slug,
+            slug="zzz",
+            isBookmarked="true",
+            status_code=403,
+        )
         assert not ProjectBookmark.objects.filter(user=user, project_id=self.project.id).exists()
 
     def test_member_changes_permission_denied(self):
@@ -201,54 +203,59 @@ class ProjectUpdateTest(APITestCase):
             role="member",
         )
         self.login_as(user=user)
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+
+        self.get_valid_response(
+            self.org_slug,
+            self.proj_slug,
+            slug="zzz",
+            isBookmarked="true",
+            status_code=403,
         )
-        response = self.client.put(url, data={"slug": "zzz", "isBookmarked": "true"})
-        assert response.status_code == 403
 
         assert Project.objects.get(id=project.id).slug != "zzz"
 
         assert not ProjectBookmark.objects.filter(user=user, project_id=project.id).exists()
 
     def test_name(self):
-        resp = self.client.put(self.path, data={"name": "hello world"})
-        assert resp.status_code == 200, resp.content
+        self.get_valid_response(self.org_slug, self.proj_slug, name="hello world")
         project = Project.objects.get(id=self.project.id)
         assert project.name == "hello world"
 
     def test_slug(self):
-        resp = self.client.put(self.path, data={"slug": "foobar"})
-        assert resp.status_code == 200, resp.content
+        self.get_valid_response(self.org_slug, self.proj_slug, slug="foobar")
         project = Project.objects.get(id=self.project.id)
         assert project.slug == "foobar"
-        assert ProjectRedirect.objects.filter(project=self.project, redirect_slug=self.project.slug)
+        assert ProjectRedirect.objects.filter(project=self.project, redirect_slug=self.proj_slug)
         assert AuditLogEntry.objects.filter(
             organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
         ).exists()
 
     def test_invalid_slug(self):
         new_project = self.create_project()
-        resp = self.client.put(self.path, data={"slug": new_project.slug})
-
-        assert resp.status_code == 400
+        self.get_valid_response(
+            self.org_slug,
+            self.proj_slug,
+            slug=new_project.slug,
+            status_code=400,
+        )
         project = Project.objects.get(id=self.project.id)
         assert project.slug != new_project.slug
 
     def test_reserved_slug(self):
-        resp = self.client.put(self.path, data={"slug": list(RESERVED_PROJECT_SLUGS)[0]})
-        assert resp.status_code == 400, resp.content
+        self.get_valid_response(
+            self.org_slug,
+            self.proj_slug,
+            slug=list(RESERVED_PROJECT_SLUGS)[0],
+            status_code=400,
+        )
 
     def test_platform(self):
-        resp = self.client.put(self.path, data={"platform": "python"})
-        assert resp.status_code == 200, resp.content
+        self.get_valid_response(self.org_slug, self.proj_slug, platform="python")
         project = Project.objects.get(id=self.project.id)
         assert project.platform == "python"
 
     def test_platform_invalid(self):
-        resp = self.client.put(self.path, data={"platform": "lol"})
-        assert resp.status_code == 400, resp.content
+        self.get_valid_response(self.org_slug, self.proj_slug, platform="lol", status_code=400)
 
     def test_options(self):
         options = {
@@ -274,8 +281,8 @@ class ProjectUpdateTest(APITestCase):
             "sentry:verify_ssl": False,
         }
         with self.feature("projects:custom-inbound-filters"):
-            resp = self.client.put(self.path, data={"options": options})
-        assert resp.status_code == 200, resp.content
+            self.get_valid_response(self.org_slug, self.proj_slug, options=options)
+
         project = Project.objects.get(id=self.project.id)
         assert project.get_option("sentry:origins", []) == options["sentry:origins"].split("\n")
         assert project.get_option("sentry:resolve_age", 0) == options["sentry:resolve_age"]
@@ -359,117 +366,103 @@ class ProjectUpdateTest(APITestCase):
         ).exists()
 
     def test_bookmarks(self):
-        resp = self.client.put(self.path, data={"isBookmarked": "false"})
-        assert resp.status_code == 200, resp.content
+        self.get_valid_response(self.org_slug, self.proj_slug, isBookmarked="false")
         assert not ProjectBookmark.objects.filter(
             project_id=self.project.id, user=self.user
         ).exists()
 
     def test_subscription(self):
-        resp = self.client.put(self.path, data={"isSubscribed": "true"})
-        assert resp.status_code == 200, resp.content
+        self.get_valid_response(self.org_slug, self.proj_slug, isSubscribed="true")
         assert UserOption.objects.get(user=self.user, project=self.project).value == 1
 
-        resp = self.client.put(self.path, data={"isSubscribed": "false"})
-        assert resp.status_code == 200, resp.content
+        self.get_valid_response(self.org_slug, self.proj_slug, isSubscribed="false")
         assert UserOption.objects.get(user=self.user, project=self.project).value == 0
 
     def test_security_token(self):
-        resp = self.client.put(self.path, data={"securityToken": "fizzbuzz"})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, securityToken="fizzbuzz")
         assert self.project.get_security_token() == "fizzbuzz"
         assert resp.data["securityToken"] == "fizzbuzz"
 
         # can delete
-        resp = self.client.put(self.path, data={"securityToken": ""})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, securityToken="")
         assert self.project.get_security_token() == ""
         assert resp.data["securityToken"] == ""
 
     def test_security_token_header(self):
-        resp = self.client.put(self.path, data={"securityTokenHeader": "X-Hello-World"})
-        assert resp.status_code == 200, resp.content
+        value = "X-Hello-World"
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, securityTokenHeader=value)
         assert self.project.get_option("sentry:token_header") == "X-Hello-World"
         assert resp.data["securityTokenHeader"] == "X-Hello-World"
 
         # can delete
-        resp = self.client.put(self.path, data={"securityTokenHeader": ""})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, securityTokenHeader="")
         assert self.project.get_option("sentry:token_header") == ""
         assert resp.data["securityTokenHeader"] == ""
 
     def test_verify_ssl(self):
-        resp = self.client.put(self.path, data={"verifySSL": False})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, verifySSL=False)
         assert self.project.get_option("sentry:verify_ssl") is False
         assert resp.data["verifySSL"] is False
 
     def test_scrub_ip_address(self):
-        resp = self.client.put(self.path, data={"scrubIPAddresses": True})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, scrubIPAddresses=True)
         assert self.project.get_option("sentry:scrub_ip_address") is True
         assert resp.data["scrubIPAddresses"] is True
 
-        resp = self.client.put(self.path, data={"scrubIPAddresses": False})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, scrubIPAddresses=False)
         assert self.project.get_option("sentry:scrub_ip_address") is False
         assert resp.data["scrubIPAddresses"] is False
 
     def test_scrape_javascript(self):
-        resp = self.client.put(self.path, data={"scrapeJavaScript": False})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, scrapeJavaScript=False)
         assert self.project.get_option("sentry:scrape_javascript") is False
         assert resp.data["scrapeJavaScript"] is False
 
     def test_default_environment(self):
-        resp = self.client.put(self.path, data={"defaultEnvironment": "dev"})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, defaultEnvironment="dev")
         assert self.project.get_option("sentry:default_environment") == "dev"
         assert resp.data["defaultEnvironment"] == "dev"
 
-        resp = self.client.put(self.path, data={"defaultEnvironment": ""})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, defaultEnvironment="")
         assert self.project.get_option("sentry:default_environment") == ""
         assert resp.data["defaultEnvironment"] == ""
 
     def test_resolve_age(self):
-        resp = self.client.put(self.path, data={"resolveAge": 5})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, resolveAge=5)
         assert self.project.get_option("sentry:resolve_age") == 5
         assert resp.data["resolveAge"] == 5
 
         # can set to 0 or delete
-        resp = self.client.put(self.path, data={"resolveAge": ""})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, resolveAge="")
         assert self.project.get_option("sentry:resolve_age") == 0
         assert resp.data["resolveAge"] == 0
 
     def test_allowed_domains(self):
-        resp = self.client.put(
-            self.path, data={"allowedDomains": ["foobar.com", "https://example.com"]}
-        )
-        assert resp.status_code == 200, resp.content
+        value = ["foobar.com", "https://example.com"]
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, allowedDomains=value)
         assert self.project.get_option("sentry:origins") == ["foobar.com", "https://example.com"]
         assert resp.data["allowedDomains"] == ["foobar.com", "https://example.com"]
 
         # cannot be empty
-        resp = self.client.put(self.path, data={"allowedDomains": ""})
-        assert resp.status_code == 400, resp.content
+        resp = self.get_valid_response(
+            self.org_slug, self.proj_slug, allowedDomains="", status_code=400
+        )
         assert self.project.get_option("sentry:origins") == ["foobar.com", "https://example.com"]
         assert resp.data["allowedDomains"] == [
             "Empty value will block all requests, use * to accept from all domains"
         ]
 
-        resp = self.client.put(self.path, data={"allowedDomains": ["*", ""]})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(
+            self.org_slug,
+            self.proj_slug,
+            allowedDomains=["*", ""],
+        )
         assert self.project.get_option("sentry:origins") == ["*"]
         assert resp.data["allowedDomains"] == ["*"]
 
     def test_safe_fields(self):
-        resp = self.client.put(
-            self.path, data={"safeFields": ["foobar.com", "https://example.com"]}
-        )
-        assert resp.status_code == 200, resp.content
+        value = ["foobar.com", "https://example.com"]
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, safeFields=value)
         assert self.project.get_option("sentry:safe_fields") == [
             "foobar.com",
             "https://example.com",
@@ -477,23 +470,19 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["safeFields"] == ["foobar.com", "https://example.com"]
 
     def test_store_crash_reports(self):
-        resp = self.client.put(self.path, data={"storeCrashReports": 10})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, storeCrashReports=10)
         assert self.project.get_option("sentry:store_crash_reports") == 10
         assert resp.data["storeCrashReports"] == 10
 
     def test_relay_pii_config(self):
         value = '{"applications": {"freeform": []}}'
-        resp = self.client.put(self.path, data={"relayPiiConfig": value})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, relayPiiConfig=value)
         assert self.project.get_option("sentry:relay_pii_config") == value
         assert resp.data["relayPiiConfig"] == value
 
     def test_sensitive_fields(self):
-        resp = self.client.put(
-            self.path, data={"sensitiveFields": ["foobar.com", "https://example.com"]}
-        )
-        assert resp.status_code == 200, resp.content
+        value = ["foobar.com", "https://example.com"]
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, sensitiveFields=value)
         assert self.project.get_option("sentry:sensitive_fields") == [
             "foobar.com",
             "https://example.com",
@@ -501,39 +490,34 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["sensitiveFields"] == ["foobar.com", "https://example.com"]
 
     def test_data_scrubber(self):
-        resp = self.client.put(self.path, data={"dataScrubber": False})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, dataScrubber=False)
         assert self.project.get_option("sentry:scrub_data") is False
         assert resp.data["dataScrubber"] is False
 
     def test_data_scrubber_defaults(self):
-        resp = self.client.put(self.path, data={"dataScrubberDefaults": False})
-        assert resp.status_code == 200, resp.content
+        resp = self.get_valid_response(self.org_slug, self.proj_slug, dataScrubberDefaults=False)
         assert self.project.get_option("sentry:scrub_defaults") is False
         assert resp.data["dataScrubberDefaults"] is False
 
     def test_digests_delay(self):
-        resp = self.client.put(self.path, data={"digestsMinDelay": 1000})
-        assert resp.status_code == 200, resp.content
+        self.get_valid_response(self.org_slug, self.proj_slug, digestsMinDelay=1000)
         assert self.project.get_option("digests:mail:minimum_delay") == 1000
 
-        resp = self.client.put(self.path, data={"digestsMaxDelay": 1200})
-        assert resp.status_code == 200, resp.content
+        self.get_valid_response(self.org_slug, self.proj_slug, digestsMaxDelay=1200)
         assert self.project.get_option("digests:mail:maximum_delay") == 1200
 
-        resp = self.client.put(self.path, data={"digestsMinDelay": 300, "digestsMaxDelay": 600})
-        assert resp.status_code == 200, resp.content
+        self.get_valid_response(
+            self.org_slug, self.proj_slug, digestsMinDelay=300, digestsMaxDelay=600
+        )
         assert self.project.get_option("digests:mail:minimum_delay") == 300
         assert self.project.get_option("digests:mail:maximum_delay") == 600
 
     def test_digests_min_without_max(self):
-        resp = self.client.put(self.path, data={"digestsMinDelay": 1200})
-        assert resp.status_code == 200, resp.content
+        self.get_valid_response(self.org_slug, self.proj_slug, digestsMinDelay=1200)
         assert self.project.get_option("digests:mail:minimum_delay") == 1200
 
     def test_digests_max_without_min(self):
-        resp = self.client.put(self.path, data={"digestsMaxDelay": 1200})
-        assert resp.status_code == 200, resp.content
+        self.get_valid_response(self.org_slug, self.proj_slug, digestsMaxDelay=1200)
         assert self.project.get_option("digests:mail:maximum_delay") == 1200
 
     def test_invalid_digests_min_delay(self):
@@ -541,11 +525,11 @@ class ProjectUpdateTest(APITestCase):
 
         self.project.update_option("digests:mail:minimum_delay", min_delay)
 
-        resp = self.client.put(self.path, data={"digestsMinDelay": 59})
-        assert resp.status_code == 400
+        self.get_valid_response(self.org_slug, self.proj_slug, digestsMinDelay=59, status_code=400)
+        self.get_valid_response(
+            self.org_slug, self.proj_slug, digestsMinDelay=3601, status_code=400
+        )
 
-        resp = self.client.put(self.path, data={"digestsMinDelay": 3601})
-        assert resp.status_code == 400
         assert self.project.get_option("digests:mail:minimum_delay") == min_delay
 
     def test_invalid_digests_max_delay(self):
@@ -555,50 +539,167 @@ class ProjectUpdateTest(APITestCase):
         self.project.update_option("digests:mail:minimum_delay", min_delay)
         self.project.update_option("digests:mail:maximum_delay", max_delay)
 
-        resp = self.client.put(self.path, data={"digestsMaxDelay": 59})
-        assert resp.status_code == 400
+        self.get_valid_response(self.org_slug, self.proj_slug, digestsMaxDelay=59, status_code=400)
+        self.get_valid_response(
+            self.org_slug, self.proj_slug, digestsMaxDelay=3601, status_code=400
+        )
 
-        resp = self.client.put(self.path, data={"digestsMaxDelay": 3601})
-        assert resp.status_code == 400
         assert self.project.get_option("digests:mail:maximum_delay") == max_delay
 
         # test sending only max
-        resp = self.client.put(self.path, data={"digestsMaxDelay": 100})
-        assert resp.status_code == 400
+        self.get_valid_response(self.org_slug, self.proj_slug, digestsMaxDelay=100, status_code=400)
         assert self.project.get_option("digests:mail:maximum_delay") == max_delay
 
         # test sending min + invalid max
-        resp = self.client.put(self.path, data={"digestsMinDelay": 120, "digestsMaxDelay": 100})
-        assert resp.status_code == 400
+        self.get_valid_response(
+            self.org_slug, self.proj_slug, digestsMinDelay=120, digestsMaxDelay=100, status_code=400
+        )
         assert self.project.get_option("digests:mail:minimum_delay") == min_delay
         assert self.project.get_option("digests:mail:maximum_delay") == max_delay
 
     def test_dynamic_sampling_requires_feature_enabled(self):
-        resp = self.client.put(self.path, data={"dynamicSampling": _dyn_sampling_data()})
-        assert resp.status_code == 403
+        self.get_valid_response(
+            self.org_slug, self.proj_slug, dynamicSampling=_dyn_sampling_data(), status_code=403
+        )
 
     def test_setting_dynamic_sampling_rules(self):
         """
         Test that we can set sampling rules
         """
         with Feature({"organizations:filters-and-sampling": True}):
-            resp = self.client.put(self.path, data={"dynamicSampling": _dyn_sampling_data()})
-            assert resp.status_code == 200, resp.content
-        assert self.project.get_option("sentry:dynamic_sampling") == _dyn_sampling_data()
+            self.get_valid_response(
+                self.org_slug, self.proj_slug, dynamicSampling=_dyn_sampling_data()
+            )
+        original_config = _dyn_sampling_data()
+        saved_config = self.project.get_option("sentry:dynamic_sampling")
+        # test that we have unique ids
+        ids = set()
+        for rule in saved_config["rules"]:
+            rid = rule["id"]
+            assert rid not in ids
+            ids.add(rid)
+        next_id = saved_config["next_id"]
+        assert next_id not in ids
+        # short of ids and next_id the saved config should be the same as the original one
+        _remove_ids_from_dynamic_rules(saved_config)
+        _remove_ids_from_dynamic_rules(original_config)
+        assert original_config == saved_config
 
     def test_setting_dynamic_sampling_rules_roundtrip(self):
         """
         Tests that we get the same dynamic sampling rules that previously set
         """
+        data = _dyn_sampling_data()
         with Feature({"organizations:filters-and-sampling": True}):
-            resp = self.client.put(self.path, data={"dynamicSampling": _dyn_sampling_data()})
-            assert resp.status_code == 200, resp.content
-        response = self.client.get(self.path)
+            self.get_valid_response(self.org_slug, self.proj_slug, dynamicSampling=data)
+            response = self.get_valid_response(self.org_slug, self.proj_slug, method="get")
+        saved_config = _remove_ids_from_dynamic_rules(response.data["dynamicSampling"])
+        original_data = _remove_ids_from_dynamic_rules(data)
+        assert saved_config == original_data
+
+    def test_dynamic_sampling_rule_id_handling(self):
+        """
+        Tests the assignment of rule ids.
+
+        New rules (having no id or id==0) will be assigned new unique ids.
+        Old rules (rules that have ids present in the currently saved config) that have
+        not been modified should keep their id.
+        Old rules that have been modified (anything changed) should get new ids.
+        Once an id is assigned to a rule it should never be reused.
+        """
+        config = {
+            "rules": [
+                {
+                    "sampleRate": 0.7,
+                    "type": "trace",
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
+                    "id": 0,
+                },
+                {
+                    "sampleRate": 0.8,
+                    "type": "trace",
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
+                    "id": 0,
+                },
+                {
+                    "sampleRate": 0.9,
+                    "type": "trace",
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
+                    "id": 0,
+                },
+            ]
+        }
+        with Feature({"organizations:filters-and-sampling": True}):
+            self.get_valid_response(self.org_slug, self.proj_slug, dynamicSampling=config)
+        response = self.get_valid_response(self.org_slug, self.proj_slug, method="get")
+        saved_config = response.data["dynamicSampling"]
+        next_id = saved_config["next_id"]
+        id1 = saved_config["rules"][0]["id"]
+        id2 = saved_config["rules"][1]["id"]
+        id3 = saved_config["rules"][2]["id"]
+        assert id1 != 0 and id2 != 0 and id3 != 0
+        next_id != 0
+        assert id1 != id2 and id2 != id3 and id1 != id3
+        assert next_id > id1 and next_id > id2 and next_id > id3
         assert response.status_code == 200
-        assert response.data["dynamicSampling"] == _dyn_sampling_data()
+        # set it again and see how it handles the id reallocation
+        # change first rule
+        saved_config["rules"][0]["sampleRate"] = 0.1
+        # do not touch the second rule
+        # remove third rule (the id should NEVER be reused)
+        del saved_config["rules"][2]
+        # insert a new element at position 0
+        new_rule_1 = {
+            "sampleRate": 0.22,
+            "type": "trace",
+            "condition": {
+                "op": "and",
+                "inner": [],
+            },
+            "id": 0,
+        }
+
+        saved_config["rules"].insert(0, new_rule_1)
+        # insert a new element at the end
+        new_rule_2 = {
+            "sampleRate": 0.33,
+            "type": "trace",
+            "condition": {
+                "op": "and",
+                "inner": [],
+            },
+            "id": 0,
+        }
+
+        saved_config["rules"].append(new_rule_2)
+        with Feature({"organizations:filters-and-sampling": True}):
+            # turn it back from ordered dict to dict (both main obj and rules)
+            saved_config = dict(saved_config)
+            saved_config["rules"] = [dict(rule) for rule in saved_config["rules"]]
+            self.get_valid_response(self.org_slug, self.proj_slug, dynamicSampling=saved_config)
+        response = self.get_valid_response(self.org_slug, self.proj_slug, method="get")
+        saved_config = response.data["dynamicSampling"]
+        new_ids = [rule["id"] for rule in saved_config["rules"]]
+        # first rule is new, second rule got a new id because it is changed,
+        # third rule (used to be second) keeps the id, fourth rule is new
+        assert new_ids == [4, 5, 2, 6]
+        new_next_id = saved_config["next_id"]
+        assert new_next_id == 7
 
 
 class CopyProjectSettingsTest(APITestCase):
+    endpoint = "sentry-api-0-project-details"
+    method = "put"
+
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
@@ -631,12 +732,6 @@ class CopyProjectSettingsTest(APITestCase):
         Rule.objects.create(project=self.other_project, label="rule3")
         # there is a default rule added to project
         self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by("label")
-
-    def path(self, project):
-        return reverse(
-            "sentry-api-0-project-details",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
 
     def assert_other_project_settings_not_changed(self):
         # other_project should not have changed. This should check that.
@@ -681,26 +776,25 @@ class CopyProjectSettingsTest(APITestCase):
 
     def test_simple(self):
         project = self.create_project()
-        resp = self.client.put(
-            self.path(project), data={"copy_from_project": self.other_project.id}
+        self.get_valid_response(
+            project.organization.slug, project.slug, copy_from_project=self.other_project.id
         )
-        assert resp.status_code == 200
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
     def test_additional_params_in_payload(self):
         # Right now these are overwritten with the copied project's settings
         project = self.create_project()
-        resp = self.client.put(
-            self.path(project),
-            data={
+        self.get_valid_response(
+            project.organization.slug,
+            project.slug,
+            **{
                 "copy_from_project": self.other_project.id,
                 "sentry:resolve_age": 2,
                 "sentry:scrub_data": True,
                 "sentry:scrub_defaults": True,
             },
         )
-        assert resp.status_code == 200
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
@@ -709,16 +803,21 @@ class CopyProjectSettingsTest(APITestCase):
         other_project = self.create_project(
             organization=self.create_organization(), fire_project_created=True
         )
-        resp = self.client.put(self.path(project), data={"copy_from_project": other_project.id})
-        assert resp.status_code == 400
+        resp = self.get_valid_response(
+            project.organization.slug,
+            project.slug,
+            copy_from_project=other_project.id,
+            status_code=400,
+        )
         assert resp.data == {"copy_from_project": ["Project to copy settings from not found."]}
         self.assert_settings_not_copied(project)
         self.assert_settings_not_copied(other_project)
 
     def test_project_does_not_exist(self):
         project = self.create_project(fire_project_created=True)
-        resp = self.client.put(self.path(project), data={"copy_from_project": 1234567890})
-        assert resp.status_code == 400
+        resp = self.get_valid_response(
+            project.organization.slug, project.slug, copy_from_project=1234567890, status_code=400
+        )
         assert resp.data == {"copy_from_project": ["Project to copy settings from not found."]}
         self.assert_settings_not_copied(project)
 
@@ -733,10 +832,12 @@ class CopyProjectSettingsTest(APITestCase):
 
         self.organization.flags.allow_joinleave = False
         self.organization.save()
-        resp = self.client.put(
-            self.path(project), data={"copy_from_project": self.other_project.id}
+        resp = self.get_valid_response(
+            project.organization.slug,
+            project.slug,
+            copy_from_project=self.other_project.id,
+            status_code=400,
         )
-        assert resp.status_code == 400
         assert resp.data == {
             "copy_from_project": [
                 "Project settings cannot be copied from a project you do not have access to."
@@ -762,10 +863,13 @@ class CopyProjectSettingsTest(APITestCase):
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
-        resp = self.client.put(
-            self.path(project), data={"copy_from_project": self.other_project.id}
+        resp = self.get_valid_response(
+            project.organization.slug,
+            project.slug,
+            copy_from_project=self.other_project.id,
+            status_code=400,
         )
-        assert resp.status_code == 400
+
         assert resp.data == {
             "copy_from_project": [
                 "Project settings cannot be copied from a project with a team you do not have write access to."
@@ -778,16 +882,21 @@ class CopyProjectSettingsTest(APITestCase):
     def test_copy_project_settings_fails(self, mock_copy_settings_from):
         mock_copy_settings_from.return_value = False
         project = self.create_project(fire_project_created=True)
-        resp = self.client.put(
-            self.path(project), data={"copy_from_project": self.other_project.id}
+        resp = self.get_valid_response(
+            project.organization.slug,
+            project.slug,
+            copy_from_project=self.other_project.id,
+            status_code=409,
         )
-        assert resp.status_code == 409
         assert resp.data == {"detail": ["Copy project settings failed."]}
         self.assert_settings_not_copied(project)
         self.assert_other_project_settings_not_changed()
 
 
 class ProjectDeleteTest(APITestCase):
+    endpoint = "sentry-api-0-project-details"
+    method = "delete"
+
     @mock.patch("sentry.db.mixin.uuid4")
     @mock.patch("sentry.api.endpoints.project_details.uuid4")
     @mock.patch("sentry.api.endpoints.project_details.delete_project")
@@ -801,15 +910,8 @@ class ProjectDeleteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-
         with self.settings(SENTRY_PROJECT=0):
-            response = self.client.delete(url)
-
-        assert response.status_code == 204
+            self.get_valid_response(project.organization.slug, project.slug, status_code=204)
 
         mock_delete_project.apply_async.assert_called_once_with(
             kwargs={"object_id": project.id, "transaction_id": "abc123"}, countdown=3600
@@ -831,17 +933,10 @@ class ProjectDeleteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-
         with self.settings(SENTRY_PROJECT=project.id):
-            response = self.client.delete(url)
+            self.get_valid_response(project.organization.slug, project.slug, status_code=403)
 
         assert not mock_delete_project.delay.mock_calls
-
-        assert response.status_code == 403
 
 
 @pytest.mark.parametrize(
@@ -880,18 +975,24 @@ def test_bad_condition_serialization(condition):
     assert not serializer.is_valid()
 
 
-def test_rule_serializer():
+def test_rule_config_serializer():
     data = {
-        "sampleRate": 0.7,
-        "type": "trace",
-        "condition": {
-            "op": "and",
-            "inner": [
-                {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
-                {"op": "glob", "name": "field1", "value": ["val"]},
-            ],
-        },
+        "rules": [
+            {
+                "sampleRate": 0.7,
+                "type": "trace",
+                "id": 1,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": "field1", "value": ["val"]},
+                        {"op": "glob", "name": "field1", "value": ["val"]},
+                    ],
+                },
+            }
+        ],
+        "next_id": 22,
     }
-    serializer = DynamicSamplingRuleSerializer(data=data)
+    serializer = DynamicSamplingSerializer(data=data)
     assert serializer.is_valid()
     assert data == serializer.validated_data

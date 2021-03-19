@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -20,10 +21,11 @@ import EventView from 'app/utils/discover/eventView';
 import {aggregateMultiPlotType, PlotType} from 'app/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
 type Props = {
+  theme: Theme;
   organization: Organization;
   eventView: EventView;
   api: Client;
@@ -122,7 +124,7 @@ class MiniGraph extends React.Component<Props> {
   }
 
   render() {
-    const {api} = this.props;
+    const {theme, api} = this.props;
     const {
       query,
       start,
@@ -159,6 +161,7 @@ class MiniGraph extends React.Component<Props> {
         orderby={orderby}
         expired={expired}
         name={name}
+        partial
       >
         {({loading, timeseriesData, results, errored}) => {
           if (errored) {
@@ -254,4 +257,4 @@ const StyledGraphContainer = styled(props => (
   align-items: center;
 `;
 
-export default withApi(MiniGraph);
+export default withApi(withTheme(MiniGraph));

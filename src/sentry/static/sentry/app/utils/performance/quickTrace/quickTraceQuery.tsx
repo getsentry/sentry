@@ -1,23 +1,52 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
 
+import {Event} from 'app/types/event';
+import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
 import TraceFullQuery from 'app/utils/performance/quickTrace/traceFullQuery';
 import TraceLiteQuery from 'app/utils/performance/quickTrace/traceLiteQuery';
+import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
 import {
-  QuickTraceQueryChildrenProps,
-  TraceRequestProps,
-} from 'app/utils/performance/quickTrace/types';
-import {flattenRelevantPaths} from 'app/utils/performance/quickTrace/utils';
+  flattenRelevantPaths,
+  getTraceTimeRangeFromEvent,
+  isTransaction,
+} from 'app/utils/performance/quickTrace/utils';
 
-type QueryProps = Omit<TraceRequestProps, 'api' | 'eventView'> & {
+type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
+  event: Event;
   children: (props: QuickTraceQueryChildrenProps) => React.ReactNode;
 };
 
-export default function QuickTraceQuery({children, ...props}: QueryProps) {
+export default function QuickTraceQuery({children, event, ...props}: QueryProps) {
+  const traceId = event.contexts?.trace?.trace_id;
+
+  if (!traceId) {
+    return (
+      <React.Fragment>
+        {children({
+          isLoading: false,
+          error: null,
+          trace: [],
+          type: 'empty',
+        })}
+      </React.Fragment>
+    );
+  }
+
+  const {start, end} = getTraceTimeRangeFromEvent(event);
+
   return (
-    <TraceLiteQuery {...props}>
+    <TraceLiteQuery
+      eventId={event.id}
+      traceId={traceId}
+      start={start}
+      end={end}
+      // TODO(wmak): Trace Lite doesn't return errors
+      shouldSkipQuery={!isTransaction(event)}
+      {...props}
+    >
       {traceLiteResults => (
-        <TraceFullQuery {...props}>
+        <TraceFullQuery traceId={traceId} start={start} end={end} {...props}>
           {traceFullResults => {
             if (
               !traceFullResults.isLoading &&
@@ -25,13 +54,13 @@ export default function QuickTraceQuery({children, ...props}: QueryProps) {
               traceFullResults.trace !== null
             ) {
               try {
-                const trace = flattenRelevantPaths(props.event, traceFullResults.trace);
+                const trace = flattenRelevantPaths(event, traceFullResults.trace);
                 return children({
                   ...traceFullResults,
                   trace,
                 });
               } catch (error) {
-                Sentry.setTag('currentTraceId', props.event.contexts?.trace?.trace_id);
+                Sentry.setTag('current.trace_id', traceId);
                 Sentry.captureException(error);
               }
             }

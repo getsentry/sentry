@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import * as ReactRouter from 'react-router';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -25,7 +26,7 @@ import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
 import getDynamicText from 'app/utils/getDynamicText';
 import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
@@ -45,6 +46,7 @@ type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
 type Props = ReactRouter.WithRouterProps &
   ViewProps & {
+    theme: Theme;
     api: Client;
     location: Location;
     organization: OrganizationSummary;
@@ -68,6 +70,7 @@ class VitalChart extends React.Component<Props> {
 
   render() {
     const {
+      theme,
       api,
       project,
       environment,
@@ -208,6 +211,7 @@ class VitalChart extends React.Component<Props> {
                 query={query}
                 includePrevious={false}
                 yAxis={yAxis}
+                partial
               >
                 {({timeseriesData: results, errored, loading, reloading}) => {
                   if (errored) {
@@ -283,4 +287,4 @@ class VitalChart extends React.Component<Props> {
   }
 }
 
-export default withApi(ReactRouter.withRouter(VitalChart));
+export default withApi(withTheme(ReactRouter.withRouter(VitalChart)));

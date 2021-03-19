@@ -4,7 +4,9 @@ from django.utils import timezone
 
 from rest_framework import serializers, status
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 
+from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import (
@@ -149,7 +151,14 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         return self.instance
 
 
-class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
+class ProjectCodeOwnersMixin:
+    def has_feature(self, request, project):
+        return features.has(
+            "organizations:import-codeowners", project.organization, actor=request.user
+        )
+
+
+class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin):
     def get(self, request, project):
         """
         Retrieve List of CODEOWNERS configurations for a project
@@ -159,6 +168,10 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
 
         :auth: required
         """
+
+        if not self.has_feature(request, project):
+            raise PermissionDenied
+
         codeowners = list(ProjectCodeOwners.objects.filter(project=project))
 
         return Response(serialize(codeowners, request.user), status.HTTP_200_OK)
@@ -174,6 +187,9 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
         :param string codeMappingId: id of the RepositoryProjectPathConfig object
         :auth: required
         """
+        if not self.has_feature(request, project):
+            raise PermissionDenied
+
         serializer = ProjectCodeOwnerSerializer(
             context={"ownership": self.get_ownership(project), "project": project},
             data={**request.data},

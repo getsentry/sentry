@@ -16,17 +16,20 @@ class ExternalUserDetailsTest(APITestCase):
         )
 
     def test_basic_delete(self):
-        resp = self.client.delete(self.url)
+        with self.feature({"organizations:import-codeowners": True}):
+            resp = self.client.delete(self.url)
         assert resp.status_code == 204
         assert not ExternalUser.objects.filter(id=str(self.external_user.id)).exists()
 
     def test_basic_update(self):
-        resp = self.client.put(self.url, {"externalName": "@new_username"})
+        with self.feature({"organizations:import-codeowners": True}):
+            resp = self.client.put(self.url, {"externalName": "@new_username"})
         assert resp.status_code == 200
         assert resp.data["id"] == str(self.external_user.id)
         assert resp.data["externalName"] == "@new_username"
 
     def test_invalid_provider_update(self):
-        resp = self.client.put(self.url, {"provider": "unknown"})
+        with self.feature({"organizations:import-codeowners": True}):
+            resp = self.client.put(self.url, {"provider": "unknown"})
         assert resp.status_code == 400
         assert resp.data == {"provider": ['"unknown" is not a valid choice.']}

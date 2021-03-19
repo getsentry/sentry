@@ -11,6 +11,7 @@ import {
   SectionValue,
 } from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
+import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import {OrganizationSummary, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -193,7 +194,13 @@ class TransactionSummaryCharts extends React.Component<Props> {
         <ChartControls>
           <InlineContainer>
             <SectionHeading key="total-heading">{t('Total Transactions')}</SectionHeading>
-            <SectionValue key="total-value">{calculateTotal(totalValues)}</SectionValue>
+            <SectionValue key="total-value">
+              {totalValues === null ? (
+                <Placeholder height="24px" />
+              ) : (
+                totalValues.toLocaleString()
+              )}
+            </SectionValue>
           </InlineContainer>
           <InlineContainer>
             {display === DisplayModes.TREND && (
@@ -223,13 +230,6 @@ class TransactionSummaryCharts extends React.Component<Props> {
       </Panel>
     );
   }
-}
-
-function calculateTotal(total: number | null) {
-  if (total === null) {
-    return '\u2014';
-  }
-  return total.toLocaleString();
 }
 
 export default TransactionSummaryCharts;

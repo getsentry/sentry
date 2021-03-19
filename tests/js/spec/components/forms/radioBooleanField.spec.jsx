@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {RadioBooleanField} from 'app/components/forms';
 import NewRadioBooleanField from 'app/views/settings/components/forms/radioBooleanField';
@@ -32,7 +32,7 @@ describe('RadioBooleanField', function () {
     });
 
     it('renders new field without form context', function () {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <NewRadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />
       );
       expect(wrapper).toSnapshot();
@@ -40,7 +40,7 @@ describe('RadioBooleanField', function () {
 
     it('can change values', function () {
       const mock = jest.fn();
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <NewRadioBooleanField
           onChange={mock}
           name="fieldName"

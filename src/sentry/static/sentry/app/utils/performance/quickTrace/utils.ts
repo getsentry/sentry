@@ -7,14 +7,31 @@ import {Event, EventTransaction} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
 import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
 import {
-  EventLite,
   QuickTrace,
+  QuickTraceEvent,
   TraceFull,
   TraceLite,
 } from 'app/utils/performance/quickTrace/types';
 
 export function isTransaction(event: Event): event is EventTransaction {
   return event.type === 'transaction';
+}
+
+/**
+ * An event can be an error or a transaction. We need to check whether the current
+ * event id is in the list of errors as well
+ */
+function isCurrentEvent(
+  event: TraceFull | QuickTraceEvent,
+  currentEvent: Event
+): boolean {
+  if (isTransaction(currentEvent)) {
+    return event.event_id === currentEvent.id;
+  } else {
+    return (
+      event.errors !== undefined && event.errors.some(e => e.event_id === currentEvent.id)
+    );
+  }
 }
 
 type PathNode = {
@@ -48,7 +65,7 @@ export function flattenRelevantPaths(
   const paths: PathNode[] = [{event: traceFull, path: []}];
   while (paths.length) {
     const current = paths.shift()!;
-    if (current.event.event_id === currentEvent.id) {
+    if (isCurrentEvent(current.event, currentEvent)) {
       for (const node of current.path) {
         relevantPath.push(node);
       }
@@ -80,35 +97,35 @@ export function flattenRelevantPaths(
   return relevantPath;
 }
 
-function simplifyEvent(event: TraceFull): EventLite {
-  return omit(event, 'children');
+function simplifyEvent(event: TraceFull): QuickTraceEvent {
+  return omit(event, ['children', 'start_timestamp', 'timestamp']);
 }
 
 type ParsedQuickTrace = {
   /**
    * `null` represents the lack of a root. It may still have a parent
    */
-  root: EventLite | null;
+  root: QuickTraceEvent | null;
   /**
    * `[]` represents the lack of ancestors in a full quick trace
    * `null` represents the uncertainty of ancestors in a lite quick trace
    */
-  ancestors: TraceLite | null;
+  ancestors: QuickTraceEvent[] | null;
   /**
    * `null` represents either the lack of a direct parent or the uncertainty
    * of what the parent is
    */
-  parent: EventLite | null;
-  current: EventLite;
+  parent: QuickTraceEvent | null;
+  current: QuickTraceEvent;
   /**
    * `[]` represents the lack of children in a full/lite quick trace
    */
-  children: TraceLite;
+  children: QuickTraceEvent[];
   /**
    * `[]` represents the lack of descendants in a full quick trace
    * `null` represents the uncertainty of descendants in a lite quick trace
    */
-  descendants: TraceLite | null;
+  descendants: QuickTraceEvent[] | null;
 };
 
 export function parseQuickTrace(
@@ -123,7 +140,7 @@ export function parseQuickTrace(
 
   const isFullTrace = type === 'full';
 
-  const current = trace.find(e => e.event_id === event.id) ?? null;
+  const current = trace.find(e => isCurrentEvent(e, event)) ?? null;
   if (current === null) {
     throw new Error('Current event not in quick trace!');
   }
@@ -146,7 +163,7 @@ export function parseQuickTrace(
     trace.find(
       e =>
         // a root can't be the current event
-        e.event_id !== event.id &&
+        e.event_id !== current.event_id &&
         // a root can't be the direct parent
         e.event_id !== parent?.event_id &&
         // a root has to to be the first generation
@@ -211,12 +228,7 @@ export function getQuickTraceRequestPayload({eventView, location}: DiscoverQuery
   return omit(eventView.getEventsAPIPayload(location), ['field', 'sort', 'per_page']);
 }
 
-export function makeEventView(event: EventTransaction) {
-  const {start, end} = getTraceDateTimeRange({
-    start: event.startTimestamp,
-    end: event.endTimestamp,
-  });
-
+export function makeEventView(start: string, end: string) {
   return EventView.fromSavedQuery({
     id: undefined,
     version: 2,
@@ -231,4 +243,31 @@ export function makeEventView(event: EventTransaction) {
     start,
     end,
   });
+}
+
+export function reduceTrace<T>(
+  trace: TraceFull,
+  visitor: (acc: T, e: TraceFull) => T,
+  initialValue: T
+): T {
+  let result = initialValue;
+
+  const events = [trace];
+  while (events.length) {
+    const current = events.pop()!;
+    for (const child of current.children) {
+      events.push(child);
+    }
+    result = visitor(result, current);
+  }
+
+  return result;
+}
+
+export function getTraceTimeRangeFromEvent(event: Event): {start: string; end: string} {
+  const start = isTransaction(event)
+    ? event.startTimestamp
+    : new Date(event.dateCreated).getTime();
+  const end = isTransaction(event) ? event.endTimestamp : start;
+  return getTraceDateTimeRange({start, end});
 }

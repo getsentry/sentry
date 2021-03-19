@@ -1,27 +1,31 @@
 import React from 'react';
 
-import GenericDiscoverQuery from 'app/utils/discover/genericDiscoverQuery';
+import GenericDiscoverQuery, {
+  DiscoverQueryProps,
+} from 'app/utils/discover/genericDiscoverQuery';
 import {
   TraceLite,
   TraceLiteQueryChildrenProps,
-  TraceProps,
   TraceRequestProps,
 } from 'app/utils/performance/quickTrace/types';
 import {
   beforeFetch,
   getQuickTraceRequestPayload,
-  isTransaction,
   makeEventView,
 } from 'app/utils/performance/quickTrace/utils';
 import withApi from 'app/utils/withApi';
 
 type QueryProps = Omit<TraceRequestProps, 'eventView'> & {
   children: (props: TraceLiteQueryChildrenProps) => React.ReactNode;
+  shouldSkipQuery: boolean;
 };
 
-function getQuickTraceLiteRequestPayload({event, ...props}: TraceRequestProps) {
+function getQuickTraceLiteRequestPayload({
+  eventId,
+  ...props
+}: DiscoverQueryProps & Pick<TraceRequestProps, 'eventId'>) {
   const additionalApiPayload = getQuickTraceRequestPayload(props);
-  return Object.assign({event_id: event.id}, additionalApiPayload);
+  return Object.assign({event_id: eventId}, additionalApiPayload);
 }
 
 function EmptyTrace({children}: Pick<QueryProps, 'children'>) {
@@ -37,22 +41,22 @@ function EmptyTrace({children}: Pick<QueryProps, 'children'>) {
   );
 }
 
-function TraceLiteQuery({event, children, ...props}: QueryProps) {
-  // non transaction events are currently unsupported
-  if (!isTransaction(event)) {
+function TraceLiteQuery({
+  traceId,
+  start,
+  end,
+  children,
+  shouldSkipQuery,
+  ...props
+}: QueryProps) {
+  if (!traceId || shouldSkipQuery) {
     return <EmptyTrace>{children}</EmptyTrace>;
   }
 
-  const traceId = event.contexts?.trace?.trace_id;
-  if (!traceId) {
-    return <EmptyTrace>{children}</EmptyTrace>;
-  }
-
-  const eventView = makeEventView(event);
+  const eventView = makeEventView(start, end);
 
   return (
-    <GenericDiscoverQuery<TraceLite, TraceProps>
-      event={event}
+    <GenericDiscoverQuery<TraceLite, {eventId: string}>
       route={`events-trace-light/${traceId}`}
       getRequestPayload={getQuickTraceLiteRequestPayload}
       beforeFetch={beforeFetch}

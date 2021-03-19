@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:41.080865Z'
+created: '2021-02-15T10:11:55.845936Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,14 +7,14 @@ app:
   hash: null
   component:
     app (exception of system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame*
             filename*
               "baz.py"
         type*
           "ValueError"
-        value*
+        value (ignored because stacktrace takes precedence)
           "hello world"
 --------------------------------------------------------------------------
 system:

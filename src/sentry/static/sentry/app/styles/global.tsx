@@ -18,6 +18,21 @@ const styles = (theme: Theme, isDark: boolean) => css`
     border-bottom: 1px dotted ${theme.gray300};
   }
 
+  a {
+    color: ${theme.linkColor};
+    &:hover {
+      color: ${theme.linkHoverColor};
+    }
+  }
+
+  .group-detail:before {
+    background: ${theme.border};
+  }
+
+  .form-actions {
+    border-top-color: ${theme.border};
+  }
+
   /**
    * See https://web.dev/prefers-reduced-motion/
    */
@@ -81,6 +96,9 @@ const styles = (theme: Theme, isDark: boolean) => css`
             a:hover {
               color: ${theme.textColor} !important;
             }
+          }
+          &.border-bottom {
+            border-color: ${theme.border};
           }
         }
 

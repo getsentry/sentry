@@ -55,7 +55,7 @@ function getStackTracePlatforms(event: Event, exceptionEntry: EntryException) {
 export function isNativeEvent(event: Event, exceptionEntry: EntryException) {
   const {platform} = event;
 
-  if (platform && NATIVE_PLATFORMS[platform]) {
+  if (platform && NATIVE_PLATFORMS.includes(platform)) {
     return true;
   }
 

@@ -6,7 +6,9 @@ import {SectionHeading} from 'app/components/charts/styles';
 import MenuItem from 'app/components/menuItem';
 import QuestionTooltip from 'app/components/questionTooltip';
 import Tag, {Background} from 'app/components/tag';
+import Truncate from 'app/components/truncate';
 import space from 'app/styles/space';
+import {Theme} from 'app/utils/theme';
 
 type MetaDataProps = {
   headingText: string;
@@ -35,18 +37,6 @@ export function MetaData({headingText, tooltipText, bodyText, subtext}: MetaData
 
 const HeaderInfo = styled('div')`
   height: 78px;
-
-  &:last-child {
-    grid-column: 1/4;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    &:last-child {
-      justify-self: flex-end;
-      min-width: 325px;
-      grid-column: unset;
-    }
-  }
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
@@ -58,20 +48,49 @@ const SectionBody = styled('div')`
   margin: ${space(0.5)} 0;
 `;
 
-export const SectionSubtext = styled('div')`
-  color: ${p => p.theme.subText};
+export const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`
+  color: ${p => (p.type === 'error' ? p.theme.error : p.theme.subText)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
+const nodeColors = (theme: Theme) => {
+  return {
+    error: {
+      color: theme.white,
+      background: theme.red300,
+      border: theme.red300,
+    },
+    warning: {
+      color: theme.red300,
+      background: theme.white,
+      border: theme.red300,
+    },
+    white: {
+      color: theme.textColor,
+      background: theme.background,
+      border: theme.textColor,
+    },
+    black: {
+      color: theme.background,
+      background: theme.textColor,
+      border: theme.textColor,
+    },
+  };
+};
+
 export const EventNode = styled(Tag)<{pad?: 'left' | 'right'}>`
+  span {
+    color: ${p => nodeColors(p.theme)[p.type || 'white'].color};
+  }
   & ${/* sc-selector */ Background} {
-    border: 1px solid ${p => p.theme.gray500};
+    background-color: ${p => nodeColors(p.theme)[p.type || 'white'].background};
+    border: 1px solid ${p => nodeColors(p.theme)[p.type || 'white'].border};
   }
 `;
 
 export const TraceConnector = styled('div')`
   width: ${space(1)};
-  border-top: 1px solid ${p => p.theme.gray500};
+  border-top: 1px solid ${p => p.theme.textColor};
 `;
 
 export const QuickTraceContainer = styled('div')`
@@ -93,13 +112,23 @@ const MenuItemContent = styled('div')`
 type DropdownItemProps = {
   children: React.ReactNode;
   to?: string | LocationDescriptor;
+  onSelect?: (eventKey: any) => void;
   first?: boolean;
 };
 
-export function DropdownItem({children, first, to}: DropdownItemProps) {
+export function DropdownItem({children, first, onSelect, to}: DropdownItemProps) {
   return (
-    <StyledMenuItem to={to} first={first}>
+    <StyledMenuItem to={to} onSelect={onSelect} first={first}>
       <MenuItemContent>{children}</MenuItemContent>
     </StyledMenuItem>
   );
 }
+
+export const DropdownItemSubContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+`;
+
+export const StyledTruncate = styled(Truncate)`
+  margin-left: ${space(1)};
+`;

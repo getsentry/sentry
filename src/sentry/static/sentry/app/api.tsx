@@ -5,7 +5,7 @@ import Cookies from 'js-cookie';
 import isUndefined from 'lodash/isUndefined';
 
 import {openSudo, redirectToProject} from 'app/actionCreators/modal';
-import {CSRF_COOKIE_NAME, EXPERIMENTAL_SPA} from 'app/constants';
+import {EXPERIMENTAL_SPA} from 'app/constants';
 import {
   PROJECT_MOVED,
   SUDO_REQUIRED,
@@ -13,7 +13,7 @@ import {
 } from 'app/constants/apiErrorCodes';
 import {metric} from 'app/utils/analytics';
 import {run} from 'app/utils/apiSentryClient';
-import getCookie from 'app/utils/getCookie';
+import getCsrfToken from 'app/utils/getCsrfToken';
 import {uniqueId} from 'app/utils/guid';
 import createRequestError from 'app/utils/requestError/createRequestError';
 
@@ -265,6 +265,8 @@ export class Client {
     const code = response?.responseJSON?.detail?.code;
     const isSudoRequired = code === SUDO_REQUIRED || code === SUPERUSER_REQUIRED;
 
+    let didSuccessfullyRetry = false;
+
     if (isSudoRequired) {
       openSudo({
         superuser: code === SUPERUSER_REQUIRED,
@@ -273,13 +275,14 @@ export class Client {
           try {
             const data = await this.requestPromise(path, requestOptions);
             requestOptions.success?.(data);
+            didSuccessfullyRetry = true;
           } catch (err) {
             requestOptions.error?.(err);
           }
         },
         onClose: () =>
           // If modal was closed, then forward the original response
-          requestOptions.error?.(response),
+          !didSuccessfullyRetry && requestOptions.error?.(response),
       });
       return;
     }
@@ -419,7 +422,7 @@ export class Client {
     const isSameOrigin = window.location.origin === absoluteUrl.origin;
 
     if (!csrfSafeMethod(method) && isSameOrigin) {
-      headers.set('X-CSRFToken', getCookie(CSRF_COOKIE_NAME) ?? '');
+      headers.set('X-CSRFToken', getCsrfToken());
     }
 
     const fetchRequest = fetch(fullUrl, {
