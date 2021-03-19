@@ -18,11 +18,11 @@ class Outcome(IntEnum):
     INVALID = 3
     ABUSE = 4
 
-    def api_name(self):
+    def api_name(self) -> str:
         return self.name.lower()
 
     @classmethod
-    def parse(cls, name):
+    def parse(cls, name: str) -> "Outcome":
         return Outcome[name.upper()]
 
 

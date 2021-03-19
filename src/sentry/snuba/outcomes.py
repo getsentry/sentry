@@ -1,4 +1,5 @@
-from sentry.utils.snuba import Dataset, raw_query
+from sentry.utils.snuba import raw_query
+from .dataset import Dataset
 from sentry_relay import DataCategory
 
 from sentry.snuba.sessions_v2 import (
@@ -9,6 +10,9 @@ from sentry.snuba.sessions_v2 import (
 from sentry.utils.outcomes import Outcome
 from datetime import datetime
 from sentry.search.utils import InvalidQuery
+
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 
 """
 The new Outcomes API defines a "metrics"-like interface which is can be used in
@@ -48,36 +52,40 @@ The Outcome data can be grouped by a set of tags, which can only appear in the
 
 
 class QuantityField:
-    def get_snuba_columns(self, raw_groupby):
+    def get_snuba_columns(self, raw_groupby: List[str]) -> List[str]:
         return ["quantity"]
 
-    def extract_from_row(self, row, group=None):
+    def extract_from_row(
+        self, row: Dict[str, Union[Any, int]], group: Optional[Dict[str, Any]] = None
+    ) -> int:
         if row is None:
             return 0
         return row["quantity"]
 
-    def unit_value(self, row, group):
-        if row is None:
-            return 0
-        return
+    # def unit_value(self, row, group):
+    #     if row is None:
+    #         return 0
+    #     return
 
-    def aggregation(self, dataset):
+    def aggregation(self, dataset: Dataset) -> List[str]:
         return ["sum", "quantity", "quantity"]
 
 
 class TimesSeenField:
-    def get_snuba_columns(self, raw_groupby):
+    def get_snuba_columns(self, raw_groupby: List[str]) -> List[str]:
         return ["times_seen"]
 
-    def extract_from_row(self, row, group=None):
+    def extract_from_row(
+        self, row: Dict[str, Union[Any, int]], group: Optional[Dict[str, Any]] = None
+    ) -> int:
         if row is None:
             return 0
         return row["times_seen"]
 
-    def unit_value(self, row, group):
-        return "count"
+    # def unit_value(self, row, group):
+    #     return "count"
 
-    def aggregation(self, dataset):
+    def aggregation(self, dataset: Dataset) -> List[str]:
         if dataset == Dataset.Outcomes:
             return ["sum", "times_seen", "times_seen"]
         else:
@@ -86,7 +94,7 @@ class TimesSeenField:
 
 
 class CategoryDimension(SimpleGroupBy):
-    def resolve_filter(self, raw_filter):
+    def resolve_filter(self, raw_filter: List[str]) -> List[DataCategory]:
         resolved_categories = set()
         for category in raw_filter:
             if DataCategory.parse(category) == DataCategory.ERROR:
@@ -97,7 +105,7 @@ class CategoryDimension(SimpleGroupBy):
             raise InvalidQuery("if filtering by attachment no other category may be present")
         return list(resolved_categories)
 
-    def map_row(self, row):
+    def map_row(self, row: Dict[str, Any]) -> None:
         if "category" in row:
             category = (
                 DataCategory.ERROR
@@ -108,16 +116,16 @@ class CategoryDimension(SimpleGroupBy):
 
 
 class OutcomeDimension(SimpleGroupBy):
-    def resolve_filter(self, raw_filter):
+    def resolve_filter(self, raw_filter: List[str]) -> List[Outcome]:
         return [Outcome.parse(o) for o in raw_filter]
 
-    def map_row(self, row):
+    def map_row(self, row: Dict[str, Any]) -> None:
         if "outcome" in row:
             row["outcome"] = Outcome(row["outcome"]).api_name()
 
 
 class ReasonDimension(SimpleGroupBy):
-    def resolve_filter(self, raw_filter):
+    def resolve_filter(self, raw_filter: List[str]) -> List[str]:
         resolved_reasons = set()
         for reason in raw_filter:
             if reason == "spike_protection":
@@ -126,7 +134,7 @@ class ReasonDimension(SimpleGroupBy):
                 resolved_reasons.add(reason)
         return list(resolved_reasons)
 
-    def map_row(self, row):
+    def map_row(self, row: Dict[str, Any]) -> None:
         if "reason" in row:
             row["reason"] = (
                 "spike_protection" if row["reason"] == "smart_rate_limit" else row["reason"]
@@ -150,19 +158,21 @@ DIMENSION_MAP = {
     "reason": ReasonDimension("reason"),
 }
 
-CONDITION_COLUMNS = ["project", "key", "outcome", "category", "reason"]
+# CONDITION_COLUMNS = ["project", "key", "outcome", "category", "reason"]
 
 
-def resolve_column(col):
-    if col in CONDITION_COLUMNS:
-        return col
-    raise InvalidField(f'Invalid query field: "{col}"')
+# def resolve_column(col: str) -> str:
+#     if col in CONDITION_COLUMNS:
+#         return col
+#     raise InvalidField(f'Invalid query field: "{col}"')
 
 
 TS_COL = "time"
 
 
-def get_filter(query, params):
+def get_filter(
+    query: Any, params: Dict[Any, Any]
+) -> Dict[str, Union[List[List[Any]], Dict[str, Any]]]:
     filter_keys = {}
     conditions = []
 
@@ -187,7 +197,7 @@ class QueryDefinition:
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, query, params):
+    def __init__(self, query: Any, params: Dict[Any, Any]):
         raw_fields = query.getlist("field", [])
         raw_groupby = query.getlist("groupBy", [])
         if len(raw_fields) == 0:
@@ -195,8 +205,7 @@ class QueryDefinition:
 
         self.fields = {}
         self.aggregations = []
-        self.query = []
-
+        self.query: List[Any] = []  # not used but needed for compat with sessions logic
         start, end, rollup = get_constrained_date_range(query, allow_minute_resolution=True)
         self.dataset = _outcomes_dataset(rollup)
         self.rollup = rollup
@@ -237,7 +246,7 @@ class QueryDefinition:
         self.filter_keys = snuba_filter["filter_keys"]
 
 
-def run_outcomes_query(query):
+def run_outcomes_query(query: QueryDefinition) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     result = raw_query(
         dataset=query.dataset,
         start=query.start,
@@ -264,15 +273,15 @@ def run_outcomes_query(query):
         referrer="outcomes.timeseries",
     )
 
-    result = _format_rows(result["data"], query)
+    result_totals = _format_rows(result["data"], query)
     result_timeseries = _format_rows(result_timeseries["data"], query)
-    return result, result_timeseries
+    return result_totals, result_timeseries
 
 
-def _format_rows(rows, query):
-    category_grouping = {}
+def _format_rows(rows: List[Dict[str, Any]], query: QueryDefinition) -> List[Dict[str, Any]]:
+    category_grouping: Dict[str, Any] = {}
 
-    def _group_rows(row):
+    def _group_rows(row: Dict[str, Any]) -> None:
         if TS_COL in row:
             grouping_key = "-".join([row[TS_COL]] + [str(row[col]) for col in query.query_groupby])
         else:
@@ -284,6 +293,7 @@ def _format_rows(rows, query):
                 category_grouping[grouping_key][row_field] += field.extract_from_row(row)
         else:
             category_grouping[grouping_key] = row
+        return
 
     for row in rows:
         _rename_row_fields(row)
@@ -292,17 +302,16 @@ def _format_rows(rows, query):
     return list(category_grouping.values())
 
 
-def _rename_row_fields(row):
+def _rename_row_fields(row: Dict[str, Any]) -> None:
     for dimension in ["category", "reason", "outcome"]:
         DIMENSION_MAP[dimension].map_row(row)
     if TS_COL in row:
         # have to use "time" column -- "timestamp" column doesnt
         # rollup correctly. TODO: look into this
         row[TS_COL] = datetime.utcfromtimestamp(row[TS_COL]).isoformat()
-    return row
 
 
-def _outcomes_dataset(rollup):
+def _outcomes_dataset(rollup: int) -> Dataset:
     if rollup >= 3600:
         # Outcomes is the hourly rollup table
         return Dataset.Outcomes
@@ -310,7 +319,11 @@ def _outcomes_dataset(rollup):
         return Dataset.OutcomesRaw
 
 
-def massage_outcomes_result(query, result_totals, result_timeseries):
+def massage_outcomes_result(
+    query: QueryDefinition,
+    result_totals: List[Dict[str, Any]],
+    result_timeseries: List[Dict[str, Any]],
+) -> Dict[str, List[Any]]:
     result = massage_sessions_result(query, result_totals, result_timeseries, ts_col=TS_COL)
     del result["query"]
     return result

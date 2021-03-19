@@ -1,3 +1,4 @@
+from typing import List, Tuple, Optional, Dict, Any
 from datetime import datetime, timedelta
 import itertools
 import math
@@ -173,17 +174,17 @@ COLUMN_MAP = {
 
 
 class SimpleGroupBy:
-    def __init__(self, row_name, name=None):
+    def __init__(self, row_name: str, name: Optional[str] = None):
         self.row_name = row_name
         self.name = name or row_name
 
-    def get_snuba_columns(self):
+    def get_snuba_columns(self) -> List[str]:
         return [self.row_name]
 
-    def get_snuba_groupby(self):
+    def get_snuba_groupby(self) -> List[str]:
         return [self.row_name]
 
-    def get_keys_for_row(self, row):
+    def get_keys_for_row(self, row) -> List[Tuple[str, str]]:
         return [(self.name, row[self.row_name])]
 
 
@@ -289,7 +290,9 @@ class InvalidParams(Exception):
     pass
 
 
-def get_constrained_date_range(params, allow_minute_resolution=False):
+def get_constrained_date_range(
+    params, allow_minute_resolution=False
+) -> Tuple[datetime, datetime, int]:
     interval = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval is None else interval.total_seconds())
 
@@ -350,7 +353,6 @@ def get_constrained_date_range(params, allow_minute_resolution=False):
     if rounding_interval > interval and (end - date_range) > start:
         date_range += timedelta(seconds=rounding_interval)
     start = end - date_range
-
     return start, end, interval
 
 
@@ -392,7 +394,9 @@ def run_sessions_query(query):
     return result_totals["data"], result_timeseries["data"]
 
 
-def massage_sessions_result(query, result_totals, result_timeseries, ts_col=TS_COL):
+def massage_sessions_result(
+    query, result_totals, result_timeseries, ts_col=TS_COL
+) -> Dict[str, List[Any]]:
     """
     Post-processes the query result.
 
@@ -464,7 +468,6 @@ def massage_sessions_result(query, result_totals, result_timeseries, ts_col=TS_C
     keys = set(total_groups.keys()) | set(timeseries_groups.keys())
     for key in keys:
         by = dict(key)
-
         group = {
             "by": by,
             "totals": make_totals(total_groups.get(key, [None]), by),

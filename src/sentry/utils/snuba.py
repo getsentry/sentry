@@ -1,3 +1,4 @@
+from typing import Dict, Any
 from collections import namedtuple, OrderedDict
 from copy import deepcopy
 from contextlib import contextmanager
@@ -618,7 +619,7 @@ def raw_query(
     is_grouprelease=False,
     use_cache=False,
     **kwargs,
-):
+) -> [Dict[str, Any]]:
     """
     Sends a query to snuba.  See `SnubaQueryParams` docstring for param
     descriptions.
