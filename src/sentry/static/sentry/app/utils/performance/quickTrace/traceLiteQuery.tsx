@@ -45,6 +45,7 @@ function TraceLiteQuery({
   traceId,
   start,
   end,
+  statsPeriod,
   children,
   shouldSkipQuery,
   ...props
@@ -53,7 +54,7 @@ function TraceLiteQuery({
     return <EmptyTrace>{children}</EmptyTrace>;
   }
 
-  const eventView = makeEventView(start, end);
+  const eventView = makeEventView({start, end, statsPeriod});
 
   return (
     <GenericDiscoverQuery<TraceLite, {eventId: string}>

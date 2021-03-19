@@ -9,13 +9,12 @@ import {TraceInfo} from './types';
 export function getTraceDetailsUrl(
   organization: OrganizationSummary,
   traceSlug: string,
-  start: string,
-  end: string,
+  dateSelection,
   query: Query
 ): LocationDescriptor {
   return {
     pathname: `/organizations/${organization.slug}/performance/trace/${traceSlug}/`,
-    query: {...query, start, end},
+    query: {...query, ...dateSelection},
   };
 }
 
