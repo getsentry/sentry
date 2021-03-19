@@ -1,20 +1,11 @@
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import OptionManager
-
-
-class UserOptionValue:
-    # 'workflow:notifications'
-    all_conversations = "0"
-    participating_only = "1"
-    no_conversations = "2"
-    # 'deploy-emails
-    all_deploys = "2"
-    committed_deploys_only = "3"
-    no_deploys = "4"
+from sentry.models.integration import ExternalProviders
+from sentry.notifications.legacy_mappings import get_key_value_from_legacy, get_key_from_legacy
 
 
 option_scope_error = "this is not a supported use case, scope to project OR organization"
@@ -44,9 +35,28 @@ class UserOptionManager(OptionManager):
         return result.get(key, default)
 
     def unset_value(self, user, project, key):
-        # this isn't implemented for user-organization scoped options yet, because
-        # it hasn't been needed
-        self.filter(user=user, project=project, key=key).delete()
+        """
+        This isn't implemented for user-organization scoped options yet, because it hasn't been needed.
+        """
+        from sentry.models.notificationsetting import NotificationSetting
+
+        with transaction.atomic():
+            if key in [
+                "workflow:notifications",
+                "mail:alert",
+                "deploy-emails",
+                "subscribe_by_default",
+            ]:
+                type = get_key_from_legacy(key)
+                NotificationSetting.objects.remove_settings(
+                    ExternalProviders.EMAIL,
+                    type,
+                    user=user,
+                    project=project,
+                )
+
+            self.filter(user=user, project=project, key=key).delete()
+
         if not hasattr(self, "_metadata"):
             return
 
@@ -57,21 +67,40 @@ class UserOptionManager(OptionManager):
         self._option_cache[metakey].pop(key, None)
 
     def set_value(self, user, key, value, **kwargs):
+        from sentry.models.notificationsetting import NotificationSetting
+
         project = kwargs.get("project")
         organization = kwargs.get("organization")
 
         if organization and project:
             raise NotImplementedError(option_scope_error)
 
-        inst, created = self.get_or_create(
-            user=user,
-            project=project,
-            organization=organization,
-            key=key,
-            defaults={"value": value},
-        )
-        if not created and inst.value != value:
-            inst.update(value=value)
+        with transaction.atomic():
+            if key in [
+                "workflow:notifications",
+                "mail:alert",
+                "deploy-emails",
+                "subscribe_by_default",
+            ]:
+                type, option_value = get_key_value_from_legacy(key, value)
+                NotificationSetting.objects.update_settings(
+                    ExternalProviders.EMAIL,
+                    type,
+                    option_value,
+                    user=user,
+                    project=project,
+                    organization=organization,
+                )
+
+            inst, created = self.get_or_create(
+                user=user,
+                project=project,
+                organization=organization,
+                key=key,
+                defaults={"value": value},
+            )
+            if not created and inst.value != value:
+                inst.update(value=value)
 
         metakey = self._make_key(user, project=project, organization=organization)
 

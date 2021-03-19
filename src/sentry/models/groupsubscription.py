@@ -126,7 +126,8 @@ class GroupSubscriptionManager(BaseManager):
         """
         Identify all users who are participating with a given issue.
         """
-        from sentry.models import User, UserOptionValue
+        from sentry.models import User
+        from sentry.notifications.legacy_mappings import UserOptionValue
 
         users = {
             user.id: user

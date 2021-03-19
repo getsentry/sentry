@@ -1,7 +1,8 @@
 import functools
 import itertools
 
-from sentry.models import GroupSubscription, GroupSubscriptionReason, UserOption, UserOptionValue
+from sentry.models import GroupSubscription, GroupSubscriptionReason, UserOption
+from sentry.notifications.legacy_mappings import UserOptionValue
 from sentry.testutils import TestCase
 
 

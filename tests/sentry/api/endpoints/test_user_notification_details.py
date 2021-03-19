@@ -1,4 +1,5 @@
-from sentry.models import UserOption, UserOptionValue
+from sentry.models import UserOption
+from sentry.notifications.legacy_mappings import UserOptionValue
 from sentry.testutils import APITestCase
 
 

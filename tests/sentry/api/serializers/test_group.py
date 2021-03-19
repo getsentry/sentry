@@ -12,8 +12,8 @@ from sentry.models import (
     GroupStatus,
     GroupSubscription,
     UserOption,
-    UserOptionValue,
 )
+from sentry.notifications.legacy_mappings import UserOptionValue
 from sentry.testutils import TestCase
 from sentry.utils.compat import mock
 from sentry.utils.compat.mock import patch

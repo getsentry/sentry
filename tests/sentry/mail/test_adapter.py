@@ -23,9 +23,9 @@ from sentry.models import (
     Rule,
     User,
     UserOption,
-    UserOptionValue,
     UserReport,
 )
+from sentry.notifications.legacy_mappings import UserOptionValue
 from sentry.ownership import grammar
 from sentry.ownership.grammar import dump_schema, Matcher, Owner
 from sentry.plugins.base import Notification
