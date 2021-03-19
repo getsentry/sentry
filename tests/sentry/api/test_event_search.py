@@ -2302,7 +2302,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["apdex(duration, 300)", None, "apdex_300"],
             ["uniqIf(user, greater(duration, 1200))", None, "user_misery_300"],
             [
-                "divide(plus(uniqIf(user, greater(duration, {tolerated:g})), 5.8875), plus(uniq(user), 117.75))",
+                "divide(plus(uniqIf(user, greater(duration, 1200)), 5.8875), plus(uniq(user), 117.75))",
                 None,
                 "misery_300",
             ],

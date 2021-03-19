@@ -27,7 +27,6 @@ export const COLUMN_TITLES = [
   'apdex',
   'users',
   'user misery',
-  'misery',
 ];
 
 export enum PERFORMANCE_TERM {
@@ -40,8 +39,7 @@ export enum PERFORMANCE_TERM {
   P95 = 'p95',
   P99 = 'p99',
   LCP = 'lcp',
-  USER_MISERY = 'userMisery',
-  MISERY = 'misery',
+  USER_MISERY = 'misery',
   STATUS_BREAKDOWN = 'statusBreakdown',
   DURATION_DISTRIBUTION = 'durationDistribution',
 }
@@ -233,14 +231,9 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   p99: () => t('p99 indicates the duration that 99% of transactions are faster than.'),
   lcp: () =>
     t('Largest contentful paint (LCP) is a web vital meant to represent user load times'),
-  userMisery: organization =>
-    t(
-      "User misery is the percentage of users who are experiencing load times 4x your organization's apdex threshold of %sms.",
-      organization.apdexThreshold
-    ),
   misery: organization =>
     t(
-      "User misery is the percentage of users who are experiencing load times 4x your organization's apdex threshold of %sms.",
+      "User misery estimates the percentage of user who will experience load times 4x your organization's apdex threshold of %sms.",
       organization.apdexThreshold
     ),
   statusBreakdown: () =>
