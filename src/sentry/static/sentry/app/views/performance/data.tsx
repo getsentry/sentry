@@ -27,7 +27,7 @@ export const COLUMN_TITLES = [
   'apdex',
   'users',
   'user misery',
-  'new user misery',
+  'misery',
 ];
 
 export enum PERFORMANCE_TERM {
@@ -41,7 +41,7 @@ export enum PERFORMANCE_TERM {
   P99 = 'p99',
   LCP = 'lcp',
   USER_MISERY = 'userMisery',
-  NEW_USER_MISERY = 'newUserMisery',
+  MISERY = 'misery',
   STATUS_BREAKDOWN = 'statusBreakdown',
   DURATION_DISTRIBUTION = 'durationDistribution',
 }
@@ -238,7 +238,7 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
       "User misery is the percentage of users who are experiencing load times 4x your organization's apdex threshold of %sms.",
       organization.apdexThreshold
     ),
-  newUserMisery: organization =>
+  misery: organization =>
     t(
       "User misery is the percentage of users who are experiencing load times 4x your organization's apdex threshold of %sms.",
       organization.apdexThreshold
@@ -286,7 +286,7 @@ function generateGenericPerformanceEventView(
       `apdex(${organization.apdexThreshold})`,
       'count_unique(user)',
       `user_misery(${organization.apdexThreshold})`,
-      `new_user_misery(${organization.apdexThreshold})`,
+      `misery(${organization.apdexThreshold})`,
     ],
     version: 2,
   };
@@ -341,7 +341,7 @@ function generateBackendPerformanceEventView(
       `apdex(${organization.apdexThreshold})`,
       'count_unique(user)',
       `user_misery(${organization.apdexThreshold})`,
-      `new_user_misery(${organization.apdexThreshold})`,
+      `misery(${organization.apdexThreshold})`,
     ],
     version: 2,
   };
@@ -395,7 +395,7 @@ function generateFrontendPageloadPerformanceEventView(
       'p75(measurements.cls)',
       'count_unique(user)',
       `user_misery(${organization.apdexThreshold})`,
-      `new_user_misery(${organization.apdexThreshold})`,
+      `misery(${organization.apdexThreshold})`,
     ],
     version: 2,
   };
@@ -446,7 +446,7 @@ function generateFrontendOtherPerformanceEventView(
       'p95(transaction.duration)',
       'count_unique(user)',
       `user_misery(${organization.apdexThreshold})`,
-      `new_user_misery(${organization.apdexThreshold})`,
+      `misery(${organization.apdexThreshold})`,
     ],
     version: 2,
   };

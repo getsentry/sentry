@@ -316,7 +316,7 @@ class SearchVisitor(NodeVisitor):
         "p99",
         "failure_rate",
         "user_misery",
-        "new_user_misery",
+        "misery",
     }
     date_keys = {
         "start",
@@ -2044,7 +2044,7 @@ FUNCTIONS = {
             default_result_type="number",
         ),
         Function(
-            "new_user_misery",
+            "misery",
             required_args=[NumberRange("satisfaction", 0, None)],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
             # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.

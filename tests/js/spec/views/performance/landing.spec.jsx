@@ -113,7 +113,7 @@ describe('Performance > Landing', function () {
             apdex_300: 'number',
             count_unique_user: 'number',
             user_misery_300: 'number',
-            new_user_misery_300: 'number',
+            misery_300: 'number',
           },
           data: [
             {
@@ -127,7 +127,7 @@ describe('Performance > Landing', function () {
               apdex_300: 0.6,
               count_unique_user: 1000,
               user_misery_300: 122,
-              new_user_misery_300: 0.114,
+              misery_300: 0.114,
             },
           ],
         },
@@ -158,7 +158,7 @@ describe('Performance > Landing', function () {
             apdex_300: 'number',
             count_unique_user: 'number',
             user_misery_300: 'number',
-            new_user_misery_300: 'number',
+            misery_300: 'number',
           },
           data: [
             {
@@ -173,7 +173,7 @@ describe('Performance > Landing', function () {
               apdex_300: 0.6,
               count_unique_user: 1000,
               user_misery_300: 122,
-              new_user_misery_300: 0.114,
+              misery_300: 0.114,
             },
             {
               key_transaction: 0,
@@ -187,7 +187,7 @@ describe('Performance > Landing', function () {
               apdex_300: 0.6,
               count_unique_user: 1000,
               user_misery_300: 122,
-              new_user_misery_300: 0.114,
+              misery_300: 0.114,
             },
           ],
         },

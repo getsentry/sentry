@@ -7,7 +7,7 @@ import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
-import NewUserMisery from 'app/components/newUserMisery';
+import Misery from 'app/components/misery';
 import UserMisery from 'app/components/userMisery';
 import Version from 'app/components/version';
 import {t} from 'app/locale';
@@ -346,7 +346,7 @@ const SPECIAL_FIELDS: SpecialFields = {
 
 type SpecialFunctions = {
   user_misery: SpecialFieldRenderFunc;
-  new_user_misery: SpecialFieldRenderFunc;
+  misery: SpecialFieldRenderFunc;
 };
 
 /**
@@ -389,26 +389,26 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       </BarContainer>
     );
   },
-  new_user_misery: data => {
+  misery: data => {
     const uniqueUsers = data.count_unique_user;
-    let newUserMiseryField: string = '';
+    let miseryField: string = '';
     let userMiseryField: string = '';
     for (const field in data) {
-      if (field.startsWith('new_user_misery')) {
-        newUserMiseryField = field;
+      if (field.startsWith('misery')) {
+        miseryField = field;
       }
       if (field.startsWith('user_misery')) {
         userMiseryField = field;
       }
     }
 
-    if (!newUserMiseryField) {
+    if (!miseryField) {
       return <NumberContainer>{emptyValue}</NumberContainer>;
     }
 
     const miserableUsers = userMiseryField ? data[userMiseryField] : 0;
 
-    const userMisery = data[newUserMiseryField];
+    const userMisery = data[miseryField];
     if (!uniqueUsers && uniqueUsers !== 0) {
       return (
         <NumberContainer>
@@ -417,11 +417,11 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       );
     }
 
-    const miseryLimit = parseInt(newUserMiseryField.split('_').pop() || '', 10);
+    const miseryLimit = parseInt(miseryField.split('_').pop() || '', 10);
 
     return (
       <BarContainer>
-        <NewUserMisery
+        <Misery
           bars={10}
           barHeight={20}
           miseryLimit={miseryLimit}

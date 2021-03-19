@@ -139,7 +139,7 @@ class TransactionSummary extends React.Component<Props, State> {
       },
       {
         kind: 'field',
-        field: `new_user_misery(${organization.apdexThreshold})`,
+        field: `misery(${organization.apdexThreshold})`,
       },
       ...vitals.map(
         vital =>
