@@ -279,7 +279,7 @@ function generateGenericPerformanceEventView(
       `apdex(${organization.apdexThreshold})`,
       'count_unique(user)',
       `user_misery(${organization.apdexThreshold})`,
-      `misery(${organization.apdexThreshold})`,
+      `user_misery.prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };
@@ -334,7 +334,7 @@ function generateBackendPerformanceEventView(
       `apdex(${organization.apdexThreshold})`,
       'count_unique(user)',
       `user_misery(${organization.apdexThreshold})`,
-      `misery(${organization.apdexThreshold})`,
+      `user_misery.prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };
@@ -388,7 +388,7 @@ function generateFrontendPageloadPerformanceEventView(
       'p75(measurements.cls)',
       'count_unique(user)',
       `user_misery(${organization.apdexThreshold})`,
-      `misery(${organization.apdexThreshold})`,
+      `user_misery.prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };
@@ -439,7 +439,7 @@ function generateFrontendOtherPerformanceEventView(
       'p95(transaction.duration)',
       'count_unique(user)',
       `user_misery(${organization.apdexThreshold})`,
-      `misery(${organization.apdexThreshold})`,
+      `user_misery.prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };

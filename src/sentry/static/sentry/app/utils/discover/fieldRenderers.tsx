@@ -369,8 +369,8 @@ const SPECIAL_FIELDS: SpecialFields = {
 };
 
 type SpecialFunctions = {
+  user_misery_prototype: SpecialFieldRenderFunc;
   user_misery: SpecialFieldRenderFunc;
-  misery: SpecialFieldRenderFunc;
 };
 
 /**
@@ -378,6 +378,48 @@ type SpecialFunctions = {
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FUNCTIONS: SpecialFunctions = {
+  user_misery_prototype: data => {
+    const uniqueUsers = data.count_unique_user;
+    let miseryField: string = '';
+    let userMiseryField: string = '';
+    for (const field in data) {
+      if (field.startsWith('user_misery.prototype')) {
+        miseryField = field;
+      } else if (field.startsWith('user_misery')) {
+        userMiseryField = field;
+      }
+    }
+
+    if (!miseryField) {
+      return <NumberContainer>{emptyValue}</NumberContainer>;
+    }
+
+    const miserableUsers = userMiseryField ? data[userMiseryField] : 0;
+
+    const userMisery = data[miseryField];
+    if (!uniqueUsers && uniqueUsers !== 0) {
+      return (
+        <NumberContainer>
+          {typeof userMisery === 'number' ? formatFloat(userMisery, 4) : emptyValue}
+        </NumberContainer>
+      );
+    }
+
+    const miseryLimit = parseInt(miseryField.split('_').pop() || '', 10);
+
+    return (
+      <BarContainer>
+        <Misery
+          bars={10}
+          barHeight={20}
+          miseryLimit={miseryLimit}
+          totalUsers={uniqueUsers}
+          userMisery={userMisery}
+          miserableUsers={miserableUsers}
+        />
+      </BarContainer>
+    );
+  },
   user_misery: data => {
     const uniqueUsers = data.count_unique_user;
     let userMiseryField: string = '';
@@ -409,49 +451,6 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
           miseryLimit={miseryLimit}
           totalUsers={uniqueUsers}
           miserableUsers={userMisery}
-        />
-      </BarContainer>
-    );
-  },
-  misery: data => {
-    const uniqueUsers = data.count_unique_user;
-    let miseryField: string = '';
-    let userMiseryField: string = '';
-    for (const field in data) {
-      if (field.startsWith('misery')) {
-        miseryField = field;
-      }
-      if (field.startsWith('user_misery')) {
-        userMiseryField = field;
-      }
-    }
-
-    if (!miseryField) {
-      return <NumberContainer>{emptyValue}</NumberContainer>;
-    }
-
-    const miserableUsers = userMiseryField ? data[userMiseryField] : 0;
-
-    const userMisery = data[miseryField];
-    if (!uniqueUsers && uniqueUsers !== 0) {
-      return (
-        <NumberContainer>
-          {typeof userMisery === 'number' ? formatFloat(userMisery, 4) : emptyValue}
-        </NumberContainer>
-      );
-    }
-
-    const miseryLimit = parseInt(miseryField.split('_').pop() || '', 10);
-
-    return (
-      <BarContainer>
-        <Misery
-          bars={10}
-          barHeight={20}
-          miseryLimit={miseryLimit}
-          totalUsers={uniqueUsers}
-          userMisery={userMisery}
-          miserableUsers={miserableUsers}
         />
       </BarContainer>
     );

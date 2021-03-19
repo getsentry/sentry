@@ -54,7 +54,7 @@ function UserStats({
 
   if (!isLoading && error === null && totals) {
     const miserableUsers = Number(totals[`user_misery_${threshold}`]);
-    const userMiseryScore = Number(totals[`misery_${threshold}`]);
+    const userMiseryScore = Number(totals[`user_misery.prototype_${threshold}`]);
     const totalUsers = Number(totals.count_unique_user);
     if (!isNaN(miserableUsers) && !isNaN(totalUsers)) {
       userMisery = (
