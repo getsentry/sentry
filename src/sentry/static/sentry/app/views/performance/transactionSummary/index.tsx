@@ -53,7 +53,8 @@ class TransactionSummary extends React.Component<Props, State> {
   state: State = {
     eventView: generateSummaryEventView(
       this.props.location,
-      getTransactionName(this.props.location)
+      getTransactionName(this.props.location),
+      this.props.organization
     ),
   };
 
@@ -62,7 +63,8 @@ class TransactionSummary extends React.Component<Props, State> {
       ...prevState,
       eventView: generateSummaryEventView(
         nextProps.location,
-        getTransactionName(nextProps.location)
+        getTransactionName(nextProps.location),
+        nextProps.organization
       ),
     };
   }
@@ -224,7 +226,8 @@ const StyledPageContent = styled(PageContent)`
 
 function generateSummaryEventView(
   location: Location,
-  transactionName: string | undefined
+  transactionName: string | undefined,
+  organization: Organization
 ): EventView | undefined {
   if (transactionName === undefined) {
     return undefined;
@@ -259,7 +262,9 @@ function generateSummaryEventView(
       id: undefined,
       version: 2,
       name: transactionName,
-      fields: ['id', 'user.display', 'transaction.duration', 'timestamp'],
+      fields: organization.features.includes('trace-view-summary')
+        ? ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp']
+        : ['id', 'user.display', 'transaction.duration', 'timestamp'],
       query: stringifyQueryObject(conditions),
       projects: [],
     },
