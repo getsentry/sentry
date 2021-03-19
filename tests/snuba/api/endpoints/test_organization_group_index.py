@@ -329,7 +329,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.get_response(sort_by="date", query="timesSeen:>1t")
         assert response.status_code == 400
-        assert "Invalid format for numeric field" in response.data["detail"]
+        assert "Invalid number" in response.data["detail"]
 
     def test_valid_numeric_query(self):
         now = timezone.now()
