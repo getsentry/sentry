@@ -19,7 +19,7 @@ audit_logger = logging.getLogger("sentry.audit.user")
 
 class UserManager(BaseManager, DjangoUserManager):
     def get_from_teams(self, organization_id, teams):
-        return User.objects.filter(
+        return self.filter(
             sentry_orgmember_set__organization_id=organization_id,
             sentry_orgmember_set__organizationmemberteam__team__in=teams,
             sentry_orgmember_set__organizationmemberteam__is_active=True,
@@ -30,7 +30,7 @@ class UserManager(BaseManager, DjangoUserManager):
         """
         Returns users associated with a project based on their teams.
         """
-        return User.objects.filter(
+        return self.filter(
             sentry_orgmember_set__organization_id=organization_id,
             sentry_orgmember_set__organizationmemberteam__team__projectteam__project__in=projects,
             sentry_orgmember_set__organizationmemberteam__is_active=True,
