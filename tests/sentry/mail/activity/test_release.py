@@ -13,9 +13,9 @@ from sentry.models import (
     Repository,
     UserEmail,
     UserOption,
-    UserOptionValue,
 )
 from sentry.mail.activity.release import ReleaseActivityEmail
+from sentry.notifications.legacy_mappings import UserOptionValue
 from sentry.testutils import TestCase
 
 

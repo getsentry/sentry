@@ -13,20 +13,15 @@ from sentry.models import (
     UserOption,
     UserEmail,
 )
-
-
-KEY_MAP = {
-    "alerts": {"key": "mail:alert", "type": int},
-    "workflow": {"key": "workflow:notifications", "type": ""},
-    "deploy": {"key": "deploy-emails", "type": ""},
-    "reports": {"key": "reports:disabled-organizations", "type": ""},
-    "email": {"key": "mail:email", "type": ""},
-}
+from sentry.notifications.legacy_mappings import get_legacy_key_from_fine_tuning_key
+from sentry.notifications.types import FineTuningAPIKey
 
 
 class UserNotificationFineTuningEndpoint(UserEndpoint):
     def get(self, request, user, notification_type):
-        if notification_type not in KEY_MAP:
+        try:
+            notification_type = FineTuningAPIKey(notification_type)
+        except ValueError:
             return Response(
                 {"detail": "Unknown notification type: %s." % notification_type},
                 status=status.HTTP_404_NOT_FOUND,
@@ -38,7 +33,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             user,
             request.user,
             notifications,
-            notification_option_key=KEY_MAP[notification_type]["key"],
+            notification_option_key=get_legacy_key_from_fine_tuning_key(notification_type),
         )
         return Response(serialized)
 
@@ -65,17 +60,18 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         :pparam string notification_type:  One of:  alerts, workflow, reports, deploy, email
         :param map: Expects a map of id -> value (enabled or email)
         """
-
-        if notification_type not in KEY_MAP:
+        try:
+            notification_type = FineTuningAPIKey(notification_type)
+        except ValueError:
             return Response(
                 {"detail": "Unknown notification type: %s." % notification_type},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        key = KEY_MAP[notification_type]
-        filter_args = {"user": user, "key": key["key"]}
+        key = get_legacy_key_from_fine_tuning_key(notification_type)
+        filter_args = {"user": user, "key": key}
 
-        if notification_type == "reports":
+        if notification_type == FineTuningAPIKey.REPORTS:
             (user_option, created) = UserOption.objects.get_or_create(**filter_args)
 
             value = set(user_option.value or [])
@@ -109,7 +105,11 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             user_option.update(value=list(value))
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        if notification_type in ["alerts", "workflow", "email"]:
+        if notification_type in [
+            FineTuningAPIKey.ALERTS,
+            FineTuningAPIKey.WORKFLOW,
+            FineTuningAPIKey.EMAIL,
+        ]:
             update_key = "project"
             parent_ids = set(self.get_project_ids(user))
         else:
@@ -138,7 +138,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if notification_type == "email":
+        if notification_type == FineTuningAPIKey.EMAIL:
             # make sure target emails exist and are verified
             emails_to_check = set(request.data.values())
             emails = UserEmail.objects.filter(
@@ -158,7 +158,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         with transaction.atomic():
             for id in request.data:
                 val = request.data[id]
-                int_val = int(val) if notification_type != "email" else None
+                int_val = int(val) if notification_type != FineTuningAPIKey.EMAIL else None
 
                 filter_args["%s_id" % update_key] = id
 
@@ -171,7 +171,9 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
 
                     # Values have been saved as strings for `mail:alerts` *shrug*
                     # `reports:disabled-organizations` requires an array of ids
-                    user_option.update(value=int_val if key["type"] is int else str(val))
+                    user_option.update(
+                        value=int_val if notification_type == FineTuningAPIKey.ALERTS else str(val)
+                    )
 
             return Response(status=status.HTTP_204_NO_CONTENT)
 

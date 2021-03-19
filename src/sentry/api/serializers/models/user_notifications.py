@@ -15,7 +15,7 @@ class UserNotificationsSerializer(Serializer):
         notification_option_key = kwargs["notification_option_key"]
         filter_args = {}
 
-        if notification_option_key in ["alerts", "workflow", "email"]:
+        if notification_option_key in ["mail:alert", "workflow:notifications", "mail:email"]:
             filter_args["project__isnull"] = False
         elif notification_option_key == "deploy":
             filter_args["organization__isnull"] = False
