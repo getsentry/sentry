@@ -65,6 +65,10 @@ def get_connection(project, instance, table, options):
     return _connection_cache[key]
 
 
+class BigtableError(Exception):
+    pass
+
+
 class BigtableNodeStorage(NodeStorage):
     """
     A Bigtable-based backend for storing node data.
@@ -172,7 +176,10 @@ class BigtableNodeStorage(NodeStorage):
 
     def _set_bytes(self, id, data, ttl=None):
         row = self.encode_row(id, data, ttl)
-        row.commit()
+
+        status = row.commit()
+        if status.code != 0:
+            raise BigtableError(status.code, status.message)
 
     def encode_row(self, id, data, ttl=None):
         row = self.connection.row(id)
@@ -231,7 +238,11 @@ class BigtableNodeStorage(NodeStorage):
 
         row = self.connection.row(id)
         row.delete()
-        row.commit()
+
+        status = row.commit()
+        if status.code != 0:
+            raise BigtableError(status.code, status.message)
+
         self._delete_cache_item(id)
 
     def delete_multi(self, id_list):
@@ -248,8 +259,18 @@ class BigtableNodeStorage(NodeStorage):
             row.delete()
             rows.append(row)
 
-        self.connection.mutate_rows(rows)
-        self._delete_cache_items(id_list)
+        deleted_ids = []
+        errors = []
+        for id, status in zip(id_list, self.connection.mutate_rows(rows)):
+            if status.code == 0:
+                deleted_ids.append(id)
+            else:
+                errors.append(BigtableError(status.code, status.message))
+
+        self._delete_cache_items(deleted_ids)
+
+        if errors:
+            raise BigtableError(errors)
 
     def cleanup(self, cutoff_timestamp):
         raise NotImplementedError

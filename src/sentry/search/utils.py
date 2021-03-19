@@ -76,7 +76,7 @@ def parse_numeric_value(value, suffix=None):
     try:
         value = float(value)
     except ValueError:
-        raise InvalidQuery("Invalid format for numeric field")
+        raise InvalidQuery("Invalid number")
 
     if not suffix:
         return value

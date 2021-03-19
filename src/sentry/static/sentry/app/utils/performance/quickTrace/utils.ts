@@ -279,3 +279,19 @@ export function getTraceTimeRangeFromEvent(event: Event): {start: string; end: s
   const end = isTransaction(event) ? event.endTimestamp : start;
   return getTraceDateTimeRange({start, end});
 }
+
+export function filterTrace(
+  trace: TraceFull,
+  predicate: (transaction: TraceFull) => boolean
+): TraceFull[] {
+  return reduceTrace<TraceFull[]>(
+    trace,
+    (transactions, transaction) => {
+      if (predicate(transaction)) {
+        transactions.push(transaction);
+      }
+      return transactions;
+    },
+    []
+  );
+}
