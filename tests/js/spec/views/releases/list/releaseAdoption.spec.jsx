@@ -15,10 +15,10 @@ describe('ReleasesList > ReleaseAdoption', function () {
 
     const tooltipContent = mountWithTheme(wrapper.find('Tooltip').prop('title'));
 
-    expect(tooltipContent.find('Title').at(0).text()).toBe('Total Project');
-    expect(tooltipContent.find('Value').at(0).text()).toBe('1k sessions');
-    expect(tooltipContent.find('Title').at(1).text()).toBe('This Release');
-    expect(tooltipContent.find('Value').at(1).text()).toBe('100 sessions');
+    expect(tooltipContent.find('Title').at(0).text()).toBe('This Release');
+    expect(tooltipContent.find('Value').at(0).text()).toBe('100 sessions');
+    expect(tooltipContent.find('Title').at(1).text()).toBe('Total Project');
+    expect(tooltipContent.find('Value').at(1).text()).toBe('1k sessions');
   });
 
   it('renders with users', function () {
