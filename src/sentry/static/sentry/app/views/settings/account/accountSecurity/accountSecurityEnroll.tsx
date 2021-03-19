@@ -1,5 +1,6 @@
 import React from 'react';
 import {RouteComponentProps, withRouter} from 'react-router';
+import styled from '@emotion/styled';
 import QRCode from 'qrcode.react';
 
 import {
@@ -14,6 +15,7 @@ import CircleIndicator from 'app/components/circleIndicator';
 import {PanelItem} from 'app/components/panels';
 import U2fsign from 'app/components/u2f/u2fsign';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Authenticator} from 'app/types';
 import getPendingInvite from 'app/utils/getPendingInvite';
 import AsyncView from 'app/views/asyncView';
@@ -67,7 +69,7 @@ const getFields = ({
     return [
       () => (
         <PanelItem key="qrcode" justifyContent="center" p={2}>
-          <QRCode value={authenticator.qrcode} size={228} />
+          <StyledQRCode value={authenticator.qrcode} size={228} />
         </PanelItem>
       ),
       () => (
@@ -414,5 +416,10 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
     );
   }
 }
+
+const StyledQRCode = styled(QRCode)`
+  background: white;
+  padding: ${space(2)};
+`;
 
 export default withRouter(AccountSecurityEnroll);

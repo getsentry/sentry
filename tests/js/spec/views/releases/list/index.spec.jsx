@@ -13,20 +13,24 @@ describe('ReleasesList', function () {
   const props = {
     router,
     organization,
-    selection: {projects: []},
+    selection: {
+      projects: [],
+      datetime: {
+        period: '14d',
+      },
+    },
     params: {orgId: organization.slug},
     location: {
       query: {
         query: 'derp',
         sort: SortOption.SESSIONS,
         healthStatsPeriod: '24h',
-        healthStat: 'sessions',
         somethingBad: 'XXX',
         status: StatusOption.ACTIVE,
       },
     },
   };
-  let wrapper, endpointMock;
+  let wrapper, endpointMock, sessionApiMock;
 
   beforeEach(async function () {
     ProjectsStore.loadInitialData(organization.projects);
@@ -47,6 +51,11 @@ describe('ReleasesList', function () {
           ],
         },
       ],
+    });
+
+    sessionApiMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/sessions/`,
+      body: null,
     });
 
     MockApiClient.addMockResponse({
@@ -152,7 +161,6 @@ describe('ReleasesList', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           sort: SortOption.SESSIONS,
-          healthStat: 'sessions',
         }),
       })
     );
@@ -256,28 +264,47 @@ describe('ReleasesList', function () {
     );
   });
 
-  it('toggles health stats chart period/subject', function () {
-    expect(endpointMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/releases/',
+  it('calls session api for health data', async function () {
+    expect(sessionApiMock).toHaveBeenCalledTimes(3);
+
+    expect(sessionApiMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/sessions/',
       expect.objectContaining({
         query: expect.objectContaining({
-          healthStatsPeriod: '24h',
+          field: ['sum(session)'],
+          groupBy: ['project', 'release', 'session.status'],
+          interval: '1d',
+          query: 'release:1.0.0 OR release:1.0.1 OR release:af4f231ec9a8',
+          statsPeriod: '14d',
         }),
       })
     );
 
-    const healthStatsControls = wrapper.find('CountColumn').first();
+    expect(sessionApiMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/sessions/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: ['sum(session)'],
+          groupBy: ['project'],
+          interval: '1h',
+          query: undefined,
+          statsPeriod: '24h',
+        }),
+      })
+    );
 
-    expect(healthStatsControls.find('Period[selected=true]').text()).toEqual('24h');
-
-    const period14d = healthStatsControls.find('Period[selected=false] Link').first();
-
-    expect(period14d.prop('to')).toEqual({
-      pathname: undefined,
-      query: expect.objectContaining({
-        healthStatsPeriod: '14d',
-      }),
-    });
+    expect(sessionApiMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/sessions/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: ['sum(session)'],
+          groupBy: ['project', 'release'],
+          interval: '1h',
+          query: 'release:1.0.0 OR release:1.0.1 OR release:af4f231ec9a8',
+          statsPeriod: '24h',
+        }),
+      })
+    );
   });
 
   it('shows health rows only for selected projects in global header', function () {
