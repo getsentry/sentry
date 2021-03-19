@@ -201,10 +201,11 @@ def test_ingest_topic_can_be_overridden(
             consumer._run_once()
             i += 1
 
-    # check that we got the message
+    # Check that we got the message
     assert message.data["event_id"] == event_id
     assert message.data["extra"]["the_id"] == event_id
 
+    # Check that the default topic was not created
     all_topics = admin.admin_client.list_topics().topics.keys()
     assert new_event_topic in all_topics
     assert default_event_topic not in all_topics
