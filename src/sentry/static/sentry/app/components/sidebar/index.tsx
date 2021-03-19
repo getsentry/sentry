@@ -352,7 +352,7 @@ class Sidebar extends React.Component<Props, State> {
 
     const dashboards = hasOrganization && (
       <Feature
-        features={['discover', 'discover-query']}
+        features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
         organization={organization}
         requireAll={false}
       >
