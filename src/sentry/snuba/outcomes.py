@@ -147,7 +147,7 @@ COLUMN_MAP = {
 
 DIMENSION_MAP = {
     "project": SimpleGroupBy("project_id", "project"),
-    "key": SimpleGroupBy("key_id"),
+    # "key": SimpleGroupBy("key_id"),
     "outcome": OutcomeDimension("outcome"),
     "category": CategoryDimension("category"),
     "reason": ReasonDimension("reason"),
@@ -172,7 +172,6 @@ def get_filter(
         filter_keys["project_id"] = params["project_id"]
     if "organization" in params:
         filter_keys["organization_id"] = params["organization_id"]
-
     return {"filter_keys": filter_keys, "conditions": conditions}
 
 
