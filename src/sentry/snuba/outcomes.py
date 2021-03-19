@@ -43,7 +43,6 @@ The Outcome data can be grouped by a set of tags, which can only appear in the
 `groupBy` of the query.
 
 - `project`
-- `key_id`
 - `outcome`
 - `reason`
 - `category`
@@ -64,7 +63,7 @@ class QuantityField:
 
     # def unit_value(self, row, group):
     #     if row is None:
-    #         return 0
+    #         return
     #     return
 
     def aggregation(self, dataset: Dataset) -> List[str]:
@@ -126,13 +125,9 @@ class OutcomeDimension(SimpleGroupBy):
 
 class ReasonDimension(SimpleGroupBy):
     def resolve_filter(self, raw_filter: List[str]) -> List[str]:
-        resolved_reasons = set()
-        for reason in raw_filter:
-            if reason == "spike_protection":
-                resolved_reasons.add("smart_rate_limit")
-            else:
-                resolved_reasons.add(reason)
-        return list(resolved_reasons)
+        return [
+            "smart_rate_limit" if reason == "spike_protection" else reason for reason in raw_filter
+        ]
 
     def map_row(self, row: Dict[str, Any]) -> None:
         if "reason" in row:
@@ -157,15 +152,6 @@ DIMENSION_MAP = {
     "category": CategoryDimension("category"),
     "reason": ReasonDimension("reason"),
 }
-
-# CONDITION_COLUMNS = ["project", "key", "outcome", "category", "reason"]
-
-
-# def resolve_column(col: str) -> str:
-#     if col in CONDITION_COLUMNS:
-#         return col
-#     raise InvalidField(f'Invalid query field: "{col}"')
-
 
 TS_COL = "time"
 
