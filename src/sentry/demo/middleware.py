@@ -1,19 +1,28 @@
 from django.conf import settings
+from django.core.urlresolvers import reverse
+from django.http import JsonResponse
 
 from sentry.models import OrganizationMember
 from sentry.utils import auth
 
+prompt_route = reverse("sentry-api-0-prompts-activity")
+
 
 class DemoMiddleware:
-    # automatically log in logged out users when they land
-    # on organization pages
     def process_view(self, request, view_func, view_args, view_kwargs):
         if not settings.DEMO_MODE:
             raise Exception("Demo mode misconfigured")
 
+        # always return dismissed if we are in demo mode
+        if request.path == prompt_route:
+            return JsonResponse({"data": {"dismissed_ts": 1}}, status=200)
+
         # only handling org views
         if "organization_slug" not in view_kwargs:
             return
+
+        # automatically log in logged out users when they land
+        # on organization pages
 
         org_slug = view_kwargs["organization_slug"]
         # if authed, make sure it's the same org

@@ -64,8 +64,11 @@ from sentry.signals import mocks_loaded
 from sentry.similarity import features
 from sentry.utils import loremipsum
 from sentry.utils.hashlib import md5_text
-from sentry.utils.samples import create_sample_event as _create_sample_event
-from sentry.utils.samples import generate_user
+from sentry.utils.samples import (
+    create_sample_event as _create_sample_event,
+    random_normal,
+    generate_user,
+)
 
 PLATFORMS = itertools.cycle(["ruby", "php", "python", "java", "javascript"])
 
@@ -724,13 +727,6 @@ def main(num_events=1, extra_events=False, load_trends=False, slow=False):
     create_system_time_series()
 
 
-def random_normal(mu, sigma, minimum, maximum=None):
-    random_value = max(random.normalvariate(mu, sigma), minimum)
-    if maximum is not None:
-        random_value = min(random_value, maximum)
-    return random_value
-
-
 def create_mock_transactions(project_map, load_trends=False, slow=False):
     backend_project = project_map["Earth"]
     frontend_project = project_map["Fire"]
@@ -801,6 +797,19 @@ def create_mock_transactions(project_map, load_trends=False, slow=False):
                         "type": "trace",
                         "trace_id": trace_id,
                         "span_id": frontend_root_span_id,
+                    }
+                },
+            )
+            create_sample_event(
+                project=frontend_project,
+                platform="javascript",
+                user=transaction_user,
+                transaction="/plants/:plantId/",
+                contexts={
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": frontend_span_id,
                     }
                 },
             )

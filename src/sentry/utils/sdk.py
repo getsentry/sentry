@@ -1,4 +1,5 @@
 import inspect
+import random
 
 from django.conf import settings
 from django.urls import resolve
@@ -23,11 +24,18 @@ UNSAFE_FILES = (
 
 # URLs that should always be sampled
 SAMPLED_URL_NAMES = {
-    # releases
-    "sentry-api-0-organization-releases",
-    "sentry-api-0-organization-release-details",
-    "sentry-api-0-project-releases",
-    "sentry-api-0-project-release-details",
+    # codeowners
+    "sentry-api-0-project-codeowners",
+    "sentry-api-0-project-codeowners-details",
+    # external teams POST, PUT, DELETE
+    "sentry-api-0-external-team",
+    "sentry-api-0-external-team-details",
+    # external users POST, PUT, DELETE
+    "sentry-api-0-organization-external-user",
+    "sentry-api-0-organization-external-user-details",
+    # integration platform
+    "external-issues",
+    "sentry-api-0-sentry-app-authorizations",
     # integrations
     "sentry-extensions-jira-issue-hook",
     "sentry-extensions-vercel-webhook",
@@ -35,10 +43,32 @@ SAMPLED_URL_NAMES = {
     "sentry-extensions-vercel-configure",
     "sentry-extensions-vercel-ui-hook",
     "sentry-api-0-group-integration-details",
-    # integration platform
-    "external-issues",
-    "sentry-api-0-sentry-app-authorizations",
+    # releases
+    "sentry-api-0-organization-releases",
+    "sentry-api-0-organization-release-details",
+    "sentry-api-0-project-releases",
+    "sentry-api-0-project-release-details",
 }
+
+_SYMBOLICATE_EVENT_TASKS = {
+    "sentry.tasks.store.symbolicate_event",
+    "sentry.tasks.store.symbolicate_event_from_reprocessing",
+}
+
+
+def _sample_process_event_tasks():
+    return random.random() < settings.SENTRY_PROCESS_EVENT_APM_SAMPLING
+
+
+_PROCESS_EVENT_TASKS = {
+    "sentry.tasks.store.process_event",
+    "sentry.tasks.store.process_event_from_reprocessing",
+}
+
+
+def _sample_symbolicate_event_tasks():
+    return random.random() < settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING
+
 
 UNSAFE_TAG = "_unsafe"
 
@@ -59,7 +89,7 @@ def is_current_event_safe():
         if scope._tags.get(UNSAFE_TAG):
             return False
 
-        project_id = scope._tags.get("project")
+        project_id = scope._tags.get("processing_event_for_project")
 
         if project_id and project_id == settings.SENTRY_PROJECT:
             return False
@@ -82,7 +112,7 @@ def mark_scope_as_unsafe():
         scope.set_tag(UNSAFE_TAG, True)
 
 
-def set_current_project(project_id):
+def set_current_event_project(project_id):
     """
     Set the current project on the SDK scope for outgoing crash reports.
 
@@ -92,6 +122,7 @@ def set_current_project(project_id):
     sentry-internal errors, causing infinite recursion.
     """
     with configure_scope() as scope:
+        scope.set_tag("processing_event_for_project", project_id)
         scope.set_tag("project", project_id)
 
 
@@ -145,6 +176,15 @@ def traces_sampler(sampling_context):
     # If there's already a sampling decision, just use that
     if sampling_context["parent_sampled"] is not None:
         return sampling_context["parent_sampled"]
+
+    if "celery_job" in sampling_context:
+        task_name = sampling_context["celery_job"].get("task")
+
+        if task_name in _PROCESS_EVENT_TASKS:
+            return _sample_process_event_tasks()
+
+        if task_name in _SYMBOLICATE_EVENT_TASKS:
+            return _sample_symbolicate_event_tasks()
 
     # Resolve the url, and see if we want to set our own sampling
     if "wsgi_environ" in sampling_context:

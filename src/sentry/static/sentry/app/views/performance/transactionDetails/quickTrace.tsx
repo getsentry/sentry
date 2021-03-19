@@ -14,6 +14,7 @@ import {IconFire} from 'app/icons';
 import {t, tn} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
+import {toTitleCase} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
@@ -23,7 +24,7 @@ import {
   QuickTraceQueryChildrenProps,
   TraceError,
 } from 'app/utils/performance/quickTrace/types';
-import {isTransaction, parseQuickTrace} from 'app/utils/performance/quickTrace/utils';
+import {parseQuickTrace} from 'app/utils/performance/quickTrace/utils';
 import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 
@@ -64,11 +65,6 @@ export default function QuickTrace({
   organization,
   quickTrace: {isLoading, error, trace, type},
 }: Props) {
-  // non transaction events are currently unsupported
-  if (!isTransaction(event)) {
-    return null;
-  }
-
   const traceId = event.contexts?.trace?.trace_id ?? null;
   const traceTarget = generateTraceTarget(event, organization);
 
@@ -139,11 +135,6 @@ function QuickTracePills({
   location,
   organization,
 }: QuickTracePillsProps) {
-  // non transaction events are currently unsupported
-  if (!isTransaction(event)) {
-    return null;
-  }
-
   let parsedQuickTrace;
   try {
     parsedQuickTrace = parseQuickTrace(quickTrace, event);
@@ -221,8 +212,9 @@ function QuickTracePills({
       key="current-node"
       location={location}
       organization={organization}
-      text={t('This Event')}
+      text={t('This %s', toTitleCase(event.type))}
       events={[current]}
+      currentEvent={event}
       pad="left"
       nodeKey="current"
     />
@@ -315,6 +307,7 @@ type EventNodeSelectorProps = {
   events: QuickTraceEvent[];
   text: React.ReactNode;
   pad: 'left' | 'right';
+  currentEvent?: Event;
   hoverText?: React.ReactNode;
   extrasTarget?: LocationDescriptor;
   numEvents?: number;
@@ -327,6 +320,7 @@ function EventNodeSelector({
   events = [],
   text,
   pad,
+  currentEvent,
   hoverText,
   extrasTarget,
   nodeKey,
@@ -335,14 +329,19 @@ function EventNodeSelector({
   const errors: TraceError[] = [];
   events.forEach(e => {
     e?.errors?.forEach(error => {
-      errors.push({
-        ...error,
-        transaction: e.transaction,
-      });
+      if (!currentEvent || currentEvent.id !== error.event_id) {
+        errors.push({
+          ...error,
+          transaction: e.transaction,
+        });
+      }
     });
   });
+  // Filter out the current event so its not in the dropdown
+  events = currentEvent ? events.filter(e => e.event_id !== currentEvent.id) : events;
+
   let type: keyof Theme['tag'] = nodeKey === 'current' ? 'black' : 'white';
-  if (errors.length > 0) {
+  if (errors.length > 0 || (currentEvent && currentEvent?.type !== 'transaction')) {
     type = nodeKey === 'current' ? 'error' : 'warning';
     text = (
       <div>
@@ -351,30 +350,33 @@ function EventNodeSelector({
       </div>
     );
   }
-  if (events.length === 1 && errors.length === 0) {
-    const target = generateSingleEventTarget(events[0], organization, location);
-    if (nodeKey === 'current') {
-      return (
-        <EventNode pad={pad} type={type}>
-          {text}
-        </EventNode>
-      );
-    } else {
-      /**
-       * When there is only 1 event, clicking the node should take the user directly to
-       * the event without additional steps.
-       */
-      return (
-        <StyledEventNode
-          text={text}
-          pad={pad}
-          hoverText={hoverText}
-          to={target}
-          onClick={() => handleNode(nodeKey, organization)}
-          type={type}
-        />
-      );
-    }
+
+  if (events.length + errors.length === 0) {
+    return (
+      <EventNode pad={pad} type={type}>
+        {text}
+      </EventNode>
+    );
+  } else if (events.length + errors.length === 1) {
+    /**
+     * When there is only 1 event, clicking the node should take the user directly to
+     * the event without additional steps.
+     */
+    const target = generateSingleEventTarget(
+      events[0] || errors[0],
+      organization,
+      location
+    );
+    return (
+      <StyledEventNode
+        text={text}
+        pad={pad}
+        hoverText={hoverText}
+        to={target}
+        onClick={() => handleNode(nodeKey, organization)}
+        type={type}
+      />
+    );
   } else {
     /**
      * When there is more than 1 event, clicking the node should expand a dropdown to
@@ -402,25 +404,24 @@ function EventNodeSelector({
             />
           );
         })}
-        {nodeKey !== 'current' &&
-          events.slice(0, numEvents).map((event, i) => {
-            const target = generateSingleEventTarget(event, organization, location);
-            return (
-              <DropdownNodeItem
-                key={event.event_id}
-                event={event}
-                onSelect={() => handleDropdownItem(target, nodeKey, organization, false)}
-                first={i === 0 && errors.length === 0}
-                organization={organization}
-                subtext={getDuration(
-                  event['transaction.duration'] / 1000,
-                  event['transaction.duration'] < 1000 ? 0 : 2,
-                  true
-                )}
-                subtextType="default"
-              />
-            );
-          })}
+        {events.slice(0, numEvents).map((event, i) => {
+          const target = generateSingleEventTarget(event, organization, location);
+          return (
+            <DropdownNodeItem
+              key={event.event_id}
+              event={event}
+              onSelect={() => handleDropdownItem(target, nodeKey, organization, false)}
+              first={i === 0 && errors.length === 0}
+              organization={organization}
+              subtext={getDuration(
+                event['transaction.duration'] / 1000,
+                event['transaction.duration'] < 1000 ? 0 : 2,
+                true
+              )}
+              subtextType="default"
+            />
+          );
+        })}
         {events.length > numEvents && hoverText && extrasTarget && (
           <DropdownItem
             onSelect={() => handleDropdownItem(extrasTarget, nodeKey, organization, true)}

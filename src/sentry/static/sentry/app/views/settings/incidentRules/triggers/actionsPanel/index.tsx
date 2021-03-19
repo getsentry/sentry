@@ -20,23 +20,12 @@ import ActionTargetSelector from 'app/views/settings/incidentRules/triggers/acti
 import DeleteActionButton from 'app/views/settings/incidentRules/triggers/actionsPanel/deleteActionButton';
 import {
   Action,
+  ActionLabel,
   ActionType,
   MetricActionTemplate,
-  TargetType,
+  TargetLabel,
   Trigger,
 } from 'app/views/settings/incidentRules/types';
-
-const ActionLabel = {
-  [ActionType.EMAIL]: t('E-mail'),
-  [ActionType.SLACK]: t('Slack'),
-  [ActionType.PAGERDUTY]: t('Pagerduty'),
-  [ActionType.MSTEAMS]: t('Microsoft Teams'),
-};
-
-const TargetLabel = {
-  [TargetType.USER]: t('Member'),
-  [TargetType.TEAM]: t('Team'),
-};
 
 type Props = {
   availableActions: MetricActionTemplate[] | null;

@@ -2,6 +2,7 @@ import pytest
 from datetime import timedelta
 from django.utils import timezone
 from freezegun import freeze_time
+from uuid import UUID
 
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
 from sentry.testutils import APITestCase
@@ -168,6 +169,7 @@ class CreateMonitorCheckInTest(APITestCase):
         assert resp.status_code == 201, resp.content
         # DSN auth should only return id
         assert list(resp.data.keys()) == ["id"]
+        assert UUID(resp.data["id"])
 
     @pytest.mark.xfail(
         reason="There's a bug in sentry/api/bases/monitor that needs fixed, until then, this returns 500"
