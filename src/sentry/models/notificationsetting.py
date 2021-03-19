@@ -86,3 +86,7 @@ class NotificationSetting(Model):
         "type",
         "value",
     )
+
+
+# REQUIRED for migrations to run
+from sentry.trash.migration_enums import *  # NOQA
