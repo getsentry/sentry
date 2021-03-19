@@ -1317,6 +1317,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "orderby": ["-count()"],
                     "field": ["count()", "error.handled"],
                     "topEvents": 5,
+                    "query": "!event.type:transaction",
                 },
                 format="json",
             )
@@ -1326,7 +1327,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert len(data) == 3
 
         results = data[""]
-        assert [attrs for time, attrs in results["data"]] == [[{"count": 22}], [{"count": 6}]]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 19}], [{"count": 6}]]
         assert results["order"] == 0
 
         results = data["1"]
