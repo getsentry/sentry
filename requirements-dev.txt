@@ -2,6 +2,7 @@ docker>=3.7.0,<3.8.0
 exam>=0.5.1
 freezegun==1.1.0
 honcho>=1.0.0,<1.1.0
+mypy>=0.800
 openapi-core @ https://github.com/getsentry/openapi-core/archive/master.zip#egg=openapi-core
 pytest==6.1.0
 pytest-cov==2.11.1
