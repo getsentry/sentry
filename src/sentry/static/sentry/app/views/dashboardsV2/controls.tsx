@@ -2,10 +2,13 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
 import SelectControl from 'app/components/forms/selectControl';
+import Hovercard from 'app/components/hovercard';
 import {IconAdd, IconEdit} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -28,7 +31,6 @@ type Props = {
   onCommit: () => void;
   onDelete: () => void;
   dashboardState: DashboardState;
-  canEdit?: boolean;
 };
 
 class Controls extends React.Component<Props> {
@@ -42,7 +44,6 @@ class Controls extends React.Component<Props> {
       onCancel,
       onCommit,
       onDelete,
-      canEdit,
     } = this.props;
 
     const cancelButton = (
@@ -138,35 +139,74 @@ class Controls extends React.Component<Props> {
             }}
           />
         </DashboardSelect>
-        <Button
-          data-test-id="dashboard-create"
-          onClick={e => {
-            e.preventDefault();
-            onCreate();
-          }}
-          icon={<IconAdd size="xs" isCircled />}
-          disabled={!canEdit}
-          title={!canEdit ? t('Requires dashboard editing') : undefined}
-        >
-          {t('Create Dashboard')}
-        </Button>
-        <Button
-          data-test-id="dashboard-edit"
-          onClick={e => {
-            e.preventDefault();
-            onEdit();
-          }}
-          priority="primary"
-          icon={<IconEdit size="xs" />}
-          disabled={!canEdit}
-          title={!canEdit ? t('Requires dashboard editing') : undefined}
-        >
-          {t('Edit Dashboard')}
-        </Button>
+        <DashboardEditFeature>
+          {hasFeature => (
+            <Button
+              data-test-id="dashboard-create"
+              onClick={e => {
+                e.preventDefault();
+                onCreate();
+              }}
+              icon={<IconAdd size="xs" isCircled />}
+              disabled={!hasFeature}
+            >
+              {t('Create Dashboard')}
+            </Button>
+          )}
+        </DashboardEditFeature>
+        <DashboardEditFeature>
+          {hasFeature => (
+            <Button
+              data-test-id="dashboard-edit"
+              onClick={e => {
+                e.preventDefault();
+                onEdit();
+              }}
+              priority="primary"
+              icon={<IconEdit size="xs" />}
+              disabled={!hasFeature}
+            >
+              {t('Edit Dashboard')}
+            </Button>
+          )}
+        </DashboardEditFeature>
       </StyledButtonBar>
     );
   }
 }
+
+const DashboardEditFeature = ({
+  children,
+}: {
+  children: (hasFeature: boolean) => React.ReactNode;
+}) => {
+  const noFeatureMessage = t('Requires dashboard editing.');
+
+  const renderDisabled = p => (
+    <Hovercard
+      body={
+        <FeatureDisabled
+          features={p.features}
+          hideHelpToggle
+          message={noFeatureMessage}
+          featureName={noFeatureMessage}
+        />
+      }
+    >
+      {p.children(p)}
+    </Hovercard>
+  );
+
+  return (
+    <Feature
+      hookName="feature-disabled:dashboards-edit"
+      features={['organizations:dashboards-edit']}
+      renderDisabled={renderDisabled}
+    >
+      {({hasFeature}) => children(hasFeature)}
+    </Feature>
+  );
+};
 
 const DashboardSelect = styled('div')`
   min-width: 200px;
