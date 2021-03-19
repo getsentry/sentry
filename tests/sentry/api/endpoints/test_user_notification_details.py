@@ -1,4 +1,3 @@
-from sentry.notifications.legacy_mappings import UserOptionValue
 from sentry.models import NotificationSetting
 from sentry.models.integration import ExternalProviders
 from sentry.notifications.types import (
@@ -51,7 +50,7 @@ class UserNotificationDetailsTest(APITestCase):
             organization=org,
         )
 
-        # default is UserOptionValue.participating_only
+        # default is NotificationSettingOptionValues.COMMITTED_ONLY
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
@@ -68,7 +67,7 @@ class UserNotificationDetailsTest(APITestCase):
         assert response.data.get("personalActivityNotifications") is False
         assert response.data.get("selfAssignOnResolve") is False
         assert response.data.get("subscribeByDefault") is True
-        assert response.data.get("workflowNotifications") == int(UserOptionValue.participating_only)
+        assert response.data.get("workflowNotifications") == 1
 
     def test_saves_and_returns_values(self):
         user = self.create_user(email="a@example.com")
@@ -85,7 +84,7 @@ class UserNotificationDetailsTest(APITestCase):
         assert response.data.get("personalActivityNotifications") is True
         assert response.data.get("selfAssignOnResolve") is True
         assert response.data.get("subscribeByDefault") is True
-        assert response.data.get("workflowNotifications") == int(UserOptionValue.participating_only)
+        assert response.data.get("workflowNotifications") == 1
 
         assert (
             NotificationSetting.objects.get_settings(

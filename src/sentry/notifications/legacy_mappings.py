@@ -20,27 +20,27 @@ class UserOptionValue:
 USER_OPTION_SETTINGS = {
     UserOptionsSettingsKey.DEPLOY: {
         "key": "deploy-emails",
-        "default": UserOptionValue.committed_deploys_only,  # '3'
+        "default": "3",
         "type": int,
     },
     UserOptionsSettingsKey.SELF_ACTIVITY: {
         "key": "self_notifications",
-        "default": UserOptionValue.all_conversations,  # '0'
+        "default": "0",
         "type": bool,
     },
     UserOptionsSettingsKey.SELF_ASSIGN: {
         "key": "self_assign_issue",
-        "default": UserOptionValue.all_conversations,  # '0'
+        "default": "0",
         "type": bool,
     },
     UserOptionsSettingsKey.SUBSCRIBE_BY_DEFAULT: {
         "key": "subscribe_by_default",
-        "default": UserOptionValue.participating_only,  # '1'
+        "default": "1",
         "type": bool,
     },
     UserOptionsSettingsKey.WORKFLOW: {
         "key": "workflow:notifications",
-        "default": UserOptionValue.participating_only,  # '1'
+        "default": "1",
         "type": int,
     },
 }
