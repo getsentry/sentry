@@ -1994,3 +1994,8 @@ export type SessionApiResponse = {
     series: Record<string, number[]>;
   }[];
 };
+
+export enum HealthStatsPeriodOption {
+  AUTO = 'auto',
+  TWENTY_FOUR_HOURS = '24h',
+}

@@ -17,7 +17,6 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Release, ReleaseProject} from 'app/types';
 import {defined} from 'app/utils';
-import {decodeScalar} from 'app/utils/queryString';
 
 import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
 import {ReleaseHealthRequestRenderProps} from '../../utils/releaseHealthRequest';
@@ -120,8 +119,7 @@ const Content = ({
             const timeSeries = getHealthData.getTimeSeries(
               releaseVersion,
               id,
-              activeDisplay,
-              decodeScalar(location.query.healthStatsPeriod)
+              activeDisplay
             );
 
             const adoption = getHealthData.getAdoption(releaseVersion, id, activeDisplay);
