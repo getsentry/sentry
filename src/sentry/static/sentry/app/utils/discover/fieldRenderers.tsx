@@ -7,8 +7,8 @@ import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
-import Misery from 'app/components/misery';
 import UserMisery from 'app/components/userMisery';
+import UserMiseryPrototype from 'app/components/userMiseryPrototype';
 import Version from 'app/components/version';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
@@ -409,7 +409,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
 
     return (
       <BarContainer>
-        <Misery
+        <UserMiseryPrototype
           bars={10}
           barHeight={20}
           miseryLimit={miseryLimit}
