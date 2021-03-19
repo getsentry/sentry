@@ -43,7 +43,7 @@ jobs:
         # If you want to speed up the CI for your PR, you can use --no-upgrade and HOMEBREW_NO_AUTO_UPDATE=1
         run: |
           brew bundle || brew update && brew bundle
-          make init_docker
+          make init-docker
 
       - name: Install Python (via Pyenv)
         id: python-version
