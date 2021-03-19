@@ -20,7 +20,7 @@ from sentry.models import (
     User,
     UserReport,
 )
-from sentry.api.helpers.group_index import rate_limit_endpoint
+from sentry.api.helpers.group_index import prep_search, rate_limit_endpoint, update_groups
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.signals import issue_deleted
@@ -303,14 +303,13 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         try:
             discard = request.data.get("discard")
-
-            # TODO(dcramer): we need to implement assignedTo in the bulk mutation
-            # endpoint
-            response = client.put(
-                path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
-                params={"id": group.id},
-                data=request.data,
-                request=request,
+            project = group.project
+            search_fn = functools.partial(prep_search, self, request, project)
+            has_inbox = features.has(
+                "organizations:inbox", project.organization, actor=request.user
+            )
+            response = update_groups(
+                request, [group.id], [project], project.organization_id, search_fn, has_inbox
             )
 
             # if action was discard, there isn't a group to serialize anymore
@@ -340,18 +339,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 "group_details:put client.ApiError",
                 exc_info=True,
             )
-            metrics.incr(
-                "workflowslo.http_response",
-                sample_rate=1.0,
-                tags={"status": e.status_code, "detail": "group_details:put:client.ApiError"},
-            )
             return Response(e.body, status=e.status_code)
         except Exception:
-            metrics.incr(
-                "group.update.http_response",
-                sample_rate=1.0,
-                tags={"status": 500, "detail": "group_details:put:Exception"},
-            )
             raise
 
     @rate_limit_endpoint(limit=5, window=1)
