@@ -138,6 +138,8 @@ class TransactionSummary extends React.Component<Props, State> {
         function: ['tpm', '', undefined],
       },
       {
+        // This should be changed to an aggregate function when introduced
+        // to Discover
         kind: 'field',
         field: `misery(${organization.apdexThreshold})`,
       },

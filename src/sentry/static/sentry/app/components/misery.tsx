@@ -16,6 +16,10 @@ type Props = {
 
 function Misery(props: Props) {
   const {bars, barHeight, userMisery, miseryLimit, totalUsers, miserableUsers} = props;
+  // User Misery will always be > 0 because of the maximum a posteriori estimate
+  // and below 5% will always be an overestimation of the actual proportion
+  // of miserable to total unique users. We are going to visualize it as
+  // 0 User Misery while still preserving the actual value for sorting purposes.
   const adjustedMisery = userMisery >= 0.05 ? userMisery : 0;
 
   const palette = new Array(bars).fill([CHART_PALETTE[0][0]]);
