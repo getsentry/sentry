@@ -13,7 +13,7 @@ from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.utils import get_rule_bool
 from sentry.utils.glob import glob_match
-from sentry.utils.safe import get_path
+from sentry.utils.safe import get_path, set_path
 from sentry.utils.compat import zip
 from sentry.utils.strings import unescape_string
 
@@ -30,21 +30,19 @@ rule = _ matchers actions
 
 matchers         = matcher+
 matcher          = _ negation? matcher_type sep argument
-matcher_type     = key / quoted_key
-
-key              = ~r"[a-zA-Z0-9_\.-]+"
-quoted_key       = ~r"\"([a-zA-Z0-9_\.:-]+)\""
+matcher_type     = ident / quoted_ident
 
 actions          = action+
 action           = flag_action / var_action
-var_action       = _ var_name _ "=" _ expr
-var_name         = "max-frames" / "min-frames" / "invert-stacktrace"
+var_action       = _ var_name _ "=" _ ident
+var_name         = "max-frames" / "min-frames" / "invert-stacktrace" / "category"
 flag_action      = _ range? flag flag_action_name
 flag_action_name = "group" / "app" / "prefix"
 flag             = "+" / "-"
 range            = "^" / "v"
-expr             = int
-int              = ~r"[0-9]+"
+
+ident            = ~r"[a-zA-Z0-9_\.-]+"
+quoted_ident     = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
 comment          = ~r"#[^\r\n]*"
 
@@ -78,6 +76,7 @@ MATCH_KEYS = {
     "type": "t",
     "value": "v",
     "mechanism": "M",
+    "category": "c",
 }
 SHORT_MATCH_KEYS = {v: k for k, v in MATCH_KEYS.items()}
 assert len(SHORT_MATCH_KEYS) == len(MATCH_KEYS)  # assert short key names are not reused
@@ -114,6 +113,7 @@ MATCHERS = {
     "path": "path",
     "package": "package",
     "function": "function",
+    "category": "category",
     # fingerprinting specific fields
     "family": "family",
     "app": "app",
@@ -161,6 +161,7 @@ class Match:
                 "/" + value, self.pattern, ignorecase=True, doublestar=True, path_normalize=True
             ):
                 return True
+
             return False
 
         # families need custom handling as well
@@ -189,6 +190,8 @@ class Match:
             value = get_path(exception_data, "value") or "<unknown>"
         elif self.key == "mechanism":
             value = get_path(exception_data, "mechanism", "type") or "<unknown>"
+        elif self.key == "category":
+            value = get_path(frame_data, "data", "category") or "<unknown>"
         else:
             # should not happen :)
             value = "<unknown>"
@@ -221,7 +224,7 @@ class Match:
 
 
 class Action:
-    def apply_modifications_to_frame(self, frames, idx):
+    def apply_modifications_to_frame(self, frames, idx, rule=None):
         pass
 
     def update_frame_components_contributions(self, components, frames, idx, rule=None):
@@ -275,7 +278,7 @@ class FlagAction(Action):
         else:
             return self.flag == component.contributes
 
-    def apply_modifications_to_frame(self, frames, idx):
+    def apply_modifications_to_frame(self, frames, idx, rule=None):
         # Grouping is not stored on the frame
         if self.key == "group":
             return
@@ -312,9 +315,24 @@ class FlagAction(Action):
 class VarAction(Action):
     range = None
 
+    _VALUE_PARSERS = {
+        "max-frames": int,
+        "min-frames": int,
+        "invert-stacktrace": get_rule_bool,
+        "category": lambda x: x,
+    }
+
+    _FRAME_VARIABLES = {"category"}
+
     def __init__(self, var, value):
         self.var = var
-        self.value = value
+
+        try:
+            self.value = VarAction._VALUE_PARSERS[var](value)
+        except (ValueError, TypeError):
+            raise InvalidEnhancerConfig(f"Invalid value '{value}' for '{var}'")
+        except KeyError:
+            raise InvalidEnhancerConfig(f"Unknown variable '{var}'")
 
     def __str__(self):
         return f"{self.var}={self.value}"
@@ -323,7 +341,22 @@ class VarAction(Action):
         return [self.var, self.value]
 
     def modify_stacktrace_state(self, state, rule):
-        state.set(self.var, self.value, rule)
+        if self.var not in VarAction._FRAME_VARIABLES:
+            state.set(self.var, self.value, rule)
+
+    def apply_modifications_to_frame(self, frames, idx, rule=None):
+        if self.var == "category":
+            frame = frames[idx]
+            set_path(frame, "data", "category", value=self.value)
+
+    def update_frame_components_contributions(self, components, frames, idx, rule=None):
+        if self.var == "category":
+            rule_hint = "stack trace rule"
+            if rule:
+                rule_hint = f"{rule_hint} ({rule.matcher_description})"
+
+            component = components[idx]
+            component.update(hint=f"category set by {rule_hint}")
 
 
 class StacktraceState:
@@ -371,7 +404,7 @@ class Enhancements:
             for idx, frame in enumerate(frames):
                 actions = rule.get_matching_frame_actions(frame, platform, exception_data)
                 for action in actions or ():
-                    action.apply_modifications_to_frame(frames, idx)
+                    action.apply_modifications_to_frame(frames, idx, rule=rule)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
         stacktrace_state = StacktraceState()
@@ -632,12 +665,6 @@ class EnhancmentsVisitor(NodeVisitor):
             return "up"
         return "down"
 
-    def visit_expr(self, node, children):
-        return children[0]
-
-    def visit_int(self, node, children):
-        return int(node.text)
-
     def visit_quoted(self, node, children):
         return unescape_string(node.text[1:-1])
 
@@ -647,10 +674,10 @@ class EnhancmentsVisitor(NodeVisitor):
     def generic_visit(self, node, children):
         return children
 
-    def visit_key(self, node, children):
+    def visit_ident(self, node, children):
         return node.text
 
-    def visit_quoted_key(self, node, children):
+    def visit_quoted_ident(self, node, children):
         # leading ! are used to indicate negation. make sure they don't appear.
         return node.match.groups()[0].lstrip("!")
 

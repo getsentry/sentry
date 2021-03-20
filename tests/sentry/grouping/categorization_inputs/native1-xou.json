@@ -1,0 +1,54 @@
+{
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "thread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "_pthread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "pthread_mutex_lock",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS / EXC_I386_GPFLT",
+        "value": "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
+      }
+    ]
+  },
+  "platform": "native"
+}

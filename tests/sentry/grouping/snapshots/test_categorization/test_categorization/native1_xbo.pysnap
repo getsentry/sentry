@@ -1,0 +1,72 @@
+---
+created: '2021-03-22T16:57:35.178627Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+0xe0434352 / 0x00000000:Fatal Error: 0xe0434352 / 0x00000000 (thread_id:_, crashed:_)
+               C:\windows\SYSTEM32\ntdll.dll  RtlUserThreadStart category=threadbase
+            C:\windows\System32\KERNEL32.DLL  BaseThreadInitThunk category=threadbase
+                                              code
+  C:\Program Files\Company\Example App 2020\  invoke_main category=threadbase
+  C:\Program Files\Company\Example App 2020\  wWinMain category=threadbase
+  C:\Program Files\Company\Example App 2020\  std::basic_string<T>::{ctor} category=std
+  C:\Program Files\Company\Example App 2020\  std::basic_string<T>::assign category=std
+  C:\Program Files\Company\Example App 2020\  std::basic_string<T>::assign category=std
+  C:\Program Files\Company\Example App 2020\  std::basic_string<T>::_Reallocate_for category=std
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+  C:\Program Files\Company\Example App 2020\  std::_Func_class<T>::operator() category=indirection
+                                              code
+              C:\windows\System32\USER32.dll  DispatchMessageWorker category=system
+              C:\windows\System32\USER32.dll  UserCallWinProcCheckWow category=system
+                                              code
+                                              code
+                                              code
+                                              code
+  C:\Program Files\Company\Example App 2020\  boost::function0<T>::operator() category=indirection
+                                              code
+  C:\Program Files\Company\Example App 2020\  boost::function0<T>::operator() category=indirection
+  C:\Program Files\Company\Example App 2020\  boost::detail::function::function_obj_invoker0<T>::invoke category=std
+  C:\Program Files\Company\Example App 2020\  boost::_bi::bind_t<T>::operator() category=indirection
+  C:\Program Files\Company\Example App 2020\  boost::_bi::list5<T>::operator() category=indirection
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+  C:\Program Files\Company\Example App 2020\  boost::function0<T>::operator() category=indirection
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+  C:\Program Files\Company\Example App 2020\  std::fill category=std
+                                              code
+                                              code
+            C:\windows\System32\ucrtbase.dll  malloc_base category=malloc
+               C:\windows\SYSTEM32\ntdll.dll  RtlpAllocateHeapInternal category=malloc
+        C:\windows\SYSTEM32\VCRUNTIME140.dll  memset category=system
+                                              code
+  C:\Windows\Microsoft.NET\Framework64\v4.0.  VTableBootstrapThunkInitHelperStub category=system
+  C:\Windows\Microsoft.NET\Framework64\v4.0.  VTableBootstrapThunkInitHelper category=system
+  C:\Windows\Microsoft.NET\Framework64\v4.0.  CorDllMainWorkerForThunk category=system
+  C:\Windows\Microsoft.NET\Framework64\v4.0.  CorDllMainForThunk category=system
+  C:\Windows\Microsoft.NET\Framework64\v4.0.  RaiseComPlusException category=system
+          C:\windows\System32\KERNELBASE.dll  RaiseException category=throw

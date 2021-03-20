@@ -1,0 +1,66 @@
+---
+created: '2021-03-22T16:57:35.335229Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+  /System/Library/Frameworks/AppKit.framewor  ??? category=system
+  /System/Library/Frameworks/AppKit.framewor  ??? category=system
+  /System/Library/Frameworks/AppKit.framewor  ??? category=system
+  /System/Library/Frameworks/Carbon.framewor  _BlockUntilNextEventMatchingListInModeWithFilter category=system
+  /System/Library/Frameworks/Carbon.framewor  ReceiveNextEventCommon category=system
+  /System/Library/Frameworks/Carbon.framewor  RunCurrentEventLoopInMode category=system
+  /System/Library/Frameworks/CoreFoundation.  ??? category=system
+  /System/Library/Frameworks/CoreFoundation.  ??? category=system
+  /System/Library/Frameworks/CoreFoundation.  ??? category=system
+  /System/Library/Frameworks/CoreFoundation.  ??? category=system
+  /System/Library/Frameworks/CoreFoundation.  ??? category=system
+  /System/Library/Frameworks/Foundation.fram  ??? category=system
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+      Frontend.framework/Versions/A/Frontend  boost::function0<T>::operator() category=indirection
+                                              code
+        abccore.framework/Versions/A/abccore  boost::function0<T>::operator() category=indirection
+                                              code
+                                              code
+                                              code
+      Frontend.framework/Versions/A/Frontend  boost::function0<T>::operator() category=indirection
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+  /System/Library/Frameworks/QuartzCore.fram  CA::Transaction::commit category=system
+  /System/Library/Frameworks/QuartzCore.fram  CA::Context::commit_transaction category=system
+  /System/Library/Frameworks/QuartzCore.fram  CA::Layer::display_if_needed category=system
+  /System/Library/Frameworks/AppKit.framewor  ??? category=system
+                                              code
+                                              code
+  /System/Library/Frameworks/OpenGL.framewor  CGLTexImageIOSurface2D category=gl
+  /System/Library/Frameworks/OpenGL.framewor  CGLDescribeRenderer category=gl
+  /System/Library/Frameworks/OpenGL.framewor  gliSetInteger category=gl
+                                              code
+  /System/Library/Extensions/AppleIntelHD400  ??? category=driver
+  /System/Library/Extensions/AppleIntelHD400  ??? category=driver
+                                              code
+  /System/Library/Extensions/AppleIntelHD400  ??? category=driver
+                                              code
+                                              code
+           /usr/lib/system/libsystem_c.dylib  abort category=throw
+           /usr/lib/system/libsystem_c.dylib  __abort category=system
+      /usr/lib/system/libsystem_kernel.dylib  ??? category=system

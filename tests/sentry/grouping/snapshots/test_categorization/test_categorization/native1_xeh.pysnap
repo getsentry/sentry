@@ -1,0 +1,91 @@
+---
+created: '2021-03-22T16:57:36.083751Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
+    /usr/lib/system/libsystem_platform.dylib  _sigtramp category=handler
+                                              code
+                                              code
+                                              code
+  /System/Library/Frameworks/AppKit.framewor  NSRunAlertPanel category=system
+  /System/Library/Frameworks/AppKit.framewor  _NSTryRunModal category=system
+  /System/Library/Frameworks/QuartzCore.fram  CA::Transaction::commit category=system
+  /System/Library/Frameworks/QuartzCore.fram  CA::Context::commit_transaction category=system
+  /System/Library/Frameworks/QuartzCore.fram  CA::Layer::display_if_needed category=system
+  /System/Library/Frameworks/AppKit.framewor  -[_NSViewBackingLayer display] category=system
+  /System/Library/Frameworks/AppKit.framewor  -[_NSBackingLayer display] category=system
+  /System/Library/Frameworks/QuartzCore.fram  -[CALayer _display] category=system
+  /System/Library/Frameworks/QuartzCore.fram  CA::Layer::display_ category=system
+  /System/Library/Frameworks/QuartzCore.fram  CABackingStoreUpdate_ category=system
+  /System/Library/Frameworks/AppKit.framewor  -[NSView(NSLayerKitGlue) _drawViewBackingLayer:inContext:drawingHandler:] category=system
+  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=system
+  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=system
+  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=system
+  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=system
+  /System/Library/Frameworks/AppKit.framewor  _NSViewDrawRect category=system
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+      Frontend.framework/Versions/A/Frontend  boost::function0<T>::operator() category=indirection
+                                              code
+        abccore.framework/Versions/A/abccore  boost::function0<T>::operator() category=indirection
+                                              code
+                                              code
+                                              code
+            abcui.framework/Versions/A/abcui  std::__1::const_mem_fun1_ref_t<T>::operator() category=indirection
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+            abcui.framework/Versions/A/abcui  boost::shared_ptr<T>::reset<T> category=std
+            abcui.framework/Versions/A/abcui  boost::shared_ptr<T>::shared_ptr<T> category=std
+            abcui.framework/Versions/A/abcui  boost::shared_ptr<T>::shared_ptr<T> category=std
+            abcui.framework/Versions/A/abcui  boost::detail::sp_pointer_construct<T> category=std
+            abcui.framework/Versions/A/abcui  boost::detail::shared_count::shared_count<T> category=std
+            abcui.framework/Versions/A/abcui  boost::detail::shared_count::shared_count<T> category=std
+                                              code
+      /usr/lib/system/libsystem_malloc.dylib  _malloc_zone_malloc category=malloc
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_malloc category=malloc
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate category=malloc
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate_from_block category=malloc
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate_from_block.cold.1 category=malloc
+      /usr/lib/system/libsystem_malloc.dylib  malloc_zone_error category=malloc
+      /usr/lib/system/libsystem_malloc.dylib  malloc_vreport category=oom
+           /usr/lib/system/libsystem_c.dylib  abort category=throw
+      /usr/lib/system/libsystem_kernel.dylib  __pthread_kill category=system

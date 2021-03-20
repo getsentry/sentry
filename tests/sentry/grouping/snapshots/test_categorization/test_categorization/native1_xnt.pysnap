@@ -1,0 +1,31 @@
+---
+created: '2021-03-22T16:57:36.503190Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXCEPTION_INT_DIVIDE_BY_ZERO:Fatal Error: EXCEPTION_INT_DIVIDE_BY_ZERO (thread_id:_, crashed:_)
+  C:\Program Files\Company\Example App 2020\  wWinMain category=threadbase
+  C:\Program Files\Company\Example App 2020\  std::basic_string<T>::{ctor} category=std
+  C:\Program Files\Company\Example App 2020\  std::basic_string<T>::assign category=std
+  C:\Program Files\Company\Example App 2020\  std::basic_string<T>::assign category=std
+  C:\Program Files\Company\Example App 2020\  std::basic_string<T>::_Reallocate_for category=std
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+              C:\WINDOWS\System32\USER32.dll  GetMessageW category=system
+              C:\WINDOWS\System32\win32u.dll  NtUserGetMessage category=system
+               C:\WINDOWS\SYSTEM32\ntdll.dll  KiUserCallbackDispatcher category=system
+              C:\WINDOWS\System32\USER32.dll  _fnHkINLPMSG category=system
+              C:\WINDOWS\System32\USER32.dll  CallHookWithSEH category=system
+              C:\WINDOWS\System32\USER32.dll  DispatchHookW category=handler
+  C:\Program Files\NVIDIA Corporation\nView\  DestroyThreadFeatureManager category=driver
+  C:\Program Files\NVIDIA Corporation\nView\  DestroyThreadFeatureManager category=driver
+  C:\Program Files\NVIDIA Corporation\nView\  ??? category=driver
+  C:\Program Files\NVIDIA Corporation\nView\  ??? category=driver
+  C:\Program Files\NVIDIA Corporation\nView\  DestroyThreadFeatureManager category=driver

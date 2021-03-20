@@ -1,0 +1,44 @@
+---
+created: '2021-03-22T16:57:35.578767Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXCEPTION_ACCESS_VIOLATION_WRITE:Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE (thread_id:_, crashed:_)
+          C:\Windows\System32\KERNELBASE.dll  TerminateProcessOnMemoryExhaustion category=system
+               C:\Windows\SYSTEM32\ntdll.dll  RtlUserThreadStart category=threadbase
+            C:\Windows\System32\KERNEL32.DLL  BaseThreadInitThunk category=threadbase
+                                              code
+            C:\Windows\System32\ucrtbase.dll  exit category=shutdown
+            C:\Windows\System32\ucrtbase.dll  __crt_state_management::enter_os_call category=system
+            C:\Windows\System32\ucrtbase.dll  strset category=system
+            C:\Windows\System32\KERNEL32.DLL  ExitProcessImplementation category=shutdown
+               C:\Windows\SYSTEM32\ntdll.dll  RtlExitUserProcess category=shutdown
+               C:\Windows\SYSTEM32\ntdll.dll  RtlUnlockProcessHeapOnProcessTerminate category=system
+               C:\Windows\SYSTEM32\ntdll.dll  LdrShutdownProcess category=system
+                                              code
+               C:\Windows\SYSTEM32\ntdll.dll  LdrShutdownProcess category=system
+                                              code
+               C:\Windows\SYSTEM32\ntdll.dll  RtlpFlsDataCleanup category=system
+               C:\Windows\SYSTEM32\ntdll.dll  LdrpCallInitRoutine category=system
+                                              code
+               C:\Windows\SYSTEM32\ntdll.dll  RtlActivateActivationContextUnsafeFast category=system
+                                              code
+                                              code
+                                              code
+                                              code
+               C:\Windows\System32\MSCTF.dll  CInputProcessorProfiles::Release category=system
+               C:\Windows\System32\MSCTF.dll  CInputProcessorProfiles::~CInputProcessorProfiles category=system
+               C:\Windows\System32\MSCTF.dll  CTextInputClientOwnerAdapter::Release category=system
+               C:\Windows\System32\MSCTF.dll  wil::details::in1diag3::Log_Hr category=system
+               C:\Windows\System32\MSCTF.dll  wil::details::ReportFailure_Hr category=system
+               C:\Windows\System32\MSCTF.dll  wil::details::ReportFailure category=system
+               C:\Windows\System32\MSCTF.dll  wil::details::LogFailure category=system
+               C:\Windows\System32\MSCTF.dll  wil::details::GetContextAndNotifyFailure category=system
+               C:\Windows\System32\MSCTF.dll  wil::details::ThreadFailureCallbackHolder::GetContextAndNotifyFailure category=system
+               C:\Windows\System32\MSCTF.dll  CtfTraceLoggingTelemetry::FallbackTelemetryCallback category=system
+               C:\Windows\System32\MSCTF.dll  wil::details::static_lazy<T>::get category=system
+               C:\Windows\System32\MSCTF.dll  atexit category=system
+               C:\Windows\System32\MSCTF.dll  onexit category=system
+              C:\Windows\System32\msvcrt.dll  _dllonexit category=system

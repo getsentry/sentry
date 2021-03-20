@@ -1,0 +1,244 @@
+{
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "TerminateProcessOnMemoryExhaustion",
+              "package": "C:\\Windows\\System32\\KERNELBASE.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlUserThreadStart",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "BaseThreadInitThunk",
+              "package": "C:\\Windows\\System32\\KERNEL32.DLL"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "exit",
+              "package": "C:\\Windows\\System32\\ucrtbase.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "__crt_state_management::enter_os_call",
+              "package": "C:\\Windows\\System32\\ucrtbase.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "strset",
+              "package": "C:\\Windows\\System32\\ucrtbase.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "ExitProcessImplementation",
+              "package": "C:\\Windows\\System32\\KERNEL32.DLL"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlExitUserProcess",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlUnlockProcessHeapOnProcessTerminate",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "LdrShutdownProcess",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "LdrShutdownProcess",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlpFlsDataCleanup",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "LdrpCallInitRoutine",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlActivateActivationContextUnsafeFast",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "CInputProcessorProfiles::Release",
+              "package": "C:\\Windows\\System32\\MSCTF.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "CInputProcessorProfiles::~CInputProcessorProfiles",
+              "package": "C:\\Windows\\System32\\MSCTF.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "CTextInputClientOwnerAdapter::Release",
+              "package": "C:\\Windows\\System32\\MSCTF.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "wil::details::in1diag3::Log_Hr",
+              "package": "C:\\Windows\\System32\\MSCTF.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "wil::details::ReportFailure_Hr",
+              "package": "C:\\Windows\\System32\\MSCTF.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "wil::details::ReportFailure",
+              "package": "C:\\Windows\\System32\\MSCTF.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "wil::details::LogFailure",
+              "package": "C:\\Windows\\System32\\MSCTF.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "wil::details::GetContextAndNotifyFailure",
+              "package": "C:\\Windows\\System32\\MSCTF.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "wil::details::ThreadFailureCallbackHolder::GetContextAndNotifyFailure",
+              "package": "C:\\Windows\\System32\\MSCTF.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "CtfTraceLoggingTelemetry::FallbackTelemetryCallback",
+              "package": "C:\\Windows\\System32\\MSCTF.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "wil::details::static_lazy<T>::get",
+              "package": "C:\\Windows\\System32\\MSCTF.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "atexit",
+              "package": "C:\\Windows\\System32\\MSCTF.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "onexit",
+              "package": "C:\\Windows\\System32\\MSCTF.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "_dllonexit",
+              "package": "C:\\Windows\\System32\\msvcrt.dll"
+            }
+          ]
+        },
+        "type": "EXCEPTION_ACCESS_VIOLATION_WRITE",
+        "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+      }
+    ]
+  },
+  "platform": "native"
+}

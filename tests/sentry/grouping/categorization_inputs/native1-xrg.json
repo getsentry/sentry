@@ -1,0 +1,196 @@
+{
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlUserThreadStart",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "BaseThreadInitThunk",
+              "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "TppWorkerThread",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "TppWorkpExecuteCallback",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "HTTP_THREAD_POOL::_StaticWorkItemCallback",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "HTTP_REQUEST_HANDLE_OBJECT::OnWorkItem",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "HTTP_REQUEST_HANDLE_OBJECT::_ControlledAppCallback",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "HTTP_REQUEST_HANDLE_OBJECT::_SafeAppCallback",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "HTTP_REQUEST_HANDLE_OBJECT::IndicateCompletionStatusCommon",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "HTTP_REQUEST_HANDLE_OBJECT::_SafeAppCallback",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "WinHttpReadData",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "HTTP_REQUEST_HANDLE_OBJECT::IndicateCompletionStatusCommon",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "HTTP_REQUEST_HANDLE_OBJECT::_SafeAppCallback",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": "d:\\agent\\_work\\2\\s\\src\\vctools\\crt\\vcruntime\\src\\eh\\throw.cpp",
+              "data": {},
+              "filename": "throw.cpp",
+              "function": "_CxxThrowException",
+              "package": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RaiseException",
+              "package": "C:\\WINDOWS\\System32\\KERNELBASE.dll"
+            }
+          ]
+        },
+        "type": "Unhandled C++ Exception",
+        "value": "Fatal Error: Unhandled C++ Exception"
+      }
+    ]
+  },
+  "platform": "native"
+}

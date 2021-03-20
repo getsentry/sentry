@@ -1,0 +1,270 @@
+{
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "register_onexit_function",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "register_onexit_function",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "register_onexit_function",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "abs_path": "D:\\releases\\abc\\Farming Simulator\\Frontend\\Src\\Win\\WinMain.cpp",
+              "data": {},
+              "filename": "WinMain.cpp",
+              "function": "wWinMain",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "data": {},
+              "filename": "xstring",
+              "function": "std::basic_string<T>::{ctor}",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "data": {},
+              "filename": "xstring",
+              "function": "std::basic_string<T>::assign",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "data": {},
+              "filename": "xstring",
+              "function": "std::basic_string<T>::assign",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "data": {},
+              "filename": "xstring",
+              "function": "std::basic_string<T>::_Reallocate_for",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\functional",
+              "data": {},
+              "filename": "functional",
+              "function": "std::_Func_class<T>::operator()",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\abccore.dll"
+            },
+            {
+              "abs_path": "D:\\releases\\abc\\Farming Simulator\\Mezzanine\\Src\\Initialize.cpp",
+              "data": {},
+              "filename": "Initialize.cpp",
+              "function": "<lambda>::operator()",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Mezzanine.dll"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": "D:\\releases\\abc\\shared\\company\\MediaCore\\GPUFoundation\\Src\\CUDA\\CUDADevice.cpp",
+              "data": {},
+              "filename": "CUDADevice.cpp",
+              "function": "GF::CUDADevice::ReleaseContext",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\GPUFoundation.dll"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xtree",
+              "data": {},
+              "filename": "xtree",
+              "function": "std::_Tree_val<T>::_Erase_tree<T>",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\GPUFoundation.dll"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xtree",
+              "data": {},
+              "filename": "xtree",
+              "function": "std::_Tree_node<T>::_Freenode",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\GPUFoundation.dll"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xtree",
+              "data": {},
+              "filename": "xtree",
+              "function": "std::_Tree_node<T>::_Freenode0",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\GPUFoundation.dll"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xmemory",
+              "data": {},
+              "filename": "xmemory",
+              "function": "std::_Normal_allocator_traits<T>::deallocate",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\GPUFoundation.dll"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            }
+          ]
+        },
+        "type": "EXCEPTION_ACCESS_VIOLATION_WRITE",
+        "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+      }
+    ]
+  },
+  "platform": "native"
+}

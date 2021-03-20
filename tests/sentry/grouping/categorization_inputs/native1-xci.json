@@ -1,0 +1,236 @@
+{
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlUserThreadStart",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "BaseThreadInitThunk",
+              "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "TppWorkerThread",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "TppTimerpExecuteCallback",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlpTpTimerCallback",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\function\\function_template.hpp",
+              "data": {},
+              "filename": "function_template.hpp",
+              "function": "boost::function0<T>::operator()",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\abccore.dll"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\function\\function_template.hpp",
+              "data": {},
+              "filename": "function_template.hpp",
+              "function": "boost::function0<T>::operator()",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\abccore.dll"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\function\\function_template.hpp",
+              "data": {},
+              "filename": "function_template.hpp",
+              "function": "boost::function0<T>::operator()",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\MediaFoundation.dll"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xtree",
+              "data": {},
+              "filename": "xtree",
+              "function": "std::_Tree<T>::_Erase_unchecked",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\MediaFoundation.dll"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xtree",
+              "data": {},
+              "filename": "xtree",
+              "function": "std::_Tree_node<T>::_Freenode<T>",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\MediaFoundation.dll"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xmemory",
+              "data": {},
+              "filename": "xmemory",
+              "function": "std::_Normal_allocator_traits<T>::destroy",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\MediaFoundation.dll"
+            },
+            {
+              "abs_path": "D:\\releases\\abc\\shared\\company\\abccore\\classref\\Interface.h",
+              "data": {},
+              "filename": "Interface.h",
+              "function": "abccore::classref::InterfaceRef<T>::{dtor}",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\MediaFoundation.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "destructor'",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\ImporterHost.dll"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\vector",
+              "data": {},
+              "filename": "vector",
+              "function": "std::vector<T>::~vector<T>",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\ImporterHost.dll"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\vector",
+              "data": {},
+              "filename": "vector",
+              "function": "std::vector<T>::_Tidy",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\ImporterHost.dll"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xmemory",
+              "data": {},
+              "filename": "xmemory",
+              "function": "std::allocator<T>::deallocate",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\ImporterHost.dll"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xmemory",
+              "data": {},
+              "filename": "xmemory",
+              "function": "std::_Deallocate",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\ImporterHost.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "free_base",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlFreeHeap",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlpFreeHeapInternal",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlpFreeHeap",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlEnterCriticalSection",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlpEnterCriticalSectionContended",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlpWaitOnCriticalSection",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlpWaitOnAddress",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RtlpOptimizeWaitOnAddressWaitList",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            }
+          ]
+        },
+        "type": "EXCEPTION_ACCESS_VIOLATION_WRITE",
+        "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+      }
+    ]
+  },
+  "platform": "native"
+}

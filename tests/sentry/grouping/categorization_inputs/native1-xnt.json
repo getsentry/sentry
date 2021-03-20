@@ -1,0 +1,157 @@
+{
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "D:\\releases\\abc\\Farming Simulator\\Frontend\\Src\\Win\\WinMain.cpp",
+              "data": {},
+              "filename": "WinMain.cpp",
+              "function": "wWinMain",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "data": {},
+              "filename": "xstring",
+              "function": "std::basic_string<T>::{ctor}",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "data": {},
+              "filename": "xstring",
+              "function": "std::basic_string<T>::assign",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "data": {},
+              "filename": "xstring",
+              "function": "std::basic_string<T>::assign",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "data": {},
+              "filename": "xstring",
+              "function": "std::basic_string<T>::_Reallocate_for",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "GetMessageW",
+              "package": "C:\\WINDOWS\\System32\\USER32.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "NtUserGetMessage",
+              "package": "C:\\WINDOWS\\System32\\win32u.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "KiUserCallbackDispatcher",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "_fnHkINLPMSG",
+              "package": "C:\\WINDOWS\\System32\\USER32.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "CallHookWithSEH",
+              "package": "C:\\WINDOWS\\System32\\USER32.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "DispatchHookW",
+              "package": "C:\\WINDOWS\\System32\\USER32.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "DestroyThreadFeatureManager",
+              "package": "C:\\Program Files\\NVIDIA Corporation\\nView\\nViewH64.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "DestroyThreadFeatureManager",
+              "package": "C:\\Program Files\\NVIDIA Corporation\\nView\\nViewH64.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "C:\\Program Files\\NVIDIA Corporation\\nView\\nViewH64.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "C:\\Program Files\\NVIDIA Corporation\\nView\\nViewH64.dll"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "DestroyThreadFeatureManager",
+              "package": "C:\\Program Files\\NVIDIA Corporation\\nView\\nViewH64.dll"
+            }
+          ]
+        },
+        "type": "EXCEPTION_INT_DIVIDE_BY_ZERO",
+        "value": "Fatal Error: EXCEPTION_INT_DIVIDE_BY_ZERO"
+      }
+    ]
+  },
+  "platform": "native"
+}
