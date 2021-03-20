@@ -932,7 +932,11 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     else:
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
-        if isinstance(value, datetime) and not name.startswith("timestamp"):
+        if isinstance(value, datetime) and name not in {
+            "timestamp",
+            "timestamp.to_hour",
+            "timestamp.to_day",
+        }:
             value = int(to_timestamp(value)) * 1000
 
         # most field aliases are handled above but timestamp.to_{hour,day} are
@@ -1400,8 +1404,8 @@ def key_transaction_expression(user_id, organization_id, project_ids):
 
 
 # When updating this list, also check if the following need to be updated:
-# - convert_search_filter_to_snuba_query
-# - static/app/utils/discover/fields.tsx FIELDS
+# - convert_search_filter_to_snuba_query (otherwise aliased field will be treated as tag)
+# - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
 FIELD_ALIASES = {
     field.name: field
     for field in [
@@ -1963,7 +1967,7 @@ def reflective_result_type(index=0):
 
 # When updating this list, also check if the following need to be updated:
 # - convert_search_filter_to_snuba_query
-# - static/app/utils/discover/fields.tsx FIELDS
+# - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
 FUNCTIONS = {
     function.name: function
     for function in [
