@@ -18,7 +18,6 @@ from sentry.search.utils import InvalidQuery
 The new Outcomes API defines a "metrics"-like interface which is can be used in
 a similar way to "sessions" and "disover"
 # "Metrics"
-
 We have 2 "metrics" that we can query:
 
 - `quantity` (counter): The relevant stat based on category:
@@ -31,16 +30,9 @@ We have 2 "metrics" that we can query:
             if we ever aggregate multiple events into one outcome,
             this would be used to get the number of outcomes
 
-# "Operations" on metrics
-
-Depending on the metric *type*, we can query different things:
-
-- `counter`: Can only be accessed via the `sum` function.
-
 # Tags / Grouping
 
-The Outcome data can be grouped by a set of tags, which can only appear in the
-`groupBy` of the query.
+The Outcome data can be grouped by these fields, which appear in the groupBy of the query
 
 - `project`
 - `outcome`
@@ -50,8 +42,21 @@ The Outcome data can be grouped by a set of tags, which can only appear in the
 """
 
 
-class QuantityField:
-    def get_snuba_columns(self, raw_groupby: List[str]) -> List[str]:
+class Field:
+    def get_snuba_columns(self, raw_groupby: Optional[List[str]] = None) -> List[str]:
+        pass
+
+    def extract_from_row(
+        self, row: Dict[str, Union[Any, int]], group: Optional[Dict[str, Any]] = None
+    ) -> int:
+        pass
+
+    def aggregation(self, dataset: Dataset) -> List[str]:
+        pass
+
+
+class QuantityField(Field):
+    def get_snuba_columns(self, raw_groupby: Optional[List[str]] = None) -> List[str]:
         return ["quantity"]
 
     def extract_from_row(
@@ -61,17 +66,12 @@ class QuantityField:
             return 0
         return row["quantity"]
 
-    # def unit_value(self, row, group):
-    #     if row is None:
-    #         return
-    #     return
-
     def aggregation(self, dataset: Dataset) -> List[str]:
         return ["sum", "quantity", "quantity"]
 
 
-class TimesSeenField:
-    def get_snuba_columns(self, raw_groupby: List[str]) -> List[str]:
+class TimesSeenField(Field):
+    def get_snuba_columns(self, raw_groupby: Optional[List[str]] = None) -> List[str]:
         return ["times_seen"]
 
     def extract_from_row(
@@ -81,9 +81,6 @@ class TimesSeenField:
             return 0
         return row["times_seen"]
 
-    # def unit_value(self, row, group):
-    #     return "count"
-
     def aggregation(self, dataset: Dataset) -> List[str]:
         if dataset == Dataset.Outcomes:
             return ["sum", "times_seen", "times_seen"]
@@ -92,7 +89,15 @@ class TimesSeenField:
             return ["count()", "", "times_seen"]
 
 
-class CategoryDimension(SimpleGroupBy):
+class Dimension(SimpleGroupBy):
+    def resolve_filter(self, raw_filter: List[str]) -> List[DataCategory]:
+        pass
+
+    def map_row(self, row: Dict[str, Any]) -> None:
+        pass
+
+
+class CategoryDimension(Dimension):
     def resolve_filter(self, raw_filter: List[str]) -> List[DataCategory]:
         resolved_categories = set()
         for category in raw_filter:
@@ -114,7 +119,7 @@ class CategoryDimension(SimpleGroupBy):
             row["category"] = category.api_name()
 
 
-class OutcomeDimension(SimpleGroupBy):
+class OutcomeDimension(Dimension):
     def resolve_filter(self, raw_filter: List[str]) -> List[Outcome]:
         return [Outcome.parse(o) for o in raw_filter]
 
@@ -123,7 +128,7 @@ class OutcomeDimension(SimpleGroupBy):
             row["outcome"] = Outcome(row["outcome"]).api_name()
 
 
-class ReasonDimension(SimpleGroupBy):
+class ReasonDimension(Dimension):
     def resolve_filter(self, raw_filter: List[str]) -> List[str]:
         return [
             "smart_rate_limit" if reason == "spike_protection" else reason for reason in raw_filter
@@ -146,19 +151,22 @@ COLUMN_MAP = {
 }
 
 DIMENSION_MAP = {
-    "project": SimpleGroupBy("project_id", "project"),
-    # "key": SimpleGroupBy("key_id"),
     "outcome": OutcomeDimension("outcome"),
     "category": CategoryDimension("category"),
     "reason": ReasonDimension("reason"),
+}
+
+GROUPBY_MAP = {
+    **DIMENSION_MAP,
+    "project": SimpleGroupBy("project_id", "project"),
 }
 
 TS_COL = "time"
 
 
 def get_filter(
-    query: Any, params: Dict[Any, Any]
-) -> Dict[str, Union[List[List[Any]], Dict[str, Any]]]:
+    query: QueryDict, params: Dict[Any, Any]
+) -> Tuple[Dict[str, Any], List[Tuple[str, str, List[Any]]]]:
     filter_keys = {}
     conditions = []
 
@@ -166,13 +174,13 @@ def get_filter(
         raw_filter = query.getlist(filter_name, [])
         resolved_filter = DIMENSION_MAP[filter_name].resolve_filter(raw_filter)
         if len(resolved_filter) > 0:
-            conditions.append([filter_name, "IN", resolved_filter])
+            conditions.append((filter_name, "IN", resolved_filter))
 
     if "project_id" in params:
         filter_keys["project_id"] = params["project_id"]
     if "organization" in params:
         filter_keys["organization_id"] = params["organization_id"]
-    return {"filter_keys": filter_keys, "conditions": conditions}
+    return filter_keys, conditions
 
 
 class QueryDefinition:
@@ -182,7 +190,12 @@ class QueryDefinition:
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, query: QueryDict, params: Dict[Any, Any], allow_minute_resolution=True):
+    def __init__(
+        self,
+        query: QueryDict,
+        params: Dict[Any, Any],
+        allow_minute_resolution: Optional[bool] = True,
+    ):
         raw_fields = query.getlist("field", [])
         raw_groupby = query.getlist("groupBy", [])
         if len(raw_fields) == 0:
@@ -225,10 +238,10 @@ class QueryDefinition:
             query_groupby.update(groupby.get_snuba_groupby())
         self.query_groupby = list(query_groupby)
 
-        snuba_filter = get_filter(query, params)
+        self.conditions, self.filter_keys = get_filter(query, params)
 
-        self.conditions = snuba_filter["conditions"]
-        self.filter_keys = snuba_filter["filter_keys"]
+        # self.conditions = conditions
+        # self.filter_keys = filter_keys
 
 
 def run_outcomes_query(query: QueryDefinition) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
@@ -274,7 +287,7 @@ def _format_rows(rows: List[Dict[str, Any]], query: QueryDefinition) -> List[Dic
 
         if grouping_key in category_grouping:
             for field_name, field in query.fields.items():
-                row_field = field.get_snuba_columns(None)[0]
+                row_field = field.get_snuba_columns()[0]
                 category_grouping[grouping_key][row_field] += field.extract_from_row(row)
         else:
             category_grouping[grouping_key] = row
