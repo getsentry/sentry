@@ -20,30 +20,28 @@ export const QuickTraceContainer = styled('div')`
   align-items: center;
 `;
 
-const nodeColors = (theme: Theme) => {
-  return {
-    error: {
-      color: theme.white,
-      background: theme.red300,
-      border: theme.red300,
-    },
-    warning: {
-      color: theme.red300,
-      background: theme.white,
-      border: theme.red300,
-    },
-    white: {
-      color: theme.textColor,
-      background: theme.background,
-      border: theme.textColor,
-    },
-    black: {
-      color: theme.background,
-      background: theme.textColor,
-      border: theme.textColor,
-    },
-  };
-};
+const nodeColors = (theme: Theme) => ({
+  error: {
+    color: theme.white,
+    background: theme.red300,
+    border: theme.red300,
+  },
+  warning: {
+    color: theme.red300,
+    background: theme.white,
+    border: theme.red300,
+  },
+  white: {
+    color: theme.textColor,
+    background: theme.background,
+    border: theme.textColor,
+  },
+  black: {
+    color: theme.background,
+    background: theme.textColor,
+    border: theme.textColor,
+  },
+});
 
 export const EventNode = styled(Tag)<{pad?: 'left' | 'right'}>`
   span {
