@@ -430,12 +430,12 @@ export type User = Omit<AvatarUser, 'options'> & {
   authenticators: UserEnrolledAuthenticator[];
   dateJoined: string;
   options: {
-    theme: 'system' | 'light' | 'dark';
-    timezone: string;
-    stacktraceOrder: number;
-    language: string;
-    clock24Hours: boolean;
-    avatarType: string;
+    theme?: 'system' | 'light' | 'dark';
+    timezone?: string;
+    stacktraceOrder?: number;
+    language?: string;
+    clock24Hours?: boolean;
+    avatarType?: string;
   };
   flags: {newsletter_consent_prompt: boolean};
   hasPasswordAuth: boolean;
@@ -649,7 +649,8 @@ export interface Config {
   urlPrefix: string;
   needsUpgrade: boolean;
   supportEmail: string;
-  user: User;
+  // ?: to work around tests
+  user?: User;
 
   invitesEnabled: boolean;
   privacyUrl: string | null;

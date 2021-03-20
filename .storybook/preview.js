@@ -20,7 +20,9 @@ const withTheme = (Story, context) => {
   return (
     <ThemeProvider theme={currentTheme}>
       <GlobalStyles isDark={isDark} theme={currentTheme} />
-      <Story {...context} />
+      <div style={{'colorScheme': context.globals.theme}}>
+        <Story {...context} />
+      </div>
     </ThemeProvider>
   );
 };

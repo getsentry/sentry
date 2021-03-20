@@ -15,7 +15,10 @@ type ConfigStoreInterface = {
   loadInitialData(config: Config): void;
 };
 
-const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
+const configStoreConfig: Reflux.StoreDefinition &
+  ConfigStoreInterface & {
+    systemTheme?: 'light' | 'dark';
+  } = {
   // When the app is booted we will _immediately_ hydrate the config store,
   // effecively ensureing this is not empty.
   config: {} as Config,
@@ -33,7 +36,10 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
       ...this.config,
       [key]: value,
     };
-    this.trigger({[key]: value});
+    if (key === 'user') {
+      this.config.theme = this.getTheme();
+    }
+    this.trigger();
   },
 
   /**
@@ -41,11 +47,16 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
    * the auto switching of color schemes without affecting manual toggle
    */
   updateTheme(theme) {
-    if (this.config.user?.options.theme !== 'system') {
-      return;
+    this.systemTheme = theme;
+    if (this.config.user?.options.theme === 'system' && theme !== this.config.theme) {
+      this.set('theme', theme);
     }
+  },
 
-    this.set('theme', theme);
+  getTheme() {
+    // options?. to work around tests
+    const themeOption = this.config.user?.options?.theme;
+    return (themeOption === 'system' ? this.systemTheme : themeOption) || 'light';
   },
 
   getConfig() {
@@ -53,13 +64,11 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
   },
 
   loadInitialData(config): void {
-    const shouldUseDarkMode = config.user?.options.theme === 'dark';
-
     this.config = {
       ...config,
       features: new Set(config.features || []),
-      theme: shouldUseDarkMode ? 'dark' : 'light',
     };
+    this.config.theme = this.getTheme();
 
     // Language code is passed from django
     let languageCode = config.languageCode;
@@ -93,7 +102,7 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
     // "?lang=en" --> user configuration options --> django request.LANGUAGE_CODE --> "en"
     setLocale(languageCode || 'en');
 
-    this.trigger(config);
+    this.trigger();
   },
 };
 

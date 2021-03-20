@@ -60,6 +60,9 @@ const styles = (theme: Theme, isDark: boolean) => css`
     : ''}
 
   /* Override css in LESS files here as we want to manually control dark mode for now */
+  html {
+    color-scheme: ${isDark ? 'dark' : 'light'};
+  }
   ${isDark
     ? css`
         .loading .loading-indicator {
