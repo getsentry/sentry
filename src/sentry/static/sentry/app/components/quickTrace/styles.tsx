@@ -87,10 +87,14 @@ export function DropdownItem({children, first, onSelect, to}: DropdownItemProps)
 export const DropdownItemSubContainer = styled('div')`
   display: flex;
   flex-direction: row;
+
+  > a {
+    padding-left: 0 !important;
+  }
 `;
 
 export const StyledTruncate = styled(Truncate)`
-  margin-left: ${space(1)};
+  white-space: nowrap;
 `;
 
 export function SingleEventHoverText({event}: {event: QuickTraceEvent}) {
