@@ -2283,7 +2283,7 @@ class ResolveFieldListTest(unittest.TestCase):
             "last_seen()",
             "apdex(300)",
             "user_misery(300)",
-            "user_misery.prototype_300",
+            "user_misery.prototype(300)",
             "percentile(transaction.duration, 0.75)",
             "percentile(transaction.duration, 0.95)",
             "percentile(transaction.duration, 0.99)",
