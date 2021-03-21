@@ -273,7 +273,7 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
-  user_misery: {
+  'user_misery.prototype': {
     generateDefaultValue({parameter, organization}: DefaultValueInputs) {
       return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
     },

@@ -114,8 +114,8 @@ class TransactionSummary extends React.Component<Props, State> {
         function: ['apdex', threshold, undefined],
       },
       {
-        kind: 'function',
-        function: ['user_misery', threshold, undefined],
+        kind: 'field',
+        field: `user_misery(${threshold})`,
       },
       {
         kind: 'function',
@@ -138,10 +138,8 @@ class TransactionSummary extends React.Component<Props, State> {
         function: ['tpm', '', undefined],
       },
       {
-        // This should be changed to an aggregate function when introduced
-        // to Discover
-        kind: 'field',
-        field: `user_misery.prototype(${organization.apdexThreshold})`,
+        kind: 'function',
+        function: ['user_misery.prototype', threshold, undefined],
       },
       ...vitals.map(
         vital =>

@@ -442,7 +442,10 @@ export function generateFieldOptions({
     });
 
     fieldOptions[`function:${func}`] = {
-      label: `${func}(${ellipsis})`,
+      label:
+        func === 'user_misery.prototype'
+          ? `user_misery(${ellipsis})`
+          : `${func}(${ellipsis})`,
       value: {
         kind: FieldValueKind.FUNCTION,
         meta: {

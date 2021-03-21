@@ -39,7 +39,7 @@ export enum PERFORMANCE_TERM {
   P95 = 'p95',
   P99 = 'p99',
   LCP = 'lcp',
-  USER_MISERY = 'misery',
+  USER_MISERY = 'userMisery.prototype',
   STATUS_BREAKDOWN = 'statusBreakdown',
   DURATION_DISTRIBUTION = 'durationDistribution',
 }
@@ -231,7 +231,7 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   p99: () => t('p99 indicates the duration that 99% of transactions are faster than.'),
   lcp: () =>
     t('Largest contentful paint (LCP) is a web vital meant to represent user load times'),
-  misery: organization =>
+  'userMisery.prototype': organization =>
     t(
       "User misery estimates the percentage of users who will experience load times 4x your organization's apdex threshold of %sms.",
       organization.apdexThreshold
