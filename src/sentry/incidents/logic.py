@@ -1263,6 +1263,7 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
                 )
             else:
                 raise Exception("Invalid channel ID and/or channel name provided.")
+        kwargs.pop("input_channel_id")
         target_identifier = get_alert_rule_trigger_action_slack_channel_id(
             target_value, *args, **kwargs
         )
