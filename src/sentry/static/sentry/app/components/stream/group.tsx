@@ -548,7 +548,7 @@ class StreamGroup extends React.Component<Props, State> {
               <ActionsWrapper>
                 <GroupRowActions
                   group={data}
-                  orgId={organization.slug}
+                  orgSlug={organization.slug}
                   selection={selection}
                   onMarkReviewed={onMarkReviewed}
                   query={query}

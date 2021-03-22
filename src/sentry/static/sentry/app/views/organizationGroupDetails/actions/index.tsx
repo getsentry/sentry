@@ -242,8 +242,8 @@ class Actions extends React.Component<Props, State> {
             hasRelease={hasRelease}
             latestRelease={project.latestRelease}
             onUpdate={this.onUpdate}
-            orgId={organization.slug}
-            projectId={project.slug}
+            orgSlug={organization.slug}
+            projectSlug={project.slug}
             isResolved={isResolved}
             isAutoResolved={
               group.status === 'resolved' ? group.statusDetails.autoResolved : undefined
