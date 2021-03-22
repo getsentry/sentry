@@ -14,7 +14,7 @@ import {Organization, Project} from 'app/types';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 
-import {AlertType, descriptions, options} from './options';
+import {AlertType, AlertWizardDescriptions, AlertWizardOptions} from './options';
 
 type RouteParams = {
   orgId: string;
@@ -63,29 +63,27 @@ class AlertWizard extends React.Component<Props, State> {
             </StyledPageHeader>
             <WizardBody>
               <WizardOptions>
-                {Object.entries(options).map(([header, choices]) => {
-                  return (
-                    <OptionsWrapper key={header}>
-                      <Heading>{header}</Heading>
-                      <RadioGroup
-                        choices={choices}
-                        onChange={this.handleChangeAlertOption}
-                        value={alertOption}
-                        label="alert-option"
-                      />
-                    </OptionsWrapper>
-                  );
-                })}
+                {AlertWizardOptions.map(({categoryHeading, options}) => (
+                  <OptionsWrapper key={categoryHeading}>
+                    <Heading>{categoryHeading}</Heading>
+                    <RadioGroup
+                      choices={options}
+                      onChange={this.handleChangeAlertOption}
+                      value={alertOption}
+                      label="alert-option"
+                    />
+                  </OptionsWrapper>
+                ))}
               </WizardOptions>
               <WizardPanel>
-                <PanelBody>{descriptions[alertOption]}</PanelBody>
-                <StyledCreateAlertButton
+                <WizardPanelBody>{AlertWizardDescriptions[alertOption]}</WizardPanelBody>
+                <CreateAlertButton
                   organization={organization}
                   priority="primary"
                   projectSlug={projectId}
                 >
-                  Create Alert
-                </StyledCreateAlertButton>
+                  {t('Create Alert')}
+                </CreateAlertButton>
               </WizardPanel>
             </WizardBody>
           </Feature>
@@ -116,12 +114,13 @@ const WizardOptions = styled('div')`
 const WizardPanel = styled(Panel)`
   padding: ${space(3)};
   flex: 5;
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
 `;
 
-const StyledCreateAlertButton = styled(CreateAlertButton)`
-  position: absolute;
-  bottom: ${space(3)};
+const WizardPanelBody = styled(PanelBody)`
+  flex: 1;
 `;
 
 const OptionsWrapper = styled('div')`

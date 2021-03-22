@@ -8,21 +8,30 @@ export type AlertType =
   | 'trans_duration'
   | 'lcp';
 
-export const options: Record<string, [AlertType, string][]> = {
-  [t('Errors')]: [
-    ['issues', t('Issues')],
-    ['num_errors', t('Number of Errors')],
-    ['users_experiencing_errors', t('Users Experiencing Errors')],
-  ],
-  [t('Performance')]: [
-    ['throughput', t('Throughput')],
-    ['trans_duration', t('Transaction Duration')],
-    ['lcp', t('Longest Contentful Paint')],
-  ],
-};
+export const AlertWizardOptions: {
+  categoryHeading: string;
+  options: [AlertType, string][];
+}[] = [
+  {
+    categoryHeading: t('Errors'),
+    options: [
+      ['issues', t('Issues')],
+      ['num_errors', t('Number of Errors')],
+      ['users_experiencing_errors', t('Users Experiencing Errors')],
+    ],
+  },
+  {
+    categoryHeading: t('Performance'),
+    options: [
+      ['throughput', t('Throughput')],
+      ['trans_duration', t('Transaction Duration')],
+      ['lcp', t('Longest Contentful Paint')],
+    ],
+  },
+];
 
 // TODO(davidenwang): Once the copy is finalized for the wizard fill this in with real content
-export const descriptions: Record<AlertType, string> = {
+export const AlertWizardDescriptions: Record<AlertType, string> = {
   issues: t('An issue alert allows you to alert on a group of error events in Sentry'),
   num_errors: t('Alert on the number of errors coming into your Sentry dashboard'),
   users_experiencing_errors: t('Alert on the number of users experiencing errors'),
