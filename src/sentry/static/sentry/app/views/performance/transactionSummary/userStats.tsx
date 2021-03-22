@@ -93,18 +93,6 @@ function UserStats({
 
   return (
     <React.Fragment>
-      <SectionHeading>
-        {t('User Misery')}
-        <QuestionTooltip
-          position="top"
-          title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY)}
-          size="sm"
-        />
-      </SectionHeading>
-      {userMisery}
-
-      <SidebarSpacer />
-
       <Feature features={['organizations:performance-vitals-overview']}>
         {({hasFeature}) => {
           if (vitalsPassRate !== null && hasFeature) {
@@ -163,6 +151,16 @@ function UserStats({
           }
         }}
       </Feature>
+      <SectionHeading>
+        {t('User Misery')}
+        <QuestionTooltip
+          position="top"
+          title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY)}
+          size="sm"
+        />
+      </SectionHeading>
+      {userMisery}
+      <SidebarSpacer />
     </React.Fragment>
   );
 }
