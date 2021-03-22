@@ -116,7 +116,7 @@
       {
         "name": "end",
         "in": "query",
-        "description": "This defines the end of the time series range as an explicit datetime.",
+        "description": "This defines the inclusive end of the time series range as an explicit datetime.",
         "required": false,
         "schema": {"type": "string", "format": "date-time"}
       }
@@ -130,6 +130,8 @@
               "$ref": "../../components/schemas/sessions.json#/Sessions"
             },
             "example": {
+              "start": "2021-02-01T00:00:00Z",
+              "end": "2021-02-04T00:00:00Z",
               "intervals": [
                 "2021-02-01T00:00:00Z",
                 "2021-02-02T00:00:00Z",
