@@ -42,7 +42,6 @@ jobs:
         # Sometimes, brew needs to be updated before brew bundle would work
         # If you want to speed up the CI for your PR, you can use --no-upgrade and HOMEBREW_NO_AUTO_UPDATE=1
         run: |
-          docker version
           brew bundle || brew update && brew bundle
           make init-docker
           docker version
