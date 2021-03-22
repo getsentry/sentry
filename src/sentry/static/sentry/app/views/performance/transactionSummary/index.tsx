@@ -141,7 +141,7 @@ class TransactionSummary extends React.Component<Props, State> {
         // This should be changed to an aggregate function when introduced
         // to Discover
         kind: 'field',
-        field: `user_misery.prototype(${organization.apdexThreshold})`,
+        field: `user_misery_prototype(${organization.apdexThreshold})`,
       },
       ...vitals.map(
         vital =>

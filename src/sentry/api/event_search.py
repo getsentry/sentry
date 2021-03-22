@@ -316,7 +316,7 @@ class SearchVisitor(NodeVisitor):
         "p99",
         "failure_rate",
         "user_misery",
-        "user_misery.prototype",
+        "user_misery_prototype",
     }
     date_keys = {
         "start",
@@ -2044,7 +2044,7 @@ FUNCTIONS = {
             default_result_type="number",
         ),
         Function(
-            "user_misery.prototype",
+            "user_misery_prototype",
             required_args=[NumberRange("satisfaction", 0, None)],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
             # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
@@ -2769,6 +2769,10 @@ def resolve_field_list(
     orderby = snuba_filter.orderby
     # Only sort if there are columns. When there are only aggregates there's no need to sort
     if orderby and len(columns) > 0:
+        # print(orderby)
+        # print(columns)
+        # if "-user_misery_prototype_300" in orderby:
+        #     orderby = ["-key_transaction", "-user_misery_prototype_300"]
         orderby = resolve_orderby(orderby, columns, aggregations)
     else:
         orderby = None

@@ -138,9 +138,9 @@ class Table extends React.Component<Props, State> {
 
     if (
       field.startsWith('key_transaction') ||
-      field.startsWith('user_misery.prototype')
+      field.startsWith('user_misery_prototype')
     ) {
-      // don't display per cell actions for key_transaction or user_misery.prototype
+      // don't display per cell actions for key_transaction or user_misery_prototype
       return rendered;
     }
 

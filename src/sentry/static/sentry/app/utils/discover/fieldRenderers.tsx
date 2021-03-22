@@ -383,7 +383,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     let miseryField: string = '';
     let userMiseryField: string = '';
     for (const field in data) {
-      if (field.startsWith('user_misery.prototype')) {
+      if (field.startsWith('user_misery_prototype')) {
         miseryField = field;
       } else if (field.startsWith('user_misery')) {
         userMiseryField = field;
@@ -394,7 +394,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       return <NumberContainer>{emptyValue}</NumberContainer>;
     }
 
-    const miserableUsers = userMiseryField ? data[userMiseryField] : 0;
+    const miserableUsers = userMiseryField ? data[userMiseryField] : undefined;
 
     const userMisery = data[miseryField];
     if (!uniqueUsers && uniqueUsers !== 0) {
@@ -474,7 +474,7 @@ export function getSortField(
   }
 
   for (const alias in AGGREGATIONS) {
-    if (field.startsWith(alias)) {
+    if (field.startsWith(alias) && !field.startsWith('user_misery_prototype')) {
       return AGGREGATIONS[alias].isSortable ? field : null;
     }
   }
