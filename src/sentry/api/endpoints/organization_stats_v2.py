@@ -2,10 +2,9 @@ from rest_framework.response import Response
 from sentry.snuba.outcomes import (
     run_outcomes_query,
     QueryDefinition,
-    InvalidField,
     massage_outcomes_result,
 )
-
+from sentry.snuba.sessions_v2 import InvalidField
 from rest_framework.exceptions import ParseError
 from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
 from sentry.api.utils import InvalidParams

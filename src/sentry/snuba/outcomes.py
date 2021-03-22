@@ -9,6 +9,7 @@ from sentry.snuba.sessions_v2 import (
     get_constrained_date_range,
     massage_sessions_result,
     SimpleGroupBy,
+    InvalidField,
 )
 from sentry.utils.outcomes import Outcome
 from datetime import datetime
@@ -17,7 +18,7 @@ from sentry.search.utils import InvalidQuery
 
 """
 The new Outcomes API defines a "metrics"-like interface which is can be used in
-a similar way to "sessions" and "disover"
+a similar way to "sessions" and "discover"
 # "Metrics"
 We have 2 "metrics" that we can query:
 
@@ -33,8 +34,8 @@ We have 2 "metrics" that we can query:
 
 # Tags / Grouping
 
-The Outcome data can be grouped by these fields, which appear in the groupBy of the query
-
+The Outcomes data can be grouped / filtered
+by these fields
 - `project`
 - `outcome`
 - `reason`
@@ -89,7 +90,7 @@ class TimesSeenField(Field):
         if dataset == Dataset.Outcomes:
             return ["sum", "times_seen", "times_seen"]
         else:
-            # rawoutcomes doesnt have times_seen, do a count instead
+            # RawOutcomes doesnt have times_seen, do a count instead
             return ["count()", "", "times_seen"]
 
 
@@ -97,12 +98,15 @@ class Dimension(SimpleGroupBy, ABC):
     @abstractmethod
     def resolve_filter(self, raw_filter: List[str]) -> List[DataCategory]:
         """
-        Based on the input filter, map it back to the snuba representation
+        Based on the input filter, map it back to the clickhouse representation
         """
         raise NotImplementedError()
 
     @abstractmethod
     def map_row(self, row: Dict[str, Any]) -> None:
+        """
+        map clickhouse representation back to presentation
+        """
         raise NotImplementedError()
 
 
@@ -150,10 +154,6 @@ class ReasonDimension(Dimension):
             row["reason"] = (
                 "spike_protection" if row["reason"] == "smart_rate_limit" else row["reason"]
             )  # return spike protection to be consistent with naming in other places
-
-
-class InvalidField(Exception):  # TODO: move to common
-    pass
 
 
 COLUMN_MAP = {
@@ -289,7 +289,7 @@ def _format_rows(rows: List[Dict[str, Any]], query: QueryDefinition) -> List[Dic
 
     def _group_row(row: Dict[str, Any]) -> None:
         # Combine rows with the same group key into one.
-        # Needed to combine "ERROR", "DEFAULT" and "SECURITY" rows.
+        # Needed to combine "ERROR", "DEFAULT" and "SECURITY" rows and sum aggregations.
         if TS_COL in row:
             grouping_key = "-".join([row[TS_COL]] + [str(row[col]) for col in query.query_groupby])
         else:
