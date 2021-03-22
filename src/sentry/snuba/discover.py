@@ -49,6 +49,9 @@ logger = logging.getLogger(__name__)
 
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
+PerformanceFacetResult = namedtuple(
+    "PerformanceFacetResult", ["key", "value", "performance", "count"]
+)
 
 resolve_discover_column = resolve_column(Dataset.Discover)
 
@@ -777,12 +780,12 @@ def get_performance_facets(
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         # Get the tag keys with the highest deviation
         key_names = raw_query(
-            aggregations=[["stddevSamp", aggregate_column, "stddev"]],
+            aggregations=[["count", None, "count"]],
             start=snuba_filter.start,
             end=snuba_filter.end,
             conditions=snuba_filter.conditions,
             filter_keys=snuba_filter.filter_keys,
-            orderby=["-stddev", "tags_key"],
+            orderby=["-count", "tags_key"],
             groupby="tags_key",
             # TODO(Kevan): Check using having vs where before mainlining
             having=[excluded_tags],
@@ -796,8 +799,10 @@ def get_performance_facets(
             return []
 
     results = []
+    snuba_filter.conditions.append([aggregate_column, "IS NOT NULL", None])
 
-    sampling_enabled = True
+    # Only enable sampling if over 10000 values
+    sampling_enabled = True if (key_names["data"][0]["count"] > 10000) else False
     options_sample_rate = options.get("discover2.tags_performance_facet_sample_rate") or 0.1
 
     sample_rate = options_sample_rate if sampling_enabled else None
@@ -816,7 +821,10 @@ def get_performance_facets(
             conditions = snuba_filter.conditions
             conditions.append(["tags_key", "IN", aggregate_tags])
             tag_values = raw_query(
-                aggregations=[[aggregate_function, aggregate_column, "aggregate"]],
+                aggregations=[
+                    [aggregate_function, aggregate_column, "aggregate"],
+                    ["count", None, "count"],
+                ],
                 conditions=conditions,
                 start=snuba_filter.start,
                 end=snuba_filter.end,
@@ -831,7 +839,9 @@ def get_performance_facets(
             )
             results.extend(
                 [
-                    FacetResult(r["tags_key"], r["tags_value"], int(r["aggregate"]))
+                    PerformanceFacetResult(
+                        r["tags_key"], r["tags_value"], int(r["aggregate"]), int(r["count"])
+                    )
                     for r in tag_values["data"]
                 ]
             )
