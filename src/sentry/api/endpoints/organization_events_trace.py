@@ -19,7 +19,6 @@ DETAILED_NODESTORE_KEYS = ["environment", "release"]
 ERROR_COLUMNS = [
     "id",
     "project",
-    "event.type",
     "timestamp",
     "trace.span",
     "transaction",
@@ -87,7 +86,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         # selected_columns is a set list, since we only want to include the minimum to render the trace
         selected_columns = [
             "id",
-            "event.type",
             "timestamp",
             "transaction.duration",
             "transaction.op",
