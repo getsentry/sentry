@@ -1,8 +1,12 @@
+import logging
+
 from django.http import Http404
 from django.conf import settings
 
 from sentry.utils import auth
 from sentry.web.frontend.base import BaseView
+
+logger = logging.getLogger(__name__)
 
 
 class DemoStartView(BaseView):
@@ -14,12 +18,16 @@ class DemoStartView(BaseView):
         if not settings.DEMO_MODE:
             raise Http404
 
+        logger.info("post.start")
+
         # move this import here so we Django doesn't discover the models
         # for demo mode except when Demo mode is actually active
         from sentry.demo.demo_org_manager import assign_demo_org
 
         # assign the demo org and get the user
-        _, user = assign_demo_org()
+        org, user = assign_demo_org()
+
+        logger.info("post.assigned_org", extra={"organization_slug": org.slug})
 
         auth.login(request, user)
 
