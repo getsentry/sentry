@@ -30,9 +30,9 @@ const defaultProps = {
 type Props = {
   hasRelease: boolean;
   onUpdate: (data: UpdateResolutionStatus) => void;
-  orgId: string;
+  orgSlug: string;
   latestRelease?: Release;
-  projectId?: string;
+  projectSlug?: string;
   shouldConfirm?: boolean;
   confirmMessage?: React.ReactNode;
   disabled?: boolean;
@@ -77,7 +77,7 @@ class ResolveActions extends React.Component<Props> {
 
   renderDropdownMenu() {
     const {
-      projectId,
+      projectSlug,
       isResolved,
       hasRelease,
       latestRelease,
@@ -111,7 +111,7 @@ class ResolveActions extends React.Component<Props> {
           !hasInbox && (
             <ActionButton
               label={t('More resolve options')}
-              disabled={!projectId ? disabled : disableDropdown}
+              disabled={!projectSlug ? disabled : disableDropdown}
               icon={<IconChevron direction="down" size="xs" />}
             />
           )
@@ -119,7 +119,7 @@ class ResolveActions extends React.Component<Props> {
         caret={false}
         title={hasInbox && t('Resolve In\u2026')}
         alwaysRenderMenu
-        disabled={!projectId ? disabled : disableDropdown}
+        disabled={!projectSlug ? disabled : disableDropdown}
         anchorRight={hasInbox}
         isNestedDropdown={hasInbox}
       >
@@ -178,7 +178,7 @@ class ResolveActions extends React.Component<Props> {
   }
 
   openCustomReleaseModal() {
-    const {orgId, projectId} = this.props;
+    const {orgSlug, projectSlug} = this.props;
 
     openModal(deps => (
       <CustomResolutionModal
@@ -186,8 +186,8 @@ class ResolveActions extends React.Component<Props> {
         onSelected={(statusDetails: ResolutionStatusDetails) =>
           this.onCustomResolution(statusDetails)
         }
-        orgId={orgId}
-        projectId={projectId}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
       />
     ));
   }

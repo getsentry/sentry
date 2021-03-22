@@ -41,8 +41,8 @@ function ResolveActionsContainer({
     <ResolveActions
       hasRelease={hasReleases}
       latestRelease={latestRelease}
-      orgId={orgSlug}
-      projectId={projectId}
+      orgSlug={orgSlug}
+      projectSlug={projectId}
       onUpdate={onUpdate}
       shouldConfirm={onShouldConfirm(ConfirmAction.RESOLVE)}
       confirmMessage={confirm('resolve', true)}
