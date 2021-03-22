@@ -69,7 +69,9 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         events = self.eventstore.get_events(
             filter=Filter(
                 project_ids=[self.project1.id, self.project2.id],
-                conditions=[["type", "!=", "transaction"]],
+                conditions=[
+                    ["type", "!=", "transaction"]
+                ],  # TODO: Remove once errors storage rolled out
             )
         )
         assert len(events) == 3
