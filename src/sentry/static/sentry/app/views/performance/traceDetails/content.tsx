@@ -1,6 +1,5 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
-import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
@@ -298,11 +297,9 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderContent() {
-    const {traceSlug, start, end, statsPeriod, isLoading, error, trace} = this.props;
+    const {start, end, statsPeriod, isLoading, error, trace} = this.props;
 
     if (!statsPeriod && (!start || !end)) {
-      Sentry.setTag('current.trace_id', traceSlug);
-      Sentry.captureException(new Error('No date range selection found.'));
       return this.renderTraceRequiresDateRangeSelection();
     } else if (isLoading) {
       return this.renderTraceLoading();
