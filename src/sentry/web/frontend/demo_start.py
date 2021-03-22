@@ -34,6 +34,10 @@ class DemoStartView(BaseView):
         resp = self.redirect(auth.get_login_redirect(request))
         # set a cookie of whether the user accepteed tracking so we know
         # whether to initialize analytics when accepted_tracking=1
-        resp.set_cookie("accepted_tracking", request.POST.get("accepted_tracking"))
+        # 0 means don't show the footer to accept cookies (user already declined)
+        # no value means we show the footer to accept cookies (user has neither accepted nor declined)
+        accepted_tracking = request.POST.get("accepted_tracking")
+        if accepted_tracking in ["0", "1"]:
+            resp.set_cookie("accepted_tracking", accepted_tracking)
 
         return resp
