@@ -28,7 +28,6 @@ def delete_users_orgs(**kwargs):
     org_list = Organization.objects.filter(
         demoorganization__date_assigned__lte=cutoff_time,
         demoorganization__status=DemoOrgStatus.ACTIVE,
-        # demoorganization__isnull=False,
         status__in=(
             OrganizationStatus.ACTIVE,
             OrganizationStatus.PENDING_DELETION,
