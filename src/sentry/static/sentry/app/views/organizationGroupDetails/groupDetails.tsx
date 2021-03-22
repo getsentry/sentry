@@ -76,6 +76,14 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
+    if (this.state.eventError && this.state.group) {
+      const reprocessingNewRoute = this.getReprocessingNewRoute(this.state.group);
+      if (reprocessingNewRoute) {
+        ReactRouter.browserHistory.push(reprocessingNewRoute);
+        return;
+      }
+    }
+
     if (
       prevProps.isGlobalSelectionReady !== this.props.isGlobalSelectionReady ||
       prevProps.location.pathname !== this.props.location.pathname
@@ -170,8 +178,6 @@ class GroupDetails extends React.Component<Props, State> {
     return {currentTab, baseUrl};
   }
 
-  checkRedirectRoute() {}
-
   updateReprocessingProgress() {
     const hasReprocessingV2Feature = this.hasReprocessingV2Feature();
 
@@ -230,14 +236,19 @@ class GroupDetails extends React.Component<Props, State> {
         };
       }
 
-      if (
-        reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-        (currentTab !== TAB.ACTIVITY || currentTab !== TAB.USER_FEEDBACK)
-      ) {
-        return {
-          pathname: `${baseUrl}${TAB.ACTIVITY}/`,
-          query: params,
-        };
+      if (currentTab !== TAB.ACTIVITY && currentTab !== TAB.USER_FEEDBACK) {
+        const {eventError} = this.state;
+
+        if (
+          reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT ||
+          (eventError &&
+            reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HAS_EVENT)
+        ) {
+          return {
+            pathname: `${baseUrl}${TAB.ACTIVITY}/`,
+            query: params,
+          };
+        }
       }
     }
 
@@ -291,14 +302,14 @@ class GroupDetails extends React.Component<Props, State> {
     const {loadingGroup, loading, loadingEvent, group} = this.state;
 
     if (
-      group?.status !== ReprocessingStatus.REPROCESSING ||
+      !group ||
+      group.status !== ReprocessingStatus.REPROCESSING ||
       loadingGroup ||
       loading ||
       loadingEvent
     ) {
       return;
     }
-
     const {api} = this.props;
     this.setState({loadingGroup: true});
 
@@ -445,15 +456,12 @@ class GroupDetails extends React.Component<Props, State> {
     }
   }
 
-  renderContent(project: AvatarProject) {
+  renderContent(project: AvatarProject, group: Group) {
     const {children, environments} = this.props;
-    const {loadingEvent, eventError} = this.state;
-
-    // At this point group and event have to be defined
-    const group = this.state.group!;
-    const event = this.state.event;
+    const {loadingEvent, eventError, event} = this.state;
 
     const {currentTab, baseUrl} = this.getCurrentRouteInfo(group);
+    const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
     let childProps: Record<string, any> = {
       environments,
@@ -467,6 +475,7 @@ class GroupDetails extends React.Component<Props, State> {
         event,
         loadingEvent,
         eventError,
+        groupReprocessingStatus,
         onRetry: () => this.remountComponent(),
       };
     }
@@ -483,6 +492,8 @@ class GroupDetails extends React.Component<Props, State> {
           group={group}
           currentTab={currentTab}
           baseUrl={baseUrl}
+          groupReprocessingStatus={groupReprocessingStatus}
+          eventError={eventError}
         />
         {React.isValidElement(children)
           ? React.cloneElement(children, childProps)
@@ -491,10 +502,43 @@ class GroupDetails extends React.Component<Props, State> {
     );
   }
 
-  render() {
-    const {organization} = this.props;
+  renderPageContent() {
     const {error: isError, group, project, loading} = this.state;
     const isLoading = loading || (!group && !isError);
+
+    if (isLoading || !group) {
+      return <LoadingIndicator />;
+    }
+
+    if (isError) {
+      return this.renderError();
+    }
+
+    const {organization} = this.props;
+
+    return (
+      <Projects
+        orgId={organization.slug}
+        slugs={[project?.slug ?? '']}
+        data-test-id="group-projects-container"
+      >
+        {({projects, initiallyLoaded, fetchError}) =>
+          initiallyLoaded ? (
+            fetchError ? (
+              <LoadingError message={t('Error loading the specified project')} />
+            ) : (
+              this.renderContent(projects[0], group)
+            )
+          ) : (
+            <LoadingIndicator />
+          )
+        }
+      </Projects>
+    );
+  }
+
+  render() {
+    const {project} = this.state;
 
     return (
       <DocumentTitle title={this.getTitle()}>
@@ -507,31 +551,7 @@ class GroupDetails extends React.Component<Props, State> {
           showIssueStreamLink
           showProjectSettingsLink
         >
-          <PageContent>
-            {isLoading ? (
-              <LoadingIndicator />
-            ) : isError ? (
-              this.renderError()
-            ) : (
-              <Projects
-                orgId={organization.slug}
-                slugs={[project?.slug ?? '']}
-                data-test-id="group-projects-container"
-              >
-                {({projects, initiallyLoaded, fetchError}) =>
-                  initiallyLoaded ? (
-                    fetchError ? (
-                      <LoadingError message={t('Error loading the specified project')} />
-                    ) : (
-                      this.renderContent(projects[0])
-                    )
-                  ) : (
-                    <LoadingIndicator />
-                  )
-                }
-              </Projects>
-            )}
-          </PageContent>
+          <PageContent>{this.renderPageContent()}</PageContent>
         </GlobalSelectionHeader>
       </DocumentTitle>
     );
