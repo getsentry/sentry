@@ -11,8 +11,8 @@ import {HeaderTitle} from 'app/components/charts/styles';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
+import TextOverflow from 'app/components/textOverflow';
 import {t, tct} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {DataCategory, Organization} from 'app/types';
 
@@ -118,13 +118,13 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         {cardData.map((c, i) => (
           <StyledCard key={i}>
             <HeaderTitle>
-              <OverflowEllipsis>{c.title}</OverflowEllipsis>
+              <TextOverflow>{c.title}</TextOverflow>
               {c.description && (
                 <QuestionTooltip size="sm" position="top" title={c.description} />
               )}
             </HeaderTitle>
             <CardContent>
-              <OverflowEllipsis>{c.value}</OverflowEllipsis>
+              <TextOverflow>{c.value}</TextOverflow>
             </CardContent>
           </StyledCard>
         ))}
@@ -191,29 +191,13 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     );
   }
 
-  renderLoading() {
-    return (
-      <React.Fragment>
-        {this.renderCards()}
-        {this.renderChart()}
-      </React.Fragment>
-    );
-  }
+  renderComponent() {
+    const {errors} = this.state;
 
-  renderError(e: Error) {
     return (
       <React.Fragment>
         {this.renderCards()}
-        {this.renderChart(e)}
-      </React.Fragment>
-    );
-  }
-
-  renderBody() {
-    return (
-      <React.Fragment>
-        {this.renderCards()}
-        {this.renderChart()}
+        {this.renderChart(errors?.['orgStats'])}
       </React.Fragment>
     );
   }
@@ -242,7 +226,4 @@ const StyledCard = styled(Card)`
 const CardContent = styled('div')`
   margin-top: ${space(1)};
   font-size: 32px;
-`;
-const OverflowEllipsis = styled('div')`
-  ${overflowEllipsis};
 `;

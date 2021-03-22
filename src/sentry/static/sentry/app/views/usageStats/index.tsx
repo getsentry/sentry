@@ -16,12 +16,12 @@ type Props = {
   api: Client;
   organization: Organization;
 
-  orgStats?: OrganizationUsageStats;
   orgStatsLoading: boolean;
+  orgStats?: OrganizationUsageStats;
   orgStatsError?: Error;
 
-  projectStats?: ProjectUsageStats[];
   projectStatsLoading: boolean;
+  projectStats?: ProjectUsageStats[];
   projectStatsError?: Error;
 } & RouteComponentProps<{orgId: string}, {}>;
 
