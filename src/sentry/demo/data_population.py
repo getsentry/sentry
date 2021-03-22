@@ -142,9 +142,9 @@ def generate_user(quick=False):
 
 
 def gen_random_author():
-    author = "{} {}".format(random.choice(loremipsum.words), random.choice(loremipsum.words)),
+    author = "{} {}".format(random.choice(loremipsum.words), random.choice(loremipsum.words))
     return (
-        author
+        author,
         "{}@example.com".format(author.replace(" ", ".")),
     )
 
@@ -201,7 +201,6 @@ def generate_releases(projects, quick):
     org_id = org.id
     for i in range(NUM_RELEASES):
         release = Release.objects.create(
-            # version=sha1(uuid4().bytes).hexdigest(),
             version=f"V{i + 1}",
             organization_id=org_id,
             date_added=release_time,
