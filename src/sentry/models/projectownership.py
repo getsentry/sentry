@@ -83,6 +83,7 @@ class ProjectOwnership(Model):
     def get_owners(cls, project_id, data):
         """
         For a given project_id, and event data blob.
+        We combine the schemas from IssueOwners and CodeOwners.
 
         If Everyone is returned, this means we implicitly are
         falling through our rules and everyone is responsible.
@@ -119,6 +120,8 @@ class ProjectOwnership(Model):
     def get_autoassign_owners(cls, project_id, data, limit=2):
         """
         Get the auto-assign owner for a project if there are any.
+
+        We combine the schemas from IssueOwners and CodeOwners.
 
         Returns a tuple of (auto_assignment_enabled, list_of_owners).
         """
