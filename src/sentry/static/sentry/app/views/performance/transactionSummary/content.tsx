@@ -241,6 +241,12 @@ class SummaryContent extends React.Component<Props, State> {
             />
           </Layout.Main>
           <Layout.Side>
+            <StatusBreakdown
+              eventView={eventView}
+              organization={organization}
+              location={location}
+            />
+            <SidebarSpacer />
             <UserStats
               organization={organization}
               location={location}
@@ -257,12 +263,6 @@ class SummaryContent extends React.Component<Props, State> {
               error={error}
               totals={totalValues}
               eventView={eventView}
-            />
-            <SidebarSpacer />
-            <StatusBreakdown
-              eventView={eventView}
-              organization={organization}
-              location={location}
             />
             <SidebarSpacer />
             <Tags
