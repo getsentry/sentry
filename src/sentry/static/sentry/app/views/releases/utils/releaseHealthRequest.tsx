@@ -31,8 +31,15 @@ import {DisplayOption} from '../list/utils';
 
 import {getCrashFreePercent} from '.';
 
-const omitIgnoredProps = (props: Props) =>
-  omit(props, ['api', 'organization', 'children', 'selection.datetime.utc', 'location']);
+function omitIgnoredProps(props: Props) {
+  return omit(props, [
+    'api',
+    'organization',
+    'children',
+    'selection.datetime.utc',
+    'location',
+  ]);
+}
 
 function getInterval(datetimeObj: DateTimeObject) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -50,6 +57,15 @@ function getInterval(datetimeObj: DateTimeObject) {
 
   // TODO(sessions): sub-hour session resolution is still not possible
   return '1h';
+}
+function reduceTimeSeriesGroups(
+  acc: number[],
+  group: SessionApiResponse['groups'][number],
+  field: 'count_unique(user)' | 'sum(session)'
+) {
+  group.series[field].forEach((value, index) => (acc[index] = (acc[index] ?? 0) + value));
+
+  return acc;
 }
 
 export type ReleaseHealthRequestRenderProps = {
@@ -181,8 +197,6 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
 
   /**
    * Used to calculate crash free rate, count histogram (This Release series), and crash count
-   *
-   * ?query=release%3Ae2da495e7f7d9f6ac3ff271cf06698032ee8f65d+OR+release%3Aec1fa0d40afdf5539f80846022c385bea0d06b40&interval=1h&statsPeriod=14d&project=11276&environment=prod&field=sum(session)&groupBy=project&groupBy=release&groupBy=session.status
    */
   async fetchStatusCountByReleaseInPeriod() {
     const {api, display} = this.props;
@@ -202,8 +216,6 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
 
   /**
    * Used to calculate count histogram (Total Project series)
-   *
-   * ?query=&interval=1h&statsPeriod=14d&project=11276&environment=prod&field=sum(session)&groupBy=project&groupBy=session.status
    */
   async fetchStatusCountByProjectInPeriod() {
     const {api, display} = this.props;
@@ -224,8 +236,6 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
 
   /**
    * Used to calculate adoption, and count histogram (This Release series)
-   *
-   * ?query=release%3Ae2da495e7f7d9f6ac3ff271cf06698032ee8f65d+OR+release%3Aec1fa0d40afdf5539f80846022c385bea0d06b40&interval=1h&statsPeriod=24h&project=11276&environment=prod&field=sum(session)&groupBy=project&groupBy=release
    */
   async fetchTotalCountByReleaseIn24h() {
     const {api, display} = this.props;
@@ -245,8 +255,6 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
 
   /**
    * Used to calculate adoption, and count histogram (Total Project series)
-   *
-   * ?query=&interval=1h&statsPeriod=24h&project=11276&environment=prod&field=sum(session)&groupBy=project
    */
   async fetchTotalCountByProjectIn24h() {
     const {api, display} = this.props;
@@ -381,21 +389,11 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
 
     const projectData = statusCountByProjectInPeriod?.groups
       .filter(({by}) => by.project === project)
-      ?.reduce((acc, group) => {
-        group.series[field].forEach(
-          (value, index) => (acc[index] = (acc[index] ?? 0) + value)
-        );
-        return acc;
-      }, [] as number[]);
+      ?.reduce((acc, group) => reduceTimeSeriesGroups(acc, group, field), [] as number[]);
 
     const releaseData = statusCountByReleaseInPeriod?.groups
       .filter(({by}) => by.project === project && by.release === version)
-      ?.reduce((acc, group) => {
-        group.series[field].forEach(
-          (value, index) => (acc[index] = (acc[index] ?? 0) + value)
-        );
-        return acc;
-      }, [] as number[]);
+      ?.reduce((acc, group) => reduceTimeSeriesGroups(acc, group, field), [] as number[]);
 
     return [
       {
