@@ -635,11 +635,17 @@ class SearchVisitor(NodeVisitor):
         # If a date or numeric key gets down to the basic filter, then it means
         # that the value wasn't in a valid format, so raise here.
         if search_key.name in self.date_keys:
-            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for date field")
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid date: {search_value.raw_value}. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {datetime.now().isoformat()[:-4]})."
+            )
         if search_key.name in self.boolean_keys:
-            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for boolean field")
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid boolean: {search_value.raw_value}. Expected true, 1, false, or 0."
+            )
         if self.is_numeric_key(search_key.name):
-            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for numeric field")
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid number: {search_value.raw_value}. Expected number then optional k, m, or b suffix (e.g. 500k)."
+            )
 
         return SearchFilter(search_key, operator, search_value)
 

@@ -1,5 +1,8 @@
+import logging
+
 from django.conf import settings
 from django.db import transaction
+from django.db.models import F
 from django.template.defaultfilters import slugify
 from typing import Tuple
 
@@ -15,20 +18,25 @@ from sentry.models import (
 )
 from sentry.utils.email import create_fake_email
 
-from .data_population import populate_python_project, populate_react_project
+from .data_population import (
+    populate_connected_event_scenario_1,
+)
 from .utils import NoDemoOrgReady, generate_random_name
 from .models import DemoUser, DemoOrganization, DemoOrgStatus
+
+logger = logging.getLogger(__name__)
 
 
 def create_demo_org() -> Organization:
     # wrap the main org setup in transaction
     with transaction.atomic():
-        # TODO: add way to ensure we generate unique petnames
         name = generate_random_name()
 
         slug = slugify(name)
 
         org = DemoOrganization.create_org(name=name, slug=slug)
+
+        logger.info("create_demo_org.created_org", {"organization_slug": slug})
 
         owner = User.objects.get(email=settings.DEMO_ORG_OWNER_EMAIL)
         OrganizationMember.objects.create(organization=org, user=owner, role=roles.get_top_dog().id)
@@ -44,8 +52,12 @@ def create_demo_org() -> Organization:
         # delete all DSNs for the org so people don't send events
         ProjectKey.objects.filter(project__organization=org).delete()
 
-    populate_python_project(python_project)
-    populate_react_project(react_project)
+        Project.objects.filter(organization=org).update(
+            flags=F("flags").bitor(Project.flags.has_transactions)
+        )
+
+    # TODO: delete org if data population fails
+    populate_connected_event_scenario_1(react_project, python_project)
 
     return org
 

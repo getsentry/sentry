@@ -1,5 +1,4 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -9,7 +8,7 @@ import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Group, Organization, Project} from 'app/types';
+import {Group, Organization} from 'app/types';
 import Form from 'app/views/settings/components/forms/form';
 import NumberField from 'app/views/settings/components/forms/numberField';
 import RadioField from 'app/views/settings/components/forms/radioField';
@@ -43,33 +42,25 @@ const remainingEventsChoices: [string, string][] = [
   ['delete', t('Delete')],
 ];
 
-type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'closeModal'> & {
-  group: Group;
-  project: Project;
+export type ReprocessEventModalOptions = {
+  groupId: Group['id'];
   organization: Organization;
 };
+
+type Props = ModalRenderProps & ReprocessEventModalOptions;
 
 type State = {
   maxEvents?: number;
 };
 
-class ReprocessingDialogForm extends React.Component<Props, State> {
+class ReprocessingEventModal extends React.Component<Props, State> {
   state: State = {maxEvents: undefined};
 
   handleSuccess = () => {
-    const {group, organization, closeModal} = this.props;
-    const orgSlug = organization.slug;
-    const hasReprocessingV2Feature = !!organization.features?.includes('reprocessing-v2');
+    const {closeModal} = this.props;
 
-    if (hasReprocessingV2Feature) {
-      closeModal();
-      window.location.reload();
-      return;
-    }
-
-    browserHistory.push(
-      `/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${group.id}/`
-    );
+    closeModal();
+    window.location.reload();
   };
 
   handleError() {
@@ -81,15 +72,17 @@ class ReprocessingDialogForm extends React.Component<Props, State> {
   };
 
   render() {
-    const {group, organization, Header, Body, closeModal} = this.props;
+    const {organization, Header, Body, closeModal, groupId} = this.props;
     const {maxEvents} = this.state;
     const orgSlug = organization.slug;
-    const endpoint = `/organizations/${orgSlug}/issues/${group.id}/reprocessing/`;
+    const endpoint = `/organizations/${orgSlug}/issues/${groupId}/reprocessing/`;
     const title = t('Reprocess Events');
 
     return (
       <React.Fragment>
-        <Header closeButton>{title}</Header>
+        <Header closeButton>
+          <span data-test-id="modal-title">{title}</span>
+        </Header>
         <Body>
           <Introduction>
             {t(
@@ -145,7 +138,7 @@ class ReprocessingDialogForm extends React.Component<Props, State> {
   }
 }
 
-export default ReprocessingDialogForm;
+export default ReprocessingEventModal;
 
 const Introduction = styled('p')`
   font-size: ${p => p.theme.fontSizeLarge};

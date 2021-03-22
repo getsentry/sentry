@@ -445,7 +445,6 @@ class TransactionsTable extends React.PureComponent<TableProps> {
       handleCellAction,
     } = this.props;
     const fields = eventView.getFields();
-    const tableTitles = this.getTitles();
 
     const resultsRow = columnOrder.map((column, index) => {
       const field = String(column.key);
@@ -456,11 +455,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
       const fieldRenderer = getFieldRenderer(field, tableMeta);
       let rendered = fieldRenderer(row, {organization, location});
 
-      const target = generateLink?.[tableTitles[index]]?.(
-        organization,
-        row,
-        location.query
-      );
+      const target = generateLink?.[field]?.(organization, row, location.query);
 
       if (target) {
         rendered = (

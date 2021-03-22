@@ -8,6 +8,7 @@ import Count from 'app/components/count';
 import DeployBadge from 'app/components/deployBadge';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import NotAvailable from 'app/components/notAvailable';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
@@ -29,6 +30,7 @@ import CrashFree from '../../list/crashFree';
 import ReleaseAdoption from '../../list/releaseAdoption';
 import {DisplayOption} from '../../list/utils';
 import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
+import {ReleaseHealthRequestRenderProps} from '../../utils/releaseHealthRequest';
 import {getReleaseEventView} from '../utils';
 
 type Props = {
@@ -37,22 +39,66 @@ type Props = {
   project: Required<ReleaseProject>;
   location: Location;
   selection: GlobalSelection;
+  isHealthLoading: boolean;
+  hasHealthData: boolean;
+  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
 };
 
-function ReleaseStats({organization, release, project, location, selection}: Props) {
+function ReleaseStats({
+  organization,
+  release,
+  project,
+  location,
+  selection,
+  isHealthLoading,
+  hasHealthData,
+  getHealthData,
+}: Props) {
   const {lastDeploy, dateCreated, newGroups, version} = release;
-  const {hasHealthData, healthData} = project;
-  const {
-    sessionsCrashed,
-    adoption,
-    sessionsAdoption,
-    crashFreeUsers,
-    crashFreeSessions,
-    totalUsers24h,
-    totalProjectUsers24h,
-    totalSessions24h,
-    totalProjectSessions24h,
-  } = healthData;
+
+  const crashCount = getHealthData.getCrashCount(
+    version,
+    project.id,
+    DisplayOption.SESSIONS
+  );
+  const crashFreeSessions = getHealthData.getCrashFreeRate(
+    version,
+    project.id,
+    DisplayOption.SESSIONS
+  );
+  const crashFreeUsers = getHealthData.getCrashFreeRate(
+    version,
+    project.id,
+    DisplayOption.USERS
+  );
+  const get24hSessionCountByRelease = getHealthData.get24hCountByRelease(
+    version,
+    project.id,
+    DisplayOption.SESSIONS
+  );
+  const get24hSessionCountByProject = getHealthData.get24hCountByProject(
+    project.id,
+    DisplayOption.SESSIONS
+  );
+  const get24hUserCountByRelease = getHealthData.get24hCountByRelease(
+    version,
+    project.id,
+    DisplayOption.USERS
+  );
+  const get24hUserCountByProject = getHealthData.get24hCountByProject(
+    project.id,
+    DisplayOption.USERS
+  );
+  const sessionAdoption = getHealthData.getAdoption(
+    version,
+    project.id,
+    DisplayOption.SESSIONS
+  );
+  const userAdoption = getHealthData.getAdoption(
+    version,
+    project.id,
+    DisplayOption.USERS
+  );
 
   return (
     <Container>
@@ -90,33 +136,37 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
             size="sm"
           />
         </SectionHeading>
-        <SectionContent>
-          {defined(crashFreeSessions) || defined(crashFreeUsers) ? (
-            <CrashFreeWrapper>
-              {defined(crashFreeSessions) && (
-                <div>
-                  <CrashFree
-                    percent={crashFreeSessions}
-                    iconSize="md"
-                    displayOption={DisplayOption.SESSIONS}
-                  />
-                </div>
-              )}
+        {isHealthLoading ? (
+          <Placeholder height="58px" />
+        ) : (
+          <SectionContent>
+            {defined(crashFreeSessions) || defined(crashFreeUsers) ? (
+              <CrashFreeWrapper>
+                {defined(crashFreeSessions) && (
+                  <div>
+                    <CrashFree
+                      percent={crashFreeSessions}
+                      iconSize="md"
+                      displayOption={DisplayOption.SESSIONS}
+                    />
+                  </div>
+                )}
 
-              {defined(crashFreeUsers) && (
-                <div>
-                  <CrashFree
-                    percent={crashFreeUsers}
-                    iconSize="md"
-                    displayOption={DisplayOption.USERS}
-                  />
-                </div>
-              )}
-            </CrashFreeWrapper>
-          ) : (
-            <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
-          )}
-        </SectionContent>
+                {defined(crashFreeUsers) && (
+                  <div>
+                    <CrashFree
+                      percent={crashFreeUsers}
+                      iconSize="md"
+                      displayOption={DisplayOption.USERS}
+                    />
+                  </div>
+                )}
+              </CrashFreeWrapper>
+            ) : (
+              <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
+            )}
+          </SectionContent>
+        )}
       </CrashFreeSection>
 
       <AdoptionSection>
@@ -128,33 +178,37 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
             size="sm"
           />
         </SectionHeading>
-        <SectionContent>
-          {defined(adoption) || defined(sessionsAdoption) ? (
-            <AdoptionWrapper>
-              {defined(sessionsAdoption) && (
-                <ReleaseAdoption
-                  releaseCount={totalSessions24h ?? 0}
-                  projectCount={totalProjectSessions24h ?? 0}
-                  adoption={sessionsAdoption}
-                  displayOption={DisplayOption.SESSIONS}
-                  withLabels
-                />
-              )}
+        {isHealthLoading ? (
+          <Placeholder height="88px" />
+        ) : (
+          <SectionContent>
+            {get24hSessionCountByProject || get24hUserCountByProject ? (
+              <AdoptionWrapper>
+                {get24hSessionCountByProject && (
+                  <ReleaseAdoption
+                    releaseCount={get24hSessionCountByRelease ?? 0}
+                    projectCount={get24hSessionCountByProject ?? 0}
+                    adoption={sessionAdoption ?? 0}
+                    displayOption={DisplayOption.SESSIONS}
+                    withLabels
+                  />
+                )}
 
-              {defined(adoption) && (
-                <ReleaseAdoption
-                  releaseCount={totalUsers24h ?? 0}
-                  projectCount={totalProjectUsers24h ?? 0}
-                  adoption={adoption}
-                  displayOption={DisplayOption.USERS}
-                  withLabels
-                />
-              )}
-            </AdoptionWrapper>
-          ) : (
-            <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
-          )}
-        </SectionContent>
+                {get24hUserCountByProject && (
+                  <ReleaseAdoption
+                    releaseCount={get24hUserCountByRelease ?? 0}
+                    projectCount={get24hUserCountByProject ?? 0}
+                    adoption={userAdoption ?? 0}
+                    displayOption={DisplayOption.USERS}
+                    withLabels
+                  />
+                )}
+              </AdoptionWrapper>
+            ) : (
+              <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
+            )}
+          </SectionContent>
+        )}
       </AdoptionSection>
 
       <LinkedStatsSection>
@@ -180,23 +234,27 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
               size="sm"
             />
           </SectionHeading>
-          <SectionContent>
-            {hasHealthData ? (
-              <Tooltip title={t('Open in Issues')}>
-                <GlobalSelectionLink
-                  to={getReleaseUnhandledIssuesUrl(
-                    organization.slug,
-                    project.id,
-                    version
-                  )}
-                >
-                  <Count value={sessionsCrashed} />
-                </GlobalSelectionLink>
-              </Tooltip>
-            ) : (
-              <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
-            )}
-          </SectionContent>
+          {isHealthLoading ? (
+            <Placeholder height="24px" />
+          ) : (
+            <SectionContent>
+              {hasHealthData ? (
+                <Tooltip title={t('Open in Issues')}>
+                  <GlobalSelectionLink
+                    to={getReleaseUnhandledIssuesUrl(
+                      organization.slug,
+                      project.id,
+                      version
+                    )}
+                  >
+                    <Count value={crashCount ?? 0} />
+                  </GlobalSelectionLink>
+                </Tooltip>
+              ) : (
+                <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
+              )}
+            </SectionContent>
+          )}
         </div>
 
         <div>
@@ -222,12 +280,10 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
                     orgSlug={organization.slug}
                   >
                     {({isLoading, error, tableData}) => {
-                      if (
-                        isLoading ||
-                        error ||
-                        !tableData ||
-                        tableData.data.length === 0
-                      ) {
+                      if (isLoading) {
+                        return <Placeholder height="24px" />;
+                      }
+                      if (error || !tableData || tableData.data.length === 0) {
                         return <NotAvailable />;
                       }
                       return (
