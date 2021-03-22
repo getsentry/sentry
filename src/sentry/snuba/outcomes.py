@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Sequence, Mapping, MutableMapping
 from abc import ABC, abstractmethod
 from django.http import QueryDict
 from sentry.utils.snuba import raw_query
@@ -14,7 +14,6 @@ from sentry.snuba.sessions_v2 import (
 from sentry.utils.outcomes import Outcome
 from datetime import datetime
 from sentry.search.utils import InvalidQuery
-
 
 """
 The new Outcomes API defines a "metrics"-like interface which is can be used in
@@ -42,14 +41,19 @@ by these fields
 - `category`
 """
 
+ResultSet = List[Dict[str, Any]]
+Condition = Tuple[str, str, List[Any]]
+
 
 class Field(ABC):
     @abstractmethod
-    def get_snuba_columns(self, raw_groupby: Optional[List[str]] = None) -> List[str]:
+    def get_snuba_columns(self, raw_groupby: Optional[Sequence[str]] = None) -> List[str]:
         raise NotImplementedError()
 
     @abstractmethod
-    def extract_from_row(self, row: Dict[str, Any], group: Optional[Dict[str, Any]] = None) -> int:
+    def extract_from_row(
+        self, row: Optional[Mapping[str, Any]], group: Optional[Mapping[str, Any]] = None
+    ) -> int:
         raise NotImplementedError()
 
     @abstractmethod
@@ -58,10 +62,12 @@ class Field(ABC):
 
 
 class QuantityField(Field):
-    def get_snuba_columns(self, raw_groupby: Optional[List[str]] = None) -> List[str]:
+    def get_snuba_columns(self, raw_groupby: Optional[Sequence[str]] = None) -> List[str]:
         return ["quantity"]
 
-    def extract_from_row(self, row: Dict[str, Any], group: Optional[Dict[str, Any]] = None) -> int:
+    def extract_from_row(
+        self, row: Optional[Mapping[str, Any]], group: Optional[Mapping[str, Any]] = None
+    ) -> int:
         if row is None:
             return 0
         return int(row["quantity"])
@@ -71,10 +77,12 @@ class QuantityField(Field):
 
 
 class TimesSeenField(Field):
-    def get_snuba_columns(self, raw_groupby: Optional[List[str]] = None) -> List[str]:
+    def get_snuba_columns(self, raw_groupby: Optional[Sequence[str]] = None) -> List[str]:
         return ["times_seen"]
 
-    def extract_from_row(self, row: Dict[str, Any], group: Optional[Dict[str, Any]] = None) -> int:
+    def extract_from_row(
+        self, row: Optional[Mapping[str, Any]], group: Optional[Mapping[str, Any]] = None
+    ) -> int:
         if row is None:
             return 0
         return int(row["times_seen"])
@@ -89,14 +97,14 @@ class TimesSeenField(Field):
 
 class Dimension(SimpleGroupBy, ABC):
     @abstractmethod
-    def resolve_filter(self, raw_filter: List[str]) -> List[DataCategory]:
+    def resolve_filter(self, raw_filter: Sequence[str]) -> List[DataCategory]:
         """
         Based on the input filter, map it back to the clickhouse representation
         """
         raise NotImplementedError()
 
     @abstractmethod
-    def map_row(self, row: Dict[str, Any]) -> None:
+    def map_row(self, row: MutableMapping[str, Any]) -> None:
         """
         map clickhouse representation back to presentation
         """
@@ -104,7 +112,7 @@ class Dimension(SimpleGroupBy, ABC):
 
 
 class CategoryDimension(Dimension):
-    def resolve_filter(self, raw_filter: List[str]) -> List[DataCategory]:
+    def resolve_filter(self, raw_filter: Sequence[str]) -> List[DataCategory]:
         resolved_categories = set()
         for category in raw_filter:
             # combine DEFAULT, ERROR, and SECURITY as errors.
@@ -117,7 +125,7 @@ class CategoryDimension(Dimension):
             raise InvalidQuery("if filtering by attachment no other category may be present")
         return list(resolved_categories)
 
-    def map_row(self, row: Dict[str, Any]) -> None:
+    def map_row(self, row: MutableMapping[str, Any]) -> None:
         if "category" in row:
             category = (
                 DataCategory.ERROR
@@ -128,21 +136,21 @@ class CategoryDimension(Dimension):
 
 
 class OutcomeDimension(Dimension):
-    def resolve_filter(self, raw_filter: List[str]) -> List[Outcome]:
+    def resolve_filter(self, raw_filter: Sequence[str]) -> List[Outcome]:
         return [Outcome.parse(o) for o in raw_filter]
 
-    def map_row(self, row: Dict[str, Any]) -> None:
+    def map_row(self, row: MutableMapping[str, Any]) -> None:
         if "outcome" in row:
             row["outcome"] = Outcome(row["outcome"]).api_name()
 
 
 class ReasonDimension(Dimension):
-    def resolve_filter(self, raw_filter: List[str]) -> List[str]:
+    def resolve_filter(self, raw_filter: Sequence[str]) -> List[str]:
         return [
             "smart_rate_limit" if reason == "spike_protection" else reason for reason in raw_filter
         ]
 
-    def map_row(self, row: Dict[str, Any]) -> None:
+    def map_row(self, row: MutableMapping[str, Any]) -> None:
         if "reason" in row:
             row["reason"] = (
                 "spike_protection" if row["reason"] == "smart_rate_limit" else row["reason"]
@@ -169,10 +177,10 @@ TS_COL = "time"
 
 
 def get_filter(
-    query: QueryDict, params: Dict[Any, Any]
-) -> Tuple[List[Tuple[str, str, List[Any]]], Dict[str, Any]]:
+    query: QueryDict, params: Mapping[Any, Any]
+) -> Tuple[List[Condition], Dict[str, Any]]:
     filter_keys = {}
-    conditions = []
+    conditions: List[Condition] = []
 
     for filter_name in DIMENSION_MAP:
         raw_filter = query.getlist(filter_name, [])
@@ -184,6 +192,7 @@ def get_filter(
         filter_keys["project_id"] = params["project_id"]
     if "organization" in params:
         filter_keys["organization_id"] = params["organization_id"]
+
     return conditions, filter_keys
 
 
@@ -197,7 +206,7 @@ class QueryDefinition:
     def __init__(
         self,
         query: QueryDict,
-        params: Dict[Any, Any],
+        params: Mapping[Any, Any],
         allow_minute_resolution: Optional[bool] = True,
     ):
         raw_fields = query.getlist("field", [])
@@ -245,7 +254,7 @@ class QueryDefinition:
         self.conditions, self.filter_keys = get_filter(query, params)
 
 
-def run_outcomes_query(query: QueryDefinition) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def run_outcomes_query(query: QueryDefinition) -> Tuple[ResultSet, ResultSet]:
     result = raw_query(
         dataset=query.dataset,
         start=query.start,
@@ -277,7 +286,7 @@ def run_outcomes_query(query: QueryDefinition) -> Tuple[List[Dict[str, Any]], Li
     return result_totals, result_timeseries
 
 
-def _format_rows(rows: List[Dict[str, Any]], query: QueryDefinition) -> List[Dict[str, Any]]:
+def _format_rows(rows: ResultSet, query: QueryDefinition) -> ResultSet:
     category_grouping: Dict[str, Any] = {}
 
     def _group_row(row: Dict[str, Any]) -> None:
@@ -322,8 +331,8 @@ def _outcomes_dataset(rollup: int) -> Dataset:
 
 def massage_outcomes_result(
     query: QueryDefinition,
-    result_totals: List[Dict[str, Any]],
-    result_timeseries: List[Dict[str, Any]],
+    result_totals: ResultSet,
+    result_timeseries: ResultSet,
 ) -> Dict[str, List[Any]]:
     result = massage_sessions_result(query, result_totals, result_timeseries, ts_col=TS_COL)
     del result["query"]
