@@ -641,7 +641,7 @@ const StatItem = styled('div')`
 const StatCount = styled('span')`
   margin-left: ${space(0.5)};
   margin-top: ${space(0.25)};
-  color: black;
+  color: ${p => p.theme.textColor};
 `;
 
 const RuleText = styled('div')`

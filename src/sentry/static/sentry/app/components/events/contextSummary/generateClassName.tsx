@@ -10,6 +10,18 @@ function generateClassname(name?: string): string {
     return 'amazon';
   }
 
+  if (name.toLowerCase().startsWith('sm-') || name.toLowerCase().startsWith('st-')) {
+    return 'samsung';
+  }
+
+  if (name.toLowerCase().startsWith('moto')) {
+    return 'motorola';
+  }
+
+  if (name.toLowerCase().startsWith('pixel')) {
+    return 'google';
+  }
+
   return name
     .split(/\d/)[0]
     .toLowerCase()

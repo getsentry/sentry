@@ -1989,8 +1989,13 @@ export type SessionApiResponse = {
   query: string;
   intervals: string[];
   groups: {
-    by: Record<string, string>;
+    by: Record<string, string | number>;
     totals: Record<string, number>;
     series: Record<string, number[]>;
   }[];
 };
+
+export enum HealthStatsPeriodOption {
+  AUTO = 'auto',
+  TWENTY_FOUR_HOURS = '24h',
+}
