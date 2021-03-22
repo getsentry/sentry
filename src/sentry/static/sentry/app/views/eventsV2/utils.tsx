@@ -60,7 +60,7 @@ export function decodeColumnOrder(
 
     const col = explodeFieldString(f.field);
     column.key = f.field;
-    column.name = f.field;
+    column.name = f.field.replace('user_misery.prototype', 'user_misery');
     column.width = f.width || COL_WIDTH_UNDEFINED;
 
     if (col.kind === 'function') {

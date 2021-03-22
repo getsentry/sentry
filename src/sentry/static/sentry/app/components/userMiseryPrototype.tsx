@@ -11,7 +11,7 @@ type Props = {
   userMisery: number;
   totalUsers: number;
   miseryLimit: number;
-  miserableUsers: number;
+  miserableUsers: number | undefined;
 };
 
 function UserMiseryPrototype(props: Props) {
@@ -25,14 +25,22 @@ function UserMiseryPrototype(props: Props) {
   const palette = new Array(bars).fill([CHART_PALETTE[0][0]]);
   const score = adjustedMisery ? Math.ceil(adjustedMisery * palette.length) : 0;
 
-  const title = tct(
-    '[affectedUsers] out of [totalUsers] unique users waited more than [duration]ms',
-    {
-      affectedUsers: miserableUsers,
-      totalUsers,
+  let title: React.ReactNode;
+  if (miserableUsers || miserableUsers === 0) {
+    title = tct(
+      '[miserableUsers] out of [totalUsers] unique users waited more than [duration]ms',
+      {
+        miserableUsers,
+        totalUsers,
+        duration: 4 * miseryLimit,
+      }
+    );
+  } else {
+    title = tct('Probability that users waited more than [duration]ms is [userMisery]', {
       duration: 4 * miseryLimit,
-    }
-  );
+      userMisery: userMisery.toFixed(3),
+    });
+  }
   return (
     <Tooltip title={title} containerDisplayMode="block">
       <ScoreBar size={barHeight} score={score} palette={palette} radius={0} />
