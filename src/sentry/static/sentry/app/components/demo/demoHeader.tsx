@@ -5,8 +5,8 @@ import Reflux from 'reflux';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import InlineSvg from 'app/components/inlineSvg';
 import ExternalLink from 'app/components/links/externalLink';
+import {IconSentryFull} from 'app/icons';
 import {t} from 'app/locale';
 import OrganizationStore from 'app/stores/organizationStore';
 import space from 'app/styles/space';
@@ -18,7 +18,7 @@ type Props = {organization?: Organization};
 function DemoHeader({organization}: Props) {
   return (
     <Wrapper>
-      <LogoSvg src="logo" />
+      <LogoSvg />
       <ButtonBar gap={4}>
         <StyledExternalLink href="https://docs.sentry.io">
           {t('Documentation')}
@@ -68,7 +68,7 @@ const Wrapper = styled('div')`
   }
 `;
 
-const LogoSvg = styled(InlineSvg)`
+const LogoSvg = styled(IconSentryFull)`
   margin-top: auto;
   margin-bottom: auto;
   margin-left: 20px;
