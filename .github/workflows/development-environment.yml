@@ -44,7 +44,7 @@ jobs:
         run: |
           brew bundle || brew update && brew bundle
           brew info homebrew/cask/docker
-          brew upgrade homebrew/cask/docker
+          [[ $(uname) == "Darwin" ]] && brew upgrade homebrew/cask/docker
           make init-docker
 
       - name: Install Python (via Pyenv)
