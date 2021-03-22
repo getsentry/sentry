@@ -40,7 +40,7 @@ create-db:
 	$(CREATEDB) -h 127.0.0.1 -U postgres -E utf-8 sentry || true
 	# XXX: This should be behind a variable for the CI
 	# This prevents asking to create a user in the CI
-	sentry createuser --email foo@tdb.com --no-password --superuser
+	# sentry createuser --email foo@tdb.com --no-password --superuser
 
 apply-migrations: ensure-venv
 	@echo "--> Applying migrations"
