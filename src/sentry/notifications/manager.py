@@ -1,4 +1,6 @@
 from django.db import transaction
+from django.db.models.query import QuerySet
+from typing import Iterable, Optional
 
 from sentry.db.models import BaseManager
 from sentry.models.integration import ExternalProviders
@@ -218,26 +220,72 @@ class NotificationsManager(BaseManager):
 
             UserOption.objects.unset_value(user, project, get_legacy_key(type))
 
-    def remove_settings_for_user(self, user, type: NotificationSettingTypes = None):
+    def _filter(
+        self,
+        provider: Optional[ExternalProviders] = None,
+        type: Optional[NotificationSettingTypes] = None,
+        scope_type: Optional[NotificationScopeType] = None,
+        scope_identifier: Optional[int] = None,
+        targets: Optional[Iterable[any]] = None,
+    ) -> QuerySet:
+        """ Wrapper for .filter that translates types to actual attributes to column types. """
+        filters = {}
+        if provider:
+            filters["provider"] = provider.value
+
         if type:
-            # We don't need a transaction because this is only used in tests.
-            UserOption.objects.filter(user=user, key=get_legacy_key(type)).delete()
-            self.filter(target=user.actor, type=type.value).delete()
+            filters["type"] = type.value
+
+        if scope_type:
+            filters["scope_type"] = scope_type.value
+
+        if scope_identifier:
+            filters["scope_identifier"] = scope_identifier
+
+        if targets:
+            filters["target__in"] = targets
+
+        return self.filter(**filters)
+
+    @staticmethod
+    def _get_legacy_filters(type: Optional[NotificationSettingTypes] = None, **kwargs) -> dict:
+        if type:
+            kwargs["key"] = get_legacy_key(type)
         else:
-            UserOption.objects.filter(user=user, key__in=KEYS_TO_LEGACY_KEYS.values()).delete()
-            self.filter(target=user.actor).delete()
+            kwargs["key__in"] = KEYS_TO_LEGACY_KEYS.values()
+        return kwargs
 
-    @staticmethod
-    def remove_settings_for_team():
-        pass
+    def remove_for_user(self, user: any, type: Optional[NotificationSettingTypes] = None) -> None:
+        """ Bulk delete all Notification Settings for a USER, optionally by type. """
+        # We don't need a transaction because this is only used in tests.
+        UserOption.objects.filter(**self._get_legacy_filters(type, user=user)).delete()
+        self._filter(targets=[user.actor], type=type).delete()
 
-    @staticmethod
-    def remove_settings_for_project():
-        pass
+    def remove_for_team(self, team: any, type: Optional[NotificationSettingTypes] = None) -> None:
+        """ Bulk delete all Notification Settings for a TEAM, optionally by type. """
+        self._filter(targets=[team.actor], type=type).delete()
 
-    @staticmethod
-    def remove_settings_for_organization():
-        pass
+    def remove_for_project(
+        self, project: any, type: Optional[NotificationSettingTypes] = None
+    ) -> None:
+        """ Bulk delete all Notification Settings for a PROJECT, optionally by type. """
+        UserOption.objects.filter(**self._get_legacy_filters(type, project=project)).delete()
+        self._filter(
+            scope_type=NotificationScopeType.PROJECT,
+            scope_identifier=project.id,
+            type=type,
+        ).delete()
+
+    def remove_for_organization(
+        self, organization: any, type: Optional[NotificationSettingTypes] = None
+    ) -> None:
+        """ Bulk delete all Notification Settings for a ENTIRE ORGANIZATION, optionally by type. """
+        UserOption.objects.filter(**self._get_legacy_filters(type, project=organization)).delete()
+        self._filter(
+            scope_type=NotificationScopeType.ORGANIZATION,
+            scope_identifier=organization.id,
+            type=type,
+        ).delete()
 
     def get_settings_for_users(
         self, provider: ExternalProviders, type: NotificationSettingTypes, users, project
