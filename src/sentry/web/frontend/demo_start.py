@@ -1,7 +1,6 @@
 from django.http import Http404
 from django.conf import settings
 
-from sentry.demo.utils import NoDemoOrgReady
 from sentry.utils import auth
 from sentry.web.frontend.base import BaseView
 
@@ -20,11 +19,7 @@ class DemoStartView(BaseView):
         from sentry.demo.demo_org_manager import assign_demo_org
 
         # assign the demo org and get the user
-        try:
-            _, user = assign_demo_org()
-        except NoDemoOrgReady:
-            # TODO: handle NoDemoOrgReady error
-            raise
+        _, user = assign_demo_org()
 
         auth.login(request, user)
 

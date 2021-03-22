@@ -19,7 +19,7 @@ from sentry.models import (
 from sentry.utils.email import create_fake_email
 
 from .data_population import populate_connected_event_scenario_1, generate_releases
-from .utils import NoDemoOrgReady, generate_random_name
+from .utils import generate_random_name
 from .models import DemoUser, DemoOrganization, DemoOrgStatus
 
 logger = logging.getLogger(__name__)
@@ -55,6 +55,9 @@ def create_demo_org(quick=False) -> Organization:
         )
 
     # TODO: delete org if data population fails
+    logger.info(
+        "create_demo_org.post-transaction", extra={"organization_slug": org.slug, "quick": quick}
+    )
     generate_releases([react_project, python_project], quick=quick)
     populate_connected_event_scenario_1(react_project, python_project, quick=quick)
 
