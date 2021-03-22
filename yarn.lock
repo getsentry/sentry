@@ -5052,7 +5052,7 @@ clone@^1.0.2:
   resolved "https://registry.yarnpkg.com/clone/-/clone-1.0.4.tgz#da309cc263df15994c688ca902179ca3c7cd7c7e"
   integrity sha1-2jCcwmPfFZlMaIypAheco8fNfH4=
 
-clone@^2.1.1, clone@^2.1.2:
+clone@^2.1.1:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/clone/-/clone-2.1.2.tgz#1b7f4b9f591f1e8f83670401600345a02887435f"
   integrity sha1-G39Ln1kfHo+DZwQBYANFoCiHQ18=
@@ -5300,6 +5300,13 @@ cookie@^0.4.1:
   version "0.4.1"
   resolved "https://registry.yarnpkg.com/cookie/-/cookie-0.4.1.tgz#afd713fe26ebd21ba95ceb61f9a8116e50a537d1"
   integrity sha512-ZwrFkGJxUR3EIoXtO+yVE69Eb7KlixbaeAWfBQB9vVsNn/o+Yw69gBWSSDK825hQNdN+wF8zELf3dFNl/kxkUA==
+
+copy-anything@^2.0.1:
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/copy-anything/-/copy-anything-2.0.3.tgz#842407ba02466b0df844819bbe3baebbe5d45d87"
+  integrity sha512-GK6QUtisv4fNS+XcI7shX0Gx9ORg7QqIznyfho79JTnX1XhLiyZHfftvGiziqzRiEi/Bjhgpi+D2o7HxJFPnDQ==
+  dependencies:
+    is-what "^3.12.0"
 
 copy-concurrently@^1.0.0:
   version "1.0.5"
@@ -9020,6 +9027,11 @@ is-typedarray@^1.0.0, is-typedarray@~1.0.0:
   resolved "https://registry.yarnpkg.com/is-typedarray/-/is-typedarray-1.0.0.tgz#e479c80858df0c1b11ddda6940f96011fcda4a9a"
   integrity sha1-5HnICFjfDBsR3dppQPlgEfzaSpo=
 
+is-what@^3.12.0:
+  version "3.14.1"
+  resolved "https://registry.yarnpkg.com/is-what/-/is-what-3.14.1.tgz#e1222f46ddda85dead0fd1c9df131760e77755c1"
+  integrity sha512-sNxgpk9793nzSs7bA6JQJGeIuRBQhAaNGG77kzYQgMkrID+lS6SlK07K5LaptscDlSaIgH+GPFzf+d75FVxozA==
+
 is-whitespace-character@^1.0.0:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/is-whitespace-character/-/is-whitespace-character-1.0.3.tgz#b3ad9546d916d7d3ffa78204bca0c26b56257fac"
@@ -10013,19 +10025,19 @@ less-loader@^4.1.0:
     pify "^3.0.0"
 
 less@^3.9.0:
-  version "3.10.3"
-  resolved "https://registry.yarnpkg.com/less/-/less-3.10.3.tgz#417a0975d5eeecc52cff4bcfa3c09d35781e6792"
-  integrity sha512-vz32vqfgmoxF1h3K4J+yKCtajH0PWmjkIFgbs5d78E/c/e+UQTnI+lWK+1eQRE95PXM2mC3rJlLSSP9VQHnaow==
+  version "3.13.1"
+  resolved "https://registry.yarnpkg.com/less/-/less-3.13.1.tgz#0ebc91d2a0e9c0c6735b83d496b0ab0583077909"
+  integrity sha512-SwA1aQXGUvp+P5XdZslUOhhLnClSLIjWvJhmd+Vgib5BFIr9lMNlQwmwUNOjXThF/A0x+MCYYPeWEfeWiLRnTw==
   dependencies:
-    clone "^2.1.2"
+    copy-anything "^2.0.1"
+    tslib "^1.10.0"
   optionalDependencies:
     errno "^0.1.1"
     graceful-fs "^4.1.2"
     image-size "~0.5.0"
+    make-dir "^2.1.0"
     mime "^1.4.1"
-    mkdirp "^0.5.0"
-    promise "^7.1.1"
-    request "^2.83.0"
+    native-request "^1.0.5"
     source-map "~0.6.0"
 
 leven@^3.1.0:
@@ -10601,13 +10613,13 @@ min-indent@^1.0.0:
   resolved "https://registry.yarnpkg.com/min-indent/-/min-indent-1.0.0.tgz#cfc45c37e9ec0d8f0a0ec3dd4ef7f7c3abe39256"
   integrity sha1-z8RcN+nsDY8KDsPdTvf3w6vjklY=
 
-mini-css-extract-plugin@^v0.5.0:
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/mini-css-extract-plugin/-/mini-css-extract-plugin-0.5.0.tgz#ac0059b02b9692515a637115b0cc9fed3a35c7b0"
-  integrity sha512-IuaLjruM0vMKhUUT51fQdQzBYTX49dLj8w68ALEAe2A4iYNpIC4eMac67mt3NzycvjOlf07/kYxJDc0RTl1Wqw==
+mini-css-extract-plugin@^1.3.9:
+  version "1.3.9"
+  resolved "https://registry.yarnpkg.com/mini-css-extract-plugin/-/mini-css-extract-plugin-1.3.9.tgz#47a32132b0fd97a119acd530e8421e8f6ab16d5e"
+  integrity sha512-Ac4s+xhVbqlyhXS5J/Vh/QXUz3ycXlCqoCPpg0vdfhsIBH9eg/It/9L1r1XhSCH737M1lqcWnMuWL13zcygn5A==
   dependencies:
-    loader-utils "^1.1.0"
-    schema-utils "^1.0.0"
+    loader-utils "^2.0.0"
+    schema-utils "^3.0.0"
     webpack-sources "^1.1.0"
 
 minimalistic-assert@^1.0.0, minimalistic-assert@^1.0.1:
@@ -10705,7 +10717,7 @@ mixin-deep@^1.2.0:
     for-in "^1.0.2"
     is-extendable "^1.0.1"
 
-mkdirp@^0.5.0, mkdirp@^0.5.1, mkdirp@^0.5.3, mkdirp@^0.5.5, mkdirp@~0.5.1:
+mkdirp@^0.5.1, mkdirp@^0.5.3, mkdirp@^0.5.5, mkdirp@~0.5.1:
   version "0.5.5"
   resolved "https://registry.yarnpkg.com/mkdirp/-/mkdirp-0.5.5.tgz#d91cefd62d1436ca0f41620e251288d420099def"
   integrity sha512-NKmAlESf6jMGym1++R0Ra7wvhV+wFW63FaSOFPwRahvea0gMUcGUhVeAg/0BC0wiv9ih5NYPB1Wn1UEI1/L+xQ==
@@ -10835,6 +10847,11 @@ nanomatch@^1.2.9:
     regex-not "^1.0.0"
     snapdragon "^0.8.1"
     to-regex "^3.0.1"
+
+native-request@^1.0.5:
+  version "1.0.8"
+  resolved "https://registry.yarnpkg.com/native-request/-/native-request-1.0.8.tgz#8f66bf606e0f7ea27c0e5995eb2f5d03e33ae6fb"
+  integrity sha512-vU2JojJVelUGp6jRcLwToPoWGxSx23z/0iX+I77J3Ht17rf2INGjrhOoQnjVo60nQd8wVsgzKkPfRXBiVdD2ag==
 
 native-url@^0.2.6:
   version "0.2.6"
@@ -13341,7 +13358,7 @@ request-promise-native@^1.0.5, request-promise-native@^1.0.8:
     stealthy-require "^1.1.1"
     tough-cookie "^2.3.3"
 
-request@^2.83.0, request@^2.87.0, request@^2.88.2:
+request@^2.87.0, request@^2.88.2:
   version "2.88.2"
   resolved "https://registry.yarnpkg.com/request/-/request-2.88.2.tgz#d73c918731cb5a87da047e207234146f664d12b3"
   integrity sha512-MsvtOrfG9ZcrOwAW+Qi+F6HbD0CWXEh9ou77uOb7FM2WPhwT7smM833PzanhJLsgXjN89Ir6V2PczXNnMpwKhw==
@@ -14440,14 +14457,6 @@ strip-json-comments@^2.0.1:
   resolved "https://registry.yarnpkg.com/strip-json-comments/-/strip-json-comments-2.0.1.tgz#3c531942e908c2697c0ec344858c286c7ca0a60a"
   integrity sha1-PFMZQukIwml8DsNEhYwobHygpgo=
 
-style-loader@^0.23.1:
-  version "0.23.1"
-  resolved "https://registry.yarnpkg.com/style-loader/-/style-loader-0.23.1.tgz#cb9154606f3e771ab6c4ab637026a1049174d925"
-  integrity sha512-XK+uv9kWwhZMZ1y7mysB+zoihsEj4wneFWAS5qoiLwzW0WzSqMrrsIy+a3zkQJq0ipFtBpX5W3MqyRIBF/WFGg==
-  dependencies:
-    loader-utils "^1.1.0"
-    schema-utils "^1.0.0"
-
 style-loader@^1.2.1:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/style-loader/-/style-loader-1.2.1.tgz#c5cbbfbf1170d076cfdd86e0109c5bba114baa1a"
@@ -14455,6 +14464,14 @@ style-loader@^1.2.1:
   dependencies:
     loader-utils "^2.0.0"
     schema-utils "^2.6.6"
+
+style-loader@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/style-loader/-/style-loader-2.0.0.tgz#9669602fd4690740eaaec137799a03addbbc393c"
+  integrity sha512-Z0gYUJmzZ6ZdRUqpg1r8GsaFKypE+3xAzuFeMuoHgjc9KZv3wMyCRjQIWEbhoFSq7+7yoHXySDJyyWQaPajeiQ==
+  dependencies:
+    loader-utils "^2.0.0"
+    schema-utils "^3.0.0"
 
 style-search@^0.1.0:
   version "0.1.0"
