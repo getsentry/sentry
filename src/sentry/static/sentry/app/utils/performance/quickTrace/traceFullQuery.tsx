@@ -30,12 +30,19 @@ function EmptyTrace({children}: Pick<QueryProps, 'children'>) {
   );
 }
 
-function TraceFullQuery({traceId, start, end, children, ...props}: QueryProps) {
+function TraceFullQuery({
+  traceId,
+  start,
+  end,
+  statsPeriod,
+  children,
+  ...props
+}: QueryProps) {
   if (!traceId) {
     return <EmptyTrace>{children}</EmptyTrace>;
   }
 
-  const eventView = makeEventView(start, end);
+  const eventView = makeEventView({start, end, statsPeriod});
 
   return (
     <GenericDiscoverQuery<TraceFull, {}>

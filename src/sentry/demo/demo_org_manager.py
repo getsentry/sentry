@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.db import transaction
 from django.db.models import F
@@ -20,8 +22,10 @@ from .data_population import populate_connected_event_scenario_1, generate_relea
 from .utils import NoDemoOrgReady, generate_random_name
 from .models import DemoUser, DemoOrganization, DemoOrgStatus
 
+logger = logging.getLogger(__name__)
 
-def create_demo_org() -> Organization:
+
+def create_demo_org(quick=False) -> Organization:
     # wrap the main org setup in transaction
     with transaction.atomic():
         name = generate_random_name()
@@ -29,6 +33,8 @@ def create_demo_org() -> Organization:
         slug = slugify(name)
 
         org = DemoOrganization.create_org(name=name, slug=slug)
+
+        logger.info("create_demo_org.created_org", {"organization_slug": slug})
 
         owner = User.objects.get(email=settings.DEMO_ORG_OWNER_EMAIL)
         OrganizationMember.objects.create(organization=org, user=owner, role=roles.get_top_dog().id)
@@ -49,8 +55,8 @@ def create_demo_org() -> Organization:
         )
 
     # TODO: delete org if data population fails
-    generate_releases([react_project, python_project])
-    populate_connected_event_scenario_1(react_project, python_project)
+    generate_releases([react_project, python_project], quick=quick)
+    populate_connected_event_scenario_1(react_project, python_project, quick=quick)
 
     return org
 
@@ -58,14 +64,18 @@ def create_demo_org() -> Organization:
 def assign_demo_org() -> Tuple[Organization, User]:
     from .tasks import build_up_org_buffer
 
+    demo_org = None
     # option to skip the buffer when testing things out locally
     if settings.DEMO_NO_ORG_BUFFER:
         org = create_demo_org()
-        demo_org = DemoOrganization.objects.get(organization=org)
     else:
         demo_org = DemoOrganization.objects.filter(status=DemoOrgStatus.PENDING).first()
+        # if no org in buffer, make a quick one with fewer events
         if not demo_org:
-            raise NoDemoOrgReady()
+            org = create_demo_org(quick=True)
+
+    if not demo_org:
+        demo_org = DemoOrganization.objects.get(organization=org)
 
     org = demo_org.organization
 

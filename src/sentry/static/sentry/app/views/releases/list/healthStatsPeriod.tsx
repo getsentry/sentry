@@ -5,41 +5,41 @@ import {Location} from 'history';
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-
-export type StatsPeriod = '24h' | '14d';
+import {GlobalSelection} from 'app/types';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 type Props = {
   location: Location;
-  activePeriod: StatsPeriod;
+  selection: GlobalSelection;
 };
 
-const HealthStatsPeriod = ({location, activePeriod}: Props) => {
+const HealthStatsPeriod = ({location, selection}: Props) => {
+  const activePeriod = location.query.healthStatsPeriod || '24h';
   const {pathname, query} = location;
-  const periods = [
-    {
-      key: '24h',
-      label: t('24h'),
-    },
-    {
-      key: '14d',
-      label: t('14d'),
-    },
-  ];
 
   return (
     <Wrapper>
-      {periods.map(period => (
+      {selection.datetime.period !== '24h' && (
         <Period
-          key={period.key}
           to={{
             pathname,
-            query: {...query, healthStatsPeriod: period.key},
+            query: {...query, healthStatsPeriod: '24h'},
           }}
-          selected={activePeriod === period.key}
+          selected={activePeriod === '24h'}
         >
-          {period.label}
+          {t('24h')}
         </Period>
-      ))}
+      )}
+
+      <Period
+        to={{
+          pathname,
+          query: {...query, healthStatsPeriod: 'auto'},
+        }}
+        selected={activePeriod === 'auto'}
+      >
+        {selection.datetime.start ? t('Custom') : selection.datetime.period ?? t('14d')}
+      </Period>
     </Wrapper>
   );
 };
@@ -63,4 +63,4 @@ const Period = styled(Link)<{selected: boolean}>`
   }
 `;
 
-export default HealthStatsPeriod;
+export default withGlobalSelection(HealthStatsPeriod);

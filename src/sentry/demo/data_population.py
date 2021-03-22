@@ -36,14 +36,14 @@ from sentry.utils.samples import (
 from sentry.utils.snuba import SnubaError
 
 
-MAX_DAYS = settings.DEMO_DATA_GEN_PARAMS["MAX_DAYS"]
-SCALE_FACTOR = settings.DEMO_DATA_GEN_PARAMS["SCALE_FACTOR"]
-BASE_OFFSET = settings.DEMO_DATA_GEN_PARAMS["BASE_OFFSET"]
-NAME_STEP_SIZE = settings.DEMO_DATA_GEN_PARAMS["NAME_STEP_SIZE"]
-BREADCRUMB_LOOKBACK_TIME = settings.DEMO_DATA_GEN_PARAMS["BREADCRUMB_LOOKBACK_TIME"]
-DEFAULT_BACKOFF_TIME = settings.DEMO_DATA_GEN_PARAMS["DEFAULT_BACKOFF_TIME"]
-ERROR_BACKOFF_TIME = settings.DEMO_DATA_GEN_PARAMS["ERROR_BACKOFF_TIME"]
-NUM_RELEASES = settings.DEMO_DATA_GEN_PARAMS["NUM_RELEASES"]
+# MAX_DAYS = settings.DEMO_DATA_GEN_PARAMS["MAX_DAYS"]
+# SCALE_FACTOR = settings.DEMO_DATA_GEN_PARAMS["SCALE_FACTOR"]
+# BASE_OFFSET = settings.DEMO_DATA_GEN_PARAMS["BASE_OFFSET"]
+# NAME_STEP_SIZE = settings.DEMO_DATA_GEN_PARAMS["NAME_STEP_SIZE"]
+# BREADCRUMB_LOOKBACK_TIME = settings.DEMO_DATA_GEN_PARAMS["BREADCRUMB_LOOKBACK_TIME"]
+# DEFAULT_BACKOFF_TIME = settings.DEMO_DATA_GEN_PARAMS["DEFAULT_BACKOFF_TIME"]
+# ERROR_BACKOFF_TIME = settings.DEMO_DATA_GEN_PARAMS["ERROR_BACKOFF_TIME"]
+# NUM_RELEASES = settings.DEMO_DATA_GEN_PARAMS["NUM_RELEASES"]
 
 
 commit_message_base_messages = [
@@ -57,6 +57,18 @@ base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "ro
 
 
 logger = logging.getLogger(__name__)
+
+
+def get_config(quick):
+    if quick:
+        return settings.DEMO_DATA_QUICK_GEN_PARAMS
+    else:
+        return settings.DEMO_DATA_GEN_PARAMS
+
+
+def get_config_var(name, quick):
+    config = get_config(quick)
+    return config[name]
 
 
 def get_event_from_file(file_path):
@@ -121,7 +133,8 @@ def get_user_by_id(id_0_offset):
     ).to_json()
 
 
-def generate_user():
+def generate_user(quick=False):
+    NAME_STEP_SIZE = get_config_var("NAME_STEP_SIZE", quick)
     name_list = get_list_of_names()
     id_0_offset = random.randrange(0, len(name_list), NAME_STEP_SIZE)
     return get_user_by_id(id_0_offset)
@@ -175,7 +188,10 @@ def generate_commits(required_files, file_extensions):
     return commits
 
 
-def generate_releases(projects):
+def generate_releases(projects, quick):
+    config = get_config(quick)
+    NUM_RELEASES = config["NUM_RELEASES"]
+    MAX_DAYS = config["MAX_DAYS"]
     release_time = timezone.now() - timedelta(days=MAX_DAYS)
     hourly_release_cadence = MAX_DAYS * 24.0 / NUM_RELEASES
     org = projects[0].organization
@@ -301,16 +317,17 @@ def gen_suspect_commit(project, timestamp, filename):
     )
 
 
-def safe_send_event(data):
+def safe_send_event(data, quick):
     project = data.pop("project")
+    config = get_config(quick)
     # TODO: make a batched update version of create_sample_event
     try:
         create_sample_event_basic(data, project.id)
-        time.sleep(DEFAULT_BACKOFF_TIME)
+        time.sleep(config["DEFAULT_BACKOFF_TIME"])
     except SnubaError:
         # if snuba fails, just back off and continue
         logger.info("safe_send_event.snuba_error")
-        time.sleep(ERROR_BACKOFF_TIME)
+        time.sleep(config["ERROR_BACKOFF_TIME"])
 
 
 def clean_event(event_json):
@@ -353,9 +370,9 @@ def fix_timestamps(event_json):
         event_json["start_timestamp"] = to_timestamp(start_timestamp)
 
 
-def fix_error_event(event_json):
+def fix_error_event(event_json, quick=False):
     fix_timestamps(event_json)
-    fix_breadrumbs(event_json)
+    fix_breadrumbs(event_json, quick)
 
 
 def fix_transaction_event(event_json, old_span_id):
@@ -472,11 +489,12 @@ def fix_measurements(event_json):
         measurements.update(measurement_markers)
 
 
-def fix_breadrumbs(event_json):
+def fix_breadrumbs(event_json, quick):
     """
     Fixes the timestamps on breadcrumbs to match the current time
     Evenly spaces out all breadcrumbs starting at BREADCRUMB_LOOKBACK_TIME ago
     """
+    BREADCRUMB_LOOKBACK_TIME = get_config_var("BREADCRUMB_LOOKBACK_TIME", quick)
     breadcrumbs = event_json.get("breadcrumbs", {}).get("values", [])
     num_breadcrumbs = len(breadcrumbs)
     breadcrumb_time_step = BREADCRUMB_LOOKBACK_TIME * 1.0 / num_breadcrumbs
@@ -487,7 +505,9 @@ def fix_breadrumbs(event_json):
         curr_time += breadcrumb_time_step
 
 
-def populate_connected_event_scenario_1(react_project: Project, python_project: Project):
+def populate_connected_event_scenario_1(
+    react_project: Project, python_project: Project, quick=False
+):
     """
     This function populates a set of four related events with the same trace id:
     - Front-end transaction
@@ -501,8 +521,19 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
     python_transaction = get_event_from_file("src/sentry/demo/data/python_transaction_1.json")
     python_error = get_event_from_file("src/sentry/demo/data/python_error_1.json")
 
+    config = get_config(quick)
+    MAX_DAYS = config["MAX_DAYS"]
+    SCALE_FACTOR = config["SCALE_FACTOR"]
+    BASE_OFFSET = config["BASE_OFFSET"]
+
     start_time = timezone.now() - timedelta(days=MAX_DAYS)
     # gen_suspect_commit(react_project, start_time, "components/ShoppingCart.js")
+    log_extra = {
+        "organization_slug": react_project.organization.slug,
+        "MAX_DAYS": MAX_DAYS,
+        "SCALE_FACTOR": SCALE_FACTOR,
+    }
+    logger.info("populate_connected_event_scenario_1.start", extra=log_extra)
 
     for day in range(MAX_DAYS):
         for hour in range(24):
@@ -511,7 +542,11 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
             num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
             timestamps = []
             for i in range(num_events):
-                # randomly determine the minute
+                logger.info(
+                    "populate_connected_event_scenario_1.send_event_series", extra=log_extra
+                )
+
+                # pick the minutes randomly (which means events will sent be out of order)
                 minute = random.randint(0, 60)
                 timestamp = start_time + timedelta(days=day, hours=hour, minutes=minute)
                 timestamp = timestamp.replace(tzinfo=pytz.utc)
@@ -521,7 +556,7 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
             timestamps.sort()
 
             for timestamp in timestamps:
-                transaction_user = generate_user()
+                transaction_user = generate_user(quick)
                 trace_id = uuid4().hex
                 release = get_release_from_time(react_project.organization_id, timestamp)
                 release_sha = release.version
@@ -559,7 +594,7 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                 )
 
                 fix_transaction_event(local_event, old_span_id)
-                safe_send_event(local_event)
+                safe_send_event(local_event, quick)
 
                 # note picking the 0th span is arbitrary
                 backend_parent_id = local_event["spans"][0]["span_id"]
@@ -574,8 +609,8 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                     release=release_sha,
                     contexts=frontend_context,
                 )
-                fix_error_event(local_event)
-                safe_send_event(local_event)
+                fix_error_event(local_event, quick)
+                safe_send_event(local_event, quick)
 
                 # python transaction
                 old_span_id = python_transaction["contexts"]["trace"]["span_id"]
@@ -601,7 +636,7 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                     contexts=backend_context,
                 )
                 fix_transaction_event(local_event, old_span_id)
-                safe_send_event(local_event)
+                safe_send_event(local_event, quick)
 
                 # python error
                 local_event = copy.deepcopy(python_error)
@@ -613,5 +648,6 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                     release=release_sha,
                     contexts=backend_context,
                 )
-                fix_error_event(local_event)
-                safe_send_event(local_event)
+                fix_error_event(local_event, quick)
+                safe_send_event(local_event, quick)
+    logger.info("populate_connected_event_scenario_1.finished", extra=log_extra)
