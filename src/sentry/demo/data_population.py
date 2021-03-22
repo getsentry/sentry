@@ -50,6 +50,10 @@ logger = logging.getLogger(__name__)
 
 
 def get_config(quick):
+    """
+    Returns the data generation config
+    Depends on if we are doing a quick-gen or not
+    """
     if quick:
         return settings.DEMO_DATA_QUICK_GEN_PARAMS
     else:
