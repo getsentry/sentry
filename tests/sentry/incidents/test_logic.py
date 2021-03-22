@@ -1458,8 +1458,9 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 self.trigger,
                 type,
                 target_type,
-                target_identifier="invalid",
+                target_identifier=channel_name[1:],
                 integration=integration,
+                input_channel_id="s_c_a",
             )
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")

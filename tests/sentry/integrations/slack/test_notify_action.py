@@ -190,7 +190,15 @@ class SlackNotifyActionTest(RuleTestCase):
         assert not form.is_valid()
         assert len(form.errors) == 1
 
+    @responses.activate
     def test_channel_id_provided(self):
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", "channel": {"name": "my-channel", "id": "C2349874"}}),
+        )
         rule = self.get_rule(
             data={
                 "workspace": self.integration.id,
@@ -202,6 +210,28 @@ class SlackNotifyActionTest(RuleTestCase):
 
         form = rule.get_form_instance()
         assert form.is_valid()
+
+    @responses.activate
+    def test_invalid_channel_id_provided(self):
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", "channel": {"name": "my-channel", "id": "C2349874"}}),
+        )
+        rule = self.get_rule(
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "input_channel_id": "C1234567",
+                "tags": "",
+            }
+        )
+
+        form = rule.get_form_instance()
+        assert not form.is_valid()
+        assert ["Invalid channel ID and/or channel name provided."] in form.errors.values()
 
     def test_invalid_workspace(self):
         # the workspace _should_ be the integration id

@@ -58,11 +58,10 @@ class SlackNotifyServiceForm(forms.Form):
             )
             # default to "#" if they have the channel name without the prefix
             channel_prefix = self.data["channel"][0] if self.data["channel"][0] == "@" else "#"
-            channel_id = (
-                self.data["inputChannelId"]
-                if self.data["inputChannelId"]
-                else self.data["input_channel_id"]
-            )
+            if self.data.get("input_channel_id"):
+                channel_id = self.data["input_channel_id"]
+            if self.data.get("inputChannelId"):
+                channel_id = self.data["inputChannelId"]
 
         cleaned_data = super().clean()
 
@@ -76,8 +75,14 @@ class SlackNotifyServiceForm(forms.Form):
                 use_async_lookup=False,
                 input_channel_id=channel_id,
             ):
-                raise Exception("Invalid channel ID and/or channel name provided.")
-
+                params = {"channel": self.data.get("channel"), "channel_id": channel_id}
+                raise forms.ValidationError(
+                    _(
+                        "Invalid channel ID and/or channel name provided.",
+                    ),
+                    code="invalid",
+                    params=params,
+                )
         try:
             integration = Integration.objects.get(id=workspace)
         except Integration.DoesNotExist:
