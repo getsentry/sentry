@@ -1252,12 +1252,17 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
     # target_value is the Slack username or channel name
     if type == AlertRuleTriggerAction.Type.SLACK.value:
         # if we have a value for input_channel_id, just set target_identifier to that
-        target_identifier = kwargs.pop("input_channel_id")
+        target_identifier = kwargs.get("input_channel_id")
         if target_identifier is not None:
-            return (
-                target_identifier,
-                target_value,
-            )
+            from sentry.integrations.slack.utils import is_valid_channel_id
+
+            if is_valid_channel_id(target_value, *args, **kwargs):
+                return (
+                    target_identifier,
+                    target_value,
+                )
+            else:
+                raise Exception("Invalid channel ID and/or channel name provided.")
         target_identifier = get_alert_rule_trigger_action_slack_channel_id(
             target_value, *args, **kwargs
         )
@@ -1468,6 +1473,7 @@ def get_slack_actions_with_async_lookups(organization, user, data):
                         "organization": organization,
                         "access": SystemAccess(),
                         "user": user,
+                        "input_channel_id": action.get("inputChannelId"),
                     },
                     data=action,
                 )

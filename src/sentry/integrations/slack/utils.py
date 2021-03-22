@@ -28,6 +28,7 @@ from sentry.models import (
 from sentry.shared_integrations.exceptions import (
     ApiError,
     DuplicateDisplayNameError,
+    IntegrationError,
 )
 from sentry.integrations.metric_alerts import incident_attachment_info
 
@@ -381,6 +382,32 @@ def get_channel_id(organization, integration, name, use_async_lookup=False):
     # to find the channel id asynchronously if it takes longer than a certain amount of time,
     # which I have set as the SLACK_DEFAULT_TIMEOUT - arbitrarily - to 10 seconds.
     return get_channel_id_with_timeout(integration, name, timeout)
+
+
+def is_valid_channel_id(name, organization, integration_id, use_async_lookup, input_channel_id):
+    """
+    In the case that the user is creating an alert via the API and providing the channel ID and name
+    themselves, we want to make sure both values are correct.
+    """
+    try:
+        integration = Integration.objects.get(id=integration_id)
+    except Integration.DoesNotExist:
+        raise Http404
+
+    headers = {"Authorization": "Bearer %s" % integration.metadata["access_token"]}
+    payload = {"channel": input_channel_id}
+    client = SlackClient()
+    try:
+        results = client.get("/conversations.info", headers=headers, params=payload)
+    except ApiError as e:
+        logger.info("rule.slack.conversation_info_failed", extra={"error": str(e)})
+        raise IntegrationError("Could not retrieve Slack channel information.")
+    return (
+        True
+        if strip_channel_name(name) == results["channel"]["name"]
+        and input_channel_id == results["channel"]["id"]
+        else False
+    )
 
 
 def get_channel_id_with_timeout(integration, name, timeout):
