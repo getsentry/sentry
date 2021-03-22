@@ -8,7 +8,7 @@ else like actual grouping happens elsewhere like test_variants.py.
 
 1. Put your real-world event into tests/sentry/grouping/categorization_inputs/.
    It needs to have a normalized exception interface. Threads are ignored and need
-   to be converted manually.
+   to be converted to exceptions somehow. Chained exceptions are fine.
 
 2. Run testsuite. The first time it will generate insta-snapshot files that you
    can review for categorization. Use `SENTRY_SNAPSHOTS_WRITEBACK=new` and `make
@@ -22,7 +22,8 @@ else like actual grouping happens elsewhere like test_variants.py.
    testsuite again with SENTRY_SNAPSHOTS_WRITEBACK=1 to also update the snapshot
    files accordingly. This gets rid of 99% of sensitive data, as unused event
    attributes such as user context is deleted, and all frames without category
-   must be application code.
+   must be application code that we can't use for writing global enhancements,
+   so they can be removed/stubbed as well.
 
    This step also removes a lot of test fixtures that do not exercize
    additional code, meaning you can review 500 events (if you have time to do
