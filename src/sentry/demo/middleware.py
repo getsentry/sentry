@@ -34,11 +34,10 @@ class DemoMiddleware:
                 return
 
         # find a member in the target org
-        try:
-            member = OrganizationMember.objects.filter(
-                organization__slug=org_slug, role="member"
-            ).first()
-            auth.login(request, member.user)
-        except OrganizationMember.DoesNotExist:
-            # TODO: render landing pagee
-            pass
+        member = OrganizationMember.objects.filter(
+            organization__slug=org_slug, role="member"
+        ).first()
+        # if no member, can't login
+        if not member:
+            return
+        auth.login(request, member.user)
