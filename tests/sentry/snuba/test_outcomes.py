@@ -57,7 +57,7 @@ class OutcomesQueryDefinitionTests(TestCase):
         query = _make_query("statsPeriod=4d&interval=1d&category=error&field=sum(quantity)")
 
         assert query.conditions == [
-            ["category", "IN", [DataCategory.DEFAULT, DataCategory.ERROR, DataCategory.SECURITY]]
+            ("category", "IN", [DataCategory.DEFAULT, DataCategory.ERROR, DataCategory.SECURITY])
         ]
 
     def test_correct_reason_mapping(self):
@@ -65,14 +65,14 @@ class OutcomesQueryDefinitionTests(TestCase):
             "statsPeriod=4d&interval=1d&groupBy=category&reason=spike_protection&field=sum(quantity)"
         )
 
-        assert query.conditions == [["reason", "IN", ["smart_rate_limit"]]]
+        assert query.conditions == [("reason", "IN", ["smart_rate_limit"])]
 
     def test_correct_outcome_mapping(self):
         query = _make_query(
             "statsPeriod=4d&interval=1d&groupBy=category&outcome=accepted&field=sum(quantity)"
         )
 
-        assert query.conditions == [["outcome", "IN", [Outcome.ACCEPTED]]]
+        assert query.conditions == [("outcome", "IN", [Outcome.ACCEPTED])]
 
     def test_correct_times_seen_aggregate(self):
         query = _make_query(
