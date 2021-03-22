@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.db.models import Q
 from django.utils import timezone
+from typing import Mapping
 
 from sentry.db.models import (
     BaseManager,
@@ -122,9 +123,12 @@ class GroupSubscriptionManager(BaseManager):
                 if i == 0:
                     raise e
 
-    def get_participants(self, group):
+    @staticmethod
+    def get_participants(group) -> Mapping[any]:
         """
         Identify all users who are participating with a given issue.
+        :param group: Group object
+        :returns Map of User objects to GroupSubscriptionReason
         """
         from sentry.models import User
         from sentry.notifications.legacy_mappings import UserOptionValue

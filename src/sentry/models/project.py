@@ -196,6 +196,7 @@ class Project(Model, PendingDeletionMixin):
 
     @property
     def member_set(self):
+        """ :returns a QuerySet of all Users that belong to this Project """
         from sentry.models import OrganizationMember
 
         return self.organization.member_set.filter(

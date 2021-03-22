@@ -8,6 +8,7 @@ from email.utils import parseaddr
 from functools import partial
 from operator import attrgetter
 from random import randrange
+from typing import Iterable, Mapping
 
 import lxml
 import toronado
@@ -164,7 +165,11 @@ def is_fake_email(email):
     return email.endswith(FAKE_EMAIL_TLD)
 
 
-def get_email_addresses(user_ids, project=None):
+def get_email_addresses(user_ids: Iterable[int], project: Project = None) -> Mapping[int, str]:
+    """
+    Find the best email addresses for a collection of users. If a project is
+    provided, prefer their project-specific notification preferences.
+    """
     pending = set(user_ids)
     results = {}
 
