@@ -8,9 +8,6 @@ import sentry_sdk
 from sentry.utils.imports import import_string
 from sentry.utils.compat import map
 
-logging.basicConfig(format="%(asctime)s [%(levelname)s] %(message)s", level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 # We need to run this here because of a concurrency bug in Python's locale
 # with the lazy initialization.
 datetime.datetime.strptime("", "")
@@ -166,19 +163,26 @@ def call_command(name, obj=None, **kwargs):
 
 
 def main():
-    try:
-        if os.environ.get("SENTRY_DEVENV_DSN"):
-            logger.warning(
-                "The Sentry runner will report development issues to Sentry.io. "
-                "Use SENTRY_DEVENV_NO_REPORT to avoid reporting issues."
-            )
-        cli(prog_name=get_prog(), obj={}, max_content_width=100)
-    except Exception as e:
-        if os.environ.get("SENTRY_DEVENV_DSN"):
+    # This variable is *only* set as part of direnv/.envrc, thus, we cannot affect production
+    if os.environ.get("SENTRY_DEVENV_DSN"):
+        # We do this here because `configure_structlog` executes later
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
+        logger = logging.getLogger(__name__)
+
+        logger.info(
+            "The Sentry runner will report development issues to Sentry.io. "
+            "Use SENTRY_DEVENV_NO_REPORT to avoid reporting issues."
+        )
+        try:
+            cli(prog_name=get_prog(), obj={}, max_content_width=100)
+        except Exception as e:
             # This reports to the project sentry-dev-env
             with sentry_sdk.init(dsn=os.environ["SENTRY_DEVENV_DSN"]):
                 if os.environ.get("USER"):
                     sentry_sdk.set_user({"username": os.environ.get("USER")})
                 sentry_sdk.capture_exception(e)
                 logger.info("We have reported the error below to Sentry")
-        raise e
+            raise e
+    else:
+        # If you change this command here make sure to also change it in the block above
+        cli(prog_name=get_prog(), obj={}, max_content_width=100)
