@@ -54,7 +54,20 @@ producers = ProducerManager()
 
 
 def create_batching_kafka_consumer(topic_names, worker, **options):
-    cluster_names = {settings.KAFKA_TOPICS[topic_name]["cluster"] for topic_name in topic_names}
+    # In some cases we want to override the configuration stored in settings from the command line
+    force_topic = options.pop("force_topic", None)
+    force_cluster = options.pop("force_cluster", None)
+
+    if force_topic and force_cluster:
+        topic_names = {force_topic}
+        cluster_names = {force_cluster}
+    elif force_topic or force_cluster:
+        raise ValueError(
+            "Both 'force_topic' and 'force_cluster' have to be provided to override the configuration"
+        )
+    else:
+        cluster_names = {settings.KAFKA_TOPICS[topic_name]["cluster"] for topic_name in topic_names}
+
     if len(cluster_names) > 1:
         raise ValueError(
             f"Cannot launch Kafka consumer listening to multiple topics ({topic_names}) on different clusters ({cluster_names})"
