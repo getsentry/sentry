@@ -43,8 +43,9 @@ jobs:
         # If you want to speed up the CI for your PR, you can use --no-upgrade and HOMEBREW_NO_AUTO_UPDATE=1
         run: |
           brew bundle || brew update && brew bundle
+          brew info homebrew/cask/docker
+          brew upgrade homebrew/cask/docker
           make init-docker
-          docker version
 
       - name: Install Python (via Pyenv)
         id: python-version
@@ -89,5 +90,4 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           curl https://get.volta.sh | bash
-          docker version
           make bootstrap
