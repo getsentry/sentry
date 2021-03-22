@@ -365,18 +365,19 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
 
     return [
       {
-        seriesName: t('Total Project'),
-        data: intervals?.map((interval, index) => ({
-          name: moment(interval).valueOf(),
-          value: projectData?.[index] ?? 0,
-        })),
-      },
-      {
         seriesName: t('This Release'),
         data: intervals?.map((interval, index) => ({
           name: moment(interval).valueOf(),
           value: releaseData?.[index] ?? 0,
         })),
+      },
+      {
+        seriesName: t('Total Project'),
+        data: intervals?.map((interval, index) => ({
+          name: moment(interval).valueOf(),
+          value: projectData?.[index] ?? 0,
+        })),
+        z: 0,
       },
     ];
   };
@@ -397,18 +398,19 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
 
     return [
       {
-        seriesName: t('Total Project'),
-        data: intervals?.map((interval, index) => ({
-          name: moment(interval).valueOf(),
-          value: projectData?.[index] ?? 0,
-        })),
-      },
-      {
         seriesName: t('This Release'),
         data: intervals?.map((interval, index) => ({
           name: moment(interval).valueOf(),
           value: releaseData?.[index] ?? 0,
         })),
+      },
+      {
+        seriesName: t('Total Project'),
+        data: intervals?.map((interval, index) => ({
+          name: moment(interval).valueOf(),
+          value: projectData?.[index] ?? 0,
+        })),
+        z: 0,
       },
     ];
   };
