@@ -88,5 +88,4 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           curl https://get.volta.sh | bash
-          ./scripts/do.sh ensure_docker_server
           make bootstrap
