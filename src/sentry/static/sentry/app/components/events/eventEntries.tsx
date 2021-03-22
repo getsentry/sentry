@@ -47,7 +47,7 @@ import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
 
-const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH = /^(\w|(\w|\$){2}\.(\w|\$)|(\w|\$){3}((\.(\w|\$))|((\w|\$)){2}))(\.|$)/g;
+const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH = /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
 
 const defaultProps = {
   isShare: false,
@@ -62,10 +62,10 @@ type Props = {
    * The organization can be the shared view on a public issue view.
    */
   organization: Organization | SharedViewOrganization;
-  event: Event;
   project: Project;
   location: Location;
   api: Client;
+  event?: Event;
   group?: Group;
   className?: string;
 } & typeof defaultProps;
@@ -281,10 +281,10 @@ class EventEntries extends React.Component<Props, State> {
     });
   }
 
-  renderEntries() {
-    const {event, project, organization, isShare} = this.props;
+  renderEntries(event: Event) {
+    const {project, organization, group} = this.props;
 
-    const entries = event?.entries;
+    const entries = event.entries;
 
     if (!Array.isArray(entries)) {
       return null;
@@ -301,10 +301,10 @@ class EventEntries extends React.Component<Props, State> {
       >
         <EventEntry
           projectSlug={project.slug}
+          groupId={group?.id}
           organization={organization}
           event={event}
           entry={entry}
-          isShare={isShare}
         />
       </ErrorBoundary>
     ));
@@ -378,7 +378,7 @@ class EventEntries extends React.Component<Props, State> {
             hasQueryFeature={hasQueryFeature}
           />
         )}
-        {this.renderEntries()}
+        {this.renderEntries(event)}
         {hasContext && <EventContexts group={group} event={event} />}
         {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
         {event && !objectIsEmpty(event.packages) && <EventPackageData event={event} />}

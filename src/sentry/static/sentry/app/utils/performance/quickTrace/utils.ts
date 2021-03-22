@@ -228,7 +228,15 @@ export function getQuickTraceRequestPayload({eventView, location}: DiscoverQuery
   return omit(eventView.getEventsAPIPayload(location), ['field', 'sort', 'per_page']);
 }
 
-export function makeEventView(start: string, end: string) {
+export function makeEventView({
+  start,
+  end,
+  statsPeriod,
+}: {
+  start?: string;
+  end?: string;
+  statsPeriod?: string;
+}) {
   return EventView.fromSavedQuery({
     id: undefined,
     version: 2,
@@ -239,9 +247,9 @@ export function makeEventView(start: string, end: string) {
     projects: [ALL_ACCESS_PROJECTS],
     query: '',
     environment: [],
-    range: '',
     start,
     end,
+    range: statsPeriod,
   });
 }
 
@@ -270,4 +278,20 @@ export function getTraceTimeRangeFromEvent(event: Event): {start: string; end: s
     : new Date(event.dateCreated).getTime();
   const end = isTransaction(event) ? event.endTimestamp : start;
   return getTraceDateTimeRange({start, end});
+}
+
+export function filterTrace(
+  trace: TraceFull,
+  predicate: (transaction: TraceFull) => boolean
+): TraceFull[] {
+  return reduceTrace<TraceFull[]>(
+    trace,
+    (transactions, transaction) => {
+      if (predicate(transaction)) {
+        transactions.push(transaction);
+      }
+      return transactions;
+    },
+    []
+  );
 }
