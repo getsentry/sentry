@@ -1,5 +1,6 @@
 import {Location, LocationDescriptor} from 'history';
 
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
@@ -8,9 +9,8 @@ import {generateEventSlug} from 'app/utils/discover/urls';
 import {EventLite, TraceError} from 'app/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
-
-import {getTraceDetailsUrl} from '../traceDetails/utils';
-import {getTransactionDetailsUrl} from '../utils';
+import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
+import {getTransactionDetailsUrl} from 'app/views/performance/utils';
 
 export function generateSingleEventTarget(
   event: EventLite | TraceError,
@@ -71,10 +71,10 @@ export function generateTraceTarget(
 ): LocationDescriptor {
   const traceId = event.contexts?.trace?.trace_id ?? '';
 
-  const {start, end} = getTraceTimeRangeFromEvent(event);
+  const dateSelection = getParams(getTraceTimeRangeFromEvent(event));
 
   if (organization.features.includes('trace-view-summary')) {
-    return getTraceDetailsUrl(organization, traceId, start, end, {});
+    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
   }
 
   const eventView = EventView.fromSavedQuery({
@@ -85,8 +85,7 @@ export function generateTraceTarget(
     query: `event.type:transaction trace:${traceId}`,
     projects: [ALL_ACCESS_PROJECTS],
     version: 2,
-    start,
-    end,
+    ...dateSelection,
   });
   return eventView.getResultsViewUrlTarget(organization.slug);
 }

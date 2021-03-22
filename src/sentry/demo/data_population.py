@@ -1,6 +1,7 @@
 import copy
 import logging
 import functools
+import os
 import random
 import pytz
 import time
@@ -37,7 +38,12 @@ ERROR_BACKOFF_TIME = settings.DEMO_DATA_GEN_PARAMS["ERROR_BACKOFF_TIME"]
 logger = logging.getLogger(__name__)
 
 
-def get_event_from_file(file_path):
+def get_data_file_path(file_name):
+    return os.path.join(os.path.dirname(__file__), "data", file_name)
+
+
+def get_event_from_file(file_name):
+    file_path = get_data_file_path(file_name)
     with open(file_path) as f:
         return clean_event(json.load(f))
 
@@ -77,7 +83,8 @@ distrubtion_fns = [distribution_v1, distribution_v2, distribution_v3]
 
 @functools.lru_cache(maxsize=None)
 def get_list_of_names() -> List[str]:
-    with open("src/sentry/demo/data/names.json") as f:
+    file_path = get_data_file_path("names.json")
+    with open(file_path) as f:
         return json.load(f)
 
 
@@ -300,10 +307,17 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
     - Back-end error
     Occurrance times and durations are randomized
     """
-    react_transaction = get_event_from_file("src/sentry/demo/data/react_transaction_1.json")
-    react_error = get_event_from_file("src/sentry/demo/data/react_error_1.json")
-    python_transaction = get_event_from_file("src/sentry/demo/data/python_transaction_1.json")
-    python_error = get_event_from_file("src/sentry/demo/data/python_error_1.json")
+    react_transaction = get_event_from_file("react_transaction_1.json")
+    react_error = get_event_from_file("react_error_1.json")
+    python_transaction = get_event_from_file("python_transaction_1.json")
+    python_error = get_event_from_file("python_error_1.json")
+
+    log_extra = {
+        "organization_slug": react_project.organization.slug,
+        "MAX_DAYS": MAX_DAYS,
+        "SCALE_FACTOR": SCALE_FACTOR,
+    }
+    logger.info("populate_connected_event_scenario_1.start", extra=log_extra)
 
     for day in range(MAX_DAYS):
         for hour in range(24):
@@ -311,6 +325,10 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
             # determine the number of events we want in this hour
             num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
             for i in range(num_events):
+                logger.info(
+                    "populate_connected_event_scenario_1.send_event_series", extra=log_extra
+                )
+
                 # pick the minutes randomly (which means events will sent be out of order)
                 minute = random.randint(0, 60)
                 timestamp = timezone.now() - timedelta(days=day, hours=hour, minutes=minute)
@@ -403,3 +421,4 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                 )
                 fix_error_event(local_event)
                 safe_send_event(local_event)
+    logger.info("populate_connected_event_scenario_1.finished", extra=log_extra)

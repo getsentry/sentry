@@ -35,6 +35,7 @@ const DEFAULT_SORT: {asc: boolean; field: 'date_added'} = {
   field: 'date_added',
 };
 const DOCS_URL = 'https://docs.sentry.io/product/alerts-notifications/metric-alerts/';
+const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
@@ -277,6 +278,16 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
 class AlertRulesListContainer extends React.Component<Props> {
   componentDidMount() {
+    const {organization, router, location} = this.props;
+    if (organization.features.includes('team-alerts-ownership')) {
+      router.replace({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          team: ALERT_LIST_QUERY_DEFAULT_TEAMS,
+        },
+      });
+    }
     this.trackView();
   }
 

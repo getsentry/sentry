@@ -263,6 +263,7 @@ class ReleasesList extends AsyncView<Props, State> {
         location={location}
         display={[this.getDisplay()]}
         releasesReloading={reloading}
+        healthStatsPeriod={location.query.healthStatsPeriod}
       >
         {({isHealthLoading, getHealthData}) => (
           <React.Fragment>

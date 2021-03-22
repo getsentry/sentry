@@ -49,7 +49,7 @@ def get_user_options(key, user_ids, project, default):
         for option in UserOption.objects.filter(
             Q(project__isnull=True) | Q(project=project),
             user_id__in=user_ids,
-            key="workflow:notifications",
+            key=key,
         )
     }
 
@@ -126,7 +126,8 @@ class GroupSubscriptionManager(BaseManager):
         """
         Identify all users who are participating with a given issue.
         """
-        from sentry.models import User, UserOptionValue
+        from sentry.models import User
+        from sentry.notifications.legacy_mappings import UserOptionValue
 
         users = {
             user.id: user
