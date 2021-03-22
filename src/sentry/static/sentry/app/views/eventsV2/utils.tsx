@@ -60,7 +60,7 @@ export function decodeColumnOrder(
 
     const col = explodeFieldString(f.field);
     column.key = f.field;
-    column.name = f.field.replace('user_misery.prototype', 'user_misery');
+    column.name = f.field.replace('user_misery_prototype', 'user_misery');
     column.width = f.width || COL_WIDTH_UNDEFINED;
 
     if (col.kind === 'function') {
@@ -443,7 +443,7 @@ export function generateFieldOptions({
 
     fieldOptions[`function:${func}`] = {
       label:
-        func === 'user_misery.prototype'
+        func === 'user_misery_prototype'
           ? `user_misery(${ellipsis})`
           : `${func}(${ellipsis})`,
       value: {

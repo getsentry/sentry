@@ -8,14 +8,18 @@ from sentry.models import (
     Deploy,
     Environment,
     GroupSubscriptionReason,
+    NotificationSetting,
     Release,
     ReleaseCommit,
     Repository,
     UserEmail,
-    UserOption,
-    UserOptionValue,
 )
 from sentry.mail.activity.release import ReleaseActivityEmail
+from sentry.models.integration import ExternalProviders
+from sentry.notifications.types import (
+    NotificationSettingTypes,
+    NotificationSettingOptionValues,
+)
 from sentry.testutils import TestCase
 
 
@@ -103,26 +107,28 @@ class ReleaseTestCase(TestCase):
         self.commit3 = self.another_commit(2, "c", self.user4, repository)
         self.commit4 = self.another_commit(3, "e", self.user5, repository, user5_alt_email)
 
-        UserOption.objects.set_value(
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.ALWAYS,
             user=self.user3,
             organization=self.org,
-            key="deploy-emails",
-            value=UserOptionValue.all_deploys,
         )
 
-        UserOption.objects.set_value(
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.NEVER,
             user=self.user4,
             organization=self.org,
-            key="deploy-emails",
-            value=UserOptionValue.no_deploys,
         )
 
         # added to make sure org default above takes precedent
-        UserOption.objects.set_value(
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.ALWAYS,
             user=self.user4,
-            organization=None,
-            key="deploy-emails",
-            value=UserOptionValue.all_deploys,
         )
 
     def test_simple(self):
@@ -224,8 +230,11 @@ class ReleaseTestCase(TestCase):
         user6 = self.create_user()
         self.create_member(user=user6, organization=self.org, teams=[self.team])
 
-        UserOption.objects.set_value(
-            user=user6, organization=None, key="deploy-emails", value=UserOptionValue.all_deploys
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.ALWAYS,
+            user=user6,
         )
         release, deploy = self.another_release("b")
 

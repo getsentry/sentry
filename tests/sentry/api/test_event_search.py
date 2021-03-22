@@ -52,7 +52,7 @@ def test_get_json_meta_type():
     assert get_json_meta_type("apdex_transaction_duration_300", "Float32") == "number"
     assert get_json_meta_type("failure_rate", "Float32") == "percentage"
     assert get_json_meta_type("user_misery_300", "Float32") == "number"
-    assert get_json_meta_type("user_misery.prototype_300", "Float32") == "number"
+    assert get_json_meta_type("user_misery_prototype_300", "Float32") == "number"
     assert get_json_meta_type("percentile_transaction_duration_0_95", "Float32") == "duration"
     assert get_json_meta_type("count_thing", "UInt64") == "integer"
     assert get_json_meta_type("count_thing", "String") == "string"
@@ -363,7 +363,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_date_formats(self):
         invalid_queries = ["first_seen:hello", "first_seen:123", "first_seen:2018-01-01T00:01ZZ"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for date field"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid date"):
                 parse_search_query(invalid_query)
 
     def test_specific_time_filter(self):
@@ -690,7 +690,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_boolean_filter(self):
         invalid_queries = ["stack.in_app:lol", "stack.in_app:123", "stack.in_app:>true"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for boolean field"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid boolean"):
                 parse_search_query(invalid_query)
 
     def test_numeric_filter(self):
@@ -739,7 +739,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_numeric_fields(self):
         invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric field"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid number"):
                 parse_search_query(invalid_query)
 
     def test_invalid_numeric_shorthand(self):
@@ -2283,7 +2283,7 @@ class ResolveFieldListTest(unittest.TestCase):
             "last_seen()",
             "apdex(300)",
             "user_misery(300)",
-            "user_misery.prototype(300)",
+            "user_misery_prototype(300)",
             "percentile(transaction.duration, 0.75)",
             "percentile(transaction.duration, 0.95)",
             "percentile(transaction.duration, 0.99)",
@@ -2304,7 +2304,7 @@ class ResolveFieldListTest(unittest.TestCase):
             [
                 "divide(plus(uniqIf(user, greater(duration, 1200)), 5.8875), plus(uniq(user), 117.75))",
                 None,
-                "user_misery.prototype_300",
+                "user_misery_prototype_300",
             ],
             ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
             ["quantile(0.95)", "transaction.duration", "percentile_transaction_duration_0_95"],

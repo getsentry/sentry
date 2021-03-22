@@ -900,8 +900,7 @@ class EventView {
     return payload;
   }
 
-  // Takes an EventView instance and converts it into the format required for the events API
-  getEventsAPIPayload(location: Location): EventQuery & LocationQuery {
+  normalizeDateSelection(location: Location) {
     const query = (location && location.query) || {};
 
     // pick only the query strings that we care about
@@ -924,10 +923,19 @@ class EventView {
         };
 
     // normalize datetime selection
-    const normalizedTimeWindowParams = getParams({
+    return getParams({
       ...dateSelection,
       utc: decodeScalar(query.utc),
     });
+  }
+
+  // Takes an EventView instance and converts it into the format required for the events API
+  getEventsAPIPayload(location: Location): EventQuery & LocationQuery {
+    // pick only the query strings that we care about
+    const picked = pickRelevantLocationQueryStrings(location);
+
+    // normalize datetime selection
+    const normalizedTimeWindowParams = this.normalizeDateSelection(location);
 
     const sort =
       this.sorts.length <= 0

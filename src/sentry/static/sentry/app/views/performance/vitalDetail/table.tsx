@@ -210,7 +210,10 @@ class Table extends React.Component<Props, State> {
       );
     }
 
-    if (field.startsWith('key_transaction') || field.startsWith('misery')) {
+    if (
+      field.startsWith('key_transaction') ||
+      field.startsWith('user_misery_prototype')
+    ) {
       return rendered;
     }
 

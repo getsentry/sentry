@@ -167,6 +167,7 @@ type SpecialField = {
 
 type SpecialFields = {
   id: SpecialField;
+  trace: SpecialField;
   project: SpecialField;
   user: SpecialField;
   'user.display': SpecialField;
@@ -189,6 +190,17 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'id',
     renderFunc: data => {
       const id: string | unknown = data?.id;
+      if (typeof id !== 'string') {
+        return null;
+      }
+
+      return <Container>{getShortEventId(id)}</Container>;
+    },
+  },
+  trace: {
+    sortField: 'trace',
+    renderFunc: data => {
+      const id: string | unknown = data?.trace;
       if (typeof id !== 'string') {
         return null;
       }
@@ -383,7 +395,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     let miseryField: string = '';
     let userMiseryField: string = '';
     for (const field in data) {
-      if (field.startsWith('user_misery.prototype')) {
+      if (field.startsWith('user_misery_prototype')) {
         miseryField = field;
       } else if (field.startsWith('user_misery')) {
         userMiseryField = field;
@@ -474,7 +486,7 @@ export function getSortField(
   }
 
   for (const alias in AGGREGATIONS) {
-    if (field.startsWith(alias)) {
+    if (field.startsWith(alias) && !field.startsWith('user_misery_prototype')) {
       return AGGREGATIONS[alias].isSortable ? field : null;
     }
   }
