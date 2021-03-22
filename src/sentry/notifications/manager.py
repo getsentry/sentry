@@ -226,7 +226,7 @@ class NotificationsManager(BaseManager):
         type: Optional[NotificationSettingTypes] = None,
         scope_type: Optional[NotificationScopeType] = None,
         scope_identifier: Optional[int] = None,
-        targets: Optional[Iterable[any]] = None,
+        targets: Optional[Iterable] = None,
     ) -> QuerySet:
         """ Wrapper for .filter that translates types to actual attributes to column types. """
         filters = {}
@@ -255,19 +255,17 @@ class NotificationsManager(BaseManager):
             kwargs["key__in"] = KEYS_TO_LEGACY_KEYS.values()
         return kwargs
 
-    def remove_for_user(self, user: any, type: Optional[NotificationSettingTypes] = None) -> None:
+    def remove_for_user(self, user, type: Optional[NotificationSettingTypes] = None) -> None:
         """ Bulk delete all Notification Settings for a USER, optionally by type. """
         # We don't need a transaction because this is only used in tests.
         UserOption.objects.filter(**self._get_legacy_filters(type, user=user)).delete()
         self._filter(targets=[user.actor], type=type).delete()
 
-    def remove_for_team(self, team: any, type: Optional[NotificationSettingTypes] = None) -> None:
+    def remove_for_team(self, team, type: Optional[NotificationSettingTypes] = None) -> None:
         """ Bulk delete all Notification Settings for a TEAM, optionally by type. """
         self._filter(targets=[team.actor], type=type).delete()
 
-    def remove_for_project(
-        self, project: any, type: Optional[NotificationSettingTypes] = None
-    ) -> None:
+    def remove_for_project(self, project, type: Optional[NotificationSettingTypes] = None) -> None:
         """ Bulk delete all Notification Settings for a PROJECT, optionally by type. """
         UserOption.objects.filter(**self._get_legacy_filters(type, project=project)).delete()
         self._filter(
@@ -277,7 +275,7 @@ class NotificationsManager(BaseManager):
         ).delete()
 
     def remove_for_organization(
-        self, organization: any, type: Optional[NotificationSettingTypes] = None
+        self, organization, type: Optional[NotificationSettingTypes] = None
     ) -> None:
         """ Bulk delete all Notification Settings for a ENTIRE ORGANIZATION, optionally by type. """
         UserOption.objects.filter(**self._get_legacy_filters(type, project=organization)).delete()

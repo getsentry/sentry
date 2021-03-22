@@ -124,7 +124,7 @@ class GroupSubscriptionManager(BaseManager):
                     raise e
 
     @staticmethod
-    def get_participants(group) -> Mapping[any]:
+    def get_participants(group) -> Mapping[any, GroupSubscriptionReason]:
         """
         Identify all users who are participating with a given issue.
         :param group: Group object
