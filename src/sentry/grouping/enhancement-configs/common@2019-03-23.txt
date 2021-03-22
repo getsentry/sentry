@@ -56,6 +56,8 @@ family:native package:**/Frameworks/Sentry.framework/**              -app
 # Since 7.0.0, the Cocoa SKD only marks the main executable as inApp. This change doesn't impact
 # applications using static libraries, as when using static libraries, all of them end up in the
 # main executable.
+family:native function:*sentry__hook_dispatch_*                   -app -group
+family:native function:sentry__async_backtrace_capture            -app -group
 family:native function:kscm_*                                     -app -group
 family:native function:sentrycrashcm_*                            -app -group
 family:native function:kscrash_*                                  -app -group
