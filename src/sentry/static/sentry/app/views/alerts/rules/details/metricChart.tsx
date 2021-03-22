@@ -1,26 +1,48 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import color from 'color';
 import moment from 'moment';
 
+import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
+import Button from 'app/components/button';
+import EventsRequest from 'app/components/charts/eventsRequest';
 import Graphic from 'app/components/charts/components/graphic';
 import MarkLine from 'app/components/charts/components/markLine';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
+import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
+import Placeholder from 'app/components/placeholder';
+import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {ReactEchartsRef, Series} from 'app/types/echarts';
+import {AvatarProject, Organization, Project} from 'app/types';
+import {ReactEchartsRef} from 'app/types/echarts';
 import theme from 'app/utils/theme';
-import {IncidentRule, Trigger} from 'app/views/settings/incidentRules/types';
+import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
+import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
+import {getIncidentRuleMetricPreset} from '../../utils';
 
 const X_AXIS_BOUNDARY_GAP = 15;
 const VERTICAL_PADDING = 22;
 
 type Props = {
-  data: Series[];
-  rule: IncidentRule;
+  api: Client;
+  rule?: IncidentRule;
   incidents?: Incident[];
-  warningTrigger?: Trigger;
-  criticalTrigger?: Trigger;
+  timePeriod: {
+    start: string;
+    end: string;
+    label: string;
+    custom?: boolean;
+  };
+  organization: Organization;
+  projects: Project[] | AvatarProject[],
+  metricText: React.ReactNode;
+  interval: string;
+  query: string,
+  orgId: string,
 };
 
 type State = {
@@ -90,6 +112,11 @@ export default class MetricChart extends React.PureComponent<Props, State> {
 
   ref: null | ReactEchartsRef = null;
 
+  get metricPreset() {
+    const {rule} = this.props;
+    return rule ? getIncidentRuleMetricPreset(rule) : undefined;
+  }
+
   /**
    * Syncs component state with the chart's width/heights
    */
@@ -120,14 +147,11 @@ export default class MetricChart extends React.PureComponent<Props, State> {
     }
   };
 
-  getRuleCreatedThresholdElements = () => {
+  getRuleChangeThresholdElements = (data) => {
     const {height, width} = this.state;
-    const {
-      data,
-      rule: {dateModified},
-    } = this.props;
+    const {dateModified} = this.props.rule || {};
 
-    if (!data.length || !data[0].data.length) {
+    if (!data.length || !data[0].data.length || !dateModified) {
       return [];
     }
 
@@ -172,8 +196,62 @@ export default class MetricChart extends React.PureComponent<Props, State> {
     ];
   };
 
-  render() {
-    const {data, incidents, rule, warningTrigger, criticalTrigger} = this.props;
+  renderChartActions(totalDuration: number, criticalDuration: number, warningDuration: number) {
+    const {rule, orgId, projects, timePeriod} = this.props;
+    const preset = this.metricPreset;
+    const ctaOpts = {
+      orgSlug: orgId,
+      projects: projects as Project[],
+      rule,
+      start: timePeriod.start,
+      end: timePeriod.end,
+    };
+
+    const {buttonText, ...props} = preset
+      ? preset.makeCtaParams(ctaOpts)
+      : makeDefaultCta(ctaOpts);
+
+    const resolvedPercent = (100 * (totalDuration - criticalDuration - warningDuration) / totalDuration).toFixed(2);
+    const criticalPercent = (100 * criticalDuration / totalDuration).toFixed(2);
+    const warningPercent = (100 * warningDuration / totalDuration).toFixed(2);
+
+    return (
+      <ChartActions>
+        <ChartSummary>
+          <SummaryText>{t('SUMMARY')}</SummaryText>
+          <SummaryStats>
+            <StatItem>
+              <IconCheckmark color="green300" isCircled />
+              <StatCount>{resolvedPercent}%</StatCount>
+            </StatItem>
+            <StatItem>
+              <IconWarning color="yellow300" />
+              <StatCount>{warningPercent}%</StatCount>
+            </StatItem>
+            <StatItem>
+              <IconFire color="red300" />
+              <StatCount>{criticalPercent}%</StatCount>
+            </StatItem>
+          </SummaryStats>
+        </ChartSummary>
+        <Feature features={['discover-basic']}>
+          <Button size="small" disabled={!rule} {...props}>
+            {buttonText}
+          </Button>
+        </Feature>
+      </ChartActions>
+    );
+  }
+
+  renderChart(data) {
+    const {incidents, rule} = this.props;
+
+    if (!rule) {
+      return null;
+    }
+
+    const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
+    const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
 
     const series: LineChartSeries[] = [...data];
     // Ensure series data appears above incident lines
@@ -185,6 +263,9 @@ export default class MetricChart extends React.PureComponent<Props, State> {
     );
     const firstPoint = Number(dataArr[0].name);
     const lastPoint = dataArr[dataArr.length - 1].name;
+    const totalDuration = lastPoint - firstPoint;
+    let criticalDuration = 0;
+    let warningDuration = 0;
     const resolvedArea = {
       seriesName: 'Resolved Area',
       type: 'line',
@@ -223,45 +304,45 @@ export default class MetricChart extends React.PureComponent<Props, State> {
 
           const timeWindowMs = rule.timeWindow * 60 * 1000;
 
-          let currColor: string = rule.triggers.find(({label}) => label === 'warning')
-            ? theme.yellow300
-            : theme.red300;
           series.push(
             createIncidentSeries(
-              currColor,
+              rule.triggers.find(({label}) => label === 'warning')
+                && (statusChanges && !statusChanges.find(({value}) => value === `${IncidentStatus.CRITICAL}`))
+                ? theme.yellow300
+                : theme.red300,
               moment(incident.dateStarted).valueOf(),
-              incident.identifier
+              incident.identifier,
             )
           );
-          series.push(
-            createStatusAreaSeries(
-              currColor,
-              moment(incident.dateStarted).valueOf(),
-              statusChanges?.length && statusChanges[0].dateCreated
-                ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
-                : moment(incidentEnd).valueOf()
-            )
-          );
+          let areaStart = moment(incident.dateStarted).valueOf();
+          let areaEnd = statusChanges?.length && statusChanges[0].dateCreated
+            ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
+            : moment(incidentEnd).valueOf();
+          let areaColor = rule.triggers.find(({label}) => label === 'warning')
+            ? theme.yellow300
+            : theme.red300;
+          series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
+          if (areaColor === theme.yellow300) {
+            warningDuration += areaEnd - areaStart;
+          } else {
+            criticalDuration += areaEnd - areaStart;
+          }
 
           statusChanges?.forEach((activity, idx) => {
-            const dateCreated = moment(activity.dateCreated).valueOf() - timeWindowMs;
-            const activityColor =
+            const areaStart = moment(activity.dateCreated).valueOf() - timeWindowMs;
+            const areaColor =
               activity.value === `${IncidentStatus.CRITICAL}`
                 ? theme.red300
                 : theme.yellow300;
-            if (activityColor !== currColor) {
-              series.push(createIncidentSeries(activityColor, dateCreated));
-              currColor = activityColor;
+            let areaEnd = idx === statusChanges.length - 1
+              ? moment(incidentEnd).valueOf()
+              : moment(statusChanges[idx + 1].dateCreated).valueOf() - timeWindowMs
+            series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
+            if (areaColor === theme.yellow300) {
+              warningDuration += areaEnd - areaStart;
+            } else {
+              criticalDuration += areaEnd - areaStart;
             }
-            series.push(
-              createStatusAreaSeries(
-                activityColor,
-                dateCreated,
-                idx === statusChanges.length - 1
-                  ? moment(incidentEnd).valueOf()
-                  : moment(statusChanges[idx + 1].dateCreated).valueOf() - timeWindowMs
-              )
-            );
           });
         });
     }
@@ -281,7 +362,7 @@ export default class MetricChart extends React.PureComponent<Props, State> {
       maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
     }
 
-    return (
+    return (<React.Fragment>
       <LineChart
         isGroupedByDate
         showTimeInTooltip
@@ -295,7 +376,7 @@ export default class MetricChart extends React.PureComponent<Props, State> {
         yAxis={maxThresholdValue > maxSeriesValue ? {max: maxThresholdValue} : undefined}
         series={series}
         graphic={Graphic({
-          elements: this.getRuleCreatedThresholdElements(),
+          elements: this.getRuleChangeThresholdElements(data),
         })}
         onFinished={() => {
           // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
@@ -303,6 +384,117 @@ export default class MetricChart extends React.PureComponent<Props, State> {
           this.updateDimensions();
         }}
       />
+        {this.renderChartActions(totalDuration, criticalDuration, warningDuration)}
+      </React.Fragment>
     );
   }
+
+  render() {
+    const {
+      api,
+      rule,
+      organization,
+      timePeriod,
+      projects,
+      interval,
+      metricText,
+      query,
+    } = this.props;
+
+    if (!rule) {
+      return (
+        <ChartPanel>
+          <PanelBody withPadding>
+            <Placeholder height="200px" />
+          </PanelBody>
+        </ChartPanel>
+      );
+    }
+
+    return (
+      <ChartPanel>
+        <PanelBody withPadding>
+          <ChartHeader>
+            <PresetName>
+              {this.metricPreset?.name ?? t('Custom metric')}
+            </PresetName>
+            {metricText}
+          </ChartHeader>
+          <EventsRequest
+            api={api}
+            organization={organization}
+            query={query}
+            environment={rule.environment ? [rule.environment] : undefined}
+            project={(projects as Project[]).map(project => Number(project.id))}
+            interval={interval}
+            start={timePeriod.start}
+            end={timePeriod.end}
+            yAxis={rule.aggregate}
+            includePrevious={false}
+            currentSeriesName={rule.aggregate}
+            partial={false}
+          >
+            {({loading, timeseriesData}) =>
+              !loading && timeseriesData ? (
+                this.renderChart(timeseriesData)
+              ) : (
+                <Placeholder height="200px" />
+              )
+            }
+          </EventsRequest>
+        </PanelBody>
+      </ChartPanel>
+    )
+  }
 }
+
+const ChartPanel = styled(Panel)`
+  margin-top: ${space(2)};
+`;
+
+const ChartHeader = styled('header')`
+  margin-bottom: ${space(1)};
+  display: flex;
+  flex-direction: row;
+`;
+
+const PresetName = styled('div')`
+  text-transform: capitalize;
+  margin-right: ${space(0.5)};
+`;
+
+const ChartActions = styled(PanelFooter)`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: ${space(1)} 20px;
+`;
+
+const ChartSummary = styled('div')`
+  display: flex;
+  margin-right: auto;
+`;
+
+const SummaryText = styled('span')`
+  margin-top: ${space(0.25)};
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const SummaryStats = styled('div')`
+  display: flex;
+  align-items: center;
+  margin: 0 ${space(2)};
+`;
+
+const StatItem = styled('div')`
+  display: flex;
+  align-items: center;
+  margin: 0 ${space(2)} 0 0;
+`;
+
+const StatCount = styled('span')`
+  margin-left: ${space(0.5)};
+  margin-top: ${space(0.25)};
+  color: black;
+`;
