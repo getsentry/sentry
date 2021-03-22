@@ -3,7 +3,7 @@ import warnings
 
 from bitfield import BitField
 from django.contrib.auth.signals import user_logged_out
-from django.contrib.auth.models import AbstractBaseUser, UserManager
+from django.contrib.auth.models import AbstractBaseUser, UserManager as DjangoUserManager
 from django.core.urlresolvers import reverse
 from django.dispatch import receiver
 from django.db import IntegrityError, models, transaction
@@ -17,7 +17,7 @@ from sentry.utils.http import absolute_uri
 audit_logger = logging.getLogger("sentry.audit.user")
 
 
-class UserManager(BaseManager, UserManager):
+class UserManager(BaseManager, DjangoUserManager):
     def get_from_teams(self, organization_id, teams):
         return User.objects.filter(
             sentry_orgmember_set__organization_id=organization_id,
