@@ -121,8 +121,11 @@ const Content = ({
               id,
               activeDisplay
             );
-
             const adoption = getHealthData.getAdoption(releaseVersion, id, activeDisplay);
+            // we currently don't support sub-hour session intervals, we rather hide the count histogram than to show only two bars
+            const hasCountHistogram =
+              timeSeries?.[0].data.length > 7 &&
+              timeSeries[0].data.some(item => item.value > 0);
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
@@ -162,8 +165,7 @@ const Content = ({
                   <CountColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder />
-                    ) : // we currently don't support sub-hour session intervals, we rather hide the count histogram than to show only two bars
-                    timeSeries && timeSeries[0].data.length > 7 ? (
+                    ) : hasCountHistogram ? (
                       <ChartWrapper>
                         <HealthStatsChart
                           data={timeSeries}
