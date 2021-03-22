@@ -9,14 +9,18 @@ import {
   stackTracePlatformIcon,
 } from 'app/components/events/interfaces/utils';
 import {t} from 'app/locale';
-import {Frame, PlatformType} from 'app/types';
+import {Frame, Organization, PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import withOrganization from 'app/utils/withOrganization';
 
 const defaultProps = {
   includeSystemFrames: true,
   expandFirstFrame: true,
 };
+
+type DefaultProps = typeof defaultProps;
 
 type Props = {
   data: StacktraceType;
@@ -25,15 +29,16 @@ type Props = {
   newestFirst?: boolean;
   className?: string;
   isHoverPreviewed?: boolean;
-} & typeof defaultProps;
+  organization?: Organization;
+} & Partial<DefaultProps>;
 
 type State = {
   showingAbsoluteAddresses: boolean;
   showCompleteFunctionName: boolean;
 };
 
-export default class StacktraceContent extends React.Component<Props, State> {
-  static defaultProps = {
+class StacktraceContent extends React.Component<Props, State> {
+  static defaultProps: DefaultProps = {
     includeSystemFrames: true,
     expandFirstFrame: true,
   };
@@ -42,6 +47,19 @@ export default class StacktraceContent extends React.Component<Props, State> {
     showingAbsoluteAddresses: false,
     showCompleteFunctionName: false,
   };
+
+  componentDidMount() {
+    const {isHoverPreviewed, organization, event} = this.props;
+
+    if (isHoverPreviewed) {
+      trackAnalyticsEvent({
+        eventKey: 'stacktrace.preview.open',
+        eventName: 'Stack Trace Preview: Open',
+        organization_id: organization?.id ? parseInt(organization.id, 10) : '',
+        issue_id: event.groupID,
+      });
+    }
+  }
 
   renderOmittedFrames = (firstFrameOmitted, lastFrameOmitted) => {
     const props = {
@@ -263,6 +281,8 @@ export default class StacktraceContent extends React.Component<Props, State> {
     );
   }
 }
+
+export default withOrganization(StacktraceContent);
 
 const Wrapper = styled('div')`
   position: relative;

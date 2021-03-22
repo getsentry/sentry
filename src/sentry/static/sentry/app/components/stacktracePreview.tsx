@@ -12,7 +12,6 @@ import {Organization, PlatformType} from 'app/types';
 import {EntryType, Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 
 import findBestThread from './events/interfaces/threads/threadSelector/findBestThread';
@@ -128,13 +127,6 @@ class StacktracePreview extends React.Component<Props, State> {
     }
 
     if (event) {
-      trackAnalyticsEvent({
-        eventKey: 'stacktrace.preview.open',
-        eventName: 'Stack Trace Preview: Open',
-        organization_id: parseInt(this.props.organization.id, 10),
-        issue_id: this.props.issueId,
-      });
-
       return (
         <div onClick={this.handleStacktracePreviewClick}>
           <StacktraceContent
