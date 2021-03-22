@@ -556,8 +556,16 @@ def get_release_sessions_time_bounds(project_id, release, org_id, environments=N
 
     if rows:
         rv = rows[0]
-        release_sessions_time_bounds = {
-            "sessions_lower_bound": rv["first_session_started"],
-            "sessions_upper_bound": rv["last_session_started"],
-        }
+        formatted_unix_start_time = datetime.utcfromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+
+        if set(rv.values()) == {formatted_unix_start_time}:
+            release_sessions_time_bounds = {
+                "sessions_lower_bound": None,
+                "sessions_upper_bound": None,
+            }
+        else:
+            release_sessions_time_bounds = {
+                "sessions_lower_bound": rv["first_session_started"],
+                "sessions_upper_bound": rv["last_session_started"],
+            }
     return release_sessions_time_bounds

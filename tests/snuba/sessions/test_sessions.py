@@ -403,3 +403,19 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             "sessions_lower_bound": expected_formatted_lower_bound,
             "sessions_upper_bound": expected_formatted_upper_bound,
         }
+
+    def test_fetching_release_sessions_time_bounds_for_different_release_with_no_sessions(self):
+        """
+        Test that ensures if no sessions are available for a specific release then the bounds
+        should be returned as None
+        """
+        data = get_release_sessions_time_bounds(
+            project_id=self.project.id,
+            release="different_release",
+            org_id=self.organization.id,
+            environments=["prod"],
+        )
+        assert data == {
+            "sessions_lower_bound": None,
+            "sessions_upper_bound": None,
+        }
