@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 from abc import ABC, abstractmethod
 from django.http import QueryDict
 from sentry.utils.snuba import raw_query
@@ -49,9 +49,7 @@ class Field(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def extract_from_row(
-        self, row: Dict[str, Union[Any, int]], group: Optional[Dict[str, Any]] = None
-    ) -> int:
+    def extract_from_row(self, row: Dict[str, Any], group: Optional[Dict[str, Any]] = None) -> int:
         raise NotImplementedError()
 
     @abstractmethod
@@ -63,12 +61,10 @@ class QuantityField(Field):
     def get_snuba_columns(self, raw_groupby: Optional[List[str]] = None) -> List[str]:
         return ["quantity"]
 
-    def extract_from_row(
-        self, row: Dict[str, Union[Any, int]], group: Optional[Dict[str, Any]] = None
-    ) -> int:
+    def extract_from_row(self, row: Dict[str, Any], group: Optional[Dict[str, Any]] = None) -> int:
         if row is None:
             return 0
-        return row["quantity"]
+        return int(row["quantity"])
 
     def aggregation(self, dataset: Dataset) -> List[str]:
         return ["sum", "quantity", "quantity"]
@@ -78,12 +74,10 @@ class TimesSeenField(Field):
     def get_snuba_columns(self, raw_groupby: Optional[List[str]] = None) -> List[str]:
         return ["times_seen"]
 
-    def extract_from_row(
-        self, row: Dict[str, Union[Any, int]], group: Optional[Dict[str, Any]] = None
-    ) -> int:
+    def extract_from_row(self, row: Dict[str, Any], group: Optional[Dict[str, Any]] = None) -> int:
         if row is None:
             return 0
-        return row["times_seen"]
+        return int(row["times_seen"])
 
     def aggregation(self, dataset: Dataset) -> List[str]:
         if dataset == Dataset.Outcomes:
