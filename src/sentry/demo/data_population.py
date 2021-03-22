@@ -137,13 +137,10 @@ def gen_random_author():
     )
 
 
-def make_sentence(words=None):
-    if words is None:
-        words = int(random.weibullvariate(8, 3))
-    return " ".join(random.choice(loremipsum.words) for _ in range(words))
-
-
 def get_release_from_time(org_id, timestamp):
+    """
+    Returns the most release before a specific time
+    """
     return (
         Release.objects.filter(organization_id=org_id, date_added__lte=timestamp)
         .order_by("-date_added")
@@ -152,6 +149,10 @@ def get_release_from_time(org_id, timestamp):
 
 
 def generate_commits(required_files, file_extensions):
+    """
+    Generate the JSON for commits that are a combination of randomly generated files
+    And a set of files (required_files) with specific file extensions
+    """
     commits = []
     for i in range(random.randint(len(required_files), 20)):
         if i < len(required_files):
