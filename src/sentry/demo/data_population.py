@@ -142,9 +142,10 @@ def generate_user(quick=False):
 
 
 def gen_random_author():
+    author = "{} {}".format(random.choice(loremipsum.words), random.choice(loremipsum.words)),
     return (
-        "{} {}".format(random.choice(loremipsum.words), random.choice(loremipsum.words)),
-        "{}@example.com".format(random.choice(loremipsum.words)),
+        author
+        "{}@example.com".format(author.replace(" ", ".")),
     )
 
 
