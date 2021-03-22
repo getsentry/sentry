@@ -40,7 +40,6 @@ by these fields
 - `outcome`
 - `reason`
 - `category`
-```
 """
 
 
