@@ -9,9 +9,8 @@ import {generateEventSlug} from 'app/utils/discover/urls';
 import {EventLite, TraceError} from 'app/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
-
-import {getTraceDetailsUrl} from '../traceDetails/utils';
-import {getTransactionDetailsUrl} from '../utils';
+import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
+import {getTransactionDetailsUrl} from 'app/views/performance/utils';
 
 export function generateSingleEventTarget(
   event: EventLite | TraceError,

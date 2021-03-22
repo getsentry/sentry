@@ -320,6 +320,18 @@ class User(BaseModel, AbstractBaseUser):
             id__in=OrganizationMember.objects.filter(user=self).values("organization"),
         )
 
+    def get_projects(self):
+        from sentry.models import Project, ProjectStatus, ProjectTeam, OrganizationMemberTeam
+
+        return Project.objects.filter(
+            status=ProjectStatus.VISIBLE,
+            id__in=ProjectTeam.objects.filter(
+                team_id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__user=self
+                ).values_list("team_id", flat=True)
+            ).values_list("project_id", flat=True),
+        )
+
     def get_orgs_require_2fa(self):
         from sentry.models import Organization, OrganizationStatus
 

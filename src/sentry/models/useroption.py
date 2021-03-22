@@ -6,17 +6,6 @@ from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import OptionManager
 
 
-class UserOptionValue:
-    # 'workflow:notifications'
-    all_conversations = "0"
-    participating_only = "1"
-    no_conversations = "2"
-    # 'deploy-emails
-    all_deploys = "2"
-    committed_deploys_only = "3"
-    no_deploys = "4"
-
-
 option_scope_error = "this is not a supported use case, scope to project OR organization"
 
 
@@ -44,9 +33,11 @@ class UserOptionManager(OptionManager):
         return result.get(key, default)
 
     def unset_value(self, user, project, key):
-        # this isn't implemented for user-organization scoped options yet, because
-        # it hasn't been needed
+        """
+        This isn't implemented for user-organization scoped options yet, because it hasn't been needed.
+        """
         self.filter(user=user, project=project, key=key).delete()
+
         if not hasattr(self, "_metadata"):
             return
 

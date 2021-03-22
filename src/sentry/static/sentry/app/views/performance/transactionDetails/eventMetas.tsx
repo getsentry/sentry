@@ -15,7 +15,7 @@ import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/typ
 import {isTransaction} from 'app/utils/performance/quickTrace/utils';
 import Projects from 'app/utils/projects';
 
-import QuickTrace from './quickTrace';
+import QuickTraceMeta from './quickTraceMeta';
 import {MetaData} from './styles';
 
 type Props = {
@@ -82,7 +82,7 @@ function EventMetas({event, organization, projectId, location, quickTrace}: Prop
         />
       )}
       <QuickTraceContainer>
-        <QuickTrace
+        <QuickTraceMeta
           event={event}
           organization={organization}
           location={location}
