@@ -105,7 +105,7 @@ describe('GroupActions', function () {
   });
 
   describe('reprocessing', function () {
-    it('renders ReprocessAction component if orga has feature flag reprocessing-v2', function () {
+    it('renders ReprocessAction component if org has feature flag reprocessing-v2', function () {
       const wrapper = renderComponent();
 
       const reprocessActionButton = wrapper.find('ReprocessAction');
@@ -118,7 +118,7 @@ describe('GroupActions', function () {
         platform: 'native',
       });
 
-      const onReprocessFunc = jest.spyOn(ModalActions, 'openModal');
+      const onReprocessEventFunc = jest.spyOn(ModalActions, 'openModal');
 
       const wrapper = renderComponent(event);
 
@@ -127,7 +127,10 @@ describe('GroupActions', function () {
 
       reprocessActionButton.simulate('click');
 
-      expect(onReprocessFunc).toHaveBeenCalled();
+      // @ts-expect-error
+      await tick();
+
+      expect(onReprocessEventFunc).toHaveBeenCalled();
     });
   });
 });

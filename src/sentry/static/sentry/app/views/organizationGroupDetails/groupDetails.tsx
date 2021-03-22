@@ -170,8 +170,6 @@ class GroupDetails extends React.Component<Props, State> {
     return {currentTab, baseUrl};
   }
 
-  checkRedirectRoute() {}
-
   updateReprocessingProgress() {
     const hasReprocessingV2Feature = this.hasReprocessingV2Feature();
 

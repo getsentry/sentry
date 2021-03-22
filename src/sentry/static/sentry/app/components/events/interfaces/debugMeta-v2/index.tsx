@@ -10,7 +10,7 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import {openModal} from 'app/actionCreators/modal';
+import {openModal, openReprocessEventModal} from 'app/actionCreators/modal';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import EventDataSection from 'app/components/events/eventDataSection';
@@ -22,13 +22,13 @@ import {t} from 'app/locale';
 import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Group, Organization, Project} from 'app/types';
 import {Image, ImageStatus} from 'app/types/debugImage';
 import {Event} from 'app/types/event';
+import {defined} from 'app/utils';
 
 import Status from './debugImage/status';
 import DebugImage from './debugImage';
-import DebugImageDetails, {modalCss} from './debugImageDetails';
 import Filter from './filter';
 import layout from './layout';
 import {
@@ -54,6 +54,7 @@ type Props = DefaultProps &
     event: Event;
     organization: Organization;
     projectId: Project['id'];
+    groupId?: Group['id'];
   };
 
 type State = {
@@ -206,8 +207,8 @@ class DebugMeta extends React.PureComponent<Props, State> {
     );
   }
 
-  openImageDetailsModal() {
-    const {location, organization, projectId} = this.props;
+  openImageDetailsModal = async () => {
+    const {location, organization, projectId, groupId, event} = this.props;
     const {query} = location;
 
     const {imageCodeId, imageDebugId} = query;
@@ -224,13 +225,23 @@ class DebugMeta extends React.PureComponent<Props, State> {
           )
         : undefined;
 
+    const mod = await import(
+      /* webpackChunkName: "DebugImageDetails" */ 'app/components/events/interfaces/debugMeta-v2/debugImageDetails'
+    );
+
+    const {default: Modal, modalCss} = mod;
+
     openModal(
-      modalProps => (
-        <DebugImageDetails
-          {...modalProps}
+      deps => (
+        <Modal
+          {...deps}
           image={image}
           organization={organization}
           projectId={projectId}
+          event={event}
+          onReprocessEvent={
+            defined(groupId) ? this.handleReprocessEvent(groupId) : undefined
+          }
         />
       ),
       {
@@ -238,7 +249,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         onClose: this.handleCloseImageDetailsModal,
       }
     );
-  }
+  };
 
   getPanelBodyHeight() {
     const panelTableHeight = this.panelTableRef?.current?.offsetHeight;
@@ -390,6 +401,15 @@ class DebugMeta extends React.PureComponent<Props, State> {
     router.push({
       ...location,
       query: {...location.query, imageCodeId: undefined, imageDebugId: undefined},
+    });
+  };
+
+  handleReprocessEvent = (groupId: Group['id']) => () => {
+    const {organization} = this.props;
+    openReprocessEventModal({
+      organization,
+      groupId,
+      onClose: this.openImageDetailsModal,
     });
   };
 

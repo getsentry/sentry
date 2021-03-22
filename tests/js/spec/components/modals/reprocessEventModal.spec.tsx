@@ -1,23 +1,12 @@
-import React from 'react';
-
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import {openModal} from 'app/actionCreators/modal';
+import {openReprocessEventModal} from 'app/actionCreators/modal';
 import ModalActions from 'app/actions/modalActions';
-import ReprocessingDialogForm from 'app/views/organizationGroupDetails/reprocessingDialogForm';
-
 // @ts-expect-error
 const group = TestStubs.Group({
   id: '1337',
   pluginActions: [],
   pluginIssues: [],
-});
-
-// @ts-expect-error
-const project = TestStubs.ProjectDetails({
-  id: '2448',
-  name: 'project name',
-  slug: 'project',
 });
 
 // @ts-expect-error
@@ -30,17 +19,10 @@ const organization = TestStubs.Organization({
 async function renderComponent() {
   const modal = await mountGlobalModal();
 
-  openModal(({closeModal, Header, Body}) => (
-    <ReprocessingDialogForm
-      group={group}
-      organization={organization}
-      project={project}
-      closeModal={closeModal}
-      Header={Header}
-      Body={Body}
-    />
-  ));
+  openReprocessEventModal({organization, groupId: group.id});
 
+  // @ts-expect-error
+  await tick();
   // @ts-expect-error
   await tick();
   modal.update();
@@ -48,7 +30,7 @@ async function renderComponent() {
   return modal;
 }
 
-describe('ReprocessDialogForm', function () {
+describe('ReprocessEventModal', function () {
   let wrapper: any;
 
   beforeAll(async function () {

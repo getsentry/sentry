@@ -12,7 +12,7 @@ import Spans from 'app/components/events/interfaces/spans';
 import Stacktrace from 'app/components/events/interfaces/stacktrace';
 import Template from 'app/components/events/interfaces/template';
 import Threads from 'app/components/events/interfaces/threads';
-import {Organization, Project, SharedViewOrganization} from 'app/types';
+import {Group, Organization, Project, SharedViewOrganization} from 'app/types';
 import {Entry, EntryType, Event, EventTransaction} from 'app/types/event';
 
 type Props = {
@@ -20,10 +20,10 @@ type Props = {
   projectSlug: Project['slug'];
   event: Event;
   organization: SharedViewOrganization | Organization;
-  isShare: boolean;
+  groupId?: Group['id'];
 };
 
-function EventEntry({entry, event, projectSlug, organization}: Props) {
+function EventEntry({entry, projectSlug, event, organization, groupId}: Props) {
   switch (entry.type) {
     case EntryType.EXCEPTION: {
       const {data, type} = entry;
@@ -81,6 +81,7 @@ function EventEntry({entry, event, projectSlug, organization}: Props) {
           <DebugMetaV2
             event={event}
             projectId={projectSlug}
+            groupId={groupId}
             organization={organization as Organization}
             data={data as React.ComponentProps<typeof DebugMetaV2>['data']}
           />

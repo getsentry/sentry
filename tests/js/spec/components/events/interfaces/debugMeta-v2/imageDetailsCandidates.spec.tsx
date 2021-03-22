@@ -15,6 +15,8 @@ describe('Debug Meta - Image Details Candidates', function () {
   // @ts-expect-error
   const organization = TestStubs.Organization();
   // @ts-expect-error
+  const event = TestStubs.Event();
+  // @ts-expect-error
   const eventEntryDebugMeta = TestStubs.EventEntryDebugMeta();
   const {data} = eventEntryDebugMeta;
   const {images} = data;
@@ -44,6 +46,7 @@ describe('Debug Meta - Image Details Candidates', function () {
           image={debugImage}
           organization={organization}
           projectId={projectId}
+          event={event}
         />
       ),
       {
@@ -58,9 +61,8 @@ describe('Debug Meta - Image Details Candidates', function () {
   });
 
   it('Image Details Modal is open', () => {
-    expect(wrapper.find('[data-test-id="modal-title"]').text()).toEqual(
-      getFileName(debugImage.code_file)
-    );
+    const fileName = wrapper.find('Title FileName');
+    expect(fileName.text()).toEqual(getFileName(debugImage.code_file));
   });
 
   it('Image Candidates correctly sorted', () => {
