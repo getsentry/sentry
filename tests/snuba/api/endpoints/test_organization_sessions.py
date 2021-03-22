@@ -1,6 +1,5 @@
 import datetime
 import pytz
-import pytest
 
 from uuid import uuid4
 from freezegun import freeze_time
@@ -163,6 +162,8 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
+            "start": "2021-01-14T00:00:00Z",
+            "end": "2021-01-14T12:28:00Z",
             "query": "",
             "intervals": ["2021-01-14T00:00:00Z"],
             "groups": [{"by": {}, "series": {"sum(session)": [9]}, "totals": {"sum(session)": 9}}],
@@ -174,6 +175,8 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
+            "start": "2021-01-13T18:00:00Z",
+            "end": "2021-01-14T12:28:00Z",
             "query": "",
             "intervals": [
                 "2021-01-13T18:00:00Z",
@@ -195,6 +198,8 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
+            "start": "2021-01-14T00:00:00Z",
+            "end": "2021-01-14T12:28:00Z",
             "query": "",
             "intervals": ["2021-01-14T00:00:00Z"],
             "groups": [{"by": {}, "series": {"sum(session)": [9]}, "totals": {"sum(session)": 9}}],
@@ -225,6 +230,8 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
+            "start": "2021-01-14T11:00:00Z",
+            "end": "2021-01-14T12:28:00Z",
             "query": "",
             "intervals": ["2021-01-14T11:00:00Z", "2021-01-14T12:00:00Z"],
             "groups": [
@@ -232,7 +239,6 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             ],
         }
 
-    @pytest.mark.skip(reason="requires unflagging minute-resolution sessions in snuba")
     @freeze_time("2021-01-14T12:37:28.303Z")
     def test_minute_resolution(self):
         with self.feature("organizations:minute-resolution-sessions"):
@@ -246,19 +252,19 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             )
             assert response.status_code == 200, response.content
             assert result_sorted(response.data) == {
+                "start": "2021-01-14T12:00:00Z",
+                "end": "2021-01-14T12:38:00Z",
                 "query": "",
                 "intervals": [
                     "2021-01-14T12:00:00Z",
                     "2021-01-14T12:10:00Z",
                     "2021-01-14T12:20:00Z",
                     "2021-01-14T12:30:00Z",
-                    "2021-01-14T12:40:00Z",
-                    "2021-01-14T12:50:00Z",
                 ],
                 "groups": [
                     {
                         "by": {},
-                        "series": {"sum(session)": [2, 1, 1, 0, 0, 0]},
+                        "series": {"sum(session)": [2, 1, 1, 0]},
                         "totals": {"sum(session)": 4},
                     }
                 ],
