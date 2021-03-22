@@ -222,6 +222,7 @@ const ReleasesTable = styled('div')`
 
 const StyledVersion = styled(Version)`
   ${overflowEllipsis}
+  line-height: 1.5;
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
