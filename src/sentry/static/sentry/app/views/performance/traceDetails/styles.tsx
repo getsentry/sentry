@@ -20,6 +20,13 @@ export {
   SpanTreeToggler as TransactionTreeToggle,
   SpanTreeTogglerContainer as TransactionTreeToggleContainer,
 } from 'app/components/events/interfaces/spans/spanBar';
+
+export {
+  Row,
+  SpanDetails as TransactionDetails,
+  SpanDetailContainer as TransactionDetailsContainer,
+} from 'app/components/events/interfaces/spans/spanDetail';
+
 export {
   SPAN_ROW_HEIGHT as TRANSACTION_ROW_HEIGHT,
   SPAN_ROW_PADDING as TRANSACTION_ROW_PADDING,
