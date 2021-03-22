@@ -190,7 +190,8 @@ export type MetricActionTemplate = {
  * This is the user's configured action
  */
 export type Action = UnsavedAction & Partial<SavedActionFields>;
-export type SavedAction = UnsavedAction & SavedActionFields;
+export type SavedAction = Omit<UnsavedAction, 'unsavedDateCreated' | 'unsavedId'> &
+  SavedActionFields;
 
 type SavedActionFields = {
   /**
@@ -215,6 +216,9 @@ type SavedActionFields = {
 };
 
 export type UnsavedAction = {
+  unsavedId: string;
+  /** Used to maintain order of unsaved actions */
+  unsavedDateCreated: string;
   type: ActionType;
 
   targetType: TargetType | null;

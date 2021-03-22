@@ -126,13 +126,13 @@ describe('Incident Rules Details', function () {
           triggers: [
             expect.objectContaining({
               actions: [
-                {
+                expect.objectContaining({
                   integrationId: null,
                   targetIdentifier: '',
                   targetType: 'user',
                   type: 'email',
                   options: null,
-                },
+                }),
               ],
               alertRuleId: '4',
               alertThreshold: 70,
@@ -187,13 +187,13 @@ describe('Incident Rules Details', function () {
           triggers: [
             expect.objectContaining({
               actions: [
-                {
+                expect.objectContaining({
                   integrationId: null,
                   targetIdentifier: '',
                   targetType: 'user',
                   type: 'email',
                   options: null,
-                },
+                }),
               ],
               alertRuleId: '4',
               alertThreshold: 70,

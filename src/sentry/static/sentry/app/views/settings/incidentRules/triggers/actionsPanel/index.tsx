@@ -11,6 +11,7 @@ import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, SelectValue} from 'app/types';
+import {uniqueId} from 'app/utils/guid';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import withOrganization from 'app/utils/withOrganization';
@@ -45,9 +46,12 @@ type Props = {
 /**
  * When a new action is added, all of it's settings should be set to their default values.
  * @param actionConfig
+ * @param dateCreated kept to maintain order of unsaved actions
  */
-const getCleanAction = (actionConfig): Action => {
+const getCleanAction = (actionConfig, dateCreated?: string): Action => {
   return {
+    unsavedId: uniqueId(),
+    unsavedDateCreated: dateCreated ?? new Date().toISOString(),
     type: actionConfig.type,
     targetType:
       actionConfig &&
@@ -155,12 +159,10 @@ class ActionsPanel extends React.PureComponent<Props> {
     value: SelectValue<number>
   ) => {
     const {triggers, onChange} = this.props;
-    const action = triggers[triggerIndex].actions[index];
-
-    // Because we're moving it between two different triggers the position of the
-    // action could change, try to change it less by pushing or unshifting
-    const position = value.value === 1 ? 'unshift' : 'push';
-    triggers[value.value].actions[position](action);
+    // Convert saved action to unsaved by removing id
+    const {id: _, ...action} = triggers[triggerIndex].actions[index];
+    action.unsavedId = uniqueId();
+    triggers[value.value].actions.push(action);
     onChange(value.value, triggers, triggers[value.value].actions);
     this.handleDeleteAction(triggerIndex, index);
   };
@@ -181,7 +183,9 @@ class ActionsPanel extends React.PureComponent<Props> {
       return;
     }
 
-    const newAction: Action = getCleanAction(actionConfig);
+    const existingDateCreated =
+      actions[index].dateCreated ?? actions[index].unsavedDateCreated;
+    const newAction: Action = getCleanAction(actionConfig, existingDateCreated);
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };
 
@@ -213,17 +217,36 @@ class ActionsPanel extends React.PureComponent<Props> {
     } = this.props;
 
     const project = projects.find(({slug}) => slug === currentProject);
-    const items =
-      availableActions &&
-      availableActions.map(availableAction => ({
-        value: getActionUniqueKey(availableAction),
-        label: getFullActionTitle(availableAction),
-      }));
+    const items = availableActions?.map(availableAction => ({
+      value: getActionUniqueKey(availableAction),
+      label: getFullActionTitle(availableAction),
+    }));
 
     const levels = [
       {value: 0, label: 'Critical Status'},
       {value: 1, label: 'Warning Status'},
     ];
+
+    // Create single array of unsaved and saved trigger actions
+    // Sorted by date created ascending
+    const actions = triggers
+      .flatMap((trigger, triggerIndex) => {
+        return trigger.actions.map((action, actionIdx) => {
+          const availableAction = availableActions?.find(
+            a => getActionUniqueKey(a) === getActionUniqueKey(action)
+          );
+          return {
+            dateCreated: new Date(
+              action.dateCreated ?? action.unsavedDateCreated
+            ).getTime(),
+            triggerIndex,
+            action,
+            actionIdx,
+            availableAction,
+          };
+        });
+      })
+      .sort((a, b) => a.dateCreated - b.dateCreated);
 
     return (
       <Panel>
@@ -238,91 +261,81 @@ class ActionsPanel extends React.PureComponent<Props> {
         </PanelBody>
         <PanelBody>
           {loading && <LoadingIndicator />}
-          {triggers.map((trigger, triggerIndex) => {
-            const {actions} = trigger;
+          {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {
             return (
-              actions &&
-              actions.map((action: Action, i: number) => {
-                const availableAction = availableActions?.find(
-                  a => getActionUniqueKey(a) === getActionUniqueKey(action)
-                );
+              <PanelItemWrapper key={action.id ?? action.unsavedId}>
+                <RuleRowContainer>
+                  <PanelItemGrid>
+                    <PanelItemSelects>
+                      <SelectControl
+                        name="select-level"
+                        aria-label={t('Select a status level')}
+                        isDisabled={disabled || loading}
+                        placeholder={t('Select Level')}
+                        onChange={this.handleChangeActionLevel.bind(
+                          this,
+                          triggerIndex,
+                          actionIdx
+                        )}
+                        value={triggerIndex}
+                        options={levels}
+                      />
 
-                return (
-                  <PanelItemWrapper key={i}>
-                    <RuleRowContainer>
-                      <PanelItemGrid>
-                        <PanelItemSelects>
-                          <SelectControl
-                            name="select-level"
-                            aria-label={t('Select a status level')}
-                            isDisabled={disabled || loading}
-                            placeholder={t('Select Level')}
-                            onChange={this.handleChangeActionLevel.bind(
-                              this,
-                              triggerIndex,
-                              i
-                            )}
-                            value={triggerIndex}
-                            options={levels}
-                          />
+                      <SelectControl
+                        name="select-action"
+                        aria-label={t('Select an Action')}
+                        isDisabled={disabled || loading}
+                        placeholder={t('Select Action')}
+                        onChange={this.handleChangeActionType.bind(
+                          this,
+                          triggerIndex,
+                          actionIdx
+                        )}
+                        value={getActionUniqueKey(action)}
+                        options={items ?? []}
+                      />
 
-                          <SelectControl
-                            name="select-action"
-                            aria-label={t('Select an Action')}
-                            isDisabled={disabled || loading}
-                            placeholder={t('Select Action')}
-                            onChange={this.handleChangeActionType.bind(
-                              this,
-                              triggerIndex,
-                              i
-                            )}
-                            value={getActionUniqueKey(action)}
-                            options={items ?? []}
-                          />
-
-                          {availableAction &&
-                          availableAction.allowedTargetTypes.length > 1 ? (
-                            <SelectControl
-                              isDisabled={disabled || loading}
-                              value={action.targetType}
-                              options={availableAction?.allowedTargetTypes?.map(
-                                allowedType => ({
-                                  value: allowedType,
-                                  label: TargetLabel[allowedType],
-                                })
-                              )}
-                              onChange={this.handleChangeTarget.bind(
-                                this,
-                                triggerIndex,
-                                i
-                              )}
-                            />
-                          ) : null}
-                          <ActionTargetSelector
-                            action={action}
-                            availableAction={availableAction}
-                            disabled={disabled}
-                            loading={loading}
-                            onChange={this.handleChangeTargetIdentifier.bind(
-                              this,
-                              triggerIndex,
-                              i
-                            )}
-                            organization={organization}
-                            project={project}
-                          />
-                        </PanelItemSelects>
-                        <DeleteActionButton
-                          triggerIndex={triggerIndex}
-                          index={i}
-                          onClick={this.handleDeleteAction}
-                          disabled={disabled}
+                      {availableAction &&
+                      availableAction.allowedTargetTypes.length > 1 ? (
+                        <SelectControl
+                          isDisabled={disabled || loading}
+                          value={action.targetType}
+                          options={availableAction?.allowedTargetTypes?.map(
+                            allowedType => ({
+                              value: allowedType,
+                              label: TargetLabel[allowedType],
+                            })
+                          )}
+                          onChange={this.handleChangeTarget.bind(
+                            this,
+                            triggerIndex,
+                            actionIdx
+                          )}
                         />
-                      </PanelItemGrid>
-                    </RuleRowContainer>
-                  </PanelItemWrapper>
-                );
-              })
+                      ) : null}
+                      <ActionTargetSelector
+                        action={action}
+                        availableAction={availableAction}
+                        disabled={disabled}
+                        loading={loading}
+                        onChange={this.handleChangeTargetIdentifier.bind(
+                          this,
+                          triggerIndex,
+                          actionIdx
+                        )}
+                        organization={organization}
+                        project={project}
+                      />
+                    </PanelItemSelects>
+                    <DeleteActionButton
+                      triggerIndex={triggerIndex}
+                      index={actionIdx}
+                      onClick={this.handleDeleteAction}
+                      disabled={disabled}
+                    />
+                  </PanelItemGrid>
+                </RuleRowContainer>
+              </PanelItemWrapper>
             );
           })}
           <StyledPanelItem>
