@@ -947,6 +947,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       savedSearchType,
       hasPinnedSearch,
       pinnedSearch,
+      sort,
     } = this.props;
 
     const {router} = this.context;
@@ -978,6 +979,7 @@ class SmartSearchBar extends React.Component<Props, State> {
           query: {
             ...currentQuery,
             query: pinnedSearch.query,
+            sort: pinnedSearch.sort,
           },
         });
       });
@@ -988,7 +990,8 @@ class SmartSearchBar extends React.Component<Props, State> {
       api,
       organization.slug,
       savedSearchType,
-      removeSpace(this.state.query)
+      removeSpace(this.state.query),
+      sort
     );
 
     if (!resp || !resp.id) {
@@ -1097,11 +1100,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     } = this.props;
 
     const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
-    const pinIcon = !!pinnedSearch ? (
-      <IconPin isSolid size="xs" />
-    ) : (
-      <IconPin size="xs" />
-    );
+    const pinIcon = <IconPin isSolid={!!pinnedSearch} size="xs" />;
     const hasQuery = !!this.state.query;
 
     const input = (
