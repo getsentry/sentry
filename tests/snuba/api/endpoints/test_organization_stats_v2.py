@@ -18,15 +18,12 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         self.login_as(user=self.user)
 
         self.org = self.organization
-
         self.org2 = self.create_organization()
 
         self.project = self.create_project(
             name="bar", teams=[self.create_team(organization=self.org, members=[self.user])]
         )
-
-        # self.other_project = self.create_project(name="bees", organization=self.org)
-        self.other_project = self.create_project(
+        self.project2 = self.create_project(
             name="foo", teams=[self.create_team(organization=self.org, members=[self.user])]
         )
         self.project3 = self.create_project(organization=self.org2)
@@ -45,7 +42,8 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "reason": "none",
                 "category": DataCategory.ERROR,
                 "quantity": 1,
-            }
+            },
+            5,
         )
         self.store_outcomes(
             {
@@ -74,7 +72,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             {
                 "org_id": self.org.id,
                 "timestamp": self.now - timedelta(hours=1),
-                "project_id": self.other_project.id,
+                "project_id": self.project2.id,
                 "outcome": Outcome.RATE_LIMITED,
                 "reason": "smart_rate_limit",
                 "category": DataCategory.TRANSACTION,
@@ -193,7 +191,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "intervals": ["2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "series": {"sum(quantity)": [2]}, "totals": {"sum(quantity)": 2}}
+                {"by": {}, "series": {"sum(quantity)": [6]}, "totals": {"sum(quantity)": 6}}
             ],
         }
 
@@ -218,8 +216,8 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             "groups": [
                 {
                     "by": {},
-                    "series": {"sum(quantity)": [0, 0, 2, 0]},
-                    "totals": {"sum(quantity)": 2},
+                    "series": {"sum(quantity)": [0, 0, 6, 0]},
+                    "totals": {"sum(quantity)": 6},
                 }
             ],
         }
@@ -241,7 +239,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "intervals": ["2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "series": {"sum(quantity)": [3]}, "totals": {"sum(quantity)": 3}}
+                {"by": {}, "series": {"sum(quantity)": [7]}, "totals": {"sum(quantity)": 7}}
             ],
         }
 
@@ -283,8 +281,8 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 },
                 {
                     "by": {"outcome": "accepted", "reason": "none", "category": "error"},
-                    "totals": {"sum(quantity)": 2},
-                    "series": {"sum(quantity)": [0, 2]},
+                    "totals": {"sum(quantity)": 6},
+                    "series": {"sum(quantity)": [0, 6]},
                 },
                 {
                     "by": {
@@ -328,8 +326,8 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 },
                 {
                     "by": {"outcome": "accepted", "reason": "none", "category": "error"},
-                    "totals": {"sum(quantity)": 2, "sum(times_seen)": 2},
-                    "series": {"sum(quantity)": [0, 2], "sum(times_seen)": [0, 2]},
+                    "totals": {"sum(quantity)": 6, "sum(times_seen)": 6},
+                    "series": {"sum(quantity)": [0, 6], "sum(times_seen)": [0, 6]},
                 },
                 {
                     "by": {
@@ -365,11 +363,11 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             "groups": [
                 {
                     "by": {"project": self.project.id},
-                    "totals": {"sum(times_seen)": 2},
-                    "series": {"sum(times_seen)": [2]},
+                    "totals": {"sum(times_seen)": 6},
+                    "series": {"sum(times_seen)": [6]},
                 },
                 {
-                    "by": {"project": self.other_project.id},
+                    "by": {"project": self.project2.id},
                     "totals": {"sum(times_seen)": 1},
                     "series": {"sum(times_seen)": [1]},
                 },
@@ -396,7 +394,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "intervals": ["2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "totals": {"sum(quantity)": 2}, "series": {"sum(quantity)": [2]}}
+                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [6]}}
             ],
         }
 
@@ -445,14 +443,14 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "interval": "1d",
                 "field": ["sum(quantity)"],
                 "outcome": "accepted",
-                "category": "error",
+                "category": ["error", "transaction"],
             }
         )
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
             "intervals": ["2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "totals": {"sum(quantity)": 2}, "series": {"sum(quantity)": [2]}}
+                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [6]}}
             ],
         }
 
@@ -474,7 +472,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "intervals": ["2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "totals": {"sum(quantity)": 2}, "series": {"sum(quantity)": [2]}}
+                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [6]}}
             ],
         }
 
@@ -507,8 +505,8 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             "groups": [
                 {
                     "by": {},
-                    "totals": {"sum(quantity)": 2},
-                    "series": {"sum(quantity)": [0, 2, 0, 0, 0, 0, 0, 0]},
+                    "totals": {"sum(quantity)": 6},
+                    "series": {"sum(quantity)": [0, 6, 0, 0, 0, 0, 0, 0]},
                 }
             ],
         }
