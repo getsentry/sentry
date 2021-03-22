@@ -250,6 +250,11 @@ class SummaryContent extends React.Component<Props, State> {
               transactionName={transactionName}
               eventView={eventView}
             />
+            <StatusBreakdown
+              eventView={eventView}
+              organization={organization}
+              location={location}
+            />
             <SidebarSpacer />
             <SidebarCharts
               organization={organization}
@@ -257,12 +262,6 @@ class SummaryContent extends React.Component<Props, State> {
               error={error}
               totals={totalValues}
               eventView={eventView}
-            />
-            <SidebarSpacer />
-            <StatusBreakdown
-              eventView={eventView}
-              organization={organization}
-              location={location}
             />
             <SidebarSpacer />
             <Tags

@@ -216,7 +216,7 @@ type TermFormatter = (organization: LightWeightOrganization) => string;
 const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   apdex: () =>
     t(
-      'Apdex is the ratio of both satisfactory and tolerable response times to all response times.'
+      'Apdex is the ratio of both satisfactory and tolerable response times to all response times. To adjust the tolerable threshold, go to performance settings.'
     ),
   tpm: () => t('TPM is the number of recorded transaction events per minute.'),
   throughput: () =>

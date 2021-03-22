@@ -3,11 +3,13 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
+import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
+import {IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -138,6 +140,11 @@ class TransactionHeader extends React.Component<Props> {
               {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
             </Feature>
             {this.renderKeyTransactionButton()}
+            <Button
+              href={`/settings/${organization.slug}/performance/`}
+              icon={<IconSettings />}
+              aria-label="Settings"
+            />
           </ButtonBar>
         </Layout.HeaderActions>
         <React.Fragment>
