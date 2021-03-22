@@ -506,7 +506,7 @@ class GroupDetails extends React.Component<Props, State> {
     const {error: isError, group, project, loading} = this.state;
     const isLoading = loading || (!group && !isError);
 
-    if (isLoading || !group) {
+    if (isLoading) {
       return <LoadingIndicator />;
     }
 
@@ -527,7 +527,7 @@ class GroupDetails extends React.Component<Props, State> {
             fetchError ? (
               <LoadingError message={t('Error loading the specified project')} />
             ) : (
-              this.renderContent(projects[0], group)
+              this.renderContent(projects[0], group!) // TODO(ts): Update renderContent function to deal with empty group
             )
           ) : (
             <LoadingIndicator />
