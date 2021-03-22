@@ -12,7 +12,7 @@ describe('ToolbarHeader', function () {
   it('renders', function () {
     const wrapper = mountWithTheme(
       <ToolbarHeader>
-        <div />
+        <div>Toolbar Header</div>
       </ToolbarHeader>
     );
     expect(wrapper).toSnapshot();
