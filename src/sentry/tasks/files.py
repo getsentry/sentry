@@ -8,6 +8,7 @@ from sentry.tasks.deletion import MAX_RETRIES
     queue="files.delete",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    autoretry_for=(DatabaseError, IntegrityError),
 )
 def delete_file(path, checksum, **kwargs):
     from sentry.models.file import get_storage, FileBlob
@@ -27,7 +28,7 @@ def delete_file(path, checksum, **kwargs):
     max_retries=MAX_RETRIES,
 )
 def delete_unreferenced_blobs(blob_ids):
-    from sentry.models import get_storage, FileBlobIndex, FileBlob
+    from sentry.models import FileBlobIndex, FileBlob
 
     for blob_id in blob_ids:
         if FileBlobIndex.objects.filter(blob_id=blob_id).exists():
@@ -45,9 +46,3 @@ def delete_unreferenced_blobs(blob_ids):
                 # Do nothing if the blob was deleted in another task, or
                 # if had another reference added concurrently.
                 pass
-            except DatabaseError:
-                # The database could have crashed or closed our connection.
-                # Try removing the file directly. We can recover
-                # from blobs with missing files, but files with no blob record
-                # become orphaned forever.
-                get_storage().delete(blob.path)
