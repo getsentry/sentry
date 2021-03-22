@@ -20,6 +20,8 @@ const defaultProps = {
   expandFirstFrame: true,
 };
 
+type DefaultProps = typeof defaultProps;
+
 type Props = {
   data: StacktraceType;
   platform: PlatformType;
@@ -28,7 +30,7 @@ type Props = {
   className?: string;
   isHoverPreviewed?: boolean;
   organization?: Organization;
-} & typeof defaultProps;
+} & Partial<DefaultProps>;
 
 type State = {
   showingAbsoluteAddresses: boolean;
@@ -36,7 +38,7 @@ type State = {
 };
 
 class StacktraceContent extends React.Component<Props, State> {
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     includeSystemFrames: true,
     expandFirstFrame: true,
   };
