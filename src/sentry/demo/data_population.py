@@ -36,16 +36,6 @@ from sentry.utils.samples import (
 from sentry.utils.snuba import SnubaError
 
 
-# MAX_DAYS = settings.DEMO_DATA_GEN_PARAMS["MAX_DAYS"]
-# SCALE_FACTOR = settings.DEMO_DATA_GEN_PARAMS["SCALE_FACTOR"]
-# BASE_OFFSET = settings.DEMO_DATA_GEN_PARAMS["BASE_OFFSET"]
-# NAME_STEP_SIZE = settings.DEMO_DATA_GEN_PARAMS["NAME_STEP_SIZE"]
-# BREADCRUMB_LOOKBACK_TIME = settings.DEMO_DATA_GEN_PARAMS["BREADCRUMB_LOOKBACK_TIME"]
-# DEFAULT_BACKOFF_TIME = settings.DEMO_DATA_GEN_PARAMS["DEFAULT_BACKOFF_TIME"]
-# ERROR_BACKOFF_TIME = settings.DEMO_DATA_GEN_PARAMS["ERROR_BACKOFF_TIME"]
-# NUM_RELEASES = settings.DEMO_DATA_GEN_PARAMS["NUM_RELEASES"]
-
-
 commit_message_base_messages = [
     "feat: Do something to",
     "feat: Update code in",
