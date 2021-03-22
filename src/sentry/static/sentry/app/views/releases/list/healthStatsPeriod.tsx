@@ -5,7 +5,7 @@ import {Location} from 'history';
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {GlobalSelection} from 'app/types';
+import {GlobalSelection, HealthStatsPeriodOption} from 'app/types';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 type Props = {
@@ -14,18 +14,22 @@ type Props = {
 };
 
 const HealthStatsPeriod = ({location, selection}: Props) => {
-  const activePeriod = location.query.healthStatsPeriod || '24h';
+  const activePeriod =
+    location.query.healthStatsPeriod || HealthStatsPeriodOption.TWENTY_FOUR_HOURS;
   const {pathname, query} = location;
 
   return (
     <Wrapper>
-      {selection.datetime.period !== '24h' && (
+      {selection.datetime.period !== HealthStatsPeriodOption.TWENTY_FOUR_HOURS && (
         <Period
           to={{
             pathname,
-            query: {...query, healthStatsPeriod: '24h'},
+            query: {
+              ...query,
+              healthStatsPeriod: HealthStatsPeriodOption.TWENTY_FOUR_HOURS,
+            },
           }}
-          selected={activePeriod === '24h'}
+          selected={activePeriod === HealthStatsPeriodOption.TWENTY_FOUR_HOURS}
         >
           {t('24h')}
         </Period>
@@ -34,9 +38,9 @@ const HealthStatsPeriod = ({location, selection}: Props) => {
       <Period
         to={{
           pathname,
-          query: {...query, healthStatsPeriod: 'auto'},
+          query: {...query, healthStatsPeriod: HealthStatsPeriodOption.AUTO},
         }}
-        selected={activePeriod === 'auto'}
+        selected={activePeriod === HealthStatsPeriodOption.AUTO}
       >
         {selection.datetime.start ? t('Custom') : selection.datetime.period ?? t('14d')}
       </Period>

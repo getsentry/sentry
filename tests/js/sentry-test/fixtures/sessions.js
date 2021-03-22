@@ -95,6 +95,62 @@ export function SessionStatusCountByReleaseInPeriod() {
   };
 }
 
+export function SessionStatusCountByProjectInPeriod() {
+  return {
+    query: '',
+    intervals: [
+      '2021-03-05T00:00:00Z',
+      '2021-03-06T00:00:00Z',
+      '2021-03-07T00:00:00Z',
+      '2021-03-08T00:00:00Z',
+      '2021-03-09T00:00:00Z',
+      '2021-03-10T00:00:00Z',
+      '2021-03-11T00:00:00Z',
+      '2021-03-12T00:00:00Z',
+      '2021-03-13T00:00:00Z',
+      '2021-03-14T00:00:00Z',
+      '2021-03-15T00:00:00Z',
+      '2021-03-16T00:00:00Z',
+      '2021-03-17T00:00:00Z',
+      '2021-03-18T00:00:00Z',
+    ],
+    groups: [
+      {
+        by: {
+          project: 123,
+          'session.status': 'crashed',
+        },
+        totals: {'sum(session)': 992},
+        series: {'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 990]},
+      },
+      {
+        by: {
+          project: 123,
+          'session.status': 'healthy',
+        },
+        totals: {'sum(session)': 9260},
+        series: {'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9167, 93]},
+      },
+      {
+        by: {
+          project: 123,
+          'session.status': 'abnormal',
+        },
+        totals: {'sum(session)': 0},
+        series: {'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]},
+      },
+      {
+        by: {
+          project: 123,
+          'session.status': 'errored',
+        },
+        totals: {'sum(session)': 99},
+        series: {'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 99, 0]},
+      },
+    ],
+  };
+}
+
 export function SesssionTotalCountByReleaseIn24h() {
   return {
     query:
@@ -375,6 +431,74 @@ export function SessionUserStatusCountByReleaseInPeriod() {
         series: {
           'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 40, 1914],
           'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 914],
+        },
+      },
+    ],
+  };
+}
+
+export function SessionUserStatusCountByProjectInPeriod() {
+  return {
+    query: '',
+    intervals: [
+      '2021-03-05T00:00:00Z',
+      '2021-03-06T00:00:00Z',
+      '2021-03-07T00:00:00Z',
+      '2021-03-08T00:00:00Z',
+      '2021-03-09T00:00:00Z',
+      '2021-03-10T00:00:00Z',
+      '2021-03-11T00:00:00Z',
+      '2021-03-12T00:00:00Z',
+      '2021-03-13T00:00:00Z',
+      '2021-03-14T00:00:00Z',
+      '2021-03-15T00:00:00Z',
+      '2021-03-16T00:00:00Z',
+      '2021-03-17T00:00:00Z',
+      '2021-03-18T00:00:00Z',
+    ],
+    groups: [
+      {
+        by: {
+          project: 123,
+          'session.status': 'crashed',
+        },
+        totals: {'sum(session)': 992, 'count_unique(user)': 92},
+        series: {
+          'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 990],
+          'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 90],
+        },
+      },
+      {
+        by: {
+          project: 123,
+          'session.status': 'healthy',
+        },
+        totals: {'sum(session)': 9260, 'count_unique(user)': 260},
+        series: {
+          'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9167, 93],
+          'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 258],
+        },
+      },
+      {
+        by: {
+          project: 123,
+          'session.status': 'abnormal',
+        },
+        totals: {'sum(session)': 0, 'count_unique(user)': 0},
+        series: {
+          'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        },
+      },
+      {
+        by: {
+          project: 123,
+          'session.status': 'errored',
+        },
+        totals: {'sum(session)': 99, 'count_unique(user)': 9},
+        series: {
+          'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 99, 0],
+          'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 8],
         },
       },
     ],
