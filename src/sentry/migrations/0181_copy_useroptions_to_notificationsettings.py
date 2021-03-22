@@ -119,7 +119,7 @@ def copy_useroption_to_notificationsetting(apps, schema_editor):
             target=user.actor,
             provider=ExternalProviders.EMAIL.value,  # 100
             type=type,
-            value=value,  # NotificationSettingOptionValues
+            defaults={"value": value},  # NotificationSettingOptionValues
         )
 
 
