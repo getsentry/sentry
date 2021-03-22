@@ -41,6 +41,7 @@ const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
  */
 // Ports used by webpack dev server to proxy to backend and webpack
 const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
+const SENTRY_WEBPACK_PROXY_HOST = env.SENTRY_WEBPACK_PROXY_HOST;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 // Used by sentry devserver runner to force using webpack-dev-server
 const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
@@ -429,6 +430,7 @@ if (
     // Required for getsentry
     disableHostCheck: true,
     contentBase: './src/sentry/static/sentry',
+    host: SENTRY_WEBPACK_PROXY_HOST,
     hot: true,
     // If below is false, will reload on errors
     hotOnly: true,
