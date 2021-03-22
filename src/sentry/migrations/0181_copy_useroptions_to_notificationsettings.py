@@ -60,55 +60,56 @@ def copy_useroption_to_notificationsetting(apps, schema_editor):
             # if you have fine tuning for projects, project_id will have a value (rather than None)
             if user_option.project_id:
                 scope_identifier = user_option.project_id
-                scope_type = NotificationScopeType.PROJECT
+                scope_type = NotificationScopeType.PROJECT.value
             else:
                 scope_identifier = user_option.user.id
-                scope_type = NotificationScopeType.USER
-            type = NotificationSettingTypes.WORKFLOW
+                scope_type = NotificationScopeType.USER.value
+            type = NotificationSettingTypes.WORKFLOW.value
             if user_option.value == UserOptionValue.all_conversations:
-                value = NotificationSettingOptionValues.ALWAYS
+                value = NotificationSettingOptionValues.ALWAYS.value
             if user_option.value == UserOptionValue.participating_only:
-                value = NotificationSettingOptionValues.SUBSCRIBE_ONLY
+                value = NotificationSettingOptionValues.SUBSCRIBE_ONLY.value
             if user_option.value == UserOptionValue.no_conversations:
-                value = NotificationSettingOptionValues.NEVER
+                value = NotificationSettingOptionValues.NEVER.value
         elif user_option.key == "mail:alert":  # fine tuned project alerts
             if user_option.project_id:
                 scope_identifier = user_option.project_id
-                scope_type = NotificationScopeType.PROJECT
+                scope_type = NotificationScopeType.PROJECT.value
             else:
                 scope_identifier = user_option.user.id
-                scope_type = NotificationScopeType.USER
-            type = NotificationSettingTypes.ISSUE_ALERTS
-            if user_option.value == 0:
-                value = NotificationSettingOptionValues.NEVER
-            if user_option.value == 1:
-                value = NotificationSettingOptionValues.ALWAYS
+                scope_type = NotificationScopeType.USER.value
+            type = NotificationSettingTypes.ISSUE_ALERTS.value
+            if int(user_option.value) == 0:
+                value = NotificationSettingOptionValues.NEVER.value
+            if int(user_option.value) == 1:
+                value = NotificationSettingOptionValues.ALWAYS.value
         elif user_option.key == "subscribe_by_default":  # top level project alerts on/off
             scope_identifier = user_option.user.id
-            scope_type = NotificationScopeType.USER
-            type = NotificationSettingTypes.ISSUE_ALERTS
-            if user_option.value == 1:
-                value = NotificationSettingOptionValues.ALWAYS
-            if user_option.value == 0:
-                value = NotificationSettingOptionValues.NEVER
+            scope_type = NotificationScopeType.USER.value
+            type = NotificationSettingTypes.ISSUE_ALERTS.value
+            if int(user_option.value) == 1:
+                value = NotificationSettingOptionValues.ALWAYS.value
+            if int(user_option.value) == 0:
+                value = NotificationSettingOptionValues.NEVER.value
         elif user_option.key == "deploy-emails":
             # if you have fine tuning for an org, organization_id will have a value (rather than None)
             if user_option.organization_id:
                 scope_identifier = user_option.organization_id
+                scope_type = NotificationScopeType.ORGANIZATION.value
             else:
                 scope_identifier = user_option.user.id
-            scope_type = NotificationScopeType.ORGANIZATION
-            type = NotificationSettingTypes.DEPLOY
+                scope_type = NotificationScopeType.USER.value
+            type = NotificationSettingTypes.DEPLOY.value
             # if you've not explicitly set anything OR set it to default, there is no db row
             # by default deploy notifications are set to committed_deploys_only,
             # but there will be an entry for the top level alert option
             # if you change the value to something else
             if user_option.value == UserOptionValue.all_deploys:
-                value = NotificationSettingOptionValues.ALWAYS
+                value = NotificationSettingOptionValues.ALWAYS.value
             if user_option.value == UserOptionValue.no_deploys:
-                value = NotificationSettingOptionValues.NEVER
+                value = NotificationSettingOptionValues.NEVER.value
             if user_option.value == UserOptionValue.committed_deploys_only:
-                value = NotificationSettingOptionValues.COMMITTED_ONLY
+                value = NotificationSettingOptionValues.COMMITTED_ONLY.value
         else:
             continue
         user = User.objects.select_related("actor").get(id=user_option.user_id)
@@ -116,7 +117,7 @@ def copy_useroption_to_notificationsetting(apps, schema_editor):
             scope_type=scope_type,  # user, org, or project
             scope_identifier=scope_identifier,  # user_id, organization_id, or project_id
             target=user.actor,
-            provider=ExternalProviders.EMAIL,  # 100
+            provider=ExternalProviders.EMAIL.value,  # 100
             type=type,
             value=value,  # NotificationSettingOptionValues
         )
