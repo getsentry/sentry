@@ -70,7 +70,7 @@ const Inner = styled('div')`
 const Header = styled('div')`
   display: grid;
   grid-gap: ${space(1)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   max-width: 557px;
 `;
 
