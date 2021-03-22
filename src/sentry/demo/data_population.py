@@ -248,65 +248,6 @@ def generate_releases(projects, quick):
         release_time += timedelta(hours=hourly_release_cadence)
 
 
-def gen_suspect_commit(project, timestamp, filename):
-    org = project.organization
-
-    release = get_release_from_time(org.id, timestamp)
-
-    author = (
-        "{} {}".format(random.choice(loremipsum.words), random.choice(loremipsum.words)),
-        "{}@example.com".format(random.choice(loremipsum.words)),
-    )
-
-    raw_commit = {
-        "key": sha1(uuid4().bytes).hexdigest(),
-        "message": f"feat: Do something to {filename}\n{make_sentence()}",
-        "author": author,
-        "files": [(filename, "M")],
-    }
-
-    repo, _ = Repository.objects.get_or_create(
-        organization_id=org.id,
-        provider="integrations:github",
-        external_id="example/example",
-        defaults={
-            "name": "Example Repo",
-        },
-    )
-
-    author = CommitAuthor.objects.get_or_create(
-        organization_id=org.id,
-        email=raw_commit["author"][1],
-        defaults={"name": raw_commit["author"][0]},
-    )[0]
-
-    commit = Commit.objects.get_or_create(
-        organization_id=org.id,
-        repository_id=repo.id,
-        key=raw_commit["key"],
-        defaults={"author": author, "message": raw_commit["message"]},
-    )[0]
-
-    for file in raw_commit["files"]:
-        ReleaseFile.objects.get_or_create(
-            organization_id=project.organization_id,
-            release=release,
-            name=file[0],
-            file=File.objects.get_or_create(
-                name=file[0], type="release.file", checksum="abcde" * 8, size=13043
-            )[0],
-            defaults={"organization_id": project.organization_id},
-        )
-
-        CommitFileChange.objects.get_or_create(
-            organization_id=org.id, commit=commit, filename=file[0], type=file[1]
-        )
-
-    ReleaseCommit.objects.get_or_create(
-        organization_id=org.id, release=release, commit=commit, defaults={"order": 0}
-    )
-
-
 def safe_send_event(data, quick):
     project = data.pop("project")
     config = get_config(quick)
@@ -517,7 +458,6 @@ def populate_connected_event_scenario_1(
     BASE_OFFSET = config["BASE_OFFSET"]
 
     start_time = timezone.now() - timedelta(days=MAX_DAYS)
-    # gen_suspect_commit(react_project, start_time, "components/ShoppingCart.js")
     log_extra = {
         "organization_slug": react_project.organization.slug,
         "MAX_DAYS": MAX_DAYS,
