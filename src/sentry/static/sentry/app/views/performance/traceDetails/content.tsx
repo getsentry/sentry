@@ -205,6 +205,8 @@ class TraceDetailsContent extends React.Component<Props, State> {
       traceInfo: TraceInfo;
     }
   ) {
+    const {location, organization} = this.props;
+
     const isVisible = this.isTransactionVisible(transaction);
 
     const accumulated: AccType = transaction.children.reduce(
@@ -246,6 +248,8 @@ class TraceDetailsContent extends React.Component<Props, State> {
             numberOfHiddenTransactionsAbove,
           })}
           <TransactionGroup
+            location={location}
+            organization={organization}
             traceInfo={traceInfo}
             transaction={transaction}
             continuingDepths={continuingDepths}
