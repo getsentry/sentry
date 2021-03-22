@@ -8,7 +8,7 @@ import Reflux from 'reflux';
 import {Indicator, removeIndicator} from 'app/actionCreators/indicator';
 import ToastIndicator from 'app/components/alerts/toastIndicator';
 import IndicatorStore from 'app/stores/indicatorStore';
-import theme from 'app/utils/theme';
+import {lightTheme} from 'app/utils/theme';
 
 const Toasts = styled('div')`
   position: fixed;
@@ -69,7 +69,7 @@ const IndicatorsContainer = createReactClass<Omit<Props, 'items'>>({
     // `alerts.html` django view includes this container and doesn't have a theme provider
     // not even sure it is used in django views but this is just an easier temp solution
     return (
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={lightTheme}>
         <Indicators {...this.props} items={this.state.items} />
       </ThemeProvider>
     );

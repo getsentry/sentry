@@ -39,6 +39,22 @@ describe('getDuration()', function () {
     expect(getDuration(2629800, 0, true)).toBe('1mo');
     expect(getDuration(604800 * 12, 0, true)).toBe('3mos');
   });
+
+  it('should format numbers and abbreviate units with one letter', function () {
+    expect(getDuration(0, 2, false, true)).toBe('0.00ms');
+    expect(getDuration(0, 0, false, true)).toBe('0ms');
+    expect(getDuration(0.1, 0, false, true)).toBe('100ms');
+    expect(getDuration(0.1, 2, false, true)).toBe('100.00ms');
+    expect(getDuration(1, 2, false, true)).toBe('1.00s');
+    expect(getDuration(122, 0, false, true)).toBe('2m');
+    expect(getDuration(3600, 0, false, true)).toBe('60m');
+    expect(getDuration(86400, 0, false, true)).toBe('24h');
+    expect(getDuration(86400 * 2, 0, false, true)).toBe('2d');
+    expect(getDuration(604800, 0, false, true)).toBe('1w');
+    expect(getDuration(604800 * 2, 0, false, true)).toBe('2w');
+    expect(getDuration(2629800, 0, false, true)).toBe('4w');
+    expect(getDuration(604800 * 12, 0, false, true)).toBe('12w');
+  });
 });
 
 describe('formatAbbreviatedNumber()', function () {

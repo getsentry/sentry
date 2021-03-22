@@ -1,8 +1,10 @@
+import functools
 import itertools
 import logging
 import random
 import time
-import functools
+from abc import ABC, abstractmethod
+from typing import Callable, Generic, Optional, TypeVar
 
 from django.utils.encoding import force_bytes
 
@@ -25,8 +27,12 @@ class RetryException(Exception):
         return f"<{type(self).__name__}: {self.message!r}>"
 
 
-class RetryPolicy:
-    def __call__(self, function):
+T = TypeVar("T")
+
+
+class RetryPolicy(Generic[T], ABC):
+    @abstractmethod
+    def __call__(self, function: Callable[[], T]) -> T:
         raise NotImplementedError
 
     @classmethod
@@ -45,6 +51,67 @@ class RetryPolicy:
             return execute_with_retry
 
         return decorator
+
+
+def exponential_delay(duration: float) -> Callable[[int], float]:
+    """
+    Returns a simple exponential delay function that starts with the given
+    duration.
+    """
+
+    def delay(attempt: int) -> float:
+        return float(2 ** (attempt - 1)) * duration
+
+    return delay
+
+
+class ConditionalRetryPolicy(RetryPolicy[T]):
+    """
+    A basic policy that can be used to retry a callable based on the result
+    of a test function that determines whether or not to retry after the
+    callable throws an exception.
+
+    The test function takes two arguments: the number of times the callable
+    has unsuccesfully been invoked, and the exception instance that was
+    raised during the last execution attempt. This function is expected to
+    return a boolean: if the value is ``True``, the callable will be retried;
+    if the value is ``False``, the callable will not be retried and the
+    exception thrown during the previous execution attempt will be raised.
+
+    The delay function (if provided) takes one argument: the number of times
+    the callable has unsuccessfully been invoked. This function is expected
+    to return a float value: the number of seconds to wait before the next
+    attempt. If the delay function is not provided, the callable will be
+    immediately retried.
+    """
+
+    def __init__(
+        self,
+        test_function: Callable[[int, Exception], bool],
+        delay_function: Optional[Callable[[int], float]] = None,
+    ) -> None:
+        self.__test_function = test_function
+        self.__delay_function = delay_function if delay_function is not None else lambda i: 0.0
+
+    def __call__(self, function: Callable[[], T]) -> T:
+        for i in itertools.count(1):
+            try:
+                return function()
+            except Exception as e:
+                if self.__test_function(i, e):
+                    delay = self.__delay_function(i)
+                    logger.warning(
+                        "Caught %r while executing %r (attempt #%s), retrying in %f seconds...",
+                        e,
+                        function,
+                        i,
+                        delay,
+                    )
+                    time.sleep(delay)
+                else:
+                    raise
+
+        assert False, "retry loop exited without returning"
 
 
 class TimedRetryPolicy(RetryPolicy):

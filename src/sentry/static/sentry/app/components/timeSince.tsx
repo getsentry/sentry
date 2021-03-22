@@ -36,9 +36,14 @@ type Props = DefaultProps & {
   disabledAbsoluteTooltip?: boolean;
 
   /**
-   * For relative time shortens minutes to min, day to d etc.
+   * For relative time shortens minutes to min, hour to hr etc.
    */
   shorten?: boolean;
+  /**
+   * Shortens the shortened relative time
+   * min to m, hr to h
+   */
+  extraShort?: boolean;
 
   tooltipTitle?: string;
 
@@ -62,7 +67,12 @@ class TimeSince extends React.PureComponent<Props, State> {
   // See: https://github.com/emotion-js/emotion/pull/1514
   static getDerivedStateFromProps(props) {
     return {
-      relative: getRelativeDate(props.date, props.suffix, props.shorten),
+      relative: getRelativeDate(
+        props.date,
+        props.suffix,
+        props.shorten,
+        props.extraShort
+      ),
     };
   }
 
@@ -82,7 +92,12 @@ class TimeSince extends React.PureComponent<Props, State> {
   setRelativeDateTicker = () => {
     this.ticker = window.setTimeout(() => {
       this.setState({
-        relative: getRelativeDate(this.props.date, this.props.suffix, this.props.shorten),
+        relative: getRelativeDate(
+          this.props.date,
+          this.props.suffix,
+          this.props.shorten,
+          this.props.extraShort
+        ),
       });
       this.setRelativeDateTicker();
     }, ONE_MINUTE_IN_MS);
@@ -96,6 +111,7 @@ class TimeSince extends React.PureComponent<Props, State> {
       className,
       tooltipTitle,
       shorten: _shorten,
+      extraShort: _extraShort,
       ...props
     } = this.props;
     const dateObj = getDateObj(date);
@@ -139,17 +155,18 @@ function getDateObj(date: RelaxedDateType): Date {
 export function getRelativeDate(
   currentDateTime: RelaxedDateType,
   suffix?: string,
-  shorten?: boolean
+  shorten?: boolean,
+  extraShort?: boolean
 ): string {
   const date = getDateObj(currentDateTime);
 
-  if (shorten && suffix) {
+  if ((shorten || extraShort) && suffix) {
     return t('%(time)s %(suffix)s', {
-      time: getDuration(moment().diff(moment(date), 'seconds'), 0, true),
+      time: getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort),
       suffix,
     });
-  } else if (shorten && !suffix) {
-    return getDuration(moment().diff(moment(date), 'seconds'), 0, true);
+  } else if ((shorten || extraShort) && !suffix) {
+    return getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort);
   } else if (!suffix) {
     return moment(date).fromNow(true);
   } else if (suffix === 'ago') {

@@ -2,11 +2,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -38,7 +40,7 @@ type Props = ModalRenderProps & {
   project: Project;
   errorRules: DynamicSamplingRules;
   transactionRules: DynamicSamplingRules;
-  onSubmitSuccess: (project: Project) => void;
+  onSubmitSuccess: (project: Project, successMessage: React.ReactNode) => void;
   rule?: DynamicSamplingRule;
 };
 
@@ -188,8 +190,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
         `/projects/${organization.slug}/${project.slug}/`,
         {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
       );
-      onSubmitSuccess(newProjectDetails);
-      addSuccessMessage(this.getSuccessMessage());
+      onSubmitSuccess(newProjectDetails, this.getSuccessMessage());
       closeModal();
     } catch (error) {
       this.convertErrorXhrResponse(handleXhrErrorResponse(error, currentRuleIndex));
@@ -296,10 +297,19 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
       !defined(sampleRate) ||
       (!!conditions.length &&
         !!conditions.find(condition => {
-          if (condition.category !== DynamicSamplingInnerName.EVENT_LEGACY_BROWSER) {
-            return !condition.match;
+          if (condition.category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER) {
+            return !(condition.legacyBrowsers ?? []).length;
           }
-          return false;
+
+          if (
+            condition.category === DynamicSamplingInnerName.EVENT_LOCALHOST ||
+            condition.category === DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
+            condition.category === DynamicSamplingInnerName.EVENT_WEB_CRAWLERS
+          ) {
+            return false;
+          }
+
+          return !condition.match;
         }));
 
     return (
@@ -308,6 +318,9 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
           {this.getModalTitle()}
         </Header>
         <Body>
+          <Alert type="info" icon={<IconInfo size="md" />}>
+            {t('A new rule may take a few minutes to propagate.')}
+          </Alert>
           <Fields>
             {this.getExtraFields()}
             <RadioField

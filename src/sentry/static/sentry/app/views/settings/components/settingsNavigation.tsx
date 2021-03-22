@@ -6,6 +6,8 @@ import space from 'app/styles/space';
 import SettingsNavigationGroup from 'app/views/settings/components/settingsNavigationGroup';
 import {NavigationProps, NavigationSection} from 'app/views/settings/types';
 
+const FOOTER_HEIGHT = 93;
+
 type DefaultProps = {
   /**
    * Additional navigation configuration driven by hooks
@@ -33,7 +35,7 @@ class SettingsNavigation extends React.Component<Props> {
   static defaultProps: DefaultProps = {
     hooks: [],
     hookConfigs: [],
-    stickyTop: '70px',
+    stickyTop: '69px',
   };
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
@@ -69,7 +71,7 @@ const PositionStickyWrapper = styled('div')<{stickyTop: string}>`
     position: sticky;
     top: ${p => p.stickyTop};
     overflow: scroll;
-    height: calc(100vh - ${p => p.stickyTop});
+    height: calc(100vh - ${p => p.stickyTop} - ${FOOTER_HEIGHT}px);
     -ms-overflow-style: none;
     scrollbar-width: none;
 

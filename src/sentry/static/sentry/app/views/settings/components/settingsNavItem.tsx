@@ -57,9 +57,9 @@ const StyledNavItem = styled(Link)`
 
   &.focus-visible {
     outline: none;
-    background: #f2eff5;
-    padding: 0 15px;
-    margin: 0 -15px;
+    background: ${p => p.theme.backgroundSecondary};
+    padding-left: 15px;
+    margin-left: -15px;
     border-radius: 3px;
 
     &:before {

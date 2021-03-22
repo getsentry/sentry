@@ -13,7 +13,7 @@ from sentry.api.paginator import (
 )
 from sentry.api.serializers import serialize, CombinedRuleSerializer
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
-from sentry.incidents.logic import ChannelLookupTimeoutError
+from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models import AlertRule
 from sentry.integrations.slack import tasks
 from sentry.signals import alert_rule_created
@@ -91,11 +91,8 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
             },
             data=data,
         )
-
         if serializer.is_valid():
-            try:
-                alert_rule = serializer.save()
-            except ChannelLookupTimeoutError:
+            if get_slack_actions_with_async_lookups(project.organization, request.user, data):
                 # need to kick off an async job for Slack
                 client = tasks.RedisRuleStatus()
                 task_args = {
@@ -107,6 +104,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
                 tasks.find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
                 return Response({"uuid": client.uuid}, status=202)
             else:
+                alert_rule = serializer.save()
                 referrer = request.query_params.get("referrer")
                 session_id = request.query_params.get("sessionId")
                 alert_rule_created.send_robust(

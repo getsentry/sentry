@@ -1,13 +1,6 @@
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
 
-UNAME := $(shell command -v uname 2> /dev/null)
-ifdef UNAME
-	ifeq ($(shell uname), Darwin)
-		BIG_SUR := $(shell sw_vers -productVersion | egrep "11\.")
-	endif
-endif
-
 bootstrap: develop init-config run-dependent-services create-db apply-migrations build-platform-assets
 
 develop: ensure-pinned-pip setup-git install-js-dev install-py-dev
@@ -128,7 +121,7 @@ fetch-release-registry:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	py.test tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html" --self-contained-html
+	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml"
 	@echo ""
 
 test-cli:
@@ -161,22 +154,22 @@ test-js-ci: node-version-check
 test-python:
 	@echo "--> Running Python tests"
 	# This gets called by getsentry
-	py.test tests/integration tests/sentry
+	pytest tests/integration tests/sentry
 
 test-python-ci:
 	make build-platform-assets
 	@echo "--> Running CI Python tests"
-	py.test tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+	pytest tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 	@echo ""
 
 test-snuba:
 	@echo "--> Running snuba tests"
-	py.test tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
+	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 	@echo ""
 
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
-	py.test tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=".artifacts/symbolicator.junit.xml"
+	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=".artifacts/symbolicator.junit.xml"
 	@echo ""
 
 test-acceptance: node-version-check
@@ -186,7 +179,7 @@ test-acceptance: node-version-check
 
 test-plugins:
 	@echo "--> Running plugin tests"
-	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
+	pytest tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
 	@echo ""
 
 test-relay-integration:

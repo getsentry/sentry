@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 
 import Access from 'app/components/acl/access';
 import Alert from 'app/components/alert';
@@ -12,7 +13,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'app/types';
 import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 import IntegrationItem from './integrationItem';
 
@@ -149,7 +150,7 @@ export default class InstalledIntegration extends React.Component<Props> {
               </Tooltip>
             </div>
 
-            <IntegrationStatus status={integration.status} />
+            <StyledIntegrationStatus status={integration.status} />
           </IntegrationFlex>
         )}
       </Access>
@@ -170,9 +171,9 @@ const IntegrationItemBox = styled('div')`
   flex: 1;
 `;
 
-const IntegrationStatus = styled(
-  (props: React.HTMLAttributes<HTMLElement> & {status: ObjectStatus}) => {
-    const {status, ...p} = props;
+const IntegrationStatus = withTheme(
+  (props: React.HTMLAttributes<HTMLElement> & {theme: Theme; status: ObjectStatus}) => {
+    const {theme, status, ...p} = props;
     const color = status === 'active' ? theme.success : theme.gray300;
     const titleText =
       status === 'active'
@@ -189,7 +190,9 @@ const IntegrationStatus = styled(
       </Tooltip>
     );
   }
-)`
+);
+
+const StyledIntegrationStatus = styled(IntegrationStatus)`
   display: flex;
   align-items: center;
   color: ${p => p.theme.gray300};

@@ -41,7 +41,7 @@ import {
 } from './trends/utils';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import Onboarding from './onboarding';
-import {addRoutePerformanceContext} from './utils';
+import {addRoutePerformanceContext, getCurrentPerformanceView} from './utils';
 
 export enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
@@ -164,11 +164,7 @@ class PerformanceLanding extends React.Component<Props, State> {
 
   getCurrentView(): string {
     const {location} = this.props;
-    const currentView = location.query.view as FilterViews;
-    if (Object.values(FilterViews).includes(currentView)) {
-      return currentView;
-    }
-    return FilterViews.ALL_TRANSACTIONS;
+    return getCurrentPerformanceView(location);
   }
 
   handleViewChange(viewKey: FilterViews) {
@@ -306,7 +302,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     const showOnboarding = this.shouldShowOnboarding();
 
     return (
-      <SentryDocumentTitle title={t('Performance')} objSlug={organization.slug}>
+      <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
         <GlobalSelectionHeader
           defaultSelection={{
             datetime: {

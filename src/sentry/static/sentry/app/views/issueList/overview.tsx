@@ -21,6 +21,7 @@ import {fetchTagValues, loadOrganizationTags} from 'app/actionCreators/tags';
 import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
@@ -44,10 +45,11 @@ import {
   TagCollection,
 } from 'app/types';
 import {defined} from 'app/utils';
-import {analytics, metric, trackAnalyticsEvent} from 'app/utils/analytics';
+import {analytics, logExperiment, metric, trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import CursorPoller from 'app/utils/cursorPoller';
 import {getUtcDateString} from 'app/utils/dates';
+import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import StreamManager from 'app/utils/streamManager';
@@ -178,6 +180,7 @@ class IssueListOverview extends React.Component<Props, State> {
     this.fetchSavedSearches();
     this.fetchTags();
     this.fetchMemberList();
+    this.logInboxExperiment();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -513,6 +516,8 @@ class IssueListOverview extends React.Component<Props, State> {
   fetchData = (selectionChanged?: boolean) => {
     GroupStore.loadInitialData([]);
     this._streamManager.reset();
+    const transaction = getCurrentSentryReactTransaction();
+    transaction?.setTag('query.sort', this.getSort());
 
     this.setState({
       issuesLoading: true,
@@ -655,6 +660,14 @@ class IssueListOverview extends React.Component<Props, State> {
     const {orgId} = this.props.params;
 
     return `/organizations/${orgId}/issues-stats/`;
+  }
+
+  logInboxExperiment() {
+    const {organization} = this.props;
+    // Only log users in experiment
+    if ([0, 1].includes(organization.experiments?.InboxExperiment!)) {
+      logExperiment({organization, key: 'InboxExperiment'});
+    }
   }
 
   onRealtimeChange = (realtime: boolean) => {
@@ -1118,6 +1131,10 @@ class IssueListOverview extends React.Component<Props, State> {
                 )}
               </SidebarContainer>
             </StyledPageContent>
+
+            {hasFeature && isForReviewQuery(query) && (
+              <GuideAnchor target="is_inbox_tab" />
+            )}
           </React.Fragment>
         )}
       </Feature>

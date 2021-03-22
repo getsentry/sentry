@@ -24,6 +24,7 @@ const formGroups: JsonFormObject[] = [
         type: 'string',
         multiline: true,
         autosize: true,
+        rows: 1,
         maxRows: 10,
 
         placeholder: 'e.g. 127.0.0.1 or 10.0.0.0/8',
@@ -50,6 +51,7 @@ export const customFilterFields: Field[] = [
     multiline: true,
     autosize: true,
     maxRows: 10,
+    rows: 1,
 
     placeholder: 'e.g. 1.* or [!3].[0-9].*',
     label: t('Releases'),
@@ -68,6 +70,7 @@ export const customFilterFields: Field[] = [
     multiline: true,
     autosize: true,
     maxRows: 10,
+    rows: 1,
 
     placeholder: 'e.g. TypeError* or *: integer division or modulo by zero',
     label: t('Error Message'),

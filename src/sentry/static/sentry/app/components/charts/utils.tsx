@@ -147,11 +147,25 @@ export function isMultiSeriesStats(
   return data !== null && data.data === undefined && data.totals === undefined;
 }
 
+// If dimension is a number convert it to pixels, otherwise use dimension
+// without transform
+export const getDimensionValue = (dimension?: number | string | null) => {
+  if (typeof dimension === 'number') {
+    return `${dimension}px`;
+  }
+
+  if (dimension === null) {
+    return undefined;
+  }
+
+  return dimension;
+};
+
 /**
  * Constructs the color palette for a chart given the Theme and optionally a
  * series length
  */
-export function getColorPalette(theme: Theme, seriesLength: number | undefined | null) {
+export function getColorPalette(theme: Theme, seriesLength?: number | null) {
   const palette = seriesLength
     ? theme.charts.getColorPalette(seriesLength)
     : theme.charts.colors;

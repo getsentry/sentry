@@ -37,7 +37,8 @@ class Cursor:
         if len(bits) != 3:
             raise ValueError
         try:
-            bits = int(bits[0]), int(bits[1]), int(bits[2])
+            value = float(bits[0]) if "." in bits[0] else int(bits[0])
+            bits = value, int(bits[1]), int(bits[2])
         except (TypeError, ValueError):
             raise ValueError
         return cls(*bits)

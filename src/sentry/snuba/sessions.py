@@ -215,6 +215,8 @@ def get_release_adoption(project_releases, environments=None, now=None):
             "sessions_adoption": sessions_adoption,
             "users_24h": x["users"],
             "sessions_24h": x["sessions"],
+            "project_users_24h": total_users_count,
+            "project_sessions_24h": total_sessions_count,
         }
 
     return rv
@@ -331,7 +333,9 @@ def get_release_health_data_overview(
         rv[key]["adoption"] = adoption_info.get("adoption")
         rv[key]["sessions_adoption"] = adoption_info.get("sessions_adoption")
         rv[key]["total_users_24h"] = adoption_info.get("users_24h")
+        rv[key]["total_project_users_24h"] = adoption_info.get("project_users_24h")
         rv[key]["total_sessions_24h"] = adoption_info.get("sessions_24h")
+        rv[key]["total_project_sessions_24h"] = adoption_info.get("project_sessions_24h")
 
     if health_stats_period:
         for x in raw_query(

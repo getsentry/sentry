@@ -1,10 +1,11 @@
 ---
-created: '2021-02-15T18:20:09.757165Z'
+created: '2021-03-08T16:39:06.092263Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: null
+  tree_label: "_prefetch"
   component:
     app-depth-1 (custom fingerprint takes precedence)
       exception*
@@ -25,6 +26,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: null
+  tree_label: "__init__"
   component:
     app-depth-2 (custom fingerprint takes precedence)
       exception*
@@ -54,6 +56,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: null
+  tree_label: "_get_chunked_blob"
   component:
     app-depth-3 (custom fingerprint takes precedence)
       exception*
@@ -92,6 +95,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: null
+  tree_label: "save_to"
   component:
     app-depth-4 (custom fingerprint takes precedence)
       exception*
@@ -139,6 +143,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: null
+  tree_label: "_load_cachefiles_via_fs"
   component:
     app-depth-5 (custom fingerprint takes precedence)
       exception*
@@ -195,6 +200,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: null
+  tree_label: "_wrapped"
   component:
     app-depth-max (custom fingerprint takes precedence)
       exception*
@@ -364,6 +370,7 @@ custom-fingerprint:
 --------------------------------------------------------------------------
 system:
   hash: null
+  tree_label: "_wrapped"
   component:
     system (custom fingerprint takes precedence)
       exception*

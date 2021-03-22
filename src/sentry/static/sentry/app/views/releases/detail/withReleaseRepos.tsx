@@ -212,10 +212,10 @@ const withReleaseRepos = <P extends DependentProps>(
               <WrappedComponent
                 {...(this.props as P)} // this is just to satisfy the compiler
                 orgSlug={orgSlug}
+                projectSlug={this.context.project.slug}
                 release={release}
                 router={router}
                 location={location}
-                projectSlug={this.context.project.slug}
                 releaseRepos={releaseRepos}
                 activeReleaseRepo={activeReleaseRepo}
               />

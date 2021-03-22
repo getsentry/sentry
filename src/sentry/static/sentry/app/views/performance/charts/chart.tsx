@@ -1,5 +1,6 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import {withTheme} from 'emotion-theming';
 import max from 'lodash/max';
 import min from 'lodash/min';
 
@@ -9,9 +10,10 @@ import {DateString} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {aggregateOutputType} from 'app/utils/discover/fields';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 type Props = {
+  theme: Theme;
   data: Series[];
   router: ReactRouter.InjectedRouter;
   statsPeriod: string | undefined;
@@ -55,6 +57,7 @@ function computeAxisMax(data) {
 class Chart extends React.Component<Props> {
   render() {
     const {
+      theme,
       data,
       router,
       statsPeriod,
@@ -192,4 +195,4 @@ class Chart extends React.Component<Props> {
   }
 }
 
-export default Chart;
+export default withTheme(Chart);

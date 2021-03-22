@@ -32,13 +32,14 @@ type State = {
 
 class Commits extends AsyncView<Props, State> {
   getTitle() {
-    const {params} = this.props;
+    const {params, projectSlug} = this.props;
     const {orgId} = params;
 
     return routeTitleGen(
       t('Commits - Release %s', formatVersion(params.release)),
       orgId,
-      false
+      false,
+      projectSlug
     );
   }
 

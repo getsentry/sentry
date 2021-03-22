@@ -17,10 +17,11 @@ from sentry.api.helpers.group_index import (
     delete_groups,
     get_by_short_id,
     rate_limit_endpoint,
+    track_slo_response,
     update_groups,
     ValidationError,
 )
-from sentry.api.paginator import DateTimePaginator
+from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_params, InvalidParams
@@ -29,11 +30,7 @@ from sentry.search.snuba.backend import (
     assigned_or_suggested_filter,
     EventsDatasetSnubaSearchBackend,
 )
-from sentry.search.snuba.executors import (
-    get_search_filter,
-    InvalidSearchQuery,
-    PostgresSnubaQueryExecutor,
-)
+from sentry.search.snuba.executors import get_search_filter, InvalidSearchQuery
 from sentry.snuba import discover
 from sentry.utils.compat import map
 from sentry.utils.cursors import Cursor, CursorResult
@@ -79,7 +76,7 @@ def inbox_search(
     end = max([earliest_date, end])
 
     if start >= end:
-        return PostgresSnubaQueryExecutor.empty_result
+        return Paginator(Group.objects.none()).get_result()
 
     # Make sure search terms are valid
     invalid_search_terms = [
@@ -165,6 +162,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             result = search.query(**query_kwargs)
         return result, query_kwargs
 
+    @track_slo_response("workflow")
     @rate_limit_endpoint(limit=10, window=1)
     def get(self, request, organization):
         """
@@ -338,6 +336,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         # TODO(jess): add metrics that are similar to project endpoint here
         return response
 
+    @track_slo_response("workflow")
     @rate_limit_endpoint(limit=10, window=1)
     def put(self, request, organization):
         """
@@ -416,8 +415,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             projects,
             self.get_environments(request, organization),
         )
-        return update_groups(request, projects, organization.id, search_fn, has_inbox)
 
+        return update_groups(
+            request, request.GET.getlist("id"), projects, organization.id, search_fn, has_inbox
+        )
+
+    @track_slo_response("workflow")
     @rate_limit_endpoint(limit=10, window=1)
     def delete(self, request, organization):
         """

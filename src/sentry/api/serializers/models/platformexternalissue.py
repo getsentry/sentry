@@ -7,7 +7,7 @@ class PlatformExternalIssueSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             "id": str(obj.id),
-            "groupId": str(obj.group_id),
+            "issueId": str(obj.group_id),
             "serviceType": obj.service_type,
             "displayName": obj.display_name,
             "webUrl": obj.web_url,

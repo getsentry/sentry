@@ -95,12 +95,14 @@ from .endpoints.organization_environments import OrganizationEnvironmentsEndpoin
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import (
-    OrganizationEventsEndpoint,
     OrganizationEventsV2Endpoint,
     OrganizationEventsGeoEndpoint,
 )
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
+from .endpoints.organization_events_facets_performance import (
+    OrganizationEventsFacetsPerformanceEndpoint,
+)
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
     OrganizationEventBaseline,
@@ -857,11 +859,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-config-repositories",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/events/$",
-                    OrganizationEventsEndpoint.as_view(),
-                    name="sentry-api-0-organization-events",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/sdk-updates/$",
                     OrganizationSdkUpdatesEndpoint.as_view(),
                     name="sentry-api-0-organization-sdk-updates",
@@ -871,7 +868,7 @@ urlpatterns = [
                     OrganizationHasMobileAppEvents.as_view(),
                     name="sentry-api-0-organization-has-mobile-events",
                 ),
-                # This is temporary while we alpha test eventsv2
+                # TODO add an alias for /organizations/:slug/events/ and deprecate eventsv2
                 url(
                     r"^(?P<organization_slug>[^\/]+)/eventsv2/$",
                     OrganizationEventsV2Endpoint.as_view(),
@@ -896,6 +893,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-facets/$",
                     OrganizationEventsFacetsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-facets",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-facets-performance/$",
+                    OrganizationEventsFacetsPerformanceEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-facets-performance",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",

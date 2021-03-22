@@ -78,7 +78,7 @@ class IssueDetailsPage(BasePage):
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
-        self.browser.wait_until_test_id("event-entries")
+        self.browser.wait_until_test_id("event-entries-loading-false")
         self.browser.wait_until_test_id("linked-issues")
         self.browser.wait_until_test_id("loaded-device-name")
         if self.browser.element_exists("#grouping-info"):

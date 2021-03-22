@@ -133,7 +133,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     return (
       <div>
         <SettingsPageHeader title={t('Developer Settings')} />
-        <AlertLink href="https://docs.sentry.io/workflow/integrations/integration-platform/">
+        <AlertLink href="https://docs.sentry.io/product/integrations/integration-platform/">
           {t(
             'Have questions about the Integration Platform? Learn more about it in our docs.'
           )}

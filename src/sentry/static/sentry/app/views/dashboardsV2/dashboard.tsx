@@ -1,5 +1,4 @@
 import React from 'react';
-import LazyLoad from 'react-lazyload';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
@@ -106,15 +105,14 @@ class Dashboard extends React.Component<Props> {
     const dragId = key;
 
     return (
-      <LazyLoad key={key} once height={240} offset={100}>
-        <SortableWidget
-          widget={widget}
-          dragId={dragId}
-          isEditing={isEditing}
-          onDelete={this.handleDeleteWidget(index)}
-          onEdit={this.handleEditWidget(widget, index)}
-        />
-      </LazyLoad>
+      <SortableWidget
+        key={key}
+        widget={widget}
+        dragId={dragId}
+        isEditing={isEditing}
+        onDelete={this.handleDeleteWidget(index)}
+        onEdit={this.handleEditWidget(widget, index)}
+      />
     );
   }
 
@@ -169,5 +167,5 @@ const WidgetContainer = styled('div')`
 `;
 
 function generateWidgetId(widget: Widget, index: number) {
-  return widget.id ?? `index-${index}`;
+  return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
 }

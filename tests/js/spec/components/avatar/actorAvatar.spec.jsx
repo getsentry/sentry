@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import MemberListStore from 'app/stores/memberListStore';
@@ -57,7 +57,7 @@ describe('ActorAvatar', function () {
     });
 
     it('should return null when actor type is a unknown', function () {
-      const avatar = mount(
+      const avatar = mountWithTheme(
         <ActorAvatar
           actor={{
             id: '3',

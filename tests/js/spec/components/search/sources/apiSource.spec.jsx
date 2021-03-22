@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {ApiSource} from 'app/components/search/sources/apiSource';
 
@@ -79,7 +79,7 @@ describe('ApiSource', function () {
 
   it('queries all API endpoints', function () {
     const mock = jest.fn().mockReturnValue(null);
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
       </ApiSource>,
@@ -96,7 +96,7 @@ describe('ApiSource', function () {
 
   it('only queries for shortids when query matches shortid format', async function () {
     const mock = jest.fn().mockReturnValue(null);
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="test-">
         {mock}
       </ApiSource>,
@@ -141,7 +141,7 @@ describe('ApiSource', function () {
 
   it('only queries for eventids when query matches eventid format of 32 chars', async function () {
     const mock = jest.fn().mockReturnValue(null);
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="1234567890123456789012345678901">
         {mock}
       </ApiSource>,
@@ -188,7 +188,7 @@ describe('ApiSource', function () {
 
   it('only queries org endpoint if there is no org in context', function () {
     const mock = jest.fn().mockReturnValue(null);
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ApiSource params={{}} query="foo">
         {mock}
       </ApiSource>,
@@ -203,7 +203,7 @@ describe('ApiSource', function () {
 
   it('render function is called with correct results', async function () {
     const mock = jest.fn().mockReturnValue(null);
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} organization={org} query="foo">
         {mock}
       </ApiSource>,
@@ -290,7 +290,7 @@ describe('ApiSource', function () {
       query: 'foo',
       statusCode: 500,
     });
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
       </ApiSource>,
@@ -332,7 +332,7 @@ describe('ApiSource', function () {
 
   it('render function is updated as query changes', async function () {
     const mock = jest.fn().mockReturnValue(null);
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
       </ApiSource>,
@@ -360,7 +360,7 @@ describe('ApiSource', function () {
     let mock;
     beforeAll(function () {
       mock = jest.fn().mockReturnValue(null);
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <ApiSource params={{orgId: org.slug}} query="">
           {mock}
         </ApiSource>,

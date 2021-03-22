@@ -163,6 +163,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                         project={project}
                         avatarSize={28}
                         displayName={params.projectId}
+                        disableLink
                       />
                     )}
                   </TextOverflow>

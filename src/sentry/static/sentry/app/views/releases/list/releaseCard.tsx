@@ -12,6 +12,8 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, Release} from 'app/types';
 
+import {ReleaseHealthRequestRenderProps} from '../utils/releaseHealthRequest';
+
 import ReleaseHealth from './releaseHealth';
 import {DisplayOption} from './utils';
 
@@ -41,6 +43,8 @@ type Props = {
   selection: GlobalSelection;
   reloading: boolean;
   showHealthPlaceholders: boolean;
+  isTopRelease: boolean;
+  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
 };
 
 const ReleaseCard = ({
@@ -51,6 +55,8 @@ const ReleaseCard = ({
   reloading,
   selection,
   showHealthPlaceholders,
+  isTopRelease,
+  getHealthData,
 }: Props) => {
   const {version, commitCount, lastDeploy, dateCreated, versionInfo} = release;
 
@@ -90,6 +96,8 @@ const ReleaseCard = ({
           showPlaceholders={showHealthPlaceholders}
           reloading={reloading}
           selection={selection}
+          isTopRelease={isTopRelease}
+          getHealthData={getHealthData}
         />
       </ReleaseProjects>
     </StyledPanel>
@@ -133,7 +141,7 @@ const ReleaseInfoSubheader = styled('div')`
 
 const PackageName = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 `;
 
 const ReleaseProjects = styled('div')`

@@ -30,6 +30,7 @@ const validHookNames = new Set<HookName>([
   'feature-disabled:events-sidebar-item',
   'feature-disabled:grid-editable-actions',
   'feature-disabled:open-discover',
+  'feature-disabled:dashboards-edit',
   'feature-disabled:incidents-sidebar-item',
   'feature-disabled:performance-new-project',
   'feature-disabled:performance-page',
@@ -49,14 +50,17 @@ const validHookNames = new Set<HookName>([
   'organization:header',
   'routes',
   'routes:admin',
+  'routes:api',
   'routes:organization',
   'routes:organization-root',
+  'settings:api-navigation-config',
   'settings:organization-navigation',
   'settings:organization-navigation-config',
   'sidebar:bottom-items',
   'sidebar:help-menu',
   'sidebar:item-label',
   'sidebar:organization-dropdown-menu',
+  'sidebar:organization-dropdown-menu-bottom',
 ]);
 
 type HookStoreInterface = {

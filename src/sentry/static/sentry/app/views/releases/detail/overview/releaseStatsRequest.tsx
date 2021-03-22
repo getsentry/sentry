@@ -1,5 +1,4 @@
 import React from 'react';
-import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import meanBy from 'lodash/meanBy';
@@ -155,19 +154,19 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         // this is used to get total counts for chart footer summary
         data = await this.fetchEventData();
       }
-    } catch {
-      addErrorMessage(t('Error loading chart data'));
+    } catch (error) {
+      addErrorMessage(error.responseJSON?.detail ?? t('Error loading chart data'));
       this.setState({
         errored: true,
         data: null,
       });
     }
 
-    if (!defined(data)) {
+    if (!defined(data) && !this.state.errored) {
       // this should not happen
-      Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
-        Sentry.captureException(new Error('Release chart data is undefined'));
+      this.setState({
+        errored: true,
+        data: null,
       });
     }
 

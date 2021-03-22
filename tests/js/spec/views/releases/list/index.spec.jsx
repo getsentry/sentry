@@ -13,20 +13,24 @@ describe('ReleasesList', function () {
   const props = {
     router,
     organization,
-    selection: {projects: []},
+    selection: {
+      projects: [],
+      datetime: {
+        period: '14d',
+      },
+    },
     params: {orgId: organization.slug},
     location: {
       query: {
         query: 'derp',
         sort: SortOption.SESSIONS,
         healthStatsPeriod: '24h',
-        healthStat: 'sessions',
         somethingBad: 'XXX',
         status: StatusOption.ACTIVE,
       },
     },
   };
-  let wrapper, endpointMock;
+  let wrapper, endpointMock, sessionApiMock;
 
   beforeEach(async function () {
     ProjectsStore.loadInitialData(organization.projects);
@@ -49,6 +53,11 @@ describe('ReleasesList', function () {
       ],
     });
 
+    sessionApiMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/sessions/`,
+      body: null,
+    });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -69,9 +78,9 @@ describe('ReleasesList', function () {
 
     expect(items).toHaveLength(3);
     expect(items.at(0).text()).toContain('1.0.0');
-    expect(items.at(0).text()).toContain('User Adoption');
+    expect(items.at(0).text()).toContain('Adoption');
     expect(items.at(1).text()).toContain('1.0.1');
-    expect(items.at(1).find('DailyColumn').at(1).text()).toContain('\u2014');
+    expect(items.at(1).find('CountColumn').at(1).text()).toContain('\u2014');
     expect(items.at(2).text()).toContain('af4f231ec9a8');
     expect(items.at(2).find('Header').text()).toContain('Project');
   });
@@ -152,7 +161,6 @@ describe('ReleasesList', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           sort: SortOption.SESSIONS,
-          healthStat: 'sessions',
         }),
       })
     );
@@ -164,8 +172,8 @@ describe('ReleasesList', function () {
     expect(sortByOptions).toHaveLength(5);
     expect(dateCreatedOption.text()).toEqual('Date Created');
 
-    const healthStatsControls = wrapper.find('DailyColumn span').first();
-    expect(healthStatsControls.text()).toEqual('Sessions');
+    const healthStatsControls = wrapper.find('CountColumn span').first();
+    expect(healthStatsControls.text()).toEqual('Count');
 
     dateCreatedOption.simulate('click');
 
@@ -180,24 +188,24 @@ describe('ReleasesList', function () {
     const displayDropdown = wrapper.find('ReleaseListDisplayOptions');
 
     const activeDisplay = displayDropdown.find('DropdownButton button');
-    expect(activeDisplay.text()).toEqual('DisplayCrash Free Sessions');
+    expect(activeDisplay.text()).toEqual('DisplaySessions');
 
     const displayOptions = displayDropdown.find('DropdownItem');
     expect(displayOptions).toHaveLength(2);
 
     const crashFreeSessionsOption = displayOptions.at(0);
     expect(crashFreeSessionsOption.props().isActive).toEqual(true);
-    expect(crashFreeSessionsOption.text()).toEqual('Crash Free Sessions');
+    expect(crashFreeSessionsOption.text()).toEqual('Sessions');
 
     const crashFreeUsersOption = displayOptions.at(1);
-    expect(crashFreeUsersOption.text()).toEqual('Crash Free Users');
+    expect(crashFreeUsersOption.text()).toEqual('Users');
     expect(crashFreeUsersOption.props().isActive).toEqual(false);
 
     crashFreeUsersOption.find('span').simulate('click');
 
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
-        display: DisplayOption.CRASH_FREE_USERS,
+        display: DisplayOption.USERS,
       }),
     });
   });
@@ -256,28 +264,47 @@ describe('ReleasesList', function () {
     );
   });
 
-  it('toggles health stats chart period/subject', function () {
-    expect(endpointMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/releases/',
+  it('calls session api for health data', async function () {
+    expect(sessionApiMock).toHaveBeenCalledTimes(3);
+
+    expect(sessionApiMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/sessions/',
       expect.objectContaining({
         query: expect.objectContaining({
-          healthStatsPeriod: '24h',
+          field: ['sum(session)'],
+          groupBy: ['project', 'release', 'session.status'],
+          interval: '1d',
+          query: 'release:1.0.0 OR release:1.0.1 OR release:af4f231ec9a8',
+          statsPeriod: '14d',
         }),
       })
     );
 
-    const healthStatsControls = wrapper.find('DailyColumn').first();
+    expect(sessionApiMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/sessions/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: ['sum(session)'],
+          groupBy: ['project'],
+          interval: '1h',
+          query: undefined,
+          statsPeriod: '24h',
+        }),
+      })
+    );
 
-    expect(healthStatsControls.find('Period[selected=true]').text()).toEqual('24h');
-
-    const period14d = healthStatsControls.find('Period[selected=false] Link').first();
-
-    expect(period14d.prop('to')).toEqual({
-      pathname: undefined,
-      query: expect.objectContaining({
-        healthStatsPeriod: '14d',
-      }),
-    });
+    expect(sessionApiMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/sessions/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: ['sum(session)'],
+          groupBy: ['project', 'release'],
+          interval: '1h',
+          query: 'release:1.0.0 OR release:1.0.1 OR release:af4f231ec9a8',
+          statsPeriod: '24h',
+        }),
+      })
+    );
   });
 
   it('shows health rows only for selected projects in global header', function () {

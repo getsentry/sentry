@@ -3,17 +3,18 @@ from django.http import Http404
 
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ExternalTeam
 
-from .external_team import ExternalTeamSerializer
+from .external_team import ExternalTeamSerializer, ExternalTeamMixin
 
 logger = logging.getLogger(__name__)
 
 
-class ExternalTeamDetailsEndpoint(TeamEndpoint):
+class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalTeamMixin):
     def convert_args(
         self, request, organization_slug, team_slug, external_team_id, *args, **kwargs
     ):
@@ -40,6 +41,8 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint):
         :param string provider: enum("github","gitlab")
         :auth: required
         """
+        if not self.has_feature(request, team):
+            raise PermissionDenied
 
         serializer = ExternalTeamSerializer(
             instance=external_team, data={**request.data, "team_id": team.id}, partial=True
@@ -57,6 +60,8 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint):
         """
         Delete an External Team
         """
+        if not self.has_feature(request, team):
+            raise PermissionDenied
 
         external_team.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

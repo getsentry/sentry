@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ReleaseStore from 'app/stores/releaseStore';
 import withRelease from 'app/utils/withRelease';
@@ -39,7 +39,7 @@ describe('withRelease HoC', function () {
   it('adds release/deploys prop', async () => {
     const Component = () => null;
     const Container = withRelease(Component);
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Container
         api={api}
         organization={organization}
@@ -74,7 +74,7 @@ describe('withRelease HoC', function () {
     // jest.spyOn(Container.prototype, 'fetchDeploys');
 
     // Mount and run component
-    mount(
+    mountWithTheme(
       <Container
         api={api}
         organization={organization}
@@ -86,7 +86,7 @@ describe('withRelease HoC', function () {
     await tick();
 
     // Mount and run duplicates
-    mount(
+    mountWithTheme(
       <Container
         api={api}
         organization={organization}
@@ -95,7 +95,7 @@ describe('withRelease HoC', function () {
       />
     );
     await tick();
-    mount(
+    mountWithTheme(
       <Container
         api={api}
         organization={organization}

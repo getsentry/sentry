@@ -28,8 +28,10 @@ const filterOptionCategories = {
 
 type FilterOptions = React.ComponentProps<typeof Filter>['options'];
 
+type ImageCandidates = Image['candidates'];
+
 type Props = {
-  candidates: Image['candidates'];
+  candidates: ImageCandidates;
   organization: Organization;
   projectId: Project['id'];
   baseUrl: string;
@@ -42,8 +44,8 @@ type Props = {
 type State = {
   searchTerm: string;
   filterOptions: FilterOptions;
-  filteredCandidatesBySearch: Image['candidates'];
-  filteredCandidatesByFilter: Image['candidates'];
+  filteredCandidatesBySearch: ImageCandidates;
+  filteredCandidatesByFilter: ImageCandidates;
 };
 
 class Candidates extends React.Component<Props, State> {
@@ -139,7 +141,7 @@ class Candidates extends React.Component<Props, State> {
     });
   }
 
-  getFilterOptions(candidates: Image['candidates']) {
+  getFilterOptions(candidates: ImageCandidates) {
     const {imageStatus} = this.props;
 
     const filterOptions = {};
@@ -174,7 +176,7 @@ class Candidates extends React.Component<Props, State> {
   }
 
   getFilteredCandidatedByFilter(
-    candidates: Image['candidates'],
+    candidates: ImageCandidates,
     filterOptions: FilterOptions
   ) {
     const checkedStatusOptions = new Set(
@@ -299,7 +301,7 @@ class Candidates extends React.Component<Props, State> {
       <Wrapper>
         <Header>
           <Title>
-            {t('Debug Files')}
+            {t('Debug File Candidates')}
             <QuestionTooltip
               title={tct(
                 'These are the Debug Information Files (DIFs) corresponding to this image which have been looked up on [docLink:symbol servers] during the processing of the stacktrace.',
@@ -328,7 +330,7 @@ class Candidates extends React.Component<Props, State> {
         <StyledPanelTable
           headers={[
             t('Status'),
-            t('Debug File'),
+            t('Location'),
             t('Processing'),
             t('Features'),
             t('Actions'),

@@ -30,12 +30,12 @@ type State = {
 
 type FieldOnChangeParameters = Parameters<NonNullable<TextField['props']['onChange']>>[0];
 
-const SortOptions = [
-  {value: IssueSortOptions.DATE, label: getSortLabel(IssueSortOptions.DATE)},
-  {value: IssueSortOptions.NEW, label: getSortLabel(IssueSortOptions.NEW)},
-  {value: IssueSortOptions.FREQ, label: getSortLabel(IssueSortOptions.FREQ)},
-  {value: IssueSortOptions.PRIORITY, label: getSortLabel(IssueSortOptions.PRIORITY)},
-  {value: IssueSortOptions.USER, label: getSortLabel(IssueSortOptions.USER)},
+const DEFAULT_SORT_OPTIONS = [
+  IssueSortOptions.DATE,
+  IssueSortOptions.NEW,
+  IssueSortOptions.FREQ,
+  IssueSortOptions.PRIORITY,
+  IssueSortOptions.USER,
 ];
 
 class CreateSavedSearchModal extends React.Component<Props, State> {
@@ -49,7 +49,7 @@ class CreateSavedSearchModal extends React.Component<Props, State> {
 
   /** Handle "date added" sort not being available for saved searches */
   validateSortOption(sort?: string | null): string {
-    if (SortOptions.find(option => option.value === sort)) {
+    if (this.sortOptions().find(option => option === sort)) {
       return sort as string;
     }
 
@@ -89,6 +89,16 @@ class CreateSavedSearchModal extends React.Component<Props, State> {
       });
   };
 
+  sortOptions() {
+    const {organization} = this.props;
+    const options = [...DEFAULT_SORT_OPTIONS];
+    if (organization?.features?.includes('issue-list-trend-sort')) {
+      options.push(IssueSortOptions.TREND);
+    }
+
+    return options;
+  }
+
   handleChangeName = (val: FieldOnChangeParameters) => {
     this.setState({name: String(val)});
   };
@@ -104,6 +114,11 @@ class CreateSavedSearchModal extends React.Component<Props, State> {
   render() {
     const {isSaving, error} = this.state;
     const {Header, Footer, Body, closeModal, query, sort} = this.props;
+
+    const sortOptions = this.sortOptions().map(sortOption => ({
+      value: sortOption,
+      label: getSortLabel(sortOption),
+    }));
 
     return (
       <form onSubmit={this.onSubmit}>
@@ -140,7 +155,7 @@ class CreateSavedSearchModal extends React.Component<Props, State> {
             required
             clearable={false}
             defaultValue={this.validateSortOption(sort)}
-            options={SortOptions}
+            options={sortOptions}
             onChange={this.handleChangeSort}
           />
         </Body>

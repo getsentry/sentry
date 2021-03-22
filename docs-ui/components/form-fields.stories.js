@@ -143,7 +143,7 @@ export const _TextareaField = ({autosize, rows}) => (
 _TextareaField.storyName = 'TextareaField';
 _TextareaField.args = {
   autosize: true,
-  rows: 2,
+  rows: 1,
 };
 
 export const __BooleanField = () => (

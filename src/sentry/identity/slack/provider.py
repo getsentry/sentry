@@ -19,7 +19,7 @@ class SlackIdentityProvider(OAuth2Provider):
         return "https://slack.com/oauth/v2/authorize"
 
     # XXX(epurkhiser): While workspace tokens _do_ support the oauth.access
-    # endpoint, it will no include the authorizing_user, so we continue to use
+    # endpoint, it will not include the authorizing_user, so we continue to use
     # the deprecated oauth.token endpoint until we are able to migrate to a bot
     # app which uses oauth.access.
     def get_oauth_access_token_url(self):

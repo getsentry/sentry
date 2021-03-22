@@ -1,4 +1,4 @@
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {
   downloadAsCsv,
@@ -383,7 +383,7 @@ describe('Utils', function () {
     ];
 
     testData.forEach(({input, expectedText}) => {
-      expect(mount(getDisplayValue(input)).text()).toBe(expectedText);
+      expect(mountWithTheme(getDisplayValue(input)).text()).toBe(expectedText);
     });
   });
 

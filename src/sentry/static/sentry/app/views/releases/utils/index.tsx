@@ -1,7 +1,10 @@
 import round from 'lodash/round';
 
+import {tn} from 'app/locale';
 import {Release, ReleaseStatus} from 'app/types';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+
+import {DisplayOption} from '../list/utils';
 
 export const roundDuration = (seconds: number) => {
   return round(seconds, seconds > 60 ? 0 : 3);
@@ -73,3 +76,11 @@ export const getReleaseUnhandledIssuesUrl = (
 
 export const isReleaseArchived = (release: Release) =>
   release.status === ReleaseStatus.Archived;
+
+export function releaseDisplayLabel(displayOption: DisplayOption, count?: number | null) {
+  if (displayOption === DisplayOption.USERS) {
+    return tn('user', 'users', count);
+  }
+
+  return tn('session', 'sessions', count);
+}

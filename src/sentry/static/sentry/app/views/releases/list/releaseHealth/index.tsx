@@ -9,6 +9,7 @@ import {tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, Release} from 'app/types';
 
+import {ReleaseHealthRequestRenderProps} from '../../utils/releaseHealthRequest';
 import {DisplayOption} from '../utils';
 
 import Content from './content';
@@ -21,6 +22,8 @@ type Props = {
   showPlaceholders: boolean;
   selection: GlobalSelection;
   reloading: boolean;
+  isTopRelease: boolean;
+  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
 };
 
 class ReleaseHealth extends React.Component<Props> {
@@ -41,6 +44,8 @@ class ReleaseHealth extends React.Component<Props> {
       location,
       showPlaceholders,
       selection,
+      isTopRelease,
+      getHealthData,
     } = this.props;
 
     // sort health rows inside release card alphabetically by project name,
@@ -74,6 +79,8 @@ class ReleaseHealth extends React.Component<Props> {
           projects={projectsToShow}
           location={location}
           showPlaceholders={showPlaceholders}
+          isTopRelease={isTopRelease}
+          getHealthData={getHealthData}
         />
 
         {projectsToHide.length > 0 && (

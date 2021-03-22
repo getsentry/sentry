@@ -15,9 +15,6 @@ export const _Badge = () => (
     <div>
       Normal <Badge text="0" />
     </div>
-    <div>
-      New <Badge text="50" priority="new" />
-    </div>
   </div>
 );
 

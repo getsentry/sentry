@@ -20,7 +20,8 @@ class ExternalUserTest(APITestCase):
         }
 
     def test_basic_post(self):
-        response = self.client.post(self.url, self.data)
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.client.post(self.url, self.data)
         assert response.status_code == 201, response.content
         assert response.data == {
             **self.data,
@@ -28,27 +29,36 @@ class ExternalUserTest(APITestCase):
             "memberId": str(self.organization_member.id),
         }
 
+    def test_without_feature_flag(self):
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 403
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
     def test_missing_provider(self):
         self.data.pop("provider")
-        response = self.client.post(self.url, self.data)
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"provider": ["This field is required."]}
 
     def test_missing_externalName(self):
         self.data.pop("externalName")
-        response = self.client.post(self.url, self.data)
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"externalName": ["This field is required."]}
 
     def test_missing_memberId(self):
         self.data.pop("memberId")
-        response = self.client.post(self.url, self.data)
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"memberId": ["This field is required."]}
 
     def test_invalid_provider(self):
         self.data.update(provider="unknown")
-        response = self.client.post(self.url, self.data)
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"provider": ['"unknown" is not a valid choice.']}
 
@@ -57,7 +67,8 @@ class ExternalUserTest(APITestCase):
             self.user, self.organization, external_name=self.data["externalName"]
         )
 
-        response = self.client.post(self.url, self.data)
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.client.post(self.url, self.data)
         assert response.status_code == 200
         assert response.data == {
             **self.data,

@@ -33,10 +33,7 @@ function isOutdatedSdk(event: Event): boolean {
 
 export default function EventVitals({event, showSectionHeader = true}: Props) {
   const measurementNames = Object.keys(event.measurements ?? {})
-    .filter(name => {
-      // ignore marker measurements
-      return !name.startsWith('mark.');
-    })
+    .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
     .sort();
 
   if (measurementNames.length === 0) {

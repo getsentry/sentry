@@ -130,6 +130,7 @@ export default [
         multiline: true,
         autosize: true,
         maxRows: 10,
+        rows: 1,
         placeholder: 'e.g. email',
         label: t('Global Sensitive Fields'),
         help: t(
@@ -147,6 +148,7 @@ export default [
         multiline: true,
         autosize: true,
         maxRows: 10,
+        rows: 1,
         placeholder: t('e.g. business-email'),
         label: t('Global Safe Fields'),
         help: t(

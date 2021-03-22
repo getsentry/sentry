@@ -74,6 +74,7 @@ class ProjectCard extends React.Component<Props> {
                 <StyledIdBadge
                   project={project}
                   avatarSize={18}
+                  hideOverflow
                   displayName={
                     hasProjectAccess ? (
                       <Link to={projectLink}>
@@ -193,7 +194,8 @@ const CardHeader = styled('div')`
 `;
 
 const HeaderRow = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   justify-content: space-between;
   align-items: center;
 `;
@@ -214,6 +216,7 @@ const LoadingCard = styled('div')`
 const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
+  flex-shrink: 1;
 `;
 
 const SummaryLinks = styled('div')`

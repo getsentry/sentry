@@ -1966,6 +1966,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "min(transaction.duration)",
                 "max(transaction.duration)",
                 "avg(transaction.duration)",
+                "stddev(transaction.duration)",
+                "var(transaction.duration)",
                 "sum(transaction.duration)",
             ],
             "query": "event.type:transaction",
@@ -1980,6 +1982,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["min_transaction_duration"] == 5000
         assert data[0]["max_transaction_duration"] == 5000
         assert data[0]["avg_transaction_duration"] == 5000
+        assert data[0]["stddev_transaction_duration"] == 0.0
+        assert data[0]["var_transaction_duration"] == 0.0
         assert data[0]["sum_transaction_duration"] == 10000
 
     def test_all_aggregates_in_query(self):
@@ -2063,8 +2067,20 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "max(transaction.duration)",
                 "avg(transaction.duration)",
                 "sum(transaction.duration)",
+                "stddev(transaction.duration)",
+                "var(transaction.duration)",
             ],
-            "query": "event.type:transaction min(transaction.duration):>1000 max(transaction.duration):>1000 avg(transaction.duration):>1000 sum(transaction.duration):>1000",
+            "query": " ".join(
+                [
+                    "event.type:transaction",
+                    "min(transaction.duration):>1000",
+                    "max(transaction.duration):>1000",
+                    "avg(transaction.duration):>1000",
+                    "sum(transaction.duration):>1000",
+                    "stddev(transaction.duration):>=0.0",
+                    "var(transaction.duration):>=0.0",
+                ]
+            ),
         }
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
@@ -2073,6 +2089,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["min_transaction_duration"] == 5000
         assert data[0]["max_transaction_duration"] == 5000
         assert data[0]["avg_transaction_duration"] == 5000
+        assert data[0]["stddev_transaction_duration"] == 0.0
+        assert data[0]["var_transaction_duration"] == 0.0
         assert data[0]["sum_transaction_duration"] == 10000
 
         query = {
@@ -2617,6 +2635,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.store_event(self.transaction_data, self.project.id)
 
         # should try all the potential aggregates
+        # Skipped tests for stddev and var since sampling one data point
+        # results in nan.
         query = {
             "field": [
                 "percentile(measurements.fcp, 0.5)",

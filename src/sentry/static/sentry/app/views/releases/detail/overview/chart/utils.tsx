@@ -180,8 +180,6 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
     healthy: {
       seriesName: sessionTerm.otherHealthy,
       data: [],
-      stack: 'otherArea',
-      z: 0,
       color: SESSIONS_CHART_PALETTE[3],
       areaStyle: {
         color: SESSIONS_CHART_PALETTE[3],
@@ -195,8 +193,6 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
     errored: {
       seriesName: sessionTerm.otherErrored,
       data: [],
-      stack: 'otherArea',
-      z: 0,
       color: SESSIONS_CHART_PALETTE[0],
       areaStyle: {
         color: SESSIONS_CHART_PALETTE[0],
@@ -210,8 +206,6 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
     abnormal: {
       seriesName: sessionTerm.otherAbnormal,
       data: [],
-      stack: 'otherArea',
-      z: 0,
       color: SESSIONS_CHART_PALETTE[1],
       areaStyle: {
         color: SESSIONS_CHART_PALETTE[1],
@@ -225,8 +219,6 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
     crashed: {
       seriesName: sessionTerm.otherCrashed,
       data: [],
-      stack: 'otherArea',
-      z: 0,
       color: SESSIONS_CHART_PALETTE[2],
       areaStyle: {
         color: SESSIONS_CHART_PALETTE[2],

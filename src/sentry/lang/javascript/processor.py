@@ -2,6 +2,7 @@ from django.utils.encoding import force_text, force_bytes
 
 __all__ = ["JavaScriptStacktraceProcessor"]
 
+import errno
 import logging
 import re
 import sys
@@ -38,6 +39,7 @@ from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
 from sentry.utils.safe import get_path
 from sentry.utils import metrics
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.urls import non_standard_url_join
 from sentry.stacktraces.processing import StacktraceProcessor
 
@@ -219,6 +221,16 @@ def get_release_file_cache_key_meta(release_id, releasefile_ident):
     return "meta:%s" % get_release_file_cache_key(release_id, releasefile_ident)
 
 
+MAX_FETCH_ATTEMPTS = 3
+
+
+def should_retry_fetch(attempt: int, e: Exception) -> bool:
+    return not attempt > MAX_FETCH_ATTEMPTS and isinstance(e, OSError) and e.errno == errno.ESTALE
+
+
+fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(0.05))
+
+
 def fetch_release_file(filename, release, dist=None):
     """
     Attempt to retrieve a release artifact from the database.
@@ -275,10 +287,13 @@ def fetch_release_file(filename, release, dist=None):
                 rf for ident in filename_idents for rf in possible_files if rf.ident == ident
             )
 
+        logger.debug(
+            "Found release artifact %r (id=%s, release_id=%s)", filename, releasefile.id, release.id
+        )
+
         # If the release file is not in cache, check if we can retrieve at
         # least the size metadata from cache and prevent compression and
         # caching if payload exceeds the backend limit.
-        z_body = None
         z_body_size = None
 
         if CACHE_MAX_VALUE_SIZE:
@@ -286,16 +301,16 @@ def fetch_release_file(filename, release, dist=None):
             if cache_meta:
                 z_body_size = int(cache_meta.get("compressed_size"))
 
-        logger.debug(
-            "Found release artifact %r (id=%s, release_id=%s)", filename, releasefile.id, release.id
-        )
+        def fetch_release_body():
+            with ReleaseFile.cache.getfile(releasefile) as fp:
+                if z_body_size and z_body_size > CACHE_MAX_VALUE_SIZE:
+                    return None, fp.read()
+                else:
+                    return compress_file(fp)
+
         try:
             with metrics.timer("sourcemaps.release_file_read"):
-                with ReleaseFile.cache.getfile(releasefile) as fp:
-                    if z_body_size and z_body_size > CACHE_MAX_VALUE_SIZE:
-                        body = fp.read()
-                    else:
-                        z_body, body = compress_file(fp)
+                z_body, body = fetch_retry_policy(fetch_release_body)
         except Exception:
             logger.error("sourcemap.compress_read_failed", exc_info=sys.exc_info())
             result = None

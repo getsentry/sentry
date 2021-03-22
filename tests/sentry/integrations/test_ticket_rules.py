@@ -78,6 +78,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 format="json",
                 data={
                     "name": "hello world",
+                    "owner": self.user.id,
                     "environment": None,
                     "actionMatch": "any",
                     "frequency": 5,

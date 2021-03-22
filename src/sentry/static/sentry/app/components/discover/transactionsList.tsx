@@ -121,6 +121,10 @@ type Props = {
    * The callback for when Open in Discover is clicked.
    */
   handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
+  /**
+   * Show a loading indicator instead of the table, used for transaction summary p95.
+   */
+  forceLoading?: boolean;
 };
 
 class TransactionsList extends React.Component<Props> {
@@ -204,6 +208,7 @@ class TransactionsList extends React.Component<Props> {
       titles,
       generateLink,
       baseline,
+      forceLoading,
     } = this.props;
     const sortedEventView = eventView.withSorts([selected.sort]);
     const columnOrder = sortedEventView.getColumns();
@@ -242,6 +247,15 @@ class TransactionsList extends React.Component<Props> {
         />
       </React.Fragment>
     );
+
+    if (forceLoading) {
+      return tableRenderer({
+        isLoading: true,
+        pageLinks: null,
+        tableData: null,
+        baselineData: null,
+      });
+    }
 
     if (baselineTransactionName) {
       const orgTableRenderer = tableRenderer;
@@ -431,7 +445,6 @@ class TransactionsTable extends React.PureComponent<TableProps> {
       handleCellAction,
     } = this.props;
     const fields = eventView.getFields();
-    const tableTitles = this.getTitles();
 
     const resultsRow = columnOrder.map((column, index) => {
       const field = String(column.key);
@@ -442,11 +455,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
       const fieldRenderer = getFieldRenderer(field, tableMeta);
       let rendered = fieldRenderer(row, {organization, location});
 
-      const target = generateLink?.[tableTitles[index]]?.(
-        organization,
-        row,
-        location.query
-      );
+      const target = generateLink?.[field]?.(organization, row, location.query);
 
       if (target) {
         rendered = (

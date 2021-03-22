@@ -109,6 +109,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             start=start,
             end=end,
             environment_id=environment_id,
+            use_cache=True,
         )[event.group_id]
 
 
@@ -122,4 +123,5 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
             start=start,
             end=end,
             environment_id=environment_id,
+            use_cache=True,
         )[event.group_id]

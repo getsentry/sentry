@@ -89,6 +89,7 @@ class QuerySubscriptionConsumer:
             cluster_name, {"allow.auto.create.topics": "true"}
         )
         self.resolve_partition_force_offset = self.offset_reset_name_to_func(force_offset_reset)
+        self.__shutdown_requested = False
 
     def offset_reset_name_to_func(
         self, offset_reset: Optional[str]
@@ -147,6 +148,8 @@ class QuerySubscriptionConsumer:
             )
 
         self.consumer = Consumer(self.cluster_options)
+        self.__shutdown_requested = False
+
         if settings.KAFKA_CONSUMER_AUTO_CREATE_TOPICS:
             # This is required for confluent-kafka>=1.5.0, otherwise the topics will
             # not be automatically created.
@@ -155,36 +158,35 @@ class QuerySubscriptionConsumer:
 
         self.consumer.subscribe([self.topic], on_assign=on_assign, on_revoke=on_revoke)
 
-        try:
-            i = 0
-            while True:
-                message = self.consumer.poll(0.1)
-                if message is None:
-                    continue
+        i = 0
+        while not self.__shutdown_requested:
+            message = self.consumer.poll(0.1)
+            if message is None:
+                continue
 
-                error = message.error()
-                if error is not None:
-                    raise KafkaException(error)
+            error = message.error()
+            if error is not None:
+                raise KafkaException(error)
 
-                i = i + 1
+            i = i + 1
 
-                with sentry_sdk.start_transaction(
-                    op="handle_message",
-                    name="query_subscription_consumer_process_message",
-                    sampled=True,
-                ), metrics.timer("snuba_query_subscriber.handle_message"):
-                    self.handle_message(message)
+            with sentry_sdk.start_transaction(
+                op="handle_message",
+                name="query_subscription_consumer_process_message",
+                sampled=True,
+            ), metrics.timer("snuba_query_subscriber.handle_message"):
+                self.handle_message(message)
 
-                # Track latest completed message here, for use in `shutdown` handler.
-                self.offsets[message.partition()] = message.offset() + 1
+            # Track latest completed message here, for use in `shutdown` handler.
+            self.offsets[message.partition()] = message.offset() + 1
 
-                if i % self.commit_batch_size == 0:
-                    logger.debug("Committing offsets")
-                    self.commit_offsets()
-        except KeyboardInterrupt:
-            pass
+            if i % self.commit_batch_size == 0:
+                logger.debug("Committing offsets")
+                self.commit_offsets()
 
-        self.shutdown()
+        logger.debug("Committing offsets and closing consumer")
+        self.commit_offsets()
+        self.consumer.close()
 
     def commit_offsets(self, partitions: Optional[Iterable[int]] = None) -> None:
         logger.info(
@@ -206,9 +208,7 @@ class QuerySubscriptionConsumer:
             self.consumer.commit(offsets=to_commit)
 
     def shutdown(self) -> None:
-        logger.debug("Committing offsets and closing consumer")
-        self.commit_offsets()
-        self.consumer.close()
+        self.__shutdown_requested = True
 
     def handle_message(self, message: Message) -> None:
         """

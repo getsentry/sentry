@@ -76,7 +76,7 @@ class Dashboard extends React.Component<Props> {
       <React.Fragment>
         <SentryDocumentTitle
           title={t('Projects Dashboard')}
-          objSlug={organization.slug}
+          orgSlug={organization.slug}
         />
         {projects.length > 0 && (
           <ProjectsHeader>

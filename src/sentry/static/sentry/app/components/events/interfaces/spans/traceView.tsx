@@ -173,6 +173,7 @@ class TraceView extends React.PureComponent<Props, State> {
 
   renderHeader = (dragProps: DragManagerChildrenProps, parsedTrace: ParsedTraceType) => (
     <TraceViewHeader
+      organization={this.props.organization}
       minimapInteractiveRef={this.minimapInteractiveRef}
       dragProps={dragProps}
       trace={parsedTrace}

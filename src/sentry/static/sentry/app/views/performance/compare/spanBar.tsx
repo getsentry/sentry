@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 
 import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
@@ -34,7 +35,7 @@ import {
 } from 'app/components/events/interfaces/spans/utils';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 import SpanDetail from './spanDetail';
 import {SpanBarRectangle} from './styles';
@@ -50,6 +51,7 @@ import {
 } from './utils';
 
 type Props = {
+  theme: Theme;
   span: Readonly<DiffSpanType>;
   treeDepth: number;
   continuingTreeDepths: Array<TreeDepthType>;
@@ -222,6 +224,7 @@ class SpanBar extends React.Component<Props, State> {
   renderDivider = (
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) => {
+    const {theme} = this.props;
     if (this.state.showDetail) {
       // Mock component to preserve layout spacing
       return (
@@ -265,7 +268,7 @@ class SpanBar extends React.Component<Props, State> {
   };
 
   getSpanBarStyles() {
-    const {span, generateBounds} = this.props;
+    const {theme, span, generateBounds} = this.props;
 
     const bounds = generateBounds(span);
 
@@ -518,7 +521,7 @@ const ComparisonSpanBarRectangle = styled(SpanBarRectangle)<{spanBarHatch: boole
   position: absolute;
   left: 0;
   height: 16px;
-  ${p => getHatchPattern(p, theme.purple200, theme.gray500)}
+  ${p => getHatchPattern(p, p.theme.purple200, p.theme.gray500)}
 `;
 
 const ComparisonLabel = styled('div')`
@@ -539,4 +542,4 @@ const NotableComparisonLabel = styled(ComparisonLabel)`
   font-weight: bold;
 `;
 
-export default SpanBar;
+export default withTheme(SpanBar);

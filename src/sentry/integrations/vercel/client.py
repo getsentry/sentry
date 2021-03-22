@@ -21,6 +21,7 @@ class VercelClient(ApiClient):
     GET_ENV_VAR_URL = "/v6/projects/%s/env"
     SECRETS_URL = "/v2/now/secrets"
     UPDATE_ENV_VAR_URL = "/v6/projects/%s/env/%s"
+    UNINSTALL = "/v1/integrations/configuration/%s"
 
     def __init__(self, access_token, team_id=None):
         super().__init__()
@@ -94,3 +95,6 @@ class VercelClient(ApiClient):
 
     def update_env_variable(self, vercel_project_id, env_var_id, data):
         return self.patch(self.UPDATE_ENV_VAR_URL % (vercel_project_id, env_var_id), data=data)
+
+    def uninstall(self, configuration_id):
+        return self.delete(self.UNINSTALL % configuration_id)

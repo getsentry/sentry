@@ -42,7 +42,7 @@ const IMAGE_INFO_UNAVAILABLE = '-1';
 
 type DefaultProps = {
   data: {
-    images: Array<Image>;
+    images: Array<Image | null>;
   };
 };
 
@@ -146,7 +146,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
   };
 
-  isValidImage(image: Image) {
+  isValidImage(image: Image | null) {
     // in particular proguard images do not have a code file, skip them
     if (image === null || image.code_file === null || image.type === 'proguard') {
       return false;
@@ -268,12 +268,12 @@ class DebugMeta extends React.PureComponent<Props, State> {
     // component. Filter those out to reduce the noise. Most importantly, this
     // includes proguard images, which are rendered separately.
     const relevantImages = images.filter(this.isValidImage).map(releventImage => {
-      const {debug_status, unwind_status} = releventImage;
+      const {debug_status, unwind_status} = releventImage as Image;
       return {
         ...releventImage,
         status: combineStatus(debug_status, unwind_status),
       };
-    });
+    }) as Images;
 
     // Sort images by their start address. We assume that images have
     // non-overlapping ranges. Each address is given as hex string (e.g.

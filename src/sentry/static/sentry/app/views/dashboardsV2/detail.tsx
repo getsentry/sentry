@@ -265,7 +265,7 @@ class DashboardDetail extends React.Component<Props, State> {
       return {
         ...prevState,
         modifiedDashboard: {
-          ...modifiedDashboard,
+          ...prevState.modifiedDashboard!,
           widgets,
         },
       };
@@ -283,7 +283,6 @@ class DashboardDetail extends React.Component<Props, State> {
     const {modifiedDashboard, dashboardState} = this.state;
 
     const isEditing = ['edit', 'create', 'pending_delete'].includes(dashboardState);
-    const canEdit = organization.features.includes('dashboards-edit');
 
     return (
       <GlobalSelectionHeader
@@ -322,7 +321,6 @@ class DashboardDetail extends React.Component<Props, State> {
                     onCommit={this.onCommit({dashboard, reloadData})}
                     onDelete={this.onDelete(dashboard)}
                     dashboardState={dashboardState}
-                    canEdit={canEdit}
                   />
                 </StyledPageHeader>
                 {error ? (

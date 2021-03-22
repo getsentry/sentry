@@ -140,7 +140,7 @@ class KeySettings extends React.Component<Props, State> {
                       'Copy this script into your website to setup your JavaScript SDK without any additional configuration. [link]',
                       {
                         link: (
-                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/#what-does-the-loader-provide">
+                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/">
                             What does the script provide?
                           </ExternalLink>
                         ),

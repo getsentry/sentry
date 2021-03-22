@@ -716,6 +716,8 @@ class SnubaTagStorage(TagStorage):
         #               enters 2020-07 we can generate the following conditions:
         #               >= 2020-07-01T00:00:00 AND <= 2020-07-31T23:59:59
         # time:         This is a column computed from timestamp so it suffers the same issues
+        if snuba_key in {"group_id"}:
+            snuba_key = f"tags[{snuba_key}]"
         if snuba_key in {"event_id", "timestamp", "time"}:
             return SequencePaginator([])
 

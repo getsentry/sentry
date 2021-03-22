@@ -86,31 +86,26 @@ const ReleaseHeader = ({
           ]}
         />
         <Layout.Title>
-          <IdBadge
-            project={project}
-            avatarSize={28}
-            displayName={
-              <ReleaseName>
-                <Version version={version} anchor={false} />
-                <IconWrapper>
-                  <Clipboard value={version}>
-                    <Tooltip title={version} containerDisplayMode="flex">
-                      <IconCopy size="xs" />
-                    </Tooltip>
-                  </Clipboard>
-                </IconWrapper>
-                {!!url && (
-                  <IconWrapper>
-                    <Tooltip title={url}>
-                      <ExternalLink href={url}>
-                        <IconOpen size="xs" />
-                      </ExternalLink>
-                    </Tooltip>
-                  </IconWrapper>
-                )}
-              </ReleaseName>
-            }
-          />
+          <ReleaseName>
+            <IdBadge project={project} avatarSize={28} hideName />
+            <StyledVersion version={version} anchor={false} truncate />
+            <IconWrapper>
+              <Clipboard value={version}>
+                <Tooltip title={version} containerDisplayMode="flex">
+                  <IconCopy size="xs" />
+                </Tooltip>
+              </Clipboard>
+            </IconWrapper>
+            {!!url && (
+              <IconWrapper>
+                <Tooltip title={url}>
+                  <ExternalLink href={url}>
+                    <IconOpen size="xs" />
+                  </ExternalLink>
+                </Tooltip>
+              </IconWrapper>
+            )}
+          </ReleaseName>
         </Layout.Title>
       </Layout.HeaderContent>
 
@@ -144,6 +139,10 @@ const ReleaseHeader = ({
 const ReleaseName = styled('div')`
   display: flex;
   align-items: center;
+`;
+
+const StyledVersion = styled(Version)`
+  margin-left: ${space(1)};
 `;
 
 const IconWrapper = styled('span')`

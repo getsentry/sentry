@@ -396,7 +396,6 @@ class StreamGroup extends React.Component<Props, State> {
           />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
-        {hasGuideAnchor && <GuideAnchor target="inbox_guide_issue" position="bottom" />}
         {withChart && !displayReprocessingLayout && (
           <ChartWrapper className="hidden-xs hidden-sm">
             {!data.filtered?.stats && !data.stats ? (

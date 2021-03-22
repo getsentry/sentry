@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Role from 'app/components/acl/role';
 import ConfigStore from 'app/stores/configStore';
@@ -40,7 +40,7 @@ describe('Role', function () {
     });
 
     it('has a sufficient role', function () {
-      mount(<Role role="admin">{childrenMock}</Role>, routerContext);
+      mountWithTheme(<Role role="admin">{childrenMock}</Role>, routerContext);
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: true,
@@ -48,7 +48,7 @@ describe('Role', function () {
     });
 
     it('has an unsufficient role', function () {
-      mount(<Role role="manager">{childrenMock}</Role>, routerContext);
+      mountWithTheme(<Role role="manager">{childrenMock}</Role>, routerContext);
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: false,
@@ -57,7 +57,7 @@ describe('Role', function () {
 
     it('gives access to a superuser with unsufficient role', function () {
       ConfigStore.config.user = {isSuperuser: true};
-      mount(<Role role="owner">{childrenMock}</Role>, routerContext);
+      mountWithTheme(<Role role="owner">{childrenMock}</Role>, routerContext);
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: true,
@@ -66,7 +66,7 @@ describe('Role', function () {
     });
 
     it('does not give access to a made up role', function () {
-      mount(<Role role="abcdefg">{childrenMock}</Role>, routerContext);
+      mountWithTheme(<Role role="abcdefg">{childrenMock}</Role>, routerContext);
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: false,
@@ -76,7 +76,7 @@ describe('Role', function () {
     it('handles no user', function () {
       const user = {...ConfigStore.config.user};
       ConfigStore.config.user = undefined;
-      mount(<Role role="member">{childrenMock}</Role>, routerContext);
+      mountWithTheme(<Role role="member">{childrenMock}</Role>, routerContext);
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: false,
@@ -85,7 +85,7 @@ describe('Role', function () {
     });
 
     it('handles no availableRoles', function () {
-      mount(
+      mountWithTheme(
         <Role role="member" organization={{...organization, availableRoles: undefined}}>
           {childrenMock}
         </Role>,
@@ -100,7 +100,7 @@ describe('Role', function () {
 
   describe('as React node', function () {
     it('has a sufficient role', function () {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <Role role="member">
           <div>The Child</div>
         </Role>,
@@ -111,7 +111,7 @@ describe('Role', function () {
     });
 
     it('has an unsufficient role', function () {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <Role role="owner">
           <div>The Child</div>
         </Role>,

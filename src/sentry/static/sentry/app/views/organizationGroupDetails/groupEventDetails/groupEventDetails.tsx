@@ -200,6 +200,7 @@ class GroupEventDetails extends React.Component<Props, State> {
       />
     );
   }
+
   render() {
     const {
       className,

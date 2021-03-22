@@ -18,7 +18,8 @@ class ExternalTeamTest(APITestCase):
 
     def test_basic_post(self):
         data = {"externalName": "@getsentry/ecosystem", "provider": "github"}
-        response = self.client.post(self.url, data)
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.client.post(self.url, data)
         assert response.status_code == 201, response.content
         assert response.data == {
             "id": str(response.data["id"]),
@@ -26,19 +27,28 @@ class ExternalTeamTest(APITestCase):
             **data,
         }
 
+    def test_without_feature_flag(self):
+        data = {"externalName": "@getsentry/ecosystem", "provider": "github"}
+        response = self.client.post(self.url, data)
+        assert response.status_code == 403
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
     def test_missing_provider(self):
-        response = self.client.post(self.url, {"externalName": "@getsentry/ecosystem"})
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.client.post(self.url, {"externalName": "@getsentry/ecosystem"})
         assert response.status_code == 400
         assert response.data == {"provider": ["This field is required."]}
 
     def test_missing_externalName(self):
-        response = self.client.post(self.url, {"provider": "gitlab"})
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.client.post(self.url, {"provider": "gitlab"})
         assert response.status_code == 400
         assert response.data == {"externalName": ["This field is required."]}
 
     def test_invalid_provider(self):
         data = {"externalName": "@getsentry/ecosystem", "provider": "git"}
-        response = self.client.post(self.url, data)
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.client.post(self.url, data)
         assert response.status_code == 400
         assert response.data == {"provider": ['"git" is not a valid choice.']}
 
@@ -52,7 +62,8 @@ class ExternalTeamTest(APITestCase):
             "externalName": self.external_team.external_name,
             "provider": ExternalTeam.get_provider_string(self.external_team.provider),
         }
-        response = self.client.post(self.url, data)
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.client.post(self.url, data)
         assert response.status_code == 200
         assert response.data == {
             "id": str(self.external_team.id),

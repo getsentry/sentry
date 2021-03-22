@@ -47,6 +47,7 @@ type State = {
   group: Group | null;
   loading: boolean;
   loadingEvent: boolean;
+  loadingGroup: boolean;
   error: boolean;
   eventError: boolean;
   errorType: Error;
@@ -71,10 +72,14 @@ class GroupDetails extends React.Component<Props, State> {
 
   componentDidMount() {
     this.fetchData();
+    this.updateReprocessingProgress();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    if (prevProps.isGlobalSelectionReady !== this.props.isGlobalSelectionReady) {
+    if (
+      prevProps.isGlobalSelectionReady !== this.props.isGlobalSelectionReady ||
+      prevProps.location.pathname !== this.props.location.pathname
+    ) {
       this.fetchData();
     }
 
@@ -89,6 +94,9 @@ class GroupDetails extends React.Component<Props, State> {
   componentWillUnmount() {
     GroupStore.reset();
     callIfFunction(this.listener);
+    if (this.interval) {
+      clearInterval(this.interval);
+    }
   }
 
   get initialState(): State {
@@ -96,6 +104,7 @@ class GroupDetails extends React.Component<Props, State> {
       group: null,
       loading: true,
       loadingEvent: true,
+      loadingGroup: true,
       error: false,
       eventError: false,
       errorType: null,
@@ -163,16 +172,156 @@ class GroupDetails extends React.Component<Props, State> {
 
   checkRedirectRoute() {}
 
+  updateReprocessingProgress() {
+    const hasReprocessingV2Feature = this.hasReprocessingV2Feature();
+
+    if (!hasReprocessingV2Feature) {
+      return;
+    }
+
+    this.interval = setInterval(this.refetchGroup, 30000);
+  }
+
+  hasReprocessingV2Feature() {
+    const {organization} = this.props;
+    return organization.features?.includes('reprocessing-v2');
+  }
+
+  getReprocessingNewRoute(data: Group) {
+    const {routes, location, params} = this.props;
+    const {groupId} = params;
+
+    const {id: nextGroupId} = data;
+
+    const hasReprocessingV2Feature = this.hasReprocessingV2Feature();
+
+    const reprocessingStatus = getGroupReprocessingStatus(data);
+    const {currentTab, baseUrl} = this.getCurrentRouteInfo(data);
+
+    if (groupId !== nextGroupId) {
+      if (hasReprocessingV2Feature) {
+        // Redirects to the Activities tab
+        if (
+          reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
+          currentTab !== TAB.ACTIVITY
+        ) {
+          return {
+            pathname: `${baseUrl}${TAB.ACTIVITY}/`,
+            query: {...params, groupId: nextGroupId},
+          };
+        }
+      }
+
+      return recreateRoute('', {
+        routes,
+        location,
+        params: {...params, groupId: nextGroupId},
+      });
+    }
+
+    if (hasReprocessingV2Feature) {
+      if (
+        reprocessingStatus === ReprocessingStatus.REPROCESSING &&
+        currentTab !== TAB.DETAILS
+      ) {
+        return {
+          pathname: baseUrl,
+          query: params,
+        };
+      }
+
+      if (
+        reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
+        (currentTab !== TAB.ACTIVITY || currentTab !== TAB.USER_FEEDBACK)
+      ) {
+        return {
+          pathname: `${baseUrl}${TAB.ACTIVITY}/`,
+          query: params,
+        };
+      }
+    }
+
+    return undefined;
+  }
+
+  getGroupQuery(): Record<string, string | string[]> {
+    const {environments, organization} = this.props;
+
+    // Note, we do not want to include the environment key at all if there are no environments
+    const query: Record<string, string | string[]> = {
+      ...(environments ? {environment: environments} : {}),
+    };
+
+    if (organization?.features?.includes('inbox')) {
+      query.expand = 'inbox';
+    }
+
+    return query;
+  }
+
+  getFetchDataRequestErrorType(status: any): Error {
+    if (!status) {
+      return null;
+    }
+
+    if (status === 404) {
+      return ERROR_TYPES.GROUP_NOT_FOUND;
+    }
+
+    if (status === 403) {
+      return ERROR_TYPES.MISSING_MEMBERSHIP;
+    }
+
+    return null;
+  }
+
+  handleRequestError(error: any) {
+    Sentry.captureException(error);
+    const errorType = this.getFetchDataRequestErrorType(error?.status);
+
+    this.setState({
+      loadingGroup: false,
+      loading: false,
+      error: true,
+      errorType,
+    });
+  }
+
+  refetchGroup = async () => {
+    const {loadingGroup, loading, loadingEvent, group} = this.state;
+
+    if (
+      group?.status !== ReprocessingStatus.REPROCESSING ||
+      loadingGroup ||
+      loading ||
+      loadingEvent
+    ) {
+      return;
+    }
+
+    const {api} = this.props;
+    this.setState({loadingGroup: true});
+
+    try {
+      const updatedGroup = await api.requestPromise(this.groupDetailsEndpoint, {
+        query: this.getGroupQuery(),
+      });
+
+      const reprocessingNewRoute = this.getReprocessingNewRoute(updatedGroup);
+
+      if (reprocessingNewRoute) {
+        ReactRouter.browserHistory.push(reprocessingNewRoute);
+        return;
+      }
+
+      this.setState({group: updatedGroup, loadingGroup: false});
+    } catch (error) {
+      this.handleRequestError(error);
+    }
+  };
+
   async fetchData() {
-    const {
-      environments,
-      api,
-      isGlobalSelectionReady,
-      params,
-      routes,
-      location,
-      organization,
-    } = this.props;
+    const {api, isGlobalSelectionReady, params} = this.props;
 
     // Need to wait for global selection store to be ready before making request
     if (!isGlobalSelectionReady) {
@@ -180,80 +329,25 @@ class GroupDetails extends React.Component<Props, State> {
     }
 
     try {
-      let eventPromise: Promise<any> | undefined;
-      if (this.canLoadEventEarly(this.props)) {
-        eventPromise = this.getEvent();
-      }
-
-      const queryParams: Record<string, string | string[]> = {
-        // Note, we do not want to include the environment key at all if there are no environments
-        ...(environments ? {environment: environments} : {}),
-      };
-      if (organization?.features?.includes('inbox')) {
-        queryParams.expand = 'inbox';
-      }
+      const eventPromise = this.canLoadEventEarly(this.props)
+        ? this.getEvent()
+        : undefined;
 
       const groupPromise = await api.requestPromise(this.groupDetailsEndpoint, {
-        query: queryParams,
+        query: this.getGroupQuery(),
       });
+
       const [data] = await Promise.all([groupPromise, eventPromise]);
 
-      const projects = organization.projects;
-      const projectId = data.project.id;
-      const features = projects?.find(proj => proj.id === projectId)?.features ?? [];
-      // Check for the reprocessing-v2 feature flag
-      const hasReprocessingV2Feature = features.includes('reprocessing-v2');
-      const reprocessingStatus = getGroupReprocessingStatus(data);
-      const {currentTab, baseUrl} = this.getCurrentRouteInfo(data);
+      const reprocessingNewRoute = this.getReprocessingNewRoute(data);
 
-      if (this.props.params.groupId !== data.id) {
-        if (hasReprocessingV2Feature) {
-          // Redirects to the Activities tab
-          if (
-            reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-            currentTab !== TAB.ACTIVITY
-          ) {
-            ReactRouter.browserHistory.push({
-              pathname: `${baseUrl}${TAB.ACTIVITY}/`,
-              query: {...params, groupId: data.id},
-            });
-            return;
-          }
-        }
-
-        ReactRouter.browserHistory.push(
-          recreateRoute('', {
-            routes,
-            location,
-            params: {...params, groupId: data.id},
-          })
-        );
+      if (reprocessingNewRoute) {
+        ReactRouter.browserHistory.push(reprocessingNewRoute);
         return;
       }
 
-      if (hasReprocessingV2Feature) {
-        if (
-          reprocessingStatus === ReprocessingStatus.REPROCESSING &&
-          currentTab !== TAB.DETAILS
-        ) {
-          ReactRouter.browserHistory.push({
-            pathname: baseUrl,
-            query: params,
-          });
-        }
-
-        if (
-          reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-          (currentTab !== TAB.ACTIVITY || currentTab !== TAB.USER_FEEDBACK)
-        ) {
-          ReactRouter.browserHistory.push({
-            pathname: `${baseUrl}${TAB.ACTIVITY}/`,
-            query: params,
-          });
-        }
-      }
-
       const project = data.project;
+
       markEventSeen(api, params.orgId, project.slug, params.groupId);
 
       if (!project) {
@@ -275,31 +369,16 @@ class GroupDetails extends React.Component<Props, State> {
         ReactRouter.browserHistory.replace(locationWithProject);
       }
 
-      this.setState({project});
+      this.setState({project, loadingGroup: false});
 
       GroupStore.loadInitialData([data]);
-    } catch (err) {
-      Sentry.captureException(err);
-      let errorType: Error = null;
-      switch (err?.status) {
-        case 404:
-          errorType = ERROR_TYPES.GROUP_NOT_FOUND;
-          break;
-        case 403:
-          errorType = ERROR_TYPES.MISSING_MEMBERSHIP;
-          break;
-        default:
-      }
-
-      this.setState({
-        error: true,
-        errorType,
-        loading: false,
-      });
+    } catch (error) {
+      this.handleRequestError(error);
     }
   }
 
   listener = GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined);
+  interval: ReturnType<typeof setInterval> | undefined = undefined;
 
   onGroupChange(itemIds: Set<string>) {
     const id = this.props.params.groupId;
@@ -331,11 +410,14 @@ class GroupDetails extends React.Component<Props, State> {
     const {title} = getTitle(group, organization);
     const message = getMessage(group);
 
+    const {project} = group;
+    const eventDetails = `${organization.slug} - ${project.slug}`;
+
     if (title && message) {
-      return `${title}: ${message}`;
+      return `${title}: ${message} - ${eventDetails}`;
     }
 
-    return title || message || defaultTitle;
+    return `${title || message || defaultTitle} - ${eventDetails}`;
   }
 
   renderError() {

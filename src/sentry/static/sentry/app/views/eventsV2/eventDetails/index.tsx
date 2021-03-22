@@ -44,11 +44,17 @@ class EventDetails extends React.Component<Props> {
   render() {
     const {organization, location, params} = this.props;
     const eventView = this.getEventView();
+    const eventSlug = this.getEventSlug();
 
     const documentTitle = this.getDocumentTitle(eventView.name).join(' - ');
+    const projectSlug = eventSlug.split(':')[0];
 
     return (
-      <SentryDocumentTitle title={documentTitle} objSlug={organization.slug}>
+      <SentryDocumentTitle
+        title={documentTitle}
+        orgSlug={organization.slug}
+        projectSlug={projectSlug}
+      >
         <StyledPageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <EventDetailsContent
@@ -56,7 +62,7 @@ class EventDetails extends React.Component<Props> {
               location={location}
               params={params}
               eventView={eventView}
-              eventSlug={this.getEventSlug()}
+              eventSlug={eventSlug}
             />
           </LightWeightNoProjectMessage>
         </StyledPageContent>

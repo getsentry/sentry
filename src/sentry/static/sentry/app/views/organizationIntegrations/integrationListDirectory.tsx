@@ -469,7 +469,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={title} objSlug={orgId} />
+        <SentryDocumentTitle title={title} orgSlug={orgId} />
 
         {!this.props.hideHeader && (
           <SettingsPageHeader
@@ -514,7 +514,7 @@ export class IntegrationListDirectory extends AsyncComponent<
                 <EmptyResultsBody>
                   {tct('[link:Build it on the Sentry Integration Platform.]', {
                     link: (
-                      <a href="https://docs.sentry.io/workflow/integrations/integration-platform/" />
+                      <a href="https://docs.sentry.io/product/integrations/integration-platform/" />
                     ),
                   })}
                 </EmptyResultsBody>

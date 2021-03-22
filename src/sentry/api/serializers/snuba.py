@@ -121,7 +121,7 @@ def value_from_row(row, tagkey):
     return tuple(row[k] for k in tagkey)
 
 
-def zerofill(data, start, end, rollup):
+def zerofill(data, start, end, rollup, allow_partial_buckets=False):
     rv = []
     end = int(to_timestamp(end))
     rollup_start = (int(to_timestamp(start)) // rollup) * rollup
@@ -150,7 +150,8 @@ def zerofill(data, start, end, rollup):
     # Add any remaining rows that are not aligned to the rollup and are lower than the
     # end date.
     if i < len(data):
-        rv.extend(row for row in data[i:] if row[0] < rollup_end)
+        end_timestamp = end if allow_partial_buckets else rollup_end
+        rv.extend(row for row in data[i:] if row[0] < end_timestamp)
 
     return rv
 
@@ -303,7 +304,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
     Serializer for time-series Snuba data.
     """
 
-    def serialize(self, result, column="count", order=None):
+    def serialize(self, result, column="count", order=None, allow_partial_buckets=False):
         data = [
             (key, list(group))
             for key, group in itertools.groupby(result.data["data"], key=lambda r: r["time"])
@@ -323,7 +324,15 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
                 row.append(item)
             rv.append((k, row))
 
-        res = {"data": zerofill(rv, result.start, result.end, result.rollup)}
+        res = {
+            "data": zerofill(
+                rv,
+                result.start,
+                result.end,
+                result.rollup,
+                allow_partial_buckets=allow_partial_buckets,
+            )
+        }
 
         if result.data.get("totals"):
             res["totals"] = {"count": result.data["totals"][column]}

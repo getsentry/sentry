@@ -231,7 +231,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
                   'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested issue owners, and deploy emails.'
                 )}
                 action={
-                  <Button href="https://docs.sentry.io/learn/releases/">
+                  <Button href="https://docs.sentry.io/product/releases/">
                     {t('Learn More')}
                   </Button>
                 }

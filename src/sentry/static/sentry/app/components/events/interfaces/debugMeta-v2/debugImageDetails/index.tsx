@@ -8,8 +8,8 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import NotAvailable from 'app/components/notAvailable';
-import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -45,6 +45,14 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
       debugFiles: [],
       builtinSymbolSources: [],
     };
+  }
+
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    if (!prevProps.image && !!this.props.image) {
+      this.remountComponent();
+    }
+
+    super.componentDidUpdate(prevProps, prevState);
   }
 
   getUplodedDebugFiles(candidates: ImageCandidates) {
@@ -157,7 +165,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
         },
         location: `${INTERNAL_SOURCE_LOCATION}${debugFile.id}`,
         source: INTERNAL_SOURCE,
-        source_name: debugFile.objectName,
+        source_name: t('Sentry'),
       })) as ImageCandidates;
 
     // Check for deleted candidates (debug files)
@@ -277,20 +285,6 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
                 )}
               </Value>
             </GeneralInfo>
-            {debugFilesSettingsLink && (
-              <SearchInSettingsAction>
-                <Tooltip
-                  title={t(
-                    'Search for this debug file in all images for the %s project',
-                    projectId
-                  )}
-                >
-                  <Button to={debugFilesSettingsLink} size="small">
-                    {t('Search in Settings')}
-                  </Button>
-                </Tooltip>
-              </SearchInSettingsAction>
-            )}
             <Candidates
               imageStatus={status}
               candidates={candidates}
@@ -304,12 +298,25 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
           </Content>
         </Body>
         <Footer>
-          <Button
-            href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
-            external
-          >
-            {t('Read the docs')}
-          </Button>
+          <StyledButtonBar>
+            <Button
+              href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
+              external
+            >
+              {t('Read the docs')}
+            </Button>
+            {debugFilesSettingsLink && (
+              <Button
+                title={t(
+                  'Search for this debug file in all images for the %s project',
+                  projectId
+                )}
+                to={debugFilesSettingsLink}
+              >
+                {t('Search in Settings')}
+              </Button>
+            )}
+          </StyledButtonBar>
         </Footer>
       </React.Fragment>
     );
@@ -324,11 +331,6 @@ const Content = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const SearchInSettingsAction = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
 const GeneralInfo = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
@@ -341,12 +343,17 @@ const Label = styled('div')<{coloredBg?: boolean}>`
 `;
 
 const Value = styled(Label)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
   padding: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
   white-space: pre-wrap;
   word-break: break-all;
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  justify-content: space-between;
+  flex: 1;
 `;
 
 export const modalCss = css`

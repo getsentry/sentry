@@ -103,7 +103,7 @@ export const ALERT_RULE_PRESET_AGGREGATES: Preset[] = [
       }),
   },
   {
-    name: t('Transaction Count'),
+    name: t('Transaction count'),
     match: /^count\(\)/,
     validDataset: [Dataset.TRANSACTIONS],
     default: 'count()',
