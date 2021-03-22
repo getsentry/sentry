@@ -47,6 +47,7 @@ function WrapGuideTabs({children, tabQuery, query, to}: WrapGuideProps) {
 type Props = {
   organization: Organization;
   query: string;
+  sort: string;
   queryCounts: QueryCounts;
   realtimeActive: boolean;
   orgSlug: Organization['slug'];
@@ -61,6 +62,7 @@ type Props = {
 function IssueListHeader({
   organization,
   query,
+  sort,
   queryCount,
   queryCounts,
   realtimeActive,
@@ -165,6 +167,7 @@ function IssueListHeader({
           <SavedSearchTab
             organization={organization}
             query={query}
+            sort={sort}
             savedSearchList={savedSearchList}
             onSavedSearchSelect={onSavedSearchSelect}
             onSavedSearchDelete={onSavedSearchDelete}

@@ -75,11 +75,12 @@ describe('SavedSearchesStore', function () {
       body: {
         id: '123',
         query: 'level:info',
+        sort: 'freq',
         isPinned: true,
       },
     });
 
-    pinSearch(api, 'org-1', 0, 'level:info');
+    pinSearch(api, 'org-1', 0, 'level:info', 'freq');
     await tick();
     await tick();
 
@@ -91,6 +92,7 @@ describe('SavedSearchesStore', function () {
         type: 0,
         query: 'level:info',
         name: 'My Pinned Search',
+        sort: 'freq',
       })
     );
   });
@@ -106,6 +108,7 @@ describe('SavedSearchesStore', function () {
           isPinned: true,
           type: 0,
           query: 'assigned:me',
+          sort: 'date',
         },
         ...searches,
       ],
@@ -121,6 +124,7 @@ describe('SavedSearchesStore', function () {
         isOrgCustom: false,
         isPinned: true,
         query: 'is:unresolved',
+        sort: 'date',
         name: 'Unresolved Issues',
         type: 0,
       },
@@ -129,7 +133,7 @@ describe('SavedSearchesStore', function () {
     await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
-    pinSearch(api, 'org-1', 0, searches[1].query);
+    pinSearch(api, 'org-1', 0, searches[1].query, 'date');
     await tick();
     await tick();
 
@@ -144,6 +148,7 @@ describe('SavedSearchesStore', function () {
         type: 0,
         name: 'Unresolved Issues',
         query: 'is:unresolved',
+        sort: 'date',
       })
     );
 
@@ -169,6 +174,7 @@ describe('SavedSearchesStore', function () {
         isOrgCustom: false,
         isPinned: true,
         query: 'is:unresolved',
+        sort: 'date',
         name: 'Unresolved Issues',
         type: 0,
       },
@@ -176,7 +182,7 @@ describe('SavedSearchesStore', function () {
     await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
-    pinSearch(api, 'org-1', 0, searches[1].query);
+    pinSearch(api, 'org-1', 0, searches[1].query, 'date');
     await tick();
     await tick();
 
@@ -189,6 +195,7 @@ describe('SavedSearchesStore', function () {
         type: 0,
         name: 'Needs Triage',
         query: 'is:unresolved is:unassigned',
+        sort: 'date',
       })
     );
 
@@ -202,6 +209,7 @@ describe('SavedSearchesStore', function () {
         type: 0,
         name: 'Unresolved Issues',
         query: 'is:unresolved',
+        sort: 'date',
       })
     );
   });
@@ -217,6 +225,7 @@ describe('SavedSearchesStore', function () {
           isPinned: true,
           type: 0,
           query: 'assigned:me',
+          sort: 'date',
         },
         ...searches,
       ],
@@ -238,6 +247,7 @@ describe('SavedSearchesStore', function () {
         type: 0,
         name: 'Needs Triage',
         query: 'is:unresolved is:unassigned',
+        sort: 'date',
       })
     );
 
@@ -248,6 +258,7 @@ describe('SavedSearchesStore', function () {
         type: 0,
         name: 'Unresolved Issues',
         query: 'is:unresolved',
+        sort: 'date',
       })
     );
   });
@@ -275,6 +286,7 @@ describe('SavedSearchesStore', function () {
         type: 0,
         name: 'Needs Triage',
         query: 'is:unresolved is:unassigned',
+        sort: 'date',
       })
     );
 
@@ -285,6 +297,7 @@ describe('SavedSearchesStore', function () {
         type: 0,
         name: 'Unresolved Issues',
         query: 'is:unresolved',
+        sort: 'date',
       })
     );
   });
@@ -315,6 +328,7 @@ describe('SavedSearchesStore', function () {
         type: 0,
         name: 'Needs Triage',
         query: 'is:unresolved is:unassigned',
+        sort: 'date',
       })
     );
 
@@ -325,6 +339,7 @@ describe('SavedSearchesStore', function () {
         type: 0,
         name: 'Unresolved Issues',
         query: 'is:unresolved',
+        sort: 'date',
       })
     );
   });

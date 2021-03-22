@@ -19,6 +19,7 @@ type Props = {
   savedSearchList: SavedSearch[];
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
   onSavedSearchDelete: (savedSearch: SavedSearch) => void;
+  sort: string;
   query?: string;
 };
 
@@ -27,6 +28,7 @@ function SavedSearchMenu({
   onSavedSearchDelete,
   onSavedSearchSelect,
   organization,
+  sort,
   query,
 }: Props) {
   if (savedSearchList.length === 0) {
@@ -51,7 +53,7 @@ function SavedSearchMenu({
           key={search.id}
         >
           <StyledMenuItem
-            isActive={search.query === query}
+            isActive={search.query === query && search.sort === sort}
             last={index === savedSearchList.length - 1}
           >
             <MenuItemLink tabIndex={-1} onClick={() => onSavedSearchSelect(search)}>

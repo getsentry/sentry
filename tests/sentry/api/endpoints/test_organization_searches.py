@@ -2,7 +2,7 @@ from django.utils import timezone
 from exam import fixture
 
 from sentry.api.serializers import serialize
-from sentry.models import SavedSearch, SortOptions
+from sentry.models.savedsearch import SavedSearch, SortOptions
 from sentry.models.search_common import SearchType
 from sentry.testutils import APITestCase
 
@@ -80,6 +80,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
             owner=self.user,
             name="My Pinned Query",
             query="pinned junk",
+            sort=SortOptions.NEW,
             date_added=timezone.now(),
         )
         included.append(pinned_query)
