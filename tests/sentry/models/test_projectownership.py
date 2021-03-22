@@ -19,6 +19,7 @@ class ProjectOwnershipTestCase(TestCase):
 
     def test_get_owners_no_record(self):
         assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
 
     def test_get_owners_basic(self):
         rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])

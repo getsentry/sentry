@@ -42,6 +42,22 @@ class ProjectOwnership(Model):
         return f"projectownership_project_id:1:{project_id}"
 
     @classmethod
+    def get_combined_schema(self, ownership, codeowners):
+        if codeowners and codeowners.schema:
+            ownership.schema = (
+                codeowners.schema
+                if not ownership.schema
+                else {
+                    **ownership.schema,
+                    "rules": [
+                        *codeowners.schema["rules"],
+                        *ownership.schema["rules"],
+                    ],
+                }
+            )
+        return ownership.schema
+
+    @classmethod
     def get_ownership_cached(cls, project_id):
         """
         Cached read access to projectownership.
@@ -81,18 +97,7 @@ class ProjectOwnership(Model):
             ownership = cls(project_id=project_id)
 
         codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
-        if codeowners and codeowners.schema:
-            ownership.schema = (
-                codeowners.schema
-                if not ownership.schema
-                else {
-                    **ownership.schema,
-                    "rules": [
-                        *codeowners.schema["rules"],
-                        *ownership.schema["rules"],
-                    ],
-                }
-            )
+        ownership.schema = cls.get_combined_schema(ownership, codeowners)
 
         rules = cls._matching_ownership_rules(ownership, project_id, data)
 
@@ -129,18 +134,7 @@ class ProjectOwnership(Model):
             if not ownership:
                 ownership = cls(project_id=project_id)
 
-            if codeowners and codeowners.schema:
-                ownership.schema = (
-                    codeowners.schema
-                    if not ownership.schema
-                    else {
-                        **ownership.schema,
-                        "rules": [
-                            *codeowners.schema["rules"],
-                            *ownership.schema["rules"],
-                        ],
-                    }
-                )
+            ownership.schema = cls.get_combined_schema(ownership, codeowners)
 
             rules = cls._matching_ownership_rules(ownership, project_id, data)
             if not rules:
