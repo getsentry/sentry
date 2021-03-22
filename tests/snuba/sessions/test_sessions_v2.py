@@ -12,7 +12,7 @@ from sentry.snuba.sessions_v2 import (
     massage_sessions_result,
     _get_timestamps,
     InvalidParams,
-    _get_constrained_date_range,
+    get_constrained_date_range,
 )
 
 
@@ -32,22 +32,22 @@ def result_sorted(result):
 
 @freeze_time("2018-12-11 03:21:34")
 def test_round_range():
-    start, end, interval = _get_constrained_date_range({"statsPeriod": "2d"})
+    start, end, interval = get_constrained_date_range({"statsPeriod": "2d"})
     assert start == datetime(2018, 12, 9, 4, tzinfo=pytz.utc)
     assert end == datetime(2018, 12, 11, 4, tzinfo=pytz.utc)
 
-    start, end, interval = _get_constrained_date_range({"statsPeriod": "2d", "interval": "1d"})
+    start, end, interval = get_constrained_date_range({"statsPeriod": "2d", "interval": "1d"})
     assert start == datetime(2018, 12, 10, tzinfo=pytz.utc)
     assert end == datetime(2018, 12, 12, tzinfo=pytz.utc)
 
 
 def test_invalid_interval():
     with pytest.raises(InvalidParams):
-        start, end, interval = _get_constrained_date_range({"interval": "0d"})
+        start, end, interval = get_constrained_date_range({"interval": "0d"})
 
 
 def test_round_exact():
-    start, end, interval = _get_constrained_date_range(
+    start, end, interval = get_constrained_date_range(
         {"start": "2021-01-12T04:06:16", "end": "2021-01-17T08:26:13", "interval": "1d"},
     )
     assert start == datetime(2021, 1, 12, tzinfo=pytz.utc)
@@ -55,7 +55,7 @@ def test_round_exact():
 
 
 def test_inclusive_end():
-    start, end, interval = _get_constrained_date_range(
+    start, end, interval = get_constrained_date_range(
         {"start": "2021-02-24T00:00:00", "end": "2021-02-25T00:00:00", "interval": "1h"},
     )
     assert start == datetime(2021, 2, 24, tzinfo=pytz.utc)

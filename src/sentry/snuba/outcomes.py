@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Optional, Tuple, Union
+from abc import ABC, abstractmethod
 from django.http import QueryDict
 from sentry.utils.snuba import raw_query
 from .dataset import Dataset
@@ -42,17 +43,20 @@ The Outcome data can be grouped by these fields, which appear in the groupBy of 
 """
 
 
-class Field:
+class Field(ABC):
+    @abstractmethod
     def get_snuba_columns(self, raw_groupby: Optional[List[str]] = None) -> List[str]:
-        pass
+        raise NotImplementedError()
 
+    @abstractmethod
     def extract_from_row(
         self, row: Dict[str, Union[Any, int]], group: Optional[Dict[str, Any]] = None
     ) -> int:
-        pass
+        raise NotImplementedError()
 
+    @abstractmethod
     def aggregation(self, dataset: Dataset) -> List[str]:
-        pass
+        raise NotImplementedError()
 
 
 class QuantityField(Field):
@@ -89,18 +93,25 @@ class TimesSeenField(Field):
             return ["count()", "", "times_seen"]
 
 
-class Dimension(SimpleGroupBy):
+class Dimension(SimpleGroupBy, ABC):
+    @abstractmethod
     def resolve_filter(self, raw_filter: List[str]) -> List[DataCategory]:
-        pass
+        """
+        Based on the input filter, map it back to the snuba representation
+        """
+        raise NotImplementedError()
 
+    @abstractmethod
     def map_row(self, row: Dict[str, Any]) -> None:
-        pass
+        raise NotImplementedError()
 
 
 class CategoryDimension(Dimension):
     def resolve_filter(self, raw_filter: List[str]) -> List[DataCategory]:
         resolved_categories = set()
         for category in raw_filter:
+            # combine DEFAULT, ERROR, and SECURITY as errors.
+            # see relay: py/sentry_relay/consts.py and relay-cabi/include/relay.h
             if DataCategory.parse(category) == DataCategory.ERROR:
                 resolved_categories.update(DataCategory.error_categories())
             else:
@@ -166,11 +177,11 @@ TS_COL = "time"
 
 def get_filter(
     query: QueryDict, params: Dict[Any, Any]
-) -> Tuple[Dict[str, Any], List[Tuple[str, str, List[Any]]]]:
+) -> Tuple[List[Tuple[str, str, List[Any]]], Dict[str, Any]]:
     filter_keys = {}
     conditions = []
 
-    for filter_name in ["category", "outcome", "reason"]:
+    for filter_name in DIMENSION_MAP:
         raw_filter = query.getlist(filter_name, [])
         resolved_filter = DIMENSION_MAP[filter_name].resolve_filter(raw_filter)
         if len(resolved_filter) > 0:
@@ -180,7 +191,7 @@ def get_filter(
         filter_keys["project_id"] = params["project_id"]
     if "organization" in params:
         filter_keys["organization_id"] = params["organization_id"]
-    return filter_keys, conditions
+    return conditions, filter_keys
 
 
 class QueryDefinition:
@@ -219,9 +230,9 @@ class QueryDefinition:
 
         self.groupby = []
         for key in raw_groupby:
-            if key not in DIMENSION_MAP:
+            if key not in GROUPBY_MAP:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
-            self.groupby.append(DIMENSION_MAP[key])
+            self.groupby.append(GROUPBY_MAP[key])
 
         if len(query.getlist("category", [])) == 0 and "category" not in raw_groupby:
             raise InvalidQuery("Query must have category as groupby or filter")
@@ -239,9 +250,6 @@ class QueryDefinition:
         self.query_groupby = list(query_groupby)
 
         self.conditions, self.filter_keys = get_filter(query, params)
-
-        # self.conditions = conditions
-        # self.filter_keys = filter_keys
 
 
 def run_outcomes_query(query: QueryDefinition) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
@@ -279,7 +287,9 @@ def run_outcomes_query(query: QueryDefinition) -> Tuple[List[Dict[str, Any]], Li
 def _format_rows(rows: List[Dict[str, Any]], query: QueryDefinition) -> List[Dict[str, Any]]:
     category_grouping: Dict[str, Any] = {}
 
-    def _group_rows(row: Dict[str, Any]) -> None:
+    def _group_row(row: Dict[str, Any]) -> None:
+        # Combine rows with the same group key into one.
+        # Needed to combine "ERROR", "DEFAULT" and "SECURITY" rows.
         if TS_COL in row:
             grouping_key = "-".join([row[TS_COL]] + [str(row[col]) for col in query.query_groupby])
         else:
@@ -295,13 +305,13 @@ def _format_rows(rows: List[Dict[str, Any]], query: QueryDefinition) -> List[Dic
 
     for row in rows:
         _rename_row_fields(row)
-        _group_rows(row)
+        _group_row(row)
 
     return list(category_grouping.values())
 
 
 def _rename_row_fields(row: Dict[str, Any]) -> None:
-    for dimension in ["category", "reason", "outcome"]:
+    for dimension in DIMENSION_MAP:
         DIMENSION_MAP[dimension].map_row(row)
     if TS_COL in row:
         # have to use "time" column -- "timestamp" column doesnt
@@ -311,7 +321,7 @@ def _rename_row_fields(row: Dict[str, Any]) -> None:
 
 def _outcomes_dataset(rollup: int) -> Dataset:
     if rollup >= 3600:
-        # Outcomes is the hourly rollup table
+        # "Outcomes" is the hourly rollup table
         return Dataset.Outcomes
     else:
         return Dataset.OutcomesRaw
