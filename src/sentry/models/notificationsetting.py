@@ -36,7 +36,6 @@ class NotificationSetting(Model):
     )
     # user_id, organization_id, project_id
     scope_identifier = BoundedBigIntegerField(null=False)
-    scope_identifier2 = BoundedBigIntegerField(null=True)
     target = FlexibleForeignKey(
         "sentry.Actor", db_index=True, unique=False, null=False, on_delete=models.CASCADE
     )
