@@ -334,10 +334,16 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   getGroupStatsPeriod(): string {
-    const currentPeriod =
-      typeof this.props.location.query?.groupStatsPeriod === 'string'
-        ? this.props.location.query?.groupStatsPeriod
-        : DEFAULT_GRAPH_STATS_PERIOD;
+    let currentPeriod: string;
+    if (typeof this.props.location.query?.groupStatsPeriod === 'string') {
+      currentPeriod = this.props.location.query.groupStatsPeriod;
+    } else if (this.getSort() === IssueSortOptions.TREND) {
+      // Default to the larger graph when sorting by relative change
+      currentPeriod = 'auto';
+    } else {
+      currentPeriod = DEFAULT_GRAPH_STATS_PERIOD;
+    }
+
     return DYNAMIC_COUNTS_STATS_PERIODS.has(currentPeriod)
       ? currentPeriod
       : DEFAULT_GRAPH_STATS_PERIOD;
