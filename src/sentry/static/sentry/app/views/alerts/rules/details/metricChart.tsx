@@ -243,126 +243,8 @@ export default class MetricChart extends React.PureComponent<Props, State> {
     );
   }
 
-  renderChart(data) {
-    const {incidents, rule} = this.props;
-
-    if (!rule) {
-      return null;
-    }
-
-    const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
-    const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
-
-    const series: LineChartSeries[] = [...data];
-    // Ensure series data appears above incident lines
-    series[0].z = 100;
-    const dataArr = data[0].data;
-    const maxSeriesValue = dataArr.reduce(
-      (currMax, coord) => Math.max(currMax, coord.value),
-      0
-    );
-    const firstPoint = Number(dataArr[0].name);
-    const lastPoint = dataArr[dataArr.length - 1].name;
-    const totalDuration = lastPoint - firstPoint;
-    let criticalDuration = 0;
-    let warningDuration = 0;
-    const resolvedArea = {
-      seriesName: 'Resolved Area',
-      type: 'line',
-      markLine: MarkLine({
-        silent: true,
-        lineStyle: {color: theme.green300, type: 'solid', width: 4},
-        data: [[{coord: [firstPoint, 0]}, {coord: [lastPoint, 0]}] as any],
-      }),
-      data: [],
-    };
-    series.push(resolvedArea);
-    if (incidents) {
-      // select incidents that fall within the graph range
-      const periodStart = moment.utc(firstPoint);
-
-      incidents
-        .filter(
-          incident =>
-            !incident.dateClosed || moment(incident.dateClosed).isAfter(periodStart)
-        )
-        .forEach(incident => {
-          const statusChanges = incident.activities
-            ?.filter(
-              ({type, value}) =>
-                type === IncidentActivityType.STATUS_CHANGE &&
-                value &&
-                [`${IncidentStatus.WARNING}`, `${IncidentStatus.CRITICAL}`].includes(
-                  value
-                )
-            )
-            .sort(
-              (a, b) => moment(a.dateCreated).valueOf() - moment(b.dateCreated).valueOf()
-            );
-
-          const incidentEnd = incident.dateClosed ?? moment().valueOf();
-
-          const timeWindowMs = rule.timeWindow * 60 * 1000;
-
-          series.push(
-            createIncidentSeries(
-              rule.triggers.find(({label}) => label === 'warning')
-                && (statusChanges && !statusChanges.find(({value}) => value === `${IncidentStatus.CRITICAL}`))
-                ? theme.yellow300
-                : theme.red300,
-              moment(incident.dateStarted).valueOf(),
-              incident.identifier,
-            )
-          );
-          let areaStart = moment(incident.dateStarted).valueOf();
-          let areaEnd = statusChanges?.length && statusChanges[0].dateCreated
-            ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
-            : moment(incidentEnd).valueOf();
-          let areaColor = rule.triggers.find(({label}) => label === 'warning')
-            ? theme.yellow300
-            : theme.red300;
-          series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
-          if (areaColor === theme.yellow300) {
-            warningDuration += areaEnd - areaStart;
-          } else {
-            criticalDuration += areaEnd - areaStart;
-          }
-
-          statusChanges?.forEach((activity, idx) => {
-            const areaStart = moment(activity.dateCreated).valueOf() - timeWindowMs;
-            const areaColor =
-              activity.value === `${IncidentStatus.CRITICAL}`
-                ? theme.red300
-                : theme.yellow300;
-            let areaEnd = idx === statusChanges.length - 1
-              ? moment(incidentEnd).valueOf()
-              : moment(statusChanges[idx + 1].dateCreated).valueOf() - timeWindowMs
-            series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
-            if (areaColor === theme.yellow300) {
-              warningDuration += areaEnd - areaStart;
-            } else {
-              criticalDuration += areaEnd - areaStart;
-            }
-          });
-        });
-    }
-
-    let maxThresholdValue = 0;
-    if (warningTrigger?.alertThreshold) {
-      const {alertThreshold} = warningTrigger;
-      const warningThresholdLine = createThresholdSeries(theme.yellow300, alertThreshold);
-      series.push(warningThresholdLine);
-      maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
-    }
-
-    if (criticalTrigger?.alertThreshold) {
-      const {alertThreshold} = criticalTrigger;
-      const criticalThresholdLine = createThresholdSeries(theme.red300, alertThreshold);
-      series.push(criticalThresholdLine);
-      maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
-    }
-
-    return (<React.Fragment>
+  renderChart(data: LineChartSeries[], series: LineChartSeries[], maxThresholdValue: number, maxSeriesValue: number) {
+    return (
       <LineChart
         isGroupedByDate
         showTimeInTooltip
@@ -384,9 +266,18 @@ export default class MetricChart extends React.PureComponent<Props, State> {
           this.updateDimensions();
         }}
       />
-        {this.renderChartActions(totalDuration, criticalDuration, warningDuration)}
-      </React.Fragment>
     );
+  }
+
+
+  renderEmpty() {
+    return (
+      <ChartPanel>
+        <PanelBody withPadding>
+          <Placeholder height="200px" />
+        </PanelBody>
+      </ChartPanel>
+    )
   }
 
   render() {
@@ -399,52 +290,163 @@ export default class MetricChart extends React.PureComponent<Props, State> {
       interval,
       metricText,
       query,
+      incidents,
     } = this.props;
 
     if (!rule) {
-      return (
-        <ChartPanel>
-          <PanelBody withPadding>
-            <Placeholder height="200px" />
-          </PanelBody>
-        </ChartPanel>
-      );
+      return this.renderEmpty();
     }
 
+    const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
+    const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
+
+
     return (
-      <ChartPanel>
-        <PanelBody withPadding>
-          <ChartHeader>
-            <PresetName>
-              {this.metricPreset?.name ?? t('Custom metric')}
-            </PresetName>
-            {metricText}
-          </ChartHeader>
-          <EventsRequest
-            api={api}
-            organization={organization}
-            query={query}
-            environment={rule.environment ? [rule.environment] : undefined}
-            project={(projects as Project[]).map(project => Number(project.id))}
-            interval={interval}
-            start={timePeriod.start}
-            end={timePeriod.end}
-            yAxis={rule.aggregate}
-            includePrevious={false}
-            currentSeriesName={rule.aggregate}
-            partial={false}
-          >
-            {({loading, timeseriesData}) =>
-              !loading && timeseriesData ? (
-                this.renderChart(timeseriesData)
-              ) : (
-                <Placeholder height="200px" />
+      <EventsRequest
+        api={api}
+        organization={organization}
+        query={query}
+        environment={rule.environment ? [rule.environment] : undefined}
+        project={(projects as Project[]).map(project => Number(project.id))}
+        interval={interval}
+        start={timePeriod.start}
+        end={timePeriod.end}
+        yAxis={rule.aggregate}
+        includePrevious={false}
+        currentSeriesName={rule.aggregate}
+        partial={false}
+      >
+        {({loading, timeseriesData}) => {
+          if(loading || !timeseriesData) {
+            return this.renderEmpty();
+          }
+
+          const series: LineChartSeries[] = [...timeseriesData];
+          // Ensure series data appears above incident lines
+          series[0].z = 100;
+          const dataArr = timeseriesData[0].data;
+          const maxSeriesValue = dataArr.reduce(
+            (currMax, coord) => Math.max(currMax, coord.value),
+            0
+          );
+          const firstPoint = Number(dataArr[0].name);
+          const lastPoint = dataArr[dataArr.length - 1].name as number;
+          const totalDuration = lastPoint - firstPoint;
+          let criticalDuration = 0;
+          let warningDuration = 0;
+          const resolvedArea = {
+            seriesName: 'Resolved Area',
+            type: 'line',
+            markLine: MarkLine({
+              silent: true,
+              lineStyle: {color: theme.green300, type: 'solid', width: 4},
+              data: [[{coord: [firstPoint, 0]}, {coord: [lastPoint, 0]}] as any],
+            }),
+            data: [],
+          };
+          series.push(resolvedArea);
+          if (incidents) {
+            // select incidents that fall within the graph range
+            const periodStart = moment.utc(firstPoint);
+
+            incidents
+              .filter(
+                incident =>
+                  !incident.dateClosed || moment(incident.dateClosed).isAfter(periodStart)
               )
-            }
-          </EventsRequest>
-        </PanelBody>
-      </ChartPanel>
-    )
+              .forEach(incident => {
+                const statusChanges = incident.activities
+                  ?.filter(
+                    ({type, value}) =>
+                      type === IncidentActivityType.STATUS_CHANGE &&
+                      value &&
+                      [`${IncidentStatus.WARNING}`, `${IncidentStatus.CRITICAL}`].includes(
+                        value
+                      )
+                  )
+                  .sort(
+                    (a, b) => moment(a.dateCreated).valueOf() - moment(b.dateCreated).valueOf()
+                  );
+
+                const incidentEnd = incident.dateClosed ?? moment().valueOf();
+
+                const timeWindowMs = rule.timeWindow * 60 * 1000;
+
+                series.push(
+                  createIncidentSeries(
+                    rule.triggers.find(({label}) => label === 'warning')
+                    && (statusChanges && !statusChanges.find(({value}) => value === `${IncidentStatus.CRITICAL}`))
+                      ? theme.yellow300
+                      : theme.red300,
+                    moment(incident.dateStarted).valueOf(),
+                    incident.identifier,
+                  )
+                );
+                let areaStart = moment(incident.dateStarted).valueOf();
+                let areaEnd = statusChanges?.length && statusChanges[0].dateCreated
+                  ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
+                  : moment(incidentEnd).valueOf();
+                let areaColor = rule.triggers.find(({label}) => label === 'warning')
+                  ? theme.yellow300
+                  : theme.red300;
+                series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
+                if (areaColor === theme.yellow300) {
+                  warningDuration += areaEnd - areaStart;
+                } else {
+                  criticalDuration += areaEnd - areaStart;
+                }
+
+                statusChanges?.forEach((activity, idx) => {
+                  const areaStart = moment(activity.dateCreated).valueOf() - timeWindowMs;
+                  const areaColor =
+                    activity.value === `${IncidentStatus.CRITICAL}`
+                      ? theme.red300
+                      : theme.yellow300;
+                  let areaEnd = idx === statusChanges.length - 1
+                    ? moment(incidentEnd).valueOf()
+                    : moment(statusChanges[idx + 1].dateCreated).valueOf() - timeWindowMs
+                  series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
+                  if (areaColor === theme.yellow300) {
+                    warningDuration += areaEnd - areaStart;
+                  } else {
+                    criticalDuration += areaEnd - areaStart;
+                  }
+                });
+              });
+          }
+
+          let maxThresholdValue = 0;
+          if (warningTrigger?.alertThreshold) {
+            const {alertThreshold} = warningTrigger;
+            const warningThresholdLine = createThresholdSeries(theme.yellow300, alertThreshold);
+            series.push(warningThresholdLine);
+            maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
+          }
+
+          if (criticalTrigger?.alertThreshold) {
+            const {alertThreshold} = criticalTrigger;
+            const criticalThresholdLine = createThresholdSeries(theme.red300, alertThreshold);
+            series.push(criticalThresholdLine);
+            maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
+          }
+
+          return (
+            <ChartPanel>
+              <PanelBody withPadding>
+                <ChartHeader>
+                  <PresetName>
+                    {this.metricPreset?.name ?? t('Custom metric')}
+                  </PresetName>
+                  {metricText}
+                </ChartHeader>
+                {this.renderChart(timeseriesData, series, maxThresholdValue, maxSeriesValue)}
+              </PanelBody>
+              {this.renderChartActions(totalDuration, criticalDuration, warningDuration)}
+            </ChartPanel>
+          )
+        }}
+      </EventsRequest>
+    );
   }
 }
 
