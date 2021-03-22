@@ -64,28 +64,6 @@ class NotificationsManager(BaseManager):
     TODO(mgaeta): Add a caching layer for notification settings
     """
 
-    @staticmethod
-    def notify(
-        provider: ExternalProviders,
-        type: NotificationSettingTypes,
-        user_id=None,
-        team_id=None,
-        data=None,
-    ):
-        """
-        Something noteworthy has happened. Let the targets know about what
-        happened on their own terms. For each target, check their notification
-        preferences and send them a message (or potentially do nothing and
-        return False if this kind of correspondence is muted.)
-        :param provider: ExternalProviders enum
-        :param type: NotificationSettingTypes enum
-        :param user_id: (optional) User object's ID
-        :param team_id: (optional) Team object's ID
-        :param data: The payload depends on the notification type.
-        :return: Boolean. Was a notification sent?
-        """
-        return False
-
     def get_settings(
         self,
         provider: ExternalProviders,
