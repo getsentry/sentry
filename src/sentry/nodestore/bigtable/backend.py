@@ -272,9 +272,6 @@ class BigtableNodeStorage(NodeStorage):
         if errors:
             raise BigtableError(errors)
 
-    def cleanup(self, cutoff_timestamp):
-        raise NotImplementedError
-
     def bootstrap(self):
         table = (
             bigtable.Client(project=self.project, admin=True, **self.options)
