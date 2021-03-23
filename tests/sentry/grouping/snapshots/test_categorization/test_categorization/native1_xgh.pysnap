@@ -1,5 +1,5 @@
 ---
-created: '2021-03-22T16:57:35.335229Z'
+created: '2021-03-23T18:06:10.311042Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -57,7 +57,7 @@ source: tests/sentry/grouping/test_categorization.py
                                               code
   /System/Library/Extensions/AppleIntelHD400  ??? category=driver
   /System/Library/Extensions/AppleIntelHD400  ??? category=driver
-                                              code
+                                              code category=driver
   /System/Library/Extensions/AppleIntelHD400  ??? category=driver
                                               code
                                               code

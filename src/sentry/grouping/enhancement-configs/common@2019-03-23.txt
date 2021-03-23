@@ -143,7 +143,9 @@ family:native package:"/System/Library/Extensions/AppleIntelHD4000GraphicsGLDriv
 family:native function:*CUDA* category=driver
 package:**/nvcuda.dll category=driver
 package:"C:\Program Files\NVIDIA Corporation\**" category=driver
-[ category:driver | .. ] category:system category=driver
+
+# If there is a singular frame wedged between two driver frames, consider it a driver frame
+[ category:driver | .. | category:driver ] category=driver
 
 family:native function:RtlFreeHeap category=free
 family:native function:RtlFreeUnicodeString category=free
