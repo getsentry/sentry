@@ -778,7 +778,7 @@ def get_performance_facets(
     sample = len(snuba_filter.filter_keys["project_id"]) > 2
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
-        # Get the tag keys with the highest deviation
+        # Get the most relevant tag keys
         key_names = raw_query(
             aggregations=[["count", None, "count"]],
             start=snuba_filter.start,
