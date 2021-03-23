@@ -101,6 +101,8 @@ class BigtableNodeStorage(NodeStorage):
     flags_column = b"f"
     data_column = b"0"
 
+    # XXX: Compression flags are assumed to be mutually exclusive, the behavior
+    # is explicitly undefined if both bits are set on a particular row.
     _FLAG_COMPRESSED_ZLIB = 1 << 0
     _FLAG_COMPRESSED_ZSTD = 1 << 1
 
