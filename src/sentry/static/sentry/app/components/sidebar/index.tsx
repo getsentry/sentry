@@ -15,6 +15,7 @@ import {extractSelectionParameters} from 'app/components/organizations/globalSel
 import {
   IconActivity,
   IconChevron,
+  IconDashboard,
   IconGraph,
   IconIssues,
   IconLab,
@@ -350,9 +351,27 @@ class Sidebar extends React.Component<Props, State> {
       </Feature>
     );
 
+    const metrics = hasOrganization && (
+      <Feature features={['metrics']} organization={organization}>
+        <SidebarItem
+          {...sidebarItemProps}
+          onClick={(_id, evt) =>
+            this.navigateWithGlobalSelection(
+              `/organizations/${organization.slug}/metrics/`,
+              evt
+            )
+          }
+          icon={<IconDashboard size="md" />}
+          label={t('Metrics')}
+          to={`/organizations/${organization.slug}/metrics/`}
+          id="metrics"
+        />
+      </Feature>
+    );
+
     const dashboards = hasOrganization && (
       <Feature
-        features={['discover', 'discover-query']}
+        features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
         organization={organization}
         requireAll={false}
       >
@@ -433,6 +452,7 @@ class Sidebar extends React.Component<Props, State> {
                 </SidebarSection>
 
                 <SidebarSection>
+                  {metrics}
                   {dashboards}
                   {monitors}
                 </SidebarSection>

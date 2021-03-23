@@ -25,6 +25,7 @@ export type TraceError = {
   event_id: string;
   span: string;
   transaction: string;
+  project_id: number;
   project_slug: string;
 };
 
@@ -52,8 +53,9 @@ export type TraceFull = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
 export type TraceProps = {
   eventId: string;
   traceId: string;
-  start: string;
-  end: string;
+  start?: string;
+  end?: string;
+  statsPeriod?: string;
 };
 
 export type TraceRequestProps = DiscoverQueryProps & TraceProps;

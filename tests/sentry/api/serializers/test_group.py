@@ -11,8 +11,13 @@ from sentry.models import (
     GroupSnooze,
     GroupStatus,
     GroupSubscription,
+    NotificationSetting,
     UserOption,
-    UserOptionValue,
+)
+from sentry.models.integration import ExternalProviders
+from sentry.notifications.types import (
+    NotificationSettingTypes,
+    NotificationSettingOptionValues,
 )
 from sentry.testutils import TestCase
 from sentry.utils.compat import mock
@@ -162,55 +167,113 @@ class GroupSerializerTest(TestCase):
         group = self.create_group()
 
         combinations = (
-            # ((default, project), (subscribed, details))
-            ((UserOptionValue.all_conversations, None), (True, None)),
-            ((UserOptionValue.all_conversations, UserOptionValue.all_conversations), (True, None)),
+            # (default, project, subscribed, has_details)
             (
-                (UserOptionValue.all_conversations, UserOptionValue.participating_only),
-                (False, None),
+                NotificationSettingOptionValues.ALWAYS,
+                NotificationSettingOptionValues.DEFAULT,
+                True,
+                False,
             ),
             (
-                (UserOptionValue.all_conversations, UserOptionValue.no_conversations),
-                (False, {"disabled": True}),
-            ),
-            ((None, None), (False, None)),
-            ((UserOptionValue.participating_only, None), (False, None)),
-            ((UserOptionValue.participating_only, UserOptionValue.all_conversations), (True, None)),
-            (
-                (UserOptionValue.participating_only, UserOptionValue.participating_only),
-                (False, None),
+                NotificationSettingOptionValues.ALWAYS,
+                NotificationSettingOptionValues.ALWAYS,
+                True,
+                False,
             ),
             (
-                (UserOptionValue.participating_only, UserOptionValue.no_conversations),
-                (False, {"disabled": True}),
+                NotificationSettingOptionValues.ALWAYS,
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                False,
+                False,
             ),
-            ((UserOptionValue.no_conversations, None), (False, {"disabled": True})),
-            ((UserOptionValue.no_conversations, UserOptionValue.all_conversations), (True, None)),
-            ((UserOptionValue.no_conversations, UserOptionValue.participating_only), (False, None)),
             (
-                (UserOptionValue.no_conversations, UserOptionValue.no_conversations),
-                (False, {"disabled": True}),
+                NotificationSettingOptionValues.ALWAYS,
+                NotificationSettingOptionValues.NEVER,
+                False,
+                True,
+            ),
+            (
+                NotificationSettingOptionValues.DEFAULT,
+                NotificationSettingOptionValues.DEFAULT,
+                False,
+                False,
+            ),
+            (
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                NotificationSettingOptionValues.DEFAULT,
+                False,
+                False,
+            ),
+            (
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                NotificationSettingOptionValues.ALWAYS,
+                True,
+                False,
+            ),
+            (
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                False,
+                False,
+            ),
+            (
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                NotificationSettingOptionValues.NEVER,
+                False,
+                True,
+            ),
+            (
+                NotificationSettingOptionValues.NEVER,
+                NotificationSettingOptionValues.DEFAULT,
+                False,
+                True,
+            ),
+            (
+                NotificationSettingOptionValues.NEVER,
+                NotificationSettingOptionValues.ALWAYS,
+                True,
+                False,
+            ),
+            (
+                NotificationSettingOptionValues.NEVER,
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                False,
+                False,
+            ),
+            (
+                NotificationSettingOptionValues.NEVER,
+                NotificationSettingOptionValues.NEVER,
+                False,
+                True,
             ),
         )
 
-        def maybe_set_value(project, value):
-            if value is not None:
-                UserOption.objects.set_value(
-                    user=user, project=project, key="workflow:notifications", value=value
-                )
-            else:
-                UserOption.objects.unset_value(
-                    user=user, project=project, key="workflow:notifications"
-                )
-
-        for options, (is_subscribed, subscription_details) in combinations:
-            default_value, project_value = options
+        for default_value, project_value, is_subscribed, has_details in combinations:
             UserOption.objects.clear_local_cache()
-            maybe_set_value(None, default_value)
-            maybe_set_value(group.project, project_value)
+
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.WORKFLOW,
+                default_value,
+                user=user,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.WORKFLOW,
+                project_value,
+                user=user,
+                project=group.project,
+            )
+
             result = serialize(group, user)
+            subscription_details = result.get("subscriptionDetails")
+
             assert result["isSubscribed"] is is_subscribed
-            assert result.get("subscriptionDetails") == subscription_details
+            assert (
+                subscription_details == {"disabled": True}
+                if has_details
+                else subscription_details is None
+            )
 
     def test_global_no_conversations_overrides_group_subscription(self):
         user = self.create_user()
@@ -220,11 +283,11 @@ class GroupSerializerTest(TestCase):
             user=user, group=group, project=group.project, is_active=True
         )
 
-        UserOption.objects.set_value(
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.NEVER,
             user=user,
-            project=None,
-            key="workflow:notifications",
-            value=UserOptionValue.no_conversations,
         )
 
         result = serialize(group, user)
@@ -239,11 +302,12 @@ class GroupSerializerTest(TestCase):
             user=user, group=group, project=group.project, is_active=True
         )
 
-        UserOption.objects.set_value(
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.NEVER,
             user=user,
             project=group.project,
-            key="workflow:notifications",
-            value=UserOptionValue.no_conversations,
         )
 
         result = serialize(group, user)

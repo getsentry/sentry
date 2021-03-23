@@ -19,6 +19,7 @@ import App from 'app/views/app';
 import AuthLayout from 'app/views/auth/layout';
 import IssueListContainer from 'app/views/issueList/container';
 import IssueListOverview from 'app/views/issueList/overview';
+import {MetricsTab} from 'app/views/metrics/utils';
 import OrganizationContext from 'app/views/organizationContext';
 import OrganizationDetails, {
   LightWeightOrganizationDetails,
@@ -1186,6 +1187,42 @@ function routes() {
             />
           </Route>
 
+          <Redirect
+            from="/organizations/:orgId/metrics/"
+            to="/organizations/:orgId/metrics/explorer/"
+          />
+
+          <Route
+            path="/organizations/:orgId/metrics/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "Metrics" */ 'app/views/metrics')
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <Route path="explorer/">
+              <IndexRoute
+                component={errorHandler(LazyLoad)}
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "MetricsExplorer" */ 'app/views/metrics/explorer'
+                  )
+                }
+                props={{currentTab: MetricsTab.EXPLORER}}
+              />
+            </Route>
+            <Route path="dashboards/">
+              <IndexRoute
+                component={errorHandler(LazyLoad)}
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "MetricsDashboards" */ 'app/views/metrics/dashboards'
+                  )
+                }
+                props={{currentTab: MetricsTab.DASHBOARDS}}
+              />
+            </Route>
+          </Route>
+
           <Route
             path="/organizations/:orgId/user-feedback/"
             componentPromise={() =>
@@ -1565,6 +1602,16 @@ function routes() {
                 componentPromise={() =>
                   import(
                     /* webpackChunkName: "ProjectAlertsCreate" */ 'app/views/settings/projectAlerts/create'
+                  )
+                }
+              />
+              <Route
+                path="wizard/"
+                name="Alert Creation Wizard"
+                component={errorHandler(LazyLoad)}
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "ProjectAlertsWizard" */ 'app/views/alerts/wizard'
                   )
                 }
               />

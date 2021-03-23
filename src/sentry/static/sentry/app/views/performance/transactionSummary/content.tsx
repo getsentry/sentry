@@ -26,6 +26,7 @@ import withProjects from 'app/utils/withProjects';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import Tags from 'app/views/eventsV2/tags';
+import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
@@ -211,10 +212,15 @@ class SummaryContent extends React.Component<Props, State> {
               location={location}
               organization={organization}
               eventView={eventView}
-              titles={[t('id'), t('user'), t('duration'), t('timestamp')]}
+              titles={
+                organization.features.includes('trace-view-summary')
+                  ? [t('id'), t('user'), t('duration'), t('trace id'), t('timestamp')]
+                  : [t('id'), t('user'), t('duration'), t('timestamp')]
+              }
               handleDropdownChange={this.handleTransactionsListSortChange}
               generateLink={{
                 id: generateTransactionLink(transactionName),
+                trace: generateTraceLink(eventView.normalizeDateSelection(location)),
               }}
               baseline={transactionName}
               handleBaselineClick={this.handleViewDetailsClick}
@@ -244,6 +250,11 @@ class SummaryContent extends React.Component<Props, State> {
               transactionName={transactionName}
               eventView={eventView}
             />
+            <StatusBreakdown
+              eventView={eventView}
+              organization={organization}
+              location={location}
+            />
             <SidebarSpacer />
             <SidebarCharts
               organization={organization}
@@ -251,12 +262,6 @@ class SummaryContent extends React.Component<Props, State> {
               error={error}
               totals={totalValues}
               eventView={eventView}
-            />
-            <SidebarSpacer />
-            <StatusBreakdown
-              eventView={eventView}
-              organization={organization}
-              location={location}
             />
             <SidebarSpacer />
             <Tags
@@ -271,6 +276,21 @@ class SummaryContent extends React.Component<Props, State> {
       </React.Fragment>
     );
   }
+}
+
+function generateTraceLink(dateSelection) {
+  return (
+    organization: Organization,
+    tableRow: TableDataRow,
+    _query: Query
+  ): LocationDescriptor => {
+    const traceId = `${tableRow.trace}`;
+    if (!traceId) {
+      return {};
+    }
+
+    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
+  };
 }
 
 function generateTransactionLink(transactionName: string) {

@@ -5,9 +5,9 @@ from django.test import override_settings
 
 from sentry.demo.settings import MIDDLEWARE_CLASSES
 from sentry.testutils import APITestCase
+from sentry.utils import auth
 from sentry.utils.compat import mock
 
-from sentry.utils import auth
 
 orig_login = auth.login
 
@@ -49,3 +49,9 @@ class DemoMiddlewareTest(APITestCase):
         url = reverse("sentry-account-settings")
         response = self.client.get(url)
         assert response.status_code == 302, response.content
+
+    def test_prompt_route(self):
+        url = reverse("sentry-api-0-prompts-activity")
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.content == b'{"data": {"dismissed_ts": 1}}'
