@@ -48,6 +48,7 @@ create-user:
 
 reset-db: drop-db create-db apply-migrations
 
+# This only needs to be called once after Docker gets installed
 init-docker:
 	@./scripts/do.sh init_docker
 

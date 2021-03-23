@@ -7,13 +7,14 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd -P)"
 # shellcheck disable=SC1090
 source "${HERE}/lib.sh"
 
-# This block is to enable reporting issues to Sentry.io
-if ! require sentry-cli; then
-    curl -sL https://sentry.io/get-cli/ | bash
-fi
 # SENTRY_DSN already defined in .envrc
-[ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ] && \
+if [ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
+    # This block is to enable reporting issues to Sentry.io
+    if ! require sentry-cli; then
+        curl -sL https://sentry.io/get-cli/ | bash
+    fi
     eval "$(sentry-cli bash-hook)"
+fi
 
 # If you call this script
 "$@"

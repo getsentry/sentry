@@ -46,10 +46,10 @@ start_docker() {
 
 create_user() {
   if [[ -n ${GITHUB_ACTIONS} ]]; then
-		sentry createuser --superuser --email foo@tbd.com --no-password
-	else
-		sentry createuser --superuser
-	fi
+    sentry createuser --superuser --email foo@tbd.com --no-password
+  else
+    sentry createuser --superuser
+  fi
 }
 
 query_big_sur() {

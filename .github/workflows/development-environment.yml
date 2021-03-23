@@ -40,14 +40,9 @@ jobs:
         # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
         # XXX: Can the Brew set up be cached?
         # Sometimes, brew needs to be updated before brew bundle would work
-        # If you want to speed up the CI for your PR, you can use --no-upgrade and HOMEBREW_NO_AUTO_UPDATE=1
-        # [[ $(uname) == "Darwin" ]] && brew upgrade homebrew/cask/docker
         run: |
-          brew bundle || brew update && brew bundle
-          brew info homebrew/cask/docker
+          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle -q --no-upgrade || brew update && brew bundle
           make init-docker
-          which docker || echo "Failed to run which docker"
-          brew info homebrew/cask/docker
 
       - name: Install Python (via Pyenv)
         id: python-version
@@ -88,7 +83,7 @@ jobs:
 
       # make develop calls "ensure-venv", thus, needing to be within a venv
       # TODO: We need to streamline the installation of the wheel package
-      - name: Set up development environment
+      - name: Set up development environment (mostly as per docs)
         run: |
           python -m venv .venv
           source .venv/bin/activate
