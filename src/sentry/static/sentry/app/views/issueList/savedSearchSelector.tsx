@@ -14,6 +14,7 @@ type Props = {
   savedSearchList: SavedSearch[];
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
   onSavedSearchDelete: (savedSearch: SavedSearch) => void;
+  sort: string;
   query?: string;
 };
 
@@ -23,10 +24,13 @@ function SavedSearchSelector({
   onSavedSearchSelect,
   organization,
   query,
+  sort,
 }: Props) {
   function getTitle() {
-    const result = savedSearchList.find(search => query === search.query);
-    return result ? result.name : t('Custom Search');
+    const savedSearch = savedSearchList.find(
+      search => search.query === query && search.sort === sort
+    );
+    return savedSearch ? savedSearch.name : t('Custom Search');
   }
 
   return (
@@ -45,6 +49,7 @@ function SavedSearchSelector({
         onSavedSearchSelect={onSavedSearchSelect}
         onSavedSearchDelete={onSavedSearchDelete}
         query={query}
+        sort={sort}
       />
     </DropdownControl>
   );

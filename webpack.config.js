@@ -41,6 +41,7 @@ const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
  */
 // Ports used by webpack dev server to proxy to backend and webpack
 const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
+const SENTRY_WEBPACK_PROXY_HOST = env.SENTRY_WEBPACK_PROXY_HOST;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 // Used by sentry devserver runner to force using webpack-dev-server
 const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
@@ -256,10 +257,6 @@ let appConfig = {
         },
       },
       {
-        test: /app\/icons\/.*\.svg$/,
-        use: ['svg-sprite-loader', 'svgo-loader'],
-      },
-      {
         test: /\.css/,
         use: ['style-loader', 'css-loader'],
       },
@@ -270,7 +267,6 @@ let appConfig = {
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
-        exclude: /app\/icons\/.*\.svg$/,
         use: [
           {
             loader: 'file-loader',
@@ -429,6 +425,7 @@ if (
     // Required for getsentry
     disableHostCheck: true,
     contentBase: './src/sentry/static/sentry',
+    host: SENTRY_WEBPACK_PROXY_HOST,
     hot: true,
     // If below is false, will reload on errors
     hotOnly: true,

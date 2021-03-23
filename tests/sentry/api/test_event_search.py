@@ -362,7 +362,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_date_formats(self):
         invalid_queries = ["first_seen:hello", "first_seen:123", "first_seen:2018-01-01T00:01ZZ"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for date field"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid date"):
                 parse_search_query(invalid_query)
 
     def test_specific_time_filter(self):
@@ -419,6 +419,24 @@ class ParseSearchQueryTest(unittest.TestCase):
                 operator="=",
                 value=SearchValue(raw_value="2018-01-01T05:06:07"),
             )
+        ]
+
+    def test_timestamp_rollup(self):
+        assert parse_search_query("timestamp.to_hour:2018-01-01T05:06:07+00:00") == [
+            SearchFilter(
+                key=SearchKey(name="timestamp.to_hour"),
+                operator=">=",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
+                ),
+            ),
+            SearchFilter(
+                key=SearchKey(name="timestamp.to_hour"),
+                operator="<",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)
+                ),
+            ),
         ]
 
     def test_quoted_val(self):
@@ -689,7 +707,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_boolean_filter(self):
         invalid_queries = ["stack.in_app:lol", "stack.in_app:123", "stack.in_app:>true"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for boolean field"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid boolean"):
                 parse_search_query(invalid_query)
 
     def test_numeric_filter(self):
@@ -738,7 +756,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_numeric_fields(self):
         invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric field"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid number"):
                 parse_search_query(invalid_query)
 
     def test_invalid_numeric_shorthand(self):

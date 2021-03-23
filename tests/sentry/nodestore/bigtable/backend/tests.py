@@ -1,5 +1,5 @@
 import pytest
-
+from google.rpc.status_pb2 import Status
 from sentry.nodestore.bigtable.backend import BigtableNodeStorage
 from sentry.utils.cache import memoize
 from sentry.utils.compat import mock
@@ -27,7 +27,7 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
 
         def commit(self):
             # commits not implemented, changes are applied immediately
-            pass
+            return Status(code=0)
 
         @property
         def cells(self):
@@ -49,7 +49,7 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
 
         def mutate_rows(self, rows):
             # commits not implemented, changes are applied immediately
-            pass
+            return [Status(code=0) for row in rows]
 
     @memoize
     def connection(self):

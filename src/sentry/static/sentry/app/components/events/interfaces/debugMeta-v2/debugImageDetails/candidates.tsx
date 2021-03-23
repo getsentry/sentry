@@ -301,7 +301,7 @@ class Candidates extends React.Component<Props, State> {
       <Wrapper>
         <Header>
           <Title>
-            {t('Debug Files')}
+            {t('Debug File Candidates')}
             <QuestionTooltip
               title={tct(
                 'These are the Debug Information Files (DIFs) corresponding to this image which have been looked up on [docLink:symbol servers] during the processing of the stacktrace.',
@@ -330,7 +330,7 @@ class Candidates extends React.Component<Props, State> {
         <StyledPanelTable
           headers={[
             t('Status'),
-            t('Debug File'),
+            t('Location'),
             t('Processing'),
             t('Features'),
             t('Actions'),
