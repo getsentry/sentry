@@ -2052,6 +2052,10 @@ FUNCTIONS = {
         Function(
             "user_misery",
             required_args=[NumberRange("satisfaction", 0, None)],
+            optional_args=[
+                with_default(5.8875, NumberRange("alpha", 0, None)),
+                with_default(111.8625, NumberRange("beta", 0, None)),
+            ],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
             # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
             # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
@@ -2059,7 +2063,7 @@ FUNCTIONS = {
             # with the user misery being adjusted for each fast/slow unique transaction. See:
             # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
             # for an intuitive explanation of the Beta Distribution Function.
-            transform="divide(plus(uniqIf(user, greater(duration, {tolerated:g})), 5.8875), plus(uniq(user), 117.75))",
+            transform="ifNull(divide(plus(uniqIf(user, greater(duration, {tolerated:g})), {alpha}), plus(uniq(user), plus({alpha}, {beta}))), 0)",
             default_result_type="number",
         ),
         Function("failure_rate", transform="failure_rate()", default_result_type="percentage"),

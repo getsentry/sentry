@@ -53,21 +53,19 @@ function UserStats({
   let vitalsPassRate: React.ReactNode = null;
 
   if (!isLoading && error === null && totals) {
-    const miserableUsers = Number(totals[`count_miserable_users_${threshold}`]);
-    const userMiseryScore = Number(totals[`user_misery_${threshold}`]);
-    const totalUsers = Number(totals.count_unique_user);
-    if (!isNaN(miserableUsers) && !isNaN(totalUsers)) {
-      userMisery = (
-        <UserMiseryPrototype
-          bars={40}
-          barHeight={30}
-          userMisery={userMiseryScore}
-          miseryLimit={threshold}
-          totalUsers={totalUsers}
-          miserableUsers={miserableUsers}
-        />
-      );
-    }
+    const miserableUsers = totals[`count_miserable_users_${threshold}`];
+    const userMiseryScore = totals[`user_misery_${threshold}`];
+    const totalUsers = totals.count_unique_user;
+    userMisery = (
+      <UserMiseryPrototype
+        bars={40}
+        barHeight={30}
+        userMisery={userMiseryScore}
+        miseryLimit={threshold}
+        totalUsers={totalUsers}
+        miserableUsers={miserableUsers}
+      />
+    );
 
     const apdexKey = `apdex_${threshold}`;
     const formatter = getFieldRenderer(apdexKey, {[apdexKey]: 'number'});

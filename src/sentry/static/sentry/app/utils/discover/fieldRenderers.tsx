@@ -390,7 +390,8 @@ type SpecialFunctions = {
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FUNCTIONS: SpecialFunctions = {
-  user_misery: data => {
+  user_misery: (data, baggage) => {
+    const {organization} = baggage;
     const uniqueUsers = data.count_unique_user;
     let miseryField: string = '';
     let userMiseryField: string = '';
@@ -407,17 +408,9 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     }
 
     const miserableUsers = userMiseryField ? data[userMiseryField] : undefined;
+    const userMisery = miseryField ? data[miseryField] : undefined;
 
-    const userMisery = data[miseryField];
-    if (!uniqueUsers && uniqueUsers !== 0) {
-      return (
-        <NumberContainer>
-          {typeof userMisery === 'number' ? formatFloat(userMisery, 4) : emptyValue}
-        </NumberContainer>
-      );
-    }
-
-    const miseryLimit = parseInt(miseryField.split('_').pop() || '', 10);
+    const miseryLimit = organization.apdexThreshold;
 
     return (
       <BarContainer>
