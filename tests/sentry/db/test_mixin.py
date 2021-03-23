@@ -14,11 +14,6 @@ class RenamePendingDeleteTest(TestCase):
             external_id="external_id",
         )
 
-        class MockUuid4:
-            hex = "1234567"
-
-        self.mock_uuid4 = MockUuid4
-
     def assert_organization_option(self, repo):
         option = OrganizationOption.objects.get(
             organization_id=repo.organization_id, key=repo.build_pending_deletion_key()
@@ -31,7 +26,7 @@ class RenamePendingDeleteTest(TestCase):
         }
 
     def test_rename_on_pending_deletion(self):
-        with patch("sentry.db.mixin.uuid4", new=self.mock_uuid4):
+        with patch("sentry.db.mixin.uuid4", new=self.get_mock_uuid()):
             self.repository.rename_on_pending_deletion()
         repo = Repository.objects.get(id=self.repository.id)
         assert repo.name == "1234567"
