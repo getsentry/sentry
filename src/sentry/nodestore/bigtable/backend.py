@@ -288,6 +288,9 @@ class BigtableNodeStorage(NodeStorage):
 
     @property
     def _table(self):
+        # XXX: This only exists to give stateful tests a location to hook into
+        # and should be removed if/when those tests no longer depend on this
+        # behavior.
         return get_connection(self.project, self.instance, self.table, self.options)
 
     @property

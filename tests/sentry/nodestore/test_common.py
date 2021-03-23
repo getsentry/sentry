@@ -2,24 +2,33 @@
 Testsuite of backend-independent nodestore tests. Add your backend to the
 `ns` fixture to have it tested.
 """
-
-from sentry.nodestore.django.backend import DjangoNodeStorage
-from sentry.nodestore.bigtable.backend import BigtableNodeStorage
-from tests.sentry.nodestore.bigtable.backend.tests import MockedBigtableNodeStorage
+import os
+import uuid
 
 import pytest
+from sentry.nodestore.bigtable.backend import BigtableNodeStorage
+from sentry.nodestore.django.backend import DjangoNodeStorage
+from tests.sentry.nodestore.bigtable.backend.tests import (
+    MockedBigtableNodeStorage,
+    invalid_credentials,
+)
 
 
 @pytest.fixture(
     params=["bigtable-mocked", "bigtable-real", pytest.param("django", marks=pytest.mark.django_db)]
 )
 def ns(request):
-    if request.param == "bigtable-real":
-        pytest.skip("Bigtable is not available in CI")
+    if request.param == "bigtable-real" and "BIGTABLE_EMULATOR_HOST" not in os.environ:
+        pytest.skip(
+            "Bigtable is not available, set BIGTABLE_EMULATOR_HOST enironment variable to enable"
+        )
 
     ns = {
         "bigtable-mocked": lambda: MockedBigtableNodeStorage(project="test"),
-        "bigtable-real": lambda: BigtableNodeStorage(project="test"),
+        "bigtable-real": lambda: BigtableNodeStorage(
+            project=f"test-{uuid.uuid1().hex}",
+            credentials=invalid_credentials,
+        ),
         "django": lambda: DjangoNodeStorage(),
     }[request.param]()
     ns.bootstrap()

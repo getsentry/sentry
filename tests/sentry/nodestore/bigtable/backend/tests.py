@@ -1,4 +1,9 @@
+import functools
+import os
+import uuid
+
 import pytest
+from google.oauth2.credentials import Credentials
 from google.rpc.status_pb2 import Status
 from sentry.nodestore.bigtable.backend import BigtableNodeStorage
 from sentry.utils.cache import memoize
@@ -51,6 +56,9 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
             # commits not implemented, changes are applied immediately
             return [Status(code=0) for row in rows]
 
+        def delete(self):
+            pass
+
     @memoize
     def _table(self):
         return MockedBigtableNodeStorage.Table()
@@ -59,12 +67,26 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
         pass
 
 
+invalid_credentials = Credentials.from_authorized_user_info(
+    {key: "invalid" for key in ["client_id", "refresh_token", "client_secret"]}
+)
+
+
 @pytest.fixture(params=[MockedBigtableNodeStorage, BigtableNodeStorage])
 def ns(request):
     if request.param is BigtableNodeStorage:
-        pytest.skip("Bigtable is not available in CI")
+        if "BIGTABLE_EMULATOR_HOST" not in os.environ:
+            pytest.skip(
+                "Bigtable is not available, set BIGTABLE_EMULATOR_HOST enironment variable to enable"
+            )
+        constructor = functools.partial(
+            BigtableNodeStorage,
+            credentials=invalid_credentials,
+        )
+    else:
+        constructor = request.param
 
-    ns = request.param(project="test")
+    ns = constructor(project=f"test-{uuid.uuid1().hex}")
     ns.bootstrap()
     return ns
 
