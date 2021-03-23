@@ -38,13 +38,10 @@ drop-db:
 create-db:
 	@echo "--> Creating 'sentry' database"
 	$(CREATEDB) -h 127.0.0.1 -U postgres -E utf-8 sentry || true
-	# XXX: This should be behind a variable for the CI
-	# This prevents asking to create a user in the CI
-	sentry createuser --email foo@tdb.com --no-password --superuser
 
 apply-migrations: ensure-venv
 	@echo "--> Applying migrations"
-	sentry upgrade
+	sentry upgrade --noinput
 
 reset-db: drop-db create-db apply-migrations
 
