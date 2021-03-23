@@ -68,7 +68,7 @@ function Tag({
   };
 
   const tag = (
-    <Tooltip title={tooltipText} containerDisplayMode="inline">
+    <Tooltip title={tooltipText} containerDisplayMode="inline-flex">
       <Background type={type}>
         {tagIcon()}
 
