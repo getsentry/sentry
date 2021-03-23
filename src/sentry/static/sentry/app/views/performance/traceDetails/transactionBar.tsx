@@ -186,28 +186,26 @@ class TransactionBar extends React.Component<Props, State> {
             width: '100%',
           }}
         >
+          <Projects orgId={organization.slug} slugs={[transaction.project_slug]}>
+            {({projects}) => {
+              const project = projects.find(p => p.slug === transaction.project_slug);
+              return (
+                <ProjectBadge
+                  project={project ? project : {slug: transaction.project_slug}}
+                  avatarSize={16}
+                  hideName
+                />
+              );
+            }}
+          </Projects>
           <TransactionBarTitleContent>
-            <Projects orgId={organization.slug} slugs={[transaction.project_slug]}>
-              {({projects}) => {
-                const project = projects.find(p => p.slug === transaction.project_slug);
-                return (
-                  <ProjectBadge
-                    project={project ? project : {slug: transaction.project_slug}}
-                    avatarSize={16}
-                    hideName
-                  />
-                );
-              }}
-            </Projects>
-            <span>
-              <strong>
-                <OperationName spanErrors={transaction.errors}>
-                  {transaction['transaction.op']}
-                </OperationName>
-                {' \u2014 '}
-              </strong>
-              {transaction.transaction}
-            </span>
+            <strong>
+              <OperationName spanErrors={transaction.errors}>
+                {transaction['transaction.op']}
+              </OperationName>
+              {' \u2014 '}
+            </strong>
+            {transaction.transaction}
           </TransactionBarTitleContent>
         </TransactionBarTitle>
       </TransactionBarTitleContainer>
