@@ -114,7 +114,6 @@ class BigtableNodeStorage(NodeStorage):
         automatic_expiry=False,
         default_ttl=None,
         compression=False,
-        thread_pool_size=5,  # TODO(mattrobenolt): Remove this
         **kwargs,
     ):
         self.project = project
