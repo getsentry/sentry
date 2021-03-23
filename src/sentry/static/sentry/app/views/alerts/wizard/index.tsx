@@ -14,7 +14,12 @@ import {Organization, Project} from 'app/types';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 
-import {AlertType, AlertWizardDescriptions, AlertWizardOptions} from './options';
+import {
+  AlertType,
+  AlertWizardDescriptions,
+  AlertWizardEventViewInfo,
+  AlertWizardOptions,
+} from './options';
 
 type RouteParams = {
   orgId: string;
@@ -37,6 +42,27 @@ class AlertWizard extends React.Component<Props, State> {
 
   handleChangeAlertOption = (alertOption: AlertType) => {
     this.setState({alertOption});
+  };
+
+  renderCreateAlertButton = () => {
+    const {organization, project} = this.props;
+    const {alertOption} = this.state;
+    const metricRuleTemplate = AlertWizardEventViewInfo[alertOption];
+    const to = {
+      pathname: `/organizations/${organization.slug}/alerts/${project.slug}/new/`,
+      query: {
+        ...(metricRuleTemplate && metricRuleTemplate),
+        createFromWizard: true,
+      },
+    };
+    return (
+      <CreateAlertButton
+        organization={organization}
+        projectSlug={project.slug}
+        priority="primary"
+        to={to}
+      />
+    );
   };
 
   render() {
@@ -77,13 +103,7 @@ class AlertWizard extends React.Component<Props, State> {
               </WizardOptions>
               <WizardPanel>
                 <WizardPanelBody>{AlertWizardDescriptions[alertOption]}</WizardPanelBody>
-                <CreateAlertButton
-                  organization={organization}
-                  priority="primary"
-                  projectSlug={projectId}
-                >
-                  {t('Create Alert')}
-                </CreateAlertButton>
+                {this.renderCreateAlertButton()}
               </WizardPanel>
             </WizardBody>
           </Feature>
