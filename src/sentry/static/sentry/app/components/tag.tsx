@@ -157,9 +157,6 @@ const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
   white-space: nowrap;
   text-overflow: ellipsis;
   line-height: ${TAG_HEIGHT};
-  a:hover & {
-    color: ${p => p.theme.gray500};
-  }
 `;
 
 const DismissButton = styled(Button)`
