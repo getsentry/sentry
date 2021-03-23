@@ -27,6 +27,7 @@ function handleTraceLink(organization: OrganizationSummary) {
     eventKey: 'quick_trace.trace_id.clicked',
     eventName: 'Quick Trace: Trace ID clicked',
     organization_id: parseInt(organization.id, 10),
+    source: 'events',
   });
 }
 
@@ -50,6 +51,7 @@ export default function QuickTraceMeta({
         quickTrace={{type, trace}}
         location={location}
         organization={organization}
+        anchorRight
       />
     </ErrorBoundary>
   );

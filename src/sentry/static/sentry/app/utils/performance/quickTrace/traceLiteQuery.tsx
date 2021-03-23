@@ -17,7 +17,6 @@ import withApi from 'app/utils/withApi';
 
 type QueryProps = Omit<TraceRequestProps, 'eventView'> & {
   children: (props: TraceLiteQueryChildrenProps) => React.ReactNode;
-  shouldSkipQuery: boolean;
 };
 
 function getQuickTraceLiteRequestPayload({
@@ -47,10 +46,9 @@ function TraceLiteQuery({
   end,
   statsPeriod,
   children,
-  shouldSkipQuery,
   ...props
 }: QueryProps) {
-  if (!traceId || shouldSkipQuery) {
+  if (!traceId) {
     return <EmptyTrace>{children}</EmptyTrace>;
   }
 

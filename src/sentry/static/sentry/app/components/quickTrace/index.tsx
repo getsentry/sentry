@@ -38,6 +38,7 @@ type QuickTraceProps = {
   event: Event;
   location: Location;
   organization: OrganizationSummary;
+  anchorRight: boolean;
 };
 
 export default function QuickTrace({
@@ -45,6 +46,7 @@ export default function QuickTrace({
   quickTrace,
   location,
   organization,
+  anchorRight,
 }: QuickTraceProps) {
   let parsedQuickTrace;
   try {
@@ -67,6 +69,7 @@ export default function QuickTrace({
         text={t('Root')}
         hoverText={<SingleEventHoverText event={root} />}
         pad="right"
+        anchorRight={anchorRight}
         nodeKey="root"
       />
     );
@@ -96,6 +99,7 @@ export default function QuickTrace({
           'Ancestor'
         )}
         pad="right"
+        anchorRight={anchorRight}
         nodeKey="ancestors"
       />
     );
@@ -112,6 +116,7 @@ export default function QuickTrace({
         text={t('Parent')}
         hoverText={<SingleEventHoverText event={parent} />}
         pad="right"
+        anchorRight={anchorRight}
         nodeKey="parent"
       />
     );
@@ -127,6 +132,7 @@ export default function QuickTrace({
       events={[current]}
       currentEvent={event}
       pad="left"
+      anchorRight={anchorRight}
       nodeKey="current"
     />
   );
@@ -155,6 +161,7 @@ export default function QuickTrace({
           'Children'
         )}
         pad="left"
+        anchorRight={anchorRight}
         nodeKey="children"
       />
     );
@@ -184,6 +191,7 @@ export default function QuickTrace({
           'Descendant'
         )}
         pad="left"
+        anchorRight={anchorRight}
         nodeKey="descendants"
       />
     );
@@ -226,6 +234,7 @@ type EventNodeSelectorProps = {
   hoverText?: React.ReactNode;
   extrasTarget?: LocationDescriptor;
   numEvents?: number;
+  anchorRight: boolean;
   nodeKey: string;
 };
 
@@ -239,6 +248,7 @@ function EventNodeSelector({
   hoverText,
   extrasTarget,
   nodeKey,
+  anchorRight,
   numEvents = 5,
 }: EventNodeSelectorProps) {
   const errors: TraceError[] = [];
@@ -303,7 +313,7 @@ function EventNodeSelector({
         title={
           <StyledEventNode text={text} pad={pad} hoverText={hoverText} type={type} />
         }
-        anchorRight
+        anchorRight={anchorRight}
       >
         {errors.slice(0, numEvents).map((error, i) => {
           const target = generateSingleEventTarget(error, organization, location);
