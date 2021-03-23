@@ -685,7 +685,7 @@ class ChainPaginator:
         # Get an addition item so we can check for a next page.
         remaining = limit + 1
         for source in self.sources:
-            source_results = list(source[offset:remaining])
+            source_results = list(source[offset : offset + remaining])
             results.extend(source_results)
             result_count = len(results)
             if result_count == 0 and result_count < remaining:
