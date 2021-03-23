@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import copy from 'copy-text-to-clipboard';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
 
 type DefaultProps = {
   successMessage: string;
@@ -30,8 +31,8 @@ function isSupported() {
 class Clipboard extends React.Component<Props> {
   static defaultProps: DefaultProps = {
     hideMessages: false,
-    successMessage: 'Copied to clipboard',
-    errorMessage: 'Error copying to clipboard',
+    successMessage: t('Copied to clipboard'),
+    errorMessage: t('Error copying to clipboard'),
   };
 
   componentWillUnmount() {
