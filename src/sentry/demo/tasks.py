@@ -55,7 +55,7 @@ def build_up_org_buffer():
 
     ORG_BUFFER_SIZE = settings.DEMO_DATA_GEN_PARAMS["ORG_BUFFER_SIZE"]
 
-    # find how many orgs we have waiting assignment or being creeated
+    # find how many orgs we have waiting assignment or being initialized
     num_orgs = DemoOrganization.objects.filter(
         status__in=[DemoOrgStatus.PENDING, DemoOrgStatus.INITIALIZING]
     ).count()
