@@ -317,16 +317,16 @@ class NormalizeInApptest(TestCase):
 
     def test_ios_function_name_in_app_detection(self):
         self.ios_function_name_in_app_detection(
-            function="sentry__hook_dispatch_async", isInApp=False
+            function="sentrycrash__hook_dispatch_async", isInApp=False
         )
         self.ios_function_name_in_app_detection(
-            function="sentry__hook_dispatch_after_f", isInApp=False
+            function="sentrycrash__hook_dispatch_after_f", isInApp=False
         )
         self.ios_function_name_in_app_detection(
-            function="sentry__async_backtrace_capture", isInApp=False
+            function="sentrycrash__async_backtrace_capture", isInApp=False
         )
         self.ios_function_name_in_app_detection(
-            function="__sentry__hook_dispatch_async_block_invoke", isInApp=False
+            function="__sentrycrash__hook_dispatch_async_block_invoke", isInApp=False
         )
 
         self.ios_function_name_in_app_detection(function="kscm_f", isInApp=False)
