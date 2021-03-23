@@ -184,21 +184,23 @@ def cleanup_unused_data():
 
     for input in INPUTS:
         data = dict(input.data)  # type: ignore
+
         modified = False
-        modified |= _strip_unknown_keys(data, ["exception", "platform"])
+        modified |= _strip_unknown_keys(data, ["exception", "platform", "event_id"])
 
         if "event_id" not in data:
             data["event_id"] = str(uuid.uuid4()).replace("-", "")
+            modified = True
 
         if "exception" in data and "values" not in data["exception"]:
             del data["exception"]
             modified = True
 
-        for exception in get_path(data, "exception", "values"):
+        for exception in get_path(data, "exception", "values") or ():
             modified |= _strip_unknown_keys(exception, ["stacktrace", "type", "value", "mechanism"])
             modified |= _strip_unknown_keys(get_path(exception, "stacktrace"), ["frames"])
 
-            for frame in get_path(exception, "stacktrace", "frames"):
+            for frame in get_path(exception, "stacktrace", "frames") or ():
                 if not get_path(frame, "data", "category"):
                     modified |= frame != {"function": "<stripped application code>"}
                     frame.clear()

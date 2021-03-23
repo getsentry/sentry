@@ -4,6 +4,8 @@ import base64
 import msgpack
 import inspect
 
+from typing import Optional
+
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
 
@@ -32,7 +34,7 @@ matchers         = matcher+
 matcher          = frame_matcher / range_matcher
 frame_matcher    = _ negation? matcher_type sep argument
 matcher_type     = ident / quoted_ident
-range_matcher    = "[" _? frame_matcher _? "|"? ~r" ?\.\. ?" "|"? _? frame_matcher _? "]"
+range_matcher    = _ "[" _? frame_matcher? _? "|"? ~r" ?\.\. ?" "|"? _? frame_matcher? _? "]"
 
 actions          = action+
 action           = flag_action / var_action
@@ -142,6 +144,8 @@ class Match:
             return RangeMatch(
                 Match._from_config_structure(val[0], version),
                 Match._from_config_structure(val[1], version),
+                val[2],
+                val[3],
             )
 
         if val.startswith("!"):
@@ -244,7 +248,11 @@ class FrameMatch(Match):
 
 class RangeMatch(Match):
     def __init__(
-        self, start: FrameMatch, end: FrameMatch, start_neighbouring: bool, end_neighbouring: bool
+        self,
+        start: Optional[FrameMatch],
+        end: Optional[FrameMatch],
+        start_neighbouring: bool,
+        end_neighbouring: bool,
     ):
         self.start = start
         self.end = end
@@ -255,44 +263,53 @@ class RangeMatch(Match):
     def description(self):
         sn = "| " if self.start_neighbouring else ""
         en = " |" if self.end_neighbouring else ""
-        return f"[ {self.start.description} {sn}..{en} {self.end.description} ]"
+        start = f" {self.start.description}" if self.start else ""
+        end = f"{self.end.description }" if self.end else ""
+        return f"[{start} {sn}..{en} {end}]"
 
     def _to_config_structure(self, version):
-        return [self.start._to_config_structure(version), self.end._to_config_structure(version)]
+        return [
+            self.start._to_config_structure(version),
+            self.end._to_config_structure(version),
+            self.start_neighbouring,
+            self.end_neighbouring,
+        ]
 
     def matches_frame(self, frames, idx, platform, exception_data):
-        if self.start.matches_frame(frames, idx, platform, exception_data):
-            return True
+        if self.end is not None:
+            if self.end.matches_frame(frames, idx, platform, exception_data):
+                return True
 
-        if self.end.matches_frame(frames, idx, platform, exception_data):
-            return True
+            end_matches = (
+                idx2
+                for idx2 in reversed(range(0, idx))
+                if self.end.matches_frame(frames, idx2, platform, exception_data)
+            )
 
-        end_matches = (
-            idx2
-            for idx2 in reversed(range(0, idx))
-            if self.end.matches_frame(frames, idx2, platform, exception_data)
-        )
+            if self.end_neighbouring:
+                end_idx = next(end_matches, None)
+                if end_idx != (idx - 1 if self.end_neighbouring else None):
+                    return False
+            else:
+                if next(end_matches, None) is None:
+                    return False
 
-        if self.end_neighbouring:
-            end_idx = next(end_matches, None)
-            if end_idx != (idx - 1 if self.end_neighbouring else None):
-                return False
-        else:
-            if next(end_matches, None) is None:
-                return False
+        if self.start is not None:
+            if self.start.matches_frame(frames, idx, platform, exception_data):
+                return True
 
-        start_matches = (
-            idx2
-            for idx2 in range(idx, len(frames))
-            if self.start.matches_frame(frames, idx2, platform, exception_data)
-        )
+            start_matches = (
+                idx2
+                for idx2 in range(idx, len(frames))
+                if self.start.matches_frame(frames, idx2, platform, exception_data)
+            )
 
-        if self.start_neighbouring:
-            if next(start_matches, None) != idx + 1:
-                return False
-        else:
-            if next(start_matches, None) is None:
-                return False
+            if self.start_neighbouring:
+                if next(start_matches, None) != idx + 1:
+                    return False
+            else:
+                if next(start_matches, None) is None:
+                    return False
 
         return True
 
@@ -703,8 +720,13 @@ class EnhancmentsVisitor(NodeVisitor):
         return children[0]
 
     def visit_range_matcher(self, node, children):
-        _, _, start, _, start_neighbouring, _, end_neighbouring, _, end, _, _ = children
-        return RangeMatch(start, end, bool(start_neighbouring), bool(end_neighbouring))
+        _, _, _, start, _, start_neighbouring, _, end_neighbouring, _, end, _, _ = children
+        return RangeMatch(
+            start[0] if start else None,
+            end[0] if end else None,
+            bool(start_neighbouring),
+            bool(end_neighbouring),
+        )
 
     def visit_frame_matcher(self, node, children):
         _, negation, ty, _, argument = children
