@@ -202,6 +202,10 @@ class BigtableNodeStorage(NodeStorage):
         # and rewrite a row with a new ttl.
         ttl = ttl or self.default_ttl
         if ttl is None:
+            # XXX: If ``automatic_expiry`` is enabled and no TTL (default or
+            # row-level TTL) is provided, this will default to the Bigtable
+            # server timestamp and this row will be immediately evicted per the
+            # garbage collection policy.
             ts = None
         else:
             ts = timezone.now() + ttl
