@@ -98,7 +98,9 @@ class BigtableNodeStorage(NodeStorage):
     column_family = "x"
 
     ttl_column = b"t"
+    ttl_struct = struct.Struct("<I")
     flags_column = b"f"
+    flags_struct = struct.Struct("B")
     data_column = b"0"
 
     # XXX: Compression flags are assumed to be mutually exclusive, the behavior
@@ -170,7 +172,7 @@ class BigtableNodeStorage(NodeStorage):
         # Read our flags
         flags = 0
         if self.flags_column in columns:
-            flags = struct.unpack("B", columns[self.flags_column][0].value)[0]
+            flags = self.flags_struct.unpack(columns[self.flags_column][0].value)[0]
 
         return _decompress_data(data, flags)
 
@@ -212,7 +214,7 @@ class BigtableNodeStorage(NodeStorage):
             row.set_cell(
                 self.column_family,
                 self.ttl_column,
-                struct.pack("<I", int(ttl.total_seconds())),
+                self.ttl_struct.pack(int(ttl.total_seconds())),
                 timestamp=ts,
             )
 
@@ -228,7 +230,7 @@ class BigtableNodeStorage(NodeStorage):
         # are enabled. And if so, pack it into a single byte.
         if flags:
             row.set_cell(
-                self.column_family, self.flags_column, struct.pack("B", flags), timestamp=ts
+                self.column_family, self.flags_column, self.flags_struct.pack(flags), timestamp=ts
             )
 
         assert len(data) <= self.max_size
