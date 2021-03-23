@@ -2160,6 +2160,7 @@ DEMO_DATA_GEN_PARAMS = {
     "DEFAULT_BACKOFF_TIME": 0,  # backoff time between sending events
     "ERROR_BACKOFF_TIME": 0.5,  # backoff time after a snuba error
     "NUM_RELEASES": 3,
+    "ORG_BUFFER_SIZE": 3,  # number of pre-populated organizations in the buffer
 }
 
 # parameters for an org when quickly generating them synchronously
