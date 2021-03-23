@@ -45,6 +45,7 @@ else like actual grouping happens elsewhere like test_variants.py.
 """
 
 import os
+import uuid
 
 import pytest
 import json  # NOQA
@@ -185,6 +186,9 @@ def cleanup_unused_data():
         data = dict(input.data)  # type: ignore
         modified = False
         modified |= _strip_unknown_keys(data, ["exception", "platform"])
+
+        if "event_id" not in data:
+            data["event_id"] = str(uuid.uuid4()).replace("-", "")
 
         if "exception" in data and "values" not in data["exception"]:
             del data["exception"]
