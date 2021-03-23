@@ -1,7 +1,7 @@
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
 
-bootstrap: develop init-config run-dependent-services create-db apply-migrations build-platform-assets
+bootstrap: develop init-config run-dependent-services create-db apply-migrations create-user build-platform-assets
 
 develop: ensure-pinned-pip setup-git install-js-dev install-py-dev
 
@@ -42,6 +42,9 @@ create-db:
 apply-migrations: ensure-venv
 	@echo "--> Applying migrations"
 	sentry upgrade --noinput
+
+create-user:
+	@./scripts/do.sh create_user
 
 reset-db: drop-db create-db apply-migrations
 

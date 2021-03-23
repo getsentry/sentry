@@ -44,21 +44,12 @@ start_docker() {
   fi
 }
 
-# Open Docker.app and wait for docker server to be ready
-ensure_docker_server() {
-  if [ -d "/Applications/Docker.app" ]; then
-    echo "Starting Docker.app, if necessary..."
-    set -x
-
-    # taken from https://github.com/docker/for-mac/issues/2359#issuecomment-607154849
-    # Wait for the server to start up, if applicable.
-    local i=0
-    while ! docker system info &>/dev/null; do
-      (( i++ == 0 )) && printf %s '-- Waiting for Docker to finish starting up...' || printf '.'
-      sleep 1
-    done
-    (( i )) && printf '\n'
-  fi
+create_user() {
+  if [[ -z ${GITHUB_ENV+x} ]]; then
+		sentry createuser --superuser --email foo@tbd.com --no-password
+	else
+		sentry createuser --superuser
+	fi
 }
 
 query_big_sur() {
