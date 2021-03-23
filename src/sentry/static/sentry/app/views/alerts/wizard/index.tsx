@@ -17,8 +17,8 @@ import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup'
 import {
   AlertType,
   AlertWizardDescriptions,
-  AlertWizardEventViewInfo,
   AlertWizardOptions,
+  AlertWizardRuleTemplates,
 } from './options';
 
 type RouteParams = {
@@ -47,7 +47,7 @@ class AlertWizard extends React.Component<Props, State> {
   renderCreateAlertButton = () => {
     const {organization, project} = this.props;
     const {alertOption} = this.state;
-    const metricRuleTemplate = AlertWizardEventViewInfo[alertOption];
+    const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
     const to = {
       pathname: `/organizations/${organization.slug}/alerts/${project.slug}/new/`,
       query: {
