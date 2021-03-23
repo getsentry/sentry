@@ -390,8 +390,7 @@ type SpecialFunctions = {
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FUNCTIONS: SpecialFunctions = {
-  user_misery_prototype: (data, baggage) => {
-    const {organization} = baggage;
+  user_misery_prototype: data => {
     const uniqueUsers = data.count_unique_user;
     let miseryField: string = '';
     let userMiseryField: string = '';
@@ -410,7 +409,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     const miserableUsers = userMiseryField ? data[userMiseryField] : undefined;
     const userMisery = miseryField ? data[miseryField] : undefined;
 
-    const miseryLimit = organization.apdexThreshold;
+    const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
 
     return (
       <BarContainer>
@@ -478,8 +477,12 @@ export function getSortField(
     return field;
   }
 
+  if (field.startsWith('user_misery_prototype')) {
+    return field;
+  }
+
   for (const alias in AGGREGATIONS) {
-    if (field.startsWith(alias) && !field.startsWith('user_misery_prototype')) {
+    if (field.startsWith(alias)) {
       return AGGREGATIONS[alias].isSortable ? field : null;
     }
   }
