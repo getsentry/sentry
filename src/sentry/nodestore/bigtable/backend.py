@@ -1,13 +1,14 @@
 import os
 import struct
-from threading import Lock
-import zstandard
 import zlib
+from datetime import timedelta
+from threading import Lock
 
+import zstandard
+from django.utils import timezone
+from google.api_core import exceptions, retry
 from google.cloud import bigtable
 from google.cloud.bigtable.row_set import RowSet
-from django.utils import timezone
-
 from sentry.nodestore.base import NodeStorage
 
 
@@ -291,8 +292,6 @@ class BigtableNodeStorage(NodeStorage):
         # writing rows into the future, and they will be deleted due to TTL
         # when their timestamp is passed.
         if self.automatic_expiry:
-            from datetime import timedelta
-
             # NOTE: Bigtable can't actually use 0 TTL, and
             # requires a minimum value of 1ms.
             # > InvalidArgument desc = Error in field 'Modifications list' : Error in element #0 : max_age must be at least one millisecond
@@ -300,9 +299,6 @@ class BigtableNodeStorage(NodeStorage):
             gc_rule = bigtable.column_family.MaxAgeGCRule(delta)
         else:
             gc_rule = None
-
-        from google.api_core import exceptions
-        from google.api_core import retry
 
         retry_504 = retry.Retry(retry.if_exception_type(exceptions.DeadlineExceeded))
         retry_504(table.create)(column_families={self.column_family: gc_rule})
