@@ -256,6 +256,11 @@ export const documentIntegrationList: DocumentIntegration[] = [
         featureGate: 'webhook',
         description: 'Record, forward or transform Sentry webhooks to other services.',
       },
+      {
+        featureGate: 'alert-rule',
+        description:
+          'Configure Sentry rules to trigger notifications based on conditions you set, through internal integrations.',
+      },
     ],
     resourceLinks: [
       {title: 'Documentation', url: 'https://docs.octohook.com/integrations/sentry.html'},
