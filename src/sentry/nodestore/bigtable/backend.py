@@ -82,12 +82,8 @@ class BigtableNodeStorage(NodeStorage):
     :param automatic_expiry: Whether to set bigtable GC rule.
     :param default_ttl: How many days keys should be stored (and considered
         valid for reading + returning)
-    :param compression: A boolean whether to enable zlib-compression, the
-        string "zstd" to use zstd instead, or a callable that takes `data`
-        (event JSON as dict) and returns either of those values.
-
-        Can take a callable so we can opt projects in and out of zstd while we
-        do the migration.
+    :param compression: A boolean whether to enable zlib-compression, or the
+        string "zstd" to use zstd.
 
     >>> BigtableNodeStorage(
     ...     project='some-project',
