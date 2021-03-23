@@ -6,3 +6,4 @@
 /scripts/
 !.github
 !.github/workflows/scripts/*
+!.storybook
