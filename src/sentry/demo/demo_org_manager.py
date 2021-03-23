@@ -18,16 +18,14 @@ from sentry.models import (
 )
 from sentry.utils.email import create_fake_email
 
-from .data_population import (
-    populate_connected_event_scenario_1,
-)
-from .utils import NoDemoOrgReady, generate_random_name
+from .data_population import populate_connected_event_scenario_1, generate_releases
+from .utils import generate_random_name
 from .models import DemoUser, DemoOrganization, DemoOrgStatus
 
 logger = logging.getLogger(__name__)
 
 
-def create_demo_org() -> Organization:
+def create_demo_org(quick=False) -> Organization:
     # wrap the main org setup in transaction
     with transaction.atomic():
         name = generate_random_name()
@@ -57,7 +55,11 @@ def create_demo_org() -> Organization:
         )
 
     # TODO: delete org if data population fails
-    populate_connected_event_scenario_1(react_project, python_project)
+    logger.info(
+        "create_demo_org.post-transaction", extra={"organization_slug": org.slug, "quick": quick}
+    )
+    generate_releases([react_project, python_project], quick=quick)
+    populate_connected_event_scenario_1(react_project, python_project, quick=quick)
 
     return org
 
@@ -65,14 +67,18 @@ def create_demo_org() -> Organization:
 def assign_demo_org() -> Tuple[Organization, User]:
     from .tasks import build_up_org_buffer
 
+    demo_org = None
     # option to skip the buffer when testing things out locally
     if settings.DEMO_NO_ORG_BUFFER:
         org = create_demo_org()
-        demo_org = DemoOrganization.objects.get(organization=org)
     else:
         demo_org = DemoOrganization.objects.filter(status=DemoOrgStatus.PENDING).first()
+        # if no org in buffer, make a quick one with fewer events
         if not demo_org:
-            raise NoDemoOrgReady()
+            org = create_demo_org(quick=True)
+
+    if not demo_org:
+        demo_org = DemoOrganization.objects.get(organization=org)
 
     org = demo_org.organization
 
