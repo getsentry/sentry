@@ -23,6 +23,10 @@ type BaseGuide = {
   requiredTargets: string[];
   dateThreshold?: Date;
   steps: GuideStep[];
+  /**
+   * When two guides could be active, the guide with the higher priority
+   * level takes precedent.
+   */
   priority?: number;
 };
 

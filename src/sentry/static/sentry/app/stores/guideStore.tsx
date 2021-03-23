@@ -9,7 +9,7 @@ import {Guide, GuidesContent, GuidesServerData} from 'app/components/assistant/t
 import ConfigStore from 'app/stores/configStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
-function compareGuide(a: Guide, b: Guide) {
+function guidePrioritySort(a: Guide, b: Guide) {
   const a_priority = a.priority ?? -1;
   const b_priority = b.priority ?? -1;
   if (a_priority === b_priority) {
@@ -200,7 +200,7 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
     const {anchors, guides, forceShow} = this.state;
 
     let guideOptions = guides
-      .sort(compareGuide)
+      .sort(guidePrioritySort)
       .filter(guide => guide.requiredTargets.every(target => anchors.has(target)));
 
     const user = ConfigStore.get('user');
