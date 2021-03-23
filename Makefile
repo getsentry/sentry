@@ -213,4 +213,47 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop bootstrap build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
+.PHONY: bootstrap \
+        develop \
+        clean \
+        init-config \
+        run-dependent-services \
+        drop-db \
+        create-db \
+        apply-migrations \
+        reset-db \
+        setup-pyenv \
+        ensure-venv \
+        ensure-pinned-pip \
+        upgrade-pip \
+        setup-git-config \
+        setup-git \
+        node-version-check \
+        install-js-dev \
+        install-py-dev \
+        build-js-po \
+        build \
+        merge-locale-catalogs \
+        compile-locale \
+        locale \
+        sync-transifex \
+        update-transifex \
+        build-platform-assets \
+        fetch-release-registry \
+        run-acceptance \
+        test-cli \
+        test-js-build \
+        test-js \
+        test-js-ci \
+        test-python \
+        test-python-ci \
+        test-snuba \
+        test-symbolicator \
+        test-acceptance \
+        test-plugins \
+        test-relay-integration \
+        test-api-docs \
+        review-python-snapshots \
+        accept-python-snapshots \
+        reject-python-snapshots \
+        lint-js
