@@ -102,7 +102,7 @@ export const StyledTruncate = styled(Truncate)`
 export const ErrorNodeContent = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, auto);
-  grid-gap: 2px;
+  grid-gap: ${space(0.25)};
   align-items: center;
 `;
 
