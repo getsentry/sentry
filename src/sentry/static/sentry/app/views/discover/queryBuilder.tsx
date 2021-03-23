@@ -12,7 +12,7 @@ import ConfigStore from 'app/stores/configStore';
 import {Organization, Project} from 'app/types';
 
 import {isValidAggregation} from './aggregations/utils';
-import {COLUMNS, HIDDEN_TAGS, PROMOTED_TAGS, SPECIAL_TAGS} from './data';
+import {COLUMNS, HIDDEN_TAGS, PROMOTED_TAGS} from './data';
 import MissingProjectWarningModal from './missingProjectWarningModal';
 import {Aggregation, Column, Query, SnubaResult} from './types';
 
@@ -122,14 +122,12 @@ export default function createQueryBuilder(
         tags = res.data
           .filter((tag: TagData) => !HIDDEN_TAGS.includes(tag.tags_key))
           .map((tag: TagData) => {
-            const type = SPECIAL_TAGS[tag.tags_key] || 'string';
-            return {name: tag.tags_key, type, isTag: true};
+            return {name: tag.tags_key, type: 'string', isTag: true};
           });
       })
       .catch(() => {
         tags = PROMOTED_TAGS.map((tag: string) => {
-          const type = SPECIAL_TAGS[tag] || 'string';
-          return {name: tag, type, isTag: true};
+          return {name: tag, type: 'string', isTag: true};
         });
       });
   }
