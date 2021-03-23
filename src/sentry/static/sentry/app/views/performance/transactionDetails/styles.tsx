@@ -41,6 +41,7 @@ const StyledSectionHeading = styled(SectionHeading)`
 const SectionBody = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
   padding: ${space(0.5)} 0;
+  max-height: 32px;
 `;
 
 export const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`

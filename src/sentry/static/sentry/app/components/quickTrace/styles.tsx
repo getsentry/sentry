@@ -18,7 +18,7 @@ export const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`
 export const QuickTraceContainer = styled('div')`
   display: flex;
   align-items: center;
-  min-height: 24px;
+  height: 24px;
 `;
 
 const nodeColors = (theme: Theme) => ({
