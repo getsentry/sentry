@@ -1,43 +1,64 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 import moment from 'moment';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
 import Card from 'app/components/card';
-import {HeaderTitle} from 'app/components/charts/styles';
+import ErrorPanel from 'app/components/charts/errorPanel';
+import OptionSelector from 'app/components/charts/optionSelector';
+import {
+  ChartControls,
+  HeaderTitle,
+  InlineContainer,
+  SectionValue,
+} from 'app/components/charts/styles';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TextOverflow from 'app/components/textOverflow';
+import {IconCalendar, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, Organization} from 'app/types';
 
 import {OrganizationUsageStats} from './types';
-import UsageChart from './usageChart';
+import UsageChart, {
+  CHART_OPTIONS_DATA_TRANSFORM,
+  CHART_OPTIONS_DATACATEGORY,
+  ChartDataTransform,
+  ChartStats,
+} from './usageChart';
 import {formatUsageWithUnits} from './utils';
 
 type Props = {
   organization: Organization;
   dataCategory: DataCategory;
   dataCategoryName: string;
+  dateStart: moment.Moment;
+  dateEnd: moment.Moment;
   onChangeDataCategory: (dataCategory: DataCategory) => void;
+  onChangeDateRange: (dateStart: moment.Moment, dateEnd: moment.Moment) => void;
 } & AsyncComponent['props'];
 
 type State = {
   orgStats: OrganizationUsageStats;
+  chartDataTransform: ChartDataTransform;
 } & AsyncComponent['state'];
 
 class UsageStatsOrganization extends AsyncComponent<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      chartDataTransform: ChartDataTransform.CUMULATIVE,
+    };
+  }
+
+  /**
+   * Ignore this hard-coded method.
+   * This will be updated in a separate PR.
+   */
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization} = this.props;
-
-    // TODO(org-stats): Allow user to pick date range
-    const fourWeeksAgo = moment().subtract(31, 'days').unix();
-    const today = moment().unix();
 
     return [
       [
@@ -45,8 +66,6 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         `/organizations/${organization.slug}/stats_v2/`,
         {
           query: {
-            start: fourWeeksAgo,
-            end: today,
             interval: '1d',
           },
         },
@@ -54,18 +73,58 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     ];
   }
 
+  get chartMetadata() {
+    const {orgStats} = this.state;
+
+    return {
+      ...this.mapStatsToChart(orgStats),
+    };
+  }
+
+  handleSelectDataTransform(value: ChartDataTransform) {
+    this.setState({chartDataTransform: value});
+  }
+
   /**
-   * Ignore this hard-coded method. API response is being changed so this will
-   * be amended in a few days.
+   * Ignore this hard-coded method.
+   * This will be updated in a separate PR.
    */
-  get formattedOrgStats(): {
-    stats: any[];
-    total: string;
-    accepted: string;
-    dropped: string;
-    filtered: string;
+  mapStatsToChart(
+    _orgStats: any
+  ): {
+    chartData: ChartStats;
+    cardData: {
+      total: string;
+      accepted: string;
+      dropped: string;
+      filtered: string;
+    };
   } {
     const {dataCategory} = this.state;
+
+    let sumTotal = 0;
+    let sumAccepted = 0;
+    let sumDropped = 0;
+    let sumFiltered = 0;
+
+    const chartData: ChartStats = {
+      accepted: [],
+      dropped: [],
+      projected: [],
+    };
+
+    // Please ignore this stub
+    for (let i = 1; i <= 31; i++) {
+      const date = `Mar ${i}`;
+
+      chartData.accepted.push({value: [date, 2000]} as any); // TODO(ts)
+      chartData.dropped.push({value: [date, 1000]} as any); // TODO(ts)
+
+      sumTotal += 5000;
+      sumAccepted += 2000;
+      sumDropped += 1000;
+      sumFiltered += 2000;
+    }
 
     const formatOptions = {
       isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
@@ -73,19 +132,21 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     };
 
     return {
-      stats: [],
-      total: formatUsageWithUnits(0, dataCategory, formatOptions),
-      accepted: formatUsageWithUnits(0, dataCategory, formatOptions),
-      dropped: formatUsageWithUnits(0, dataCategory, formatOptions),
-      filtered: formatUsageWithUnits(0, dataCategory, formatOptions),
+      cardData: {
+        total: formatUsageWithUnits(sumTotal, dataCategory, formatOptions),
+        accepted: formatUsageWithUnits(sumAccepted, dataCategory, formatOptions),
+        dropped: formatUsageWithUnits(sumDropped, dataCategory, formatOptions),
+        filtered: formatUsageWithUnits(sumFiltered, dataCategory, formatOptions),
+      },
+      chartData,
     };
   }
 
   renderCards() {
     const {dataCategory, dataCategoryName} = this.props;
-    const {total, accepted, dropped, filtered} = this.formattedOrgStats;
+    const {total, accepted, dropped, filtered} = this.chartMetadata.cardData;
 
-    const cardData = [
+    const cardMetadata = [
       {
         title: tct('Total [dataCategory]', {dataCategory: dataCategoryName}),
         value: total,
@@ -102,6 +163,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         ),
         value: filtered,
       },
+      // TODO(org-stats): Need a better description for dropped data
       {
         title: t('Dropped'),
         description: tct(
@@ -114,7 +176,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     return (
       <CardWrapper>
-        {cardData.map((c, i) => (
+        {cardMetadata.map((c, i) => (
           <StyledCard key={i}>
             <HeaderTitle>
               <TextOverflow>{c.title}</TextOverflow>
@@ -131,19 +193,11 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     );
   }
 
-  renderChart(e?: Error) {
-    // TODO(leedongwei): Poke someone for a error-state design
-    if (this.state.error || e) {
-      return (
-        <Panel>
-          <PanelBody>
-            <p>UsageStatsOrganization has an error: {e?.message}</p>
-          </PanelBody>
-        </Panel>
-      );
-    }
+  renderChart() {
+    const {dateStart, dateEnd, dataCategory} = this.props;
+    const {chartDataTransform, error, loading, orgStats} = this.state;
 
-    if (this.state.loading || !this.state.orgStats) {
+    if (loading) {
       return (
         <Panel>
           <PanelBody>
@@ -153,50 +207,81 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       );
     }
 
-    const {dataCategory} = this.state;
-    const {onChangeDataCategory} = this.props;
-    const {stats} = this.formattedOrgStats;
+    if (error || !orgStats) {
+      return (
+        <Panel>
+          <PanelBody>
+            <ErrorPanel height="256px">
+              <IconWarning color="gray300" size="lg" />
+            </ErrorPanel>
+          </PanelBody>
+        </Panel>
+      );
+    }
 
-    const today = moment().format('YYYY-MM-DD');
-    const start = moment().subtract(30, 'days').format('YYYY-MM-DD');
+    const {chartData} = this.chartMetadata;
+    const usageDateStart = dateStart.format('YYYY-MM-DD');
+    const usageDateEnd = dateEnd.format('YYYY-MM-DD');
 
     return (
-      <Panel>
-        <UsageChart
-          hasTransactions
-          hasAttachments={false}
-          usagePeriodStart={start}
-          usagePeriodEnd={today}
-          usagePeriodToday={today}
-          statsAttachments={stats}
-          statsErrors={stats}
-          statsTransactions={stats}
-        />
-
-        <ButtonBar active={dataCategory} merged>
-          {Object.keys(DataCategory).map(k => {
-            return (
-              <Button
-                key={DataCategory[k]}
-                barId={DataCategory[k]}
-                onClick={() => onChangeDataCategory(DataCategory[k])}
-              >
-                {capitalize(DataCategory[k])}
-              </Button>
-            );
-          })}
-        </ButtonBar>
-      </Panel>
+      <UsageChart
+        footer={this.renderChartFooter()}
+        dataCategory={dataCategory}
+        dataTransform={chartDataTransform}
+        skipDataTransform={false}
+        usageDateStart={usageDateStart}
+        usageDateEnd={usageDateEnd}
+        usageStats={chartData}
+      />
     );
   }
 
-  renderComponent() {
-    const {errors} = this.state;
+  renderChartFooter = () => {
+    const {onChangeDataCategory} = this.props;
+    const {chartDataCategory, chartDataTransform} = this.state;
 
+    return (
+      <ChartControls>
+        <InlineContainer>
+          <SectionValue>
+            <IconCalendar />
+          </SectionValue>
+          <SectionValue>
+            {/*
+            TODO(org-stats): Add calendar dropdown for user to select date range
+
+            {moment(usagePeriodStart).format('ll')}
+            {' — '}
+            {moment(usagePeriodEnd).format('ll')}
+            */}
+          </SectionValue>
+        </InlineContainer>
+        <InlineContainer>
+          <OptionSelector
+            title={t('Display')}
+            menuWidth="135px"
+            selected={chartDataCategory}
+            options={CHART_OPTIONS_DATACATEGORY}
+            onChange={(val: string) => onChangeDataCategory(val as DataCategory)}
+          />
+          <OptionSelector
+            title={t('Type')}
+            selected={chartDataTransform}
+            options={CHART_OPTIONS_DATA_TRANSFORM}
+            onChange={(val: string) =>
+              this.handleSelectDataTransform(val as ChartDataTransform)
+            }
+          />
+        </InlineContainer>
+      </ChartControls>
+    );
+  };
+
+  renderComponent() {
     return (
       <React.Fragment>
         {this.renderCards()}
-        {this.renderChart(errors?.['orgStats'])}
+        {this.renderChart()}
       </React.Fragment>
     );
   }
