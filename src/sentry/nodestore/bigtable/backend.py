@@ -47,6 +47,8 @@ def _decompress_data(data, flags):
 
 
 def get_connection(project, instance, table, options):
+    # XXX: This function is not guaranteed to return a connection with the
+    # provided options on a cache hit.
     key = (project, instance, table)
     try:
         # Fast check for an existing connection cached
