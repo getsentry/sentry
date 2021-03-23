@@ -52,7 +52,7 @@ module.exports = ({config} = {config: emptyConfig}) => {
         },
         {
           test: /\.less$/,
-          use: ['css-loader', 'less-loader'],
+          use: ['style-loader', 'css-loader', 'less-loader'],
         },
         {
           test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
