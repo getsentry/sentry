@@ -37,7 +37,7 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
         def __init__(self):
             self._table = {}
 
-        def row(self, key):
+        def direct_row(self, key):
             return MockedBigtableNodeStorage.Row(self, key)
 
         def read_row(self, key):
@@ -116,7 +116,7 @@ def test_cache(ns):
         assert mock_read_rows.call_count == 0
 
     # Manually deleted item should still retrievable from cache
-    row = ns.connection.row(node_1[0])
+    row = ns.connection.direct_row(node_1[0])
     row.delete()
     row.commit()
     assert ns.get(node_1[0]) == node_1[1]

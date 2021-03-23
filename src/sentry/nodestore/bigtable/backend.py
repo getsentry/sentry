@@ -182,7 +182,7 @@ class BigtableNodeStorage(NodeStorage):
             raise BigtableError(status.code, status.message)
 
     def encode_row(self, id, data, ttl=None):
-        row = self.connection.row(id)
+        row = self.connection.direct_row(id)
         # Call to delete is just a state mutation,
         # and in this case is just used to clear all columns
         # so the entire row will be replaced. Otherwise,
@@ -240,7 +240,7 @@ class BigtableNodeStorage(NodeStorage):
         if self.skip_deletes:
             return
 
-        row = self.connection.row(id)
+        row = self.connection.direct_row(id)
         row.delete()
 
         status = row.commit()
@@ -259,7 +259,7 @@ class BigtableNodeStorage(NodeStorage):
 
         rows = []
         for id in id_list:
-            row = self.connection.row(id)
+            row = self.connection.direct_row(id)
             row.delete()
             rows.append(row)
 
