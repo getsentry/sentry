@@ -802,7 +802,7 @@ def get_performance_facets(
     snuba_filter.conditions.append([aggregate_column, "IS NOT NULL", None])
 
     # Only enable sampling if over 10000 values
-    sampling_enabled = True if (key_names["data"][0]["count"] > 10000) else False
+    sampling_enabled = key_names["data"][0]["count"] > 10000
     options_sample_rate = options.get("discover2.tags_performance_facet_sample_rate") or 0.1
 
     sample_rate = options_sample_rate if sampling_enabled else None
