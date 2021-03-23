@@ -82,8 +82,7 @@ error.mechanism:NSError invert-stacktrace=1
 # Categorization of frames
 family:native package:"/System/Library/Frameworks/**" category=system
 family:native package:"C:/Windows/**" category=system
-family:native package:/usr/lib/libobjc.A.dylib category=system
-family:native package:/usr/lib/system/** category=system
+family:native package:/usr/lib/** category=system
 family:native function:memset category=system
 family:native function:memcmp category=system
 
@@ -137,6 +136,7 @@ family:native function:RtlExitUserThread category=throw
 family:native function:TppRaiseInvalidParameter category=throw
 family:native function:_CxxThrowException category=throw
 family:native function:RaiseException category=throw
+family:native function:RaiseComPlusException category=throw
 
 family:native package:"C:/WINDOWS/system32/DriverStore\**" category=driver
 family:native package:"/System/Library/Extensions/AppleIntelHD4000GraphicsGLDriver.bundle/**" category=driver
@@ -158,3 +158,35 @@ family:native package:/System/Library/Frameworks/OpenGL.framework/** category=gl
 family:native function:dlopen category=dyld
 
 family:native function:pthread_mutex_lock category=lock
+
+# System frame wedged between two other frames is just noise.
+[ !category:system | .. | !category:system ] category:system -group
+
+# Semi-interesting frames
+category:driver +sentinel +prefix
+category:free +sentinel +prefix
+category:lock +sentinel +prefix
+category:dyld +sentinel +prefix
+category:gl +sentinel
+
+# Not very interesting frames -- better add the next frame too
+category:system +prefix
+# TODO: consider -group
+category:indirection +prefix
+
+# abort() and exception raising is technically the culprit for crashes, but not
+# the thing we want to show.
+category:throw +sentinel +prefix ^-group
+
+# Thread bases such as `main()` are just noise and are called by noise.
+category:threadbase -group v-group
+
+# handler frames typically call code for crash reporting, so the frames below
+# are noise and do not represent the actual crash. We usually expect something to
+# be above handler frames that represents the actual crash. The stackwalker
+# has a bug where it cannot walk past _sigtramp on OS X but that is expected to
+# be fixed eventually.
+category:handler ^-group -group
+
+# category:indirection -group
+# category:threadbase v-group

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T11:30:02.803730Z'
+created: '2021-03-23T23:55:13.338433Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app-depth-1:
     app-depth-1*
       exception*
         stacktrace*
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:indirection +prefix))
             function*
               "<lambda>::operator()"
         value (ignored because stacktrace takes precedence)
@@ -26,7 +26,7 @@ app-depth-2:
           frame*
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:indirection +prefix))
             function*
               "<lambda>::operator()"
         type (ignored because exception is synthetic)
@@ -47,7 +47,7 @@ app-depth-3:
           frame*
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:indirection +prefix))
             function*
               "<lambda>::operator()"
         type (ignored because exception is synthetic)
@@ -68,7 +68,7 @@ app-depth-4:
           frame*
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:indirection +prefix))
             function*
               "<lambda>::operator()"
         type (ignored because exception is synthetic)
@@ -89,7 +89,7 @@ system:
           frame*
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:indirection +prefix))
             function*
               "<lambda>::operator()"
         type (ignored because exception is synthetic)

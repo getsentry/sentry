@@ -316,6 +316,9 @@ def frame(frame, event, context, **meta):
                 contributes=False, hint="ignored because function takes precedence"
             )
 
+        if package_component.values and context["hierarchical_grouping"]:
+            package_component.update(tree_label=package_component.values[0])
+
         values.append(package_component)
 
     rv = GroupingComponent(id="frame", values=values)

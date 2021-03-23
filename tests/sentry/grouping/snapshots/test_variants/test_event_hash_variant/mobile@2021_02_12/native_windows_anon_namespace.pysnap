@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T11:30:05.025709Z'
+created: '2021-03-23T23:35:23.015049Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -68,87 +68,18 @@ app-depth-3:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 app-depth-4:
-  hash: "a89519b2c097dfea5ff9913ea256a15c"
-  tree_label: "invoke_main | ..."
+  hash: "3df8bc242dfdc7460b42fa529422630f"
+  tree_label: "<entire stacktrace>"
   component:
     app-depth-4*
       exception*
         stacktrace*
-          frame*
-            filename (discarded native filename for grouping stability)
-              "exe_common.inl"
-            function*
-              "invoke_main"
-          frame*
-            filename (discarded native filename for grouping stability)
-              "main.cpp"
-            function*
-              "main"
-          frame*
-            filename (discarded native filename for grouping stability)
-              "main.cpp"
-            function*
-              "`anonymous namespace'::start"
-          frame*
-            filename (discarded native filename for grouping stability)
-              "main.cpp"
-            function*
-              "`anonymous namespace'::crash"
-        type (ignored because exception is synthetic)
-          "EXCEPTION_ACCESS_VIOLATION_WRITE"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
---------------------------------------------------------------------------
-app-depth-5:
-  hash: "a48b5559038371cd2278778c15b2806a"
-  tree_label: "__scrt_common_main_seh | ..."
-  component:
-    app-depth-5*
-      exception*
-        stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename (discarded native filename for grouping stability)
               "exe_common.inl"
             function*
               "__scrt_common_main_seh"
-          frame*
-            filename (discarded native filename for grouping stability)
-              "exe_common.inl"
-            function*
-              "invoke_main"
-          frame*
-            filename (discarded native filename for grouping stability)
-              "main.cpp"
-            function*
-              "main"
-          frame*
-            filename (discarded native filename for grouping stability)
-              "main.cpp"
-            function*
-              "`anonymous namespace'::start"
-          frame*
-            filename (discarded native filename for grouping stability)
-              "main.cpp"
-            function*
-              "`anonymous namespace'::crash"
-        type (ignored because exception is synthetic)
-          "EXCEPTION_ACCESS_VIOLATION_WRITE"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "a48b5559038371cd2278778c15b2806a"
-  tree_label: "<entire stacktrace>"
-  component:
-    app-depth-max*
-      exception*
-        stacktrace*
-          frame*
-            filename (discarded native filename for grouping stability)
-              "exe_common.inl"
-            function*
-              "__scrt_common_main_seh"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename (discarded native filename for grouping stability)
               "exe_common.inl"
             function*
@@ -174,18 +105,18 @@ app-depth-max:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 system:
-  hash: "a48b5559038371cd2278778c15b2806a"
+  hash: "3df8bc242dfdc7460b42fa529422630f"
   tree_label: "<entire stacktrace>"
   component:
     system*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename (discarded native filename for grouping stability)
               "exe_common.inl"
             function*
               "__scrt_common_main_seh"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename (discarded native filename for grouping stability)
               "exe_common.inl"
             function*

@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:28.119869Z'
+created: '2021-03-23T23:55:01.321531Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -15,7 +15,7 @@ app:
           frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent(char const *,char const *,char const *)"
-          frame (frame considered in-app because no frame is in-app)
+          frame (marked as prefix frame by stack trace rule (category:indirection +prefix))
             function (function name is not used if module or filename are available)
               "<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()"
         type*
@@ -35,7 +35,7 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent(char const *,char const *,char const *)"
-          frame
+          frame (marked as prefix frame by stack trace rule (category:indirection +prefix))
             function (function name is not used if module or filename are available)
               "<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()"
         type*

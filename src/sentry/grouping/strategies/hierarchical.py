@@ -1,20 +1,93 @@
 from sentry.grouping.component import GroupingComponent
+from sentry.utils.safe import get_path
+
+MAX_LAYERS = 5
 
 
 def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarchy):
-    return _build_fallback_tree(main_variant, components, frames, inverted_hierarchy)
+    main_variant.update(tree_label="<entire stacktrace>")
+
+    frames_iter = list(zip(components, frames))
+    if inverted_hierarchy:
+        frames_iter.reverse()
+
+    prev_variant = GroupingComponent(id="stacktrace", values=[])
+    all_variants = {}
+
+    while len(all_variants) < MAX_LAYERS:
+        depth = len(all_variants) + 1
+        key = f"app-depth-{depth}"
+        assert key not in all_variants
+
+        while frames_iter:
+            component, frame = frames_iter.pop()
+
+            if component.contributes and component.is_sentinel_frame:
+                break
+        else:
+            break
+
+        layer = list(prev_variant.values)
+        layer.append(component)
+
+        prev_frame = frame
+        prev_component = component
+
+        while frames_iter:
+            component, frame = frames_iter.pop()
+            if not component.contributes:
+                continue
+
+            if not prev_component.is_prefix_frame and get_path(
+                frame, "data", "category"
+            ) != get_path(prev_frame, "data", "category"):
+                frames_iter.append((component, frame))
+                break
+
+            layer.append(component)
+            prev_component = component
+            prev_frame = frame
+        else:
+            break
+
+        if inverted_hierarchy:
+            layer.reverse()
+
+        tree_label = _compute_tree_label(prev_variant, layer)
+
+        all_variants[key] = prev_variant = GroupingComponent(
+            id="stacktrace", values=layer, tree_label=tree_label
+        )
+    else:
+        all_variants["app-depth-max"] = main_variant
+
+    if not all_variants:
+        all_variants.update(
+            _build_fallback_tree(main_variant, components, frames, inverted_hierarchy)
+        )
+    return all_variants
+
+
+def _compute_tree_label(prev_variant, components):
+    tree_label = []
+    prev_i = 0
+
+    for frame in components:
+        if prev_i < len(prev_variant.values) and frame is prev_variant.values[prev_i]:
+            if not tree_label or tree_label[-1] != "...":
+                tree_label.append("...")
+            prev_i += 1
+        elif frame.tree_label:
+            tree_label.append(frame.tree_label)
+
+    return " | ".join(tree_label)
 
 
 def _build_fallback_tree(main_variant, components, frames, inverted_hierarchy):
-    main_variant.update(tree_label="<entire stacktrace>")
-
     blaming_frame_idx = None
     for idx, (component, frame) in enumerate(zip(components, frames)):
         if component.contributes and frame["in_app"]:
             blaming_frame_idx = idx
-            # For Android ANR (inverted_hierarchy=True), we take the outermost
-            # app frame as level 1, else the innermost one (closer to crashing
-            # frame)
             if inverted_hierarchy:
                 break
 
@@ -33,7 +106,7 @@ def _build_fallback_tree(main_variant, components, frames, inverted_hierarchy):
     prev_variant = GroupingComponent(id="stacktrace", values=[])
     all_variants = {}
 
-    while len(all_variants) < 5:
+    while len(all_variants) < MAX_LAYERS:
         depth = len(all_variants) + 1
         key = f"app-depth-{depth}"
         assert key not in all_variants
@@ -49,21 +122,12 @@ def _build_fallback_tree(main_variant, components, frames, inverted_hierarchy):
             all_variants[key] = main_variant
             break
 
-        tree_label = []
-        prev_i = 0
-
-        for frame in frames:
-            if prev_i < len(prev_variant.values) and frame is prev_variant.values[prev_i]:
-                if not tree_label or tree_label[-1] != "...":
-                    tree_label.append("...")
-                prev_i += 1
-            elif frame.tree_label:
-                tree_label.append(frame.tree_label)
+        tree_label = _compute_tree_label(prev_variant, frames)
 
         all_variants[key] = prev_variant = GroupingComponent(
             id="stacktrace",
             values=pre_frames,
-            tree_label=" | ".join(tree_label),
+            tree_label=tree_label,
         )
 
     else:

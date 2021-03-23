@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T10:37:55.987596Z'
+created: '2021-03-23T23:55:15.419896Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app-depth-1:
     app-depth-1*
       exception*
         stacktrace*
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:indirection +prefix))
             function*
               "<lambda>::operator()"
         value (ignored because stacktrace takes precedence)
@@ -29,7 +29,7 @@ app-depth-2:
           frame (ignored because only 1 frame is considered by stack trace rule (family:native max-frames=1))
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:indirection +prefix))
             function*
               "<lambda>::operator()"
         type (ignored because exception is synthetic)
@@ -50,7 +50,7 @@ system:
           frame (ignored because only 1 frame is considered by stack trace rule (family:native max-frames=1))
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:indirection +prefix))
             function*
               "<lambda>::operator()"
         type (ignored because exception is synthetic)
