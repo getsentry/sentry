@@ -272,7 +272,7 @@ let appConfig = {
             loader: 'file-loader',
             options: {
               // This needs to be `false` because of platformicons package
-              esModules: false,
+              esModule: false,
               name: '[name].[hash:6].[ext]',
             },
           },
