@@ -1,21 +1,24 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import copy from 'copy-text-to-clipboard';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 
+type DefaultProps = {
+  successMessage: string;
+  errorMessage: string;
+  hideMessages: boolean;
+};
+
 type Props = {
-  children: React.ReactElement<{onClick: () => void}>;
   /** Text to be copied on click */
   value: string;
-  successMessage?: string;
-  errorMessage?: string;
-  hideMessages?: boolean;
   /** Hide children if browser does not support copy */
   hideUnsupported?: boolean;
   onSuccess?: () => void;
   onError?: () => void;
-};
+} & DefaultProps;
 
 /**
  * copy-text-to-clipboard relies on `document.execCommand('copy')`
@@ -25,17 +28,28 @@ function isSupported() {
   return support && !!document.queryCommandSupported('copy');
 }
 
-function Clipboard({
-  children,
-  value,
-  successMessage = t('Copied to clipboard'),
-  errorMessage = t('Error copying to clipboard'),
-  hideMessages = false,
-  hideUnsupported,
-  onSuccess,
-  onError,
-}: Props) {
-  function handleClick() {
+class Clipboard extends React.Component<Props> {
+  static defaultProps: DefaultProps = {
+    hideMessages: false,
+    successMessage: t('Copied to clipboard'),
+    errorMessage: t('Error copying to clipboard'),
+  };
+
+  componentWillUnmount() {
+    this.element?.removeEventListener('click', this.handleClick);
+  }
+
+  element?: ReturnType<typeof ReactDOM.findDOMNode>;
+
+  handleClick = () => {
+    const {
+      value,
+      hideMessages,
+      successMessage,
+      errorMessage,
+      onSuccess,
+      onError,
+    } = this.props;
     // Copy returns whether it succeeded to copy the text
     const success = copy(value);
     if (!success) {
@@ -50,19 +64,34 @@ function Clipboard({
       addSuccessMessage(successMessage);
     }
     onSuccess?.();
-  }
+  };
 
-  if (hideUnsupported && !isSupported()) {
-    return null;
-  }
+  handleMount = (ref: HTMLElement) => {
+    if (!ref) {
+      return;
+    }
 
-  if (!React.isValidElement(children)) {
-    return null;
-  }
+    // eslint-disable-next-line react/no-find-dom-node
+    this.element = ReactDOM.findDOMNode(ref);
+    this.element?.addEventListener('click', this.handleClick);
+  };
 
-  return React.cloneElement(children, {
-    onClick: handleClick,
-  });
+  render() {
+    const {children, hideUnsupported} = this.props;
+
+    // Browser doesn't support `execCommand`
+    if (hideUnsupported && !isSupported()) {
+      return null;
+    }
+
+    if (!React.isValidElement(children)) {
+      return null;
+    }
+
+    return React.cloneElement(children, {
+      ref: this.handleMount,
+    });
+  }
 }
 
 export default Clipboard;
