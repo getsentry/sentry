@@ -86,7 +86,7 @@ class ProjectStacktraceLinkTest(APITestCase):
             "repoName": self.repo.name,
             "provider": {
                 "aspects": {},
-                "features": ["commits", "issue-basic"],
+                "features": ["commits", "issue-basic", "stacktrace-link"],
                 "name": "Example",
                 "canDisable": False,
                 "key": "example",
@@ -121,7 +121,7 @@ class ProjectStacktraceLinkTest(APITestCase):
             "repoName": self.repo.name,
             "provider": {
                 "aspects": {},
-                "features": ["commits", "issue-basic"],
+                "features": ["commits", "issue-basic", "stacktrace-link"],
                 "name": "Example",
                 "canDisable": False,
                 "key": "example",
@@ -154,7 +154,7 @@ class ProjectStacktraceLinkTest(APITestCase):
                 "repoName": self.repo.name,
                 "provider": {
                     "aspects": {},
-                    "features": ["commits", "issue-basic"],
+                    "features": ["commits", "issue-basic", "stacktrace-link"],
                     "name": "Example",
                     "canDisable": False,
                     "key": "example",
@@ -177,7 +177,7 @@ class ProjectStacktraceLinkTest(APITestCase):
             "accountType": None,
             "provider": {
                 "aspects": {},
-                "features": ["commits", "issue-basic"],
+                "features": ["commits", "issue-basic", "stacktrace-link"],
                 "name": "Example",
                 "canDisable": False,
                 "key": "example",

@@ -78,7 +78,10 @@ class ConfigureIntegration extends AsyncView<Props, State> {
   }
 
   hasStacktraceLinking(provider: IntegrationProvider) {
-    return !!provider.hasStacktraceLinking;
+    return (
+      provider.features.includes('stacktrace-link') &&
+      this.props.organization.features.includes('integrations-stacktrace-link')
+    );
   }
 
   onTabChange = (value: Tab) => {
