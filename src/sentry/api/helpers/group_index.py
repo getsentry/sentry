@@ -47,7 +47,7 @@ from sentry.models import (
     User,
     UserOption,
 )
-from sentry.models.groupinbox import add_group_to_inbox, GroupInboxRemoveAction
+from sentry.models.groupinbox import add_group_to_inbox, GroupInbox, GroupInboxRemoveAction
 from sentry.models.group import looks_like_short_id, STATUS_UPDATE_CHOICES
 from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, parse_search_query
 from sentry.signals import (
@@ -343,6 +343,7 @@ def _delete_groups(request, project, group_list, delete_type):
     transaction_id = uuid4().hex
 
     GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
+    GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
     delete_groups_task.apply_async(
         kwargs={
