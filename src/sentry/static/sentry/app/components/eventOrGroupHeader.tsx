@@ -23,6 +23,7 @@ type DefaultProps = {
 };
 
 type Props = WithRouterProps<{orgId: string}> & {
+  index: number;
   organization: Organization;
   data: Event | Group | GroupTombstone;
   hideIcons?: boolean;
@@ -43,7 +44,7 @@ class EventOrGroupHeader extends React.Component<Props> {
   };
 
   getTitleChildren() {
-    const {hideIcons, hideLevel, data} = this.props;
+    const {hideIcons, hideLevel, data, index} = this.props;
     const {level, status, isBookmarked, hasSeen} = data as Group;
 
     return (
@@ -69,6 +70,7 @@ class EventOrGroupHeader extends React.Component<Props> {
           {...this.props}
           style={{fontWeight: hasSeen ? 400 : 600}}
           withStackTracePreview
+          hasGuideAnchor={index === 0}
         />
       </React.Fragment>
     );

@@ -70,6 +70,7 @@ const defaultProps = {
 };
 
 type Props = {
+  index: number;
   id: string;
   selection: GlobalSelection;
   organization: Organization;
@@ -332,6 +333,7 @@ class StreamGroup extends React.Component<Props, State> {
   render() {
     const {data, reviewed} = this.state;
     const {
+      index,
       query,
       hasGuideAnchor,
       canSelect,
@@ -381,6 +383,7 @@ class StreamGroup extends React.Component<Props, State> {
           flex="1"
         >
           <EventOrGroupHeader
+            index={index}
             organization={organization}
             includeLink
             data={data}

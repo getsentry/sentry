@@ -9,6 +9,15 @@ import {Guide, GuidesContent, GuidesServerData} from 'app/components/assistant/t
 import ConfigStore from 'app/stores/configStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
+function compareGuide(a: Guide, b: Guide) {
+  const a_priority = a.priority ?? -1;
+  const b_priority = b.priority ?? -1;
+  if (a_priority === b_priority) {
+    return a.guide.localeCompare(b.guide);
+  }
+  return b_priority - a_priority;
+}
+
 export type GuideStoreState = {
   /**
    * All tooltip guides
@@ -191,7 +200,7 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
     const {anchors, guides, forceShow} = this.state;
 
     let guideOptions = guides
-      .sort((a, b) => a.guide.localeCompare(b.guide))
+      .sort(compareGuide)
       .filter(guide => guide.requiredTargets.every(target => anchors.has(target)));
 
     const user = ConfigStore.get('user');

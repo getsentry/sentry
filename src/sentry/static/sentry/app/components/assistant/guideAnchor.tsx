@@ -22,8 +22,8 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 type Props = {
-  target?: string;
-  position?: string;
+  target?: string; //Shouldn't target be mandatory?
+  position?: React.ComponentProps<typeof Hovercard>['position'];
   disabled?: boolean;
   offset?: string;
   to?: {
