@@ -840,7 +840,7 @@ def get_performance_facets(
             results.extend(
                 [
                     PerformanceFacetResult(
-                        r["tags_key"], r["tags_value"], int(r["aggregate"]), int(r["count"])
+                        r["tags_key"], r["tags_value"], float(r["aggregate"]), int(r["count"])
                     )
                     for r in tag_values["data"]
                 ]
