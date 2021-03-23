@@ -534,7 +534,10 @@ def get_release_sessions_time_bounds(project_id, release, org_id, environments=N
         Dictionary with two keys "sessions_lower_bound" and "sessions_upper_bound" that
     correspond to when the first session occurred and when the last session occurred respectively
     """
-    release_sessions_time_bounds = {}
+    release_sessions_time_bounds = {
+        "sessions_lower_bound": None,
+        "sessions_upper_bound": None,
+    }
 
     filter_keys = {"project_id": [project_id], "org_id": [org_id]}
     conditions = [["release", "=", release]]
@@ -563,12 +566,7 @@ def get_release_sessions_time_bounds(project_id, release, org_id, environments=N
         # aggregations query return both the sessions_lower_bound and the
         # sessions_upper_bound as `0` timestamp and we do not want that behaviour
         # by default
-        if set(rv.values()) == {formatted_unix_start_time}:
-            release_sessions_time_bounds = {
-                "sessions_lower_bound": None,
-                "sessions_upper_bound": None,
-            }
-        else:
+        if set(rv.values()) != {formatted_unix_start_time}:
             release_sessions_time_bounds = {
                 "sessions_lower_bound": rv["first_session_started"],
                 "sessions_upper_bound": rv["last_session_started"],
