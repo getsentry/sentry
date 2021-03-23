@@ -2598,6 +2598,7 @@ class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
         if tags is None:
             tags = []
         event = load_data("transaction").copy()
+        event.data["tags"].extend(tags)
         event.update(
             {
                 "transaction": name,
@@ -2635,14 +2636,17 @@ class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
             result = discover.get_performance_facets("", params)
             self.wait_for_event_count(self.project.id, 2)
 
-            assert len(result) == 10
+            assert len(result) == 12
             for r in result:
                 if r.key == "color" and r.value == "red":
-                    assert r.count == 1000
+                    assert r.count == 1
+                    assert r.performance == 1000
                 elif r.key == "color" and r.value == "blue":
-                    assert r.count == 2000
+                    assert r.count == 1
+                    assert r.performance == 2000
                 else:
-                    assert r.count == 1500
+                    assert r.count == 2
+                    assert r.performance == 1500
 
 
 def test_zerofill():

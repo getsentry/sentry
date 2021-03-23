@@ -46,7 +46,8 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
                     {
                         "name": tagstore.get_tag_value_label(row.key, row.value),
                         "value": row.value,
-                        f"avg_{aggregate_column}": row.count,
+                        "count": row.count,
+                        "aggregate": row.performance,
                     }
                 )
         return Response(list(resp.values()))
