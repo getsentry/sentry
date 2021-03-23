@@ -1,7 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import {loadStatsForProject} from 'app/actionCreators/projects';
 import {Client} from 'app/api';
@@ -13,6 +11,7 @@ import {t, tn} from 'app/locale';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -145,15 +144,27 @@ type ContainerState = {
   projectDetails: Project | null;
 };
 
-const ProjectCardContainer = createReactClass<ContainerProps, ContainerState>({
-  mixins: [Reflux.listenTo(ProjectsStatsStore, 'onProjectStoreUpdate') as any],
+class ProjectCardContainer extends React.Component<ContainerProps, ContainerState> {
+  state = this.getInitialState();
+
   getInitialState(): ContainerState {
     const {project} = this.props;
     const initialState = ProjectsStatsStore.getInitialState() || {};
     return {
       projectDetails: initialState[project.slug] || null,
     };
-  },
+  }
+
+  componentWillUnmount() {
+    this.listeners.forEach(callIfFunction);
+  }
+
+  listeners = [
+    ProjectsStatsStore.listen(itemsBySlug => {
+      this.onProjectStoreUpdate(itemsBySlug);
+    }, undefined),
+  ];
+
   onProjectStoreUpdate(itemsBySlug: typeof ProjectsStatsStore['itemsBySlug']) {
     const {project} = this.props;
 
@@ -168,7 +179,8 @@ const ProjectCardContainer = createReactClass<ContainerProps, ContainerState>({
     this.setState({
       projectDetails: itemsBySlug[project.slug],
     });
-  },
+  }
+
   render() {
     const {project, ...props} = this.props;
     const {projectDetails} = this.state;
@@ -181,8 +193,8 @@ const ProjectCardContainer = createReactClass<ContainerProps, ContainerState>({
         }}
       />
     );
-  },
-});
+  }
+}
 
 const ChartContainer = styled('div')`
   position: relative;
