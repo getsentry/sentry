@@ -10,8 +10,8 @@ type Props = {
   bars: number;
   barHeight: number;
   userMisery: number;
-  totalUsers: number;
   miseryLimit: number;
+  totalUsers: number | undefined;
   miserableUsers: number | undefined;
 };
 
@@ -27,7 +27,7 @@ function UserMiseryPrototype(props: Props) {
   const score = Math.round(adjustedMisery * palette.length);
 
   let title: React.ReactNode;
-  if (defined(miserableUsers)) {
+  if (defined(miserableUsers) && defined(totalUsers)) {
     title = tct(
       '[miserableUsers] out of [totalUsers] unique users waited more than [duration]ms',
       {

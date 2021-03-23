@@ -407,15 +407,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     }
 
     const miserableUsers = userMiseryField ? data[userMiseryField] : undefined;
-
-    const userMisery = data[miseryField];
-    if (!uniqueUsers && uniqueUsers !== 0) {
-      return (
-        <NumberContainer>
-          {typeof userMisery === 'number' ? formatFloat(userMisery, 4) : emptyValue}
-        </NumberContainer>
-      );
-    }
+    const userMisery = miseryField ? data[miseryField] : undefined;
 
     const miseryLimit = parseInt(miseryField.split('_').pop() || '', 10);
 
