@@ -9,6 +9,7 @@ from sentry.tasks.deletion import MAX_RETRIES
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
     autoretry_for=(DatabaseError, IntegrityError),
+    acks_late=True,
 )
 def delete_file(path, checksum, **kwargs):
     from sentry.models.file import get_storage, FileBlob
