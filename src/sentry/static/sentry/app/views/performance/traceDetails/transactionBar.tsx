@@ -1,8 +1,10 @@
 import React from 'react';
 import {withTheme} from 'emotion-theming';
+import {Location} from 'history';
 
 import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
+import {Organization} from 'app/types';
 import {TraceFull} from 'app/utils/performance/quickTrace/types';
 import {Theme} from 'app/utils/theme';
 
@@ -24,6 +26,7 @@ import {
   TransactionTreeToggle,
   TransactionTreeToggleContainer,
 } from './styles';
+import TransactionDetail from './transactionDetail';
 import {TraceInfo} from './types';
 import {getDurationDisplay, getHumanDuration, toPercent} from './utils';
 
@@ -33,6 +36,8 @@ export const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_
 const MARGIN_LEFT = 0;
 
 type Props = {
+  location: Location;
+  organization: Organization;
   index: number;
   transaction: TraceFull;
   traceInfo: TraceInfo;
@@ -44,11 +49,21 @@ type Props = {
   theme: Theme;
 };
 
-function getOffset(generation) {
-  return generation * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
-}
+type State = {
+  showDetail: boolean;
+};
 
-class TransactionBar extends React.Component<Props> {
+class TransactionBar extends React.Component<Props, State> {
+  state: State = {
+    showDetail: false,
+  };
+
+  toggleDisplayDetail = () => {
+    this.setState(state => ({
+      showDetail: !state.showDetail,
+    }));
+  };
+
   getCurrentOffset() {
     const {transaction} = this.props;
     const {generation} = transaction;
@@ -185,6 +200,18 @@ class TransactionBar extends React.Component<Props> {
   renderDivider(
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) {
+    if (this.state.showDetail) {
+      // Mock component to preserve layout spacing
+      return (
+        <DividerLine
+          showDetail
+          style={{
+            position: 'relative',
+          }}
+        />
+      );
+    }
+
     const {addDividerLineRef} = dividerHandlerChildrenProps;
 
     return (
@@ -243,6 +270,7 @@ class TransactionBar extends React.Component<Props> {
 
   renderRectangle() {
     const {transaction, traceInfo, theme} = this.props;
+    const {showDetail} = this.state;
 
     const palette = theme.charts.getColorPalette(traceInfo.maxGeneration);
 
@@ -269,7 +297,7 @@ class TransactionBar extends React.Component<Props> {
             left: startPercentage,
             width: widthPercentage,
           })}
-          showDetail={false}
+          showDetail={showDetail}
           spanBarHatch={false}
         >
           {getHumanDuration(duration)}
@@ -284,15 +312,18 @@ class TransactionBar extends React.Component<Props> {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
   }) {
     const {index} = this.props;
+    const {showDetail} = this.state;
     const {dividerPosition} = dividerHandlerChildrenProps;
 
     return (
-      <TransactionRowCellContainer>
+      <TransactionRowCellContainer showDetail={showDetail}>
         <TransactionRowCell
           style={{
             width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
             paddingTop: 0,
           }}
+          showDetail={showDetail}
+          onClick={this.toggleDisplayDetail}
         >
           {this.renderTitle()}
         </TransactionRowCell>
@@ -303,27 +334,41 @@ class TransactionBar extends React.Component<Props> {
             width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
             paddingTop: 0,
           }}
+          showDetail={showDetail}
+          onClick={this.toggleDisplayDetail}
         >
           {this.renderRectangle()}
         </TransactionRowCell>
-        {this.renderGhostDivider(dividerHandlerChildrenProps)}
+        {!showDetail && this.renderGhostDivider(dividerHandlerChildrenProps)}
       </TransactionRowCellContainer>
     );
   }
 
   render() {
-    const {isVisible} = this.props;
+    const {location, organization, isVisible, transaction} = this.props;
+    const {showDetail} = this.state;
 
     return (
-      <TransactionRow visible={isVisible}>
+      <TransactionRow visible={isVisible} showBorder={showDetail}>
         <DividerHandlerManager.Consumer>
           {dividerHandlerChildrenProps =>
             this.renderHeader({dividerHandlerChildrenProps})
           }
         </DividerHandlerManager.Consumer>
+        {isVisible && showDetail && (
+          <TransactionDetail
+            location={location}
+            organization={organization}
+            transaction={transaction}
+          />
+        )}
       </TransactionRow>
     );
   }
+}
+
+function getOffset(generation) {
+  return generation * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 }
 
 export default withTheme(TransactionBar);
