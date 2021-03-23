@@ -53,7 +53,7 @@ function UserStats({
   let vitalsPassRate: React.ReactNode = null;
 
   if (!isLoading && error === null && totals) {
-    const miserableUsers = totals[`count_miserable_users_${threshold}`];
+    const miserableUsers = totals[`count_miserable_user_${threshold}`];
     const userMiseryScore = totals[`user_misery_${threshold}`];
     const totalUsers = totals.count_unique_user;
     userMisery = (

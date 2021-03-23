@@ -232,6 +232,25 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
+  count_miserable: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateForNumericAggregate(['string']),
+        defaultValue: 'user',
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+    outputType: null,
+    isSortable: true,
+    multiPlotType: 'line',
+  },
   percentile: {
     parameters: [
       {
@@ -541,7 +560,7 @@ export const TRACING_FIELDS = [
   'percentile',
   'failure_rate',
   'apdex',
-  'count_miserable_users',
+  'count_miserable',
   'eps',
   'epm',
   ...Object.keys(MEASUREMENTS),

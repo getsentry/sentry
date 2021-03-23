@@ -315,7 +315,7 @@ class SearchVisitor(NodeVisitor):
         "p95",
         "p99",
         "failure_rate",
-        "count_miserable_users",
+        "count_miserable",
         "user_misery",
     }
     date_keys = {
@@ -2043,10 +2043,14 @@ FUNCTIONS = {
             default_result_type="number",
         ),
         Function(
-            "count_miserable_users",
-            required_args=[NumberRange("satisfaction", 0, None)],
+            "count_miserable",
+            required_args=[CountColumn("column"), NumberRange("satisfaction", 0, None)],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-            transform="uniqIf(user, greater(duration, {tolerated:g}))",
+            aggregate=[
+                "uniqIf",
+                [ArgValue("column"), ["greater", ["transaction.duration", ArgValue("tolerated")]]],
+                None,
+            ],
             default_result_type="number",
         ),
         Function(

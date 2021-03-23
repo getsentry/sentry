@@ -117,7 +117,7 @@ class TransactionSummary extends React.Component<Props, State> {
       },
       {
         kind: 'field',
-        field: `count_miserable_users(${threshold})`,
+        field: `count_miserable(user, ${threshold})`,
       },
       {
         kind: 'function',

@@ -186,9 +186,9 @@ class RelatedTransactions extends React.Component<Props> {
         'project',
         'p95()',
         'count_unique(user)',
-        `count_miserable_users(${organization.apdexThreshold})`,
+        `count_miserable(user, ${organization.apdexThreshold})`,
       ],
-      orderby: `count_miserable_users(${organization.apdexThreshold})`,
+      orderby: `count_miserable(user, ${organization.apdexThreshold})`,
 
       query: `${rule.query}`,
       version: 2,

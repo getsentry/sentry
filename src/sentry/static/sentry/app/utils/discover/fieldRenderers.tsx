@@ -7,7 +7,6 @@ import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
-import UserMisery from 'app/components/userMisery';
 import UserMiseryPrototype from 'app/components/userMiseryPrototype';
 import Version from 'app/components/version';
 import {t} from 'app/locale';
@@ -382,7 +381,6 @@ const SPECIAL_FIELDS: SpecialFields = {
 
 type SpecialFunctions = {
   user_misery: SpecialFieldRenderFunc;
-  count_miserable_users: SpecialFieldRenderFunc;
 };
 
 /**
@@ -398,7 +396,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     for (const field in data) {
       if (field.startsWith('user_misery')) {
         miseryField = field;
-      } else if (field.startsWith('count_miserable_users')) {
+      } else if (field.startsWith('count_miserable_user')) {
         userMiseryField = field;
       }
     }
@@ -421,41 +419,6 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
           totalUsers={uniqueUsers}
           userMisery={userMisery}
           miserableUsers={miserableUsers}
-        />
-      </BarContainer>
-    );
-  },
-  count_miserable_users: data => {
-    const uniqueUsers = data.count_unique_user;
-    let userMiseryField: string = '';
-    for (const field in data) {
-      if (field.startsWith('count_miserable_users')) {
-        userMiseryField = field;
-      }
-    }
-    if (!userMiseryField) {
-      return <NumberContainer>{emptyValue}</NumberContainer>;
-    }
-
-    const userMisery = data[userMiseryField];
-    if (!uniqueUsers && uniqueUsers !== 0) {
-      return (
-        <NumberContainer>
-          {typeof userMisery === 'number' ? formatFloat(userMisery, 4) : emptyValue}
-        </NumberContainer>
-      );
-    }
-
-    const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
-
-    return (
-      <BarContainer>
-        <UserMisery
-          bars={10}
-          barHeight={20}
-          miseryLimit={miseryLimit}
-          totalUsers={uniqueUsers}
-          miserableUsers={userMisery}
         />
       </BarContainer>
     );

@@ -215,7 +215,6 @@ def query(
         op="discover.discover", description="query.filter_transform"
     ) as span:
         span.set_data("query", query)
-
         snuba_filter = get_filter(query, params)
         if not use_aggregate_conditions:
             assert (
