@@ -1,10 +1,11 @@
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
-from sentry.api.bases.dashboard import OrganizationDashboardEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import DashboardDetailsSerializer
-from sentry.models.dashboard import DashboardTombstone
+from sentry.models.dashboard import DashboardTombstone, Dashboard
 from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry import features
 
@@ -12,8 +13,24 @@ EDIT_FEATURE = "organizations:dashboards-edit"
 READ_FEATURE = "organizations:dashboards-basic"
 
 
-class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
+class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
+
+    def convert_args(self, request, organization_slug, dashboard_id, *args, **kwargs):
+        args, kwargs = super().convert_args(request, organization_slug)
+
+        try:
+            kwargs["dashboard"] = self._get_dashboard(request, kwargs["organization"], dashboard_id)
+        except (Dashboard.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
+
+        return (args, kwargs)
+
+    def _get_dashboard(self, request, organization, dashboard_id):
+        prebuilt = Dashboard.get_prebuilt(dashboard_id)
+        if prebuilt:
+            return prebuilt
+        return Dashboard.objects.get(id=dashboard_id, organization_id=organization.id)
 
     def get(self, request, organization, dashboard):
         """
@@ -22,9 +39,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
 
         Return details on an individual organization's dashboard.
 
-        :pparam string organization_slug: the slug of the organization the
-                                          dashboard belongs to.
-        :pparam int dashboard_id: the id of the dashboard.
+        :pparam Organization organization: the organization the dashboard belongs to.
+        :pparam Dashboard dashboard: the dashboard object
         :auth: required
         """
         if not features.has(READ_FEATURE, organization, actor=request.user):
@@ -43,9 +59,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         Delete an individual organization's dashboard, or tombstone
         a pre-built dashboard which effectively deletes it.
 
-        :pparam string organization_slug: the slug of the organization the
-                                          dashboard belongs to.
-        :pparam int dashboard_id: the id of the dashboard.
+        :pparam Organization organization: the organization the dashboard belongs to.
+        :pparam Dashboard dashboard: the dashboard object
         :auth: required
         """
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
@@ -68,11 +83,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         Edit an individual organization's dashboard as well as
         bulk edits on widgets (i.e. rearranging widget order).
 
-        :pparam string organization_slug: the slug of the organization the
-                                          dashboard belongs to.
-        :pparam int dashboard_id: the id of the dashboard.
-        :param array widgets: the array of widgets (consisting of a widget id and the order)
-                            to be updated.
+        :pparam Organization organization: the organization the dashboard belongs to.
+        :pparam Dashboard dashboard: the old dashboard object
         :auth: required
         """
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
