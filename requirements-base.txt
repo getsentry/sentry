@@ -21,7 +21,7 @@ googleapis-common-protos==1.52.0
 google-cloud-pubsub==2.2.0
 google-cloud-storage==1.35.0
 jsonschema==3.2.0
-lxml==4.6.2
+lxml==4.6.3
 maxminddb==1.5.4
 mistune==0.8.4
 mmh3==3.0.0
