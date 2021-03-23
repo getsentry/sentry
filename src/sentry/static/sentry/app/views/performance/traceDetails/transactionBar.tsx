@@ -4,8 +4,10 @@ import {Location} from 'history';
 
 import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {Organization} from 'app/types';
 import {TraceFull} from 'app/utils/performance/quickTrace/types';
+import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 
 import {
@@ -19,6 +21,7 @@ import {
   TransactionBarRectangle,
   TransactionBarTitle,
   TransactionBarTitleContainer,
+  TransactionBarTitleContent,
   TransactionRow,
   TransactionRowCell,
   TransactionRowCellContainer,
@@ -171,7 +174,7 @@ class TransactionBar extends React.Component<Props, State> {
   }
 
   renderTitle() {
-    const {transaction} = this.props;
+    const {organization, transaction} = this.props;
     const left = this.getCurrentOffset();
 
     return (
@@ -183,15 +186,29 @@ class TransactionBar extends React.Component<Props, State> {
             width: '100%',
           }}
         >
-          <span>
-            <strong>
-              <OperationName spanErrors={transaction.errors}>
-                {transaction['transaction.op']}
-              </OperationName>
-              {' \u2014 '}
-            </strong>
-            {transaction.transaction}
-          </span>
+          <TransactionBarTitleContent>
+            <Projects orgId={organization.slug} slugs={[transaction.project_slug]}>
+              {({projects}) => {
+                const project = projects.find(p => p.slug === transaction.project_slug);
+                return (
+                  <ProjectBadge
+                    project={project ? project : {slug: transaction.project_slug}}
+                    avatarSize={16}
+                    hideName
+                  />
+                );
+              }}
+            </Projects>
+            <span>
+              <strong>
+                <OperationName spanErrors={transaction.errors}>
+                  {transaction['transaction.op']}
+                </OperationName>
+                {' \u2014 '}
+              </strong>
+              {transaction.transaction}
+            </span>
+          </TransactionBarTitleContent>
         </TransactionBarTitle>
       </TransactionBarTitleContainer>
     );

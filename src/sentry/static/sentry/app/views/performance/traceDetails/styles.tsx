@@ -73,3 +73,9 @@ export const StyledIconChevron = styled(IconChevron)`
   width: 7px;
   margin-left: ${space(0.25)};
 `;
+
+export const TransactionBarTitleContent = styled('span')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
+`;
