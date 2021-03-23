@@ -69,8 +69,6 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
         environments = set(request.GET.getlist("environment"))
         if not environments:
             environments = None
-        else:
-            environments = list(environments)
 
         # This must match what is returned from the `Release` serializer
         projects = [
