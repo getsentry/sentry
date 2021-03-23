@@ -1,4 +1,5 @@
 {
+  "event_id": "041a98a316e447fa959d33a75ad16098",
   "exception": {
     "values": [
       {
@@ -15,6 +16,7 @@
           "frames": [
             {
               "abs_path": null,
+              "data": {},
               "filename": null,
               "function": "DllMain",
               "package": "C:\\Windows\\System32\\DriverStore\\FileRepository\\nv_dispsi.inf_amd64_98b8327e9bd736d9\\nvoglv64.dll"
