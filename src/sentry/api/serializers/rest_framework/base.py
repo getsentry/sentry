@@ -30,7 +30,7 @@ def convert_dict_key_case(obj, converter):
         return obj
 
     obj = obj.copy()
-    for key in obj.keys():
+    for key in list(obj.keys()):
         if isinstance(key, int):
             # In DRF 3.8+, ListFields will have ints following
             # https://github.com/encode/django-rest-framework/pull/5655.
