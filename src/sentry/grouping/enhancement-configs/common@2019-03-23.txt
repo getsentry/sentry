@@ -59,7 +59,7 @@ family:native package:**/Frameworks/Sentry.framework/**              -app
 family:native function:kscm_*                                     -app -group
 family:native function:sentrycrashcm_*                            -app -group
 family:native function:kscrash_*                                  -app -group
-family:native function:sentrycrash_*                              -app -group
+family:native function:*sentrycrash_*                             -app -group
 family:native function:"?[[]KSCrash*"                             -app -group
 family:native function:"?[[]RNSentry*"                            -app -group
 
