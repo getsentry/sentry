@@ -29,15 +29,17 @@ line = _ (comment / rule / empty) newline?
 rule = _ matchers actions
 
 matchers         = matcher+
-matcher          = _ negation? matcher_type sep argument
+matcher          = frame_matcher / range_matcher
+frame_matcher    = _ negation? matcher_type sep argument
 matcher_type     = ident / quoted_ident
+range_matcher    = "[" _? frame_matcher _? "|"? ~r" ?\.\. ?" "|"? _? frame_matcher _? "]"
 
 actions          = action+
 action           = flag_action / var_action
 var_action       = _ var_name _ "=" _ ident
 var_name         = "max-frames" / "min-frames" / "invert-stacktrace" / "category"
 flag_action      = _ range? flag flag_action_name
-flag_action_name = "group" / "app" / "prefix"
+flag_action_name = "group" / "app" / "prefix" / "sentinel"
 flag             = "+" / "-"
 range            = "^" / "v"
 
@@ -81,7 +83,7 @@ MATCH_KEYS = {
 SHORT_MATCH_KEYS = {v: k for k, v in MATCH_KEYS.items()}
 assert len(SHORT_MATCH_KEYS) == len(MATCH_KEYS)  # assert short key names are not reused
 
-ACTIONS = ["group", "app", "prefix"]
+ACTIONS = ["group", "app", "prefix", "sentinel"]
 ACTION_BITSIZE = {
     # version -> bit-size
     1: 4,
@@ -125,6 +127,37 @@ class InvalidEnhancerConfig(Exception):
 
 
 class Match:
+    description = None
+
+    def matches_frame(self, frames, idx, platform, exception_data):
+        raise NotImplementedError()
+
+    def _to_config_structure(self, version):
+        raise NotImplementedError()
+
+    @staticmethod
+    def _from_config_structure(obj, version):
+        val = obj
+        if isinstance(val, list):
+            return RangeMatch(
+                Match._from_config_structure(val[0], version),
+                Match._from_config_structure(val[1], version),
+            )
+
+        if val.startswith("!"):
+            negated = True
+            val = val[1:]
+        else:
+            negated = False
+        key = SHORT_MATCH_KEYS[val[0]]
+        if key == "family":
+            arg = ",".join([_f for _f in [REVERSE_FAMILIES.get(x) for x in val[1:]] if _f])
+        else:
+            arg = val[1:]
+        return FrameMatch(key, arg, negated)
+
+
+class FrameMatch(Match):
     def __init__(self, key, pattern, negated=False):
         try:
             self.key = MATCHERS[key]
@@ -140,7 +173,8 @@ class Match:
             self.pattern.split() != [self.pattern] and '"%s"' % self.pattern or self.pattern,
         )
 
-    def matches_frame(self, frame_data, platform, exception_data):
+    def matches_frame(self, frames, idx, platform, exception_data):
+        frame_data = frames[idx]
         rv = self._positive_frame_match(frame_data, platform, exception_data)
         if self.negated:
             rv = not rv
@@ -207,20 +241,60 @@ class Match:
             arg = self.pattern
         return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg
 
-    @classmethod
-    def _from_config_structure(cls, obj, version):
-        val = obj
-        if val.startswith("!"):
-            negated = True
-            val = val[1:]
+
+class RangeMatch(Match):
+    def __init__(
+        self, start: FrameMatch, end: FrameMatch, start_neighbouring: bool, end_neighbouring: bool
+    ):
+        self.start = start
+        self.end = end
+        self.start_neighbouring = start_neighbouring
+        self.end_neighbouring = end_neighbouring
+
+    @property
+    def description(self):
+        sn = "| " if self.start_neighbouring else ""
+        en = " |" if self.end_neighbouring else ""
+        return f"[ {self.start.description} {sn}..{en} {self.end.description} ]"
+
+    def _to_config_structure(self, version):
+        return [self.start._to_config_structure(version), self.end._to_config_structure(version)]
+
+    def matches_frame(self, frames, idx, platform, exception_data):
+        if self.start.matches_frame(frames, idx, platform, exception_data):
+            return True
+
+        if self.end.matches_frame(frames, idx, platform, exception_data):
+            return True
+
+        end_matches = (
+            idx2
+            for idx2 in reversed(range(0, idx))
+            if self.end.matches_frame(frames, idx2, platform, exception_data)
+        )
+
+        if self.end_neighbouring:
+            end_idx = next(end_matches, None)
+            if end_idx != (idx - 1 if self.end_neighbouring else None):
+                return False
         else:
-            negated = False
-        key = SHORT_MATCH_KEYS[val[0]]
-        if key == "family":
-            arg = ",".join([_f for _f in [REVERSE_FAMILIES.get(x) for x in val[1:]] if _f])
+            if next(end_matches, None) is None:
+                return False
+
+        start_matches = (
+            idx2
+            for idx2 in range(idx, len(frames))
+            if self.start.matches_frame(frames, idx2, platform, exception_data)
+        )
+
+        if self.start_neighbouring:
+            if next(start_matches, None) != idx + 1:
+                return False
         else:
-            arg = val[1:]
-        return cls(key, arg, negated)
+            if next(start_matches, None) is None:
+                return False
+
+        return True
 
 
 class Action:
@@ -311,6 +385,11 @@ class FlagAction(Action):
                     is_prefix_frame=True, hint=f"marked as prefix frame by {rule_hint}"
                 )
 
+            elif self.key == "sentinel":
+                component.update(
+                    is_sentinel_frame=True, hint=f"marked as sentinel frame by {rule_hint}"
+                )
+
 
 class VarAction(Action):
     range = None
@@ -348,15 +427,6 @@ class VarAction(Action):
         if self.var == "category":
             frame = frames[idx]
             set_path(frame, "data", "category", value=self.value)
-
-    def update_frame_components_contributions(self, components, frames, idx, rule=None):
-        if self.var == "category":
-            rule_hint = "stack trace rule"
-            if rule:
-                rule_hint = f"{rule_hint} ({rule.matcher_description})"
-
-            component = components[idx]
-            component.update(hint=f"category set by {rule_hint}")
 
 
 class StacktraceState:
@@ -401,21 +471,17 @@ class Enhancements:
         does not affect grouping.
         """
         for rule in self.iter_rules():
-            for idx, frame in enumerate(frames):
-                actions = rule.get_matching_frame_actions(frame, platform, exception_data)
-                for action in actions or ():
-                    action.apply_modifications_to_frame(frames, idx, rule=rule)
+            for idx, action in rule.get_matching_frame_actions(frames, platform, exception_data):
+                action.apply_modifications_to_frame(frames, idx, rule=rule)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
         stacktrace_state = StacktraceState()
 
         # Apply direct frame actions and update the stack state alongside
         for rule in self.iter_rules():
-            for idx, (component, frame) in enumerate(zip(components, frames)):
-                actions = rule.get_matching_frame_actions(frame, platform, exception_data)
-                for action in actions or ():
-                    action.update_frame_components_contributions(components, frames, idx, rule=rule)
-                    action.modify_stacktrace_state(stacktrace_state, rule)
+            for idx, action in rule.get_matching_frame_actions(frames, platform, exception_data):
+                action.update_frame_components_contributions(components, frames, idx, rule=rule)
+                action.modify_stacktrace_state(stacktrace_state, rule)
 
         # Use the stack state to update frame contributions again to trim
         # down to max-frames.  min-frames is handled on the other hand for
@@ -562,14 +628,21 @@ class Rule:
             matchers[matcher.key] = matcher.pattern
         return {"match": matchers, "actions": [str(x) for x in self.actions]}
 
-    def get_matching_frame_actions(self, frame_data, platform, exception_data=None):
+    def get_matching_frame_actions(self, frames, platform, exception_data=None):
         """Given a frame returns all the matching actions based on this rule.
         If the rule does not match `None` is returned.
         """
-        if self.matchers and all(
-            m.matches_frame(frame_data, platform, exception_data) for m in self.matchers
-        ):
-            return self.actions
+        if not self.matchers:
+            return []
+
+        rv = []
+
+        for idx, frame in enumerate(frames):
+            if all(m.matches_frame(frames, idx, platform, exception_data) for m in self.matchers):
+                for action in self.actions:
+                    rv.append((idx, action))
+
+        return rv
 
     def _to_config_structure(self, version):
         return [
@@ -627,18 +700,21 @@ class EnhancmentsVisitor(NodeVisitor):
         return Rule(matcher, actions)
 
     def visit_matcher(self, node, children):
+        return children[0]
+
+    def visit_range_matcher(self, node, children):
+        _, _, start, _, start_neighbouring, _, end_neighbouring, _, end, _, _ = children
+        return RangeMatch(start, end, bool(start_neighbouring), bool(end_neighbouring))
+
+    def visit_frame_matcher(self, node, children):
         _, negation, ty, _, argument = children
-        return Match(ty, argument, bool(negation))
+        return FrameMatch(ty, argument, bool(negation))
 
     def visit_matcher_type(self, node, children):
         return node.text
 
     def visit_argument(self, node, children):
         return children[0]
-
-    def visit_var(self, node, children):
-        _, var_name, _, _, _, arg = children
-        return Action("set_var", (var_name, arg))
 
     def visit_action(self, node, children):
         return children[0]
