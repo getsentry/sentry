@@ -4,6 +4,7 @@ import ScoreBar from 'app/components/scoreBar';
 import Tooltip from 'app/components/tooltip';
 import CHART_PALETTE from 'app/constants/chartPalette';
 import {tct} from 'app/locale';
+import {defined} from 'app/utils';
 
 type Props = {
   bars: number;
@@ -23,10 +24,10 @@ function UserMiseryPrototype(props: Props) {
   const adjustedMisery = userMisery >= 0.05 ? userMisery : 0;
 
   const palette = new Array(bars).fill([CHART_PALETTE[0][0]]);
-  const score = adjustedMisery ? Math.ceil(adjustedMisery * palette.length) : 0;
+  const score = Math.round(adjustedMisery * palette.length);
 
   let title: React.ReactNode;
-  if (miserableUsers || miserableUsers === 0) {
+  if (defined(miserableUsers)) {
     title = tct(
       '[miserableUsers] out of [totalUsers] unique users waited more than [duration]ms',
       {
