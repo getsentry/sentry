@@ -85,6 +85,7 @@ from sentry.utils.auth import SSO_SESSION_KEY
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
+from sentry.utils.pytest.selenium import Browser
 from .fixtures import Fixtures
 from .factories import Factories
 from .skips import requires_snuba
@@ -594,6 +595,8 @@ class CliTestCase(TestCase):
 
 @pytest.mark.usefixtures("browser")
 class AcceptanceTestCase(TransactionTestCase):
+    browser: Browser
+
     def setUp(self):
         patcher = patch(
             "django.utils.timezone.now",
