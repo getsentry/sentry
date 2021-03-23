@@ -274,6 +274,13 @@ class BaseTestCase(Fixtures, Exam):
         with context:
             func(*args, **kwargs)
 
+    def get_mock_uuid(self):
+        class uuid:
+            hex = "abc123"
+            bytes = b"\x00\x01\x02"
+
+        return uuid
+
 
 class _AssertQueriesContext(CaptureQueriesContext):
     def __init__(self, test_case, queries, debug, connection):
