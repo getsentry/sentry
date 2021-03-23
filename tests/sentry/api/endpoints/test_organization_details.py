@@ -690,10 +690,7 @@ class OrganizationDeleteTest(APITestCase):
     @patch("sentry.api.endpoints.organization_details.uuid4")
     @patch("sentry.api.endpoints.organization_details.delete_organization")
     def test_can_remove_as_owner(self, mock_delete_organization, mock_uuid4):
-        class uuid:
-            hex = "abc123"
-
-        mock_uuid4.return_value = uuid
+        mock_uuid4.return_value = self.get_mock_uuid()
 
         org = self.create_organization()
 

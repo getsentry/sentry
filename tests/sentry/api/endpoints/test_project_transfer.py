@@ -24,10 +24,7 @@ class ProjectTransferTest(APITestCase):
 
     @mock.patch("sentry.api.endpoints.project_details.uuid4")
     def test_transfer_project(self, mock_uuid4):
-        class uuid:
-            hex = "abc123"
-
-        mock_uuid4.return_value = uuid
+        mock_uuid4.return_value = self.get_mock_uuid()
         project = self.create_project()
         new_user = self.create_user("b@example.com")
         self.create_organization(name="New Org", owner=new_user)
@@ -50,10 +47,7 @@ class ProjectTransferTest(APITestCase):
 
     @mock.patch("sentry.api.endpoints.project_details.uuid4")
     def test_transfer_project_to_invalid_user(self, mock_uuid4):
-        class uuid:
-            hex = "abc123"
-
-        mock_uuid4.return_value = uuid
+        mock_uuid4.return_value = self.get_mock_uuid()
         project = self.create_project()
         # new user is not an owner of anything
         new_user = self.create_user("b@example.com")

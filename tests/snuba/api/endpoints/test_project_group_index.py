@@ -1139,10 +1139,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
-        class uuid:
-            hex = "abc123"
-
-        mock_uuid4.return_value = uuid
+        mock_uuid4.return_value = self.get_mock_uuid()
         group1 = self.create_group(checksum="a" * 32, times_seen=1)
         group2 = self.create_group(checksum="b" * 32, times_seen=50)
         group3 = self.create_group(checksum="c" * 32, times_seen=2)

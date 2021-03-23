@@ -24,10 +24,7 @@ class DummyType:
 class EventTest(TestCase):
     @patch("sentry.analytics.event.uuid1")
     def test_simple(self, mock_uuid1):
-        class uuid:
-            bytes = b"\x00\x01\x02"
-
-        mock_uuid1.return_value = uuid
+        mock_uuid1.return_value = self.get_mock_uuid()
 
         result = ExampleEvent(
             id="1",
