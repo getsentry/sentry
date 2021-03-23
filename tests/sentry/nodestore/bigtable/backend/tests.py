@@ -87,7 +87,7 @@ def test_get(ns, compression, expected_prefix):
     ns.cache = None
     assert ns.get(node_id) == data
 
-    raw_data = ns._table.read_row("node_id").cells["x"][b"0"][0].value
+    raw_data = ns.store.table.read_row("node_id").cells["x"][b"0"][0].value
     assert raw_data.startswith(expected_prefix)
 
 
@@ -105,18 +105,18 @@ def test_cache(ns):
         node_2[0]: node_2[1],
         node_3[0]: node_3[1],
     }
-    with mock.patch.object(ns._table, "read_row") as mock_read_row:
+    with mock.patch.object(ns.store.table, "read_row") as mock_read_row:
         assert ns.get(node_1[0]) == node_1[1]
         assert ns.get(node_2[0]) == node_2[1]
         assert ns.get(node_3[0]) == node_3[1]
         assert mock_read_row.call_count == 0
 
-    with mock.patch.object(ns._table, "read_rows") as mock_read_rows:
+    with mock.patch.object(ns.store.table, "read_rows") as mock_read_rows:
         assert ns.get_multi([node_1[0], node_2[0], node_3[0]])
         assert mock_read_rows.call_count == 0
 
     # Manually deleted item should still retrievable from cache
-    row = ns._table.direct_row(node_1[0])
+    row = ns.store.table.direct_row(node_1[0])
     row.delete()
     row.commit()
     assert ns.get(node_1[0]) == node_1[1]
@@ -134,13 +134,13 @@ def test_cache(ns):
     # Setting the item updates cache
     new_value = {"event_id": "d" * 32}
     ns.set(node_1[0], new_value)
-    with mock.patch.object(ns._table, "read_row") as mock_read_row:
+    with mock.patch.object(ns.store.table, "read_row") as mock_read_row:
         assert ns.get(node_1[0]) == new_value
         assert mock_read_row.call_count == 0
 
     # Missing rows are never cached
     assert ns.get("node_4") is None
-    with mock.patch.object(ns._table, "read_row") as mock_read_row:
+    with mock.patch.object(ns.store.table, "read_row") as mock_read_row:
         mock_read_row.return_value = None
         ns.get("node_4")
         ns.get("node_4")

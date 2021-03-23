@@ -3,12 +3,14 @@ import struct
 import zlib
 from datetime import timedelta
 from threading import Lock
+from typing import Iterator, Optional, Sequence, Tuple
 
 import zstandard
 from django.utils import timezone
 from google.api_core import exceptions, retry
 from google.cloud import bigtable
 from google.cloud.bigtable.row_set import RowSet
+from google.cloud.bigtable.table import Table
 from sentry.nodestore.base import NodeStorage
 
 
@@ -20,11 +22,11 @@ def _compress_data(data, compression):
     flags = 0
 
     if compression == "zstd":
-        flags |= BigtableNodeStorage._FLAG_COMPRESSED_ZSTD
+        flags |= BigtableKVStorage._FLAG_COMPRESSED_ZSTD
         cctx = zstandard.ZstdCompressor()
         data = cctx.compress(data)
     elif compression is True or compression == "zlib":
-        flags |= BigtableNodeStorage._FLAG_COMPRESSED_ZLIB
+        flags |= BigtableKVStorage._FLAG_COMPRESSED_ZLIB
         data = zlib.compress(data)
     elif compression is False:
         pass
@@ -37,9 +39,9 @@ def _compress_data(data, compression):
 def _decompress_data(data, flags):
     # Check for a compression flag on, if so
     # decompress the data.
-    if flags & BigtableNodeStorage._FLAG_COMPRESSED_ZLIB:
+    if flags & BigtableKVStorage._FLAG_COMPRESSED_ZLIB:
         return zlib.decompress(data)
-    elif flags & BigtableNodeStorage._FLAG_COMPRESSED_ZSTD:
+    elif flags & BigtableKVStorage._FLAG_COMPRESSED_ZSTD:
         cctx = zstandard.ZstdDecompressor()
         return cctx.decompress(data)
     else:
@@ -72,28 +74,7 @@ class BigtableError(Exception):
     pass
 
 
-class BigtableNodeStorage(NodeStorage):
-    """
-    A Bigtable-based backend for storing node data.
-
-    :param project: Passed to bigtable client
-    :param instance: Passed to bigtable client
-    :param table: Passed to bigtable client
-    :param automatic_expiry: Whether to set bigtable GC rule.
-    :param default_ttl: How many days keys should be stored (and considered
-        valid for reading + returning)
-    :param compression: A boolean whether to enable zlib-compression, or the
-        string "zstd" to use zstd.
-
-    >>> BigtableNodeStorage(
-    ...     project='some-project',
-    ...     instance='sentry',
-    ...     table='nodestore',
-    ...     default_ttl=timedelta(days=30),
-    ...     compression=True,
-    ... )
-    """
-
+class BigtableKVStorage:
     max_size = 1024 * 1024 * 10
     column_family = "x"
 
@@ -110,42 +91,26 @@ class BigtableNodeStorage(NodeStorage):
 
     def __init__(
         self,
-        project=None,
-        instance="sentry",
-        table="nodestore",
-        automatic_expiry=False,
-        default_ttl=None,
+        table: Table,
+        default_ttl: Optional[timedelta] = None,
         compression=False,
-        **kwargs,
-    ):
-        self.project = project
-        self.instance = instance
+    ) -> None:
         self.table = table
-        self.options = kwargs
-        self.automatic_expiry = automatic_expiry
         self.default_ttl = default_ttl
         self.compression = compression
-        self.skip_deletes = automatic_expiry and "_SENTRY_CLEANUP" in os.environ
 
-    @property
-    def _table(self):
-        return get_connection(self.project, self.instance, self.table, self.options)
+    def get(self, key: str) -> Optional[bytes]:
+        return self.__decode_row(self.table.read_row(key))
 
-    def _get_bytes(self, id):
-        return self.decode_row(self._table.read_row(id))
-
-    def _get_bytes_multi(self, id_list):
-        rv = {}
+    def get_many(self, keys: Sequence[str]) -> Iterator[Tuple[str, bytes]]:
         rows = RowSet()
-        for id in id_list:
-            rows.add_row_key(id)
-            rv[id] = None
+        for key in keys:
+            rows.add_row_key(key)
 
-        for row in self._table.read_rows(row_set=rows):
-            rv[row.row_key.decode("utf-8")] = self.decode_row(row)
-        return rv
+        for row in self.table.read_rows(row_set=rows):
+            yield row.row_key.decode("utf-8"), self.__decode_row(row)
 
-    def decode_row(self, row):
+    def __decode_row(self, row) -> Optional[bytes]:
         if row is None:
             return None
 
@@ -176,15 +141,8 @@ class BigtableNodeStorage(NodeStorage):
 
         return _decompress_data(data, flags)
 
-    def _set_bytes(self, id, data, ttl=None):
-        row = self.encode_row(id, data, ttl)
-
-        status = row.commit()
-        if status.code != 0:
-            raise BigtableError(status.code, status.message)
-
-    def encode_row(self, id, data, ttl=None):
-        row = self._table.direct_row(id)
+    def set(self, key: str, value: bytes, ttl: Optional[timedelta] = None) -> None:
+        row = self.table.direct_row(key)
         # Call to delete is just a state mutation,
         # and in this case is just used to clear all columns
         # so the entire row will be replaced. Otherwise,
@@ -223,7 +181,7 @@ class BigtableNodeStorage(NodeStorage):
         # is on or not for the data column.
         flags = 0
 
-        data, compression_flag = _compress_data(data, self.compression)
+        data, compression_flag = _compress_data(value, self.compression)
         flags |= compression_flag
 
         # Only need to write the column at all if any flags
@@ -236,55 +194,36 @@ class BigtableNodeStorage(NodeStorage):
         assert len(data) <= self.max_size
 
         row.set_cell(self.column_family, self.data_column, data, timestamp=ts)
-        return row
 
-    def delete(self, id):
-        if self.skip_deletes:
-            return
+        status = row.commit()
+        if status.code != 0:
+            raise BigtableError(status.code, status.message)
 
-        row = self._table.direct_row(id)
+    def delete(self, key: str) -> None:
+        row = self.table.direct_row(key)
         row.delete()
 
         status = row.commit()
         if status.code != 0:
             raise BigtableError(status.code, status.message)
 
-        self._delete_cache_item(id)
-
-    def delete_multi(self, id_list):
-        if self.skip_deletes:
-            return
-
-        if len(id_list) == 1:
-            self.delete(id_list[0])
-            return
-
+    def delete_many(self, keys: Sequence[str]) -> None:
         rows = []
-        for id in id_list:
-            row = self._table.direct_row(id)
+        for key in keys:
+            row = self.table.direct_row(key)
             row.delete()
             rows.append(row)
 
-        deleted_ids = []
         errors = []
-        for id, status in zip(id_list, self._table.mutate_rows(rows)):
-            if status.code == 0:
-                deleted_ids.append(id)
-            else:
+        for status in self.table.mutate_rows(rows):
+            if status.code != 0:
                 errors.append(BigtableError(status.code, status.message))
-
-        self._delete_cache_items(deleted_ids)
 
         if errors:
             raise BigtableError(errors)
 
-    def bootstrap(self):
-        table = (
-            bigtable.Client(project=self.project, admin=True, **self.options)
-            .instance(self.instance)
-            .table(self.table)
-        )
-        if table.exists():
+    def bootstrap(self, automatic_expiry: bool = True) -> None:
+        if self.table.exists():
             return
 
         # With automatic expiry, we set a GC rule to automatically
@@ -293,7 +232,7 @@ class BigtableNodeStorage(NodeStorage):
         # as a TTL is set during write. By doing this, we are effectively
         # writing rows into the future, and they will be deleted due to TTL
         # when their timestamp is passed.
-        if self.automatic_expiry:
+        if automatic_expiry:
             # NOTE: Bigtable can't actually use 0 TTL, and
             # requires a minimum value of 1ms.
             # > InvalidArgument desc = Error in field 'Modifications list' : Error in element #0 : max_age must be at least one millisecond
@@ -303,4 +242,100 @@ class BigtableNodeStorage(NodeStorage):
             gc_rule = None
 
         retry_504 = retry.Retry(retry.if_exception_type(exceptions.DeadlineExceeded))
-        retry_504(table.create)(column_families={self.column_family: gc_rule})
+        retry_504(self.table.create)(column_families={self.column_family: gc_rule})
+
+
+class BigtableNodeStorage(NodeStorage):
+    """
+    A Bigtable-based backend for storing node data.
+
+    :param project: Passed to bigtable client
+    :param instance: Passed to bigtable client
+    :param table: Passed to bigtable client
+    :param automatic_expiry: Whether to set bigtable GC rule.
+    :param default_ttl: How many days keys should be stored (and considered
+        valid for reading + returning)
+    :param compression: A boolean whether to enable zlib-compression, or the
+        string "zstd" to use zstd.
+
+    >>> BigtableNodeStorage(
+    ...     project='some-project',
+    ...     instance='sentry',
+    ...     table='nodestore',
+    ...     default_ttl=timedelta(days=30),
+    ...     compression=True,
+    ... )
+    """
+
+    def __init__(
+        self,
+        project=None,
+        instance="sentry",
+        table="nodestore",
+        automatic_expiry=False,
+        default_ttl=None,
+        compression=False,
+        **kwargs,
+    ):
+        self.project = project
+        self.instance = instance
+        self.table = table
+        self.options = kwargs
+        self.automatic_expiry = automatic_expiry
+        self.default_ttl = default_ttl
+        self.compression = compression
+        self.skip_deletes = automatic_expiry and "_SENTRY_CLEANUP" in os.environ
+
+    @property
+    def _table(self):
+        return get_connection(self.project, self.instance, self.table, self.options)
+
+    @property
+    def store(self):
+        return BigtableKVStorage(
+            self._table,
+            default_ttl=self.default_ttl,
+            compression=self.compression,
+        )
+
+    def _get_bytes(self, id):
+        return self.store.get(id)
+
+    def _get_bytes_multi(self, id_list):
+        rv = {id: None for id in id_list}
+        rv.update(self.store.get_many(id_list))
+        return rv
+
+    def _set_bytes(self, id, data, ttl=None):
+        self.store.set(id, data, ttl)
+
+    def delete(self, id):
+        if self.skip_deletes:
+            return
+
+        try:
+            self.store.delete(id)
+        finally:
+            self._delete_cache_item(id)
+
+    def delete_multi(self, id_list):
+        if self.skip_deletes:
+            return
+
+        if len(id_list) == 1:
+            self.delete(id_list[0])
+            return
+
+        try:
+            self.store.delete_many(id_list)
+        finally:
+            self._delete_cache_items(id_list)
+
+    def bootstrap(self):
+        BigtableKVStorage(
+            bigtable.Client(project=self.project, admin=True, **self.options)
+            .instance(self.instance)
+            .table(self.table),
+            default_ttl=self.default_ttl,
+            compression=self.compression,
+        ).bootstrap(automatic_expiry=self.automatic_expiry)
