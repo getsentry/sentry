@@ -55,3 +55,9 @@ class DemoMiddlewareTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         assert response.content == b'{"data": {"dismissed_ts": 1}}'
+
+    def test_org_creation(self):
+        url = reverse("sentry-api-0-organizations")
+        response = self.client.post(url)
+        assert response.status_code == 400
+        assert response.content == b'{"detail": "Organization creation disabled in demo mode"}'
