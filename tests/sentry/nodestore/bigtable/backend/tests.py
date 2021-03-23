@@ -12,16 +12,16 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
             self.timestamp = timestamp
 
     class Row:
-        def __init__(self, connection, row_key):
+        def __init__(self, table, row_key):
             self.row_key = row_key.encode("utf8")
-            self.connection = connection
+            self.table = table
 
         def delete(self):
-            self.connection._table.pop(self.row_key, None)
+            self.table._rows.pop(self.row_key, None)
 
         def set_cell(self, family, col, value, timestamp):
             assert family == "x"
-            self.connection._table.setdefault(self.row_key, {})[col] = [
+            self.table._rows.setdefault(self.row_key, {})[col] = [
                 MockedBigtableNodeStorage.Cell(value, timestamp)
             ]
 
@@ -31,11 +31,11 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
 
         @property
         def cells(self):
-            return {"x": dict(self.connection._table.get(self.row_key) or ())}
+            return {"x": dict(self.table._rows.get(self.row_key) or ())}
 
-    class Connection:
+    class Table:
         def __init__(self):
-            self._table = {}
+            self._rows = {}
 
         def direct_row(self, key):
             return MockedBigtableNodeStorage.Row(self, key)
@@ -52,8 +52,8 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
             return [Status(code=0) for row in rows]
 
     @memoize
-    def connection(self):
-        return MockedBigtableNodeStorage.Connection()
+    def _table(self):
+        return MockedBigtableNodeStorage.Table()
 
     def bootstrap(self):
         pass
@@ -87,7 +87,7 @@ def test_get(ns, compression, expected_prefix):
     ns.cache = None
     assert ns.get(node_id) == data
 
-    raw_data = ns.connection.read_row("node_id").cells["x"][b"0"][0].value
+    raw_data = ns._table.read_row("node_id").cells["x"][b"0"][0].value
     assert raw_data.startswith(expected_prefix)
 
 
@@ -105,18 +105,18 @@ def test_cache(ns):
         node_2[0]: node_2[1],
         node_3[0]: node_3[1],
     }
-    with mock.patch.object(ns.connection, "read_row") as mock_read_row:
+    with mock.patch.object(ns._table, "read_row") as mock_read_row:
         assert ns.get(node_1[0]) == node_1[1]
         assert ns.get(node_2[0]) == node_2[1]
         assert ns.get(node_3[0]) == node_3[1]
         assert mock_read_row.call_count == 0
 
-    with mock.patch.object(ns.connection, "read_rows") as mock_read_rows:
+    with mock.patch.object(ns._table, "read_rows") as mock_read_rows:
         assert ns.get_multi([node_1[0], node_2[0], node_3[0]])
         assert mock_read_rows.call_count == 0
 
     # Manually deleted item should still retrievable from cache
-    row = ns.connection.direct_row(node_1[0])
+    row = ns._table.direct_row(node_1[0])
     row.delete()
     row.commit()
     assert ns.get(node_1[0]) == node_1[1]
@@ -134,13 +134,13 @@ def test_cache(ns):
     # Setting the item updates cache
     new_value = {"event_id": "d" * 32}
     ns.set(node_1[0], new_value)
-    with mock.patch.object(ns.connection, "read_row") as mock_read_row:
+    with mock.patch.object(ns._table, "read_row") as mock_read_row:
         assert ns.get(node_1[0]) == new_value
         assert mock_read_row.call_count == 0
 
     # Missing rows are never cached
     assert ns.get("node_4") is None
-    with mock.patch.object(ns.connection, "read_row") as mock_read_row:
+    with mock.patch.object(ns._table, "read_row") as mock_read_row:
         mock_read_row.return_value = None
         ns.get("node_4")
         ns.get("node_4")

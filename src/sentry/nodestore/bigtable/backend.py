@@ -47,11 +47,11 @@ def _decompress_data(data, flags):
 
 
 def get_connection(project, instance, table, options):
-    # XXX: This function is not guaranteed to return a connection with the
-    # provided options on a cache hit.
+    # XXX: This function is not guaranteed to return a table that is bound to a
+    # client with the provided options on a cache hit.
     key = (project, instance, table)
     try:
-        # Fast check for an existing connection cached
+        # Fast check for an existing table cached
         return _connection_cache[key]
     except KeyError:
         # if missing, we acquire our lock to initialize a new one
@@ -128,11 +128,11 @@ class BigtableNodeStorage(NodeStorage):
         self.skip_deletes = automatic_expiry and "_SENTRY_CLEANUP" in os.environ
 
     @property
-    def connection(self):
+    def _table(self):
         return get_connection(self.project, self.instance, self.table, self.options)
 
     def _get_bytes(self, id):
-        return self.decode_row(self.connection.read_row(id))
+        return self.decode_row(self._table.read_row(id))
 
     def _get_bytes_multi(self, id_list):
         rv = {}
@@ -141,7 +141,7 @@ class BigtableNodeStorage(NodeStorage):
             rows.add_row_key(id)
             rv[id] = None
 
-        for row in self.connection.read_rows(row_set=rows):
+        for row in self._table.read_rows(row_set=rows):
             rv[row.row_key.decode("utf-8")] = self.decode_row(row)
         return rv
 
@@ -184,7 +184,7 @@ class BigtableNodeStorage(NodeStorage):
             raise BigtableError(status.code, status.message)
 
     def encode_row(self, id, data, ttl=None):
-        row = self.connection.direct_row(id)
+        row = self._table.direct_row(id)
         # Call to delete is just a state mutation,
         # and in this case is just used to clear all columns
         # so the entire row will be replaced. Otherwise,
@@ -242,7 +242,7 @@ class BigtableNodeStorage(NodeStorage):
         if self.skip_deletes:
             return
 
-        row = self.connection.direct_row(id)
+        row = self._table.direct_row(id)
         row.delete()
 
         status = row.commit()
@@ -261,13 +261,13 @@ class BigtableNodeStorage(NodeStorage):
 
         rows = []
         for id in id_list:
-            row = self.connection.direct_row(id)
+            row = self._table.direct_row(id)
             row.delete()
             rows.append(row)
 
         deleted_ids = []
         errors = []
-        for id, status in zip(id_list, self.connection.mutate_rows(rows)):
+        for id, status in zip(id_list, self._table.mutate_rows(rows)):
             if status.code == 0:
                 deleted_ids.append(id)
             else:
