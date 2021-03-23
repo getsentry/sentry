@@ -9,7 +9,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
-import TraceFullQuery from 'app/utils/performance/quickTrace/traceFullQuery';
+import {TraceFullQuery} from 'app/utils/performance/quickTrace/traceFullQuery';
 import {decodeScalar} from 'app/utils/queryString';
 import withOrganization from 'app/utils/withOrganization';
 

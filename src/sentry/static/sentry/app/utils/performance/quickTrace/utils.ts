@@ -10,6 +10,7 @@ import {
   QuickTrace,
   QuickTraceEvent,
   TraceFull,
+  TraceFullMinimal,
   TraceLite,
 } from 'app/utils/performance/quickTrace/types';
 
@@ -22,7 +23,7 @@ export function isTransaction(event: Event): event is EventTransaction {
  * event id is in the list of errors as well
  */
 function isCurrentEvent(
-  event: TraceFull | QuickTraceEvent,
+  event: TraceFullMinimal | QuickTraceEvent,
   currentEvent: Event
 ): boolean {
   if (isTransaction(currentEvent)) {
@@ -35,7 +36,7 @@ function isCurrentEvent(
 }
 
 type PathNode = {
-  event: TraceFull;
+  event: TraceFullMinimal;
   path: TraceLite;
 };
 
@@ -51,10 +52,10 @@ type PathNode = {
  */
 export function flattenRelevantPaths(
   currentEvent: Event,
-  traceFull: TraceFull
+  traceFull: TraceFullMinimal
 ): TraceLite {
   const relevantPath: TraceLite = [];
-  const events: TraceFull[] = [];
+  const events: TraceFullMinimal[] = [];
 
   /**
    * First find a path from the root transaction to the current transaction via
@@ -97,8 +98,8 @@ export function flattenRelevantPaths(
   return relevantPath;
 }
 
-function simplifyEvent(event: TraceFull): QuickTraceEvent {
-  return omit(event, ['children', 'start_timestamp', 'timestamp']);
+function simplifyEvent(event: TraceFullMinimal): QuickTraceEvent {
+  return omit(event, ['children']);
 }
 
 type ParsedQuickTrace = {
