@@ -54,6 +54,13 @@ FEATURES = [
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
+    FeatureDescription(
+        """
+        Link your Sentry stack traces back to your GitLab source code with stack
+        trace linking.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
+    ),
 ]
 
 metadata = IntegrationMetadata(
@@ -246,9 +253,14 @@ class GitlabIntegrationProvider(IntegrationProvider):
     integration_cls = GitlabIntegration
 
     needs_default_identity = True
-    has_stacktrace_linking = True
 
-    features = frozenset([IntegrationFeatures.ISSUE_BASIC, IntegrationFeatures.COMMITS])
+    features = frozenset(
+        [
+            IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.STACKTRACE_LINK,
+        ]
+    )
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
