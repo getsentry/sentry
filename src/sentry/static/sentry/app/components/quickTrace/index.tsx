@@ -67,7 +67,6 @@ export default function QuickTrace({
         events={[root]}
         text={t('Root')}
         hoverText={<SingleEventHoverText event={root} />}
-        pad="right"
         nodeKey="root"
       />
     );
@@ -96,7 +95,6 @@ export default function QuickTrace({
           location,
           'Ancestor'
         )}
-        pad="right"
         nodeKey="ancestors"
       />
     );
@@ -112,7 +110,6 @@ export default function QuickTrace({
         events={[parent]}
         text={t('Parent')}
         hoverText={<SingleEventHoverText event={parent} />}
-        pad="right"
         nodeKey="parent"
       />
     );
@@ -127,7 +124,6 @@ export default function QuickTrace({
       text={t('This %s', toTitleCase(event.type))}
       events={[current]}
       currentEvent={event}
-      pad="left"
       nodeKey="current"
     />
   );
@@ -155,7 +151,6 @@ export default function QuickTrace({
           location,
           'Children'
         )}
-        pad="left"
         nodeKey="children"
       />
     );
@@ -184,7 +179,6 @@ export default function QuickTrace({
           location,
           'Descendant'
         )}
-        pad="left"
         nodeKey="descendants"
       />
     );
@@ -222,7 +216,6 @@ type EventNodeSelectorProps = {
   organization: OrganizationSummary;
   events: QuickTraceEvent[];
   text: React.ReactNode;
-  pad: 'left' | 'right';
   currentEvent?: Event;
   hoverText?: React.ReactNode;
   extrasTarget?: LocationDescriptor;
@@ -235,7 +228,6 @@ function EventNodeSelector({
   organization,
   events = [],
   text,
-  pad,
   currentEvent,
   hoverText,
   extrasTarget,
@@ -268,11 +260,7 @@ function EventNodeSelector({
   }
 
   if (events.length + errors.length === 0) {
-    return (
-      <EventNode pad={pad} type={type}>
-        {text}
-      </EventNode>
-    );
+    return <EventNode type={type}>{text}</EventNode>;
   } else if (events.length + errors.length === 1) {
     /**
      * When there is only 1 event, clicking the node should take the user directly to
@@ -286,7 +274,6 @@ function EventNodeSelector({
     return (
       <StyledEventNode
         text={text}
-        pad={pad}
         hoverText={hoverText}
         to={target}
         onClick={() => handleNode(nodeKey, organization)}
@@ -301,9 +288,7 @@ function EventNodeSelector({
     return (
       <DropdownLink
         caret={false}
-        title={
-          <StyledEventNode text={text} pad={pad} hoverText={hoverText} type={type} />
-        }
+        title={<StyledEventNode text={text} hoverText={hoverText} type={type} />}
         anchorRight
       >
         {errors.slice(0, numEvents).map((error, i) => {
@@ -334,7 +319,7 @@ function EventNodeSelector({
                 event['transaction.duration'] < 1000 ? 0 : 2,
                 true
               )}
-              subtextType="default"
+              subtextType="transaction"
             />
           );
         })}
@@ -356,7 +341,7 @@ type DropdownNodeProps = {
   first: boolean;
   organization: OrganizationSummary;
   subtext: string;
-  subtextType: 'error' | 'default';
+  subtextType: 'error' | 'transaction';
 };
 
 function DropdownNodeItem({
@@ -397,24 +382,16 @@ function DropdownNodeItem({
 
 type EventNodeProps = {
   text: React.ReactNode;
-  pad: 'left' | 'right';
   hoverText: React.ReactNode;
   to?: LocationDescriptor;
   onClick?: (eventKey: any) => void;
   type?: keyof Theme['tag'];
 };
 
-function StyledEventNode({
-  text,
-  hoverText,
-  pad,
-  to,
-  onClick,
-  type = 'white',
-}: EventNodeProps) {
+function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNodeProps) {
   return (
     <Tooltip position="top" containerDisplayMode="inline-flex" title={hoverText}>
-      <EventNode type={type} pad={pad} icon={null} to={to} onClick={onClick}>
+      <EventNode type={type} icon={null} to={to} onClick={onClick}>
         {text}
       </EventNode>
     </Tooltip>

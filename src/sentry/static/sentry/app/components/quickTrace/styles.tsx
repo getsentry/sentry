@@ -10,7 +10,7 @@ import {getDuration} from 'app/utils/formatters';
 import {QuickTraceEvent} from 'app/utils/performance/quickTrace/types';
 import {Theme} from 'app/utils/theme';
 
-export const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`
+export const SectionSubtext = styled('div')<{type?: 'error' | 'transaction'}>`
   color: ${p => (p.type === 'error' ? p.theme.error : p.theme.subText)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
@@ -44,7 +44,7 @@ const nodeColors = (theme: Theme) => ({
   },
 });
 
-export const EventNode = styled(Tag)<{pad?: 'left' | 'right'}>`
+export const EventNode = styled(Tag)`
   span {
     display: flex;
     color: ${p => nodeColors(p.theme)[p.type || 'white'].color};
