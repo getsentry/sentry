@@ -566,7 +566,7 @@ def get_release_sessions_time_bounds(project_id, release, org_id, environments=N
         # sessions_upper_bound as `0` timestamp and we do not want that behaviour
         # by default
         # P.S. To avoid confusion the `0` timestamp which is '1970-01-01 00:00:00'
-        # is just rendered as 0000-00-00 00:00:00 in clickhouse shell
+        # is rendered as '0000-00-00 00:00:00' in clickhouse shell
         if set(rv.values()) != {formatted_unix_start_time}:
             release_sessions_time_bounds = {
                 "sessions_lower_bound": rv["first_session_started"],
