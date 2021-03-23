@@ -55,7 +55,7 @@ function UserStats({
   if (!isLoading && error === null && totals) {
     const miserableUsers = totals[`user_misery_${threshold}`];
     const userMiseryScore = totals[`user_misery_prototype_${threshold}`];
-    const totalUsers = Number(totals.count_unique_user);
+    const totalUsers = totals.count_unique_user;
     userMisery = (
       <UserMiseryPrototype
         bars={40}
