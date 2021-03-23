@@ -134,7 +134,9 @@ class GroupEventToolbar extends React.Component<Props> {
     const isOverLatencyThreshold =
       evt.dateReceived &&
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
-    const hasQuickTraceView = organization.features.includes('trace-view-summary');
+    const hasQuickTraceView =
+      organization.features.includes('trace-view-summary') &&
+      evt.contexts?.trace?.trace_id;
 
     return (
       <Wrapper>
