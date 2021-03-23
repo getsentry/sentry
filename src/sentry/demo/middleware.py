@@ -45,6 +45,6 @@ class DemoMiddleware:
             organization__slug=org_slug, role="member"
         ).first()
         # if no member, can't login
-        if not member:
+        if not member or not member.user:
             return
         auth.login(request, member.user)
