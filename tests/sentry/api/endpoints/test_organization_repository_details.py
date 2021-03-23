@@ -13,8 +13,8 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert response.data["name"] == "example"  # name displayed matches what the user expects
 
         assert repo.status == ObjectStatus.PENDING_DELETION
-        assert repo.name == "1234567"
-        assert repo.external_id == "1234567"
+        assert repo.name == "abc123"
+        assert repo.external_id == "abc123"
         assert repo.config["pending_deletion_name"] == "example"
 
         option = OrganizationOption.objects.get(
