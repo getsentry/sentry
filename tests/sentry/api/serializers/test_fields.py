@@ -1,7 +1,7 @@
 from rest_framework import serializers
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils import TestCase
-
 from sentry.api.serializers.rest_framework import ListField, ActorField
 from sentry.models import User, Team
 
@@ -31,14 +31,20 @@ class TestListField(TestCase):
 
         serializer = DummySerializer(data=data)
         assert not serializer.is_valid()
-        assert serializer.errors == {"a_field": ["This field may not be null."]}
+        assert serializer.errors == {
+            "a_field": {0: [ErrorDetail(string="This field may not be null.", code="null")]}
+        }
 
     def test_child_validates(self):
         data = {"a_field": [{"b_field": "abcdefg"}]}
 
         serializer = DummySerializer(data=data)
         assert not serializer.is_valid()
-        assert serializer.errors == {"a_field": {"d_field": ["This field is required."]}}
+        assert serializer.errors == {
+            "a_field": {
+                0: {"d_field": [ErrorDetail(string="This field is required.", code="required")]}
+            }
+        }
 
 
 class TestActorField(TestCase):
