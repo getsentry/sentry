@@ -28,6 +28,7 @@ def _get_scope(user_id, project=None, organization=None):
     """
     Figure out the scope from parameters and return it as a tuple,
     TODO(mgaeta): Make sure user_id is in the project or organization.
+    TODO(mgaeta): Add Team scope.
     :param user_id: The user's ID
     :param project: (Optional) Project object
     :param organization: (Optional) Organization object
@@ -179,9 +180,10 @@ class NotificationsManager(BaseManager):
             if not created and setting.value != value.value:
                 setting.update(value=value.value)
 
-            UserOption.objects.set_value(
-                user, key=key, value=legacy_value, project=project, organization=organization
-            )
+            if target.type == 1:
+                UserOption.objects.set_value(
+                    user, key=key, value=legacy_value, project=project, organization=organization
+                )
 
     def remove_settings(
         self,
@@ -278,7 +280,9 @@ class NotificationsManager(BaseManager):
         self, organization, type: Optional[NotificationSettingTypes] = None
     ) -> None:
         """ Bulk delete all Notification Settings for a ENTIRE ORGANIZATION, optionally by type. """
-        UserOption.objects.filter(**self._get_legacy_filters(type, project=organization)).delete()
+        UserOption.objects.filter(
+            **self._get_legacy_filters(type, organization=organization)
+        ).delete()
         self._filter(
             scope_type=NotificationScopeType.ORGANIZATION,
             scope_identifier=organization.id,

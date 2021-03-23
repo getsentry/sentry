@@ -471,5 +471,13 @@ class Project(Model, PendingDeletionMixin):
             return True
         return integration_doc_exists(value)
 
+    def delete(self, **kwargs):
+        from sentry.models import NotificationSetting
+
+        # There is no foreign key relationship so we have to manually cascade.
+        NotificationSetting.objects.remove_for_project(self)
+
+        return super().delete(**kwargs)
+
 
 pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)
