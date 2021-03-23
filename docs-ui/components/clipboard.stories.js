@@ -1,6 +1,7 @@
 import React from 'react';
 
 import Clipboard from 'app/components/clipboard';
+import Tooltip from 'app/components/tooltip';
 
 export default {
   title: 'UI/Clipboard',
@@ -28,3 +29,11 @@ Default.parameters = {
     },
   },
 };
+
+export const WrapTooltip = ({...args}) => (
+  <Clipboard {...args}>
+    <Tooltip title="Clipboard around tooltip element">Click to Copy</Tooltip>
+  </Clipboard>
+);
+
+WrapTooltip.storyName = 'Clipboard wrapping tooltip';
