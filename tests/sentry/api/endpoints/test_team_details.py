@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sentry.utils.compat.mock import patch
 
 from sentry.models import (
@@ -17,46 +19,51 @@ class TeamDetailsTestBase(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def assert_team_deleted(self, team_id, mock_delete_team, transaction_id):
-        """Checks team status, membership in DeletedTeams table, org
-        audit log, and to see that delete function has been called"""
-
+    def assert_team_status(
+        self,
+        team_id: int,
+        mock_delete_team,
+        status: TeamStatus,
+        transaction_id: Optional[int] = None,
+    ) -> None:
         team = Team.objects.get(id=team_id)
 
-        assert team.status == TeamStatus.PENDING_DELETION
+        assert team.status == status
 
-        deleted_team = DeletedTeam.objects.get(slug=team.slug)
-        # in spite of the name, this checks the DeletedTeam object, not the
-        # audit log
-        self.assert_valid_deleted_log(deleted_team, team)
-
-        # *this* actually checks the audit log
+        deleted_team = DeletedTeam.objects.filter(slug=team.slug)
         audit_log_entry = AuditLogEntry.objects.filter(
             event=AuditLogEntryEvent.TEAM_REMOVE, target_object=team.id
         )
-        assert audit_log_entry
 
+        if status == TeamStatus.VISIBLE:
+            assert not deleted_team
+            assert not audit_log_entry
+            mock_delete_team.assert_not_called()  # NOQA
+            return
+
+        # On spite of the name, this checks the DeletedTeam object, not the audit log
+        self.assert_valid_deleted_log(deleted_team.get(), team)
+        # *this* actually checks the audit log
+        assert audit_log_entry.get()
         mock_delete_team.apply_async.assert_called_once_with(
             kwargs={"object_id": team.id, "transaction_id": transaction_id}
         )
 
-    def assert_team_not_deleted(self, team_id, mock_delete_team):
-        """Checks team status, membership in DeletedTeams table, org
-        audit log, and to see that delete function has not been called"""
-
-        team = Team.objects.get(id=team_id)
-
-        assert team.status == TeamStatus.VISIBLE
-
-        deleted_team = DeletedTeam.objects.filter(slug=team.slug)
-        assert not deleted_team
-
-        audit_log_entry = AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.TEAM_REMOVE, target_object=team.id
+    def assert_team_deleted(self, team_id, mock_delete_team, transaction_id):
+        """
+        Checks team status, membership in DeletedTeams table, org
+        audit log, and to see that delete function has been called.
+        """
+        self.assert_team_status(
+            team_id, mock_delete_team, TeamStatus.PENDING_DELETION, transaction_id
         )
-        assert not audit_log_entry
 
-        mock_delete_team.assert_not_called()  # NOQA
+    def assert_team_not_deleted(self, team_id, mock_delete_team):
+        """
+        Checks team status, membership in DeletedTeams table, org
+        audit log, and to see that delete function has not been called.
+        """
+        self.assert_team_status(team_id, mock_delete_team, TeamStatus.VISIBLE)
 
 
 class TeamDetailsTest(TeamDetailsTestBase):
