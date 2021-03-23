@@ -66,7 +66,11 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
         for project_id, platform in platforms:
             platforms_by_project[project_id].append(platform)
 
-        environments = set(request.GET.getlist("environment")) or None
+        environments = set(request.GET.getlist("environment"))
+        if not environments:
+            environments = None
+        else:
+            environments = list(environments)
 
         # This must match what is returned from the `Release` serializer
         projects = [
