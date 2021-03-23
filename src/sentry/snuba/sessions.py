@@ -554,10 +554,15 @@ def get_release_sessions_time_bounds(project_id, release, org_id, environments=N
         referrer="sessions.release-sessions-time-bounds",
     )["data"]
 
+    formatted_unix_start_time = datetime.utcfromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+
     if rows:
         rv = rows[0]
-        formatted_unix_start_time = datetime.utcfromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
+        # This check is added because if there are no sessions found, then the
+        # aggregations query return both the sessions_lower_bound and the
+        # sessions_upper_bound as `0` timestamp and we do not want that behaviour
+        # by default
         if set(rv.values()) == {formatted_unix_start_time}:
             release_sessions_time_bounds = {
                 "sessions_lower_bound": None,
