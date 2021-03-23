@@ -7,7 +7,7 @@ import {
   BaseTraceChildrenProps,
   FullQuickTrace,
   TraceFull,
-  TraceFullMinimal,
+  TraceFullDetailed,
   TraceRequestProps,
 } from 'app/utils/performance/quickTrace/types';
 import {
@@ -39,8 +39,9 @@ function getTraceFullRequestPayload({
   detailed,
   ...props
 }: DiscoverQueryProps & AdditionalQueryProps) {
-  const additionalApiPayload = getQuickTraceRequestPayload(props);
-  return Object.assign({detailed: detailed ? '1' : '0'}, additionalApiPayload);
+  const additionalApiPayload: any = getQuickTraceRequestPayload(props);
+  additionalApiPayload.detailed = detailed ? '1' : '0';
+  return additionalApiPayload;
 }
 
 function EmptyTrace<T>({children}: Pick<QueryProps<T>, 'children'>) {
@@ -94,14 +95,14 @@ function GenericTraceFullQuery<T>({
   );
 }
 
-const TraceFullMinimalQuery = withApi(
-  (props: Omit<QueryProps<TraceFullMinimal>, 'detailed'>) => (
-    <GenericTraceFullQuery<TraceFullMinimal> {...props} detailed={false} />
+export const TraceFullQuery = withApi(
+  (props: Omit<QueryProps<TraceFull>, 'detailed'>) => (
+    <GenericTraceFullQuery<TraceFull> {...props} detailed={false} />
   )
 );
 
-const TraceFullQuery = withApi((props: Omit<QueryProps<TraceFull>, 'detailed'>) => (
-  <GenericTraceFullQuery<TraceFull> {...props} detailed />
-));
-
-export {TraceFullMinimalQuery, TraceFullQuery};
+export const TraceFullDetailedQuery = withApi(
+  (props: Omit<QueryProps<TraceFullDetailed>, 'detailed'>) => (
+    <GenericTraceFullQuery<TraceFullDetailed> {...props} detailed />
+  )
+);

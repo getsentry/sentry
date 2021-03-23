@@ -10,7 +10,7 @@ import {
   QuickTrace,
   QuickTraceEvent,
   TraceFull,
-  TraceFullMinimal,
+  TraceFullDetailed,
   TraceLite,
 } from 'app/utils/performance/quickTrace/types';
 
@@ -23,7 +23,7 @@ export function isTransaction(event: Event): event is EventTransaction {
  * event id is in the list of errors as well
  */
 function isCurrentEvent(
-  event: TraceFullMinimal | QuickTraceEvent,
+  event: TraceFull | QuickTraceEvent,
   currentEvent: Event
 ): boolean {
   if (isTransaction(currentEvent)) {
@@ -36,7 +36,7 @@ function isCurrentEvent(
 }
 
 type PathNode = {
-  event: TraceFullMinimal;
+  event: TraceFull;
   path: TraceLite;
 };
 
@@ -52,10 +52,10 @@ type PathNode = {
  */
 export function flattenRelevantPaths(
   currentEvent: Event,
-  traceFull: TraceFullMinimal
+  traceFull: TraceFull
 ): TraceLite {
   const relevantPath: TraceLite = [];
-  const events: TraceFullMinimal[] = [];
+  const events: TraceFull[] = [];
 
   /**
    * First find a path from the root transaction to the current transaction via
@@ -98,7 +98,7 @@ export function flattenRelevantPaths(
   return relevantPath;
 }
 
-function simplifyEvent(event: TraceFullMinimal): QuickTraceEvent {
+function simplifyEvent(event: TraceFull): QuickTraceEvent {
   return omit(event, ['children']);
 }
 
@@ -255,8 +255,8 @@ export function makeEventView({
 }
 
 export function reduceTrace<T>(
-  trace: TraceFull,
-  visitor: (acc: T, e: TraceFull) => T,
+  trace: TraceFullDetailed,
+  visitor: (acc: T, e: TraceFullDetailed) => T,
   initialValue: T
 ): T {
   let result = initialValue;
@@ -282,10 +282,10 @@ export function getTraceTimeRangeFromEvent(event: Event): {start: string; end: s
 }
 
 export function filterTrace(
-  trace: TraceFull,
-  predicate: (transaction: TraceFull) => boolean
-): TraceFull[] {
-  return reduceTrace<TraceFull[]>(
+  trace: TraceFullDetailed,
+  predicate: (transaction: TraceFullDetailed) => boolean
+): TraceFullDetailed[] {
+  return reduceTrace<TraceFullDetailed[]>(
     trace,
     (transactions, transaction) => {
       if (predicate(transaction)) {

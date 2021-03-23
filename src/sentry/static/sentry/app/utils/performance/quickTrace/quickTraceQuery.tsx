@@ -2,7 +2,7 @@ import React from 'react';
 
 import {Event} from 'app/types/event';
 import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
-import {TraceFullMinimalQuery} from 'app/utils/performance/quickTrace/traceFullQuery';
+import {TraceFullQuery} from 'app/utils/performance/quickTrace/traceFullQuery';
 import TraceLiteQuery from 'app/utils/performance/quickTrace/traceLiteQuery';
 import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
 import {
@@ -45,7 +45,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
       {...props}
     >
       {traceLiteResults => (
-        <TraceFullMinimalQuery traceId={traceId} start={start} end={end} {...props}>
+        <TraceFullQuery traceId={traceId} start={start} end={end} {...props}>
           {traceFullResults => {
             if (
               !traceFullResults.isLoading &&
@@ -78,7 +78,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               type: 'empty',
             });
           }}
-        </TraceFullMinimalQuery>
+        </TraceFullQuery>
       )}
     </TraceLiteQuery>
   );

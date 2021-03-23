@@ -9,7 +9,8 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
-import {TraceFullQuery} from 'app/utils/performance/quickTrace/traceFullQuery';
+import {TraceFullDetailedQuery} from 'app/utils/performance/quickTrace/traceFullQuery';
+import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {decodeScalar} from 'app/utils/queryString';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -39,7 +40,15 @@ class TraceSummary extends React.Component<Props> {
     const end = decodeScalar(queryParams.end);
     const statsPeriod = decodeScalar(queryParams.statsPeriod);
 
-    const content = ({isLoading, error, trace}) => (
+    const content = ({
+      isLoading,
+      error,
+      trace,
+    }: {
+      isLoading: boolean;
+      error: string | null;
+      trace: TraceFullDetailed | null;
+    }) => (
       <TraceDetailsContent
         location={location}
         organization={organization}
@@ -63,7 +72,7 @@ class TraceSummary extends React.Component<Props> {
     }
 
     return (
-      <TraceFullQuery
+      <TraceFullDetailedQuery
         location={location}
         orgSlug={organization.slug}
         traceId={traceSlug}
@@ -72,7 +81,7 @@ class TraceSummary extends React.Component<Props> {
         statsPeriod={statsPeriod}
       >
         {content}
-      </TraceFullQuery>
+      </TraceFullDetailedQuery>
     );
   }
 

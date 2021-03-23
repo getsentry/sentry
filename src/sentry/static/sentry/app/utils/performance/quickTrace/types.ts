@@ -40,11 +40,11 @@ export type QuickTraceEvent = EventLite & {
  *
  * This is the type returned with `detailed=0`
  */
-export type TraceFullMinimal = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
+export type TraceFull = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
   /**
    * In the full trace, generation, children and errors are always defined.
    */
-  children: TraceFullMinimal[];
+  children: TraceFull[];
   errors: TraceError[];
   generation: number;
 };
@@ -53,8 +53,8 @@ export type TraceFullMinimal = Omit<QuickTraceEvent, 'generation' | 'errors'> & 
  * The `events-trace` endpoint has a parameter to get
  * additional information by setting `detailed=1`.
  */
-export type TraceFull = Omit<TraceFullMinimal, 'children'> & {
-  children: TraceFull[];
+export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
+  children: TraceFullDetailed[];
   start_timestamp: number;
   timestamp: number;
   'transaction.op': string;
