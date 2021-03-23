@@ -69,6 +69,16 @@ class AlertRuleDetails extends React.Component<Props, State> {
     this.fetchData();
   }
 
+  componentDidUpdate(prevProps: Props) {
+    if (
+      prevProps.location.search !== this.props.location.search
+      || prevProps.params.orgId !== this.props.params.orgId
+      || prevProps.params.ruleId !== this.props.params.ruleId
+    ) {
+      this.fetchData();
+    }
+  }
+
   fetchData = async () => {
     this.setState({isLoading: true, hasError: false});
     const {
@@ -103,8 +113,6 @@ class AlertRuleDetails extends React.Component<Props, State> {
         period: value,
       },
     });
-
-    await this.fetchData();
   };
 
   render() {
