@@ -35,6 +35,23 @@ type State = {
 class AlertRuleDetails extends React.Component<Props, State> {
   state: State = {isLoading: false, hasError: false};
 
+  componentDidMount() {
+    const {api, params} = this.props;
+
+    fetchOrgMembers(api, params.orgId);
+    this.fetchData();
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (
+      prevProps.location.search !== this.props.location.search ||
+      prevProps.params.orgId !== this.props.params.orgId ||
+      prevProps.params.ruleId !== this.props.params.ruleId
+    ) {
+      this.fetchData();
+    }
+  }
+
   getTimePeriod() {
     const {location} = this.props;
 
@@ -60,13 +77,6 @@ class AlertRuleDetails extends React.Component<Props, State> {
       end,
       label: timeOption.label as string,
     };
-  }
-
-  componentDidMount() {
-    const {api, params} = this.props;
-
-    fetchOrgMembers(api, params.orgId);
-    this.fetchData();
   }
 
   fetchData = async () => {
@@ -103,8 +113,6 @@ class AlertRuleDetails extends React.Component<Props, State> {
         period: value,
       },
     });
-
-    await this.fetchData();
   };
 
   render() {
