@@ -87,9 +87,11 @@ jobs:
             ${{ matrix.os }}-yarn-
 
       # make develop calls "ensure-venv", thus, needing to be within a venv
+      # TODO: We need to streamline the installation of the wheel package
       - name: Set up development environment
         run: |
           python -m venv .venv
           source .venv/bin/activate
+          pip install wheel
           curl https://get.volta.sh | bash
           make bootstrap
