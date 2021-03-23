@@ -381,8 +381,8 @@ const SPECIAL_FIELDS: SpecialFields = {
 };
 
 type SpecialFunctions = {
-  user_misery_prototype: SpecialFieldRenderFunc;
   user_misery: SpecialFieldRenderFunc;
+  count_miserable_users: SpecialFieldRenderFunc;
 };
 
 /**
@@ -390,14 +390,14 @@ type SpecialFunctions = {
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FUNCTIONS: SpecialFunctions = {
-  user_misery_prototype: data => {
+  user_misery: data => {
     const uniqueUsers = data.count_unique_user;
     let miseryField: string = '';
     let userMiseryField: string = '';
     for (const field in data) {
-      if (field.startsWith('user_misery_prototype')) {
+      if (field.startsWith('user_misery')) {
         miseryField = field;
-      } else if (field.startsWith('user_misery')) {
+      } else if (field.startsWith('count_miserable_users')) {
         userMiseryField = field;
       }
     }
@@ -432,11 +432,11 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       </BarContainer>
     );
   },
-  user_misery: data => {
+  count_miserable_users: data => {
     const uniqueUsers = data.count_unique_user;
     let userMiseryField: string = '';
     for (const field in data) {
-      if (field.startsWith('user_misery')) {
+      if (field.startsWith('count_miserable_users')) {
         userMiseryField = field;
       }
     }
@@ -486,7 +486,7 @@ export function getSortField(
   }
 
   for (const alias in AGGREGATIONS) {
-    if (field.startsWith(alias) && !field.startsWith('user_misery_prototype')) {
+    if (field.startsWith(alias)) {
       return AGGREGATIONS[alias].isSortable ? field : null;
     }
   }

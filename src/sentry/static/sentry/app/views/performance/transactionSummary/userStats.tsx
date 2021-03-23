@@ -53,8 +53,8 @@ function UserStats({
   let vitalsPassRate: React.ReactNode = null;
 
   if (!isLoading && error === null && totals) {
-    const miserableUsers = Number(totals[`user_misery_${threshold}`]);
-    const userMiseryScore = Number(totals[`user_misery_prototype_${threshold}`]);
+    const miserableUsers = Number(totals[`count_miserable_users_${threshold}`]);
+    const userMiseryScore = Number(totals[`user_misery_${threshold}`]);
     const totalUsers = Number(totals.count_unique_user);
     if (!isNaN(miserableUsers) && !isNaN(totalUsers)) {
       userMisery = (

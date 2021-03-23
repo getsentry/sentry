@@ -117,7 +117,7 @@ class TransactionSummary extends React.Component<Props, State> {
       },
       {
         kind: 'field',
-        field: `user_misery(${threshold})`,
+        field: `count_miserable_users(${threshold})`,
       },
       {
         kind: 'function',
@@ -141,7 +141,7 @@ class TransactionSummary extends React.Component<Props, State> {
       },
       {
         kind: 'function',
-        function: ['user_misery_prototype', threshold, undefined],
+        function: ['user_misery', threshold, undefined],
       },
       ...vitals.map(
         vital =>

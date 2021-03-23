@@ -315,8 +315,8 @@ class SearchVisitor(NodeVisitor):
         "p95",
         "p99",
         "failure_rate",
+        "count_miserable_users",
         "user_misery",
-        "user_misery_prototype",
     }
     date_keys = {
         "start",
@@ -2043,14 +2043,14 @@ FUNCTIONS = {
             default_result_type="number",
         ),
         Function(
-            "user_misery",
+            "count_miserable_users",
             required_args=[NumberRange("satisfaction", 0, None)],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
             transform="uniqIf(user, greater(duration, {tolerated:g}))",
             default_result_type="number",
         ),
         Function(
-            "user_misery_prototype",
+            "user_misery",
             required_args=[NumberRange("satisfaction", 0, None)],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
             # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.

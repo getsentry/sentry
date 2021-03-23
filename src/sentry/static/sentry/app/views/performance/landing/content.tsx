@@ -128,7 +128,7 @@ class LandingContent extends React.Component<Props, State> {
               [...eventView.fields, {field: 'tps()'}],
               ['epm()', 'eps()']
             )}
-            omitTags={[`user_misery_prototype(${organization.apdexThreshold})`]}
+            omitTags={[`count_miserable_users(${organization.apdexThreshold})`]}
             onSearch={handleSearch}
             maxQueryLength={MAX_QUERY_LENGTH}
           />

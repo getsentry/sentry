@@ -278,8 +278,8 @@ function generateGenericPerformanceEventView(
       'failure_rate()',
       `apdex(${organization.apdexThreshold})`,
       'count_unique(user)',
+      `count_miserable_users(${organization.apdexThreshold})`,
       `user_misery(${organization.apdexThreshold})`,
-      `user_misery_prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };
@@ -333,8 +333,8 @@ function generateBackendPerformanceEventView(
       'failure_rate()',
       `apdex(${organization.apdexThreshold})`,
       'count_unique(user)',
+      `count_miserable_users(${organization.apdexThreshold})`,
       `user_misery(${organization.apdexThreshold})`,
-      `user_misery_prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };
@@ -387,8 +387,8 @@ function generateFrontendPageloadPerformanceEventView(
       'p75(measurements.fid)',
       'p75(measurements.cls)',
       'count_unique(user)',
+      `count_miserable_users(${organization.apdexThreshold})`,
       `user_misery(${organization.apdexThreshold})`,
-      `user_misery_prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };
@@ -438,8 +438,8 @@ function generateFrontendOtherPerformanceEventView(
       'p75(transaction.duration)',
       'p95(transaction.duration)',
       'count_unique(user)',
+      `count_miserable_users(${organization.apdexThreshold})`,
       `user_misery(${organization.apdexThreshold})`,
-      `user_misery_prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };

@@ -136,11 +136,8 @@ class Table extends React.Component<Props, State> {
       );
     }
 
-    if (
-      field.startsWith('key_transaction') ||
-      field.startsWith('user_misery_prototype')
-    ) {
-      // don't display per cell actions for key_transaction or user_misery_prototype
+    if (field.startsWith('key_transaction')) {
+      // don't display per cell actions for key_transaction
       return rendered;
     }
 
@@ -271,7 +268,7 @@ class Table extends React.Component<Props, State> {
       // via a prepended column
       .filter(
         (col: TableColumn<React.ReactText>) =>
-          col.name !== 'key_transaction' && !col.name.startsWith('user_misery(')
+          col.name !== 'key_transaction' && !col.name.startsWith('count_miserable_users')
       )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {

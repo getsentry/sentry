@@ -273,7 +273,7 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
-  user_misery_prototype: {
+  user_misery: {
     generateDefaultValue({parameter, organization}: DefaultValueInputs) {
       return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
     },
@@ -286,7 +286,7 @@ export const AGGREGATIONS = {
       },
     ],
     outputType: 'number',
-    isSortable: false,
+    isSortable: true,
     multiPlotType: 'area',
   },
   eps: {
@@ -541,7 +541,7 @@ export const TRACING_FIELDS = [
   'percentile',
   'failure_rate',
   'apdex',
-  'user_misery',
+  'count_miserable_users',
   'eps',
   'epm',
   ...Object.keys(MEASUREMENTS),
