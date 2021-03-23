@@ -45,13 +45,10 @@ start_docker() {
 }
 
 create_user() {
-  set -x
-  env | sort
-  if [[ -z ${GITHUB_ACTIONS+x} ]]; then
+  if [[ -n ${GITHUB_ACTIONS} ]]; then
 		sentry createuser --superuser --email foo@tbd.com --no-password
 	else
-    echo "FOO"
-		# sentry createuser --superuser
+		sentry createuser --superuser
 	fi
 }
 
