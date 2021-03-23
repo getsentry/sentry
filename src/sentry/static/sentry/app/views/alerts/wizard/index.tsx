@@ -44,8 +44,8 @@ class AlertWizard extends React.Component<Props, State> {
     this.setState({alertOption});
   };
 
-  renderCreateAlertButton = () => {
-    const {organization, project} = this.props;
+  renderCreateAlertButton() {
+    const {organization, project, location} = this.props;
     const {alertOption} = this.state;
     const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
     const to = {
@@ -53,6 +53,7 @@ class AlertWizard extends React.Component<Props, State> {
       query: {
         ...(metricRuleTemplate && metricRuleTemplate),
         createFromWizard: true,
+        referrer: location?.query?.referrer,
       },
     };
     return (
@@ -63,7 +64,7 @@ class AlertWizard extends React.Component<Props, State> {
         to={to}
       />
     );
-  };
+  }
 
   render() {
     const {

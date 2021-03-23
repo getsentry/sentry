@@ -47,7 +47,10 @@ export type WizardRuleTemplate = {
   eventTypes: EventTypes;
 };
 
-export const AlertWizardRuleTemplates: Partial<Record<AlertType, WizardRuleTemplate>> = {
+export const AlertWizardRuleTemplates: Record<
+  Exclude<AlertType, 'issues'>,
+  WizardRuleTemplate
+> = {
   num_errors: {
     aggregate: 'count()',
     dataset: Dataset.ERRORS,
