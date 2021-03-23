@@ -1,27 +1,13 @@
 ---
-created: '2021-03-18T11:30:05.120804Z'
+created: '2021-03-23T22:22:27.812826Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "161075c9f303ee880a2a874ad05bd706"
+  hash: "3a6e41ac29b05b3745783c0a4fc6b493"
+  tree_label: "log_demo::main"
   component:
     app-depth-1*
-      exception*
-        stacktrace
-          frame (ignored by stack trace rule (function:log_demo::* -group))
-            function*
-              "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
-        value*
-          "Holy shit everything is on fire!"
---------------------------------------------------------------------------
-app-depth-2:
-  hash: "eb87c1031dba55b67df86fb9fff59dc6"
-  tree_label: "log_demo::main | ..."
-  component:
-    app-depth-2*
       exception*
         stacktrace*
           frame*
@@ -29,21 +15,14 @@ app-depth-2:
               "log_demo::main"
             package (ignored because function takes precedence)
               "log_demo"
-          frame (ignored by stack trace rule (function:log_demo::* -group))
-            function*
-              "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
-        type*
-          "log_demo"
         value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
-app-depth-3:
+app-depth-2:
   hash: "eb87c1031dba55b67df86fb9fff59dc6"
   tree_label: "<entire stacktrace>"
   component:
-    app-depth-3*
+    app-depth-2*
       exception*
         stacktrace*
           frame (ignored by stack trace rule (function:log_demo::* -group))

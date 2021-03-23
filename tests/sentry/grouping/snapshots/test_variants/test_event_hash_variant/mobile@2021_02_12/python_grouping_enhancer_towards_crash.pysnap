@@ -1,31 +1,13 @@
 ---
-created: '2021-03-18T11:30:03.883760Z'
+created: '2021-03-23T22:22:26.633569Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "33f8774afd1783f97fc06781add97f36"
+  hash: "0e0afa4a3fb190cd1660b4290e3cd58b"
+  tree_label: "_wrapper"
   component:
     app-depth-1*
-      exception*
-        stacktrace
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
-            module*
-              "django.utils.datastructures"
-            filename (module takes precedence)
-              "datastructures.py"
-            function*
-              "__getitem__"
-            context-line*
-              "raise MultiValueDictKeyError(repr(key))"
-        value*
-          "\"'user'\""
---------------------------------------------------------------------------
-app-depth-2:
-  hash: "1d73d06508db5c517ce31b7f7e8ce794"
-  tree_label: "_wrapper | ..."
-  component:
-    app-depth-2*
       exception*
         stacktrace*
           frame*
@@ -37,25 +19,14 @@ app-depth-2:
               "_wrapper"
             context-line*
               "return bound_func(*args, **kwargs)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
-            module*
-              "django.utils.datastructures"
-            filename (module takes precedence)
-              "datastructures.py"
-            function*
-              "__getitem__"
-            context-line*
-              "raise MultiValueDictKeyError(repr(key))"
-        type*
-          "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
           "\"'user'\""
 --------------------------------------------------------------------------
-app-depth-3:
+app-depth-2:
   hash: "fffce8f5341aba04611ac9a2e2b69aec"
   tree_label: "view | ..."
   component:
-    app-depth-3*
+    app-depth-2*
       exception*
         stacktrace*
           frame*
@@ -76,25 +47,16 @@ app-depth-3:
               "_wrapper"
             context-line*
               "return bound_func(*args, **kwargs)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
-            module*
-              "django.utils.datastructures"
-            filename (module takes precedence)
-              "datastructures.py"
-            function*
-              "__getitem__"
-            context-line*
-              "raise MultiValueDictKeyError(repr(key))"
         type*
           "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
           "\"'user'\""
 --------------------------------------------------------------------------
-app-depth-4:
+app-depth-3:
   hash: "90888e813b09fa25061af2883c0fb9bd"
   tree_label: "get_response | ..."
   component:
-    app-depth-4*
+    app-depth-3*
       exception*
         stacktrace*
           frame*
@@ -124,25 +86,16 @@ app-depth-4:
               "_wrapper"
             context-line*
               "return bound_func(*args, **kwargs)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
-            module*
-              "django.utils.datastructures"
-            filename (module takes precedence)
-              "datastructures.py"
-            function*
-              "__getitem__"
-            context-line*
-              "raise MultiValueDictKeyError(repr(key))"
         type*
           "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
           "\"'user'\""
 --------------------------------------------------------------------------
-app-depth-5:
+app-depth-4:
   hash: "90888e813b09fa25061af2883c0fb9bd"
   tree_label: "<entire stacktrace>"
   component:
-    app-depth-5*
+    app-depth-4*
       exception*
         stacktrace*
           frame*
