@@ -24,7 +24,7 @@ def delete_group(group):
     GroupHash.objects.filter(project_id=group.project_id, group__id=group.id).delete()
     # We remove `GroupInbox` rows here so that they don't end up influencing queries for
     # `Group` instances that are pending deletion
-    GroupInbox.objects.filter(project_id=group.project.id, group__id__in=group.id).delete()
+    GroupInbox.objects.filter(project_id=group.project.id, group__id=group.id).delete()
 
     delete_groups.apply_async(
         kwargs={
