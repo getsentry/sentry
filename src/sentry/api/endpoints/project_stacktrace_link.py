@@ -2,6 +2,7 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, RepositoryProjectPathConfig
 from sentry.api.serializers import serialize
 from sentry.utils.compat import filter
@@ -51,7 +52,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         # no longer feature gated and is added as an IntegrationFeature
         result["integrations"] = [
             serialize(i, request.user)
-            for i in filter(lambda i: i.get_provider().has_stacktrace_linking, integrations)
+            for i in filter(
+                lambda i: i.has_feature(IntegrationFeatures.STACKTRACE_LINK), integrations
+            )
         ]
 
         # xxx(meredith): if there are ever any changes to this query, make
