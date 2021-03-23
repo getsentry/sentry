@@ -175,6 +175,8 @@ GROUPBY_MAP = {
 
 TS_COL = "time"
 
+ONE_HOUR = 3600
+
 
 def get_filter(
     query: QueryDict, params: Mapping[Any, Any]
@@ -322,7 +324,7 @@ def _rename_row_fields(row: Dict[str, Any]) -> None:
 
 
 def _outcomes_dataset(rollup: int) -> Dataset:
-    if rollup >= 3600:
+    if rollup >= ONE_HOUR:
         # "Outcomes" is the hourly rollup table
         return Dataset.Outcomes
     else:
