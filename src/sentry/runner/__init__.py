@@ -163,6 +163,12 @@ def call_command(name, obj=None, **kwargs):
 
 
 def main():
+    func = cli
+    kwargs = {
+        "prog_name": get_prog(),
+        "obj": {},
+        "max_content_width": 100,
+    }
     # This variable is *only* set as part of direnv/.envrc, thus, we cannot affect production
     if os.environ.get("SENTRY_DEVENV_DSN"):
         # We do this here because `configure_structlog` executes later
@@ -174,7 +180,7 @@ def main():
             "Use SENTRY_DEVENV_NO_REPORT to avoid reporting issues."
         )
         try:
-            cli(prog_name=get_prog(), obj={}, max_content_width=100)
+            func(**kwargs)
         except Exception as e:
             # This reports to the project sentry-dev-env
             with sentry_sdk.init(dsn=os.environ["SENTRY_DEVENV_DSN"]):
@@ -184,5 +190,4 @@ def main():
                 logger.info("We have reported the error below to Sentry")
             raise e
     else:
-        # If you change this command here make sure to also change it in the block above
-        cli(prog_name=get_prog(), obj={}, max_content_width=100)
+        func(**kwargs)
