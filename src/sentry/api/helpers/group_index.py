@@ -343,6 +343,8 @@ def _delete_groups(request, project, group_list, delete_type):
     transaction_id = uuid4().hex
 
     GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
+    # We remove `GroupInbox` rows here so that they don't end up influencing queries for
+    # `Group` instances that are pending deletion
     GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
     delete_groups_task.apply_async(
