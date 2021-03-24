@@ -53,6 +53,7 @@ class WorkItemWebhook(Endpoint):
                     "vsts.integration-in-webhook-payload-does-not-exist",
                     extra={"external_id": external_id, "event_type": event_type},
                 )
+                return self.respond(status=400)
 
             try:
                 self.check_webhook_secret(request, integration)
