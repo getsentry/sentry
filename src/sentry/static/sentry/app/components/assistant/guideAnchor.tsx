@@ -24,7 +24,6 @@ import theme from 'app/utils/theme';
 type Props = {
   target?: string; //Shouldn't target be mandatory?
   position?: React.ComponentProps<typeof Hovercard>['position'];
-  disabled?: boolean;
   offset?: string;
   to?: {
     pathname: string;
@@ -184,10 +183,10 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 
   render() {
-    const {disabled, children, position, offset, containerClassName} = this.props;
+    const {children, position, offset, containerClassName} = this.props;
     const {active} = this.state;
 
-    if (!active || disabled) {
+    if (!active) {
       return children ? children : null;
     }
 
@@ -205,6 +204,22 @@ const GuideAnchor = createReactClass<Props, State>({
     );
   },
 });
+
+/**
+ * Wraps the GuideAnchor so we don't have to render it if it's disabled
+ * Using a class so we automatically have children as a typed prop
+ */
+
+type WrapperProps = {disabled?: boolean} & Props;
+export default class GuideAnchorWrapper extends React.Component<WrapperProps> {
+  render() {
+    const {disabled, children, ...rest} = this.props;
+    if (disabled) {
+      return null;
+    }
+    return <GuideAnchor {...rest}>{children}</GuideAnchor>;
+  }
+}
 
 const GuideContainer = styled('div')`
   display: grid;
@@ -273,5 +288,3 @@ const StyledHovercard = styled(Hovercard)`
     width: 300px;
   }
 `;
-
-export default GuideAnchor;
