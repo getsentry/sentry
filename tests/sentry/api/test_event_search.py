@@ -2300,7 +2300,11 @@ class ResolveFieldListTest(unittest.TestCase):
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["max", "timestamp", "last_seen"],
             ["apdex(duration, 300)", None, "apdex_300"],
-            ["uniqIf(user, greater(duration, 1200))", None, "count_miserable_user_300"],
+            [
+                "uniqIf",
+                ["user", ["greater", ["transaction.duration", 1200.0]]],
+                "count_miserable_user_300",
+            ],
             [
                 "ifNull(divide(plus(uniqIf(user, greater(duration, 1200)), 5.8875), plus(uniq(user), 117.75)), 0)",
                 None,
