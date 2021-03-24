@@ -55,7 +55,7 @@ class GroupEventToolbar extends React.Component<Props> {
     return this.props.event.id !== nextProps.event.id;
   }
 
-  handleTraceLink(organization: OrganizationSummary) {
+  handleTraceLink(organization: Organization) {
     trackAnalyticsEvent({
       eventKey: 'quick_trace.trace_id.clicked',
       eventName: 'Quick Trace: Trace ID clicked',
@@ -77,7 +77,7 @@ class GroupEventToolbar extends React.Component<Props> {
                 quickTrace={results}
                 location={location}
                 organization={organization}
-                anchorRight={false}
+                anchor="left"
               />
             )}
           </QuickTraceQuery>
@@ -154,9 +154,11 @@ class GroupEventToolbar extends React.Component<Props> {
         <Heading>
           {t('Event')}{' '}
           <EventIdLink to={`${baseEventsPath}${evt.id}/`}>{evt.eventID}</EventIdLink>
-          <JsonLink href={jsonUrl}>
-            {'JSON'} (<FileSize bytes={evt.size} />)
-          </JsonLink>
+          <LinkContainer>
+            <ExternalLink href={jsonUrl}>
+              {'JSON'} (<FileSize bytes={evt.size} />)
+            </ExternalLink>
+          </LinkContainer>
         </Heading>
         <Tooltip title={this.getDateTooltip()} disableForVisualTest>
           <StyledDateTime
@@ -165,13 +167,15 @@ class GroupEventToolbar extends React.Component<Props> {
           {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
         </Tooltip>
         {hasQuickTraceView && (
-          <Link
-            to={generateTraceTarget(evt, organization)}
-            onClick={() => this.handleTraceLink(organization)}
-          >
-            {' '}
-            View Full Trace
-          </Link>
+          <LinkContainer>
+            <Link
+              to={generateTraceTarget(evt, organization)}
+              onClick={() => this.handleTraceLink(organization)}
+            >
+              {' '}
+              View Full Trace
+            </Link>
+          </LinkContainer>
         )}
         {hasQuickTraceView && this.renderQuickTrace()}
       </Wrapper>
@@ -217,7 +221,7 @@ const StyledDateTime = styled(DateTime)`
   color: ${p => p.theme.subText};
 `;
 
-const JsonLink = styled(ExternalLink)`
+const LinkContainer = styled('span')`
   margin-left: ${space(1)};
   padding-left: ${space(1)};
   position: relative;

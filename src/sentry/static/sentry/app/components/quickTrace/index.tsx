@@ -38,7 +38,7 @@ type QuickTraceProps = {
   event: Event;
   location: Location;
   organization: OrganizationSummary;
-  anchorRight: boolean;
+  anchor: 'left' | 'right';
 };
 
 export default function QuickTrace({
@@ -46,7 +46,7 @@ export default function QuickTrace({
   quickTrace,
   location,
   organization,
-  anchorRight,
+  anchor,
 }: QuickTraceProps) {
   let parsedQuickTrace;
   try {
@@ -69,7 +69,7 @@ export default function QuickTrace({
         text={t('Root')}
         hoverText={<SingleEventHoverText event={root} />}
         pad="right"
-        anchorRight={anchorRight}
+        anchor={anchor}
         nodeKey="root"
       />
     );
@@ -99,7 +99,7 @@ export default function QuickTrace({
           'Ancestor'
         )}
         pad="right"
-        anchorRight={anchorRight}
+        anchor={anchor}
         nodeKey="ancestors"
       />
     );
@@ -116,7 +116,7 @@ export default function QuickTrace({
         text={t('Parent')}
         hoverText={<SingleEventHoverText event={parent} />}
         pad="right"
-        anchorRight={anchorRight}
+        anchor={anchor}
         nodeKey="parent"
       />
     );
@@ -132,7 +132,7 @@ export default function QuickTrace({
       events={[current]}
       currentEvent={event}
       pad="left"
-      anchorRight={anchorRight}
+      anchor={anchor}
       nodeKey="current"
     />
   );
@@ -161,7 +161,7 @@ export default function QuickTrace({
           'Children'
         )}
         pad="left"
-        anchorRight={anchorRight}
+        anchor={anchor}
         nodeKey="children"
       />
     );
@@ -191,7 +191,7 @@ export default function QuickTrace({
           'Descendant'
         )}
         pad="left"
-        anchorRight={anchorRight}
+        anchor={anchor}
         nodeKey="descendants"
       />
     );
@@ -234,7 +234,7 @@ type EventNodeSelectorProps = {
   hoverText?: React.ReactNode;
   extrasTarget?: LocationDescriptor;
   numEvents?: number;
-  anchorRight: boolean;
+  anchor: 'left' | 'right';
   nodeKey: string;
 };
 
@@ -248,7 +248,7 @@ function EventNodeSelector({
   hoverText,
   extrasTarget,
   nodeKey,
-  anchorRight,
+  anchor,
   numEvents = 5,
 }: EventNodeSelectorProps) {
   const errors: TraceError[] = [];
@@ -313,7 +313,7 @@ function EventNodeSelector({
         title={
           <StyledEventNode text={text} pad={pad} hoverText={hoverText} type={type} />
         }
-        anchorRight={anchorRight}
+        anchorRight={anchor === 'right'}
       >
         {errors.slice(0, numEvents).map((error, i) => {
           const target = generateSingleEventTarget(error, organization, location);
@@ -326,6 +326,7 @@ function EventNodeSelector({
               organization={organization}
               subtext="error"
               subtextType="error"
+              anchor={anchor}
             />
           );
         })}
@@ -344,6 +345,7 @@ function EventNodeSelector({
                 true
               )}
               subtextType="default"
+              anchor={anchor}
             />
           );
         })}
@@ -366,6 +368,7 @@ type DropdownNodeProps = {
   organization: OrganizationSummary;
   subtext: string;
   subtextType: 'error' | 'default';
+  anchor: 'left' | 'right';
 };
 
 function DropdownNodeItem({
@@ -375,6 +378,7 @@ function DropdownNodeItem({
   organization,
   subtext,
   subtextType,
+  anchor,
 }: DropdownNodeProps) {
   return (
     <DropdownItem onSelect={onSelect} first={first}>
@@ -393,7 +397,8 @@ function DropdownNodeItem({
         </Projects>
         <StyledTruncate
           value={event.transaction}
-          expandDirection="left"
+          // expand in the opposite direction of the anchor
+          expandDirection={anchor === 'left' ? 'right' : 'left'}
           maxLength={35}
           leftTrim
           trimRegex={/\.|\//g}

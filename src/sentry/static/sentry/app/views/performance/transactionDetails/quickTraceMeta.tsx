@@ -51,7 +51,7 @@ export default function QuickTraceMeta({
         quickTrace={{type, trace}}
         location={location}
         organization={organization}
-        anchorRight
+        anchor="right"
       />
     </ErrorBoundary>
   );
