@@ -1,5 +1,5 @@
 ---
-created: '2021-03-22T16:57:35.178627Z'
+created: '2021-03-24T14:48:03.973626Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -68,5 +68,5 @@ source: tests/sentry/grouping/test_categorization.py
   C:\Windows\Microsoft.NET\Framework64\v4.0.  VTableBootstrapThunkInitHelper category=system
   C:\Windows\Microsoft.NET\Framework64\v4.0.  CorDllMainWorkerForThunk category=system
   C:\Windows\Microsoft.NET\Framework64\v4.0.  CorDllMainForThunk category=system
-  C:\Windows\Microsoft.NET\Framework64\v4.0.  RaiseComPlusException category=system
+  C:\Windows\Microsoft.NET\Framework64\v4.0.  RaiseComPlusException category=throw
           C:\windows\System32\KERNELBASE.dll  RaiseException category=throw
