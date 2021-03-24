@@ -390,22 +390,24 @@ type SpecialFunctions = {
 const SPECIAL_FUNCTIONS: SpecialFunctions = {
   user_misery: data => {
     const uniqueUsers = data.count_unique_user;
-    let miseryField: string = '';
     let userMiseryField: string = '';
+    let countMiserableUserField: string = '';
     for (const field in data) {
       if (field.startsWith('user_misery')) {
-        miseryField = field;
-      } else if (field.startsWith('count_miserable_user')) {
         userMiseryField = field;
+      } else if (field.startsWith('count_miserable_user')) {
+        countMiserableUserField = field;
       }
     }
 
-    if (!miseryField) {
+    if (!userMiseryField) {
       return <NumberContainer>{emptyValue}</NumberContainer>;
     }
 
-    const miserableUsers = userMiseryField ? data[userMiseryField] : undefined;
-    const userMisery = miseryField ? data[miseryField] : undefined;
+    const miserableUsers = countMiserableUserField
+      ? data[countMiserableUserField]
+      : undefined;
+    const userMisery = userMiseryField ? data[userMiseryField] : undefined;
 
     const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
 
