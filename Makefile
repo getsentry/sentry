@@ -50,6 +50,9 @@ reset-db: drop-db create-db apply-migrations
 setup-pyenv:
 	@./scripts/pyenv_setup.sh
 
+upgrade-pip:
+	@./scripts/python.sh upgrade-pip
+
 setup-git-config:
 	@./scripts/do.sh setup-git-config
 
