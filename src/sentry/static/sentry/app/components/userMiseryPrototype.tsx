@@ -21,7 +21,7 @@ function UserMiseryPrototype(props: Props) {
   // and below 5% will always be an overestimation of the actual proportion
   // of miserable to total unique users. We are going to visualize it as
   // 0 User Misery while still preserving the actual value for sorting purposes.
-  const adjustedMisery = userMisery >= 0.05 ? userMisery : 0;
+  const adjustedMisery = userMisery > 0.05 ? userMisery : 0;
 
   const palette = new Array(bars).fill([CHART_PALETTE[0][0]]);
   const score = Math.round(adjustedMisery * palette.length);
