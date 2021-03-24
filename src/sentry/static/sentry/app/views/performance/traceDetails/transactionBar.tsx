@@ -6,7 +6,7 @@ import Count from 'app/components/count';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {Organization} from 'app/types';
-import {TraceFull} from 'app/utils/performance/quickTrace/types';
+import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 
@@ -42,7 +42,7 @@ type Props = {
   location: Location;
   organization: Organization;
   index: number;
-  transaction: TraceFull;
+  transaction: TraceFullDetailed;
   traceInfo: TraceInfo;
   isLast: boolean;
   continuingDepths: Array<number>;
