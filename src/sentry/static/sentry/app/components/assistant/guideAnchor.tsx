@@ -214,7 +214,7 @@ const GuideContainer = styled('div')`
   line-height: 1.5;
   background-color: ${p => p.theme.purple300};
   border-color: ${p => p.theme.purple300};
-  color: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.white};
 `;
 
 const GuideContent = styled('div')`
@@ -223,7 +223,7 @@ const GuideContent = styled('div')`
   grid-gap: ${space(1)};
 
   a {
-    color: ${p => p.theme.backgroundSecondary};
+    color: ${p => p.theme.white};
     text-decoration: underline;
   }
 `;
