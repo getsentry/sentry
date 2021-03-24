@@ -1,66 +1,35 @@
 from django.db import transaction
-from django.db.models.query import QuerySet
-from typing import Iterable, Optional
+from django.db.models import Q
+from typing import Iterable, List, Optional, Union
 
-from sentry.db.models import BaseManager
+from sentry.db.models import BaseManager, QuerySet
 from sentry.models.actor import ACTOR_TYPES
 from sentry.models.integration import ExternalProviders
+from sentry.models import (
+    Actor,
+    Organization,
+    Project,
+    Team,
+    User,
+    UserOption,
+)
+from sentry.notifications.helpers import (
+    get_scope,
+    get_scope_type,
+    get_target,
+    should_user_be_notified,
+    validate,
+)
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.models.useroption import UserOption
 from sentry.notifications.legacy_mappings import (
     KEYS_TO_LEGACY_KEYS,
     get_legacy_key,
     get_legacy_value,
 )
-
-
-def validate(type: NotificationSettingTypes, value: NotificationSettingOptionValues):
-    """
-    :return: boolean. True if the "value" is valid for the "type".
-    """
-    return get_legacy_value(type, value) is not None
-
-
-def _get_scope(user_id, project=None, organization=None):
-    """
-    Figure out the scope from parameters and return it as a tuple,
-    TODO(mgaeta): Make sure user_id is in the project or organization.
-    TODO(mgaeta): Add Team scope.
-    :param user_id: The user's ID
-    :param project: (Optional) Project object
-    :param organization: (Optional) Organization object
-    :return: (int, int): (scope_type, scope_identifier)
-    """
-
-    if project:
-        return NotificationScopeType.PROJECT.value, project.id
-
-    if organization:
-        return NotificationScopeType.ORGANIZATION.value, organization.id
-
-    if user_id:
-        return NotificationScopeType.USER.value, user_id
-
-    raise Exception("scope must be either user, organization, or project")
-
-
-def _get_target(user=None, team=None):
-    """
-    Figure out the target from parameters and return it as a tuple.
-    :return: (int, int): (target_type, target_identifier)
-    """
-
-    if user:
-        return user.actor
-
-    if team:
-        return team.actor
-
-    raise Exception("target must be either a user or a team")
 
 
 class NotificationsManager(BaseManager):
@@ -82,39 +51,18 @@ class NotificationsManager(BaseManager):
         UserOptions. One and only one of (user, team, project, or organization)
         must not be null. This function automatically translates a missing DB
         row to NotificationSettingOptionValues.DEFAULT.
-        :param provider: ExternalProviders enum
-        :param type: NotificationSetting.type enum
-        :param user: (optional) A User object
-        :param team: (optional) A Team object
-        :param project: (optional) A Project object
-        :param organization: (optional) An Organization object
-        :return: NotificationSettingOptionValues enum
         """
-        user_id_option = getattr(user, "id", None)
-        scope_type, scope_identifier = _get_scope(
-            user_id_option, project=project, organization=organization
-        )
-        target = _get_target(user, team)
-
-        value = (  # NOQA
-            self.filter(
-                provider=provider.value,
-                type=type.value,
-                scope_type=scope_type,
-                scope_identifier=scope_identifier,
-                target=target,
-            ).first()
-            or NotificationSettingOptionValues.DEFAULT
-        )
+        setting_option = self.find_settings(
+            provider, type, user, team, project, organization
+        ).first()
+        value = setting_option.value if setting_option else NotificationSettingOptionValues.DEFAULT
 
         legacy_value = UserOption.objects.get_value(
             user, get_legacy_key(type), project=project, organization=organization
         )
+        assert get_legacy_value(type, value) == legacy_value
 
-        # TODO(mgaeta): This line will be valid after the "copy migration".
-        # assert value == legacy_value
-
-        return legacy_value
+        return value
 
     def update_settings(
         self,
@@ -132,13 +80,6 @@ class NotificationsManager(BaseManager):
           * Updating a user's org-independent preferences
           * Updating a user's per-project preferences
           * Updating a user's per-organization preferences
-        :param provider: ExternalProviders enum
-        :param type: NotificationSettingTypes enum
-        :param value: NotificationSettingOptionValues enum
-        :param user: (Optional) User object
-        :param team: (Optional) Team object
-        :param project: (Optional) Project object
-        :param organization: (Optional) Organization object
         """
         # A missing DB row is equivalent to DEFAULT.
         if value == NotificationSettingOptionValues.DEFAULT:
@@ -155,10 +96,10 @@ class NotificationsManager(BaseManager):
             raise Exception(f"value '{value}' is not valid for type '{type}'")
 
         user_id_option = getattr(user, "id", None)
-        scope_type, scope_identifier = _get_scope(
+        scope_type, scope_identifier = get_scope(
             user_id_option, project=project, organization=organization
         )
-        target = _get_target(user, team)
+        target = get_target(user, team)
 
         key = get_legacy_key(type)
         legacy_value = get_legacy_value(type, value)
@@ -173,7 +114,7 @@ class NotificationsManager(BaseManager):
             setting, created = self.get_or_create(
                 provider=provider.value,
                 type=type.value,
-                scope_type=scope_type,
+                scope_type=scope_type.value,
                 scope_identifier=scope_identifier,
                 target=target,
                 defaults={"value": value.value},
@@ -199,28 +140,10 @@ class NotificationsManager(BaseManager):
         We don't anticipate this function will be used by the API but is useful
         for tests. This can also be called by `update_settings` when attempting
         to set a notification preference to DEFAULT.
-        :param provider: ExternalProviders enum
-        :param type: NotificationSettingTypes enum
-        :param user: (Optional) User object
-        :param team: (Optional) Team object
-        :param project: (Optional) Project object
-        :param organization: (Optional) Organization object
         """
-        user_id_option = getattr(user, "id", None)
-        scope_type, scope_identifier = _get_scope(
-            user_id_option, project=project, organization=organization
-        )
-        target = _get_target(user, team)
 
         with transaction.atomic():
-            self.filter(
-                provider=provider.value,
-                type=type.value,
-                scope_type=scope_type,
-                scope_identifier=scope_identifier,
-                target=target,
-            ).delete()
-
+            self.find_settings(provider, type, user, team, project, organization).delete()
             UserOption.objects.unset_value(user, project, get_legacy_key(type))
 
     def _filter(
@@ -290,21 +213,104 @@ class NotificationsManager(BaseManager):
             type=type,
         ).delete()
 
-    def get_settings_for_users(
-        self, provider: ExternalProviders, type: NotificationSettingTypes, users, project
-    ):
-        """
-        Get some users' notification preferences for a given project.
-        :param provider: ExternalProviders enum
-        :param type: NotificationSettingTypes enum
-        :param users: List of user objects
-        :param project: Project object
-        :return: Object mapping users' IDs to their notification preferences
-        """
+    def find_settings(
+        self,
+        provider: ExternalProviders,
+        type: NotificationSettingTypes,
+        user: Optional[User] = None,
+        team: Optional[Team] = None,
+        project: Optional[Project] = None,
+        organization: Optional[Organization] = None,
+    ) -> QuerySet:
+        """ Wrapper for .filter that translates object parameters to scopes and targets. """
+        user_id_option = getattr(user, "id", None)
+        scope_type, scope_identifier = get_scope(
+            user_id_option, project=project, organization=organization
+        )
+        target = get_target(user, team)
+        return self._filter(provider, type, scope_type, scope_identifier, target)
 
-        return {
-            user_id: value
-            for user_id, value in UserOption.objects.filter(
-                user__in=users, project=project, key=type.value
-            ).values_list("user_id", "value")
-        }
+    def get_for_user_by_projects(
+        self,
+        provider: ExternalProviders,
+        type: NotificationSettingTypes,
+        user: User,
+        parents: Union[List[Organization], List[Project]],
+    ) -> QuerySet:
+        """
+        Find all of a user's notification settings for a list of projects or organizations.
+        This will include the user's  setting.
+        """
+        scope_type = get_scope_type(type)
+        return self.filter(
+            Q(
+                scope_type=scope_type.value,
+                scope_identifier__in=[parent.id for parent in parents],
+            )
+            | Q(
+                scope_type=NotificationScopeType.USER.value,
+                scope_identifier=user.id,
+            ),
+            provider=provider.value,
+            type=type.value,
+            target=user.actor,
+        )
+
+    def get_for_users_by_parent(
+        self,
+        provider: ExternalProviders,
+        type: NotificationSettingTypes,
+        parent: Union[Organization, Project],
+        users: List[User],
+    ) -> QuerySet:
+        """
+        Find all of a project/organization's notification settings for a list of users.
+        This will include each user's project/organization-independent settings.
+        """
+        scope_type = get_scope_type(type)
+        return self.filter(
+            Q(
+                scope_type=scope_type.value,
+                scope_identifier=parent.id,
+            )
+            | Q(
+                scope_type=NotificationScopeType.USER,
+                scope_identifier__in=[user.id for user in users],
+            ),
+            provider=provider.value,
+            type=type.value,
+            target__in=[user.actor for user in users],
+        )
+
+    def filter_to_subscribed_users(
+        self,
+        provider: ExternalProviders,
+        project: Project,
+        users: List[User],
+    ) -> List[User]:
+        """
+        Filters a list of users down to the users who are subscribed to email
+        alerts. We check both the project level settings and global default settings.
+        """
+        notification_settings = self.get_for_users_by_parent(
+            provider, NotificationSettingTypes.ISSUE_ALERTS, parent=project, users=users
+        )
+        notification_settings_by_user = self.transform_to_notification_settings_by_user(
+            notification_settings, users
+        )
+        return [
+            user for user in users if should_user_be_notified(notification_settings_by_user, user)
+        ]
+
+    def get_notification_recipients(
+        self, provider: ExternalProviders, project: Project
+    ) -> List[User]:
+        """
+        Return a set of users that should receive Issue Alert emails for a given
+        project. To start, we get the set of all users. Then we fetch all of
+        their relevant notification settings and put them into reference
+        dictionary. Finally, we traverse the set of users and return the ones
+        that should get a notification.
+        """
+        users = project.member_set.values_list("user", flat=True)
+        return self.filter_to_subscribed_users(provider, project, users)
