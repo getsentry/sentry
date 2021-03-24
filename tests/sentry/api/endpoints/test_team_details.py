@@ -96,12 +96,7 @@ class TeamDeleteTest(TeamDetailsTestBase):
     @patch("sentry.api.endpoints.team_details.delete_team")
     def test_can_remove_as_admin_in_team(self, mock_delete_team, mock_uuid4):
         """Admins can remove teams of which they're a part"""
-
-        # mock the transaction_id when mock_delete_team is called
-        class uuid:
-            hex = "abc123"
-
-        mock_uuid4.return_value = uuid
+        mock_uuid4.return_value = self.get_mock_uuid()
 
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -121,12 +116,7 @@ class TeamDeleteTest(TeamDetailsTestBase):
     def test_remove_as_admin_not_in_team(self, mock_delete_team, mock_uuid4):
         """Admins can't remove teams of which they're not a part, unless
         open membership is on."""
-
-        # mock the transaction_id when mock_delete_team is called
-        class uuid:
-            hex = "abc123"
-
-        mock_uuid4.return_value = uuid
+        mock_uuid4.return_value = self.get_mock_uuid()
 
         # an org with closed membership (byproduct of flags=0)
         org = self.create_organization(owner=self.user, flags=0)

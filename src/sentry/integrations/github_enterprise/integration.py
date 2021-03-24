@@ -254,7 +254,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
     name = "GitHub Enterprise"
     metadata = metadata
     integration_cls = GitHubEnterpriseIntegration
-    has_stacktrace_linking = False
+    features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.ISSUE_BASIC])
 
     def _make_identity_pipeline_view(self):
         """
