@@ -212,7 +212,7 @@ class SlackNotifyActionTest(RuleTestCase):
         assert form.is_valid()
 
     @responses.activate
-    def test_invalid_channel_id_provided(self):
+    def test_invalid_channel_name_provided(self):
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.info",
@@ -223,7 +223,7 @@ class SlackNotifyActionTest(RuleTestCase):
         rule = self.get_rule(
             data={
                 "workspace": self.integration.id,
-                "channel": "#my-channel",
+                "channel": "#my-chanel",
                 "input_channel_id": "C1234567",
                 "tags": "",
             }
@@ -231,7 +231,10 @@ class SlackNotifyActionTest(RuleTestCase):
 
         form = rule.get_form_instance()
         assert not form.is_valid()
-        assert "Invalid channel name and/or ID provided." in str(form.errors.values())
+        assert (
+            "Received channel name my-channel does not match inputted channel name my-chanel."
+            in str(form.errors.values())
+        )
 
     def test_invalid_workspace(self):
         # the workspace _should_ be the integration id

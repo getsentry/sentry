@@ -8,6 +8,7 @@ from freezegun import freeze_time
 import unittest
 from django.conf import settings
 from django.core import mail
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from sentry.api.event_search import InvalidSearchQuery
@@ -1420,7 +1421,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         assert action.integration == integration
 
     @responses.activate
-    def test_invalid_slack_channel_id_provided(self):
+    def test_invalid_slack_channel_name_provided(self):
         integration = Integration.objects.create(
             external_id="2",
             provider="slack",
@@ -1453,14 +1454,14 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             ),
         )
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValidationError):
             create_alert_rule_trigger_action(
                 self.trigger,
                 type,
                 target_type,
-                target_identifier=channel_name[1:],
+                target_identifier="some_other_channel",
                 integration=integration,
-                input_channel_id="s_c_a",
+                input_channel_id=channel_id,
             )
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")

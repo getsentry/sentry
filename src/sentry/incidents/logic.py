@@ -1162,7 +1162,6 @@ def create_alert_rule_trigger_action(
     if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
-
         target_identifier, target_display = get_target_identifier_display_for_integration(
             type.value,
             target_identifier,
