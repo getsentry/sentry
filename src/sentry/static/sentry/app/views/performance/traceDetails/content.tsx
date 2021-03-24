@@ -269,7 +269,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
   renderTraceView(traceInfo: TraceInfo) {
     const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
     const sentrySpan = sentryTransaction?.startChild({
-      op: 'react.render',
+      op: 'trace.render',
       description: 'trace-view-content',
     });
 
