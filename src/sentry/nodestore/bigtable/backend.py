@@ -105,22 +105,25 @@ class BigtableKVStorage:
         self.default_ttl = default_ttl
         self.compression = compression
 
-    @property
-    def table(self) -> Table:
-        # XXX: This only exists to give stateful tests a location to hook into
-        # and should be removed if/when those tests no longer depend on this
-        # behavior.
-        return get_connection(self.project, self.instance, self.table_name, self.client_options)
+    def _get_table(self, admin: bool = False) -> Table:
+        if not admin:
+            return get_connection(self.project, self.instance, self.table_name, self.client_options)
+        else:
+            return (
+                bigtable.Client(project=self.project, admin=True, **self.client_options)
+                .instance(self.instance)
+                .table(self.table_name)
+            )
 
     def get(self, key: str) -> Optional[bytes]:
-        return self.__decode_row(self.table.read_row(key))
+        return self.__decode_row(self._get_table().read_row(key))
 
     def get_many(self, keys: Sequence[str]) -> Iterator[Tuple[str, bytes]]:
         rows = RowSet()
         for key in keys:
             rows.add_row_key(key)
 
-        for row in self.table.read_rows(row_set=rows):
+        for row in self._get_table().read_rows(row_set=rows):
             yield row.row_key.decode("utf-8"), self.__decode_row(row)
 
     def __decode_row(self, row) -> Optional[bytes]:
@@ -155,7 +158,7 @@ class BigtableKVStorage:
         return _decompress_data(data, flags)
 
     def set(self, key: str, value: bytes, ttl: Optional[timedelta] = None) -> None:
-        row = self.table.direct_row(key)
+        row = self._get_table().direct_row(key)
         # Call to delete is just a state mutation,
         # and in this case is just used to clear all columns
         # so the entire row will be replaced. Otherwise,
@@ -213,7 +216,7 @@ class BigtableKVStorage:
             raise BigtableError(status.code, status.message)
 
     def delete(self, key: str) -> None:
-        row = self.table.direct_row(key)
+        row = self._get_table().direct_row(key)
         row.delete()
 
         status = row.commit()
@@ -221,30 +224,24 @@ class BigtableKVStorage:
             raise BigtableError(status.code, status.message)
 
     def delete_many(self, keys: Sequence[str]) -> None:
+        table = self._get_table()
+
         rows = []
         for key in keys:
-            row = self.table.direct_row(key)
+            row = table.direct_row(key)
             row.delete()
             rows.append(row)
 
         errors = []
-        for status in self.table.mutate_rows(rows):
+        for status in table.mutate_rows(rows):
             if status.code != 0:
                 errors.append(BigtableError(status.code, status.message))
 
         if errors:
             raise BigtableError(errors)
 
-    def __get_table_admin(self) -> Table:
-        return (
-            bigtable.Client(project=self.project, admin=True, **self.client_options)
-            .instance(self.instance)
-            .table(self.table_name)
-        )
-
     def bootstrap(self, automatic_expiry: bool = True) -> None:
-        table = self.__get_table_admin()
-
+        table = self._get_table(admin=True)
         if table.exists():
             return
 
@@ -267,7 +264,7 @@ class BigtableKVStorage:
         retry_504(table.create)(column_families={self.column_family: gc_rule})
 
     def drop(self) -> None:
-        self.__get_table_admin().delete()
+        self._get_table(admin=True).delete()
 
 
 class BigtableNodeStorage(NodeStorage):

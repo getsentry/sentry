@@ -5,7 +5,6 @@ import pytest
 from google.oauth2.credentials import Credentials
 from google.rpc.status_pb2 import Status
 from sentry.nodestore.bigtable.backend import BigtableNodeStorage, BigtableKVStorage
-from sentry.utils.cache import memoize
 from sentry.utils.compat import mock
 
 
@@ -55,9 +54,13 @@ class MockedBigtableKVStorage(BigtableKVStorage):
             # commits not implemented, changes are applied immediately
             return [Status(code=0) for row in rows]
 
-    @memoize
-    def table(self):
-        return MockedBigtableKVStorage.Table()
+    def _get_table(self, admin: bool = False):
+        try:
+            table = self.__table
+        except AttributeError:
+            table = self.__table = MockedBigtableKVStorage.Table()
+
+        return table
 
     def bootstrap(self, automatic_expiry):
         pass
@@ -113,7 +116,7 @@ def test_get(ns, compression, expected_prefix):
     ns.cache = None
     assert ns.get(node_id) == data
 
-    raw_data = ns.store.table.read_row("node_id").cells["x"][b"0"][0].value
+    raw_data = ns.store._get_table().read_row("node_id").cells["x"][b"0"][0].value
     assert raw_data.startswith(expected_prefix)
 
 
@@ -131,18 +134,21 @@ def test_cache(ns):
         node_2[0]: node_2[1],
         node_3[0]: node_3[1],
     }
-    with mock.patch.object(ns.store.table, "read_row") as mock_read_row:
+
+    table = ns.store._get_table()
+
+    with mock.patch.object(table, "read_row") as mock_read_row:
         assert ns.get(node_1[0]) == node_1[1]
         assert ns.get(node_2[0]) == node_2[1]
         assert ns.get(node_3[0]) == node_3[1]
         assert mock_read_row.call_count == 0
 
-    with mock.patch.object(ns.store.table, "read_rows") as mock_read_rows:
+    with mock.patch.object(table, "read_rows") as mock_read_rows:
         assert ns.get_multi([node_1[0], node_2[0], node_3[0]])
         assert mock_read_rows.call_count == 0
 
     # Manually deleted item should still retrievable from cache
-    row = ns.store.table.direct_row(node_1[0])
+    row = table.direct_row(node_1[0])
     row.delete()
     row.commit()
     assert ns.get(node_1[0]) == node_1[1]
@@ -160,13 +166,13 @@ def test_cache(ns):
     # Setting the item updates cache
     new_value = {"event_id": "d" * 32}
     ns.set(node_1[0], new_value)
-    with mock.patch.object(ns.store.table, "read_row") as mock_read_row:
+    with mock.patch.object(table, "read_row") as mock_read_row:
         assert ns.get(node_1[0]) == new_value
         assert mock_read_row.call_count == 0
 
     # Missing rows are never cached
     assert ns.get("node_4") is None
-    with mock.patch.object(ns.store.table, "read_row") as mock_read_row:
+    with mock.patch.object(table, "read_row") as mock_read_row:
         mock_read_row.return_value = None
         ns.get("node_4")
         ns.get("node_4")
