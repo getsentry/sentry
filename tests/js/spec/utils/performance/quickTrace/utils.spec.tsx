@@ -66,7 +66,6 @@ function generateTransactionLite({
     span_id: generateSpanId(position),
     transaction: generateTransactionName(position),
     'transaction.duration': 0,
-    'transaction.op': 'op',
     project_id: generation, // just use generation as project id
     project_slug: generateProjectSlug(position),
     parent_event_id: generation <= 0 ? null : generateEventId(parentPosition),
@@ -95,8 +94,6 @@ function generateTransaction(opts: {index: number; depth: number}): TraceFull {
      * the type checking.
      */
     'transaction.duration': 0,
-    timestamp: 0,
-    start_timestamp: 0,
   };
 }
 

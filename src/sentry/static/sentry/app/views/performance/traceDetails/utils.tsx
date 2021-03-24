@@ -1,7 +1,7 @@
 import {LocationDescriptor, Query} from 'history';
 
 import {OrganizationSummary} from 'app/types';
-import {TraceFull} from 'app/utils/performance/quickTrace/types';
+import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {reduceTrace} from 'app/utils/performance/quickTrace/utils';
 
 import {TraceInfo} from './types';
@@ -18,8 +18,8 @@ export function getTraceDetailsUrl(
   };
 }
 
-function traceVisitor(isRelevant: (transaction: TraceFull) => boolean) {
-  return (accumulator: TraceInfo, event: TraceFull) => {
+function traceVisitor(isRelevant: (transaction: TraceFullDetailed) => boolean) {
+  return (accumulator: TraceInfo, event: TraceFullDetailed) => {
     const relevant = isRelevant(event);
 
     for (const error of event.errors ?? []) {
@@ -49,8 +49,8 @@ function traceVisitor(isRelevant: (transaction: TraceFull) => boolean) {
 }
 
 export function getTraceInfo(
-  trace: TraceFull,
-  isRelevant: (transaction: TraceFull) => boolean
+  trace: TraceFullDetailed,
+  isRelevant: (transaction: TraceFullDetailed) => boolean
 ) {
   return reduceTrace<TraceInfo>(trace, traceVisitor(isRelevant), {
     relevantProjectsWithErrors: new Set<string>(),

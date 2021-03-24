@@ -2,7 +2,7 @@ import React from 'react';
 import {Location} from 'history';
 
 import {Organization} from 'app/types';
-import {TraceFull} from 'app/utils/performance/quickTrace/types';
+import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 
 import TransactionBar from './transactionBar';
 import {TraceInfo} from './types';
@@ -10,7 +10,7 @@ import {TraceInfo} from './types';
 type Props = {
   location: Location;
   organization: Organization;
-  transaction: TraceFull;
+  transaction: TraceFullDetailed;
   traceInfo: TraceInfo;
   continuingDepths: Array<number>;
   isLast: boolean;
