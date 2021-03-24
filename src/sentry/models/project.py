@@ -15,7 +15,7 @@ import sentry_sdk
 
 from sentry import projectoptions
 from sentry.app import locks
-from sentry.types.object import ObjectStatus, RESERVED_PROJECT_SLUGS
+from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
     BaseManager,
@@ -25,6 +25,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.types.object import ObjectStatus
 from sentry.utils import metrics
 from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.colors import get_hashed_color
