@@ -2151,21 +2151,10 @@ DEMO_NO_ORG_BUFFER = False
 DEMO_ORG_OWNER_EMAIL = None
 
 # paramters that determine how demo events are generated
-DEMO_DATA_GEN_PARAMS = {
-    "MAX_DAYS": 7,  # how many days of data
-    "SCALE_FACTOR": 1,  # scales the frequency of events
-    "BASE_OFFSET": 0.5,  # higher values increases the minimum number of events in an hour
-    "NAME_STEP_SIZE": 10,  # higher value means fewer possible test users in sample
-    "BREADCRUMB_LOOKBACK_TIME": 5,  # how far back should breadcrumbs go from the time of the event
-    "DEFAULT_BACKOFF_TIME": 0,  # backoff time between sending events
-    "ERROR_BACKOFF_TIME": 0.5,  # backoff time after a snuba error
-    "NUM_RELEASES": 3,
-    "ORG_BUFFER_SIZE": 3,  # number of pre-populated organizations in the buffer
-}
+DEMO_DATA_GEN_PARAMS = {}
 
-# parameters for an org when quickly generating them synchronously
-DEMO_DATA_QUICK_GEN_PARAMS = DEMO_DATA_GEN_PARAMS.copy()
-DEMO_DATA_QUICK_GEN_PARAMS.update(MAX_DAYS=1, SCALE_FACTOR=0.5, NAME_STEP_SIZE=100)
+# parameters when quickly generating an organization
+DEMO_DATA_QUICK_GEN_PARAMS = {}
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []
