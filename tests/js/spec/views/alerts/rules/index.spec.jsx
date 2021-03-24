@@ -7,7 +7,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 import AlertRulesList from 'app/views/alerts/rules';
 
 describe('OrganizationRuleList', () => {
-  const {routerContext, organization} = initializeOrg();
+  const {routerContext, organization, router} = initializeOrg();
   let rulesMock;
   let projectMock;
 
@@ -17,6 +17,7 @@ describe('OrganizationRuleList', () => {
         organization={organization}
         params={{orgId: organization.slug}}
         location={{query: {}, search: ''}}
+        router={router}
         {...props}
       />,
       routerContext
@@ -126,5 +127,29 @@ describe('OrganizationRuleList', () => {
 
     const addLink = wrapper.find('button[aria-label="Create Alert Rule"]');
     expect(addLink.props()['aria-disabled']).toBe(false);
+  });
+
+  it('searches by name', async () => {
+    const ownershipOrg = {
+      ...organization,
+      features: ['team-alerts-ownership'],
+    };
+    const wrapper = await createWrapper({organization: ownershipOrg});
+    expect(wrapper.find('StyledSearchBar').exists()).toBe(true);
+
+    const testQuery = 'test name';
+    wrapper
+      .find('StyledSearchBar')
+      .find('input')
+      .simulate('change', {target: {value: testQuery}})
+      .simulate('submit', {preventDefault() {}});
+
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          name: testQuery,
+        },
+      })
+    );
   });
 });
