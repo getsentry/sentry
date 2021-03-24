@@ -96,7 +96,9 @@ class EventStream(Service):
     def end_delete_tag(self, state):
         pass
 
-    def tombstone_events_unsafe(self, project_id, event_ids, old_primary_hash=False):
+    def tombstone_events_unsafe(
+        self, project_id, event_ids, old_primary_hash=False, from_timestamp=None, to_timestamp=None
+    ):
         pass
 
     def replace_group_unsafe(self, project_id, event_ids, new_group_id):
