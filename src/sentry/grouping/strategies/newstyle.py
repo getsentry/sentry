@@ -306,20 +306,22 @@ def frame(frame, event, context, **meta):
     if context["use_package_fallback"] and frame.package:
         # If function did not symbolicate properly and we also have no filename, use package as fallback.
         package_component = get_package_component(package=frame.package, platform=platform)
-        use_package_component = all(not component.contributes for component in values)
-        if use_package_component:
-            package_component.update(
-                contributes=True, hint="used as fallback because function name is not available"
-            )
-        else:
-            package_component.update(
-                contributes=False, hint="ignored because function takes precedence"
-            )
+        if package_component.contributes:
+            use_package_component = all(not component.contributes for component in values)
 
-        if package_component.values and context["hierarchical_grouping"]:
-            package_component.update(tree_label=package_component.values[0])
+            if use_package_component:
+                package_component.update(
+                    hint="used as fallback because function name is not available"
+                )
+            else:
+                package_component.update(
+                    contributes=False, hint="ignored because function takes precedence"
+                )
 
-        values.append(package_component)
+            if package_component.values and context["hierarchical_grouping"]:
+                package_component.update(tree_label=package_component.values[0])
+
+            values.append(package_component)
 
     rv = GroupingComponent(id="frame", values=values)
 

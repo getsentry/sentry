@@ -145,7 +145,8 @@ package:**/nvcuda.dll category=driver
 package:"C:\Program Files\NVIDIA Corporation\**" category=driver
 
 # If there is a singular frame wedged between two driver frames, consider it a driver frame
-[ category:driver | .. | category:driver ] category=driver
+[ category:driver | .. | category:driver ] category:system category=driver
+[ category:driver | .. | category:driver ] category:malloc category=driver
 
 family:native function:RtlFreeHeap category=free
 family:native function:RtlFreeUnicodeString category=free
@@ -170,7 +171,7 @@ category:dyld +sentinel +prefix
 category:gl +sentinel
 
 # Not very interesting frames -- better add the next frame too
-category:system +prefix
+# category:system +prefix
 # TODO: consider -group
 category:indirection +prefix
 

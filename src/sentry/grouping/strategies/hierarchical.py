@@ -7,9 +7,11 @@ MAX_LAYERS = 5
 def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarchy):
     main_variant.update(tree_label="<entire stacktrace>")
 
-    frames_iter = list(zip(components, frames))
-    if inverted_hierarchy:
-        frames_iter.reverse()
+    frames_iter = list(zip(frames, components))
+    if not inverted_hierarchy:
+        frames_iter = reversed(frames_iter)
+
+    frames_iter = iter(frames_iter)
 
     prev_variant = GroupingComponent(id="stacktrace", values=[])
     all_variants = {}
@@ -19,41 +21,37 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
         key = f"app-depth-{depth}"
         assert key not in all_variants
 
-        while frames_iter:
-            component, frame = frames_iter.pop()
+        tree_categories = set()
 
+        for frame, component in frames_iter:
             if component.contributes and component.is_sentinel_frame:
                 break
+
+            tree_categories.add(get_path(frame, "data", "category") or None)
         else:
             break
 
         layer = list(prev_variant.values)
         layer.append(component)
-
-        prev_frame = frame
         prev_component = component
 
-        while frames_iter:
-            component, frame = frames_iter.pop()
-            if not component.contributes:
-                continue
+        if prev_component.is_prefix_frame:
+            for frame, component in frames_iter:
+                if not component.contributes:
+                    continue
 
-            if not prev_component.is_prefix_frame and get_path(
-                frame, "data", "category"
-            ) != get_path(prev_frame, "data", "category"):
-                frames_iter.append((component, frame))
+                layer.append(component)
+                prev_component = component
+
+                if not component.is_prefix_frame:
+                    break
+            else:
                 break
 
-            layer.append(component)
-            prev_component = component
-            prev_frame = frame
-        else:
-            break
-
-        if inverted_hierarchy:
-            layer.reverse()
-
         tree_label = _compute_tree_label(prev_variant, layer)
+        tree_categories.discard(None)
+        if tree_categories:
+            tree_label = f"[{'/'.join(tree_categories)}] {tree_label}"
 
         all_variants[key] = prev_variant = GroupingComponent(
             id="stacktrace", values=layer, tree_label=tree_label
