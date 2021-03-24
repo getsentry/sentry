@@ -311,6 +311,7 @@ class Group(Model):
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
+    category = models.PositiveSmallIntegerField(null=True)
 
     objects = GroupManager(cache_fields=("id",))
 
