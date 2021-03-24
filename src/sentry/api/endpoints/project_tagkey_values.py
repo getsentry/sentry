@@ -16,6 +16,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         Return a list of values associated with this key.  The `query`
         parameter can be used to to perform a "contains" match on
         values.
+        When paginated can return at most 1000 values.
 
         :pparam string organization_slug: the slug of the organization.
         :pparam string project_slug: the slug of the project.

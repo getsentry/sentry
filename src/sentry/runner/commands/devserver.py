@@ -181,6 +181,7 @@ def devserver(
         uwsgi_overrides["protocol"] = "http"
 
         os.environ["FORCE_WEBPACK_DEV_SERVER"] = "1"
+        os.environ["SENTRY_WEBPACK_PROXY_HOST"] = "%s" % host
         os.environ["SENTRY_WEBPACK_PROXY_PORT"] = "%s" % proxy_port
         os.environ["SENTRY_BACKEND_PORT"] = "%s" % port
 

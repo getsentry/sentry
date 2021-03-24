@@ -3,6 +3,7 @@ from rest_framework import status, serializers
 from sentry import integrations
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, Repository
 from sentry.utils.compat import filter, map
 
@@ -40,8 +41,9 @@ class PathMappingSerializer(CamelSnakeSerializer):
 
     @property
     def providers(self):
-        # TODO: use feature flag in the future
-        providers = filter(lambda x: x.has_stacktrace_linking, list(integrations.all()))
+        providers = filter(
+            lambda x: x.has_feature(IntegrationFeatures.STACKTRACE_LINK), list(integrations.all())
+        )
         return map(lambda x: x.key, providers)
 
     @property

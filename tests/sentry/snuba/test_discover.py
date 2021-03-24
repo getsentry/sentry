@@ -466,6 +466,26 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[1]["transaction"] == "c" * 32
         assert data[1]["count"] == 3
 
+    def test_timestamp_rollup_filter(self):
+        event_hour = self.event_time.replace(minute=0, second=0)
+        result = discover.query(
+            selected_columns=["project.id", "user", "release"],
+            query="timestamp.to_hour:" + iso_format(event_hour),
+            params={"project_id": [self.project.id]},
+        )
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["project.id"] == self.project.id
+        assert data[0]["user"] == "id:99"
+        assert data[0]["release"] == "first-release"
+
+        assert len(result["meta"]) == 3
+        assert result["meta"] == {
+            "project.id": "integer",
+            "user": "string",
+            "release": "string",
+        }
+
     def test_count_with_or(self):
         data = load_data("transaction", timestamp=before_now(seconds=3))
         data["transaction"] = "a" * 32
@@ -2614,6 +2634,7 @@ class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
         if tags is None:
             tags = []
         event = load_data("transaction").copy()
+        event.data["tags"].extend(tags)
         event.update(
             {
                 "transaction": name,
@@ -2651,14 +2672,17 @@ class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
             result = discover.get_performance_facets("", params)
             self.wait_for_event_count(self.project.id, 2)
 
-            assert len(result) == 10
+            assert len(result) == 12
             for r in result:
                 if r.key == "color" and r.value == "red":
-                    assert r.count == 1000
+                    assert r.count == 1
+                    assert r.performance == 1000
                 elif r.key == "color" and r.value == "blue":
-                    assert r.count == 2000
+                    assert r.count == 1
+                    assert r.performance == 2000
                 else:
-                    assert r.count == 1500
+                    assert r.count == 2
+                    assert r.performance == 1500
 
 
 def test_zerofill():

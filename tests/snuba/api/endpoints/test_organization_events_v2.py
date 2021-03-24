@@ -2018,7 +2018,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["var_transaction_duration"] == 0.0
         assert data[0]["sum_transaction_duration"] == 10000
 
-    def test_user_null_misery_returns_zero(self):
+    def test_null_user_misery_returns_zero(self):
         project = self.create_project()
         data = load_data(
             "transaction",

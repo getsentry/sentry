@@ -60,6 +60,7 @@ describe('IssueList', function () {
     savedSearch = TestStubs.Search({
       id: '789',
       query: 'is:unresolved',
+      sort: 'date',
       name: 'Unresolved Issues',
       projectId: project.id,
     });
@@ -580,6 +581,7 @@ describe('IssueList', function () {
           id: '666',
           name: 'My Pinned Search',
           query: 'assigned:me level:fatal',
+          sort: 'date',
           isPinned: true,
         },
       });
@@ -593,7 +595,7 @@ describe('IssueList', function () {
         .simulate('change', {target: {value: 'assigned:me level:fatal'}});
       wrapper.find('SmartSearchBar form').simulate('submit');
 
-      expect(browserHistory.push).toHaveBeenLastCalledWith(
+      expect(browserHistory.push.mock.calls[0][0]).toEqual(
         expect.objectContaining({
           query: expect.objectContaining({
             query: 'assigned:me level:fatal',
@@ -657,6 +659,7 @@ describe('IssueList', function () {
           pathname: '/organizations/org-slug/issues/',
           query: {
             query: 'assigned:me level:fatal',
+            sort: 'date',
           },
         })
       );
@@ -669,6 +672,7 @@ describe('IssueList', function () {
         isPinned: false,
         isGlobal: true,
         query: 'assigned:me',
+        sort: 'date',
         projectId: null,
         type: 0,
       });
@@ -703,6 +707,7 @@ describe('IssueList', function () {
             environment: [],
             project: ['3559'],
             statsPeriod: '14d',
+            sort: 'date',
           },
         })
       );
@@ -756,6 +761,7 @@ describe('IssueList', function () {
             project: [],
             environment: [],
             statsPeriod: '14d',
+            sort: 'date',
           },
         })
       );
@@ -837,6 +843,7 @@ describe('IssueList', function () {
           id: '666',
           name: 'My Pinned Search',
           query: 'assigned:me level:fatal',
+          sort: 'date',
           isPinned: true,
         },
       });
@@ -1810,6 +1817,18 @@ describe('IssueList', function () {
       const paginationWrapper = wrapper.find('PaginationWrapper');
       // 2nd page subtracts the one removed
       expect(paginationWrapper.text()).toBe('Showing 49 of 74 issues');
+    });
+  });
+
+  describe('with relative change feature', function () {
+    it('defaults to larger graph selection', function () {
+      organization.features = ['issue-list-trend-sort'];
+      props.location = {
+        query: {query: 'is:unresolved', sort: 'trend'},
+        search: 'query=is:unresolved',
+      };
+      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      expect(wrapper.instance().getGroupStatsPeriod()).toBe('auto');
     });
   });
 });

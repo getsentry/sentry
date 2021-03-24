@@ -75,6 +75,7 @@ export {IconReturn} from './iconReturn';
 export {IconRookout} from './iconRookout';
 export {IconSearch} from './iconSearch';
 export {IconSentry} from './iconSentry';
+export {IconSentryFull} from './iconSentryFull';
 export {IconSettings} from './iconSettings';
 export {IconShow} from './iconShow';
 export {IconSiren} from './iconSiren';

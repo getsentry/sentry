@@ -216,7 +216,7 @@ type TermFormatter = (organization: LightWeightOrganization) => string;
 const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   apdex: () =>
     t(
-      'Apdex is the ratio of both satisfactory and tolerable response times to all response times.'
+      'Apdex is the ratio of both satisfactory and tolerable response times to all response times. To adjust the tolerable threshold, go to performance settings.'
     ),
   tpm: () => t('TPM is the number of recorded transaction events per minute.'),
   throughput: () =>
@@ -233,7 +233,7 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t('Largest contentful paint (LCP) is a web vital meant to represent user load times'),
   userMisery: organization =>
     t(
-      "User misery estimates the percentage of users who will experience load times 4x your organization's apdex threshold of %sms.",
+      "User Misery is a score that represents the number of unique users who have experienced load times 4x your organization's apdex threshold of %sms.",
       organization.apdexThreshold
     ),
   statusBreakdown: () =>

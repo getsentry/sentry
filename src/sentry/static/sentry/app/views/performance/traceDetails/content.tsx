@@ -8,7 +8,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct, tn} from 'app/locale';
 import {Organization} from 'app/types';
-import {TraceFull} from 'app/utils/performance/quickTrace/types';
+import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {filterTrace} from 'app/utils/performance/quickTrace/utils';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 import {MetaData} from 'app/views/performance/transactionDetails/styles';
@@ -42,7 +42,7 @@ type Props = {
   statsPeriod: string | undefined;
   isLoading: boolean;
   error: string | null;
-  trace: TraceFull | null;
+  trace: TraceFullDetailed | null;
 };
 
 type State = {
@@ -115,7 +115,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
     );
   }
 
-  isTransactionVisible = (transaction: TraceFull): boolean => {
+  isTransactionVisible = (transaction: TraceFullDetailed): boolean => {
     const {filteredTransactionIds} = this.state;
     return filteredTransactionIds
       ? filteredTransactionIds.has(transaction.event_id)
@@ -190,7 +190,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderTransaction(
-    transaction: TraceFull,
+    transaction: TraceFullDetailed,
     {
       continuingDepths,
       isLast,
@@ -205,10 +205,12 @@ class TraceDetailsContent extends React.Component<Props, State> {
       traceInfo: TraceInfo;
     }
   ) {
+    const {location, organization} = this.props;
+
     const isVisible = this.isTransactionVisible(transaction);
 
     const accumulated: AccType = transaction.children.reduce(
-      (acc: AccType, child: TraceFull, idx: number) => {
+      (acc: AccType, child: TraceFullDetailed, idx: number) => {
         const isLastChild = idx === transaction.children.length - 1;
         const hasChildren = child.children.length > 0;
 
@@ -246,6 +248,8 @@ class TraceDetailsContent extends React.Component<Props, State> {
             numberOfHiddenTransactionsAbove,
           })}
           <TransactionGroup
+            location={location}
+            organization={organization}
             traceInfo={traceInfo}
             transaction={transaction}
             continuingDepths={continuingDepths}
