@@ -71,6 +71,7 @@ export const POPULARITY_WEIGHT: {
   rocketchat: 8,
   bitbucket_pipelines: 8,
   github_actions: 8,
+  octohook: 8,
 } as const;
 
 export const documentIntegrationList: DocumentIntegration[] = [
@@ -241,6 +242,28 @@ export const documentIntegrationList: DocumentIntegration[] = [
         title: 'Report Issue',
         url: 'https://github.com/getsentry/action-release/issues',
       },
+    ],
+  },
+  {
+    slug: 'octohook',
+    name: 'Octohook',
+    author: 'Octohook',
+    docUrl: 'https://docs.octohook.com/integrations/sentry.html',
+    description:
+      'Octohook is a platform that lets you visualize, debug and redistribute your webhooks.',
+    features: [
+      {
+        featureGate: 'webhook',
+        description: 'Record, forward or transform Sentry webhooks to other services.',
+      },
+      {
+        featureGate: 'alert-rule',
+        description:
+          'Configure Sentry rules to trigger notifications based on conditions you set, through internal integrations.',
+      },
+    ],
+    resourceLinks: [
+      {title: 'Documentation', url: 'https://docs.octohook.com/integrations/sentry.html'},
     ],
   },
 ];
