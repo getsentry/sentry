@@ -1,0 +1,57 @@
+---
+created: '2021-03-24T16:48:40.832988Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+  /System/Library/Frameworks/Foundation.fram  -[NSRunLoop(NSRunLoop) runMode:beforeDate:] category=system
+  /System/Library/Frameworks/CoreFoundation.  CFRunLoopRunSpecific category=system
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopRun category=system
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopDoSources0 category=system
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopDoSource0 category=system
+  /System/Library/Frameworks/CoreFoundation.  __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ category=system
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+                                              code
+  /System/Library/Frameworks/OpenGL.framewor  glTexSubImage2D category=gl
+  /System/Library/Frameworks/OpenGL.framewor  glTexSubImage2D_Exec category=gl
+  /System/Library/Frameworks/OpenGL.framewor  gleTextureImagePut category=gl
+  /System/Library/Extensions/AMDRadeonX5000G  ??? category=driver
+  /System/Library/PrivateFrameworks/GPUSuppo  gpusSubmitDataBuffers category=driver
+  /System/Library/Extensions/AMDRadeonX5000G  ??? category=driver
+  /System/Library/PrivateFrameworks/GPUSuppo  gpusGenerateCrashLog category=telemetry
+  /System/Library/PrivateFrameworks/GPUSuppo  gpusGenerateCrashLog.cold.1 category=telemetry
+           /usr/lib/system/libsystem_c.dylib  abort category=throw
+      /usr/lib/system/libsystem_kernel.dylib  __pthread_kill category=system

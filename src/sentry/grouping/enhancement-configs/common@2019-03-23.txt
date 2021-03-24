@@ -141,12 +141,15 @@ family:native function:RaiseComPlusException category=throw
 family:native package:"C:/WINDOWS/system32/DriverStore\**" category=driver
 family:native package:"/System/Library/Extensions/AppleIntelHD4000GraphicsGLDriver.bundle/**" category=driver
 family:native function:*CUDA* category=driver
-package:**/nvcuda.dll category=driver
-package:"C:\Program Files\NVIDIA Corporation\**" category=driver
+family:native package:**/nvcuda.dll category=driver
+family:native package:"C:\Program Files\NVIDIA Corporation\**" category=driver
+family:native package:/System/Library/Extensions/AMDRadeon*/** category=driver
+family:native package:/System/Library/PrivateFrameworks/GPUSupport.framework/** category=driver
 
 # If there is a singular frame wedged between two driver frames, consider it a driver frame
-[ category:driver | .. | category:driver ] category:system category=driver
-[ category:driver | .. | category:driver ] category:malloc category=driver
+# TODO
+# [ category:driver | .. | category:driver ] category:system category=driver
+# [ category:driver | .. | category:driver ] category:malloc category=driver
 
 family:native function:RtlFreeHeap category=free
 family:native function:RtlFreeUnicodeString category=free
@@ -155,6 +158,8 @@ family:native category:system function:free category=free
 
 family:native package:C:\Windows\SYSTEM32\OPENGL32.dll category=gl
 family:native package:/System/Library/Frameworks/OpenGL.framework/** category=gl
+
+family:native package:"/System/Library/PrivateFrameworks/GPUSupport.framework/**" function:gpusGenerateCrashLog* category=telemetry
 
 family:native function:dlopen category=dyld
 
@@ -194,6 +199,10 @@ category:threadbase -group v-group
 # has a bug where it cannot walk past _sigtramp on OS X but that is expected to
 # be fixed eventually.
 category:handler ^-group -group
+
+# Crash reporting tools are noise that can occur outside of signal handlers
+# too, apparently (Apple's GPUSupport module)
+category:telemetry -group
 
 # category:indirection -group
 # category:threadbase v-group
