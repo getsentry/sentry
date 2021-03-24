@@ -38,7 +38,7 @@ function UserMiseryPrototype(props: Props) {
     );
   } else {
     title = tct(
-      'Some users waited more than [duration]ms represented by a User Misery score of [userMisery].',
+      'User Misery score is [userMisery], representing users who waited more than more than [duration]ms.',
       {
         duration: 4 * miseryLimit,
         userMisery: userMisery.toFixed(3),
