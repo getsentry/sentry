@@ -37,7 +37,7 @@ describe('GuideStore', function () {
     expect(GuideStore.state.currentStep).toEqual(0);
     expect(GuideStore.state.currentGuide.guide).toEqual('issue');
     // Should prune steps that don't have anchors.
-    expect(GuideStore.state.currentGuide.steps).toHaveLength(3);
+    expect(GuideStore.state.currentGuide.steps).toHaveLength(8);
 
     GuideStore.onNextStep();
     expect(GuideStore.state.currentStep).toEqual(1);

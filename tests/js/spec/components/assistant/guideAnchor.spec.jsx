@@ -46,12 +46,17 @@ describe('GuideAnchor', function () {
 
     // Clicking on next should deactivate the current card and activate the next one.
     wrapper.find('StyledButton[aria-label="Next"]').simulate('click');
+    wrapper.find('StyledButton[aria-label="Next"]').simulate('click');
+    wrapper.find('StyledButton[aria-label="Next"]').simulate('click');
+    wrapper.find('StyledButton[aria-label="Next"]').simulate('click');
+    wrapper.find('StyledButton[aria-label="Next"]').simulate('click');
+    wrapper.find('StyledButton[aria-label="Next"]').simulate('click');
 
     await tick();
     wrapper.update();
     wrapper2.update();
-    expect(wrapper.state('active')).toBeFalsy();
-    expect(wrapper2.state('active')).toBeTruthy();
+    expect(wrapper.state('active')).toBe(false);
+    expect(wrapper2.state('active')).toBe(true);
 
     expect(wrapper2.find('Hovercard').exists()).toBe(true);
     expect(wrapper2.find('GuideTitle').text()).toBe('Narrow Down Suspects');
@@ -70,7 +75,7 @@ describe('GuideAnchor', function () {
         method: 'PUT',
         data: {
           guide: 'issue',
-          status: 'viewed',
+          status: 'dismissed',
         },
       })
     );

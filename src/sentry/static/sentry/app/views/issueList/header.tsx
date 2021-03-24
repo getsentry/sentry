@@ -35,8 +35,10 @@ type WrapGuideProps = {
 function WrapGuideTabs({children, tabQuery, query, to}: WrapGuideProps) {
   if (isForReviewQuery(tabQuery)) {
     return (
-      <GuideAnchor target="inbox_guide_tab" disabled={isForReviewQuery(query)} to={to}>
-        <GuideAnchor target="for_review_guide_tab">{children}</GuideAnchor>
+      <GuideAnchor target="inbox_guide_tab" disabled={!isForReviewQuery(query)} to={to}>
+        <GuideAnchor target="for_review_guide_tab" disabled={!isForReviewQuery(query)}>
+          {children}
+        </GuideAnchor>
       </GuideAnchor>
     );
   }

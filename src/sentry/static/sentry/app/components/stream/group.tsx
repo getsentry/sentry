@@ -395,7 +395,9 @@ class StreamGroup extends React.Component<Props, State> {
             showInboxTime={showInboxTime}
           />
         </GroupSummary>
-        {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
+        {hasGuideAnchor && (
+          <GuideAnchor target="issue_stream" disabled={!hasGuideAnchor} />
+        )}
         {withChart && !displayReprocessingLayout && (
           <ChartWrapper className="hidden-xs hidden-sm">
             {!data.filtered?.stats && !data.stats ? (
@@ -425,7 +427,7 @@ class StreamGroup extends React.Component<Props, State> {
                     });
 
                     return (
-                      <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
+                      <GuideAnchor target="dynamic_counts" disabled={hasGuideAnchor}>
                         <span
                           {...getRootProps({
                             className: topLevelCx,

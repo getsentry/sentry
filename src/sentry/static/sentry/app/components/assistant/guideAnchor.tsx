@@ -59,8 +59,8 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 
   componentDidMount() {
-    const {target} = this.props;
-    target && registerAnchor(target);
+    const {target, disabled} = this.props;
+    !disabled ? target && registerAnchor(target) : null;
   },
 
   componentDidUpdate(_prevProps, prevState) {

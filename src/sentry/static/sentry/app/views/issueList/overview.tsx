@@ -1140,7 +1140,7 @@ class IssueListOverview extends React.Component<Props, State> {
             </StyledPageContent>
 
             {hasFeature && isForReviewQuery(query) && (
-              <GuideAnchor target="is_inbox_tab" />
+              <GuideAnchor target="is_inbox_tab" disabled={!isForReviewQuery(query)} />
             )}
           </React.Fragment>
         )}

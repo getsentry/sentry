@@ -192,7 +192,9 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
 
     let guideOptions = guides
       .sort((a, b) => a.guide.localeCompare(b.guide))
-      .filter(guide => guide.requiredTargets.every(target => anchors.has(target)));
+      .filter(guide =>
+        guide.requiredTargets.every(target => [...anchors].includes(target))
+      );
 
     const user = ConfigStore.get('user');
     const assistantThreshold = new Date(2019, 6, 1);
@@ -202,8 +204,6 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
       guideOptions = guideOptions.filter(({seen, dateThreshold}) => {
         if (seen) {
           return false;
-        } else if (user?.isSuperuser) {
-          return true;
         } else if (dateThreshold) {
           // Show the guide to users who've joined before the date threshold
           return userDateJoined < dateThreshold;
@@ -230,7 +230,7 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
       this.state.currentGuide.guide === nextGuide.guide
         ? this.state.currentStep
         : 0;
-    this.state.currentGuide = nextGuide;
+    this.state.currentGuide = guideOptions[0] || null;
     this.trigger(this.state);
   },
 };

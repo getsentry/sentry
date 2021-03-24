@@ -63,7 +63,9 @@ function EventOrGroupExtraDetails({
       {hasInbox &&
         inbox &&
         (hasGuideAnchor ? (
-          <GuideAnchor target="inbox_guide_reason">{inboxReason}</GuideAnchor>
+          <GuideAnchor target="inbox_guide_reason" disabled={!hasGuideAnchor}>
+            {inboxReason}
+          </GuideAnchor>
         ) : (
           inboxReason
         ))}
