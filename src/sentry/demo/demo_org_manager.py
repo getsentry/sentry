@@ -19,10 +19,7 @@ from sentry.models import (
 from sentry.utils.email import create_fake_email
 
 from .data_population import (
-    populate_connected_event_scenario_1,
-    populate_connected_event_scenario_2,
-    populate_connected_event_scenario_3,
-    generate_releases,
+    handle_react_python_scenario,
 )
 from .utils import generate_random_name
 from .models import DemoUser, DemoOrganization, DemoOrgStatus
@@ -63,10 +60,7 @@ def create_demo_org(quick=False) -> Organization:
     logger.info(
         "create_demo_org.post-transaction", extra={"organization_slug": org.slug, "quick": quick}
     )
-    generate_releases([react_project, python_project], quick=quick)
-    populate_connected_event_scenario_1(react_project, python_project, quick=quick)
-    populate_connected_event_scenario_2(react_project, python_project, quick=quick)
-    populate_connected_event_scenario_3(python_project, quick=quick)
+    handle_react_python_scenario(react_project, python_project, quick=quick)
 
     return org
 

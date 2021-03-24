@@ -106,6 +106,21 @@ def distribution_v3(hour: int) -> int:
     return 1
 
 
+distrubtion_fns = [distribution_v1, distribution_v2, distribution_v3]
+
+
+def gen_measurements(day):
+    """
+    Generate measurements that are random but distribution changs based on the day
+    """
+    return {
+        "fp": {"value": random_normal(1250 - 50 * day, 200, 500)},
+        "fcp": {"value": random_normal(1250 - 50 * day, 200, 500)},
+        "lcp": {"value": random_normal(2800 - 50 * day, 400, 2000)},
+        "fid": {"value": random_normal(5 - 0.125 * day, 2, 1)},
+    }
+
+
 @functools.lru_cache(maxsize=None)
 def get_list_of_names() -> List[str]:
     file_path = get_data_file_path("names.json")
@@ -445,6 +460,43 @@ def fix_breadrumbs(event_json, quick):
         curr_time += breadcrumb_time_step
 
 
+def iter_timestamps(disribution_fn_num: int, quick: bool):
+    """
+    Yields a series of ordered timestamps and the day in a tuple
+    """
+
+    # disribution_fn_num starts at 1 instead of 0
+    distribution_fn = distrubtion_fns[disribution_fn_num - 1]
+
+    config = get_config(quick)
+    MAX_DAYS = config["MAX_DAYS"]
+    SCALE_FACTOR = config["SCALE_FACTOR"]
+    BASE_OFFSET = config["BASE_OFFSET"]
+
+    start_time = timezone.now() - timedelta(days=MAX_DAYS)
+
+    for day in range(MAX_DAYS):
+        for hour in range(24):
+            base = distribution_fn(hour)
+            # determine the number of events we want in this hour
+            num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
+            timestamps = []
+            for i in range(num_events):
+
+                # pick the minutes randomly
+                minute = random.randint(0, 60)
+                timestamp = start_time + timedelta(days=day, hours=hour, minutes=minute)
+                timestamp = timestamp.replace(tzinfo=pytz.utc)
+                timestamps.append(timestamp)
+
+            # sort the timestamps so we send things in order
+            timestamps.sort()
+
+            for timestamp in timestamps:
+                # yield the day since we use it as well
+                yield (timestamp, day)
+
+
 def populate_connected_event_scenario_1(
     react_project: Project, python_project: Project, quick=False
 ):
@@ -461,134 +513,102 @@ def populate_connected_event_scenario_1(
     python_transaction = get_event_from_file("scen1/python_transaction.json")
     python_error = get_event_from_file("scen1/python_error.json")
 
-    config = get_config(quick)
-    MAX_DAYS = config["MAX_DAYS"]
-    SCALE_FACTOR = config["SCALE_FACTOR"]
-    BASE_OFFSET = config["BASE_OFFSET"]
-
-    start_time = timezone.now() - timedelta(days=MAX_DAYS)
     log_extra = {
         "organization_slug": react_project.organization.slug,
-        "MAX_DAYS": MAX_DAYS,
-        "SCALE_FACTOR": SCALE_FACTOR,
+        "quick": quick,
     }
     logger.info("populate_connected_event_scenario_1.start", extra=log_extra)
 
-    for day in range(MAX_DAYS):
-        for hour in range(24):
-            base = distribution_v1(hour)
-            # determine the number of events we want in this hour
-            num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
-            timestamps = []
-            for i in range(num_events):
-                logger.info(
-                    "populate_connected_event_scenario_1.send_event_series", extra=log_extra
-                )
+    for (timestamp, day) in iter_timestamps(1, quick):
+        transaction_user = generate_user(quick)
+        trace_id = uuid4().hex
+        release = get_release_from_time(react_project.organization_id, timestamp)
+        release_sha = release.version
 
-                # pick the minutes randomly (which means events will sent be out of order)
-                minute = random.randint(0, 60)
-                timestamp = start_time + timedelta(days=day, hours=hour, minutes=minute)
-                timestamp = timestamp.replace(tzinfo=pytz.utc)
-                timestamps.append(timestamp)
+        old_span_id = react_transaction["contexts"]["trace"]["span_id"]
+        frontend_root_span_id = uuid4().hex[:16]
+        frontend_duration = random_normal(2000 - 50 * day, 250, 1000) / 1000.0
 
-            # sort the timestamps
-            timestamps.sort()
+        frontend_context = {
+            "trace": {
+                "type": "trace",
+                "trace_id": trace_id,
+                "span_id": frontend_root_span_id,
+            }
+        }
 
-            for timestamp in timestamps:
-                transaction_user = generate_user(quick)
-                trace_id = uuid4().hex
-                release = get_release_from_time(react_project.organization_id, timestamp)
-                release_sha = release.version
+        # React transaction
+        local_event = copy.deepcopy(react_transaction)
+        local_event.update(
+            project=react_project,
+            platform=react_project.platform,
+            event_id=uuid4().hex,
+            user=transaction_user,
+            release=release_sha,
+            timestamp=timestamp,
+            # start_timestamp decreases based on day so that there's a trend
+            start_timestamp=timestamp - timedelta(seconds=frontend_duration),
+            measurements=gen_measurements(day),
+            contexts=frontend_context,
+        )
 
-                old_span_id = react_transaction["contexts"]["trace"]["span_id"]
-                frontend_root_span_id = uuid4().hex[:16]
-                frontend_duration = random_normal(2000 - 50 * day, 250, 1000) / 1000.0
+        fix_transaction_event(local_event, old_span_id)
+        safe_send_event(local_event, quick)
 
-                frontend_context = {
-                    "trace": {
-                        "type": "trace",
-                        "trace_id": trace_id,
-                        "span_id": frontend_root_span_id,
-                    }
-                }
+        # note picking the 0th span is arbitrary
+        backend_parent_id = local_event["spans"][0]["span_id"]
 
-                # React transaction
-                local_event = copy.deepcopy(react_transaction)
-                local_event.update(
-                    project=react_project,
-                    platform=react_project.platform,
-                    event_id=uuid4().hex,
-                    user=transaction_user,
-                    release=release_sha,
-                    timestamp=timestamp,
-                    # start_timestamp decreases based on day so that there's a trend
-                    start_timestamp=timestamp - timedelta(seconds=frontend_duration),
-                    measurements={
-                        "fp": {"value": random_normal(1250 - 50 * day, 200, 500)},
-                        "fcp": {"value": random_normal(1250 - 50 * day, 200, 500)},
-                        "lcp": {"value": random_normal(2800 - 50 * day, 400, 2000)},
-                        "fid": {"value": random_normal(5 - 0.125 * day, 2, 1)},
-                    },
-                    contexts=frontend_context,
-                )
+        # React error
+        local_event = copy.deepcopy(react_error)
+        local_event.update(
+            project=react_project,
+            platform=react_project.platform,
+            timestamp=timestamp,
+            user=transaction_user,
+            release=release_sha,
+            contexts=frontend_context,
+        )
+        fix_error_event(local_event, quick)
+        safe_send_event(local_event, quick)
 
-                fix_transaction_event(local_event, old_span_id)
-                safe_send_event(local_event, quick)
+        # python transaction
+        old_span_id = python_transaction["contexts"]["trace"]["span_id"]
+        backend_duration = random_normal(1500 + 50 * day, 250, 500)
 
-                # note picking the 0th span is arbitrary
-                backend_parent_id = local_event["spans"][0]["span_id"]
+        backend_context = {
+            "trace": {
+                "type": "trace",
+                "trace_id": trace_id,
+                "span_id": uuid4().hex[:16],
+                "parent_span_id": backend_parent_id,
+            }
+        }
 
-                # React error
-                local_event = copy.deepcopy(react_error)
-                local_event.update(
-                    project=react_project,
-                    platform=react_project.platform,
-                    timestamp=timestamp,
-                    user=transaction_user,
-                    release=release_sha,
-                    contexts=frontend_context,
-                )
-                fix_error_event(local_event, quick)
-                safe_send_event(local_event, quick)
+        local_event = copy.deepcopy(python_transaction)
+        local_event.update(
+            project=python_project,
+            platform=python_project.platform,
+            timestamp=timestamp,
+            start_timestamp=timestamp - timedelta(milliseconds=backend_duration),
+            user=transaction_user,
+            release=release_sha,
+            contexts=backend_context,
+        )
+        fix_transaction_event(local_event, old_span_id)
+        safe_send_event(local_event, quick)
 
-                # python transaction
-                old_span_id = python_transaction["contexts"]["trace"]["span_id"]
-                backend_duration = random_normal(1500 + 50 * day, 250, 500)
-
-                backend_context = {
-                    "trace": {
-                        "type": "trace",
-                        "trace_id": trace_id,
-                        "span_id": uuid4().hex[:16],
-                        "parent_span_id": backend_parent_id,
-                    }
-                }
-
-                local_event = copy.deepcopy(python_transaction)
-                local_event.update(
-                    project=python_project,
-                    platform=python_project.platform,
-                    timestamp=timestamp,
-                    start_timestamp=timestamp - timedelta(milliseconds=backend_duration),
-                    user=transaction_user,
-                    release=release_sha,
-                    contexts=backend_context,
-                )
-                fix_transaction_event(local_event, old_span_id)
-                safe_send_event(local_event, quick)
-
-                # python error
-                local_event = copy.deepcopy(python_error)
-                local_event.update(
-                    project=python_project,
-                    platform=python_project.platform,
-                    timestamp=timestamp,
-                    user=transaction_user,
-                    release=release_sha,
-                    contexts=backend_context,
-                )
-                fix_error_event(local_event, quick)
-                safe_send_event(local_event, quick)
+        # python error
+        local_event = copy.deepcopy(python_error)
+        local_event.update(
+            project=python_project,
+            platform=python_project.platform,
+            timestamp=timestamp,
+            user=transaction_user,
+            release=release_sha,
+            contexts=backend_context,
+        )
+        fix_error_event(local_event, quick)
+        safe_send_event(local_event, quick)
     logger.info("populate_connected_event_scenario_1.finished", extra=log_extra)
 
 
@@ -604,108 +624,76 @@ def populate_connected_event_scenario_2(
     react_transaction = get_event_from_file("scen2/react_transaction.json")
     python_transaction = get_event_from_file("scen2/python_transaction.json")
 
-    config = get_config(quick)
-    MAX_DAYS = config["MAX_DAYS"]
-    SCALE_FACTOR = config["SCALE_FACTOR"]
-    BASE_OFFSET = config["BASE_OFFSET"]
-
-    start_time = timezone.now() - timedelta(days=MAX_DAYS)
     log_extra = {
         "organization_slug": react_project.organization.slug,
-        "MAX_DAYS": MAX_DAYS,
-        "SCALE_FACTOR": SCALE_FACTOR,
+        "quick": quick,
     }
     logger.info("populate_connected_event_scenario_2.start", extra=log_extra)
 
-    for day in range(MAX_DAYS):
-        for hour in range(24):
-            base = distribution_v3(hour)
-            # determine the number of events we want in this hour
-            num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
-            timestamps = []
-            for i in range(num_events):
-                logger.info(
-                    "populate_connected_event_scenario_2.send_event_series", extra=log_extra
-                )
+    for (timestamp, day) in iter_timestamps(2, quick):
+        transaction_user = generate_user(quick)
+        trace_id = uuid4().hex
+        release = get_release_from_time(react_project.organization_id, timestamp)
+        release_sha = release.version
 
-                # pick the minutes randomly (which means events will sent be out of order)
-                minute = random.randint(0, 60)
-                timestamp = start_time + timedelta(days=day, hours=hour, minutes=minute)
-                timestamp = timestamp.replace(tzinfo=pytz.utc)
-                timestamps.append(timestamp)
+        old_span_id = react_transaction["contexts"]["trace"]["span_id"]
+        frontend_root_span_id = uuid4().hex[:16]
+        frontend_duration = random_normal(2000 - 50 * day, 250, 1000) / 1000.0
 
-            # sort the timestamps
-            timestamps.sort()
+        frontend_context = {
+            "trace": {
+                "type": "trace",
+                "trace_id": trace_id,
+                "span_id": frontend_root_span_id,
+            }
+        }
 
-            for timestamp in timestamps:
-                transaction_user = generate_user(quick)
-                trace_id = uuid4().hex
-                release = get_release_from_time(react_project.organization_id, timestamp)
-                release_sha = release.version
+        # React transaction
+        local_event = copy.deepcopy(react_transaction)
+        local_event.update(
+            project=react_project,
+            platform=react_project.platform,
+            event_id=uuid4().hex,
+            user=transaction_user,
+            release=release_sha,
+            timestamp=timestamp,
+            # start_timestamp decreases based on day so that there's a trend
+            start_timestamp=timestamp - timedelta(seconds=frontend_duration),
+            measurements=gen_measurements(day),
+            contexts=frontend_context,
+        )
 
-                old_span_id = react_transaction["contexts"]["trace"]["span_id"]
-                frontend_root_span_id = uuid4().hex[:16]
-                frontend_duration = random_normal(2000 - 50 * day, 250, 1000) / 1000.0
+        fix_transaction_event(local_event, old_span_id)
+        safe_send_event(local_event, quick)
 
-                frontend_context = {
-                    "trace": {
-                        "type": "trace",
-                        "trace_id": trace_id,
-                        "span_id": frontend_root_span_id,
-                    }
-                }
+        # note picking the 0th span is arbitrary
+        backend_parent_id = local_event["spans"][0]["span_id"]
 
-                # React transaction
-                local_event = copy.deepcopy(react_transaction)
-                local_event.update(
-                    project=react_project,
-                    platform=react_project.platform,
-                    event_id=uuid4().hex,
-                    user=transaction_user,
-                    release=release_sha,
-                    timestamp=timestamp,
-                    # start_timestamp decreases based on day so that there's a trend
-                    start_timestamp=timestamp - timedelta(seconds=frontend_duration),
-                    measurements={
-                        "fp": {"value": random_normal(1250 - 50 * day, 200, 500)},
-                        "fcp": {"value": random_normal(1250 - 50 * day, 200, 500)},
-                        "lcp": {"value": random_normal(2800 - 50 * day, 400, 2000)},
-                        "fid": {"value": random_normal(5 - 0.125 * day, 2, 1)},
-                    },
-                    contexts=frontend_context,
-                )
+        # python transaction
+        old_span_id = python_transaction["contexts"]["trace"]["span_id"]
+        backend_duration = random_normal(1500 + 50 * day, 250, 500)
 
-                fix_transaction_event(local_event, old_span_id)
-                safe_send_event(local_event, quick)
+        backend_context = {
+            "trace": {
+                "type": "trace",
+                "trace_id": trace_id,
+                "span_id": uuid4().hex[:16],
+                "parent_span_id": backend_parent_id,
+            }
+        }
 
-                # note picking the 0th span is arbitrary
-                backend_parent_id = local_event["spans"][0]["span_id"]
-
-                # python transaction
-                old_span_id = python_transaction["contexts"]["trace"]["span_id"]
-                backend_duration = random_normal(1500 + 50 * day, 250, 500)
-
-                backend_context = {
-                    "trace": {
-                        "type": "trace",
-                        "trace_id": trace_id,
-                        "span_id": uuid4().hex[:16],
-                        "parent_span_id": backend_parent_id,
-                    }
-                }
-
-                local_event = copy.deepcopy(python_transaction)
-                local_event.update(
-                    project=python_project,
-                    platform=python_project.platform,
-                    timestamp=timestamp,
-                    start_timestamp=timestamp - timedelta(milliseconds=backend_duration),
-                    user=transaction_user,
-                    release=release_sha,
-                    contexts=backend_context,
-                )
-                fix_transaction_event(local_event, old_span_id)
-                safe_send_event(local_event, quick)
+        local_event = copy.deepcopy(python_transaction)
+        local_event.update(
+            project=python_project,
+            platform=python_project.platform,
+            timestamp=timestamp,
+            start_timestamp=timestamp - timedelta(milliseconds=backend_duration),
+            user=transaction_user,
+            release=release_sha,
+            contexts=backend_context,
+        )
+        fix_transaction_event(local_event, old_span_id)
+        safe_send_event(local_event, quick)
 
     logger.info("populate_connected_event_scenario_2.finished", extra=log_extra)
 
@@ -716,64 +704,46 @@ def populate_connected_event_scenario_3(python_project: Project, quick=False):
     Occurrance times and durations are randomized
     """
     python_error = get_event_from_file("scen3/python_error.json")
-
-    config = get_config(quick)
-    MAX_DAYS = config["MAX_DAYS"]
-    SCALE_FACTOR = config["SCALE_FACTOR"]
-    BASE_OFFSET = config["BASE_OFFSET"]
-
-    start_time = timezone.now() - timedelta(days=MAX_DAYS)
     log_extra = {
         "organization_slug": python_project.organization.slug,
-        "MAX_DAYS": MAX_DAYS,
-        "SCALE_FACTOR": SCALE_FACTOR,
+        "quick": quick,
     }
     logger.info("populate_connected_event_scenario_3.start", extra=log_extra)
 
-    for day in range(MAX_DAYS):
-        for hour in range(24):
-            base = distribution_v1(hour)
-            # determine the number of events we want in this hour
-            num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
-            timestamps = []
-            for i in range(num_events):
-                logger.info(
-                    "populate_connected_event_scenario_3.send_event_series", extra=log_extra
-                )
+    for (timestamp, day) in iter_timestamps(3, quick):
+        transaction_user = generate_user(quick)
+        trace_id = uuid4().hex
+        release = get_release_from_time(python_project.organization_id, timestamp)
+        release_sha = release.version
 
-                # pick the minutes randomly (which means events will sent be out of order)
-                minute = random.randint(0, 60)
-                timestamp = start_time + timedelta(days=day, hours=hour, minutes=minute)
-                timestamp = timestamp.replace(tzinfo=pytz.utc)
-                timestamps.append(timestamp)
+        backend_context = {
+            "trace": {
+                "type": "trace",
+                "trace_id": trace_id,
+                "span_id": uuid4().hex[:16],
+            }
+        }
 
-            # sort the timestamps
-            timestamps.sort()
-
-            for timestamp in timestamps:
-                transaction_user = generate_user(quick)
-                trace_id = uuid4().hex
-                release = get_release_from_time(python_project.organization_id, timestamp)
-                release_sha = release.version
-
-                backend_context = {
-                    "trace": {
-                        "type": "trace",
-                        "trace_id": trace_id,
-                        "span_id": uuid4().hex[:16],
-                    }
-                }
-
-                # python error
-                local_event = copy.deepcopy(python_error)
-                local_event.update(
-                    project=python_project,
-                    platform=python_project.platform,
-                    timestamp=timestamp,
-                    user=transaction_user,
-                    release=release_sha,
-                    contexts=backend_context,
-                )
-                fix_error_event(local_event, quick)
-                safe_send_event(local_event, quick)
+        # python error
+        local_event = copy.deepcopy(python_error)
+        local_event.update(
+            project=python_project,
+            platform=python_project.platform,
+            timestamp=timestamp,
+            user=transaction_user,
+            release=release_sha,
+            contexts=backend_context,
+        )
+        fix_error_event(local_event, quick)
+        safe_send_event(local_event, quick)
     logger.info("populate_connected_event_scenario_3.finished", extra=log_extra)
+
+
+def handle_react_python_scenario(react_project: Project, python_project: Project, quick=False):
+    """
+    Handles all data population for the React + Python scenario
+    """
+    generate_releases([react_project, python_project], quick=quick)
+    populate_connected_event_scenario_1(react_project, python_project, quick=quick)
+    populate_connected_event_scenario_2(react_project, python_project, quick=quick)
+    populate_connected_event_scenario_3(python_project, quick=quick)

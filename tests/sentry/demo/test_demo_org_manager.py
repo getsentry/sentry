@@ -25,12 +25,9 @@ org_name = "Org Name"
 
 @override_settings(DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email)
 class DemoOrgManagerTeest(TestCase):
-    @mock.patch("sentry.demo.demo_org_manager.generate_releases")
-    @mock.patch("sentry.demo.demo_org_manager.populate_connected_event_scenario_1")
+    @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
-    def test_create_demo_org(
-        self, mock_generate_name, mock_populate_connected_event, mock_gen_releases
-    ):
+    def test_create_demo_org(self, mock_generate_name, mock_handle_scenario):
         owner = User.objects.create(email=org_owner_email)
 
         create_demo_org()
@@ -46,7 +43,7 @@ class DemoOrgManagerTeest(TestCase):
 
         assert len(Project.objects.filter(organization=org)) == 2
         assert not ProjectKey.objects.filter(project__organization=org).exists()
-        mock_populate_connected_event.assert_called_once_with(mock.ANY, mock.ANY, quick=False)
+        mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY, quick=False)
 
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
     def test_no_owner(self, mock_generate_name):
@@ -83,9 +80,8 @@ class DemoOrgManagerTeest(TestCase):
 
         mock_build_up_org_buffer.assert_called_once_with()
 
-    @mock.patch("sentry.demo.demo_org_manager.generate_releases")
-    @mock.patch("sentry.demo.demo_org_manager.populate_connected_event_scenario_1")
-    def test_no_org_ready(self, mock_populate_connected_event, mock_gen_releases):
+    @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
+    def test_no_org_ready(self, mock_handle_scenario):
         User.objects.create(email=org_owner_email)
         [org, user] = assign_demo_org()
-        mock_populate_connected_event.assert_called_once_with(mock.ANY, mock.ANY, quick=True)
+        mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY, quick=True)
