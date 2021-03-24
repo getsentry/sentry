@@ -170,10 +170,9 @@ category:lock +sentinel +prefix
 category:dyld +sentinel +prefix
 category:gl +sentinel
 
-# Ignore driver frame that failed symbolication if it is called by another
-# driver frame. Unsymbolicated frames are generally bad, but often driver
-# frames are interesting. Unfortunately they are usually unsymbolicated.
-[ category:driver | .. ] category:driver function:"<unknown>" -group
+# Ignore driver frame if it is called by another driver frame. This removes a
+# lot of noise from the stack especially if most of the called frames failed symbolication.
+[ category:driver | .. ] category:driver -group
 
 # Not very interesting frames -- better add the next frame too
 # category:system +prefix

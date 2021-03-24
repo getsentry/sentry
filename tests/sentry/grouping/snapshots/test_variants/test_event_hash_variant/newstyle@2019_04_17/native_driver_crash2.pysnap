@@ -1,5 +1,5 @@
 ---
-created: '2021-03-24T14:27:43.252411Z'
+created: '2021-03-24T14:53:12.579280Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -29,7 +29,7 @@ app:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------
 system:
-  hash: "6fcc3bb4fac6aa6e81bb6d0faf40b0dd"
+  hash: "867c784955c597ddf31e7021c5fd29ef"
   component:
     system*
       exception*
@@ -43,7 +43,7 @@ system:
           frame*
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
-          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
             function*
               "OpenAdapter10"
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
