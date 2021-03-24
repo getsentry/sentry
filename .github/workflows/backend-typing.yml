@@ -1,0 +1,69 @@
+name: backend typing
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  test:
+    name: backend typing
+    runs-on: ubuntu-20.04
+    timeout-minutes: 12
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
+      # creates a status check in the "pending" state. This means that the workflow needs to run
+      # for every PR in order to update the status checks.
+      #
+      # In order to optimize CI usage, we want the tests to only run when python files change,
+      # since frontend changes should have no effect on these test suites. We cannot use GH workflow
+      # path filters because entire workflow would be skipped vs skipping individual jobs which
+      # would still allow this status check to pass.
+      - name: Check for python file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      - name: Set python version output
+        id: python-version
+        if: steps.changes.outputs.backend == 'true'
+        run: |
+          echo "::set-output name=python-version::$(cat .python-version)"
+
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        if: steps.changes.outputs.backend == 'true'
+        with:
+          python-version: ${{ steps.python-version.outputs.python-version }}
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        if: steps.changes.outputs.backend == 'true'
+        id: pip
+
+      - name: pip cache
+        uses: actions/cache@v2
+        if: steps.changes.outputs.backend == 'true'
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: |
+            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
+
+      - name: Setup backend typing
+        if: steps.changes.outputs.backend == 'true'
+        run: |
+          python setup.py install_egg_info
+          pip install wheel # GitHub Actions does not have `wheel` installed by default
+          pip install -U -e ".[dev]"
+
+      - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+        if: steps.changes.outputs.backend == 'true'
+        run: |
+          make backend-typing
