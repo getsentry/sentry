@@ -382,11 +382,11 @@ export default class MetricChart extends React.PureComponent<Props, State> {
                     incident.identifier,
                   )
                 );
-                let areaStart = moment(incident.dateStarted).valueOf();
-                let areaEnd = statusChanges?.length && statusChanges[0].dateCreated
+                const areaStart = moment(incident.dateStarted).valueOf();
+                const areaEnd = statusChanges?.length && statusChanges[0].dateCreated
                   ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
                   : moment(incidentEnd).valueOf();
-                let areaColor = rule.triggers.find(({label}) => label === 'warning')
+                const areaColor = rule.triggers.find(({label}) => label === 'warning')
                   ? theme.yellow300
                   : theme.red300;
                 series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
@@ -397,19 +397,19 @@ export default class MetricChart extends React.PureComponent<Props, State> {
                 }
 
                 statusChanges?.forEach((activity, idx) => {
-                  const areaStart = moment(activity.dateCreated).valueOf() - timeWindowMs;
-                  const areaColor =
+                  const statusAreaStart = moment(activity.dateCreated).valueOf() - timeWindowMs;
+                  const statusAreaColor =
                     activity.value === `${IncidentStatus.CRITICAL}`
                       ? theme.red300
                       : theme.yellow300;
-                  let areaEnd = idx === statusChanges.length - 1
+                  const statusAreaEnd = idx === statusChanges.length - 1
                     ? moment(incidentEnd).valueOf()
                     : moment(statusChanges[idx + 1].dateCreated).valueOf() - timeWindowMs
-                  series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
-                  if (areaColor === theme.yellow300) {
-                    warningDuration += areaEnd - areaStart;
+                  series.push(createStatusAreaSeries(statusAreaColor, areaStart, statusAreaEnd));
+                  if (statusAreaColor === theme.yellow300) {
+                    warningDuration += statusAreaEnd - statusAreaStart;
                   } else {
-                    criticalDuration += areaEnd - areaStart;
+                    criticalDuration += statusAreaEnd - statusAreaStart;
                   }
                 });
               });
