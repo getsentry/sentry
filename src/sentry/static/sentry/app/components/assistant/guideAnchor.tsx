@@ -215,7 +215,7 @@ export default class GuideAnchorWrapper extends React.Component<WrapperProps> {
   render() {
     const {disabled, children, ...rest} = this.props;
     if (disabled) {
-      return null;
+      return children;
     }
     return <GuideAnchor {...rest}>{children}</GuideAnchor>;
   }
