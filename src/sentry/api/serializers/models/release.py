@@ -357,10 +357,7 @@ class ReleaseSerializer(Serializer):
             has_health_data = None
         else:
             health_data = None
-            if no_snuba:
-                has_health_data = {}
-            else:
-                has_health_data = {}
+            has_health_data = {}
 
         for pr in project_releases:
             pr_rv = {
@@ -444,6 +441,7 @@ class ReleaseSerializer(Serializer):
                 "newGroups": project["new_groups"],
                 "platform": project["platform"],
                 "platforms": project["platforms"],
+                # XXX: Legacy should be removed
                 "hasHealthData": project["has_health_data"],
             }
             if "health_data" in project:
