@@ -28,7 +28,6 @@ type TraceLiteQueryChildrenProps = BaseTraceChildrenProps &
 type QueryProps = Omit<TraceRequestProps, 'eventView'> &
   AdditionalQueryProps & {
     children: (props: TraceLiteQueryChildrenProps) => React.ReactNode;
-    shouldSkipQuery: boolean;
   };
 
 function getTraceLiteRequestPayload({
@@ -58,10 +57,9 @@ function TraceLiteQuery({
   end,
   statsPeriod,
   children,
-  shouldSkipQuery,
   ...props
 }: QueryProps) {
-  if (!traceId || shouldSkipQuery) {
+  if (!traceId) {
     return <EmptyTrace>{children}</EmptyTrace>;
   }
 

@@ -243,7 +243,7 @@ class GroupEventDetails extends React.Component<Props, State> {
                   <GroupEventToolbar
                     group={group}
                     event={eventWithMeta}
-                    orgId={organization.slug}
+                    organization={organization}
                     location={location}
                   />
                 )}
