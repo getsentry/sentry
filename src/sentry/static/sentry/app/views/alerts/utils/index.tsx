@@ -34,17 +34,6 @@ export function fetchAlertRuleActivity(orgId: string, ruleId: string, start: str
   );
 }
 
-export function fetchIncidentsForRule(
-  orgId: string,
-  alertRule: string,
-  start: string,
-  end: string
-): Promise<Incident[]> {
-  return uncancellableApi.requestPromise(`/organizations/${orgId}/incidents/`, {
-    query: {alertRule, start, end, detailed: true},
-  });
-}
-
 export function fetchIncident(
   api: Client,
   orgId: string,

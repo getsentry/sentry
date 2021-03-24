@@ -1,4 +1,5 @@
 import {t} from 'app/locale';
+import {Incident} from 'app/views/alerts/types';
 
 export enum AlertRuleThreshold {
   INCIDENT,
@@ -74,6 +75,7 @@ export type SavedIncidentRule = UnsavedIncidentRule & {
   status: number;
   name: string;
   createdBy?: {id: number; email: string; name: string} | null;
+  incidents?: Incident[],
 };
 
 export type IncidentRule = Partial<SavedIncidentRule> & UnsavedIncidentRule;

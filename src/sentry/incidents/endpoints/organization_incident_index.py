@@ -4,7 +4,6 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.incident import DetailedIncidentActivitySerializer
 from sentry.incidents.models import Incident, IncidentStatus
 from sentry.snuba.dataset import Dataset
 
@@ -35,16 +34,6 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         if query_alert_rule is not None:
             incidents = incidents.filter(alert_rule=query_alert_rule)
 
-        query_start = request.GET.get("start")
-        if query_start is not None:
-            # exclude incidents closed before the window
-            incidents = incidents.exclude(date_closed__lt=query_start)
-
-        query_end = request.GET.get("end")
-        if query_end is not None:
-            # exclude incidents started after the window
-            incidents = incidents.exclude(date_started__gt=query_end)
-
         query_status = request.GET.get("status")
         if query_status is not None:
             if query_status == "open":
@@ -60,19 +49,11 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             # Filter to only error alerts
             incidents = incidents.filter(alert_rule__snuba_query__dataset=Dataset.Events.value)
 
-        query_detailed = request.GET.get("detailed")
-
-        def serialize_results(results):
-            if query_detailed:
-                return serialize(results, request.user, DetailedIncidentActivitySerializer())
-            else:
-                return serialize(results, request.user)
-
         return self.paginate(
             request,
             queryset=incidents,
             order_by="-date_started",
             paginator_cls=OffsetPaginator,
-            on_results=serialize_results,
+            on_results=lambda x: serialize(x, request.user),
             default_per_page=25,
         )
