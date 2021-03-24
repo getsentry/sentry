@@ -6,7 +6,7 @@ from django.db.models import Sum
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
-from sentry.snuba.sessions import get_release_health_data_overview, check_has_health_data
+from sentry.snuba.sessions import get_release_health_data_overview
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -345,6 +345,7 @@ class ReleaseSerializer(Serializer):
         for project_id, platform in platforms:
             platforms_by_project[project_id].append(platform)
 
+        # XXX: Legacy should be removed later
         if with_health_data:
             health_data = get_release_health_data_overview(
                 [(pr["project__id"], pr["release__version"]) for pr in project_releases],
@@ -359,9 +360,7 @@ class ReleaseSerializer(Serializer):
             if no_snuba:
                 has_health_data = {}
             else:
-                has_health_data = check_has_health_data(
-                    [(pr["project__id"], pr["release__version"]) for pr in project_releases]
-                )
+                has_health_data = {}
 
         for pr in project_releases:
             pr_rv = {
@@ -372,6 +371,7 @@ class ReleaseSerializer(Serializer):
                 "platform": pr["project__platform"],
                 "platforms": platforms_by_project.get(pr["project__id"]) or [],
             }
+            # XXX: Legacy should be removed later
             if health_data is not None:
                 pr_rv["health_data"] = health_data.get((pr["project__id"], pr["release__version"]))
                 pr_rv["has_health_data"] = (pr_rv["health_data"] or {}).get(
