@@ -347,6 +347,9 @@ from sentry.incidents.endpoints.organization_alert_rule_available_action_index i
 from sentry.incidents.endpoints.organization_alert_rule_details import (
     OrganizationAlertRuleDetailsEndpoint,
 )
+from sentry.incidents.endpoints.organization_alert_rule_activity_details import (
+    OrganizationAlertRuleActivityDetailsEndpoint,
+)
 from sentry.incidents.endpoints.organization_alert_rule_index import (
     OrganizationAlertRuleIndexEndpoint,
     OrganizationCombinedRuleIndexEndpoint,
@@ -652,6 +655,10 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/$",
                     OrganizationAlertRuleDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-alert-rule-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/alert-rules-activity/(?P<alert_rule_id>[^\/]+)/$",
+                    OrganizationAlertRuleActivityDetailsEndpoint.as_view(),
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/alert-rules/$",

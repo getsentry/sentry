@@ -102,7 +102,7 @@ class DetailedIncidentSerializer(IncidentSerializer):
         )
 
 
-class IncidentActivitySerializer(DetailedIncidentSerializer):
+class DetailedIncidentActivitySerializer(DetailedIncidentSerializer):
     def serialize(self, obj, attrs, user):
         context = super().serialize(obj, attrs, user)
         context["activities"] = serialize(

@@ -1,5 +1,6 @@
 from collections import defaultdict
 from sentry.api.serializers import register, serialize, Serializer
+from sentry.api.serializers.models.incident import DetailedIncidentActivitySerializer
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivity,
@@ -8,6 +9,7 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
 )
 from sentry.incidents.logic import translate_aggregate_field
+from sentry.incidents.models import Incident
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.models import (
     ACTOR_TYPES,
@@ -157,3 +159,29 @@ class CombinedRuleSerializer(Serializer):
             return attrs
         else:
             raise AssertionError("Invalid rule to serialize: %r" % type(obj))
+
+
+class DetailedAlertRuleActivitySerializer(DetailedAlertRuleSerializer):
+    def __init__(self, start, end):
+        self.query_start = start
+        self.query_end = end
+
+    def serialize(self, obj, attrs, user):
+        data = super().serialize(obj, attrs, user)
+
+        incidents = Incident.objects.filter(alert_rule=obj.id)
+        if self.query_start is not None:
+            # exclude incidents closed before the window
+            incidents = incidents.exclude(date_closed__lt=self.query_start)
+
+        if self.query_end is not None:
+            # exclude incidents started after the window
+            incidents = incidents.exclude(date_started__gt=self.query_end)
+
+        data["incidents"] = serialize(
+            [incident for incident in incidents if isinstance(incident, Incident)],
+            user=user,
+            serializer=DetailedIncidentActivitySerializer()
+        )
+
+        return data
