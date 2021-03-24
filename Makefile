@@ -3,7 +3,7 @@ WEBPACK := yarn build-acceptance
 
 bootstrap: develop init-config run-dependent-services create-db apply-migrations build-platform-assets
 
-develop: ensure-venv upgrade-pip
+develop:
 	@./scripts/do.sh setup-git
 	@./scripts/do.sh install-js-dev
 	@./scripts/do.sh install-py-dev
@@ -19,11 +19,11 @@ clean:
 	rm -rf build/ dist/ src/sentry/assets.json
 	@echo ""
 
-init-config: ensure-venv
-	sentry init --dev
+init-config:
+	@./scripts/do.sh init-config
 
-run-dependent-services: ensure-venv
-	sentry devservices up
+run-dependent-services:
+	@./scripts/do.sh run-dependent-services
 
 DROPDB := $(shell command -v dropdb 2> /dev/null)
 ifndef DROPDB
@@ -42,25 +42,18 @@ create-db:
 	@echo "--> Creating 'sentry' database"
 	$(CREATEDB) -h 127.0.0.1 -U postgres -E utf-8 sentry || true
 
-apply-migrations: ensure-venv
-	@echo "--> Applying migrations"
-	sentry upgrade
+apply-migrations:
+	@./scripts/do.sh apply-migrations
 
 reset-db: drop-db create-db apply-migrations
 
 setup-pyenv:
 	@./scripts/pyenv_setup.sh
 
-ensure-venv:
-	@./scripts/ensure-venv.sh
-
-upgrade-pip:
-	@./scripts/do.sh upgrade-pip
-
 setup-git-config:
 	@./scripts/do.sh setup-git-config
 
-setup-git: ensure-venv setup-git-config
+setup-git:
 	@./scripts/do.sh setup-git
 
 node-version-check:
@@ -215,9 +208,6 @@ lint-js:
         apply-migrations \
         reset-db \
         setup-pyenv \
-        ensure-venv \
-        ensure-pinned-pip \
-        upgrade-pip \
         setup-git-config \
         setup-git \
         node-version-check \

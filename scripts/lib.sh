@@ -2,8 +2,6 @@
 # Module containing code shared across various shell scripts
 # Execute functions from this module via the script do.sh
 
-alias pip="python -m pip --disable-pip-version-check"
-
 # Check if a command is available
 require() {
     command -v "$1" >/dev/null 2>&1
@@ -16,10 +14,6 @@ query_big_sur() {
     return 1
 }
 
-ensure-venv() {
-    eval "${HERE}/ensure-venv.sh"
-}
-
 upgrade-pip() {
     # pip versions before 20.1 do not have `pip cache` as a command which is necessary for the CI
     pip install --no-cache-dir --upgrade "pip>=20.1"
@@ -29,7 +23,6 @@ upgrade-pip() {
 }
 
 install-py-dev() {
-    ensure-venv
     upgrade-pip
     # It places us within top src dir to be at the same path as setup.py
     # This helps when getsentry calls into this script
@@ -46,6 +39,19 @@ install-py-dev() {
     fi
 }
 
+init-config() {
+    sentry init --dev
+}
+
+run-dependent-services() {
+    sentry devservices up
+}
+
+apply-migrations() {
+    echo "--> Applying migrations"
+    sentry upgrade
+}
+
 setup-git-config() {
     git config --local branch.autosetuprebase always
     git config --local core.ignorecase false
@@ -53,6 +59,7 @@ setup-git-config() {
 }
 
 setup-git() {
+    setup-git-config
     echo "--> Installing git hooks"
     mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./ && cd - || exit
     # shellcheck disable=SC2016
