@@ -1,16 +1,15 @@
 import functools
 import os
-import uuid
 
 import pytest
 from google.oauth2.credentials import Credentials
 from google.rpc.status_pb2 import Status
-from sentry.nodestore.bigtable.backend import BigtableNodeStorage
+from sentry.nodestore.bigtable.backend import BigtableNodeStorage, BigtableKVStorage
 from sentry.utils.cache import memoize
 from sentry.utils.compat import mock
 
 
-class MockedBigtableNodeStorage(BigtableNodeStorage):
+class MockedBigtableKVStorage(BigtableKVStorage):
     class Cell:
         def __init__(self, value, timestamp):
             self.value = value
@@ -27,7 +26,7 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
         def set_cell(self, family, col, value, timestamp):
             assert family == "x"
             self.table._rows.setdefault(self.row_key, {})[col] = [
-                MockedBigtableNodeStorage.Cell(value, timestamp)
+                MockedBigtableKVStorage.Cell(value, timestamp)
             ]
 
         def commit(self):
@@ -43,10 +42,10 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
             self._rows = {}
 
         def direct_row(self, key):
-            return MockedBigtableNodeStorage.Row(self, key)
+            return MockedBigtableKVStorage.Row(self, key)
 
         def read_row(self, key):
-            return MockedBigtableNodeStorage.Row(self, key)
+            return MockedBigtableKVStorage.Row(self, key)
 
         def read_rows(self, row_set):
             assert not row_set.row_ranges, "unsupported"
@@ -56,15 +55,19 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
             # commits not implemented, changes are applied immediately
             return [Status(code=0) for row in rows]
 
-        def delete(self):
-            pass
-
     @memoize
-    def _table(self):
-        return MockedBigtableNodeStorage.Table()
+    def table(self):
+        return MockedBigtableKVStorage.Table()
 
-    def bootstrap(self):
+    def bootstrap(self, automatic_expiry):
         pass
+
+    def drop(self):
+        pass
+
+
+class MockedBigtableNodeStorage(BigtableNodeStorage):
+    store_class = MockedBigtableKVStorage
 
 
 invalid_credentials = Credentials.from_authorized_user_info(
@@ -86,9 +89,10 @@ def ns(request):
     else:
         constructor = request.param
 
-    ns = constructor(project=f"test-{uuid.uuid1().hex}")
+    ns = constructor(project="test")
     ns.bootstrap()
-    return ns
+    yield ns
+    ns.store.drop()
 
 
 @pytest.mark.parametrize(
@@ -97,14 +101,14 @@ def ns(request):
     ids=["zlib", "ident", "zstd"],
 )
 def test_get(ns, compression, expected_prefix):
-    ns.compression = compression
+    ns.store.compression = compression
     node_id = "node_id"
     data = {"foo": "bar"}
     ns.set(node_id, data)
 
     # Make sure this value does not get used during read. We may have various
     # forms of compression in bigtable.
-    ns.compression = lambda: 1 / 0
+    ns.store.compression = lambda: 1 / 0
     # Do not use cache as that entirely bypasses what we want to test here.
     ns.cache = None
     assert ns.get(node_id) == data

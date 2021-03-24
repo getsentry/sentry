@@ -91,13 +91,26 @@ class BigtableKVStorage:
 
     def __init__(
         self,
-        table: Table,
+        project=None,
+        instance="sentry",
+        table_name="nodestore",
+        client_options=None,
         default_ttl: Optional[timedelta] = None,
         compression=False,
     ) -> None:
-        self.table = table
+        self.project = project
+        self.instance = instance
+        self.table_name = table_name
+        self.client_options = client_options if client_options is not None else {}
         self.default_ttl = default_ttl
         self.compression = compression
+
+    @property
+    def table(self) -> Table:
+        # XXX: This only exists to give stateful tests a location to hook into
+        # and should be removed if/when those tests no longer depend on this
+        # behavior.
+        return get_connection(self.project, self.instance, self.table_name, self.client_options)
 
     def get(self, key: str) -> Optional[bytes]:
         return self.__decode_row(self.table.read_row(key))
@@ -222,8 +235,17 @@ class BigtableKVStorage:
         if errors:
             raise BigtableError(errors)
 
+    def __get_table_admin(self) -> Table:
+        return (
+            bigtable.Client(project=self.project, admin=True, **self.client_options)
+            .instance(self.instance)
+            .table(self.table_name)
+        )
+
     def bootstrap(self, automatic_expiry: bool = True) -> None:
-        if self.table.exists():
+        table = self.__get_table_admin()
+
+        if table.exists():
             return
 
         # With automatic expiry, we set a GC rule to automatically
@@ -242,7 +264,10 @@ class BigtableKVStorage:
             gc_rule = None
 
         retry_504 = retry.Retry(retry.if_exception_type(exceptions.DeadlineExceeded))
-        retry_504(self.table.create)(column_families={self.column_family: gc_rule})
+        retry_504(table.create)(column_families={self.column_family: gc_rule})
+
+    def drop(self) -> None:
+        self.__get_table_admin().delete()
 
 
 class BigtableNodeStorage(NodeStorage):
@@ -267,6 +292,8 @@ class BigtableNodeStorage(NodeStorage):
     ... )
     """
 
+    store_class = BigtableKVStorage
+
     def __init__(
         self,
         project=None,
@@ -275,31 +302,18 @@ class BigtableNodeStorage(NodeStorage):
         automatic_expiry=False,
         default_ttl=None,
         compression=False,
-        **kwargs,
+        **client_options,
     ):
-        self.project = project
-        self.instance = instance
-        self.table = table
-        self.options = kwargs
-        self.automatic_expiry = automatic_expiry
-        self.default_ttl = default_ttl
-        self.compression = compression
-        self.skip_deletes = automatic_expiry and "_SENTRY_CLEANUP" in os.environ
-
-    @property
-    def _table(self):
-        # XXX: This only exists to give stateful tests a location to hook into
-        # and should be removed if/when those tests no longer depend on this
-        # behavior.
-        return get_connection(self.project, self.instance, self.table, self.options)
-
-    @property
-    def store(self):
-        return BigtableKVStorage(
-            self._table,
-            default_ttl=self.default_ttl,
-            compression=self.compression,
+        self.store = self.store_class(
+            project=project,
+            instance=instance,
+            table_name=table,
+            default_ttl=default_ttl,
+            compression=compression,
+            client_options=client_options,
         )
+        self.automatic_expiry = automatic_expiry
+        self.skip_deletes = automatic_expiry and "_SENTRY_CLEANUP" in os.environ
 
     def _get_bytes(self, id):
         return self.store.get(id)
@@ -335,10 +349,4 @@ class BigtableNodeStorage(NodeStorage):
             self._delete_cache_items(id_list)
 
     def bootstrap(self):
-        BigtableKVStorage(
-            bigtable.Client(project=self.project, admin=True, **self.options)
-            .instance(self.instance)
-            .table(self.table),
-            default_ttl=self.default_ttl,
-            compression=self.compression,
-        ).bootstrap(automatic_expiry=self.automatic_expiry)
+        self.store.bootstrap(automatic_expiry=self.automatic_expiry)
