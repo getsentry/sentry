@@ -4,11 +4,13 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
-import TraceFullQuery from 'app/utils/performance/quickTrace/traceFullQuery';
+import {TraceFullDetailedQuery} from 'app/utils/performance/quickTrace/traceFullQuery';
+import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {decodeScalar} from 'app/utils/queryString';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -33,10 +35,20 @@ class TraceSummary extends React.Component<Props> {
   renderContent() {
     const {location, organization, params} = this.props;
     const traceSlug = this.getTraceSlug();
-    const start = decodeScalar(location.query.start);
-    const end = decodeScalar(location.query.end);
+    const queryParams = getParams(location.query);
+    const start = decodeScalar(queryParams.start);
+    const end = decodeScalar(queryParams.end);
+    const statsPeriod = decodeScalar(queryParams.statsPeriod);
 
-    const content = ({isLoading, error, trace}) => (
+    const content = ({
+      isLoading,
+      error,
+      trace,
+    }: {
+      isLoading: boolean;
+      error: string | null;
+      trace: TraceFullDetailed | null;
+    }) => (
       <TraceDetailsContent
         location={location}
         organization={organization}
@@ -44,30 +56,32 @@ class TraceSummary extends React.Component<Props> {
         traceSlug={traceSlug}
         start={start}
         end={end}
+        statsPeriod={statsPeriod}
         isLoading={isLoading}
         error={error}
         trace={trace}
       />
     );
 
-    if (!start || !end) {
+    if (!statsPeriod && (!start || !end)) {
       return content({
         isLoading: false,
-        error: 'start/end not specified',
+        error: 'date selection not specified',
         trace: null,
       });
     }
 
     return (
-      <TraceFullQuery
+      <TraceFullDetailedQuery
         location={location}
         orgSlug={organization.slug}
         traceId={traceSlug}
         start={start}
         end={end}
+        statsPeriod={statsPeriod}
       >
         {content}
-      </TraceFullQuery>
+      </TraceFullDetailedQuery>
     );
   }
 

@@ -41,13 +41,14 @@ from sentry.models import (
     SentryAppInstallationToken,
     User,
     UserOption,
-    UserOptionValue,
 )
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
+from sentry.notifications.legacy_mappings import UserOptionValue
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils import snuba
+from sentry.utils.cache import cache
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
 from sentry.utils.compat import map, zip
@@ -135,30 +136,49 @@ class GroupSerializerBase(Serializer):
 
     def _get_group_snuba_stats(self, item_list, seen_stats):
         start = self._get_start_from_seen_stats(seen_stats)
+        unhandled = {}
+
+        cache_keys = []
+        for item in item_list:
+            cache_keys.append("group-mechanism-handled:%d" % item.id)
+
+        cache_data = cache.get_many(cache_keys)
+        for item, cache_key in zip(item_list, cache_keys):
+            unhandled[item.id] = cache_data.get(cache_key)
 
         filter_keys = {}
         for item in item_list:
+            if unhandled.get(item.id) is not None:
+                continue
             filter_keys.setdefault("project_id", []).append(item.project_id)
             filter_keys.setdefault("group_id", []).append(item.id)
 
-        rv = raw_query(
-            dataset=Dataset.Events,
-            selected_columns=[
-                "group_id",
-                [
-                    "argMax",
-                    [["has", ["exception_stacks.mechanism_handled", 0]], "timestamp"],
-                    "unhandled",
+        if filter_keys:
+            rv = raw_query(
+                dataset=Dataset.Events,
+                selected_columns=[
+                    "group_id",
+                    [
+                        "argMax",
+                        [["has", ["exception_stacks.mechanism_handled", 0]], "timestamp"],
+                        "unhandled",
+                    ],
                 ],
-            ],
-            groupby=["group_id"],
-            filter_keys=filter_keys,
-            start=start,
-            orderby="group_id",
-            referrer="group.unhandled-flag",
-        )
+                groupby=["group_id"],
+                filter_keys=filter_keys,
+                start=start,
+                orderby="group_id",
+                referrer="group.unhandled-flag",
+            )
+            for x in rv["data"]:
+                unhandled[x["group_id"]] = x["unhandled"]
 
-        return {x["group_id"]: {"unhandled": x["unhandled"]} for x in rv["data"]}
+                # cache the handled flag for 60 seconds.  This is broadly in line with
+                # the time we give for buffer flushes so the user experience is somewhat
+                # consistent here.
+                cache.set("group-mechanism-handled:%d" % x["group_id"], x["unhandled"], 60)
+
+        return {group_id: {"unhandled": unhandled} for group_id, unhandled in unhandled.items()}
 
     def _get_subscriptions(self, item_list, user):
         """

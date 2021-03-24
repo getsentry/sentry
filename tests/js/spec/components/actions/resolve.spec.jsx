@@ -17,8 +17,8 @@ describe('ResolveActions', function () {
           onUpdate={spy}
           disabled
           hasRelease={false}
-          orgId="org-1"
-          projectId="proj-1"
+          orgSlug="org-1"
+          projectSlug="proj-1"
         />,
         TestStubs.routerContext()
       );
@@ -45,8 +45,8 @@ describe('ResolveActions', function () {
           onUpdate={spy}
           disableDropdown
           hasRelease={false}
-          orgId="org-1"
-          projectId="proj-1"
+          orgSlug="org-1"
+          projectSlug="proj-1"
         />,
         TestStubs.routerContext()
       );
@@ -78,8 +78,8 @@ describe('ResolveActions', function () {
           onUpdate={spy}
           disabled
           hasRelease={false}
-          orgId="org-1"
-          projectId="proj-1"
+          orgSlug="org-1"
+          projectSlug="proj-1"
           isResolved
         />,
         TestStubs.routerContext()
@@ -106,8 +106,8 @@ describe('ResolveActions', function () {
           onUpdate={spy}
           disabled
           hasRelease={false}
-          orgId="org-1"
-          projectId="proj-1"
+          orgSlug="org-1"
+          projectSlug="proj-1"
           isResolved
           isAutoResolved
         />,
@@ -127,8 +127,8 @@ describe('ResolveActions', function () {
         <ResolveActions
           onUpdate={spy}
           hasRelease={false}
-          orgId="org-1"
-          projectId="proj-1"
+          orgSlug="org-1"
+          projectSlug="proj-1"
         />,
         TestStubs.routerContext()
       );
@@ -157,8 +157,8 @@ describe('ResolveActions', function () {
           <ResolveActions
             onUpdate={spy}
             hasRelease={false}
-            orgId="org-1"
-            projectId="proj-1"
+            orgSlug="org-1"
+            projectSlug="proj-1"
             shouldConfirm
             confirmMessage="Are you sure???"
           />
@@ -198,8 +198,8 @@ describe('ResolveActions', function () {
         <GlobalModal />
         <ResolveActions
           hasRelease
-          orgId="org-slug"
-          projectId="project-slug"
+          orgSlug="org-slug"
+          projectSlug="project-slug"
           onUpdate={onUpdate}
         />
       </React.Fragment>,

@@ -785,16 +785,13 @@ class CopyProjectSettingsTest(APITestCase):
     def test_additional_params_in_payload(self):
         # Right now these are overwritten with the copied project's settings
         project = self.create_project()
-        self.get_valid_response(
-            project.organization.slug,
-            project.slug,
-            **{
-                "copy_from_project": self.other_project.id,
-                "sentry:resolve_age": 2,
-                "sentry:scrub_data": True,
-                "sentry:scrub_defaults": True,
-            },
-        )
+        data = {
+            "copy_from_project": self.other_project.id,
+            "sentry:resolve_age": 2,
+            "sentry:scrub_data": True,
+            "sentry:scrub_defaults": True,
+        }
+        self.get_valid_response(project.organization.slug, project.slug, **data)
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
@@ -901,11 +898,8 @@ class ProjectDeleteTest(APITestCase):
     @mock.patch("sentry.api.endpoints.project_details.uuid4")
     @mock.patch("sentry.api.endpoints.project_details.delete_project")
     def test_simple(self, mock_delete_project, mock_uuid4_project, mock_uuid4_mixin):
-        class uuid:
-            hex = "abc123"
-
-        mock_uuid4_mixin.return_value = uuid
-        mock_uuid4_project.return_value = uuid
+        mock_uuid4_mixin.return_value = self.get_mock_uuid()
+        mock_uuid4_project.return_value = self.get_mock_uuid()
         project = self.create_project()
 
         self.login_as(user=self.user)

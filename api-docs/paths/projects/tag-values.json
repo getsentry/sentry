@@ -1,7 +1,7 @@
 {
   "get": {
     "tags": ["Projects"],
-    "description": "Return a list of values associated with this key.  The `query`\nparameter can be used to to perform a \"contains\" match on\nvalues.",
+    "description": "Return a list of values associated with this key.  The `query`\nparameter can be used to to perform a \"contains\" match on\nvalues. \n\nWhen [paginated](/api/pagination) can return at most 1000 values.",
     "operationId": "List a Tag's Values",
     "parameters": [
       {

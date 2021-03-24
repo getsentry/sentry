@@ -1,7 +1,7 @@
 import {LocationDescriptor, Query} from 'history';
 
 import {OrganizationSummary} from 'app/types';
-import {TraceFull} from 'app/utils/performance/quickTrace/types';
+import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {reduceTrace} from 'app/utils/performance/quickTrace/utils';
 
 import {TraceInfo} from './types';
@@ -9,25 +9,32 @@ import {TraceInfo} from './types';
 export function getTraceDetailsUrl(
   organization: OrganizationSummary,
   traceSlug: string,
-  start: string,
-  end: string,
+  dateSelection,
   query: Query
 ): LocationDescriptor {
   return {
     pathname: `/organizations/${organization.slug}/performance/trace/${traceSlug}/`,
-    query: {...query, start, end},
+    query: {...query, ...dateSelection},
   };
 }
 
-function traceVisitor() {
-  return (accumulator: TraceInfo, event: TraceFull) => {
+function traceVisitor(isRelevant: (transaction: TraceFullDetailed) => boolean) {
+  return (accumulator: TraceInfo, event: TraceFullDetailed) => {
+    const relevant = isRelevant(event);
+
     for (const error of event.errors ?? []) {
-      accumulator.errors.add(error.project_slug);
-      accumulator.relevantProjectsWithErrors.add(error.project_slug);
+      accumulator.errors.add(error.event_id);
+      if (relevant) {
+        accumulator.relevantErrors.add(error.event_id);
+        accumulator.relevantProjectsWithErrors.add(error.project_slug);
+      }
     }
 
     accumulator.transactions.add(event.event_id);
-    accumulator.relevantProjectsWithTransactions.add(event.project_slug);
+    if (relevant) {
+      accumulator.relevantTransactions.add(event.event_id);
+      accumulator.relevantProjectsWithTransactions.add(event.project_slug);
+    }
 
     accumulator.startTimestamp = Math.min(
       accumulator.startTimestamp,
@@ -41,10 +48,15 @@ function traceVisitor() {
   };
 }
 
-export function getTraceInfo(trace: TraceFull) {
-  return reduceTrace<TraceInfo>(trace, traceVisitor(), {
+export function getTraceInfo(
+  trace: TraceFullDetailed,
+  isRelevant: (transaction: TraceFullDetailed) => boolean
+) {
+  return reduceTrace<TraceInfo>(trace, traceVisitor(isRelevant), {
     relevantProjectsWithErrors: new Set<string>(),
     relevantProjectsWithTransactions: new Set<string>(),
+    relevantErrors: new Set<string>(),
+    relevantTransactions: new Set<string>(),
     errors: new Set<string>(),
     transactions: new Set<string>(),
     startTimestamp: Number.MAX_SAFE_INTEGER,

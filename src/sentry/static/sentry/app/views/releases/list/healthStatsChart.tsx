@@ -1,9 +1,11 @@
 import React from 'react';
 import LazyLoad from 'react-lazyload';
+import {withTheme} from 'emotion-theming';
 
 import MiniBarChart from 'app/components/charts/miniBarChart';
 import {tn} from 'app/locale';
 import {Series} from 'app/types/echarts';
+import {Theme} from 'app/utils/theme';
 
 import {DisplayOption} from './utils';
 
@@ -14,6 +16,7 @@ type DefaultProps = {
 type Props = DefaultProps & {
   activeDisplay: DisplayOption;
   data: Series[];
+  theme: Theme;
 };
 
 class HealthStatsChart extends React.Component<Props> {
@@ -33,7 +36,7 @@ class HealthStatsChart extends React.Component<Props> {
   };
 
   render() {
-    const {height, data} = this.props;
+    const {height, data, theme} = this.props;
 
     return (
       <LazyLoad debounce={50} height={height}>
@@ -44,10 +47,11 @@ class HealthStatsChart extends React.Component<Props> {
           showTimeInTooltip
           hideDelay={50}
           tooltipFormatter={this.formatTooltip}
+          colors={[theme.purple300, theme.gray200]}
         />
       </LazyLoad>
     );
   }
 }
 
-export default HealthStatsChart;
+export default withTheme(HealthStatsChart);

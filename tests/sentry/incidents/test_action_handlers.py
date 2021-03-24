@@ -24,7 +24,16 @@ from sentry.incidents.models import (
     TriggerStatus,
     INCIDENT_STATUS,
 )
-from sentry.models import Integration, PagerDutyService, UserOption
+from sentry.models import (
+    Integration,
+    NotificationSetting,
+    PagerDutyService,
+)
+from sentry.models.integration import ExternalProviders
+from sentry.notifications.types import (
+    NotificationSettingTypes,
+    NotificationSettingOptionValues,
+)
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -44,8 +53,12 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         assert handler.get_targets() == [(self.user.id, self.user.email)]
 
     def test_user_alerts_disabled(self):
-        UserOption.objects.set_value(
-            user=self.user, key="mail:alert", value=0, project=self.project
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+            project=self.project,
         )
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
@@ -68,11 +81,20 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         }
 
     def test_team_alert_disabled(self):
-        UserOption.objects.set_value(
-            user=self.user, key="mail:alert", value=0, project=self.project
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+            project=self.project,
         )
         disabled_user = self.create_user()
-        UserOption.objects.set_value(user=disabled_user, key="subscribe_by_default", value="0")
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=disabled_user,
+        )
 
         new_user = self.create_user()
         self.create_team_membership(team=self.team, user=new_user)
