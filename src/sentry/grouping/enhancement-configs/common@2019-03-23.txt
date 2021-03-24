@@ -170,8 +170,10 @@ category:lock +sentinel +prefix
 category:dyld +sentinel +prefix
 category:gl +sentinel
 
-# Ignore driver frame if it is called by another driver frame. This removes a
-# lot of noise from the stack especially if most of the called frames failed symbolication.
+# Ignore driver frame if it is directly calling another driver frame. This
+# removes a lot of noise from the stack especially if most of the called frames
+# failed symbolication, stack scanning was done or to paper over differences in
+# driver versions.
 [ category:driver | .. ] category:driver -group
 
 # Not very interesting frames -- better add the next frame too
