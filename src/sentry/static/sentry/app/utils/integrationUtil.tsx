@@ -16,6 +16,7 @@ import {
   DocumentIntegration,
   IntegrationFeature,
   IntegrationInstallationStatus,
+  IntegrationType,
   Organization,
   PluginWithProjectList,
   SentryApp,
@@ -153,7 +154,9 @@ export function isDocumentIntegration(
   return integration.hasOwnProperty('docUrl');
 }
 
-export const getIntegrationType = (integration: AppOrProviderOrPlugin): string => {
+export const getIntegrationType = (
+  integration: AppOrProviderOrPlugin
+): IntegrationType => {
   if (isSentryApp(integration)) {
     return 'sentry_app';
   }
