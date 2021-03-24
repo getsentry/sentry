@@ -10,6 +10,7 @@ import {
   QuickTrace,
   QuickTraceEvent,
   TraceFull,
+  TraceFullDetailed,
   TraceLite,
 } from 'app/utils/performance/quickTrace/types';
 
@@ -98,7 +99,7 @@ export function flattenRelevantPaths(
 }
 
 function simplifyEvent(event: TraceFull): QuickTraceEvent {
-  return omit(event, ['children', 'start_timestamp', 'timestamp']);
+  return omit(event, ['children']);
 }
 
 type ParsedQuickTrace = {
@@ -254,8 +255,8 @@ export function makeEventView({
 }
 
 export function reduceTrace<T>(
-  trace: TraceFull,
-  visitor: (acc: T, e: TraceFull) => T,
+  trace: TraceFullDetailed,
+  visitor: (acc: T, e: TraceFullDetailed) => T,
   initialValue: T
 ): T {
   let result = initialValue;
@@ -281,10 +282,10 @@ export function getTraceTimeRangeFromEvent(event: Event): {start: string; end: s
 }
 
 export function filterTrace(
-  trace: TraceFull,
-  predicate: (transaction: TraceFull) => boolean
-): TraceFull[] {
-  return reduceTrace<TraceFull[]>(
+  trace: TraceFullDetailed,
+  predicate: (transaction: TraceFullDetailed) => boolean
+): TraceFullDetailed[] {
+  return reduceTrace<TraceFullDetailed[]>(
     trace,
     (transactions, transaction) => {
       if (predicate(transaction)) {
