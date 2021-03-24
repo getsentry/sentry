@@ -252,7 +252,7 @@ class GroupHeader extends React.Component<Props, State> {
             isActive={() => currentTab === TAB.DETAILS}
             disabled={hasGroupBeenReprocessedAndHasntEvent}
           >
-            {t('Details')}
+            <GuideAnchor target="issue_details">{t('Details')}</GuideAnchor>
           </ListLink>
           <StyledListLink
             to={`${baseUrl}activity/${location.search}`}

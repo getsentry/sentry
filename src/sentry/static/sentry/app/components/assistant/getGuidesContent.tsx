@@ -4,8 +4,12 @@ import {GuidesContent} from 'app/components/assistant/types';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import {t, tct} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 
 export default function getGuidesContent(orgSlug: string | null): GuidesContent {
+  if (ConfigStore.get('demoMode')) {
+    return getDemoModeGuides();
+  }
   return [
     {
       guide: 'issue',
@@ -204,6 +208,104 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           target: 'release_adoption',
           description: t(
             `Adoption now compares the sessions or users of a release with the total sessions or users for this project in the last 24 hours.`
+          ),
+        },
+      ],
+    },
+  ];
+}
+
+function getDemoModeGuides(): GuidesContent {
+  return [
+    {
+      guide: 'sidebar',
+      requiredTargets: ['projects', 'issues'],
+      priority: 1, //lower number means higher priority
+      steps: [
+        {
+          title: t('Projects'),
+          target: 'projects',
+          description: t(
+            `Projects allow you to scope events to a distinct application in your organization.`
+          ),
+        },
+        {
+          title: t('Issues'),
+          target: 'issues',
+          description: t(
+            `A collection of error events reported as your customers experience them.`
+          ),
+        },
+        {
+          title: t('Performance'),
+          target: 'performance',
+          description: t(
+            `Sentry tracks your software performance, measuring metrics like throughput and latency, and displaying the impact of errors across multiple systems.`
+          ),
+        },
+        {
+          title: t('Releases'),
+          target: 'releases',
+          description: t(
+            `Track the health of your releases down to the moment it starts to erode.`
+          ),
+        },
+        {
+          title: t('Discover'),
+          target: 'discover',
+          description: t(
+            `Query and unlock insights into the health of your entire system and get answers to critical business questions -- all in one place.`
+          ),
+          nextText: t(`Got it`),
+        },
+      ],
+    },
+    {
+      guide: 'issue_stream_v2',
+      requiredTargets: ['issue_stream_title'],
+      steps: [
+        {
+          title: t('Issue'),
+          target: 'issue_stream_title',
+          description: t(
+            `Click here to see a full error report down to the line of code that caused the issue.`
+          ),
+        },
+      ],
+    },
+    {
+      guide: 'issue_v2',
+      requiredTargets: ['issue_details', 'exception'],
+      steps: [
+        {
+          title: t('Details'),
+          target: 'issue_details',
+          description: t(`Quickly see user and client data for each event.`),
+        },
+        {
+          title: t('Exception'),
+          target: 'exception',
+          description: t(`Get a full stack trace to see exact line of broken code.`),
+        },
+        {
+          title: t('Tags'),
+          target: 'tags',
+          description: t(
+            `Tags help you quickly access related events and view the tag distribution for a set of events.`
+          ),
+        },
+        {
+          title: t('Breadcrumbs'),
+          target: 'breadcrumbs',
+          description: t(
+            `Check out the play by play of what your user experienced till they encountered the exception.`
+          ),
+        },
+        {
+          title: t('Discover'),
+          target: 'open_in_discover',
+          description: t(
+            `Click here to analyze new errors by URL, geography, device, browser, etc.`
           ),
         },
       ],

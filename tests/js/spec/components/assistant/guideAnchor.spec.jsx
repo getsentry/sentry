@@ -3,7 +3,7 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import GuideActions from 'app/actions/guideActions';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
+import GuideAnchorWrapper, {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import ConfigStore from 'app/stores/configStore';
 import theme from 'app/utils/theme';
 
@@ -118,9 +118,9 @@ describe('GuideAnchor', function () {
 
   it('renders children when disabled', async function () {
     const wrapper3 = mountWithTheme(
-      <GuideAnchor disabled target="exception">
+      <GuideAnchorWrapper disabled target="exception">
         <div data-test-id="child-div" />
-      </GuideAnchor>,
+      </GuideAnchorWrapper>,
       routerContext
     );
 

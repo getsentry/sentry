@@ -277,7 +277,7 @@ class Actions extends React.Component<Props, State> {
 
         {orgFeatures.has('discover-basic') && (
           <ActionButton disabled={disabled} to={disabled ? '' : this.getDiscoverUrl()}>
-            {t('Open in Discover')}
+            <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
         )}
 
