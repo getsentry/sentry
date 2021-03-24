@@ -15,7 +15,7 @@ import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
 import getDynamicText from 'app/utils/getDynamicText';
-import {TraceError, TraceFull} from 'app/utils/performance/quickTrace/types';
+import {TraceError, TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {getTransactionDetailsUrl} from 'app/views/performance/utils';
 
@@ -24,7 +24,7 @@ import {Row, TransactionDetails, TransactionDetailsContainer} from './styles';
 type Props = {
   location: Location;
   organization: Organization;
-  transaction: TraceFull;
+  transaction: TraceFullDetailed;
 };
 
 class TransactionDetail extends React.Component<Props> {
