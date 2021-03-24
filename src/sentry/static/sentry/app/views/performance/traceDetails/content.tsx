@@ -1,5 +1,6 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
@@ -266,6 +267,12 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderTraceView(traceInfo: TraceInfo) {
+    const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+    const sentrySpan = sentryTransaction?.startChild({
+      op: 'trace.render',
+      description: 'trace-view-content',
+    });
+
     const {trace} = this.props;
 
     if (trace === null) {
@@ -283,7 +290,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       }
     );
 
-    return (
+    const traceView = (
       <TraceDetailBody>
         <StyledPanel>
           <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
@@ -298,6 +305,10 @@ class TraceDetailsContent extends React.Component<Props, State> {
         </StyledPanel>
       </TraceDetailBody>
     );
+
+    sentrySpan?.finish();
+
+    return traceView;
   }
 
   renderContent() {
