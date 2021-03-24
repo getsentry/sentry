@@ -340,12 +340,21 @@ const CreateAlertButton = withApi(
       function handleClickWithoutProject(event: React.MouseEvent) {
         event.preventDefault();
 
-        navigateTo(
-          `/organizations/${organization.slug}/alerts/:projectId/new/${
-            referrer ? `?referrer=${referrer}` : ''
-          }`,
-          router
-        );
+        if (organization.features.includes('alert-wizard')) {
+          navigateTo(
+            `/organizations/${organization.slug}/alerts/:projectId/wizard/${
+              referrer ? `?referrer=${referrer}` : ''
+            }`,
+            router
+          );
+        } else {
+          navigateTo(
+            `/organizations/${organization.slug}/alerts/:projectId/new/${
+              referrer ? `?referrer=${referrer}` : ''
+            }`,
+            router
+          );
+        }
       }
 
       async function enableAlertsMemberWrite() {
