@@ -1,18 +1,15 @@
 ---
-created: '2021-03-24T14:27:28.216386Z'
+created: '2021-03-24T14:42:13.680677Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "38930bdab53e8a4b34a9293dc4107e55"
-  tree_label: "[driver] nvwgf2umx.dll | OpenAdapter10 | NDXGI::CDevice::DestroyDriverInstance"
+  hash: "be741a57ca03e2cc7aca41068df2c48c"
+  tree_label: "[driver] OpenAdapter10 | NDXGI::CDevice::DestroyDriverInstance"
   component:
     app-depth-1*
       exception*
         stacktrace*
-          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
-            package* (used as fallback because function name is not available)
-              "nvwgf2umx.dll"
           frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function*
               "OpenAdapter10"
@@ -27,7 +24,7 @@ app-depth-1:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------
 system:
-  hash: "2dc9b40663855f370e533e6f9ff812a0"
+  hash: "6fcc3bb4fac6aa6e81bb6d0faf40b0dd"
   tree_label: "<entire stacktrace>"
   component:
     system*
@@ -53,7 +50,7 @@ system:
               "OpenAdapter10"
             package (ignored because function takes precedence)
               "nvwgf2umx.dll"
-          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver function:<unknown> -group))
             package* (used as fallback because function name is not available)
               "nvwgf2umx.dll"
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))

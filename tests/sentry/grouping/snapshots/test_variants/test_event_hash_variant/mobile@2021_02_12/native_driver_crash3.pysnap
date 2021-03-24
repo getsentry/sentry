@@ -1,18 +1,18 @@
 ---
-created: '2021-03-24T14:42:16.263113Z'
+created: '2021-03-24T14:42:14.881366Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "be741a57ca03e2cc7aca41068df2c48c"
-  tree_label: "[driver] OpenAdapter10 | NDXGI::CDevice::DestroyDriverInstance"
+  hash: "c28d70bf2396958cfe7050060b6eb071"
+  tree_label: "[driver] OpenAdapter12 | NDXGI::CDevice::DestroyDriverInstance"
   component:
     app-depth-1*
       exception*
         stacktrace*
           frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function*
-              "OpenAdapter10"
+              "OpenAdapter12"
             package (ignored because function takes precedence)
               "nvwgf2umx.dll"
           frame*
@@ -24,7 +24,7 @@ app-depth-1:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------
 system:
-  hash: "a6befffdc310c28b165bbceb1c0f59a8"
+  hash: "d69ad378fab4de58c7236a72ce3101ee"
   tree_label: "<entire stacktrace>"
   component:
     system*
@@ -42,7 +42,7 @@ system:
               "d3d11.dll"
           frame*
             function*
-              "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
+              "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
             package (ignored because function takes precedence)
               "d3d11.dll"
           frame*
@@ -55,9 +55,12 @@ system:
               "NDXGI::CDevice::DestroyDriverInstance"
             package (ignored because function takes precedence)
               "d3d11.dll"
+          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver function:<unknown> -group))
+            package* (used as fallback because function name is not available)
+              "nvwgf2umx.dll"
           frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function*
-              "OpenAdapter10"
+              "OpenAdapter12"
             package (ignored because function takes precedence)
               "nvwgf2umx.dll"
           frame (ignored by stack trace rule ([ category:driver | .. ] category:driver function:<unknown> -group))
