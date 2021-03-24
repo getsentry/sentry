@@ -47,7 +47,7 @@ type State = {
  * from one or more anchors on the page to determine which guides can
  * be shown on the page.
  */
-const GuideAnchor = createReactClass<Props, State>({
+export const GuideAnchor = createReactClass<Props, State>({
   mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange') as any],
 
   getInitialState() {
