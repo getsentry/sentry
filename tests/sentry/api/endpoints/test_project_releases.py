@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 import pytz
 from django.utils import timezone
 from django.core.urlresolvers import reverse
-from rest_framework.exceptions import ErrorDetail
 from exam import fixture
 
 from sentry.api.endpoints.project_releases import ReleaseWithVersionSerializer
@@ -594,16 +593,13 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
         )
 
         assert response.status_code == 400
-        assert response.data == {
+        assert response.json() == {
             "commits": {
-                0: {
+                "0": {
                     "patch_set": {
-                        0: {
+                        "0": {
                             "type": [
-                                ErrorDetail(
-                                    string="Commit patch_set type Z is not supported.",
-                                    code="invalid",
-                                )
+                                "Commit patch_set type Z is not supported.",
                             ]
                         }
                     }

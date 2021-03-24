@@ -4,7 +4,6 @@ from datetime import datetime
 
 import pytz
 from django.core.urlresolvers import reverse
-from rest_framework.exceptions import ErrorDetail
 
 from sentry.app import locks
 from sentry.constants import MAX_VERSION_LENGTH
@@ -590,9 +589,7 @@ class ReleaseDeleteTest(APITestCase):
             },
         )
         assert response.status_code == 400
-        assert response.data == {
-            "commits": {0: {"id": [ErrorDetail(string="This field is required.", code="required")]}}
-        }
+        assert response.json() == {"commits": {"0": {"id": ["This field is required."]}}}
 
 
 class ReleaseSerializerTest(unittest.TestCase):

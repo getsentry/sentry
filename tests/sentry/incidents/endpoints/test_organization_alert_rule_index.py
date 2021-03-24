@@ -1,6 +1,5 @@
 import pytz
 import requests
-from rest_framework.exceptions import ErrorDetail
 
 from copy import deepcopy
 from exam import fixture
@@ -314,9 +313,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
                     }
                 ],
             )
-            assert resp.data == {
-                "projects": {1: [ErrorDetail(string="Invalid project", code="invalid")]}
-            }
+            assert resp.json() == {"projects": {"1": ["Invalid project"]}}
 
     def test_no_feature(self):
         resp = self.get_response(self.organization.slug)
