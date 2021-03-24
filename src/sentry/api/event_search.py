@@ -131,8 +131,8 @@ raw_search           = (!key_val_term ~r"\ *(?!(?i)OR(?![^\s]))(?!(?i)AND(?![^\s
 quoted_raw_search    = spaces quoted_value spaces
 
 # standard key:val filter
-basic_filter         = negation? search_key sep ((open_bracket value (comma value)* closed_bracket) / value)
-quoted_basic_filter  = negation? search_key sep (quoted_value / (open_bracket quoted_value (comma quoted_value)* closed_bracket))
+basic_filter         = negation? search_key sep ((open_bracket in_value (comma space* in_value)* closed_bracket) / value)
+quoted_basic_filter  = negation? search_key sep (quoted_value / (open_bracket quoted_value (comma space* quoted_value)* closed_bracket))
 # filter for dates
 time_filter          = search_key sep? operator (date_format / alt_date_format)
 # filter for relative dates
@@ -142,7 +142,7 @@ duration_filter      = search_key sep operator? duration_format
 # exact time filter for dates
 specific_time_filter = search_key sep (date_format / alt_date_format)
 # Numeric comparison filter
-numeric_filter       = search_key sep ((operator? numeric_value) / (open_bracket numeric_value (comma numeric_value)* closed_bracket))
+numeric_filter       = search_key sep ((operator? numeric_value) / (open_bracket numeric_value (comma space* numeric_value)* closed_bracket))
 # Boolean comparison filter
 boolean_filter       = negation? search_key sep boolean_value
 # Aggregate numeric filter
@@ -158,7 +158,8 @@ tag_filter           = negation? "tags[" search_key "]" sep search_value
 aggregate_key        = key open_paren function_arg* closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
-value                = ~r"[^()\s]*[^\]\s)]" / ~r"[^()\s]*"
+value                = ~r"[^()\s]*"
+in_value             = ~r"[^(),\s]+[^\],\s)]"
 numeric_value        = ~r"([-]?[0-9\.]+)([kmb])?(?=\s|\)|$|,|])"
 boolean_value        = ~r"(true|1|false|0)(?=\s|\)|$)"i
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
@@ -468,13 +469,12 @@ class SearchVisitor(NodeVisitor):
     def process_list(self, first, remaining):
         return [
             first,
-            *[item[1] for item in remaining],
+            *[item[2] for item in remaining],
         ]
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, (value,)) = children
         operator = value[0]
-        # import pdb; pdb.set_trace()
         if isinstance(operator, Node):
             if isinstance(operator.expr, Optional):
                 operator = "="
@@ -679,9 +679,6 @@ class SearchVisitor(NodeVisitor):
     def visit_quoted_basic_filter(self, node, children):
         (negation, search_key, _, (search_value,)) = children
         operator = "="
-        # import pdb
-        #
-        # pdb.set_trace()
         if isinstance(search_value, list):
             operator = "IN"
             search_value = self.process_list(search_value[1], search_value[2])
@@ -694,12 +691,11 @@ class SearchVisitor(NodeVisitor):
     def visit_basic_filter(self, node, children):
         (negation, search_key, _, (search_value,)) = children
         operator = "="
-        # import pdb
-        #
-        # pdb.set_trace()
         if isinstance(search_value, list):
             operator = "IN"
-            search_value = self.process_list(search_value[1], search_value[2])
+            search_value = self.process_list(
+                search_value[1].text, [(_, _, val.text) for _, _, val in search_value[2]]
+            )
         else:
             if not search_value:
                 raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
@@ -740,9 +736,6 @@ class SearchVisitor(NodeVisitor):
         return SearchFilter(search_key, operator, SearchValue(""))
 
     def visit_tag_filter(self, node, children):
-        # import pdb
-        #
-        # pdb.set_trace()
         (negation, _, search_key, _, sep, search_value) = children
         operator = "!=" if self.is_negated(negation) else "="
         return SearchFilter(SearchKey(f"tags[{search_key.name}]"), operator, search_value)
