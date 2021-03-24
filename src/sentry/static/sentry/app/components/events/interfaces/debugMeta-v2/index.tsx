@@ -208,6 +208,12 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   openImageDetailsModal = async () => {
+    const {filteredImages} = this.state;
+
+    if (!filteredImages.length) {
+      return;
+    }
+
     const {location, organization, projectId, groupId, event} = this.props;
     const {query} = location;
 
@@ -217,7 +223,6 @@ class DebugMeta extends React.PureComponent<Props, State> {
       return;
     }
 
-    const {filteredImages} = this.state;
     const image =
       imageCodeId !== IMAGE_INFO_UNAVAILABLE || imageDebugId !== IMAGE_INFO_UNAVAILABLE
         ? filteredImages.find(
@@ -278,7 +283,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
     // There are a bunch of images in debug_meta that are not relevant to this
     // component. Filter those out to reduce the noise. Most importantly, this
     // includes proguard images, which are rendered separately.
-    const relevantImages = images.filter(this.isValidImage).map(releventImage => {
+
+    const relevantImages = images.filter(this.isValidImage);
+
+    if (!relevantImages.length) {
+      return;
+    }
+
+    const formattedRelevantImages = relevantImages.map(releventImage => {
       const {debug_status, unwind_status} = releventImage as Image;
       return {
         ...releventImage,
@@ -289,13 +301,13 @@ class DebugMeta extends React.PureComponent<Props, State> {
     // Sort images by their start address. We assume that images have
     // non-overlapping ranges. Each address is given as hex string (e.g.
     // "0xbeef").
-    relevantImages.sort(
+    formattedRelevantImages.sort(
       (a, b) => parseAddress(a.image_addr) - parseAddress(b.image_addr)
     );
 
     const unusedImages: Images = [];
 
-    const usedImages = relevantImages.filter(image => {
+    const usedImages = formattedRelevantImages.filter(image => {
       if (image.debug_status === ImageStatus.UNUSED) {
         unusedImages.push(image as Images[0]);
         return false;
@@ -498,12 +510,32 @@ class DebugMeta extends React.PureComponent<Props, State> {
     };
   }
 
+  get shouldSkipSection() {
+    const {filteredImagesByFilter: filteredImages} = this.state;
+    const {data} = this.props;
+    const {images} = data;
+
+    if (
+      !filteredImages.length &&
+      (images.every(image => !defined(image)) ||
+        images.every(image => image?.type === 'proguard'))
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
   render() {
+    if (this.shouldSkipSection) {
+      return null;
+    }
+
     const {
       searchTerm,
       filterOptions,
       scrollbarWidth,
-      filteredImagesByFilter: images,
+      filteredImagesByFilter: filteredImages,
     } = this.state;
 
     const displayFilter = (Object.values(filterOptions ?? {})[0] ?? []).length > 1;
@@ -542,7 +574,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         isCentered
       >
         <StyledPanelTable
-          isEmpty={!images.length}
+          isEmpty={!filteredImages.length}
           scrollbarWidth={scrollbarWidth}
           headers={[t('Status'), t('Image'), t('Processing'), t('Details'), '']}
           {...this.getEmptyMessage()}
