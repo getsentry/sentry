@@ -1,7 +1,7 @@
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
-from sentry.models import Integration, ProjectCodeOwners, ProjectOwnership
+from sentry.models import Integration, ProjectCodeOwners
 
 
 class ProjectCodeOwnersEndpointTestCase(APITestCase):
@@ -168,13 +168,6 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"codeMappingId": ["This code mapping does not exist."]}
-
-    def test_default_project_ownership_record_created(self):
-        assert ProjectOwnership.objects.filter(project=self.project).exists() is False
-        with self.feature({"organizations:import-codeowners": True}):
-            response = self.client.post(self.url, self.data)
-        assert response.status_code == 201, response.content
-        assert ProjectOwnership.objects.filter(project=self.project).exists() is True
 
     def test_schema_is_correct(self):
         with self.feature({"organizations:import-codeowners": True}):
