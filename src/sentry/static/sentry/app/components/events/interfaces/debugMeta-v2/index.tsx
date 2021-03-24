@@ -515,11 +515,17 @@ class DebugMeta extends React.PureComponent<Props, State> {
     const {data} = this.props;
     const {images} = data;
 
-    if (
-      !filteredImages.length &&
-      (images.every(image => !defined(image)) ||
-        images.every(image => image?.type === 'proguard'))
-    ) {
+    if (!!filteredImages.length) {
+      return false;
+    }
+
+    const definedImages = images.filter(image => defined(image));
+
+    if (!definedImages.length) {
+      return true;
+    }
+
+    if ((definedImages as Array<Image>).every(image => image.type === 'proguard')) {
       return true;
     }
 
