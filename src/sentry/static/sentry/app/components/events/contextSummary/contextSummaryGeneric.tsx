@@ -31,7 +31,7 @@ const ContextSummaryGeneric = ({data, unknownTitle}: Props) => {
     return <AnnotatedText value={data[key]} meta={meta} />;
   };
 
-  const className = generateClassName(data.name);
+  const className = generateClassName(data.name, data.version);
 
   return (
     <Item className={className} icon={<span className="context-item-icon" />}>
