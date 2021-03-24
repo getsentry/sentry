@@ -1,7 +1,7 @@
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
-from sentry.incidents.models import IncidentStatus
+from sentry.types.incidents import IncidentStatus
 
 FEATURE_NAME = ["organizations:incidents", "organizations:project-detail"]
 

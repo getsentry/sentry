@@ -8,15 +8,15 @@ from django import forms
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.app_platform_event import AppPlatformEvent
 from sentry.api.serializers.models.incident import IncidentSerializer
-from sentry.constants import SentryAppInstallationStatus
+from sentry.types.sentryapps import SentryAppInstallationStatus
 from sentry.incidents.logic import get_alertable_sentry_apps
-from sentry.incidents.models import INCIDENT_STATUS
 from sentry.integrations.metric_alerts import incident_attachment_info, incident_status_info
 from sentry.models import SentryApp, SentryAppInstallation
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import PluginService, SentryAppService
 from sentry.tasks.sentry_apps import notify_sentry_app, send_and_save_webhook_request
+from sentry.types.incidents import INCIDENT_STATUS
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 

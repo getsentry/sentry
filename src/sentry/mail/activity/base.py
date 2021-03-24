@@ -5,11 +5,11 @@ from urllib.parse import urlparse, urlunparse
 from sentry import options
 from sentry.models import (
     GroupSubscription,
-    GroupSubscriptionReason,
     ProjectOption,
     UserAvatar,
     UserOption,
 )
+from sentry.types.groups import GroupSubscriptionReason
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar

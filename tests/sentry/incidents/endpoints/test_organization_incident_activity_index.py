@@ -5,7 +5,7 @@ from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_incident_activity
-from sentry.incidents.models import IncidentActivityType
+from sentry.types.incidents import IncidentActivityType
 from sentry.testutils import APITestCase
 
 

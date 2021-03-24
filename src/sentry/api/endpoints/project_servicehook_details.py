@@ -5,7 +5,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.validators import ServiceHookValidator
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.models import AuditLogEntryEvent, ServiceHook
 
 

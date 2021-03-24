@@ -10,7 +10,6 @@ from sentry.api.event_search import (
     SearchValue,
     SearchVisitor,
 )
-from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.utils import (
     parse_actor_value,
     parse_actor_or_none_value,
@@ -18,6 +17,7 @@ from sentry.search.utils import (
     parse_release,
     parse_status_value,
 )
+from sentry.types.groups import STATUS_QUERY_CHOICES
 from sentry.utils.compat import map
 
 

@@ -14,7 +14,7 @@ from sentry.api.issue_search import (
     parse_search_query,
     value_converters,
 )
-from sentry.models.group import STATUS_QUERY_CHOICES
+from sentry.types.groups import STATUS_QUERY_CHOICES
 from sentry.testutils import TestCase
 
 

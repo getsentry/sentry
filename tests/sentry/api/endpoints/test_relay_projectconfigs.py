@@ -6,7 +6,7 @@ from uuid import uuid4
 from django.core.urlresolvers import reverse
 
 from sentry import quotas
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.utils import safe, json
 from sentry.models.relay import Relay
 from sentry.models import Project

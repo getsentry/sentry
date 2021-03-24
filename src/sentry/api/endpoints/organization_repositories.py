@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.models import Integration, Repository
 from sentry.plugins.base import bindings
 from sentry.utils.sdk import capture_exception

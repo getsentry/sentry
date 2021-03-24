@@ -6,7 +6,7 @@ from django.http import Http404
 from urllib.parse import urlparse, urlencode, parse_qs
 
 from sentry import tagstore
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp

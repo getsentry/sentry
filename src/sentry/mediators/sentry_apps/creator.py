@@ -12,7 +12,7 @@ from sentry.models import (
     SentryAppComponent,
     User,
 )
-from sentry.constants import SentryAppStatus
+from sentry.types.sentryapps import SentryAppStatus
 from sentry.models.sentryapp import generate_slug, default_uuid
 
 

@@ -1,10 +1,8 @@
 import logging
-from enum import Enum
 
 from django.db import models, IntegrityError
 from django.utils import timezone
 
-from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     EncryptedJsonField,
@@ -13,6 +11,8 @@ from sentry.db.models import (
     DefaultFieldsModel,
 )
 from sentry.signals import integration_added
+from sentry.types.integrations import ExternalProviders, EXTERNAL_PROVIDERS
+from sentry.types.object import ObjectStatus
 
 
 logger = logging.getLogger(__name__)
@@ -61,21 +61,6 @@ class RepositoryProjectPathConfig(DefaultFieldsModel):
         app_label = "sentry"
         db_table = "sentry_repositoryprojectpathconfig"
         unique_together = (("project", "stack_root"),)
-
-
-class ExternalProviders(Enum):
-    GITHUB = 0
-    GITLAB = 1
-    EMAIL = 100
-    SLACK = 110
-
-
-EXTERNAL_PROVIDERS = {
-    ExternalProviders.GITHUB: "github",
-    ExternalProviders.GITLAB: "gitlab",
-    ExternalProviders.EMAIL: "email",
-    ExternalProviders.SLACK: "slack",
-}
 
 
 class ExternalProviderMixin:

@@ -1,6 +1,6 @@
 from rest_framework.response import Response
 
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.plugins.base import plugins
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize

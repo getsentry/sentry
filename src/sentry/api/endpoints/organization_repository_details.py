@@ -9,7 +9,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationInte
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.models import Commit, Integration, Repository
 from sentry.tasks.deletion import delete_repository
 

@@ -3,7 +3,7 @@ from sentry.utils.compat import mock
 from django.core.urlresolvers import reverse
 
 from sentry import tagstore
-from sentry.tagstore import TagKeyStatus
+from sentry.types.tagstore import TagKeyStatus
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 

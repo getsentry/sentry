@@ -4,13 +4,11 @@ from sentry.models import Organization, Project
 from sentry.snuba.models import SnubaQuery
 from sentry.incidents.action_handlers import generate_incident_trigger_email_context
 from sentry.incidents.models import (
-    Incident,
     AlertRule,
     AlertRuleTrigger,
-    TriggerStatus,
-    IncidentStatus,
+    Incident,
 )
-
+from sentry.types.incidents import IncidentStatus, TriggerStatus
 
 from .mail import MailPreview
 

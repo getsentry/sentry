@@ -10,7 +10,8 @@ from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ExternalUser, EXTERNAL_PROVIDERS, OrganizationMember
+from sentry.models import ExternalUser, OrganizationMember
+from sentry.types.integrations import EXTERNAL_PROVIDERS
 
 logger = logging.getLogger(__name__)
 

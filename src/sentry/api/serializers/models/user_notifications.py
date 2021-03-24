@@ -3,7 +3,7 @@ from collections import defaultdict
 from sentry.api.serializers import Serializer
 from sentry.models import UserOption
 from sentry.notifications.legacy_mappings import get_legacy_key_from_fine_tuning_key
-from sentry.notifications.types import FineTuningAPIKey
+from sentry.types.notifications import FineTuningAPIKey
 
 
 class UserNotificationsSerializer(Serializer):

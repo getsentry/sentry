@@ -9,7 +9,7 @@ from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
-from sentry.constants import SentryAppStatus
+from sentry.types.sentryapps import SentryAppStatus
 from sentry.mediators.sentry_apps import Creator, InternalCreator
 from sentry.models import SentryApp
 from sentry.utils import json

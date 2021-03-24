@@ -23,7 +23,6 @@ from sentry.models import (
     Activity,
     Group,
     GroupStatus,
-    GroupSubscriptionReason,
     Organization,
     OrganizationMember,
     Project,
@@ -33,6 +32,7 @@ from sentry.models import (
 )
 from sentry.event_manager import EventManager, get_event_type
 from sentry.mail.activity import emails
+from sentry.types.groups import GroupSubscriptionReason
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css

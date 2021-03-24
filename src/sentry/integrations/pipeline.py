@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from sentry.api.serializers import serialize
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.pipeline import Pipeline

@@ -17,6 +17,13 @@ from sentry.db.models import ArrayField, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User
 from sentry.snuba.models import QuerySubscription
+from sentry.types.incidents import (
+    AlertRuleActivityType,
+    AlertRuleStatus,
+    IncidentStatus,
+    IncidentStatusMethod,
+    IncidentType,
+)
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -115,32 +122,6 @@ class IncidentManager(BaseManager):
                 identifier += 1
 
             return super().create(organization=organization, identifier=identifier, **kwargs)
-
-
-class IncidentType(Enum):
-    DETECTED = 0
-    ALERT_TRIGGERED = 2
-
-
-class IncidentStatus(Enum):
-    OPEN = 1
-    CLOSED = 2
-    WARNING = 10
-    CRITICAL = 20
-
-
-class IncidentStatusMethod(Enum):
-    MANUAL = 1
-    RULE_UPDATED = 2
-    RULE_TRIGGERED = 3
-
-
-INCIDENT_STATUS = {
-    IncidentStatus.OPEN: "Open",
-    IncidentStatus.CLOSED: "Resolved",
-    IncidentStatus.CRITICAL: "Critical",
-    IncidentStatus.WARNING: "Warning",
-}
 
 
 class Incident(Model):
@@ -284,17 +265,6 @@ class IncidentSubscription(Model):
     __repr__ = sane_repr("incident_id", "user_id")
 
 
-class AlertRuleStatus(Enum):
-    PENDING = 0
-    SNAPSHOT = 4
-    DISABLED = 5
-
-
-class AlertRuleThresholdType(Enum):
-    ABOVE = 0
-    BELOW = 1
-
-
 class AlertRuleManager(BaseManager):
     """
     A manager that excludes all rows that are snapshots.
@@ -406,11 +376,6 @@ class AlertRule(Model):
         except AlertRuleActivity.DoesNotExist:
             pass
         return None
-
-
-class TriggerStatus(Enum):
-    ACTIVE = 0
-    RESOLVED = 1
 
 
 class IncidentTriggerManager(BaseManager):
@@ -636,15 +601,6 @@ class AlertRuleTriggerAction(Model):
     @classmethod
     def get_registered_types(cls):
         return list(cls._type_registrations.values())
-
-
-class AlertRuleActivityType(Enum):
-    CREATED = 1
-    DELETED = 2
-    UPDATED = 3
-    ENABLED = 4
-    DISABLED = 5
-    SNAPSHOT = 6
 
 
 class AlertRuleActivity(Model):

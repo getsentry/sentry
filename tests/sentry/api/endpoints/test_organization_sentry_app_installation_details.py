@@ -4,7 +4,7 @@ from sentry.utils.compat.mock import patch
 from sentry.testutils import APITestCase
 import responses
 from sentry.mediators.token_exchange import GrantExchanger
-from sentry.constants import SentryAppInstallationStatus
+from sentry.types.sentryapps import SentryAppInstallationStatus
 
 
 class SentryAppInstallationDetailsTest(APITestCase):

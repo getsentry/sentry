@@ -36,7 +36,6 @@ from sentry.models import (
     GroupShare,
     GroupStatus,
     GroupSubscription,
-    GroupSubscriptionReason,
     Integration,
     SentryAppInstallationToken,
     User,
@@ -47,6 +46,7 @@ from sentry.models.groupowner import get_owner_details
 from sentry.notifications.legacy_mappings import UserOptionValue
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.types.groups import SUBSCRIPTION_REASON_MAP
 from sentry.utils import snuba
 from sentry.utils.cache import cache
 from sentry.utils.db import attach_foreignkey
@@ -54,14 +54,6 @@ from sentry.utils.safe import safe_execute
 from sentry.utils.compat import map, zip
 from sentry.utils.snuba import Dataset, raw_query
 from sentry.reprocessing2 import get_progress
-
-SUBSCRIPTION_REASON_MAP = {
-    GroupSubscriptionReason.comment: "commented",
-    GroupSubscriptionReason.assigned: "assigned",
-    GroupSubscriptionReason.bookmark: "bookmarked",
-    GroupSubscriptionReason.status_change: "changed_status",
-    GroupSubscriptionReason.mentioned: "mentioned",
-}
 
 
 disabled = object()

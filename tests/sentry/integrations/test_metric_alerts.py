@@ -1,10 +1,10 @@
 from datetime import timedelta
 
-
 from sentry.testutils import TestCase, BaseIncidentsTest
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.incidents.models import IncidentStatus, IncidentTrigger
+from sentry.incidents.models import IncidentTrigger
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
+from sentry.types.incidents import IncidentStatus
 
 
 class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):

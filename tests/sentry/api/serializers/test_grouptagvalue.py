@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sentry.api.serializers import serialize
-from sentry.tagstore.types import GroupTagValue
+from sentry.types.tagstore import GroupTagValue
 from sentry.testutils import TestCase
 
 

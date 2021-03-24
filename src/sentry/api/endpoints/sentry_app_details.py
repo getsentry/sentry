@@ -7,7 +7,7 @@ from sentry.api.bases.sentryapps import SentryAppBaseEndpoint, catch_raised_erro
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.mediators.sentry_apps import Updater, Destroyer
-from sentry.constants import SentryAppStatus
+from sentry.types.sentryapps import SentryAppStatus
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)

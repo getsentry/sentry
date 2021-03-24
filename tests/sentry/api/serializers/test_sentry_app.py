@@ -2,7 +2,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.sentry_app import SentryAppSerializer
 from sentry.testutils import TestCase
 
-# from sentry.constants import SentryAppStatus
+# from sentry.types.sentryapps import SentryAppStatus
 
 
 class SentryAppSerializerTest(TestCase):

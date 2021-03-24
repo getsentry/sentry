@@ -2,12 +2,12 @@ from sentry.models import (
     Activity,
     GroupLink,
     GroupSubscription,
-    GroupSubscriptionReason,
     ExternalIssue,
     Integration,
     OrganizationIntegration,
 )
 from sentry.testutils import APITestCase
+from sentry.types.groups import GroupSubscriptionReason
 
 
 class GroupNoteTest(APITestCase):

@@ -7,19 +7,15 @@ import pytz
 from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
-from sentry.utils.compat.mock import call, Mock
+
 
 from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models import (
     AlertRule,
-    AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     Incident,
-    IncidentStatus,
     IncidentTrigger,
-    IncidentType,
-    TriggerStatus,
 )
 from sentry.incidents.subscription_processor import (
     build_alert_rule_stat_keys,
@@ -32,6 +28,13 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.snuba.models import QuerySubscription
+from sentry.types.incidents import (
+    AlertRuleThresholdType,
+    IncidentStatus,
+    IncidentType,
+    TriggerStatus,
+)
+from sentry.utils.compat.mock import call, Mock
 from sentry.testutils import TestCase
 from sentry.utils.dates import to_timestamp
 from sentry.utils.compat import map

@@ -1,6 +1,7 @@
 from django.views.generic import View
 
-from sentry.models import GroupSubscriptionReason, Organization, Project
+from sentry.models import Organization, Project
+from sentry.types.groups import GroupSubscriptionReason
 from sentry.utils.http import absolute_uri
 
 from .mail import MailPreview

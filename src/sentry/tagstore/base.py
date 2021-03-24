@@ -7,6 +7,7 @@ from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,
 )
+from sentry.types.tagstore import TagKeyStatus
 from sentry.utils.services import Service, raises
 
 # Valid pattern for tag key names
@@ -19,13 +20,6 @@ TOP_VALUES_DEFAULT_LIMIT = 9
 # These tags are special and are used in pairing with `sentry:{}`
 # they should not be allowed to be set via data ingest due to ambiguity
 INTERNAL_TAG_KEYS = frozenset(("release", "dist", "user", "filename", "function"))
-
-
-# TODO(dcramer): pull in enum library
-class TagKeyStatus:
-    VISIBLE = 0
-    PENDING_DELETION = 1
-    DELETION_IN_PROGRESS = 2
 
 
 class TagStorage(Service):

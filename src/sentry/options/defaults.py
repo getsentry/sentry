@@ -7,7 +7,7 @@ from sentry.options import (
     FLAG_ALLOW_EMPTY,
     register,
 )
-from sentry.utils.types import Bool, Dict, String, Sequence, Int
+from sentry.types.utils import Bool, Dict, String, Sequence, Int
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)

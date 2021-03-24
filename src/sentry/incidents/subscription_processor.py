@@ -17,18 +17,20 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import (
     AlertRule,
-    AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     Incident,
-    IncidentStatus,
-    IncidentStatusMethod,
     IncidentTrigger,
-    IncidentType,
-    TriggerStatus,
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
+from sentry.types.incidents import (
+    AlertRuleThresholdType,
+    IncidentStatus,
+    IncidentStatusMethod,
+    IncidentType,
+    TriggerStatus,
+)
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.compat import zip

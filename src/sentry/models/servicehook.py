@@ -5,7 +5,7 @@ from django.utils import timezone
 from hashlib import sha256
 from uuid import uuid4
 
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.db.models import (
     ArrayField,
     Model,

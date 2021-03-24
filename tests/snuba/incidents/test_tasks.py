@@ -13,18 +13,12 @@ from sentry.incidents.action_handlers import (
     generate_incident_trigger_email_context,
 )
 from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
-from sentry.incidents.models import (
-    AlertRuleTriggerAction,
-    Incident,
-    IncidentStatus,
-    IncidentType,
-    TriggerStatus,
-)
+from sentry.incidents.models import AlertRuleTriggerAction, Incident
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
-from sentry.utils import json
-
 from sentry.testutils import TestCase
+from sentry.types.incidents import IncidentStatus, IncidentType, TriggerStatus
+from sentry.utils import json
 
 
 @freeze_time()

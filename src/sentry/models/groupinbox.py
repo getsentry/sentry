@@ -1,41 +1,13 @@
 import jsonschema
 import logging
 
-from enum import Enum
-
 from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, JSONField
 from sentry.models import Activity
 from sentry.signals import inbox_in, inbox_out
-
-INBOX_REASON_DETAILS = {
-    "type": ["object", "null"],
-    "properties": {
-        "until": {"type": ["string", "null"], "format": "date-time"},
-        "count": {"type": ["integer", "null"]},
-        "window": {"type": ["integer", "null"]},
-        "user_count": {"type": ["integer", "null"]},
-        "user_window": {"type": ["integer", "null"]},
-    },
-    "required": [],
-    "additionalProperties": False,
-}
-
-
-class GroupInboxReason(Enum):
-    NEW = 0
-    UNIGNORED = 1
-    REGRESSION = 2
-    MANUAL = 3
-    REPROCESSED = 4
-
-
-class GroupInboxRemoveAction(Enum):
-    RESOLVED = "resolved"
-    IGNORED = "ignored"
-    MARK_REVIEWED = "mark_reviewed"
+from sentry.types.groups import GroupInboxReason, GroupInboxRemoveAction, INBOX_REASON_DETAILS
 
 
 class GroupInbox(Model):

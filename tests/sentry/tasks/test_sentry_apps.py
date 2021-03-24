@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from sentry.utils.compat.mock import patch
 from requests.exceptions import Timeout
 
-from sentry.constants import SentryAppStatus
+from sentry.types.sentryapps import SentryAppStatus
 from sentry.models import Rule, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature

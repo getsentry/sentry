@@ -5,8 +5,9 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
-from sentry.incidents.models import Incident, IncidentStatus
+from sentry.incidents.models import Incident
 from sentry.snuba.dataset import Dataset
+from sentry.types.incidents import IncidentStatus
 
 
 class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):

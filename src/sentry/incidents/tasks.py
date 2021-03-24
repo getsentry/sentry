@@ -8,23 +8,25 @@ from urllib.parse import urlencode
 from sentry.auth.access import from_user
 from sentry.incidents.models import (
     AlertRuleTriggerAction,
-    AlertRuleStatus,
     Incident,
     IncidentProject,
     PendingIncidentSnapshot,
     IncidentSnapshot,
     IncidentActivity,
-    IncidentActivityType,
-    IncidentStatus,
-    IncidentStatusMethod,
-    INCIDENT_STATUS,
 )
 from sentry.models import Project
 from sentry.snuba.query_subscription_consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
+from sentry.types.incidents import (
+    AlertRuleStatus,
+    INCIDENT_STATUS,
+    IncidentActivityType,
+    IncidentStatus,
+    IncidentStatusMethod,
+)
+from sentry.utils import metrics
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
-from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 

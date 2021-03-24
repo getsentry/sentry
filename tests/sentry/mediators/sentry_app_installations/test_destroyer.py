@@ -152,7 +152,7 @@ class TestDestroyer(TestCase):
 
     @responses.activate
     def test_fail_on_other_error(self):
-        from sentry.constants import SentryAppStatus
+        from sentry.types.sentryapps import SentryAppStatus
 
         install = self.install
         self.sentry_app.update(status=SentryAppStatus.PUBLISHED)

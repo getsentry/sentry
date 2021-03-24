@@ -10,35 +10,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-
-
-class GroupSubscriptionReason:
-    implicit = -1  # not for use as a persisted field value
-    committed = -2  # not for use as a persisted field value
-    processing_issue = -3  # not for use as a persisted field value
-
-    unknown = 0
-    comment = 1
-    assigned = 2
-    bookmark = 3
-    status_change = 4
-    deploy_setting = 5
-    mentioned = 6
-    team_mentioned = 7
-
-    descriptions = {
-        implicit: "have opted to receive updates for all issues within "
-        "projects that you are a member of",
-        committed: "were involved in a commit that is part of this release",
-        processing_issue: "are subscribed to alerts for this project",
-        comment: "have commented on this issue",
-        assigned: "have been assigned to this issue",
-        bookmark: "have bookmarked this issue",
-        status_change: "have changed the resolution status of this issue",
-        deploy_setting: "opted to receive all deploy notifications for this organization",
-        mentioned: "have been mentioned in this issue",
-        team_mentioned: "are a member of a team mentioned in this issue",
-    }
+from sentry.types.groups import GroupSubscriptionReason
 
 
 def get_user_options(key, user_ids, project, default):

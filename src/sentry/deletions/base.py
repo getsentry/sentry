@@ -1,7 +1,7 @@
 import logging
 import re
 
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.utils.query import bulk_delete_objects
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")

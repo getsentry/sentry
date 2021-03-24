@@ -17,20 +17,20 @@ from sentry.incidents.action_handlers import (
     SlackActionHandler,
 )
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models import (
-    AlertRuleTriggerAction,
-    IncidentStatus,
-    IncidentStatusMethod,
-    TriggerStatus,
-    INCIDENT_STATUS,
-)
+from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.models import (
     Integration,
     NotificationSetting,
     PagerDutyService,
 )
-from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import (
+from sentry.types.incidents import (
+    INCIDENT_STATUS,
+    IncidentStatus,
+    IncidentStatusMethod,
+    TriggerStatus,
+)
+from sentry.types.integrations import ExternalProviders
+from sentry.types.notifications import (
     NotificationSettingTypes,
     NotificationSettingOptionValues,
 )

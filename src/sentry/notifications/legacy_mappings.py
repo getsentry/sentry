@@ -1,4 +1,4 @@
-from sentry.notifications.types import (
+from sentry.types.notifications import (
     FineTuningAPIKey,
     NotificationSettingTypes,
     NotificationSettingOptionValues,

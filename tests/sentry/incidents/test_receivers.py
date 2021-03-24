@@ -3,12 +3,11 @@ import pytz
 from sentry.testutils import TestCase
 from sentry.models import Organization
 from sentry.incidents.models import (
-    IncidentStatus,
-    TriggerStatus,
     AlertRuleTrigger,
     Incident,
     IncidentTrigger,
 )
+from sentry.types.incidents import IncidentStatus, TriggerStatus
 
 
 class AddProjectToIncludeAllRulesTest(TestCase):

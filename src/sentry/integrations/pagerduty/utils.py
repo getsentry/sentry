@@ -2,10 +2,10 @@ import logging
 
 from django.http import Http404
 
-from sentry.incidents.models import IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info, incident_status_info
 from sentry.models import PagerDutyService
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.types.incidents import IncidentStatus
 
 from .client import PagerDutyClient
 

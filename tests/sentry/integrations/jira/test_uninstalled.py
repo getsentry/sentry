@@ -1,6 +1,6 @@
 from sentry.utils.compat.mock import patch
 
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.models import Integration
 from sentry.testutils import APITestCase
 

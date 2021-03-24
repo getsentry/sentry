@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.utils import timezone
 from sentry import options
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.models import (
     Commit,
     CommitAuthor,

@@ -7,7 +7,7 @@ from django.utils.translation import ugettext as _
 
 from sentry import http, features
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.models import (
     Integration as IntegrationModel,
     IntegrationExternalProject,

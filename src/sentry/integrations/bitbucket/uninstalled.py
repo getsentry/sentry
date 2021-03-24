@@ -1,7 +1,7 @@
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.models import Repository
 from sentry.integrations.atlassian_connect import (
     AtlassianConnectValidationError,

@@ -33,7 +33,7 @@
 #  SENTRY_SINGLE_ORGANIZATION
 #  SENTRY_SECRET_KEY
 from sentry.conf.server import *
-from sentry.utils.types import Bool
+from sentry.types.utils import Bool
 
 import os
 import os.path

@@ -4,7 +4,7 @@ from django.db.models import Q
 
 from sentry import analytics
 from sentry.coreapi import APIError
-from sentry.constants import SentryAppStatus
+from sentry.types.sentryapps import SentryAppStatus
 from sentry.mediators import Mediator, Param
 from sentry.mediators import service_hooks
 from sentry.mediators.param import if_param

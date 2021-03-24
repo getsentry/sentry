@@ -7,8 +7,8 @@ import random
 import warnings
 from binascii import hexlify
 from hashlib import sha1
-from uuid import uuid4
 from importlib import import_module
+from uuid import uuid4
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import transaction
@@ -17,22 +17,18 @@ from django.utils.text import slugify
 from django.utils.encoding import force_text
 
 from sentry.event_manager import EventManager
-from sentry.constants import SentryAppStatus, SentryAppInstallationStatus
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
 )
 from sentry.incidents.models import (
-    AlertRuleThresholdType,
     AlertRuleTriggerAction,
     Incident,
     IncidentTrigger,
     IncidentActivity,
     IncidentProject,
     IncidentSeen,
-    IncidentType,
-    TriggerStatus,
 )
 from sentry.mediators import (
     sentry_apps,
@@ -76,6 +72,8 @@ from sentry.models import (
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
 from sentry.snuba.models import QueryDatasets
+from sentry.types.incidents import AlertRuleThresholdType, IncidentType, TriggerStatus
+from sentry.types.sentryapps import SentryAppInstallationStatus, SentryAppStatus
 from sentry.utils import loremipsum, json
 
 

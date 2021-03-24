@@ -11,12 +11,12 @@ from sentry.models import (
     UserOption,
     UserEmail,
 )
-from sentry.models.integration import ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.notifications.legacy_mappings import (
     get_option_value_from_int,
     get_type_from_fine_tuning_key,
 )
-from sentry.notifications.types import FineTuningAPIKey
+from sentry.types.notifications import FineTuningAPIKey
 
 
 INVALID_EMAIL_MSG = (

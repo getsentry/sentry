@@ -3,7 +3,6 @@ from sentry.api.serializers import register, serialize, Serializer
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivity,
-    AlertRuleActivityType,
     AlertRuleExcludedProjects,
     AlertRuleTrigger,
 )
@@ -15,6 +14,7 @@ from sentry.models import (
     actor_type_to_string,
     Rule,
 )
+from sentry.types.incidents import AlertRuleActivityType
 from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 

@@ -7,9 +7,9 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.models.integration import ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.notifications.manager import NotificationsManager
-from sentry.notifications.types import (
+from sentry.types.notifications import (
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,

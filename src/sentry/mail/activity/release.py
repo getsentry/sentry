@@ -8,7 +8,6 @@ from sentry.models import (
     Deploy,
     Environment,
     Group,
-    GroupSubscriptionReason,
     GroupLink,
     ProjectTeam,
     Release,
@@ -20,6 +19,7 @@ from sentry.models import (
     UserOption,
 )
 from sentry.notifications.legacy_mappings import UserOptionValue
+from sentry.types.groups import GroupSubscriptionReason
 from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 

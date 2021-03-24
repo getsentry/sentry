@@ -1,5 +1,5 @@
 import pickle
-from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
+from sentry.types.tagstore import TagKey, TagValue, GroupTagKey, GroupTagValue
 
 
 def test_pickle():

@@ -14,7 +14,7 @@ from sentry.integrations import (
     FeatureDescription,
 )
 from sentry import options
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri

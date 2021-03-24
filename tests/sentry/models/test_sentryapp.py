@@ -1,4 +1,4 @@
-from sentry.constants import SentryAppStatus
+from sentry.types.sentryapps import SentryAppStatus
 from sentry.testutils import TestCase
 from sentry.models import ApiApplication, SentryApp
 

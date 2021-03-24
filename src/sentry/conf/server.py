@@ -11,12 +11,12 @@ import socket
 import sys
 import tempfile
 
-import sentry
-from sentry.utils.celery import crontab_with_minute_jitter
-from sentry.utils.types import type_from_value
-
 from datetime import timedelta
 from urllib.parse import urlparse
+
+import sentry
+from sentry.types.utils import type_from_value
+from sentry.utils.celery import crontab_with_minute_jitter
 
 
 def gettext_noop(s):

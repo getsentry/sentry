@@ -20,10 +20,10 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 from sentry.attachments import CachedAttachment, attachment_cache
-from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.event_manager import save_attachment
 from sentry.eventstore.processing import event_processing_store
+from sentry.types.ingest import ConsumerType
 
 logger = logging.getLogger(__name__)
 

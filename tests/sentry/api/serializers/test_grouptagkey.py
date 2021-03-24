@@ -1,5 +1,5 @@
 from sentry.api.serializers import serialize
-from sentry.tagstore.types import GroupTagKey
+from sentry.types.tagstore import GroupTagKey
 from sentry.testutils import TestCase
 
 

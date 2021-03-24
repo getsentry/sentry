@@ -1,5 +1,5 @@
 from django.core.urlresolvers import reverse
-from sentry.constants import SentryAppStatus
+from sentry.types.sentryapps import SentryAppStatus
 from sentry.models import SentryApp, OrganizationMember
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature

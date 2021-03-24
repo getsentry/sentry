@@ -9,30 +9,24 @@ from django.utils import timezone
 from sentry import analytics, quotas
 from sentry.api.event_search import get_filter, resolve_field
 from sentry.auth.access import SystemAccess
-from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
+
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivity,
-    AlertRuleActivityType,
     AlertRuleExcludedProjects,
-    AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
     Incident,
     IncidentActivity,
-    IncidentActivityType,
     IncidentProject,
     IncidentSnapshot,
     IncidentTrigger,
     PendingIncidentSnapshot,
     IncidentSeen,
-    IncidentStatus,
-    IncidentStatusMethod,
     IncidentSubscription,
     TimeSeriesSnapshot,
-    TriggerStatus,
 )
 from sentry.models import Integration, Project, PagerDutyService, SentryApp
 from sentry.snuba.dataset import Dataset
@@ -46,6 +40,15 @@ from sentry.snuba.subscriptions import (
     update_snuba_query,
 )
 from sentry.snuba.tasks import build_snuba_filter
+from sentry.types.incidents import (
+    AlertRuleActivityType,
+    AlertRuleStatus,
+    IncidentActivityType,
+    IncidentStatus,
+    IncidentStatusMethod,
+    TriggerStatus,
+)
+from sentry.types.sentryapps import SentryAppInstallationStatus, SentryAppStatus
 from sentry.utils.compat import zip
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import bulk_raw_query, is_measurement, SnubaQueryParams, SnubaTSResult

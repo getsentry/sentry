@@ -1,4 +1,4 @@
-from sentry.utils.types import InvalidTypeError, Any, Bool, Int, Float, String, Dict, Sequence
+from sentry.types.utils import InvalidTypeError, Any, Bool, Int, Float, String, Dict, Sequence
 from unittest import TestCase
 
 

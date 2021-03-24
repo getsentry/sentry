@@ -3,7 +3,7 @@ import logging
 
 from django.conf import settings
 
-from sentry.utils.types import type_from_value, Any
+from sentry.types.utils import type_from_value, Any
 
 # Prevent ourselves from clobbering the builtin
 _type = type

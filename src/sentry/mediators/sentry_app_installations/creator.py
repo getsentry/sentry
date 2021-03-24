@@ -1,5 +1,5 @@
 from sentry import analytics
-from sentry.constants import SentryAppInstallationStatus
+from sentry.types.sentryapps import SentryAppInstallationStatus
 from sentry.mediators import Mediator, Param, service_hooks
 from sentry.models import AuditLogEntryEvent, ApiGrant, SentryApp, SentryAppInstallation
 from sentry.utils.cache import memoize

@@ -3,7 +3,7 @@ from sentry.utils.compat.mock import patch
 from sentry.models import Commit, GroupAssignee, GroupLink, Repository, Release
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.faux import faux
-from sentry.constants import SentryAppInstallationStatus
+from sentry.types.sentryapps import SentryAppInstallationStatus
 
 
 # This testcase needs to be an APITestCase because all of the logic to resolve

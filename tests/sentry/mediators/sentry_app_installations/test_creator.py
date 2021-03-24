@@ -2,7 +2,7 @@ import responses
 
 from sentry.utils.compat.mock import patch
 
-from sentry.constants import SentryAppInstallationStatus
+from sentry.types.sentryapps import SentryAppInstallationStatus
 from sentry.mediators.sentry_app_installations import Creator
 from sentry.models import (
     AuditLogEntry,

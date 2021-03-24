@@ -14,7 +14,6 @@ from sentry.models import (
     Commit,
     Group,
     GroupSubscription,
-    GroupSubscriptionReason,
     Integration,
     ProjectOption,
     ProjectOwnership,
@@ -25,6 +24,7 @@ from sentry.models import (
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.base import plugins
 from sentry.tasks.digests import deliver_digest
+from sentry.types.groups import GroupSubscriptionReason
 from sentry.utils import metrics, json
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_serialized_event_file_committers

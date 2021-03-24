@@ -2,7 +2,7 @@ import logging
 
 from django import forms
 
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.models.integration import Integration
 from sentry.models import ExternalIssue, GroupLink
 from sentry.rules.base import RuleBase

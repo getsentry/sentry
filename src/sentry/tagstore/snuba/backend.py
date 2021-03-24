@@ -10,7 +10,6 @@ from sentry.api.event_search import FIELD_ALIASES, PROJECT_ALIAS, USER_DISPLAY_A
 from sentry.models import Project, ReleaseProjectEnvironment
 from sentry.api.utils import default_start_end_dates
 from sentry.snuba.dataset import Dataset
-from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
@@ -18,7 +17,7 @@ from sentry.tagstore.exceptions import (
     TagKeyNotFound,
     TagValueNotFound,
 )
-from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
+from sentry.types.tagstore import GroupTagKey, GroupTagValue, TagKey, TagValue, TagKeyStatus
 from sentry.utils import snuba, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.dates import to_timestamp

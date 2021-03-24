@@ -56,31 +56,32 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import (
     AlertRule,
-    AlertRuleStatus,
-    AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
     Incident,
     IncidentActivity,
-    IncidentActivityType,
     IncidentProject,
     PendingIncidentSnapshot,
     IncidentSnapshot,
-    IncidentStatus,
-    IncidentStatusMethod,
     IncidentSubscription,
     IncidentTrigger,
-    IncidentType,
     TimeSeriesSnapshot,
+)
+from sentry.models import ActorTuple, PagerDutyService
+from sentry.models.integration import Integration
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
+from sentry.testutils import TestCase, BaseIncidentsTest
+from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.types.incidents import (
+    AlertRuleStatus,
+    AlertRuleThresholdType,
+    IncidentStatus,
+    IncidentStatusMethod,
+    IncidentActivityType,
+    IncidentType,
     TriggerStatus,
 )
-from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
-from sentry.models.integration import Integration
-from sentry.testutils import TestCase, BaseIncidentsTest
-from sentry.models import ActorTuple, PagerDutyService
-
-from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils import json
 from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data

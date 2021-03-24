@@ -9,7 +9,7 @@ from requests.exceptions import (
 )
 
 from sentry.api.serializers import serialize, AppPlatformEvent
-from sentry.constants import SentryAppInstallationStatus
+from sentry.types.sentryapps import SentryAppInstallationStatus
 from sentry.eventstore.models import Event
 from sentry.http import safe_urlopen
 from sentry.models import (

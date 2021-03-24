@@ -17,7 +17,6 @@ from sentry.api.base import audit_logger
 from sentry.api.fields import ActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.api.serializers.models.group import SUBSCRIPTION_REASON_MAP
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
@@ -38,7 +37,6 @@ from sentry.models import (
     GroupShare,
     GroupSnooze,
     GroupSubscription,
-    GroupSubscriptionReason,
     Release,
     remove_group_from_inbox,
     Repository,
@@ -47,8 +45,8 @@ from sentry.models import (
     User,
     UserOption,
 )
-from sentry.models.groupinbox import add_group_to_inbox, GroupInbox, GroupInboxRemoveAction
-from sentry.models.group import looks_like_short_id, STATUS_UPDATE_CHOICES
+from sentry.models.groupinbox import add_group_to_inbox, GroupInbox
+from sentry.models.group import looks_like_short_id
 from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, parse_search_query
 from sentry.signals import (
     issue_deleted,
@@ -60,12 +58,18 @@ from sentry.signals import (
     advanced_search_feature_gated,
 )
 from sentry.tasks.deletion import delete_groups as delete_groups_task
-from sentry.utils.hashlib import md5_text
+from sentry.types.groups import (
+    GroupInboxRemoveAction,
+    GroupSubscriptionReason,
+    STATUS_UPDATE_CHOICES,
+    SUBSCRIPTION_REASON_MAP,
+)
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.hashlib import md5_text
 from sentry.utils.functional import extract_lazy_object
 from sentry.utils.compat import zip
 

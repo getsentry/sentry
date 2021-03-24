@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from django.db import DataError
 from django.utils import timezone
 
-from sentry.models.group import STATUS_QUERY_CHOICES
+from sentry.types.groups import STATUS_QUERY_CHOICES
 from sentry.models import EventUser, KEYWORD_MAP, Release, Team, User
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users

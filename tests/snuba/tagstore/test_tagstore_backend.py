@@ -13,6 +13,7 @@ from sentry.tagstore.exceptions import (
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.types.tagstore import GroupTagValue, TagValue
 
 
 class TagStorageTest(TestCase, SnubaTestCase):
@@ -523,8 +524,6 @@ class TagStorageTest(TestCase, SnubaTestCase):
         )
 
     def test_get_tag_value_paginator(self):
-        from sentry.tagstore.types import TagValue
-
         assert list(
             self.ts.get_tag_value_paginator(
                 self.proj1.id, self.proj1env1.id, "sentry:user"
@@ -561,8 +560,6 @@ class TagStorageTest(TestCase, SnubaTestCase):
         ]
 
     def test_get_tag_value_paginator_with_dates(self):
-        from sentry.tagstore.types import TagValue
-
         day_ago = self.now - timedelta(days=1)
         two_days_ago = self.now - timedelta(days=2)
         assert list(
@@ -597,8 +594,6 @@ class TagStorageTest(TestCase, SnubaTestCase):
         )
 
     def test_numeric_tag_value_paginator(self):
-        from sentry.tagstore.types import TagValue
-
         assert list(
             self.ts.get_tag_value_paginator(
                 self.proj1.id, self.proj1env1.id, "stack.lineno"
@@ -628,8 +623,6 @@ class TagStorageTest(TestCase, SnubaTestCase):
         ]
 
     def test_get_group_tag_value_iter(self):
-        from sentry.tagstore.types import GroupTagValue
-
         assert list(
             self.ts.get_group_tag_value_iter(
                 self.proj1.id, self.proj1group1.id, [self.proj1env1.id], "sentry:user"
@@ -654,8 +647,6 @@ class TagStorageTest(TestCase, SnubaTestCase):
         ]
 
     def test_get_group_tag_value_paginator(self):
-        from sentry.tagstore.types import GroupTagValue
-
         assert list(
             self.ts.get_group_tag_value_paginator(
                 self.proj1.id, self.proj1group1.id, [self.proj1env1.id], "sentry:user"

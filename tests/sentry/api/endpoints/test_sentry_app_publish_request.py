@@ -2,7 +2,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.utils.compat import mock
 from sentry.testutils import APITestCase
-from sentry.constants import SentryAppStatus
+from sentry.types.sentryapps import SentryAppStatus
 
 
 class SentryAppPublishRequestTest(APITestCase):

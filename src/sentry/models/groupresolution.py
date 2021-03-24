@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from sentry.db.models import BoundedPositiveIntegerField, Model, FlexibleForeignKey, sane_repr
+from sentry.types.groups import GroupResolutionStatus, GroupResolutionType
 
 
 class GroupResolution(Model):
@@ -11,13 +12,9 @@ class GroupResolution(Model):
 
     __core__ = False
 
-    class Type:
-        in_release = 0
-        in_next_release = 1
-
-    class Status:
-        pending = 0
-        resolved = 1
+    # TODO MARCOS
+    Type = GroupResolutionType
+    Status = GroupResolutionStatus
 
     group = FlexibleForeignKey("sentry.Group", unique=True)
     # the release in which its suggested this was resolved

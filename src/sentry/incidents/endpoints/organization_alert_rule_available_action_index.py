@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.constants import SentryAppStatus
+from sentry.types.sentryapps import SentryAppStatus
 from sentry.incidents.endpoints.bases import OrganizationEndpoint
 from sentry.incidents.endpoints.serializers import action_target_type_to_string
 from sentry.incidents.logic import (

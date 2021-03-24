@@ -1,7 +1,8 @@
 from exam import fixture
 
-from sentry.incidents.models import IncidentActivity, IncidentActivityType
+from sentry.incidents.models import IncidentActivity
 from sentry.testutils import APITestCase
+from sentry.types.incidents import IncidentActivityType
 
 
 class BaseIncidentCommentDetailsTest:

@@ -12,7 +12,8 @@ from sentry.incidents.endpoints.serializers import (
     string_to_action_target_type,
 )
 from sentry.incidents.logic import create_alert_rule_trigger, ChannelLookupTimeoutError
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
+from sentry.types.incidents import AlertRuleThresholdType
 from sentry.models import ACTOR_TYPES, Integration, Environment
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import TestCase

@@ -5,7 +5,7 @@ from sentry.utils.compat.mock import MagicMock
 from urllib.parse import urlencode, urlparse
 
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.integrations.github import GitHubIntegrationProvider, API_ERRORS
 from sentry.models import Integration, OrganizationIntegration, Repository, Project
 from sentry.plugins.base import plugins

@@ -1,4 +1,5 @@
-from sentry.models import GroupSubscriptionReason, EventError
+from sentry.models import EventError
+from sentry.types.groups import GroupSubscriptionReason
 from sentry.utils.http import absolute_uri
 
 from .base import ActivityEmail

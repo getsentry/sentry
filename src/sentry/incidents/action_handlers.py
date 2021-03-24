@@ -4,12 +4,14 @@ from django.core.urlresolvers import reverse
 from django.template.defaultfilters import pluralize
 
 from sentry.incidents.models import (
-    AlertRuleThresholdType,
     AlertRuleTriggerAction,
-    TriggerStatus,
-    IncidentStatus,
     IncidentTrigger,
+)
+from sentry.types.incidents import (
+    AlertRuleThresholdType,
     INCIDENT_STATUS,
+    IncidentStatus,
+    TriggerStatus,
 )
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder

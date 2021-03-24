@@ -6,7 +6,7 @@ from datetime import datetime
 from pytz import utc
 
 from sentry import quotas, utils, features
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.ingest.inbound_filters import (

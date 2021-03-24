@@ -1,8 +1,8 @@
 from django.db import transaction
 
 from sentry.db.models import BaseManager
-from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import (
+from sentry.types.integrations import ExternalProviders
+from sentry.types.notifications import (
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,

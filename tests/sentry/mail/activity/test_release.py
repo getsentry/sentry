@@ -7,7 +7,6 @@ from sentry.models import (
     CommitAuthor,
     Deploy,
     Environment,
-    GroupSubscriptionReason,
     NotificationSetting,
     Release,
     ReleaseCommit,
@@ -15,8 +14,9 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.mail.activity.release import ReleaseActivityEmail
-from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import (
+from sentry.types.integrations import ExternalProviders
+from sentry.types.groups import GroupSubscriptionReason
+from sentry.types.notifications import (
     NotificationSettingTypes,
     NotificationSettingOptionValues,
 )

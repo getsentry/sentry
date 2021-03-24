@@ -1,7 +1,7 @@
 from sentry.notifications.legacy_mappings import UserOptionValue
 from sentry.models import NotificationSetting, UserOption
-from sentry.models.integration import ExternalProviders
-from sentry.notifications.types import (
+from sentry.types.integrations import ExternalProviders
+from sentry.types.notifications import (
     NotificationSettingTypes,
     NotificationSettingOptionValues,
 )

@@ -15,7 +15,7 @@ from sentry.options.manager import (
     FLAG_REQUIRED,
     FLAG_PRIORITIZE_DISK,
 )
-from sentry.utils.types import Int, String
+from sentry.types.utils import Int, String
 from sentry.testutils import TestCase
 
 

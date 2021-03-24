@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sentry.api.serializers import serialize, UserTagValueSerializer
-from sentry.tagstore.types import TagValue
+from sentry.types.tagstore import TagValue
 from sentry.testutils import TestCase
 
 

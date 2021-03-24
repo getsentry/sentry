@@ -2,7 +2,7 @@ import re
 
 from django.core.urlresolvers import reverse
 
-from sentry.constants import SentryAppStatus
+from sentry.types.sentryapps import SentryAppStatus
 from sentry.mediators import sentry_apps
 from sentry.models import (
     ApiToken,

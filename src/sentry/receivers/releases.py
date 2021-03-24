@@ -11,7 +11,6 @@ from sentry.models import (
     GroupInboxRemoveAction,
     GroupLink,
     GroupSubscription,
-    GroupSubscriptionReason,
     GroupStatus,
     Release,
     remove_group_from_inbox,
@@ -21,6 +20,7 @@ from sentry.models import (
 )
 from sentry.signals import issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
+from sentry.types.groups import GroupSubscriptionReason
 
 
 def resolve_group_resolutions(instance, created, **kwargs):

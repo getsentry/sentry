@@ -6,7 +6,7 @@ from django.apps import apps
 from django.db import transaction
 from django.utils import timezone
 
-from sentry.constants import ObjectStatus
+from sentry.types.object import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation

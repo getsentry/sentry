@@ -1,9 +1,9 @@
 import datetime
-import time
 import logging
 import msgpack
 import pytest
 import random
+import time
 
 from confluent_kafka import KafkaError
 from django.conf import settings
@@ -11,7 +11,8 @@ from django.test import override_settings
 
 from sentry import eventstore
 from sentry.event_manager import EventManager
-from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
+from sentry.ingest.ingest_consumer import get_ingest_consumer
+from sentry.types.ingest import ConsumerType
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
