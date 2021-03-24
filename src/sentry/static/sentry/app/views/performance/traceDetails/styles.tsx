@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {SpanBarTitle} from 'app/components/events/interfaces/spans/spanBar';
 import {Panel} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import {IconChevron} from 'app/icons';
@@ -12,7 +13,6 @@ export {
   DurationPill,
   OperationName,
   SpanBarRectangle as TransactionBarRectangle,
-  SpanBarTitle as TransactionBarTitle,
   SpanBarTitleContainer as TransactionBarTitleContainer,
   SpanRowCell as TransactionRowCell,
   SpanRowCellContainer as TransactionRowCellContainer,
@@ -72,4 +72,13 @@ export const StyledPanel = styled(Panel)`
 export const StyledIconChevron = styled(IconChevron)`
   width: 7px;
   margin-left: ${space(0.25)};
+`;
+
+export const TransactionBarTitle = styled(SpanBarTitle)`
+  display: flex;
+  align-items: center;
+`;
+
+export const TransactionBarTitleContent = styled('span')`
+  margin-left: ${space(0.75)};
 `;
