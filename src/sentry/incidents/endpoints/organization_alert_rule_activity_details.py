@@ -16,4 +16,3 @@ class OrganizationAlertRuleActivityDetailsEndpoint(OrganizationAlertRuleEndpoint
         end = request.GET.get("end")
         data = serialize(alert_rule, request.user, DetailedAlertRuleActivitySerializer(start, end))
         return Response(data)
-
