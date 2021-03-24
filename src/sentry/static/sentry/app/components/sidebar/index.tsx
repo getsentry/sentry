@@ -15,7 +15,6 @@ import {extractSelectionParameters} from 'app/components/organizations/globalSel
 import {
   IconActivity,
   IconChevron,
-  IconDashboard,
   IconGraph,
   IconIssues,
   IconLab,
