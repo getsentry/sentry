@@ -42,6 +42,22 @@ class ProjectOwnership(Model):
         return f"projectownership_project_id:1:{project_id}"
 
     @classmethod
+    def get_combined_schema(self, ownership, codeowners):
+        if codeowners and codeowners.schema:
+            ownership.schema = (
+                codeowners.schema
+                if not ownership.schema
+                else {
+                    **ownership.schema,
+                    "rules": [
+                        *codeowners.schema["rules"],
+                        *ownership.schema["rules"],
+                    ],
+                }
+            )
+        return ownership.schema
+
+    @classmethod
     def get_ownership_cached(cls, project_id):
         """
         Cached read access to projectownership.
@@ -67,6 +83,7 @@ class ProjectOwnership(Model):
     def get_owners(cls, project_id, data):
         """
         For a given project_id, and event data blob.
+        We combine the schemas from IssueOwners and CodeOwners.
 
         If Everyone is returned, this means we implicitly are
         falling through our rules and everyone is responsible.
@@ -74,11 +91,17 @@ class ProjectOwnership(Model):
         If an empty list is returned, this means there are explicitly
         no owners.
         """
+        from sentry.models import ProjectCodeOwners
+
         ownership = cls.get_ownership_cached(project_id)
         if not ownership:
             ownership = cls(project_id=project_id)
 
+        codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
+        ownership.schema = cls.get_combined_schema(ownership, codeowners)
+
         rules = cls._matching_ownership_rules(ownership, project_id, data)
+
         if not rules:
             return cls.Everyone if ownership.fallthrough else [], None
 
@@ -98,12 +121,23 @@ class ProjectOwnership(Model):
         """
         Get the auto-assign owner for a project if there are any.
 
+        We combine the schemas from IssueOwners and CodeOwners.
+
         Returns a tuple of (auto_assignment_enabled, list_of_owners).
         """
+        from sentry.models import ProjectCodeOwners
+
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
-            if not ownership:
+            codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
+
+            if not (ownership or codeowners):
                 return False, []
+
+            if not ownership:
+                ownership = cls(project_id=project_id)
+
+            ownership.schema = cls.get_combined_schema(ownership, codeowners)
 
             rules = cls._matching_ownership_rules(ownership, project_id, data)
             if not rules:
