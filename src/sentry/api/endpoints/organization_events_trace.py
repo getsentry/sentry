@@ -342,10 +342,15 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         if detailed:
             if "measurements" in nodestore_data:
                 event["measurements"] = nodestore_data.get("measurements")
-            event["tags"] = OrderedDict()
-            for [tag_key, tag_value] in sorted(nodestore_data.get("tags"), key=lambda tag: tag[0]):
-                cleaned_tag_key = tag_key.split("sentry:", 1)[-1]
-                event["tags"][cleaned_tag_key] = tag_value
+            event["tags"] = [
+                {
+                    "key": tag_key.split("sentry:", 1)[-1],
+                    "value": tag_value,
+                }
+                for [tag_key, tag_value] in sorted(
+                    nodestore_data.get("tags"), key=lambda tag: tag[0]
+                )
+            ]
 
     def update_generations(self, event):
         parents = [event]
