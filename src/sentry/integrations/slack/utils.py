@@ -2,6 +2,7 @@ import logging
 import time
 
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.http import Http404
 from urllib.parse import urlparse, urlencode, parse_qs
 
@@ -384,7 +385,7 @@ def get_channel_id(organization, integration, name, use_async_lookup=False):
     return get_channel_id_with_timeout(integration, name, timeout)
 
 
-def is_valid_channel_id(name, organization, integration_id, use_async_lookup, input_channel_id):
+def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -> None:
     """
     In the case that the user is creating an alert via the API and providing the channel ID and name
     themselves, we want to make sure both values are correct.
@@ -400,14 +401,15 @@ def is_valid_channel_id(name, organization, integration_id, use_async_lookup, in
     try:
         results = client.get("/conversations.info", headers=headers, params=payload)
     except ApiError as e:
+        if e.text == "channel_not_found":
+            raise ValidationError("Channel not found. Invalid ID provided.")
         logger.info("rule.slack.conversation_info_failed", extra={"error": str(e)})
         raise IntegrationError("Could not retrieve Slack channel information.")
-    return (
-        True
-        if strip_channel_name(name) == results["channel"]["name"]
+    if not (
+        strip_channel_name(name) == results["channel"]["name"]
         and input_channel_id == results["channel"]["id"]
-        else False
-    )
+    ):
+        raise Exception("Invalid channel name and/or ID provided.")
 
 
 def get_channel_id_with_timeout(integration, name, timeout):

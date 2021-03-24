@@ -231,7 +231,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         form = rule.get_form_instance()
         assert not form.is_valid()
-        assert ["Invalid channel ID and/or channel name provided."] in form.errors.values()
+        assert "Invalid channel name and/or ID provided." in str(form.errors.values())
 
     def test_invalid_workspace(self):
         # the workspace _should_ be the integration id

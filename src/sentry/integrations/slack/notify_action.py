@@ -16,7 +16,7 @@ from .utils import (
     build_group_attachment,
     get_channel_id,
     strip_channel_name,
-    is_valid_channel_id,
+    validate_channel_id,
 )
 
 logger = logging.getLogger("sentry.rules")
@@ -47,8 +47,8 @@ class SlackNotifyServiceForm(forms.Form):
         self._pending_save = False
 
     def clean(self):
-        channel_id = None
-        if self.data.get("inputChannelId") or self.data.get("input_channel_id"):
+        channel_id = self.data.get("inputChannelId") or self.data.get("input_channel_id")
+        if channel_id:
             logger.info(
                 "rule.slack.provide_channel_id",
                 extra={
@@ -58,27 +58,23 @@ class SlackNotifyServiceForm(forms.Form):
             )
             # default to "#" if they have the channel name without the prefix
             channel_prefix = self.data["channel"][0] if self.data["channel"][0] == "@" else "#"
-            if self.data.get("input_channel_id"):
-                channel_id = self.data["input_channel_id"]
-            if self.data.get("inputChannelId"):
-                channel_id = self.data["inputChannelId"]
 
         cleaned_data = super().clean()
 
         workspace = cleaned_data.get("workspace")
 
         if channel_id:
-            if not is_valid_channel_id(
-                self.data.get("channel"),
-                organization=None,
-                integration_id=workspace,
-                use_async_lookup=False,
-                input_channel_id=channel_id,
-            ):
+            try:
+                validate_channel_id(
+                    self.data.get("channel"),
+                    integration_id=workspace,
+                    input_channel_id=channel_id,
+                )
+            except Exception as e:
                 params = {"channel": self.data.get("channel"), "channel_id": channel_id}
                 raise forms.ValidationError(
                     _(
-                        "Invalid channel ID and/or channel name provided.",
+                        str(e),
                     ),
                     code="invalid",
                     params=params,

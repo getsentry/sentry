@@ -5,6 +5,7 @@ from itertools import chain
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
+from django.utils.encoding import force_text
 
 from sentry import analytics, quotas
 from sentry.api.event_search import get_filter, resolve_field
@@ -52,6 +53,7 @@ from sentry.utils.snuba import bulk_raw_query, is_measurement, SnubaQueryParams,
 from sentry.shared_integrations.exceptions import (
     DuplicateDisplayNameError,
 )
+
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
@@ -1161,15 +1163,18 @@ def create_alert_rule_trigger_action(
     if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
+        try:
+            target_identifier, target_display = get_target_identifier_display_for_integration(
+                type.value,
+                target_identifier,
+                trigger.alert_rule.organization,
+                integration.id,
+                use_async_lookup=use_async_lookup,
+                input_channel_id=input_channel_id,
+            )
+        except Exception as e:
+            raise InvalidTriggerActionError(force_text(e))
 
-        target_identifier, target_display = get_target_identifier_display_for_integration(
-            type.value,
-            target_identifier,
-            trigger.alert_rule.organization,
-            integration.id,
-            use_async_lookup=use_async_lookup,
-            input_channel_id=input_channel_id,
-        )
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
             trigger.alert_rule.organization, sentry_app.id
@@ -1223,15 +1228,18 @@ def update_alert_rule_trigger_action(
         if type in AlertRuleTriggerAction.INTEGRATION_TYPES:
             integration = updated_fields.get("integration", trigger_action.integration)
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
+            try:
+                target_identifier, target_display = get_target_identifier_display_for_integration(
+                    type,
+                    target_identifier,
+                    organization,
+                    integration.id,
+                    use_async_lookup=use_async_lookup,
+                    input_channel_id=input_channel_id,
+                )
+            except Exception as e:
+                raise InvalidTriggerActionError(force_text(e))
 
-            target_identifier, target_display = get_target_identifier_display_for_integration(
-                type,
-                target_identifier,
-                organization,
-                integration.id,
-                use_async_lookup=use_async_lookup,
-                input_channel_id=input_channel_id,
-            )
             updated_fields["target_display"] = target_display
 
         elif type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
@@ -1249,21 +1257,19 @@ def update_alert_rule_trigger_action(
 
 
 def get_target_identifier_display_for_integration(type, target_value, *args, **kwargs):
+    from sentry.integrations.slack.utils import validate_channel_id
+
     # target_value is the Slack username or channel name
     if type == AlertRuleTriggerAction.Type.SLACK.value:
         # if we have a value for input_channel_id, just set target_identifier to that
-        target_identifier = kwargs.get("input_channel_id")
+        target_identifier = kwargs.pop("input_channel_id")
         if target_identifier is not None:
-            from sentry.integrations.slack.utils import is_valid_channel_id
-
-            if is_valid_channel_id(target_value, *args, **kwargs):
-                return (
-                    target_identifier,
-                    target_value,
-                )
-            else:
-                raise Exception("Invalid channel ID and/or channel name provided.")
-        kwargs.pop("input_channel_id")
+            _, integration_id = args
+            validate_channel_id(target_value, integration_id, input_channel_id=target_identifier)
+            return (
+                target_identifier,
+                target_value,
+            )
         target_identifier = get_alert_rule_trigger_action_slack_channel_id(
             target_value, *args, **kwargs
         )
