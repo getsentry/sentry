@@ -1,14 +1,6 @@
 from collections import defaultdict
 from typing import List, Mapping, Optional
 
-from sentry.models import (
-    Actor,
-    NotificationSetting,
-    Organization,
-    Project,
-    Team,
-    User,
-)
 from sentry.notifications.legacy_mappings import get_legacy_value
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -19,9 +11,9 @@ from sentry.notifications.types import (
 
 def should_user_be_notified(
     notification_settings_by_user: Mapping[
-        User, Mapping[NotificationScopeType, NotificationSettingOptionValues]
+        any, Mapping[NotificationScopeType, NotificationSettingOptionValues]
     ],
-    user: User,
+    user,
 ) -> bool:
     """
     Given a mapping of default and specific notification settings by user,
@@ -42,10 +34,10 @@ def should_user_be_notified(
 
 
 def should_be_participating(
-    user: User,
+    user,
     subscriptions_by_user_id: Mapping[int, any],
     notification_settings_by_user: Mapping[
-        User, Mapping[NotificationScopeType, NotificationSettingOptionValues]
+        any, Mapping[NotificationScopeType, NotificationSettingOptionValues]
     ],
 ) -> bool:
     """
@@ -74,9 +66,9 @@ def should_be_participating(
 
 
 def transform_to_notification_settings_by_user(
-    notification_settings: List[NotificationSetting],
-    users: List[User],
-) -> Mapping[User, Mapping[NotificationScopeType, NotificationSettingOptionValues]]:
+    notification_settings: List,
+    users: List,
+) -> Mapping[any, Mapping[NotificationScopeType, NotificationSettingOptionValues]]:
     """
     Given a unorganized list of notification settings, create a mapping of
     users to a map of notification scopes to setting values.
@@ -92,7 +84,7 @@ def transform_to_notification_settings_by_user(
 
 
 def transform_to_notification_settings_by_parent_id(
-    notification_settings: List[NotificationSetting],
+    notification_settings: List,
 ) -> (Mapping[int, NotificationSettingOptionValues], Optional[NotificationSettingOptionValues]):
     """
     Given a unorganized list of notification settings, create a mapping of
@@ -127,7 +119,7 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
 
 
 def get_scope(
-    user_id: int, project: Optional[Project] = None, organization: Optional[Organization] = None
+    user_id: int, project: Optional = None, organization: Optional = None
 ) -> (NotificationScopeType, int):
     """
     Figure out the scope from parameters and return it as a tuple.
@@ -146,8 +138,8 @@ def get_scope(
     raise Exception("scope must be either user, organization, or project")
 
 
-def get_target(user: Optional[User] = None, team: Optional[Team] = None) -> Actor:
-    """ Get the actor from a User or Team. """
+def get_target(user: Optional = None, team: Optional = None):
+    """ :returns the Actor object from a User or Team. """
     try:
         return getattr((user or team), "actor")
     except AttributeError:

@@ -1,18 +1,10 @@
 from django.db import transaction
 from django.db.models import Q
-from typing import Iterable, List, Optional, Union
+from typing import Iterable, List, Optional
 
 from sentry.db.models import BaseManager, QuerySet
 from sentry.models.actor import ACTOR_TYPES
 from sentry.models.integration import ExternalProviders
-from sentry.models import (
-    Actor,
-    Organization,
-    Project,
-    Team,
-    User,
-    UserOption,
-)
 from sentry.notifications.helpers import (
     get_scope,
     get_scope_type,
@@ -41,10 +33,10 @@ class NotificationsManager(BaseManager):
         self,
         provider: ExternalProviders,
         type: NotificationSettingTypes,
-        user: Optional[User] = None,
-        team: Optional[Team] = None,
-        project: Optional[Project] = None,
-        organization: Optional[Organization] = None,
+        user: Optional = None,
+        team: Optional = None,
+        project: Optional = None,
+        organization: Optional = None,
     ) -> NotificationSettingOptionValues:
         """
         In this temporary implementation, always read EMAIL settings from
@@ -52,6 +44,8 @@ class NotificationsManager(BaseManager):
         must not be null. This function automatically translates a missing DB
         row to NotificationSettingOptionValues.DEFAULT.
         """
+        from sentry.model import UserOption
+
         setting_option = self.find_settings(
             provider, type, user, team, project, organization
         ).first()
@@ -69,10 +63,10 @@ class NotificationsManager(BaseManager):
         provider: ExternalProviders,
         type: NotificationSettingTypes,
         value: NotificationSettingOptionValues,
-        user: Optional[User] = None,
-        team: Optional[Team] = None,
-        project: Optional[Project] = None,
-        organization: Optional[Organization] = None,
+        user: Optional = None,
+        team: Optional = None,
+        project: Optional = None,
+        organization: Optional = None,
     ) -> None:
         """
         Save a target's notification preferences.
@@ -81,6 +75,8 @@ class NotificationsManager(BaseManager):
           * Updating a user's per-project preferences
           * Updating a user's per-organization preferences
         """
+        from sentry.model import UserOption
+
         # A missing DB row is equivalent to DEFAULT.
         if value == NotificationSettingOptionValues.DEFAULT:
             return self.remove_settings(
@@ -131,16 +127,17 @@ class NotificationsManager(BaseManager):
         self,
         provider: ExternalProviders,
         type: NotificationSettingTypes,
-        user: Optional[User] = None,
-        team: Optional[Team] = None,
-        project: Optional[Project] = None,
-        organization: Optional[Organization] = None,
+        user: Optional = None,
+        team: Optional = None,
+        project: Optional = None,
+        organization: Optional = None,
     ) -> None:
         """
         We don't anticipate this function will be used by the API but is useful
         for tests. This can also be called by `update_settings` when attempting
         to set a notification preference to DEFAULT.
         """
+        from sentry.model import UserOption
 
         with transaction.atomic():
             self.find_settings(provider, type, user, team, project, organization).delete()
@@ -174,17 +171,20 @@ class NotificationsManager(BaseManager):
         return self.filter(**filters)
 
     @staticmethod
-    def _get_legacy_filters(type: Optional[NotificationSettingTypes] = None, **kwargs) -> dict:
+    def remove_legacy_option(type: Optional[NotificationSettingTypes] = None, **kwargs) -> None:
+        from sentry.model import UserOption
+
         if type:
             kwargs["key"] = get_legacy_key(type)
         else:
             kwargs["key__in"] = KEYS_TO_LEGACY_KEYS.values()
-        return kwargs
+
+        UserOption.objects.filter(**kwargs).delete()
 
     def remove_for_user(self, user, type: Optional[NotificationSettingTypes] = None) -> None:
         """ Bulk delete all Notification Settings for a USER, optionally by type. """
         # We don't need a transaction because this is only used in tests.
-        UserOption.objects.filter(**self._get_legacy_filters(type, user=user)).delete()
+        self.remove_legacy_option(type, user=user)
         self._filter(targets=[user.actor], type=type).delete()
 
     def remove_for_team(self, team, type: Optional[NotificationSettingTypes] = None) -> None:
@@ -193,7 +193,7 @@ class NotificationsManager(BaseManager):
 
     def remove_for_project(self, project, type: Optional[NotificationSettingTypes] = None) -> None:
         """ Bulk delete all Notification Settings for a PROJECT, optionally by type. """
-        UserOption.objects.filter(**self._get_legacy_filters(type, project=project)).delete()
+        self.remove_legacy_option(type, project=project)
         self._filter(
             scope_type=NotificationScopeType.PROJECT,
             scope_identifier=project.id,
@@ -204,9 +204,7 @@ class NotificationsManager(BaseManager):
         self, organization, type: Optional[NotificationSettingTypes] = None
     ) -> None:
         """ Bulk delete all Notification Settings for an ENTIRE ORGANIZATION, optionally by type. """
-        UserOption.objects.filter(
-            **self._get_legacy_filters(type, organization=organization)
-        ).delete()
+        self.remove_legacy_option(type, organization=organization)
         self._filter(
             scope_type=NotificationScopeType.ORGANIZATION,
             scope_identifier=organization.id,
@@ -217,10 +215,10 @@ class NotificationsManager(BaseManager):
         self,
         provider: ExternalProviders,
         type: NotificationSettingTypes,
-        user: Optional[User] = None,
-        team: Optional[Team] = None,
-        project: Optional[Project] = None,
-        organization: Optional[Organization] = None,
+        user: Optional = None,
+        team: Optional = None,
+        project: Optional = None,
+        organization: Optional = None,
     ) -> QuerySet:
         """ Wrapper for .filter that translates object parameters to scopes and targets. """
         user_id_option = getattr(user, "id", None)
@@ -234,8 +232,8 @@ class NotificationsManager(BaseManager):
         self,
         provider: ExternalProviders,
         type: NotificationSettingTypes,
-        user: User,
-        parents: Union[List[Organization], List[Project]],
+        user,
+        parents: List,
     ) -> QuerySet:
         """
         Find all of a user's notification settings for a list of projects or organizations.
@@ -260,8 +258,8 @@ class NotificationsManager(BaseManager):
         self,
         provider: ExternalProviders,
         type: NotificationSettingTypes,
-        parent: Union[Organization, Project],
-        users: List[User],
+        parent,
+        users: List,
     ) -> QuerySet:
         """
         Find all of a project/organization's notification settings for a list of users.
@@ -285,9 +283,9 @@ class NotificationsManager(BaseManager):
     def filter_to_subscribed_users(
         self,
         provider: ExternalProviders,
-        project: Project,
-        users: List[User],
-    ) -> List[User]:
+        project,
+        users: List,
+    ) -> List:
         """
         Filters a list of users down to the users who are subscribed to email
         alerts. We check both the project level settings and global default settings.
@@ -302,9 +300,7 @@ class NotificationsManager(BaseManager):
             user for user in users if should_user_be_notified(notification_settings_by_user, user)
         ]
 
-    def get_notification_recipients(
-        self, provider: ExternalProviders, project: Project
-    ) -> List[User]:
+    def get_notification_recipients(self, provider: ExternalProviders, project) -> List:
         """
         Return a set of users that should receive Issue Alert emails for a given
         project. To start, we get the set of all users. Then we fetch all of
