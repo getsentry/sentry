@@ -18,7 +18,12 @@ from sentry.models import (
 )
 from sentry.utils.email import create_fake_email
 
-from .data_population import populate_connected_event_scenario_1, generate_releases
+from .data_population import (
+    populate_connected_event_scenario_1,
+    populate_connected_event_scenario_2,
+    populate_connected_event_scenario_3,
+    generate_releases,
+)
 from .utils import generate_random_name
 from .models import DemoUser, DemoOrganization, DemoOrgStatus
 
@@ -60,6 +65,8 @@ def create_demo_org(quick=False) -> Organization:
     )
     generate_releases([react_project, python_project], quick=quick)
     populate_connected_event_scenario_1(react_project, python_project, quick=quick)
+    populate_connected_event_scenario_2(react_project, python_project, quick=quick)
+    populate_connected_event_scenario_3(python_project, quick=quick)
 
     return org
 
