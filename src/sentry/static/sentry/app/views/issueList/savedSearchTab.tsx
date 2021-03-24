@@ -111,11 +111,6 @@ const TabWrapper = styled('li')<{isActive?: boolean}>`
       max-width: 50vw;
     }
   }
-
-  /* Fix nav tabs style leaking into menu */
-  * > li {
-    margin: 0;
-  }
 `;
 
 const TitleWrapper = styled('span')`
