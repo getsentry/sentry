@@ -1,6 +1,7 @@
 import logging
 
 from django import forms
+from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import Integration
@@ -70,7 +71,7 @@ class SlackNotifyServiceForm(forms.Form):
                     integration_id=workspace,
                     input_channel_id=channel_id,
                 )
-            except Exception as e:
+            except ValidationError as e:
                 params = {"channel": self.data.get("channel"), "channel_id": channel_id}
                 raise forms.ValidationError(
                     _(

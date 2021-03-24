@@ -405,11 +405,11 @@ def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -
             raise ValidationError("Channel not found. Invalid ID provided.")
         logger.info("rule.slack.conversation_info_failed", extra={"error": str(e)})
         raise IntegrationError("Could not retrieve Slack channel information.")
-    if not (
-        strip_channel_name(name) == results["channel"]["name"]
-        and input_channel_id == results["channel"]["id"]
-    ):
-        raise Exception("Invalid channel name and/or ID provided.")
+    if not strip_channel_name(name) == results["channel"]["name"]:
+        raise ValidationError(
+            "Received channel name %s does not match inputted channel name %s."
+            % (results["channel"]["name"], strip_channel_name(name))
+        )
 
 
 def get_channel_id_with_timeout(integration, name, timeout):
