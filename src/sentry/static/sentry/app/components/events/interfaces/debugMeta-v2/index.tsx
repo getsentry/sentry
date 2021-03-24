@@ -36,6 +36,7 @@ import {
   getFileName,
   IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT,
   normalizeId,
+  shouldSkipSection,
 } from './utils';
 
 const IMAGE_INFO_UNAVAILABLE = '-1';
@@ -510,39 +511,19 @@ class DebugMeta extends React.PureComponent<Props, State> {
     };
   }
 
-  get shouldSkipSection() {
-    const {filteredImagesByFilter: filteredImages} = this.state;
-    const {data} = this.props;
-    const {images} = data;
-
-    if (!!filteredImages.length) {
-      return false;
-    }
-
-    const definedImages = images.filter(image => defined(image));
-
-    if (!definedImages.length) {
-      return true;
-    }
-
-    if ((definedImages as Array<Image>).every(image => image.type === 'proguard')) {
-      return true;
-    }
-
-    return false;
-  }
-
   render() {
-    if (this.shouldSkipSection) {
-      return null;
-    }
-
     const {
       searchTerm,
       filterOptions,
       scrollbarWidth,
       filteredImagesByFilter: filteredImages,
     } = this.state;
+    const {data} = this.props;
+    const {images} = data;
+
+    if (shouldSkipSection(filteredImages, images)) {
+      return null;
+    }
 
     const displayFilter = (Object.values(filterOptions ?? {})[0] ?? []).length > 1;
 
