@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.models import User
 from sentry.testutils import APITestCase
-from sentry.auth.password_validation import MinimumLengthValidator
+from django.contrib.auth.password_validation import MinimumLengthValidator
 
 
 class UserPasswordTest(APITestCase):
@@ -33,7 +33,7 @@ class UserPasswordTest(APITestCase):
     # Not sure why but sentry.auth.password_validation._default_password_validators is [] instead of None and not
     # using `settings.AUTH_PASSWORD_VALIDATORS`
     @mock.patch(
-        "sentry.auth.password_validation.get_default_password_validators",
+        "django.contrib.auth.password_validation.get_default_password_validators",
         mock.Mock(return_value=[MinimumLengthValidator(min_length=6)]),
     )
     def test_password_too_short(self):

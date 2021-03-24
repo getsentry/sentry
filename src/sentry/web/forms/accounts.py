@@ -3,12 +3,11 @@ import pytz
 from datetime import datetime
 from django import forms
 from django.conf import settings
-from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth import authenticate, get_user_model, password_validation
 from django.utils.text import capfirst, mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import newsletter, options
-from sentry.auth import password_validation
 from sentry.app import ratelimiter
 from sentry.utils.auth import find_users, logger
 from sentry.models import User
