@@ -2153,7 +2153,7 @@ DEMO_ORG_OWNER_EMAIL = None
 # paramters that determine how demo events are generated
 DEMO_DATA_GEN_PARAMS = {}
 
-# parameters when quickly generating an organization
+# parameters for an org when quickly generating them synchronously
 DEMO_DATA_QUICK_GEN_PARAMS = {}
 
 # adds an extra JS to HTML template
