@@ -144,8 +144,6 @@ describe('OrganizationRuleList', () => {
       .simulate('change', {target: {value: testQuery}})
       .simulate('submit', {preventDefault() {}});
 
-    await tick();
-
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
