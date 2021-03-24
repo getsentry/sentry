@@ -220,7 +220,7 @@ function getDemoModeGuides(): GuidesContent {
     {
       guide: 'sidebar',
       requiredTargets: ['projects', 'issues'],
-      priority: 2,
+      priority: 1, //lower number means higher priority
       steps: [
         {
           title: t('Projects'),
@@ -256,17 +256,17 @@ function getDemoModeGuides(): GuidesContent {
           description: t(
             `Query and unlock insights into the health of your entire system and get answers to critical business questions -- all in one place.`
           ),
+          nextText: t(`Got it`),
         },
       ],
     },
     {
       guide: 'issue_stream_v2',
-      requiredTargets: ['issue_title'],
-      priority: 0,
+      requiredTargets: ['issue_stream_title'],
       steps: [
         {
           title: t('Issue'),
-          target: 'issue_title',
+          target: 'issue_stream_title',
           description: t(
             `Click here to see a full error report down to the line of code that caused the issue.`
           ),
@@ -276,7 +276,6 @@ function getDemoModeGuides(): GuidesContent {
     {
       guide: 'issue_v2',
       requiredTargets: ['issue_details', 'exception'],
-      priority: 1,
       steps: [
         {
           title: t('Details'),

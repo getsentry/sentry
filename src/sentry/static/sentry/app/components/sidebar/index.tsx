@@ -214,7 +214,7 @@ class Sidebar extends React.Component<Props, State> {
     const hasOrganization = !!organization;
 
     const projects = hasOrganization && (
-      <GuideAnchor target="projects" position="top">
+      <GuideAnchor target="projects">
         <SidebarItem
           {...sidebarItemProps}
           index

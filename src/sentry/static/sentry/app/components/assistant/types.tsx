@@ -24,7 +24,7 @@ type BaseGuide = {
   dateThreshold?: Date;
   steps: GuideStep[];
   /**
-   * When two guides could be active, the guide with the higher priority
+   * When two guides could be active, the guide with the lower priority value
    * level takes precedent.
    */
   priority?: number;

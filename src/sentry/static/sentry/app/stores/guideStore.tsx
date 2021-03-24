@@ -10,12 +10,13 @@ import ConfigStore from 'app/stores/configStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 function guidePrioritySort(a: Guide, b: Guide) {
-  const a_priority = a.priority ?? -1;
-  const b_priority = b.priority ?? -1;
+  const a_priority = a.priority ?? Number.MAX_SAFE_INTEGER;
+  const b_priority = b.priority ?? Number.MAX_SAFE_INTEGER;
   if (a_priority === b_priority) {
     return a.guide.localeCompare(b.guide);
   }
-  return b_priority - a_priority;
+  // lower number takes priority
+  return a_priority - b_priority;
 }
 
 export type GuideStoreState = {

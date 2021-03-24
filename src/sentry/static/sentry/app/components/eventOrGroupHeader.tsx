@@ -23,7 +23,6 @@ type DefaultProps = {
 };
 
 type Props = WithRouterProps<{orgId: string}> & {
-  index: number;
   organization: Organization;
   data: Event | Group | GroupTombstone;
   hideIcons?: boolean;
@@ -32,6 +31,7 @@ type Props = WithRouterProps<{orgId: string}> & {
   className?: string;
   /** Group link clicked */
   onClick?: () => void;
+  index?: number;
 } & Partial<DefaultProps>;
 
 /**
@@ -71,6 +71,7 @@ class EventOrGroupHeader extends React.Component<Props> {
           style={{fontWeight: hasSeen ? 400 : 600}}
           withStackTracePreview
           hasGuideAnchor={index === 0}
+          guideAnchorName="issue_stream_title"
         />
       </React.Fragment>
     );

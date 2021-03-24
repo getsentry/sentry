@@ -70,7 +70,6 @@ const defaultProps = {
 };
 
 type Props = {
-  index: number;
   id: string;
   selection: GlobalSelection;
   organization: Organization;
@@ -80,6 +79,7 @@ type Props = {
   memberList?: User[];
   onMarkReviewed?: (itemIds: string[]) => void;
   showInboxTime?: boolean;
+  index?: number;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 

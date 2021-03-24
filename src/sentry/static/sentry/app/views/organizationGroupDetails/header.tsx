@@ -247,15 +247,13 @@ class GroupHeader extends React.Component<Props, State> {
           event={event}
         />
         <NavTabs>
-          <GuideAnchor target="issue_details">
-            <ListLink
-              to={`${baseUrl}${location.search}`}
-              isActive={() => currentTab === TAB.DETAILS}
-              disabled={hasGroupBeenReprocessedAndHasntEvent}
-            >
-              {t('Details')}
-            </ListLink>
-          </GuideAnchor>
+          <ListLink
+            to={`${baseUrl}${location.search}`}
+            isActive={() => currentTab === TAB.DETAILS}
+            disabled={hasGroupBeenReprocessedAndHasntEvent}
+          >
+            <GuideAnchor target="issue_details">{t('Details')}</GuideAnchor>
+          </ListLink>
           <StyledListLink
             to={`${baseUrl}activity/${location.search}`}
             isActive={() => currentTab === TAB.ACTIVITY}
