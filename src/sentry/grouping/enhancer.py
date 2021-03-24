@@ -277,9 +277,6 @@ class RangeMatch(Match):
 
     def matches_frame(self, frames, idx, platform, exception_data):
         if self.end is not None:
-            if self.end.matches_frame(frames, idx, platform, exception_data):
-                return True
-
             end_matches = (
                 idx2
                 for idx2 in reversed(range(0, idx))
@@ -287,20 +284,16 @@ class RangeMatch(Match):
             )
 
             if self.end_neighbouring:
-                end_idx = next(end_matches, None)
-                if end_idx != (idx - 1 if self.end_neighbouring else None):
+                if next(end_matches, None) != idx - 1:
                     return False
             else:
                 if next(end_matches, None) is None:
                     return False
 
         if self.start is not None:
-            if self.start.matches_frame(frames, idx, platform, exception_data):
-                return True
-
             start_matches = (
                 idx2
-                for idx2 in range(idx, len(frames))
+                for idx2 in range(idx + 1, len(frames))
                 if self.start.matches_frame(frames, idx2, platform, exception_data)
             )
 

@@ -299,7 +299,7 @@ def test_range_matching():
     enhancement = Enhancements.from_config_string(
         """
         # matches in the direction of crashing-frame -> thread-base
-        [ function:baz .. function:foo ] category=foobaz
+        [ function:baz .. function:foo ] category=bar
     """
     )
 
@@ -320,5 +320,45 @@ def test_range_matching():
                 )
             )
         )
-        == [1, 2, 3]
+        == [2]
+    )
+
+
+def test_range_matching_direct():
+    enhancement = Enhancements.from_config_string(
+        """
+        # matches in the direction of crashing-frame -> thread-base
+        [ function:baz | .. ] function:bar -group
+    """
+    )
+
+    (rule,) = enhancement.rules
+
+    assert (
+        sorted(
+            dict(
+                rule.get_matching_frame_actions(
+                    [
+                        {"function": "main"},
+                        {"function": "foo"},
+                        {"function": "bar"},
+                        {"function": "baz"},
+                        {"function": "abort"},
+                    ],
+                    "python",
+                )
+            )
+        )
+        == [2]
+    )
+
+    assert not rule.get_matching_frame_actions(
+        [
+            {"function": "main"},
+            {"function": "foo"},
+            {"function": "bar"},
+            {"function": "abort"},
+            {"function": "baz"},
+        ],
+        "python",
     )
