@@ -1,6 +1,7 @@
 import copy
 import logging
 import functools
+import os
 import random
 import pytz
 import time
@@ -9,12 +10,23 @@ from collections import defaultdict
 from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
+from hashlib import sha1
 from uuid import uuid4
 from typing import List
 
 from sentry.interfaces.user import User as UserInterface
-from sentry.models import Project
-from sentry.utils import json
+from sentry.models import (
+    File,
+    Project,
+    Release,
+    Repository,
+    CommitAuthor,
+    Commit,
+    ReleaseFile,
+    CommitFileChange,
+    ReleaseCommit,
+)
+from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_timestamp
 from sentry.utils.samples import (
     random_geo,
@@ -25,19 +37,41 @@ from sentry.utils.samples import (
 from sentry.utils.snuba import SnubaError
 
 
-MAX_DAYS = settings.DEMO_DATA_GEN_PARAMS["MAX_DAYS"]
-SCALE_FACTOR = settings.DEMO_DATA_GEN_PARAMS["SCALE_FACTOR"]
-BASE_OFFSET = settings.DEMO_DATA_GEN_PARAMS["BASE_OFFSET"]
-NAME_STEP_SIZE = settings.DEMO_DATA_GEN_PARAMS["NAME_STEP_SIZE"]
-BREADCRUMB_LOOKBACK_TIME = settings.DEMO_DATA_GEN_PARAMS["BREADCRUMB_LOOKBACK_TIME"]
-DEFAULT_BACKOFF_TIME = settings.DEMO_DATA_GEN_PARAMS["DEFAULT_BACKOFF_TIME"]
-ERROR_BACKOFF_TIME = settings.DEMO_DATA_GEN_PARAMS["ERROR_BACKOFF_TIME"]
+commit_message_base_messages = [
+    "feat: Do something to",
+    "feat: Update code in",
+    "ref: Refactor code in",
+    "fix: Fix bug in",
+]
+
+base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
 
 logger = logging.getLogger(__name__)
 
 
-def get_event_from_file(file_path):
+def get_config(quick):
+    """
+    Returns the data generation config
+    Depends on if we are doing a quick-gen or not
+    """
+    if quick:
+        return settings.DEMO_DATA_QUICK_GEN_PARAMS
+    else:
+        return settings.DEMO_DATA_GEN_PARAMS
+
+
+def get_config_var(name, quick):
+    config = get_config(quick)
+    return config[name]
+
+
+def get_data_file_path(file_name):
+    return os.path.join(os.path.dirname(__file__), "data", file_name)
+
+
+def get_event_from_file(file_name):
+    file_path = get_data_file_path(file_name)
     with open(file_path) as f:
         return clean_event(json.load(f))
 
@@ -77,7 +111,8 @@ distrubtion_fns = [distribution_v1, distribution_v2, distribution_v3]
 
 @functools.lru_cache(maxsize=None)
 def get_list_of_names() -> List[str]:
-    with open("src/sentry/demo/data/names.json") as f:
+    file_path = get_data_file_path("names.json")
+    with open(file_path) as f:
         return json.load(f)
 
 
@@ -99,22 +134,143 @@ def get_user_by_id(id_0_offset):
     ).to_json()
 
 
-def generate_user():
+def generate_user(quick=False):
+    NAME_STEP_SIZE = get_config_var("NAME_STEP_SIZE", quick)
     name_list = get_list_of_names()
     id_0_offset = random.randrange(0, len(name_list), NAME_STEP_SIZE)
     return get_user_by_id(id_0_offset)
 
 
-def safe_send_event(data):
+def gen_random_author():
+    author = "{} {}".format(random.choice(loremipsum.words), random.choice(loremipsum.words))
+    return (
+        author,
+        "{}@example.com".format(author.replace(" ", ".")),
+    )
+
+
+def get_release_from_time(org_id, timestamp):
+    """
+    Returns the most release before a specific time
+    """
+    return (
+        Release.objects.filter(organization_id=org_id, date_added__lte=timestamp)
+        .order_by("-date_added")
+        .first()
+    )
+
+
+def generate_commits(required_files, file_extensions):
+    """
+    Generate the JSON for commits that are a combination of randomly generated files
+    And a set of files (required_files) with specific file extensions
+    """
+    commits = []
+    for i in range(random.randint(len(required_files), 20)):
+        if i < len(required_files):
+            filename = required_files[i]
+        else:
+            # create a realistic file path based off the extension we choose
+            extension = random.choice(file_extensions)
+            base_path = random.choice(base_paths_by_file_type[extension])
+            filename = base_path + random.choice(loremipsum.words) + "." + extension
+
+        # TODO: pass in user list for commits
+        author = gen_random_author()
+
+        base_message = random.choice(commit_message_base_messages)
+
+        commits.append(
+            {
+                "key": sha1(uuid4().bytes).hexdigest(),
+                "message": f"{base_message} {filename}",
+                "author": author,
+                "files": [(filename, "M")],
+            }
+        )
+    return commits
+
+
+def generate_releases(projects, quick):
+    config = get_config(quick)
+    NUM_RELEASES = config["NUM_RELEASES"]
+    MAX_DAYS = config["MAX_DAYS"]
+    release_time = timezone.now() - timedelta(days=MAX_DAYS)
+    hourly_release_cadence = MAX_DAYS * 24.0 / NUM_RELEASES
+    org = projects[0].organization
+    org_id = org.id
+    for i in range(NUM_RELEASES):
+        release = Release.objects.create(
+            version=f"V{i + 1}",
+            organization_id=org_id,
+            date_added=release_time,
+        )
+        for project in projects:
+            release.add_project(project)
+
+        # TODO: unhardcode params when we add more scenarios
+        raw_commits = generate_commits(["components/ShoppingCart.js", "flask/app.py"], ["js", "py"])
+
+        repo, _ = Repository.objects.get_or_create(
+            organization_id=org.id,
+            external_id="example/example",
+            defaults={
+                "name": "Example Repo",
+            },
+        )
+        authors = set()
+
+        for commit_index, raw_commit in enumerate(raw_commits):
+            author = CommitAuthor.objects.get_or_create(
+                organization_id=org.id,
+                email=raw_commit["author"][1],
+                defaults={"name": raw_commit["author"][0]},
+            )[0]
+            commit = Commit.objects.get_or_create(
+                organization_id=org.id,
+                repository_id=repo.id,
+                key=raw_commit["key"],
+                defaults={
+                    "author": author,
+                    "message": raw_commit["message"],
+                    "date_added": release_time,
+                },
+            )[0]
+            authors.add(author)
+
+            for file in raw_commit["files"]:
+                ReleaseFile.objects.get_or_create(
+                    organization_id=project.organization_id,
+                    release=release,
+                    name=file[0],
+                    file=File.objects.get_or_create(
+                        name=file[0], type="release.file", checksum="abcde" * 8, size=13043
+                    )[0],
+                    defaults={"organization_id": project.organization_id},
+                )
+
+                CommitFileChange.objects.get_or_create(
+                    organization_id=org.id, commit=commit, filename=file[0], type=file[1]
+                )
+
+            ReleaseCommit.objects.get_or_create(
+                organization_id=org.id, release=release, commit=commit, order=commit_index
+            )
+
+        release_time += timedelta(hours=hourly_release_cadence)
+
+
+def safe_send_event(data, quick):
     project = data.pop("project")
+    config = get_config(quick)
     # TODO: make a batched update version of create_sample_event
     try:
         create_sample_event_basic(data, project.id)
-        time.sleep(DEFAULT_BACKOFF_TIME)
+        time.sleep(config["DEFAULT_BACKOFF_TIME"])
     except SnubaError:
         # if snuba fails, just back off and continue
         logger.info("safe_send_event.snuba_error")
-        time.sleep(ERROR_BACKOFF_TIME)
+        time.sleep(config["ERROR_BACKOFF_TIME"])
 
 
 def clean_event(event_json):
@@ -157,9 +313,9 @@ def fix_timestamps(event_json):
         event_json["start_timestamp"] = to_timestamp(start_timestamp)
 
 
-def fix_error_event(event_json):
+def fix_error_event(event_json, quick=False):
     fix_timestamps(event_json)
-    fix_breadrumbs(event_json)
+    fix_breadrumbs(event_json, quick)
 
 
 def fix_transaction_event(event_json, old_span_id):
@@ -276,11 +432,12 @@ def fix_measurements(event_json):
         measurements.update(measurement_markers)
 
 
-def fix_breadrumbs(event_json):
+def fix_breadrumbs(event_json, quick):
     """
     Fixes the timestamps on breadcrumbs to match the current time
     Evenly spaces out all breadcrumbs starting at BREADCRUMB_LOOKBACK_TIME ago
     """
+    BREADCRUMB_LOOKBACK_TIME = get_config_var("BREADCRUMB_LOOKBACK_TIME", quick)
     breadcrumbs = event_json.get("breadcrumbs", {}).get("values", [])
     num_breadcrumbs = len(breadcrumbs)
     breadcrumb_time_step = BREADCRUMB_LOOKBACK_TIME * 1.0 / num_breadcrumbs
@@ -291,7 +448,9 @@ def fix_breadrumbs(event_json):
         curr_time += breadcrumb_time_step
 
 
-def populate_connected_event_scenario_1(react_project: Project, python_project: Project):
+def populate_connected_event_scenario_1(
+    react_project: Project, python_project: Project, quick=False
+):
     """
     This function populates a set of four related events with the same trace id:
     - Front-end transaction
@@ -300,11 +459,17 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
     - Back-end error
     Occurrance times and durations are randomized
     """
-    react_transaction = get_event_from_file("src/sentry/demo/data/react_transaction_1.json")
-    react_error = get_event_from_file("src/sentry/demo/data/react_error_1.json")
-    python_transaction = get_event_from_file("src/sentry/demo/data/python_transaction_1.json")
-    python_error = get_event_from_file("src/sentry/demo/data/python_error_1.json")
+    react_transaction = get_event_from_file("react_transaction_1.json")
+    react_error = get_event_from_file("react_error_1.json")
+    python_transaction = get_event_from_file("python_transaction_1.json")
+    python_error = get_event_from_file("python_error_1.json")
 
+    config = get_config(quick)
+    MAX_DAYS = config["MAX_DAYS"]
+    SCALE_FACTOR = config["SCALE_FACTOR"]
+    BASE_OFFSET = config["BASE_OFFSET"]
+
+    start_time = timezone.now() - timedelta(days=MAX_DAYS)
     log_extra = {
         "organization_slug": react_project.organization.slug,
         "MAX_DAYS": MAX_DAYS,
@@ -317,6 +482,7 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
             base = distribution_v1(hour)
             # determine the number of events we want in this hour
             num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
+            timestamps = []
             for i in range(num_events):
                 logger.info(
                     "populate_connected_event_scenario_1.send_event_series", extra=log_extra
@@ -324,10 +490,18 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
 
                 # pick the minutes randomly (which means events will sent be out of order)
                 minute = random.randint(0, 60)
-                timestamp = timezone.now() - timedelta(days=day, hours=hour, minutes=minute)
+                timestamp = start_time + timedelta(days=day, hours=hour, minutes=minute)
                 timestamp = timestamp.replace(tzinfo=pytz.utc)
-                transaction_user = generate_user()
+                timestamps.append(timestamp)
+
+            # sort the timestamps
+            timestamps.sort()
+
+            for timestamp in timestamps:
+                transaction_user = generate_user(quick)
                 trace_id = uuid4().hex
+                release = get_release_from_time(react_project.organization_id, timestamp)
+                release_sha = release.version
 
                 old_span_id = react_transaction["contexts"]["trace"]["span_id"]
                 frontend_root_span_id = uuid4().hex[:16]
@@ -348,6 +522,7 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                     platform=react_project.platform,
                     event_id=uuid4().hex,
                     user=transaction_user,
+                    release=release_sha,
                     timestamp=timestamp,
                     # start_timestamp decreases based on day so that there's a trend
                     start_timestamp=timestamp - timedelta(seconds=frontend_duration),
@@ -361,7 +536,7 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                 )
 
                 fix_transaction_event(local_event, old_span_id)
-                safe_send_event(local_event)
+                safe_send_event(local_event, quick)
 
                 # note picking the 0th span is arbitrary
                 backend_parent_id = local_event["spans"][0]["span_id"]
@@ -373,10 +548,11 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                     platform=react_project.platform,
                     timestamp=timestamp,
                     user=transaction_user,
+                    release=release_sha,
                     contexts=frontend_context,
                 )
-                fix_error_event(local_event)
-                safe_send_event(local_event)
+                fix_error_event(local_event, quick)
+                safe_send_event(local_event, quick)
 
                 # python transaction
                 old_span_id = python_transaction["contexts"]["trace"]["span_id"]
@@ -398,10 +574,11 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                     timestamp=timestamp,
                     start_timestamp=timestamp - timedelta(milliseconds=backend_duration),
                     user=transaction_user,
+                    release=release_sha,
                     contexts=backend_context,
                 )
                 fix_transaction_event(local_event, old_span_id)
-                safe_send_event(local_event)
+                safe_send_event(local_event, quick)
 
                 # python error
                 local_event = copy.deepcopy(python_error)
@@ -410,8 +587,9 @@ def populate_connected_event_scenario_1(react_project: Project, python_project: 
                     platform=python_project.platform,
                     timestamp=timestamp,
                     user=transaction_user,
+                    release=release_sha,
                     contexts=backend_context,
                 )
-                fix_error_event(local_event)
-                safe_send_event(local_event)
+                fix_error_event(local_event, quick)
+                safe_send_event(local_event, quick)
     logger.info("populate_connected_event_scenario_1.finished", extra=log_extra)

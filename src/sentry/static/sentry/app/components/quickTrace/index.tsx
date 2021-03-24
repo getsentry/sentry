@@ -24,6 +24,7 @@ import {Theme} from 'app/utils/theme';
 import {
   DropdownItem,
   DropdownItemSubContainer,
+  ErrorNodeContent,
   EventNode,
   QuickTraceContainer,
   SectionSubtext,
@@ -259,10 +260,10 @@ function EventNodeSelector({
   if (errors.length > 0 || (currentEvent && currentEvent?.type !== 'transaction')) {
     type = nodeKey === 'current' ? 'error' : 'warning';
     text = (
-      <div>
+      <ErrorNodeContent>
         <IconFire size="xs" />
         {text}
-      </div>
+      </ErrorNodeContent>
     );
   }
 

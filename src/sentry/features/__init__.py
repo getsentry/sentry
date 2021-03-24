@@ -98,6 +98,7 @@ default_manager.add("organizations:project-detail", OrganizationFeature)  # NOQA
 default_manager.add("organizations:project-detail-links", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
 default_manager.add("organizations:releases-top-charts", OrganizationFeature)  # NOQA
+default_manager.add("organizations:metrics", OrganizationFeature)  # NOQA
 default_manager.add("organizations:minute-resolution-sessions", OrganizationFeature)  # NOQA
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
