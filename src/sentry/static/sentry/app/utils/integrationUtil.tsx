@@ -153,6 +153,19 @@ export function isDocumentIntegration(
   return integration.hasOwnProperty('docUrl');
 }
 
+export const getIntegrationType = (integration: AppOrProviderOrPlugin): string => {
+  if (isSentryApp(integration)) {
+    return 'sentry_app';
+  }
+  if (isPlugin(integration)) {
+    return 'plugin';
+  }
+  if (isDocumentIntegration(integration)) {
+    return 'document';
+  }
+  return 'first_party';
+};
+
 export const convertIntegrationTypeToSnakeCase = (
   type: 'plugin' | 'firstParty' | 'sentryApp' | 'documentIntegration'
 ) => {
