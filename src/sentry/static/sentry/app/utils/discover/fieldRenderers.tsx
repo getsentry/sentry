@@ -409,7 +409,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     const miserableUsers = userMiseryField ? data[userMiseryField] : undefined;
     const userMisery = miseryField ? data[miseryField] : undefined;
 
-    const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
+    const miseryLimit = parseInt(miseryField.split('_').pop() || '', 10);
 
     return (
       <BarContainer>

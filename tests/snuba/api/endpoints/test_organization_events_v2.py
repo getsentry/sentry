@@ -876,7 +876,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert data[0]["user_misery_300"] == 2
 
-    def test_misery_alias_field(self):
+    def test_user_misery_prototype_alias_field(self):
         project = self.create_project()
 
         events = [
@@ -2018,7 +2018,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["var_transaction_duration"] == 0.0
         assert data[0]["sum_transaction_duration"] == 10000
 
-    def test_user_null_misery_prototype_returns_zero(self):
+    def test_null_user_misery_prototype_returns_zero(self):
         project = self.create_project()
         data = load_data(
             "transaction",
