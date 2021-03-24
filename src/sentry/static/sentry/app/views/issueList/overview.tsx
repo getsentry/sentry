@@ -836,7 +836,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const query = this.getQuery();
     const showInboxTime = this.getSort() === 'inbox';
 
-    return ids.map(id => {
+    return ids.map((id, index) => {
       const hasGuideAnchor = id === topIssue;
       const group = GroupStore.get(id) as Group | undefined;
       let members: Member['user'][] | undefined;
@@ -852,6 +852,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
       return (
         <StreamGroup
+          index={index}
           key={id}
           id={id}
           statsPeriod={groupStatsPeriod}

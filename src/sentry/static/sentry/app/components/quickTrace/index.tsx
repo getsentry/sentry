@@ -24,6 +24,7 @@ import {Theme} from 'app/utils/theme';
 import {
   DropdownItem,
   DropdownItemSubContainer,
+  ErrorNodeContent,
   EventNode,
   QuickTraceContainer,
   SectionSubtext,
@@ -38,6 +39,7 @@ type QuickTraceProps = {
   event: Event;
   location: Location;
   organization: OrganizationSummary;
+  anchor: 'left' | 'right';
 };
 
 export default function QuickTrace({
@@ -45,6 +47,7 @@ export default function QuickTrace({
   quickTrace,
   location,
   organization,
+  anchor,
 }: QuickTraceProps) {
   let parsedQuickTrace;
   try {
@@ -67,6 +70,7 @@ export default function QuickTrace({
         text={t('Root')}
         hoverText={<SingleEventHoverText event={root} />}
         pad="right"
+        anchor={anchor}
         nodeKey="root"
       />
     );
@@ -96,6 +100,7 @@ export default function QuickTrace({
           'Ancestor'
         )}
         pad="right"
+        anchor={anchor}
         nodeKey="ancestors"
       />
     );
@@ -112,6 +117,7 @@ export default function QuickTrace({
         text={t('Parent')}
         hoverText={<SingleEventHoverText event={parent} />}
         pad="right"
+        anchor={anchor}
         nodeKey="parent"
       />
     );
@@ -127,6 +133,7 @@ export default function QuickTrace({
       events={[current]}
       currentEvent={event}
       pad="left"
+      anchor={anchor}
       nodeKey="current"
     />
   );
@@ -155,6 +162,7 @@ export default function QuickTrace({
           'Children'
         )}
         pad="left"
+        anchor={anchor}
         nodeKey="children"
       />
     );
@@ -184,6 +192,7 @@ export default function QuickTrace({
           'Descendant'
         )}
         pad="left"
+        anchor={anchor}
         nodeKey="descendants"
       />
     );
@@ -226,6 +235,7 @@ type EventNodeSelectorProps = {
   hoverText?: React.ReactNode;
   extrasTarget?: LocationDescriptor;
   numEvents?: number;
+  anchor: 'left' | 'right';
   nodeKey: string;
 };
 
@@ -239,6 +249,7 @@ function EventNodeSelector({
   hoverText,
   extrasTarget,
   nodeKey,
+  anchor,
   numEvents = 5,
 }: EventNodeSelectorProps) {
   const errors: TraceError[] = [];
@@ -259,10 +270,10 @@ function EventNodeSelector({
   if (errors.length > 0 || (currentEvent && currentEvent?.type !== 'transaction')) {
     type = nodeKey === 'current' ? 'error' : 'warning';
     text = (
-      <div>
+      <ErrorNodeContent>
         <IconFire size="xs" />
         {text}
-      </div>
+      </ErrorNodeContent>
     );
   }
 
@@ -303,7 +314,7 @@ function EventNodeSelector({
         title={
           <StyledEventNode text={text} pad={pad} hoverText={hoverText} type={type} />
         }
-        anchorRight
+        anchorRight={anchor === 'right'}
       >
         {errors.slice(0, numEvents).map((error, i) => {
           const target = generateSingleEventTarget(error, organization, location);
@@ -316,6 +327,7 @@ function EventNodeSelector({
               organization={organization}
               subtext="error"
               subtextType="error"
+              anchor={anchor}
             />
           );
         })}
@@ -334,6 +346,7 @@ function EventNodeSelector({
                 true
               )}
               subtextType="default"
+              anchor={anchor}
             />
           );
         })}
@@ -356,6 +369,7 @@ type DropdownNodeProps = {
   organization: OrganizationSummary;
   subtext: string;
   subtextType: 'error' | 'default';
+  anchor: 'left' | 'right';
 };
 
 function DropdownNodeItem({
@@ -365,6 +379,7 @@ function DropdownNodeItem({
   organization,
   subtext,
   subtextType,
+  anchor,
 }: DropdownNodeProps) {
   return (
     <DropdownItem onSelect={onSelect} first={first}>
@@ -383,7 +398,8 @@ function DropdownNodeItem({
         </Projects>
         <StyledTruncate
           value={event.transaction}
-          expandDirection="left"
+          // expand in the opposite direction of the anchor
+          expandDirection={anchor === 'left' ? 'right' : 'left'}
           maxLength={35}
           leftTrim
           trimRegex={/\.|\//g}

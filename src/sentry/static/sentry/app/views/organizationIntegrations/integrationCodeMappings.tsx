@@ -181,10 +181,9 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     return (
       <React.Fragment>
         <Alert type="info" icon={<IconInfo />}>
-          {tct(
-            'Stack trace linking is in Beta. Got feedback? Email [email:ecosystem-feedback@sentry.io].',
-            {email: <a href="mailto:ecosystem-feedback@sentry.io" />}
-          )}
+          {tct('Got feedback? Email [email:ecosystem-feedback@sentry.io].', {
+            email: <a href="mailto:ecosystem-feedback@sentry.io" />,
+          })}
         </Alert>
         <TextBlock>
           {tct(

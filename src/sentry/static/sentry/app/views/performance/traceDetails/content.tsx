@@ -1,5 +1,6 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
@@ -8,7 +9,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct, tn} from 'app/locale';
 import {Organization} from 'app/types';
-import {TraceFull} from 'app/utils/performance/quickTrace/types';
+import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {filterTrace} from 'app/utils/performance/quickTrace/utils';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 import {MetaData} from 'app/views/performance/transactionDetails/styles';
@@ -42,7 +43,7 @@ type Props = {
   statsPeriod: string | undefined;
   isLoading: boolean;
   error: string | null;
-  trace: TraceFull | null;
+  trace: TraceFullDetailed | null;
 };
 
 type State = {
@@ -115,7 +116,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
     );
   }
 
-  isTransactionVisible = (transaction: TraceFull): boolean => {
+  isTransactionVisible = (transaction: TraceFullDetailed): boolean => {
     const {filteredTransactionIds} = this.state;
     return filteredTransactionIds
       ? filteredTransactionIds.has(transaction.event_id)
@@ -190,7 +191,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderTransaction(
-    transaction: TraceFull,
+    transaction: TraceFullDetailed,
     {
       continuingDepths,
       isLast,
@@ -210,7 +211,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
     const isVisible = this.isTransactionVisible(transaction);
 
     const accumulated: AccType = transaction.children.reduce(
-      (acc: AccType, child: TraceFull, idx: number) => {
+      (acc: AccType, child: TraceFullDetailed, idx: number) => {
         const isLastChild = idx === transaction.children.length - 1;
         const hasChildren = child.children.length > 0;
 
@@ -266,6 +267,12 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderTraceView(traceInfo: TraceInfo) {
+    const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+    const sentrySpan = sentryTransaction?.startChild({
+      op: 'trace.render',
+      description: 'trace-view-content',
+    });
+
     const {trace} = this.props;
 
     if (trace === null) {
@@ -283,7 +290,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       }
     );
 
-    return (
+    const traceView = (
       <TraceDetailBody>
         <StyledPanel>
           <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
@@ -298,6 +305,10 @@ class TraceDetailsContent extends React.Component<Props, State> {
         </StyledPanel>
       </TraceDetailBody>
     );
+
+    sentrySpan?.finish();
+
+    return traceView;
   }
 
   renderContent() {
