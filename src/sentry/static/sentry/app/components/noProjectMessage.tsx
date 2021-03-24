@@ -16,7 +16,7 @@ type Props = {
   organization: LightWeightOrganization | Organization;
   projects?: Project[];
   loadingProjects?: boolean;
-  superusersNeedToBeProjectMembers?: boolean;
+  superuserNeedsToBeProjectMember?: boolean;
 };
 
 export default class NoProjectMessage extends React.Component<Props> {
@@ -26,7 +26,7 @@ export default class NoProjectMessage extends React.Component<Props> {
       organization,
       projects,
       loadingProjects,
-      superusersNeedToBeProjectMembers,
+      superuserNeedsToBeProjectMember,
     } = this.props;
     const orgId = organization.slug;
     const canCreateProject = organization.access.includes('project:write');
@@ -40,7 +40,7 @@ export default class NoProjectMessage extends React.Component<Props> {
 
       orgHasProjects = organization.projects.length > 0;
       hasProjectAccess =
-        isSuperuser && !superusersNeedToBeProjectMembers
+        isSuperuser && !superuserNeedsToBeProjectMember
           ? organization.projects.some(p => p.hasAccess)
           : organization.projects.some(p => p.isMember && p.hasAccess);
     } else {

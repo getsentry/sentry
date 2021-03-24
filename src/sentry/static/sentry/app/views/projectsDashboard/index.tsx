@@ -69,7 +69,7 @@ class Dashboard extends React.Component<Props> {
         <NoProjectMessage
           organization={organization}
           projects={projects}
-          superusersNeedToBeProjectMembers
+          superuserNeedsToBeProjectMember
         >
           {null}
         </NoProjectMessage>

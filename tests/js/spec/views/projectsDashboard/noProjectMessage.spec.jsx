@@ -98,7 +98,7 @@ describe('NoProjectMessage', function () {
           ...org,
           projects: [TestStubs.Project({hasAccess: true, isMember: false})],
         }}
-        superusersNeedToBeProjectMembers
+        superuserNeedsToBeProjectMember
       >
         {null}
       </NoProjectMessage>,
