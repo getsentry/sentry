@@ -214,35 +214,31 @@ class Sidebar extends React.Component<Props, State> {
     const hasOrganization = !!organization;
 
     const projects = hasOrganization && (
-      <GuideAnchor target="projects">
-        <SidebarItem
-          {...sidebarItemProps}
-          index
-          onClick={this.hidePanel}
-          icon={<IconProject size="md" />}
-          label={t('Projects')}
-          to={`/organizations/${organization.slug}/projects/`}
-          id="projects"
-        />
-      </GuideAnchor>
+      <SidebarItem
+        {...sidebarItemProps}
+        index
+        onClick={this.hidePanel}
+        icon={<IconProject size="md" />}
+        label={<GuideAnchor target="projects">{t('Projects')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/projects/`}
+        id="projects"
+      />
     );
 
     const issues = hasOrganization && (
-      <GuideAnchor target="issues">
-        <SidebarItem
-          {...sidebarItemProps}
-          onClick={(_id, evt) =>
-            this.navigateWithGlobalSelection(
-              `/organizations/${organization.slug}/issues/`,
-              evt
-            )
-          }
-          icon={<IconIssues size="md" />}
-          label={t('Issues')}
-          to={`/organizations/${organization.slug}/issues/`}
-          id="issues"
-        />
-      </GuideAnchor>
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={(_id, evt) =>
+          this.navigateWithGlobalSelection(
+            `/organizations/${organization.slug}/issues/`,
+            evt
+          )
+        }
+        icon={<IconIssues size="md" />}
+        label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/issues/`}
+        id="issues"
+      />
     );
 
     const discover2 = hasOrganization && (
@@ -257,7 +253,7 @@ class Sidebar extends React.Component<Props, State> {
             this.navigateWithGlobalSelection(getDiscoverLandingUrl(organization), evt)
           }
           icon={<IconTelescope size="md" />}
-          label={t('Discover')}
+          label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
           to={getDiscoverLandingUrl(organization)}
           id="discover-v2"
         />
@@ -270,40 +266,36 @@ class Sidebar extends React.Component<Props, State> {
         features={['performance-view']}
         organization={organization}
       >
-        <GuideAnchor target="performance">
-          <SidebarItem
-            {...sidebarItemProps}
-            onClick={(_id, evt) =>
-              this.navigateWithGlobalSelection(
-                `/organizations/${organization.slug}/performance/`,
-                evt
-              )
-            }
-            icon={<IconLightning size="md" />}
-            label={t('Performance')}
-            to={`/organizations/${organization.slug}/performance/`}
-            id="performance"
-          />
-        </GuideAnchor>
-      </Feature>
-    );
-
-    const releases = hasOrganization && (
-      <GuideAnchor target="releases">
         <SidebarItem
           {...sidebarItemProps}
           onClick={(_id, evt) =>
             this.navigateWithGlobalSelection(
-              `/organizations/${organization.slug}/releases/`,
+              `/organizations/${organization.slug}/performance/`,
               evt
             )
           }
-          icon={<IconReleases size="md" />}
-          label={t('Releases')}
-          to={`/organizations/${organization.slug}/releases/`}
-          id="releases"
+          icon={<IconLightning size="md" />}
+          label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/performance/`}
+          id="performance"
         />
-      </GuideAnchor>
+      </Feature>
+    );
+
+    const releases = hasOrganization && (
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={(_id, evt) =>
+          this.navigateWithGlobalSelection(
+            `/organizations/${organization.slug}/releases/`,
+            evt
+          )
+        }
+        icon={<IconReleases size="md" />}
+        label={<GuideAnchor target="releases">{t('Releases')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/releases/`}
+        id="releases"
+      />
     );
 
     const userFeedback = hasOrganization && (
@@ -384,22 +376,20 @@ class Sidebar extends React.Component<Props, State> {
         organization={organization}
         requireAll={false}
       >
-        <GuideAnchor target="discover">
-          <SidebarItem
-            {...sidebarItemProps}
-            index
-            onClick={(_id, evt) =>
-              this.navigateWithGlobalSelection(
-                `/organizations/${organization.slug}/dashboards/`,
-                evt
-              )
-            }
-            icon={<IconGraph size="md" />}
-            label={t('Dashboards')}
-            to={`/organizations/${organization.slug}/dashboards/`}
-            id="customizable-dashboards"
-          />
-        </GuideAnchor>
+        <SidebarItem
+          {...sidebarItemProps}
+          index
+          onClick={(_id, evt) =>
+            this.navigateWithGlobalSelection(
+              `/organizations/${organization.slug}/dashboards/`,
+              evt
+            )
+          }
+          icon={<IconGraph size="md" />}
+          label={t('Dashboards')}
+          to={`/organizations/${organization.slug}/dashboards/`}
+          id="customizable-dashboards"
+        />
       </Feature>
     );
 
