@@ -5,7 +5,6 @@ from itertools import chain
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
-from django.utils.encoding import force_text
 
 from sentry import analytics, quotas
 from sentry.api.event_search import get_filter, resolve_field
@@ -1163,17 +1162,15 @@ def create_alert_rule_trigger_action(
     if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
-        try:
-            target_identifier, target_display = get_target_identifier_display_for_integration(
-                type.value,
-                target_identifier,
-                trigger.alert_rule.organization,
-                integration.id,
-                use_async_lookup=use_async_lookup,
-                input_channel_id=input_channel_id,
-            )
-        except Exception as e:
-            raise InvalidTriggerActionError(force_text(e))
+
+        target_identifier, target_display = get_target_identifier_display_for_integration(
+            type.value,
+            target_identifier,
+            trigger.alert_rule.organization,
+            integration.id,
+            use_async_lookup=use_async_lookup,
+            input_channel_id=input_channel_id,
+        )
 
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
@@ -1228,17 +1225,14 @@ def update_alert_rule_trigger_action(
         if type in AlertRuleTriggerAction.INTEGRATION_TYPES:
             integration = updated_fields.get("integration", trigger_action.integration)
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
-            try:
-                target_identifier, target_display = get_target_identifier_display_for_integration(
-                    type,
-                    target_identifier,
-                    organization,
-                    integration.id,
-                    use_async_lookup=use_async_lookup,
-                    input_channel_id=input_channel_id,
-                )
-            except Exception as e:
-                raise InvalidTriggerActionError(force_text(e))
+            target_identifier, target_display = get_target_identifier_display_for_integration(
+                type,
+                target_identifier,
+                organization,
+                integration.id,
+                use_async_lookup=use_async_lookup,
+                input_channel_id=input_channel_id,
+            )
 
             updated_fields["target_display"] = target_display
 
