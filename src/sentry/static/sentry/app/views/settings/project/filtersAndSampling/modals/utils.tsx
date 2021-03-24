@@ -101,9 +101,12 @@ export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName) {
       return t('Match all localhosts');
     case DynamicSamplingInnerName.EVENT_WEB_CRAWLERS:
       return t('Match all web crawlers');
-    case DynamicSamplingInnerName.EVENT_USER:
-    case DynamicSamplingInnerName.TRACE_USER:
-      return t('Match by user id, ex. 4711 (Multiline)');
+    case DynamicSamplingInnerName.EVENT_USER_ID:
+    case DynamicSamplingInnerName.TRACE_USER_ID:
+      return t('ex. 4711 (Multiline)');
+    case DynamicSamplingInnerName.EVENT_USER_SEGMENT:
+    case DynamicSamplingInnerName.TRACE_USER_SEGMENT:
+      return t('ex. paid, common (Multiline)');
     case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
     case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
       return t('ex. prod or dev (Multiline)');

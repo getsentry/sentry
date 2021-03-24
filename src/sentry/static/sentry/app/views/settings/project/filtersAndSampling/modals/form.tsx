@@ -147,6 +147,21 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
     }
 
     // DynamicSamplingConditionLogicalInnerEq
+    if (
+      condition.category === DynamicSamplingInnerName.TRACE_USER_ID ||
+      condition.category === DynamicSamplingInnerName.EVENT_USER_ID
+    ) {
+      return {
+        op: DynamicSamplingInnerOperator.EQUAL,
+        name: condition.category,
+        value: newValue,
+        options: {
+          ignoreCase: false,
+        },
+      };
+    }
+
+    // DynamicSamplingConditionLogicalInnerEq
     return {
       op: DynamicSamplingInnerOperator.EQUAL,
       name: condition.category,

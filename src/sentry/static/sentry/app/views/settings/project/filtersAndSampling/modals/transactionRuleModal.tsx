@@ -1,7 +1,6 @@
 import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import {withTheme} from 'emotion-theming';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
@@ -36,24 +35,11 @@ type State = Form['state'] & {
 
 class TransactionRuleModal extends Form<Props, State> {
   componentDidUpdate(prevProps: Props, prevState: State) {
-    if (prevState.tracing !== this.state.tracing && !!this.state.conditions.length) {
-      this.updateConditions();
-    }
-
     if (prevState.transaction !== this.state.transaction) {
       this.setIsTracingDisabled(this.state.transaction !== Transaction.ALL);
     }
 
     super.componentDidUpdate(prevProps, prevState);
-  }
-
-  updateConditions() {
-    this.setState(state => ({
-      conditions: state.conditions.map(condition => ({
-        ...condition,
-        category: this.getNewConditionCategory(condition.category),
-      })),
-    }));
   }
 
   setIsTracingDisabled(isTracingDisabled: boolean) {
@@ -96,42 +82,6 @@ class TransactionRuleModal extends Form<Props, State> {
     };
   }
 
-  getNewConditionCategory(category: DynamicSamplingInnerName) {
-    const {tracing} = this.state;
-
-    if (!tracing) {
-      switch (category) {
-        case DynamicSamplingInnerName.TRACE_RELEASE:
-          return DynamicSamplingInnerName.EVENT_RELEASE;
-        case DynamicSamplingInnerName.TRACE_USER:
-          return DynamicSamplingInnerName.EVENT_USER;
-        case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
-          return DynamicSamplingInnerName.EVENT_ENVIRONMENT;
-        default: {
-          Sentry.captureException(
-            new Error('Unknown dynamic sampling rule condition category')
-          );
-          return category; //this shall not happen
-        }
-      }
-    }
-
-    switch (category) {
-      case DynamicSamplingInnerName.EVENT_RELEASE:
-        return DynamicSamplingInnerName.TRACE_RELEASE;
-      case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
-        return DynamicSamplingInnerName.TRACE_ENVIRONMENT;
-      case DynamicSamplingInnerName.EVENT_USER:
-        return DynamicSamplingInnerName.TRACE_USER;
-      default: {
-        Sentry.captureException(
-          new Error('Unknown dynamic sampling rule condition category')
-        );
-        return category; //this shall not happen
-      }
-    }
-  }
-
   getCategoryOptions(): Array<[DynamicSamplingInnerName, string]> {
     const {tracing} = this.state;
 
@@ -139,14 +89,16 @@ class TransactionRuleModal extends Form<Props, State> {
       return [
         [DynamicSamplingInnerName.TRACE_RELEASE, t('Releases')],
         [DynamicSamplingInnerName.TRACE_ENVIRONMENT, t('Environments')],
-        [DynamicSamplingInnerName.TRACE_USER, t('Users')],
+        [DynamicSamplingInnerName.TRACE_USER_ID, t('User Id')],
+        [DynamicSamplingInnerName.TRACE_USER_SEGMENT, t('User Segment')],
       ];
     }
 
     return [
       [DynamicSamplingInnerName.EVENT_RELEASE, t('Releases')],
       [DynamicSamplingInnerName.EVENT_ENVIRONMENT, t('Environments')],
-      [DynamicSamplingInnerName.EVENT_USER, t('Users')],
+      [DynamicSamplingInnerName.EVENT_USER_ID, t('User Id')],
+      [DynamicSamplingInnerName.EVENT_USER_SEGMENT, t('User Segment')],
       [DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS, t('Browser Extensions')],
       [DynamicSamplingInnerName.EVENT_LOCALHOST, t('Localhost')],
       [DynamicSamplingInnerName.EVENT_LEGACY_BROWSER, t('Legacy Browsers')],
