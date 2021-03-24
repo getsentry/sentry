@@ -1,5 +1,5 @@
-import functools
 import os
+from contextlib import contextmanager
 
 import pytest
 from google.oauth2.credentials import Credentials
@@ -65,37 +65,42 @@ class MockedBigtableKVStorage(BigtableKVStorage):
     def bootstrap(self, automatic_expiry):
         pass
 
-    def drop(self):
-        pass
-
 
 class MockedBigtableNodeStorage(BigtableNodeStorage):
     store_class = MockedBigtableKVStorage
 
 
-invalid_credentials = Credentials.from_authorized_user_info(
-    {key: "invalid" for key in ["client_id", "refresh_token", "client_secret"]}
-)
+@contextmanager
+def get_temporary_bigtable_nodestorage() -> BigtableNodeStorage:
+    if "BIGTABLE_EMULATOR_HOST" not in os.environ:
+        pytest.skip(
+            "Bigtable is not available, set BIGTABLE_EMULATOR_HOST enironment variable to enable"
+        )
+
+    # The bigtable emulator requires _something_ to be passed as credentials,
+    # even if they're totally bogus ones.
+    ns = BigtableNodeStorage(
+        project="test",
+        credentials=Credentials.from_authorized_user_info(
+            {key: "invalid" for key in ["client_id", "refresh_token", "client_secret"]}
+        ),
+    )
+
+    ns.bootstrap()
+
+    try:
+        yield ns
+    finally:
+        ns.store._get_table(admin=True).delete()
 
 
 @pytest.fixture(params=[MockedBigtableNodeStorage, BigtableNodeStorage])
 def ns(request):
     if request.param is BigtableNodeStorage:
-        if "BIGTABLE_EMULATOR_HOST" not in os.environ:
-            pytest.skip(
-                "Bigtable is not available, set BIGTABLE_EMULATOR_HOST enironment variable to enable"
-            )
-        constructor = functools.partial(
-            BigtableNodeStorage,
-            credentials=invalid_credentials,
-        )
+        with get_temporary_bigtable_nodestorage() as ns:
+            yield ns
     else:
-        constructor = request.param
-
-    ns = constructor(project="test")
-    ns.bootstrap()
-    yield ns
-    ns.store.drop()
+        yield MockedBigtableNodeStorage(project="test")
 
 
 @pytest.mark.parametrize(

@@ -2,37 +2,36 @@
 Testsuite of backend-independent nodestore tests. Add your backend to the
 `ns` fixture to have it tested.
 """
-import os
-import uuid
-
 import pytest
-from sentry.nodestore.bigtable.backend import BigtableNodeStorage
+from contextlib import contextmanager
 from sentry.nodestore.django.backend import DjangoNodeStorage
 from tests.sentry.nodestore.bigtable.backend.tests import (
     MockedBigtableNodeStorage,
-    invalid_credentials,
+    get_temporary_bigtable_nodestorage,
 )
+
+
+@contextmanager
+def nullcontext(returning):
+    # TODO: Replace with ``contextlib.nullcontext`` after upgrading to 3.7
+    yield returning
 
 
 @pytest.fixture(
     params=["bigtable-mocked", "bigtable-real", pytest.param("django", marks=pytest.mark.django_db)]
 )
 def ns(request):
-    if request.param == "bigtable-real" and "BIGTABLE_EMULATOR_HOST" not in os.environ:
-        pytest.skip(
-            "Bigtable is not available, set BIGTABLE_EMULATOR_HOST enironment variable to enable"
-        )
+    # backends are returned from context managers to support teardown when required
+    backends = {
+        "bigtable-mocked": lambda: nullcontext(MockedBigtableNodeStorage(project="test")),
+        "bigtable-real": lambda: get_temporary_bigtable_nodestorage(),
+        "django": lambda: nullcontext(DjangoNodeStorage()),
+    }
 
-    ns = {
-        "bigtable-mocked": lambda: MockedBigtableNodeStorage(project="test"),
-        "bigtable-real": lambda: BigtableNodeStorage(
-            project=f"test-{uuid.uuid1().hex}",
-            credentials=invalid_credentials,
-        ),
-        "django": lambda: DjangoNodeStorage(),
-    }[request.param]()
-    ns.bootstrap()
-    return ns
+    ctx = backends[request.param]()
+    with ctx as ns:
+        ns.bootstrap()
+        yield ns
 
 
 def test_get_multi(ns):

@@ -263,9 +263,6 @@ class BigtableKVStorage:
         retry_504 = retry.Retry(retry.if_exception_type(exceptions.DeadlineExceeded))
         retry_504(table.create)(column_families={self.column_family: gc_rule})
 
-    def drop(self) -> None:
-        self._get_table(admin=True).delete()
-
 
 class BigtableNodeStorage(NodeStorage):
     """
