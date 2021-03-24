@@ -66,7 +66,11 @@ class Dashboard extends React.Component<Props> {
 
     if (showEmptyMessage) {
       return (
-        <NoProjectMessage organization={organization} projects={projects}>
+        <NoProjectMessage
+          organization={organization}
+          projects={projects}
+          superuserNeedsToBeProjectMember
+        >
           {null}
         </NoProjectMessage>
       );
