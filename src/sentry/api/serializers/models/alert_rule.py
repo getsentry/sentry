@@ -181,7 +181,7 @@ class DetailedAlertRuleActivitySerializer(DetailedAlertRuleSerializer):
         data["incidents"] = serialize(
             [incident for incident in incidents if isinstance(incident, Incident)],
             user=user,
-            serializer=DetailedIncidentActivitySerializer()
+            serializer=DetailedIncidentActivitySerializer(),
         )
 
         return data
