@@ -9,6 +9,7 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import FileSize from 'app/components/fileSize';
 import ExternalLink from 'app/components/links/externalLink';
 import NavigationButtonGroup from 'app/components/navigationButtonGroup';
+import Placeholder from 'app/components/placeholder';
 import QuickTrace from 'app/components/quickTrace';
 import {generateTraceTarget} from 'app/components/quickTrace/utils';
 import Tooltip from 'app/components/tooltip';
@@ -71,15 +72,21 @@ class GroupEventToolbar extends React.Component<Props> {
       <QuickTraceWrapper>
         <ErrorBoundary mini>
           <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
-            {results => (
-              <QuickTrace
-                event={event}
-                quickTrace={results}
-                location={location}
-                organization={organization}
-                anchor="left"
-              />
-            )}
+            {results =>
+              results.isLoading ? (
+                <Placeholder height="27px" />
+              ) : results.error || results.trace === null ? (
+                '\u2014'
+              ) : (
+                <QuickTrace
+                  event={event}
+                  quickTrace={results}
+                  location={location}
+                  organization={organization}
+                  anchor="left"
+                />
+              )
+            }
           </QuickTraceQuery>
         </ErrorBoundary>
       </QuickTraceWrapper>
@@ -225,6 +232,7 @@ const LinkContainer = styled('span')`
   margin-left: ${space(1)};
   padding-left: ${space(1)};
   position: relative;
+  font-weight: normal;
 
   &:before {
     display: block;
