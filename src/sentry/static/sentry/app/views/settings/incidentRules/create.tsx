@@ -4,9 +4,11 @@ import {RouteComponentProps} from 'react-router';
 import {Organization, Project, Team} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import withTeams from 'app/utils/withTeams';
+import {WizardRuleTemplate} from 'app/views/alerts/wizard/options';
 import {
   createDefaultRule,
   createRuleFromEventView,
+  createRuleFromWizardTemplate,
 } from 'app/views/settings/incidentRules/constants';
 
 import RuleForm from './ruleForm';
@@ -21,6 +23,7 @@ type Props = {
   organization: Organization;
   project: Project;
   eventView: EventView | undefined;
+  wizardTemplate?: WizardRuleTemplate;
   sessionId?: string;
   teams: Team[];
 } & RouteComponentProps<RouteParams, {}>;
@@ -37,9 +40,11 @@ class IncidentRulesCreate extends React.Component<Props> {
   };
 
   render() {
-    const {project, eventView, sessionId, teams, ...props} = this.props;
+    const {project, eventView, wizardTemplate, sessionId, teams, ...props} = this.props;
     const defaultRule = eventView
       ? createRuleFromEventView(eventView)
+      : wizardTemplate
+      ? createRuleFromWizardTemplate(wizardTemplate)
       : createDefaultRule();
 
     const userTeamIdArr = teams.filter(({isMember}) => isMember).map(({id}) => id);

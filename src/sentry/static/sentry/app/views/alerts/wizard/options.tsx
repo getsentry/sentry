@@ -1,4 +1,5 @@
 import {t} from 'app/locale';
+import {Dataset, EventTypes} from 'app/views/settings/incidentRules/types';
 
 export type AlertType =
   | 'issues'
@@ -38,4 +39,41 @@ export const AlertWizardDescriptions: Record<AlertType, string> = {
   throughput: t('Alert on the number of transactions happening in your application'),
   trans_duration: t('Alert on the duration of transactions'),
   lcp: t('Alert on longest contentful paint'),
+};
+
+export type WizardRuleTemplate = {
+  aggregate: string;
+  dataset: Dataset;
+  eventTypes: EventTypes;
+};
+
+export const AlertWizardRuleTemplates: Record<
+  Exclude<AlertType, 'issues'>,
+  WizardRuleTemplate
+> = {
+  num_errors: {
+    aggregate: 'count()',
+    dataset: Dataset.ERRORS,
+    eventTypes: EventTypes.ERROR,
+  },
+  users_experiencing_errors: {
+    aggregate: 'count_unique(tags[sentry:user])',
+    dataset: Dataset.ERRORS,
+    eventTypes: EventTypes.ERROR,
+  },
+  throughput: {
+    aggregate: 'count()',
+    dataset: Dataset.TRANSACTIONS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  trans_duration: {
+    aggregate: 'p95(transaction.duration)',
+    dataset: Dataset.TRANSACTIONS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  lcp: {
+    aggregate: 'p95(measurements.lcp)',
+    dataset: Dataset.TRANSACTIONS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
 };
