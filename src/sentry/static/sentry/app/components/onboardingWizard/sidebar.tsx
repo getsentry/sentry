@@ -218,6 +218,7 @@ const TopRight = styled('img')`
   position: absolute;
   top: 0;
   right: 0;
+  width: 60%;
 `;
 
 export default withApi(withOrganization(OnboardingWizardSidebar));

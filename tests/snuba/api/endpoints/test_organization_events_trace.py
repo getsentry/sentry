@@ -559,8 +559,12 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.assert_trace_data(response.data[0])
         root = response.data[0]
         assert root["transaction.status"] == "ok"
+        root_tags = {tag["key"]: tag["value"] for tag in root["tags"]}
         for [key, value] in self.root_event.tags:
-            assert root["tags"][key] == value, f"tags - {key}"
+            if not key.startswith("sentry:"):
+                assert root_tags[key] == value, f"tags - {key}"
+            else:
+                assert root_tags[key[7:]] == value, f"tags - {key}"
         assert root["measurements"]["lcp"]["value"] == 1000
         assert root["measurements"]["fcp"]["value"] == 750
 

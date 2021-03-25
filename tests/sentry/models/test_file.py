@@ -1,6 +1,8 @@
 import os
 
 from django.core.files.base import ContentFile
+from django.db import DatabaseError
+from unittest.mock import patch
 
 from sentry.models import File, FileBlob, FileBlobIndex
 from sentry.testutils import TestCase
@@ -34,6 +36,24 @@ class FileBlobTest(TestCase):
         # Check uniqueness
         path2 = FileBlob.generate_unique_path()
         assert path != path2
+
+    @patch("sentry.models.file.delete_file_task")
+    def test_delete_handles_database_error(self, mock_delete_file):
+        fileobj = ContentFile(b"foo bar")
+        baz_file = File.objects.create(name="baz-v1.js", type="default", size=7)
+        baz_file.putfile(fileobj)
+        blob = baz_file.blobs.all()[0]
+
+        with patch("sentry.models.file.super") as mock_super:
+            mock_super.side_effect = DatabaseError("server closed connection")
+            with self.tasks(), self.assertRaises(DatabaseError):
+                blob.delete()
+        # Even those postgres failed we should stil queue
+        # a task to delete the filestore object.
+        assert mock_delete_file.apply_async.call_count == 1
+
+        # blob is still around.
+        assert FileBlob.objects.get(id=blob.id)
 
 
 class FileTest(TestCase):

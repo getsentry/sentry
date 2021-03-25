@@ -167,6 +167,11 @@ test-snuba:
 	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 	@echo ""
 
+backend-typing:
+	@echo "--> Running Python typing checks"
+	mypy --strict --warn-unreachable --config-file mypy.ini
+	@echo ""
+
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
 	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=".artifacts/symbolicator.junit.xml"
