@@ -6,9 +6,9 @@ from sentry.incidents.models import (
     Incident,
     IncidentActivity,
     IncidentProject,
+    IncidentSeen,
     IncidentSubscription,
 )
-from sentry.models import User
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.tasks import apply_dataset_query_conditions
 from sentry.utils.db import attach_foreignkey
@@ -37,8 +37,14 @@ class IncidentSerializer(Serializer):
             results[incident] = {"projects": incident_projects.get(incident.id, [])}
             results[incident]["alert_rule"] = alert_rules.get(str(incident.alert_rule.id))
 
-            if "seen_by" in self.expand:
-                (seen_by, has_seen) = self._get_incident_seen_list(incident, user)
+        if "seen_by" in self.expand:
+            incident_seen_list = list(IncidentSeen.objects.filter(incident__in=item_list).select_related('user'))
+            incident_seen_dict = defaultdict(list)
+            for incident_seen, serialized_seen_by in zip(incident_seen_list, serialize(incident_seen_list)):
+                incident_seen_dict[incident_seen.incident_id].append(serialized_seen_by)
+            for incident in item_list:
+                seen_by = incident_seen_dict[incident.id]
+                has_seen = any(seen for seen in seen_by if seen["id"] == str(user.id))
                 results[incident]["seen_by"] = seen_by
                 results[incident]["has_seen"] = has_seen
 
@@ -51,17 +57,6 @@ class IncidentSerializer(Serializer):
                 results[incident]["activities"] = incident_activities[incident.id]
 
         return results
-
-    def _get_incident_seen_list(self, incident, user):
-        seen_by_list = list(
-            User.objects.filter(incidentseen__incident=incident).order_by(
-                "-incidentseen__last_seen"
-            )
-        )
-
-        has_seen = any(seen_by for seen_by in seen_by_list if seen_by.id == user.id)
-
-        return serialize(seen_by_list), has_seen
 
     def serialize(self, obj, attrs, user):
         date_closed = obj.date_closed.replace(second=0, microsecond=0) if obj.date_closed else None
