@@ -464,4 +464,3 @@ const TriggerText = styled('div')`
 const CreatedBy = styled('div')`
   ${overflowEllipsis}
 `;
-
