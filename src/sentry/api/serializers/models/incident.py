@@ -86,12 +86,11 @@ class IncidentSerializer(Serializer):
 
 class DetailedIncidentSerializer(IncidentSerializer):
     def __init__(self, expand=None):
-        super().__init__(expand=expand)
         if expand is None:
             expand = ["seen_by"]
         elif "seen_by" not in expand:
             expand.append("seen_by")
-        self.expand = expand
+        super().__init__(expand=expand)
 
     def get_attrs(self, item_list, user, **kwargs):
         results = super().get_attrs(item_list, user=user, **kwargs)
