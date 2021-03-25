@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import List, Mapping, Optional
+from typing import Iterable, Mapping, Optional
 
 from sentry.notifications.legacy_mappings import get_legacy_value
 from sentry.notifications.types import (
@@ -20,17 +20,17 @@ def should_user_be_notified(
     determine if a user should receive an ISSUE_ALERT notification.
     """
     specific_scope = get_scope_type(NotificationSettingTypes.ISSUE_ALERTS)
-    notification_setting_option = (
-        notification_settings_by_user.get(user)[specific_scope]
-        or notification_settings_by_user.get(user)[NotificationScopeType.USER]
-    )
+    notification_settings_option = notification_settings_by_user.get(user, {})
+    notification_setting_option = notification_settings_option.get(
+        specific_scope
+    ) or notification_settings_option.get(NotificationScopeType.USER)
     value = getattr(
         notification_setting_option,
         "value",
         NotificationSettingOptionValues.ALWAYS,
     )
 
-    return value == NotificationSettingOptionValues.ALWAYS.value
+    return value == NotificationSettingOptionValues.ALWAYS
 
 
 def should_be_participating(
@@ -66,8 +66,8 @@ def should_be_participating(
 
 
 def transform_to_notification_settings_by_user(
-    notification_settings: List,
-    users: List,
+    notification_settings: Iterable,
+    users: Iterable,
 ) -> Mapping[any, Mapping[NotificationScopeType, NotificationSettingOptionValues]]:
     """
     Given a unorganized list of notification settings, create a mapping of
@@ -77,14 +77,14 @@ def transform_to_notification_settings_by_user(
     notification_settings_by_user = defaultdict(dict)
     for notification_setting in notification_settings:
         user = actor_mapping.get(notification_setting.target)
-        notification_settings_by_user.get(user)[
-            notification_setting.scope_type
-        ] = notification_setting.value
+        notification_settings_by_user[user][
+            NotificationScopeType(notification_setting.scope_type)
+        ] = NotificationSettingOptionValues(notification_setting.value)
     return notification_settings_by_user
 
 
 def transform_to_notification_settings_by_parent_id(
-    notification_settings: List,
+    notification_settings: Iterable,
 ) -> (Mapping[int, NotificationSettingOptionValues], Optional[NotificationSettingOptionValues]):
     """
     Given a unorganized list of notification settings, create a mapping of
@@ -95,10 +95,14 @@ def transform_to_notification_settings_by_parent_id(
     notification_setting_user_default = None
     for notification_setting in notification_settings:
         if notification_setting.scope_type == NotificationScopeType.USER:
-            notification_setting_user_default = notification_setting.value
+            notification_setting_user_default = NotificationSettingOptionValues(
+                notification_setting.value
+            )
         else:
             key = notification_setting.scope_identifier
-            notification_settings_by_parent_id[key] = notification_setting.value
+            notification_settings_by_parent_id[key] = NotificationSettingOptionValues(
+                notification_setting.value
+            )
     return notification_settings_by_parent_id, notification_setting_user_default
 
 
