@@ -153,7 +153,8 @@ def delete_organization(object_id, transaction_id=None, actor_id=None, **kwargs)
 @retry(exclude=(DeleteAborted,))
 def delete_team(object_id, transaction_id=None, **kwargs):
     from sentry import deletions
-    from sentry.models import Team, TeamStatus
+    from sentry.models import Rule, Team, TeamStatus
+    from sentry.incidents.models import AlertRule
 
     try:
         instance = Team.objects.get(id=object_id)
@@ -166,6 +167,15 @@ def delete_team(object_id, transaction_id=None, **kwargs):
     task = deletions.get(
         model=Team, query={"id": object_id}, transaction_id=transaction_id or uuid4().hex
     )
+
+    alert_rules = AlertRule.objects.filter(owner_id=instance.actor_id)
+    for r in alert_rules:
+        r.update(owner=None)
+
+    rules = Rule.objects.filter(owner_id=instance.actor_id)
+    for r in rules:
+        r.update(owner=None)
+
     has_more = task.chunk()
     if has_more:
         delete_team.apply_async(

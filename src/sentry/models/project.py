@@ -399,7 +399,18 @@ class Project(Model, PendingDeletionMixin):
             return True
 
     def remove_team(self, team):
+        from sentry.incidents.models import AlertRule
+        from sentry.models import Rule
+
         ProjectTeam.objects.filter(project=self, team=team).delete()
+
+        alert_rules = AlertRule.objects.fetch_for_project(self).filter(owner_id=team.actor_id)
+        for r in alert_rules:
+            r.update(owner=None)
+
+        rules = Rule.objects.filter(owner_id=team.actor_id, project=self)
+        for r in rules:
+            r.update(owner=None)
 
     def get_security_token(self):
         lock = locks.get(self.get_lock_key(), duration=5)
