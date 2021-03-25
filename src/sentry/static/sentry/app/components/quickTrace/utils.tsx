@@ -5,14 +5,27 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
-import {generateEventSlug} from 'app/utils/discover/urls';
+import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
 import {EventLite, TraceError} from 'app/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {getTransactionDetailsUrl} from 'app/views/performance/utils';
 
-export function generateSingleEventTarget(
+export type ErrorDestination = 'discover' | 'performance' | 'issue';
+
+export type TransactionDestination = 'discover' | 'performance';
+
+function generateIssueEventTarget(
+  event: EventLite | TraceError,
+  organization: OrganizationSummary,
+  location: Location
+): LocationDescriptor {
+  // TODO(txiao): This requires the group permalink, linking to discover for now.
+  return generateDiscoverEventTarget(event, organization, location);
+}
+
+function generatePerformanceEventTarget(
   event: EventLite | TraceError,
   organization: OrganizationSummary,
   location: Location
@@ -29,17 +42,60 @@ export function generateSingleEventTarget(
   );
 }
 
-export function generateMultiEventsTarget(
+function generateDiscoverEventTarget(
+  event: EventLite | TraceError,
+  organization: OrganizationSummary,
+  location: Location
+): LocationDescriptor {
+  const eventSlug = generateEventSlug({
+    id: event.event_id,
+    project: event.project_slug,
+  });
+  return eventDetailsRouteWithEventView({
+    orgSlug: organization.slug,
+    eventSlug,
+    eventView: EventView.fromLocation(location),
+  });
+}
+
+export function generateSingleErrorTarget(
+  event: EventLite | TraceError,
+  organization: OrganizationSummary,
+  location: Location,
+  destination: ErrorDestination
+): LocationDescriptor {
+  switch (destination) {
+    case 'issue':
+      return generateIssueEventTarget(event, organization, location);
+    case 'performance':
+      return generatePerformanceEventTarget(event, organization, location);
+    case 'discover':
+    default:
+      return generateDiscoverEventTarget(event, organization, location);
+  }
+}
+
+export function generateSingleTransactionTarget(
+  event: EventLite | TraceError,
+  organization: OrganizationSummary,
+  location: Location,
+  destination: TransactionDestination
+): LocationDescriptor {
+  switch (destination) {
+    case 'performance':
+      return generatePerformanceEventTarget(event, organization, location);
+    case 'discover':
+    default:
+      return generateDiscoverEventTarget(event, organization, location);
+  }
+}
+
+export function generateMultiTransactionsTarget(
   currentEvent: Event,
   events: EventLite[],
   organization: OrganizationSummary,
-  location: Location,
   groupType: 'Ancestor' | 'Children' | 'Descendant'
 ): LocationDescriptor {
-  if (events.length === 1) {
-    return generateSingleEventTarget(events[0], organization, location);
-  }
-
   const queryResults = new QueryResults([]);
   const eventIds = events.map(child => child.event_id);
   for (let i = 0; i < eventIds.length; i++) {
