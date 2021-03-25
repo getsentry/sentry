@@ -29,7 +29,7 @@
               "package": "C:\\windows\\System32\\KERNEL32.DLL"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "D:\\agent\\_work\\9\\s\\src\\vctools\\crt\\vcstartup\\src\\startup\\exe_common.inl",
@@ -74,22 +74,22 @@
               "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\functional",
@@ -99,7 +99,7 @@
               "package": "C:\\Program Files\\Company\\Example App 2020\\Frontend.dll"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,
@@ -116,16 +116,16 @@
               "package": "C:\\windows\\System32\\USER32.dll"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\function\\function_template.hpp",
@@ -135,7 +135,7 @@
               "package": "C:\\Program Files\\Company\\Example App 2020\\Frontend.dll"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\function\\function_template.hpp",
@@ -166,43 +166,43 @@
               "package": "C:\\Program Files\\Company\\Example App 2020\\abcui.dll"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\function\\function_template.hpp",
@@ -212,28 +212,28 @@
               "package": "C:\\Program Files\\Company\\Example App 2020\\Frontend.dll"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xutility",
@@ -243,10 +243,10 @@
               "package": "C:\\Program Files\\Company\\Example App 2020\\abccore.dll"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,
@@ -270,7 +270,7 @@
               "package": "C:\\windows\\SYSTEM32\\VCRUNTIME140.dll"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,

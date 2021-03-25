@@ -11,7 +11,7 @@
         "stacktrace": {
           "frames": [
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "data": {},

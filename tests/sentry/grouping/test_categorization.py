@@ -212,9 +212,9 @@ def cleanup_unused_data():
 
             for frame in get_path(exception, "stacktrace", "frames") or ():
                 if not get_path(frame, "data", "category"):
-                    modified |= frame != {"function": "<stripped application code>"}
+                    modified |= frame != {"function": "stripped_application_code"}
                     frame.clear()
-                    frame["function"] = "<stripped application code>"
+                    frame["function"] = "stripped_application_code"
                 else:
                     # the following fields are inserted as part of the test,
                     # they should not be written back, but we should also not

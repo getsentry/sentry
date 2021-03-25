@@ -1,5 +1,5 @@
 ---
-created: '2021-03-22T16:57:34.393888Z'
+created: '2021-03-25T12:01:03.639169Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -11,14 +11,14 @@ EXC_BAD_ACCESS / KERN_INVALID_ADDRESS:Fatal Error: EXC_BAD_ACCESS / KERN_INVALID
      /usr/lib/system/libsystem_pthread.dylib  _pthread_start category=threadbase
      /usr/lib/system/libsystem_pthread.dylib  _pthread_body category=threadbase
   boost_threads.framework/Versions/A/boost_t  boost::`anonymous namespace'::thread_proxy category=threadbase
-                                              code
+                                              stripped_application_code
         abccore.framework/Versions/A/abccore  boost::function0<T>::operator() category=indirection
-                                              code
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
         abccore.framework/Versions/A/abccore  std::__1::priority_queue<T>::empty category=std
-                                              code
+                                              stripped_application_code
         abccore.framework/Versions/A/abccore  std::__1::queue<T>::push category=std
         abccore.framework/Versions/A/abccore  std::__1::deque<T>::push_back category=std
         abccore.framework/Versions/A/abccore  std::__1::allocator_traits<T>::construct<T> category=malloc

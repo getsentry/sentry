@@ -1,5 +1,5 @@
 ---
-created: '2021-03-22T16:57:34.316713Z'
+created: '2021-03-25T12:01:03.564933Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -8,12 +8,12 @@ source: tests/sentry/grouping/test_categorization.py
 0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
                /usr/lib/system/libdyld.dylib  start category=threadbase
                /usr/lib/system/libdyld.dylib  start category=threadbase
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
   /System/Library/Frameworks/AppKit.framewor  -[NSApplication run] category=system
   /System/Library/Frameworks/AppKit.framewor  -[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] category=system
   /System/Library/Frameworks/AppKit.framewor  _DPSNextEvent category=system

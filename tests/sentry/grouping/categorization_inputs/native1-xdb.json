@@ -29,7 +29,7 @@
               "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,

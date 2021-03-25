@@ -1,5 +1,5 @@
 ---
-created: '2021-03-22T16:57:36.930779Z'
+created: '2021-03-25T12:01:07.204558Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -12,4 +12,4 @@ EXCEPTION_ACCESS_VIOLATION_EXEC:Fatal Error: EXCEPTION_ACCESS_VIOLATION_EXEC (th
                C:\Windows\SYSTEM32\ntdll.dll  RtlExitUserThread category=throw
                C:\Windows\SYSTEM32\ntdll.dll  LdrShutdownThread category=system
                C:\Windows\SYSTEM32\ntdll.dll  RtlpFlsDataCleanup category=system
-                                              code
+                                              stripped_application_code

@@ -29,7 +29,7 @@
               "package": "C:\\Windows\\System32\\KERNEL32.DLL"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,
@@ -74,7 +74,7 @@
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "f:\\dd\\vctools\\crt_bld\\self_64_amd64\\crt\\src\\free.c",

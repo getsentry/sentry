@@ -29,22 +29,22 @@
               "package": "/usr/lib/system/libdyld.dylib"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,
@@ -117,19 +117,19 @@
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
@@ -139,7 +139,7 @@
               "package": "Frontend.framework/Versions/A/Frontend"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
@@ -149,10 +149,10 @@
               "package": "abccore.framework/Versions/A/abccore"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
@@ -183,46 +183,46 @@
               "package": "AudioSupport.framework/Versions/A/AudioSupport"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/vector",
@@ -267,7 +267,7 @@
               "package": "abcaudiofilterhost.framework/Versions/A/abcaudiofilterhost"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,

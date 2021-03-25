@@ -23,43 +23,43 @@
               "package": "/usr/lib/system/libdyld.dylib"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,
@@ -110,61 +110,61 @@
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,

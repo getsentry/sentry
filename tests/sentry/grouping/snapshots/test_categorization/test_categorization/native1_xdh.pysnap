@@ -1,5 +1,5 @@
 ---
-created: '2021-03-22T16:57:36.614537Z'
+created: '2021-03-25T12:01:06.313648Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -8,18 +8,18 @@ source: tests/sentry/grouping/test_categorization.py
 0xc000000d / 0x00000000:Fatal Error: 0xc000000d / 0x00000000 (thread_id:_, crashed:_)
                C:\WINDOWS\SYSTEM32\ntdll.dll  RtlUserThreadStart category=threadbase
             C:\WINDOWS\System32\KERNEL32.DLL  BaseThreadInitThunk category=threadbase
-                                              code
+                                              stripped_application_code
             C:\WINDOWS\System32\ucrtbase.dll  exit category=shutdown
             C:\WINDOWS\System32\ucrtbase.dll  __crt_state_management::enter_os_call category=system
             C:\WINDOWS\System32\KERNEL32.DLL  ExitProcessImplementation category=shutdown
                C:\WINDOWS\SYSTEM32\ntdll.dll  RtlExitUserProcess category=shutdown
                C:\WINDOWS\SYSTEM32\ntdll.dll  LdrShutdownProcess category=system
                C:\WINDOWS\SYSTEM32\ntdll.dll  RtlActivateActivationContextUnsafeFast category=system
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
             C:\WINDOWS\SYSTEM32\MSVCR120.dll  free category=free
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
             C:\WINDOWS\SYSTEM32\MSVCP120.dll  _Call_onceEx category=system
             C:\WINDOWS\SYSTEM32\MSVCP120.dll  _Mtx_guard::{ctor} category=system
             C:\WINDOWS\SYSTEM32\MSVCP120.dll  mtx_do_lock category=system

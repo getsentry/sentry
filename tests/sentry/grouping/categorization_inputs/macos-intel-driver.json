@@ -31,22 +31,22 @@
               "package": "/usr/lib/system/libdyld.dylib"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,
@@ -145,7 +145,7 @@
               "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,
@@ -164,10 +164,10 @@
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,
@@ -274,13 +274,13 @@
               "package": "/usr/lib/system/libsystem_platform.dylib"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,
@@ -331,10 +331,10 @@
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,

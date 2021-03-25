@@ -29,7 +29,7 @@
               "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,
@@ -74,10 +74,10 @@
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "f:\\dd\\vctools\\crt\\crtw32\\heap\\free.c",
@@ -87,10 +87,10 @@
               "package": "C:\\WINDOWS\\SYSTEM32\\MSVCR120.dll"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "f:\\dd\\vctools\\crt\\crtw32\\stdcpp\\xonce.cpp",

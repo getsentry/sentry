@@ -1,5 +1,5 @@
 ---
-created: '2021-03-24T16:48:40.832988Z'
+created: '2021-03-25T12:01:06.713898Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -7,44 +7,44 @@ source: tests/sentry/grouping/test_categorization.py
 
 0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
                /usr/lib/system/libdyld.dylib  start category=threadbase
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
   /System/Library/Frameworks/Foundation.fram  -[NSRunLoop(NSRunLoop) runMode:beforeDate:] category=system
   /System/Library/Frameworks/CoreFoundation.  CFRunLoopRunSpecific category=system
   /System/Library/Frameworks/CoreFoundation.  __CFRunLoopRun category=system
   /System/Library/Frameworks/CoreFoundation.  __CFRunLoopDoSources0 category=system
   /System/Library/Frameworks/CoreFoundation.  __CFRunLoopDoSource0 category=system
   /System/Library/Frameworks/CoreFoundation.  __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ category=system
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
   /System/Library/Frameworks/OpenGL.framewor  glTexSubImage2D category=gl
   /System/Library/Frameworks/OpenGL.framewor  glTexSubImage2D_Exec category=gl
   /System/Library/Frameworks/OpenGL.framewor  gleTextureImagePut category=gl

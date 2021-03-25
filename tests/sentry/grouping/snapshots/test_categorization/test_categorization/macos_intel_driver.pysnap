@@ -1,5 +1,5 @@
 ---
-created: '2021-03-24T21:00:38.787354Z'
+created: '2021-03-25T12:01:07.174216Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -8,12 +8,12 @@ source: tests/sentry/grouping/test_categorization.py
 0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
                /usr/lib/system/libdyld.dylib  start category=threadbase
                /usr/lib/system/libdyld.dylib  start category=threadbase
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
   /System/Library/Frameworks/AppKit.framewor  -[NSApplication run] category=system
   /System/Library/Frameworks/AppKit.framewor  -[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] category=system
   /System/Library/Frameworks/AppKit.framewor  _DPSNextEvent category=system
@@ -26,11 +26,11 @@ source: tests/sentry/grouping/test_categorization.py
   /System/Library/Frameworks/CoreFoundation.  ??? category=system
   /System/Library/Frameworks/CoreFoundation.  ??? category=system
   /System/Library/Frameworks/Foundation.fram  __NSThreadPerformPerform category=system
-                                              code
+                                              stripped_application_code
   /System/Library/Frameworks/AppKit.framewor  -[NSView displayIfNeeded] category=system
   /System/Library/Frameworks/AppKit.framewor  -[_NSOpenGLViewBackingLayer display] category=system
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
   /System/Library/Frameworks/OpenGL.framewor  CGLTexImageIOSurface2D category=gl
   /System/Library/Frameworks/OpenGL.framewor  CGLDescribeRenderer category=gl
   /System/Library/Frameworks/OpenGL.framewor  gliSetInteger category=gl
@@ -44,17 +44,17 @@ source: tests/sentry/grouping/test_categorization.py
            /usr/lib/system/libsystem_c.dylib  abort category=throw
   /System/Library/Frameworks/CoreFoundation.  ??? category=system
     /usr/lib/system/libsystem_platform.dylib  _sigtramp category=handler
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
   /System/Library/Frameworks/AppKit.framewor  NSRunAlertPanel category=system
   /System/Library/Frameworks/AppKit.framewor  _NSTryRunModal category=system
   /System/Library/Frameworks/QuartzCore.fram  CA::Transaction::commit category=system
   /System/Library/Frameworks/QuartzCore.fram  CA::Context::commit_transaction category=system
   /System/Library/Frameworks/QuartzCore.fram  CA::Layer::display_if_needed category=system
   /System/Library/Frameworks/AppKit.framewor  -[_NSOpenGLViewBackingLayer display] category=system
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
   /System/Library/Frameworks/OpenGL.framewor  CGLTexImageIOSurface2D category=gl
   /System/Library/Frameworks/OpenGL.framewor  CGLDescribeRenderer category=gl
   /System/Library/Frameworks/OpenGL.framewor  gliSetInteger category=gl

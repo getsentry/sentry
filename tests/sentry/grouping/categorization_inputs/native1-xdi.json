@@ -57,7 +57,7 @@
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             }
           ]
         },

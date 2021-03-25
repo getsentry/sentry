@@ -50,7 +50,7 @@
               "package": "boost_threads.framework/Versions/A/boost_threads"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
@@ -60,16 +60,16 @@
               "package": "abccore.framework/Versions/A/abccore"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/utility",
@@ -79,7 +79,7 @@
               "package": "abccore.framework/Versions/A/abccore"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/queue",

@@ -1,12 +1,12 @@
 ---
-created: '2021-03-25T11:44:07.457129Z'
+created: '2021-03-25T12:01:07.489063Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
 
 
 0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
-                                              code
+                                              stripped_application_code
   /System/Library/Frameworks/OpenGL.framewor  glDeleteTextures_Exec category=gl
   /System/Library/Frameworks/OpenGL.framewor  gleUnbindDeleteHashNamesAndObjects category=gl
   /System/Library/Frameworks/OpenGL.framewor  gleUnbindTextureObject category=gl

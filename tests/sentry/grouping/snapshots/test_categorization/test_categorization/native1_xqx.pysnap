@@ -1,5 +1,5 @@
 ---
-created: '2021-03-22T16:57:35.671557Z'
+created: '2021-03-25T12:01:04.864186Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -7,12 +7,12 @@ source: tests/sentry/grouping/test_categorization.py
 
 EXC_BAD_INSTRUCTION / EXC_I386_INVOP:Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP (thread_id:_, crashed:_)
                /usr/lib/system/libdyld.dylib  start category=threadbase
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
   /System/Library/Frameworks/AppKit.framewor  ??? category=system
   /System/Library/Frameworks/AppKit.framewor  ??? category=system
   /System/Library/Frameworks/AppKit.framewor  ??? category=system

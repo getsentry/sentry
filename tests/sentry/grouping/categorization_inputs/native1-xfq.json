@@ -22,35 +22,22 @@
               "package": "/usr/lib/system/libdyld.dylib"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
-            },
-            {
-              "abs_path": null,
-              "data": {},
-              "filename": null,
-              "function": null,
-              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
-            },
-            {
-              "function": "<stripped application code>"
-            },
-            {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,
@@ -60,11 +47,10 @@
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "abs_path": null,
-              "data": {},
-              "filename": null,
-              "function": null,
-              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,
@@ -95,19 +81,33 @@
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "function": "<stripped application code>"
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "function": "<stripped application code>"
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
@@ -117,7 +117,7 @@
               "package": "Frontend.framework/Versions/A/Frontend"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
@@ -127,74 +127,22 @@
               "package": "abccore.framework/Versions/A/abccore"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
-            },
-            {
-              "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
-              "filename": "../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "function": "boost::function0<T>::operator()",
-              "package": "Frontend.framework/Versions/A/Frontend"
-            },
-            {
-              "function": "<stripped application code>"
-            },
-            {
-              "function": "<stripped application code>"
-            },
-            {
-              "function": "<stripped application code>"
-            },
-            {
-              "function": "<stripped application code>"
-            },
-            {
-              "function": "<stripped application code>"
-            },
-            {
-              "function": "<stripped application code>"
-            },
-            {
-              "function": "<stripped application code>"
-            },
-            {
-              "function": "<stripped application code>"
-            },
-            {
-              "function": "<stripped application code>"
-            },
-            {
-              "function": "<stripped application code>"
-            },
-            {
-              "function": "<stripped application code>"
-            },
-            {
-              "function": "<stripped application code>"
-            },
-            {
-              "function": "<stripped application code>"
-            },
-            {
-              "function": "<stripped application code>"
-            },
-            {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
@@ -204,13 +152,65 @@
               "package": "Frontend.framework/Versions/A/Frontend"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "data": {},
+              "filename": "../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()",
+              "package": "Frontend.framework/Versions/A/Frontend"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
             },
             {
               "abs_path": null,

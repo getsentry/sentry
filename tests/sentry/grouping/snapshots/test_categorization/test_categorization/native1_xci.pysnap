@@ -1,5 +1,5 @@
 ---
-created: '2021-03-22T16:57:35.818982Z'
+created: '2021-03-25T12:01:05.027164Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -11,19 +11,19 @@ EXCEPTION_ACCESS_VIOLATION_WRITE:Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE (
                C:\WINDOWS\SYSTEM32\ntdll.dll  TppWorkerThread category=system
                C:\WINDOWS\SYSTEM32\ntdll.dll  TppTimerpExecuteCallback category=system
                C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpTpTimerCallback category=system
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
   C:\Program Files\Company\Example App 2020\  boost::function0<T>::operator() category=indirection
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
   C:\Program Files\Company\Example App 2020\  boost::function0<T>::operator() category=indirection
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
   C:\Program Files\Company\Example App 2020\  boost::function0<T>::operator() category=indirection
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
   C:\Program Files\Company\Example App 2020\  std::_Tree<T>::_Erase_unchecked category=std
   C:\Program Files\Company\Example App 2020\  std::_Tree_node<T>::_Freenode<T> category=std
   C:\Program Files\Company\Example App 2020\  std::_Normal_allocator_traits<T>::destroy category=std

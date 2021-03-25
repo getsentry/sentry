@@ -29,37 +29,37 @@
               "package": "C:\\Program Files\\Company\\Example App 2020\\Mezzanine.dll"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\function\\function_template.hpp",
@@ -69,16 +69,16 @@
               "package": "C:\\Program Files\\Company\\Example App 2020\\Frontend.dll"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             },
             {
               "abs_path": "d:\\agent\\_work\\1\\s\\src\\vctools\\crt\\vcruntime\\src\\misc\\purevirt.cpp",
@@ -102,7 +102,7 @@
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
-              "function": "<stripped application code>"
+              "function": "stripped_application_code"
             }
           ]
         },

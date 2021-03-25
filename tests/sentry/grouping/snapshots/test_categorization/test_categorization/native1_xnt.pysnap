@@ -1,5 +1,5 @@
 ---
-created: '2021-03-22T16:57:36.503190Z'
+created: '2021-03-25T12:01:06.193878Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -11,13 +11,13 @@ EXCEPTION_INT_DIVIDE_BY_ZERO:Fatal Error: EXCEPTION_INT_DIVIDE_BY_ZERO (thread_i
   C:\Program Files\Company\Example App 2020\  std::basic_string<T>::assign category=std
   C:\Program Files\Company\Example App 2020\  std::basic_string<T>::assign category=std
   C:\Program Files\Company\Example App 2020\  std::basic_string<T>::_Reallocate_for category=std
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
               C:\WINDOWS\System32\USER32.dll  GetMessageW category=system
               C:\WINDOWS\System32\win32u.dll  NtUserGetMessage category=system
                C:\WINDOWS\SYSTEM32\ntdll.dll  KiUserCallbackDispatcher category=system

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-22T16:57:36.717743Z'
+created: '2021-03-25T12:01:06.509407Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -7,53 +7,53 @@ source: tests/sentry/grouping/test_categorization.py
 
 EXC_BAD_ACCESS / KERN_INVALID_ADDRESS:Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS (thread_id:_, crashed:_)
                /usr/lib/system/libdyld.dylib  start category=threadbase
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
   /System/Library/Frameworks/AppKit.framewor  ??? category=system
-                                              code
-                                              code
-  /System/Library/Frameworks/AppKit.framewor  ??? category=system
-  /System/Library/Frameworks/AppKit.framewor  ??? category=system
+                                              stripped_application_code
+                                              stripped_application_code
   /System/Library/Frameworks/AppKit.framewor  ??? category=system
   /System/Library/Frameworks/AppKit.framewor  ??? category=system
   /System/Library/Frameworks/AppKit.framewor  ??? category=system
   /System/Library/Frameworks/AppKit.framewor  ??? category=system
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
+  /System/Library/Frameworks/AppKit.framewor  ??? category=system
+  /System/Library/Frameworks/AppKit.framewor  ??? category=system
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
       Frontend.framework/Versions/A/Frontend  boost::function0<T>::operator() category=indirection
-                                              code
+                                              stripped_application_code
         abccore.framework/Versions/A/abccore  boost::function0<T>::operator() category=indirection
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
       Frontend.framework/Versions/A/Frontend  boost::function0<T>::operator() category=indirection
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
       Frontend.framework/Versions/A/Frontend  boost::function0<T>::operator() category=indirection
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
                     /usr/lib/libc++abi.dylib  __dynamic_cast category=indirection

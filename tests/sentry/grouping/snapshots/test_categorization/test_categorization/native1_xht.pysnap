@@ -1,5 +1,5 @@
 ---
-created: '2021-03-22T16:57:34.247116Z'
+created: '2021-03-25T12:01:03.504770Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -14,32 +14,32 @@ EXCEPTION_ACCESS_VIOLATION_WRITE:Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE (
   C:\Program Files\Company\Example App 2020\  std::basic_string<T>::assign category=std
   C:\Program Files\Company\Example App 2020\  std::basic_string<T>::assign category=std
   C:\Program Files\Company\Example App 2020\  std::basic_string<T>::_Reallocate_for category=std
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
   C:\Program Files\Company\Example App 2020\  std::_Func_class<T>::operator() category=indirection
   C:\Program Files\Company\Example App 2020\  <lambda>::operator() category=indirection
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
   C:\Program Files\Company\Example App 2020\  GF::CUDADevice::ReleaseContext category=driver
-                                              code
+                                              stripped_application_code
   C:\Program Files\Company\Example App 2020\  std::_Tree_val<T>::_Erase_tree<T> category=std
   C:\Program Files\Company\Example App 2020\  std::_Tree_node<T>::_Freenode category=std
   C:\Program Files\Company\Example App 2020\  std::_Tree_node<T>::_Freenode0 category=std
   C:\Program Files\Company\Example App 2020\  std::_Normal_allocator_traits<T>::deallocate category=std
-                                              code
-                                              code
+                                              stripped_application_code
+                                              stripped_application_code
               C:\WINDOWS\SYSTEM32\nvcuda.dll  ??? category=driver
               C:\WINDOWS\SYSTEM32\nvcuda.dll  ??? category=driver
               C:\WINDOWS\SYSTEM32\nvcuda.dll  ??? category=driver
