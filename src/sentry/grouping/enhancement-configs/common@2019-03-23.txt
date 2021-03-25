@@ -139,7 +139,7 @@ family:native function:RaiseException category=throw
 family:native function:RaiseComPlusException category=throw
 
 family:native package:"C:/WINDOWS/system32/DriverStore\**" category=driver
-family:native package:"/System/Library/Extensions/AppleIntelHD4000GraphicsGLDriver.bundle/**" category=driver
+family:native package:"/System/Library/Extensions/AppleIntel*GraphicsGLDriver.bundle/**" category=driver
 family:native function:*CUDA* category=driver
 family:native package:**/nvcuda.dll category=driver
 family:native package:"C:\Program Files\NVIDIA Corporation\**" category=driver
