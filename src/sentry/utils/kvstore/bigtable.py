@@ -11,6 +11,8 @@ from google.cloud import bigtable
 from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.table import Table
 
+from sentry.utils.kvstore.abstract import KVStorage
+
 
 _connection_lock = Lock()
 _connection_cache = {}
@@ -72,7 +74,7 @@ class BigtableError(Exception):
     pass
 
 
-class BigtableKVStorage:
+class BigtableKVStorage(KVStorage[str, bytes]):
     max_size = 1024 * 1024 * 10
     column_family = "x"
 
