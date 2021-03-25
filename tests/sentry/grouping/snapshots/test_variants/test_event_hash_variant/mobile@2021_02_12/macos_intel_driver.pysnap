@@ -1,11 +1,11 @@
 ---
-created: '2021-03-25T11:25:45.114360Z'
+created: '2021-03-25T11:33:37.925842Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "d0fe8755915474a739279abd51246942"
-  tree_label: "[throw/driver/handler/gl/system/telemetry] abort | gpusKillClientExt | gliSetInteger"
+  tree_label: "abort | gpusKillClientExt | gliSetInteger [driver/gl/throw]"
   component:
     app-depth-1*
       exception*
@@ -30,7 +30,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "9a6b0642b59a729a5fd2736fbf854380"
-  tree_label: "... | CGLDescribeRenderer"
+  tree_label: "... | CGLDescribeRenderer [gl]"
   component:
     app-depth-2*
       exception*
@@ -62,7 +62,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "f7859a6f4f9507e6383b4c27cf9edb96"
-  tree_label: "... | CGLTexImageIOSurface2D"
+  tree_label: "... | CGLTexImageIOSurface2D [gl]"
   component:
     app-depth-3*
       exception*

@@ -26,13 +26,12 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
         for frame, component in frames_iter:
             if component.contributes and component.is_sentinel_frame:
                 break
-
-            tree_categories.add(get_path(frame, "data", "category") or None)
         else:
             break
 
         layer = list(prev_variant.values)
         layer.append(component)
+        tree_categories.add(get_path(frame, "data", "category") or None)
         prev_component = component
 
         if prev_component.is_prefix_frame:
@@ -41,6 +40,7 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
                     continue
 
                 layer.append(component)
+                tree_categories.add(get_path(frame, "data", "category") or None)
                 prev_component = component
 
                 if not component.is_prefix_frame:
@@ -51,7 +51,7 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
         tree_label = _compute_tree_label(prev_variant, layer)
         tree_categories.discard(None)
         if tree_categories:
-            tree_label = f"[{'/'.join(tree_categories)}] {tree_label}"
+            tree_label = f"{tree_label} [{'/'.join(sorted(tree_categories))}]"
 
         all_variants[key] = prev_variant = GroupingComponent(
             id="stacktrace", values=layer, tree_label=tree_label

@@ -1,11 +1,11 @@
 ---
-created: '2021-03-24T16:22:16.954746Z'
+created: '2021-03-25T11:33:38.022223Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "6ac1a47a30c5f91eec05b0b89fc1d9e9"
-  tree_label: "nvwgf2umx.dll | NDXGI::CDevice::DestroyDriverInstance"
+  tree_label: "nvwgf2umx.dll | NDXGI::CDevice::DestroyDriverInstance [driver/system]"
   component:
     app-depth-1*
       exception*
