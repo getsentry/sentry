@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T11:30:00.213510Z'
+created: '2021-03-25T16:01:46.259292Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -156,7 +156,7 @@ app:
           "0x00000000 / 0x00000000"
 --------------------------------------------------------------------------
 system:
-  hash: "b742062dc0c4d4caff9330b0dc1f3165"
+  hash: "a11f01f76654146ae91693bc0796dd34"
   component:
     system*
       exception*
@@ -281,10 +281,10 @@ system:
           frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "glTexSubImage2D"
-          frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
             function*
               "glTexSubImage2D_Exec"
-          frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
             function*
               "gleTextureImagePut"
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))

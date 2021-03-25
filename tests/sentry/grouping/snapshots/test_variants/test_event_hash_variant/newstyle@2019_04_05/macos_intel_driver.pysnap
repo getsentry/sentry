@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T11:25:51.168618Z'
+created: '2021-03-25T16:01:49.642349Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -184,7 +184,7 @@ app:
           "0x00000000 / 0x00000000"
 --------------------------------------------------------------------------
 system:
-  hash: "172bff59bcc02688ac9d46b77a67465d"
+  hash: "076a7fc5a2854a755dbc01d934ef6ea0"
   component:
     system*
       exception*
@@ -257,10 +257,10 @@ system:
           frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "CGLTexImageIOSurface2D"
-          frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
             function*
               "CGLDescribeRenderer"
-          frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
             function*
               "gliSetInteger"
           frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
@@ -327,10 +327,10 @@ system:
           frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "CGLTexImageIOSurface2D"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
             function*
               "CGLDescribeRenderer"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
             function*
               "gliSetInteger"
           frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))

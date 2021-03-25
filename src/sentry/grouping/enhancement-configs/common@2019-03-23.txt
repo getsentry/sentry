@@ -182,6 +182,9 @@ category:gl +sentinel
 # driver versions.
 [ category:driver | .. ] category:driver -group
 
+# Only group by top-level GL operaton, not any helper functions it may have called.
+[ .. | category:gl ] category:gl -group
+
 # Not very interesting frames -- better add the next frame too
 # category:system +prefix
 # TODO: consider -group
