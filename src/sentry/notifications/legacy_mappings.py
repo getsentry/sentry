@@ -1,8 +1,22 @@
+from collections import namedtuple
+from typing import Iterable, List, Mapping
 from sentry.notifications.types import (
     FineTuningAPIKey,
+    NotificationScopeType,
     NotificationSettingTypes,
     NotificationSettingOptionValues,
     UserOptionsSettingsKey,
+)
+
+LegacyUserOptionClone = namedtuple(
+    "UserOption",
+    [
+        "user",
+        "project",
+        "organization",
+        "key",
+        "value",
+    ],
 )
 
 
@@ -170,3 +184,42 @@ def get_key_value_from_legacy(
     option_value = LEGACY_VALUE_TO_KEY.get(type, {}).get(int(value))
 
     return type, option_value
+
+
+def get_legacy_from_notification_settings(notification_setting, actor_mapping: Mapping):
+    """
+    TODO(mgaeta): If getting projects and organizations is a bottleneck,
+     prefetch them and pass them as a Mapping.
+    """
+    type = NotificationSettingTypes(notification_setting.type)
+    key = get_legacy_key(notification_setting.type)
+    value = NotificationSettingOptionValues(notification_setting.value)
+
+    data = {
+        "key": key,
+        "value": get_legacy_value(type, value),
+        "user": actor_mapping.get(notification_setting.target),
+        "project": None,
+        "organization": None,
+    }
+
+    if notification_setting.scope_type == NotificationScopeType.PROJECT.value:
+        from sentry.models import Project
+
+        data["project"] = Project.objects.get(id=notification_setting.scope_identifier)
+
+    if notification_setting.scope_type == NotificationScopeType.ORGANIZATION.value:
+        from sentry.models import Organization
+
+        data["organization"] = Organization.objects.get(id=notification_setting.scope_identifier)
+    return LegacyUserOptionClone(**data)
+
+
+def map_notification_settings_to_legacy(
+    notification_settings: Iterable, actor_mapping: Mapping
+) -> List:
+    """ A hack for legacy serializers. Pretend a list of NotificationSettings is a list of UserOptions. """
+    return [
+        get_legacy_from_notification_settings(notification_setting, actor_mapping)
+        for notification_setting in notification_settings
+    ]

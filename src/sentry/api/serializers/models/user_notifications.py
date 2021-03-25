@@ -1,35 +1,48 @@
 from collections import defaultdict
+from typing import Iterable
 
 from sentry.api.serializers import Serializer
-from sentry.models import UserOption
-from sentry.notifications.legacy_mappings import get_legacy_key_from_fine_tuning_key
-from sentry.notifications.types import FineTuningAPIKey
+from sentry.models.integration import ExternalProviders
+from sentry.models import NotificationSetting, UserOption
+from sentry.notifications.legacy_mappings import (
+    get_type_from_fine_tuning_key,
+    map_notification_settings_to_legacy,
+)
+from sentry.notifications.types import FineTuningAPIKey, NotificationScopeType
+
+
+def handle_legacy(notification_type: FineTuningAPIKey, users: Iterable) -> Iterable:
+    """ For EMAIL and REPORTS, check UserOptions. """
+    filter_args = {}
+    if notification_type == FineTuningAPIKey.EMAIL:
+        filter_args["project__isnull"] = False
+
+    key = {
+        FineTuningAPIKey.EMAIL: "mail:email",
+        FineTuningAPIKey.REPORTS: "reports:disabled-organizations",
+    }.get(notification_type)
+
+    return UserOption.objects.filter(key=key, user__in=users, **filter_args).select_related(
+        "user", "project", "organization"
+    )
 
 
 class UserNotificationsSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         notification_type = kwargs["notification_type"]
-
-        filter_args = {}
-        if notification_type in [
-            FineTuningAPIKey.ALERTS,
-            FineTuningAPIKey.EMAIL,
-            FineTuningAPIKey.WORKFLOW,
-        ]:
-            filter_args["project__isnull"] = False
-        elif notification_type == FineTuningAPIKey.DEPLOY:
-            filter_args["organization__isnull"] = False
-
-        data = list(
-            UserOption.objects.filter(
-                key=get_legacy_key_from_fine_tuning_key(notification_type),
-                user__in=item_list,
-                **filter_args,
-            ).select_related("user", "project", "organization")
-        )
+        type = get_type_from_fine_tuning_key(notification_type)
+        if not type:
+            data = handle_legacy(notification_type, item_list)
+        else:
+            actor_mapping = {user.actor: user for user in item_list}
+            notifications_settings = NotificationSetting.objects._filter(
+                ExternalProviders.EMAIL,
+                get_type_from_fine_tuning_key(notification_type),
+                targets=actor_mapping.keys(),
+            ).exclude(scope_type=NotificationScopeType.USER.value)
+            data = map_notification_settings_to_legacy(notifications_settings, actor_mapping)
 
         results = defaultdict(list)
-
         for uo in data:
             results[uo.user].append(uo)
 

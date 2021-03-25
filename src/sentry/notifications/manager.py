@@ -50,12 +50,19 @@ class NotificationsManager(BaseManager):
         setting_option = self.find_settings(
             provider, type, user, team, project, organization
         ).first()
-        value = setting_option.value if setting_option else NotificationSettingOptionValues.DEFAULT
+        value = (
+            setting_option.value
+            if setting_option
+            else NotificationSettingOptionValues.DEFAULT.value
+        )
+        value = NotificationSettingOptionValues(value)
 
         legacy_value = UserOption.objects.get_value(
             user, get_legacy_key(type), project=project, organization=organization
         )
-        assert get_legacy_value(type, value) == legacy_value
+
+        expected_legacy_value = get_legacy_value(type, value)
+        assert expected_legacy_value == str(legacy_value), (expected_legacy_value, legacy_value)
 
         return value
 
@@ -314,3 +321,9 @@ class NotificationsManager(BaseManager):
         user_ids = project.member_set.values_list("user", flat=True)
         users = User.objects.filter(id__in=user_ids)
         return self.filter_to_subscribed_users(provider, project, users)
+
+    def get_defaults_for_users(self, provider: ExternalProviders, users: Iterable) -> QuerySet:
+        """
+        This is for a serializer.
+        """
+        return self._filter(provider, targets=users, scope_type=NotificationScopeType.USER)
