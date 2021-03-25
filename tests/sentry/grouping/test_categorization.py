@@ -140,7 +140,14 @@ def cleanup_unused_data():
     used_inputs = {}
 
     def new_apply(self, frames, idx, rule=None):
-        used_inputs.setdefault(rule.matcher_description, _current_input.val)
+        inputs_for_rule = used_inputs.setdefault(rule.matcher_description, [])
+
+        # Tolerate up to four testcases per rule. This number is arbitrary but
+        # the idea is that after matching a system frame for the hundreth time,
+        # nothing is really tested anymore.
+        if len(inputs_for_rule) < 4:
+            inputs_for_rule.append(_current_input.val)
+
         return old_apply(self, frames, idx, rule=rule)
 
     VarAction.apply_modifications_to_frame = new_apply
@@ -154,7 +161,7 @@ def cleanup_unused_data():
         return
 
     all_filenames = {i.filename for i in INPUTS}
-    used_filenames = {i.filename for i in used_inputs.values()}
+    used_filenames = {i.filename for inputs in used_inputs.values() for i in inputs}
     delete_filenames = all_filenames - used_filenames
 
     if delete_filenames:
@@ -183,6 +190,9 @@ def cleanup_unused_data():
     files_modified = []
 
     for input in INPUTS:
+        if input.filename in delete_filenames:
+            continue
+
         data = dict(input.data)  # type: ignore
 
         modified = False
