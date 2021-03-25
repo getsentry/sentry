@@ -121,6 +121,7 @@ class Dashboard extends React.Component<Props> {
       isEditing,
       onUpdate,
       dashboard: {widgets},
+      organization,
     } = this.props;
 
     const items = this.getWidgetIds();
@@ -145,7 +146,13 @@ class Dashboard extends React.Component<Props> {
         <WidgetContainer>
           <SortableContext items={items} strategy={rectSortingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
-            {isEditing && <AddWidget onClick={this.handleStartAdd} />}
+            {isEditing && (
+              <AddWidget
+                orgSlug={organization.slug}
+                orgFeatures={organization.features}
+                onClick={this.handleStartAdd}
+              />
+            )}
           </SortableContext>
         </WidgetContainer>
       </DndContext>
