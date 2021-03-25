@@ -333,6 +333,7 @@ class TransactionBar extends React.Component<Props, State> {
     return (
       <TransactionRowCellContainer showDetail={showDetail}>
         <TransactionRowCell
+          data-type="span-row-cell"
           style={{
             width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
             paddingTop: 0,
@@ -344,6 +345,7 @@ class TransactionBar extends React.Component<Props, State> {
         </TransactionRowCell>
         {this.renderDivider(dividerHandlerChildrenProps)}
         <TransactionRowCell
+          data-type="span-row-cell"
           showStriping={index % 2 !== 0}
           style={{
             width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
