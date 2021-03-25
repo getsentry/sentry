@@ -79,17 +79,25 @@ def copy_useroption_to_notificationsetting(apps, schema_editor):
                 scope_identifier = user_option.user.id
                 scope_type = NotificationScopeType.USER.value
             type = NotificationSettingTypes.ISSUE_ALERTS.value
-            if int(user_option.value) == 0:
+            try:
+                int_value = int(user_option.value)
+            except (ValueError, TypeError):
+                continue
+            if int_value == 0:
                 value = NotificationSettingOptionValues.NEVER.value
-            if int(user_option.value) == 1:
+            if int_value == 1:
                 value = NotificationSettingOptionValues.ALWAYS.value
         elif user_option.key == "subscribe_by_default":  # top level project alerts on/off
             scope_identifier = user_option.user.id
             scope_type = NotificationScopeType.USER.value
             type = NotificationSettingTypes.ISSUE_ALERTS.value
-            if int(user_option.value) == 1:
+            try:
+                int_value = int(user_option.value)
+            except (ValueError, TypeError):
+                continue
+            if int_value == 1:
                 value = NotificationSettingOptionValues.ALWAYS.value
-            if int(user_option.value) == 0:
+            if int_value == 0:
                 value = NotificationSettingOptionValues.NEVER.value
         elif user_option.key == "deploy-emails":
             # if you have fine tuning for an org, organization_id will have a value (rather than None)
