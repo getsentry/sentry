@@ -143,6 +143,7 @@ family:native package:"/System/Library/Extensions/AppleIntel*GraphicsGLDriver.bu
 family:native function:*CUDA* category=driver
 family:native package:**/nvcuda.dll category=driver
 family:native package:"C:\Program Files\NVIDIA Corporation\**" category=driver
+family:native package:/System/Library/Extensions/GeForceGLDriver.bundle/** category=driver
 family:native package:/System/Library/Extensions/AMDRadeon*/** category=driver
 family:native package:/System/Library/PrivateFrameworks/GPUSupport.framework/** category=driver
 
