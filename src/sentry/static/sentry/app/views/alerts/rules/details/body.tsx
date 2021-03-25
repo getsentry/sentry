@@ -53,7 +53,6 @@ type Props = {
     label: string;
     custom?: boolean;
   };
-  project: Project;
   organization: Organization;
   location: Location;
   handleTimePeriodChange: (value: string) => void;
