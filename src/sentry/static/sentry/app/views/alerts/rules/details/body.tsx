@@ -646,7 +646,6 @@ const StatCount = styled('span')`
 
 const RuleText = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
-  margin-left: ${space(0.5)};
 `;
 
 const Filters = styled('div')`
@@ -657,6 +656,7 @@ const Filters = styled('div')`
 
 const TriggerCondition = styled('div')`
   display: flex;
+  align-items: center;
 `;
 
 const TriggerText = styled('div')`

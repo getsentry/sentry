@@ -15,7 +15,6 @@ from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE = 100
 NODESTORE_KEYS = ["timestamp", "start_timestamp"]
-DETAILED_NODESTORE_KEYS = ["environment", "release"]
 ERROR_COLUMNS = [
     "id",
     "project",
@@ -341,14 +340,17 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         """ Add extra data that we get from Nodestore """
         event.update({event_key: nodestore_data.get(event_key) for event_key in NODESTORE_KEYS})
         if detailed:
-            event.update(
-                {event_key: nodestore_data.get(event_key) for event_key in DETAILED_NODESTORE_KEYS}
-            )
             if "measurements" in nodestore_data:
                 event["measurements"] = nodestore_data.get("measurements")
-            event["tags"] = {}
-            for [tag_key, tag_value] in nodestore_data.get("tags"):
-                event["tags"][tag_key] = tag_value
+            event["tags"] = [
+                {
+                    "key": tag_key.split("sentry:", 1)[-1],
+                    "value": tag_value,
+                }
+                for [tag_key, tag_value] in sorted(
+                    nodestore_data.get("tags"), key=lambda tag: tag[0]
+                )
+            ]
 
     def update_generations(self, event):
         parents = [event]
