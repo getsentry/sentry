@@ -275,7 +275,6 @@ def generate_releases(projects, quick):
 def safe_send_event(data, quick):
     project = data.pop("project")
     config = get_config(quick)
-    # TODO: make a batched update version of create_sample_event
     try:
         create_sample_event_basic(data, project.id)
         time.sleep(config["DEFAULT_BACKOFF_TIME"])
