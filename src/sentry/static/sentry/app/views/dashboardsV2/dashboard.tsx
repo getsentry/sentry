@@ -164,12 +164,20 @@ export default withApi(withGlobalSelection(Dashboard));
 
 const WidgetContainer = styled('div')`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: 1fr;
   grid-auto-flow: row dense;
   grid-gap: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 1fr;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[4]}) {
+    grid-template-columns: repeat(8, 1fr);
   }
 `;
 
