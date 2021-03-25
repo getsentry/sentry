@@ -61,6 +61,7 @@ default_manager.add("organizations:custom-symbol-sources", OrganizationFeature) 
 default_manager.add("organizations:data-forwarding", OrganizationFeature)  # NOQA
 default_manager.add("organizations:dashboards-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:dashboards-edit", OrganizationFeature)  # NOQA
+default_manager.add("organizations:dashboards-manage", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover-query", OrganizationFeature)  # NOQA

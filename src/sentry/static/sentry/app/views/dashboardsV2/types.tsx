@@ -1,4 +1,6 @@
-type DisplayType =
+import {User} from 'app/types';
+
+export type DisplayType =
   | 'line'
   | 'area'
   | 'stacked_area'
@@ -14,11 +16,14 @@ export type WidgetQuery = {
   orderby: string;
 };
 
-export type Widget = {
+export type ThinWidget = {
   id?: string;
   title: string;
   displayType: DisplayType;
   interval: string;
+};
+
+export type Widget = ThinWidget & {
   queries: WidgetQuery[];
 };
 
@@ -29,18 +34,15 @@ export type DashboardListItem = {
   id: string;
   title: string;
   dateCreated: string;
-  createdBy: string;
 };
 
-/**
- * Saved dashboard with widgets
- */
-export type DashboardDetails = {
-  title: string;
+export type DashboardDetailedListItem = DashboardListItem & {
+  createdBy: User;
+  widgets: ThinWidget[];
+};
+
+export type DashboardDetails = DashboardListItem & {
   widgets: Widget[];
-  id: string;
-  dateCreated: string;
-  createdBy: string;
 };
 
 export type DashboardState = 'view' | 'edit' | 'create' | 'pending_delete';

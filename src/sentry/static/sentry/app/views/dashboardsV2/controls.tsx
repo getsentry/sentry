@@ -9,7 +9,7 @@ import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
 import SelectControl from 'app/components/forms/selectControl';
 import Hovercard from 'app/components/hovercard';
-import {IconAdd, IconEdit} from 'app/icons';
+import {IconAdd, IconEdit, IconMenu} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -36,6 +36,7 @@ type Props = {
 class Controls extends React.Component<Props> {
   render() {
     const {
+      organization,
       dashboardState,
       dashboards,
       dashboard,
@@ -130,7 +131,6 @@ class Controls extends React.Component<Props> {
             options={dropdownOptions}
             value={currentOption}
             onChange={({value}: {value: DashboardListItem}) => {
-              const {organization} = this.props;
               browserHistory.push({
                 pathname: `/organizations/${organization.slug}/dashboards/${value.id}/`,
                 // TODO(mark) should this retain global selection?
@@ -139,6 +139,18 @@ class Controls extends React.Component<Props> {
             }}
           />
         </DashboardSelect>
+        <Feature features={['organizations:dashboards-manage']}>
+          <DashboardEditFeature>
+            {hasFeature => (
+              <Button
+                data-test-id="dashboards-manage"
+                to={`/organizations/${organization.slug}/dashboards/manage/`}
+                icon={<IconMenu size="xs" />}
+                disabled={!hasFeature}
+              />
+            )}
+          </DashboardEditFeature>
+        </Feature>
         <DashboardEditFeature>
           {hasFeature => (
             <Button

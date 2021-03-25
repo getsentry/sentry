@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import ActivityAvatar from 'app/components/activity/item/avatar';
 import Card from 'app/components/card';
 import Link from 'app/components/links/link';
-import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {User} from 'app/types';
@@ -14,13 +13,12 @@ type Props = {
   title?: string;
   subtitle?: string;
   queryDetail?: string;
-  to: object;
   createdBy?: User | undefined;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;
-  renderGraph: () => React.ReactNode;
   renderContextMenu?: () => React.ReactNode;
-};
+  bodyHeight?: string;
+} & Pick<Link['props'], 'to'>;
 
 class QueryCard extends React.PureComponent<Props> {
   handleClick = () => {
@@ -34,13 +32,15 @@ class QueryCard extends React.PureComponent<Props> {
       subtitle,
       queryDetail,
       renderContextMenu,
-      renderGraph,
+      children,
       createdBy,
       dateStatus,
+      bodyHeight,
+      to,
     } = this.props;
 
     return (
-      <Link data-test-id={`card-${title}`} onClick={this.handleClick} to={this.props.to}>
+      <Link data-test-id={`card-${title}`} onClick={this.handleClick} to={to}>
         <StyledQueryCard interactive>
           <QueryCardHeader>
             <QueryCardContent>
@@ -55,15 +55,11 @@ class QueryCard extends React.PureComponent<Props> {
               )}
             </AvatarWrapper>
           </QueryCardHeader>
-          <QueryCardBody>{renderGraph()}</QueryCardBody>
+          <QueryCardBody height={bodyHeight ?? '100px'}>{children}</QueryCardBody>
           <QueryCardFooter>
             <DateSelected>
               {subtitle}
-              {dateStatus ? (
-                <DateStatus>
-                  {t('Edited')} {dateStatus}
-                </DateStatus>
-              ) : null}
+              {dateStatus && <DateStatus>{dateStatus}</DateStatus>}
             </DateSelected>
             {renderContextMenu && renderContextMenu()}
           </QueryCardFooter>
@@ -112,9 +108,9 @@ const QueryDetail = styled('div')`
   ${overflowEllipsis};
 `;
 
-const QueryCardBody = styled('div')`
+const QueryCardBody = styled('div')<{height}>`
   background: ${p => p.theme.backgroundSecondary};
-  max-height: 100px;
+  max-height: ${p => p.height};
   height: 100%;
   overflow: hidden;
 `;

@@ -1,10 +1,12 @@
+import copy
+
 from django.db import IntegrityError, transaction
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.dashboard import DashboardListSerializer
-from sentry.api.serializers.rest_framework import DashboardSerializer
+from sentry.api.serializers.models.dashboard import DashboardSerializer
+from sentry.api.serializers.rest_framework import DashboardSerializer as DashboardRESTSerializer
 from sentry.models import Dashboard
 from sentry import features
 from rest_framework.response import Response
@@ -46,17 +48,26 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         dashboards = dashboards.order_by("title")
         prebuilt = Dashboard.get_prebuilt_list(organization, query)
 
-        list_serializer = DashboardListSerializer()
+        expand = request.GET.getlist("expand")
+        # XXX(alex.xu): should we forbid expanding queries when listing?
+        collapse = {"widgets", "queries", "createdBy"}.difference(expand)
+        serializer = DashboardSerializer(collapse=collapse)
 
         def handle_results(results):
             serialized = []
             for item in results:
                 if isinstance(item, dict):
-                    cloned = item.copy()
-                    del cloned["widgets"]
-                    serialized.append(cloned)
+                    if "widgets" in collapse:
+                        item = item.copy()
+                        del item["widgets"]
+                    elif "queries" in collapse:
+                        item = copy.deepcopy(item)
+                        for widget in item["widgets"]:
+                            widget["queryCount"] = len(widget["queries"])
+                            del widget["queries"]
+                    serialized.append(item)
                 else:
-                    serialized.append(serialize(item, request.user, serializer=list_serializer))
+                    serialized.append(serialize(item, request.user, serializer=serializer))
             return serialized
 
         return self.paginate(
@@ -78,7 +89,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
 
-        serializer = DashboardSerializer(
+        serializer = DashboardRESTSerializer(
             data=request.data,
             context={
                 "organization": organization,

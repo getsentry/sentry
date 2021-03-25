@@ -1,12 +1,10 @@
 import React from 'react';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
-import styled from '@emotion/styled';
 
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
-import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -14,6 +12,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
 import {DashboardDetails, Widget} from './types';
+import {WidgetContainer} from './utils';
 
 type Props = {
   api: Client;
@@ -161,25 +160,6 @@ class Dashboard extends React.Component<Props> {
 }
 
 export default withApi(withGlobalSelection(Dashboard));
-
-const WidgetContainer = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-auto-flow: row dense;
-  grid-gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: repeat(6, 1fr);
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[4]}) {
-    grid-template-columns: repeat(8, 1fr);
-  }
-`;
 
 function generateWidgetId(widget: Widget, index: number) {
   return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;

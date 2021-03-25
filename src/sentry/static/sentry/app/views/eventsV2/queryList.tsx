@@ -13,7 +13,7 @@ import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
 import {IconEllipsis} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -142,13 +142,6 @@ class QueryList extends React.Component<Props> {
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
           createdBy={eventView.createdBy}
-          renderGraph={() => (
-            <MiniGraph
-              location={location}
-              eventView={eventView}
-              organization={organization}
-            />
-          )}
           onEventClick={() => {
             trackAnalyticsEvent({
               eventKey: 'discover_v2.prebuilt_query_click',
@@ -157,7 +150,13 @@ class QueryList extends React.Component<Props> {
               query_name: eventView.name,
             });
           }}
-        />
+        >
+          <MiniGraph
+            location={location}
+            eventView={eventView}
+            organization={organization}
+          />
+        </QueryCard>
       );
     });
 
@@ -180,7 +179,9 @@ class QueryList extends React.Component<Props> {
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
       const to = eventView.getResultsViewUrlTarget(organization.slug);
-      const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
+      const dateStatus = tct('Edited [dateUpdated]', {
+        dateUpdated: <TimeSince date={savedQuery.dateUpdated} />,
+      });
 
       return (
         <QueryCard
@@ -198,13 +199,6 @@ class QueryList extends React.Component<Props> {
               organization_id: parseInt(this.props.organization.id, 10),
             });
           }}
-          renderGraph={() => (
-            <MiniGraph
-              location={location}
-              eventView={eventView}
-              organization={organization}
-            />
-          )}
           renderContextMenu={() => (
             <ContextMenu>
               <MenuItem
@@ -221,7 +215,13 @@ class QueryList extends React.Component<Props> {
               </MenuItem>
             </ContextMenu>
           )}
-        />
+        >
+          <MiniGraph
+            location={location}
+            eventView={eventView}
+            organization={organization}
+          />
+        </QueryCard>
       );
     });
   }
