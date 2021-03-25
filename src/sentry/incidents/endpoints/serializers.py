@@ -38,6 +38,7 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
+from sentry.integrations.slack.utils import validate_channel_id
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
@@ -168,6 +169,9 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 )
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
         attrs["input_channel_id"] = self.context.get("input_channel_id")
+        if attrs["input_channel_id"]:
+            validate_channel_id(identifier, attrs["integration"].id, attrs["input_channel_id"])
+
         return attrs
 
     def create(self, validated_data):

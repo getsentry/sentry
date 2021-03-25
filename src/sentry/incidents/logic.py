@@ -1162,6 +1162,7 @@ def create_alert_rule_trigger_action(
     if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
+
         target_identifier, target_display = get_target_identifier_display_for_integration(
             type.value,
             target_identifier,
@@ -1170,7 +1171,6 @@ def create_alert_rule_trigger_action(
             use_async_lookup=use_async_lookup,
             input_channel_id=input_channel_id,
         )
-
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
             trigger.alert_rule.organization, sentry_app.id
@@ -1224,6 +1224,7 @@ def update_alert_rule_trigger_action(
         if type in AlertRuleTriggerAction.INTEGRATION_TYPES:
             integration = updated_fields.get("integration", trigger_action.integration)
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
+
             target_identifier, target_display = get_target_identifier_display_for_integration(
                 type,
                 target_identifier,
@@ -1232,7 +1233,6 @@ def update_alert_rule_trigger_action(
                 use_async_lookup=use_async_lookup,
                 input_channel_id=input_channel_id,
             )
-
             updated_fields["target_display"] = target_display
 
         elif type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
@@ -1250,15 +1250,11 @@ def update_alert_rule_trigger_action(
 
 
 def get_target_identifier_display_for_integration(type, target_value, *args, **kwargs):
-    from sentry.integrations.slack.utils import validate_channel_id
-
     # target_value is the Slack username or channel name
     if type == AlertRuleTriggerAction.Type.SLACK.value:
         # if we have a value for input_channel_id, just set target_identifier to that
         target_identifier = kwargs.pop("input_channel_id")
         if target_identifier is not None:
-            _, integration_id = args
-            validate_channel_id(target_value, integration_id, input_channel_id=target_identifier)
             return (
                 target_identifier,
                 target_value,
