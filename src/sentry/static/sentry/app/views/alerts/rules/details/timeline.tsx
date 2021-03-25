@@ -47,7 +47,9 @@ class TimelineIncident extends React.Component<IncidentProps> {
 
     // Unknown activity, don't render anything
     if (
-      (!isStarted && !isDetected && !isClosed && !isTriggerChange) || !activities || !activities.length
+      (!isStarted && !isDetected && !isClosed && !isTriggerChange) ||
+      !activities ||
+      !activities.length
     ) {
       return null;
     }
