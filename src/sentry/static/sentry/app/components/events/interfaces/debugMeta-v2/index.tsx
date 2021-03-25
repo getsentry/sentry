@@ -641,13 +641,16 @@ const StyledList = styled(List)<{height: number}>`
 
 // Search
 const Search = styled('div')`
-  display: flex;
-  justify-content: flex-end;
+  display: grid;
+  grid-gap: ${space(2)};
   width: 100%;
   margin-top: ${space(1)};
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
     margin-top: 0;
+    grid-gap: 0;
+    grid-template-columns: max-content 1fr;
+    justify-content: flex-end;
   }
 `;
 
@@ -665,17 +668,16 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
     display: flex;
     align-items: center;
   }
-  ${p =>
-    p.blendWithFilter &&
-    `
-      .search-input,
-      .search-input:focus {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-      }
-    `}
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    max-width: 600px;
+    ${p =>
+      p.blendWithFilter &&
+      `
+        .search-input,
+        .search-input:focus {
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+        }
+      `}
   }
 `;
