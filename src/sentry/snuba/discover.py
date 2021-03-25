@@ -469,6 +469,7 @@ def top_events_timeseries(
             # If we have a project field, we need to limit results by project so we dont hit the result limit
             if field in ["project", "project.id"]:
                 snuba_filter.project_ids = [event["project.id"] for event in top_events["data"]]
+                continue
             if field in FIELD_ALIASES:
                 field = FIELD_ALIASES[field].alias
             # Note that because orderby shouldn't be an array field its not included in the values
