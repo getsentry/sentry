@@ -34,7 +34,7 @@ import {
 } from 'app/views/settings/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
 
-import {IncidentStatus} from '../../types';
+import {Incident, IncidentStatus} from '../../types';
 
 import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS} from './constants';
 import MetricChart from './metricChart';
@@ -44,6 +44,7 @@ import RelatedTransactions from './relatedTransactions';
 type Props = {
   api: Client;
   rule?: IncidentRule;
+  incidents?: Incident[];
   timePeriod: {
     start: string;
     end: string;
@@ -184,10 +185,10 @@ export default class DetailsBody extends React.Component<Props> {
   }
 
   renderMetricStatus() {
-    const {rule} = this.props;
+    const {incidents} = this.props;
 
     // get current status
-    const activeIncident = rule?.incidents?.find(({dateClosed}) => !dateClosed);
+    const activeIncident = incidents?.find(({dateClosed}) => !dateClosed);
     const status = activeIncident ? activeIncident.status : IncidentStatus.CLOSED;
     let statusText = t('Okay');
     let Icon = IconCheckmark;
@@ -202,7 +203,7 @@ export default class DetailsBody extends React.Component<Props> {
       color = theme.yellow300;
     }
 
-    const latestIncident = rule?.incidents?.length ? rule.incidents[0] : null;
+    const latestIncident = incidents?.length ? incidents[0] : null;
     // The date at which the alert was triggered or resolved
     const activityDate = activeIncident
       ? activeIncident.dateStarted
@@ -255,6 +256,7 @@ export default class DetailsBody extends React.Component<Props> {
     const {
       api,
       rule,
+      incidents,
       location,
       organization,
       timePeriod,
@@ -298,7 +300,7 @@ export default class DetailsBody extends React.Component<Props> {
                 <MetricChart
                   api={api}
                   rule={rule}
-                  incidents={rule?.incidents || []}
+                  incidents={incidents}
                   timePeriod={timePeriod}
                   organization={organization}
                   projects={projects}
@@ -339,7 +341,7 @@ export default class DetailsBody extends React.Component<Props> {
               </Layout.Main>
               <Layout.Side>
                 {this.renderMetricStatus()}
-                <Timeline api={api} orgId={orgId} rule={rule} incidents={rule?.incidents || []} />
+                <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
                 {this.renderRuleDetails()}
               </Layout.Side>
             </Layout.Body>

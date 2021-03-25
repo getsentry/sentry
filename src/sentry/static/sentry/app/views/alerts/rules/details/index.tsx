@@ -13,7 +13,7 @@ import withApi from 'app/utils/withApi';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 import {Incident} from '../../types';
-import {fetchAlertRuleActivity} from '../../utils';
+import {fetchAlertRule, fetchIncidentsForRule} from '../../utils';
 
 import DetailsBody from './body';
 import {ALERT_RULE_DETAILS_DEFAULT_PERIOD, TIME_OPTIONS, TIME_WINDOWS} from './constants';
@@ -89,9 +89,17 @@ class AlertRuleDetails extends React.Component<Props, State> {
     const {start, end} = timePeriod;
 
     try {
-      await fetchAlertRuleActivity(orgId, ruleId, start, end).then(rule =>
-        this.setState({rule, isLoading: false, hasError: false})
+      const rulePromise = fetchAlertRule(orgId, ruleId).then(rule =>
+        this.setState({rule})
       );
+      const incidentsPromise = fetchIncidentsForRule(
+        orgId,
+        ruleId,
+        start,
+        end
+      ).then(incidents => this.setState({incidents}));
+      await Promise.all([rulePromise, incidentsPromise]);
+      this.setState({isLoading: false, hasError: false});
     } catch (_err) {
       this.setState({isLoading: false, hasError: true});
     }
@@ -108,7 +116,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
   };
 
   render() {
-    const {rule, hasError} = this.state;
+    const {rule, incidents, hasError} = this.state;
     const {params, organization} = this.props;
     const timePeriod = this.getTimePeriod();
 
@@ -123,6 +131,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
           <DetailsBody
             {...this.props}
             rule={rule}
+            incidents={incidents}
             timePeriod={timePeriod}
             handleTimePeriodChange={this.handleTimePeriodChange}
           />

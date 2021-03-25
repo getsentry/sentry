@@ -16,6 +16,12 @@ from sentry.utils.db import attach_foreignkey
 
 @register(Incident)
 class IncidentSerializer(Serializer):
+    def __init__(
+        self,
+        expand=None,
+    ):
+        self.expand = expand or []
+
     def get_attrs(self, item_list, user, **kwargs):
         attach_foreignkey(item_list, Incident.alert_rule, related=("snuba_query",))
         incident_projects = defaultdict(list)
@@ -100,12 +106,3 @@ class DetailedIncidentSerializer(IncidentSerializer):
             incident.alert_rule.snuba_query.event_types,
             discover=True,
         )
-
-
-class DetailedIncidentActivitySerializer(DetailedIncidentSerializer):
-    def serialize(self, obj, attrs, user):
-        context = super().serialize(obj, attrs, user)
-        context["activities"] = serialize(
-            list(IncidentActivity.objects.filter(incident=obj).select_related("user", "incident"))
-        )
-        return context
