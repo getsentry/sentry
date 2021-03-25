@@ -307,7 +307,8 @@ class AlertRulesListContainer extends React.Component<Props> {
     const {organization, router, location, selection} = this.props;
     const query: Record<string, string | number | string[] | number[]> = {
       project: selection.projects,
-      environment: selection.environments,
+      // TODO(workflow): Support environments from global selection header
+      // environment: selection.environments,
     };
 
     if (organization.features.includes('team-alerts-ownership')) {
