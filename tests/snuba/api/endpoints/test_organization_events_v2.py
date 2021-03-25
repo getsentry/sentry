@@ -876,6 +876,35 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert data[0]["user_misery_300"] == 2
 
+    def test_user_misery_prototype_alias_field(self):
+        project = self.create_project()
+
+        events = [
+            ("one", 300),
+            ("one", 300),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/user_misery_prototype/{idx}"
+            data["user"] = {"email": f"{event[0]}@example.com"}
+            self.store_event(data, project_id=project.id)
+        query = {"field": ["user_misery_prototype(300)"], "query": "event.type:transaction"}
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert abs(data[0]["user_misery_prototype_300"] - 0.0653) < 0.0001
+
     def test_aggregation(self):
         project = self.create_project()
         self.store_event(
@@ -1917,6 +1946,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "percentile(transaction.duration, 0.99)",
                 "apdex(300)",
                 "user_misery(300)",
+                "user_misery_prototype(300)",
                 "failure_rate()",
             ],
             "query": "event.type:transaction",
@@ -1933,6 +1963,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["apdex_300"] == "number"
         assert meta["failure_rate"] == "percentage"
         assert meta["user_misery_300"] == "number"
+        assert meta["user_misery_prototype_300"] == "number"
 
         data = response.data["data"]
         assert len(data) == 1
@@ -1944,6 +1975,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["percentile_transaction_duration_0_99"] == 5000
         assert data[0]["apdex_300"] == 0.0
         assert data[0]["user_misery_300"] == 1
+        assert data[0]["user_misery_prototype_300"] == 0.058
         assert data[0]["failure_rate"] == 0.5
 
         query = {
@@ -1985,6 +2017,30 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["stddev_transaction_duration"] == 0.0
         assert data[0]["var_transaction_duration"] == 0.0
         assert data[0]["sum_transaction_duration"] == 10000
+
+    def test_null_user_misery_prototype_returns_zero(self):
+        project = self.create_project()
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=2),
+            start_timestamp=before_now(minutes=2, seconds=5),
+        )
+        data["user"] = None
+        data["transaction"] = "/no_users/1"
+        self.store_event(data, project_id=project.id)
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+
+        query = {
+            "field": ["user_misery_prototype(300)"],
+            "query": "event.type:transaction",
+        }
+
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta["user_misery_prototype_300"] == "number"
+        data = response.data["data"]
+        assert data[0]["user_misery_prototype_300"] == 0
 
     def test_all_aggregates_in_query(self):
         project = self.create_project()
@@ -2028,7 +2084,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["percentile_transaction_duration_0_99"] == 5000
 
         query = {
-            "field": ["event.type", "apdex(300)", "user_misery(300)", "failure_rate()"],
+            "field": [
+                "event.type",
+                "apdex(300)",
+                "user_misery(300)",
+                "user_misery_prototype(300)",
+                "failure_rate()",
+            ],
             "query": "event.type:transaction apdex(300):>-1.0 failure_rate():>0.25",
         }
         response = self.do_request(query, features=features)
@@ -2037,6 +2099,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 1
         assert data[0]["apdex_300"] == 0.0
         assert data[0]["user_misery_300"] == 1
+        assert data[0]["user_misery_prototype_300"] == 0.058
         assert data[0]["failure_rate"] == 0.5
 
         query = {

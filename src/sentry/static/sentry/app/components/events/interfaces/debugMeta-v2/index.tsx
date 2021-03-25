@@ -36,6 +36,7 @@ import {
   getFileName,
   IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT,
   normalizeId,
+  shouldSkipSection,
 } from './utils';
 
 const IMAGE_INFO_UNAVAILABLE = '-1';
@@ -208,6 +209,12 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   openImageDetailsModal = async () => {
+    const {filteredImages} = this.state;
+
+    if (!filteredImages.length) {
+      return;
+    }
+
     const {location, organization, projectId, groupId, event} = this.props;
     const {query} = location;
 
@@ -217,7 +224,6 @@ class DebugMeta extends React.PureComponent<Props, State> {
       return;
     }
 
-    const {filteredImages} = this.state;
     const image =
       imageCodeId !== IMAGE_INFO_UNAVAILABLE || imageDebugId !== IMAGE_INFO_UNAVAILABLE
         ? filteredImages.find(
@@ -278,7 +284,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
     // There are a bunch of images in debug_meta that are not relevant to this
     // component. Filter those out to reduce the noise. Most importantly, this
     // includes proguard images, which are rendered separately.
-    const relevantImages = images.filter(this.isValidImage).map(releventImage => {
+
+    const relevantImages = images.filter(this.isValidImage);
+
+    if (!relevantImages.length) {
+      return;
+    }
+
+    const formattedRelevantImages = relevantImages.map(releventImage => {
       const {debug_status, unwind_status} = releventImage as Image;
       return {
         ...releventImage,
@@ -289,13 +302,13 @@ class DebugMeta extends React.PureComponent<Props, State> {
     // Sort images by their start address. We assume that images have
     // non-overlapping ranges. Each address is given as hex string (e.g.
     // "0xbeef").
-    relevantImages.sort(
+    formattedRelevantImages.sort(
       (a, b) => parseAddress(a.image_addr) - parseAddress(b.image_addr)
     );
 
     const unusedImages: Images = [];
 
-    const usedImages = relevantImages.filter(image => {
+    const usedImages = formattedRelevantImages.filter(image => {
       if (image.debug_status === ImageStatus.UNUSED) {
         unusedImages.push(image as Images[0]);
         return false;
@@ -503,8 +516,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
       searchTerm,
       filterOptions,
       scrollbarWidth,
-      filteredImagesByFilter: images,
+      filteredImagesByFilter: filteredImages,
     } = this.state;
+    const {data} = this.props;
+    const {images} = data;
+
+    if (shouldSkipSection(filteredImages, images)) {
+      return null;
+    }
 
     const displayFilter = (Object.values(filterOptions ?? {})[0] ?? []).length > 1;
 
@@ -542,7 +561,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         isCentered
       >
         <StyledPanelTable
-          isEmpty={!images.length}
+          isEmpty={!filteredImages.length}
           scrollbarWidth={scrollbarWidth}
           headers={[t('Status'), t('Image'), t('Processing'), t('Details'), '']}
           {...this.getEmptyMessage()}
@@ -622,13 +641,16 @@ const StyledList = styled(List)<{height: number}>`
 
 // Search
 const Search = styled('div')`
-  display: flex;
-  justify-content: flex-end;
+  display: grid;
+  grid-gap: ${space(2)};
   width: 100%;
   margin-top: ${space(1)};
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
     margin-top: 0;
+    grid-gap: 0;
+    grid-template-columns: max-content 1fr;
+    justify-content: flex-end;
   }
 `;
 
@@ -646,17 +668,16 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
     display: flex;
     align-items: center;
   }
-  ${p =>
-    p.blendWithFilter &&
-    `
-      .search-input,
-      .search-input:focus {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-      }
-    `}
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    max-width: 600px;
+    ${p =>
+      p.blendWithFilter &&
+      `
+        .search-input,
+        .search-input:focus {
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+        }
+      `}
   }
 `;

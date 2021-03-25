@@ -13,6 +13,7 @@ import Link from 'app/components/links/link';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Pagination from 'app/components/pagination';
 import {PanelTable, PanelTableHeader} from 'app/components/panels';
+import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {IconArrow, IconCheckmark} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -98,6 +99,17 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     });
   };
 
+  handleChangeSearch = (name: string) => {
+    const {router, location} = this.props;
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        name,
+      },
+    });
+  };
+
   handleDeleteRule = async (projectId: string, rule: IssueAlertRule) => {
     const {params} = this.props;
     const {orgId} = params;
@@ -172,6 +184,11 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
             </List>
           )}
         </Filter>
+        <StyledSearchBar
+          placeholder={t('Search by name')}
+          query={location.query?.name}
+          onSearch={this.handleChangeSearch}
+        />
       </FilterWrapper>
     );
   }
@@ -199,7 +216,10 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return (
       <StyledLayoutBody>
         <Layout.Main fullWidth>
-          <Feature features={['organizations:team-alerts-ownership']}>
+          <Feature
+            organization={organization}
+            features={['organizations:team-alerts-ownership']}
+          >
             {({hasFeature}) => (
               <React.Fragment>
                 {hasFeature && this.renderFilterBar()}
@@ -333,7 +353,13 @@ const TeamName = styled('div')`
 `;
 
 const FilterWrapper = styled('div')`
+  display: flex;
   margin-bottom: ${space(1.5)};
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex-grow: 1;
+  margin-left: ${space(1.5)};
 `;
 
 const List = styled('ul')`

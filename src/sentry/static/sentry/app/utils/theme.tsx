@@ -196,6 +196,11 @@ const aliases = {
    * Background of default badge (mainly used in NavTabs)
    */
   badgeBackground: colors.gray200,
+
+  /**
+   * Overlay for partial opacity
+   */
+  overlayBackgroundAlpha: 'rgba(255, 255, 255, 0.7)',
 } as const;
 
 const generateAlertTheme = alias => ({
@@ -554,6 +559,7 @@ const darkAliases = {
   progressBackground: colors.gray400,
   badgeBackground: colors.gray400,
   alertBackgroundAlpha: 0.1,
+  overlayBackgroundAlpha: 'rgba(18, 9, 23, 0.7)',
 } as const;
 
 export const lightTheme = {

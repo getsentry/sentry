@@ -1063,7 +1063,7 @@ export const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boo
 
   &:after {
     content: '';
-    background-color: ${p => p.theme.gray200};
+    background-color: ${p => p.theme.border};
     border-radius: 4px;
     height: 3px;
     width: 3px;

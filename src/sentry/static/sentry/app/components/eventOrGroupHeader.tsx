@@ -31,6 +31,7 @@ type Props = WithRouterProps<{orgId: string}> & {
   className?: string;
   /** Group link clicked */
   onClick?: () => void;
+  index?: number;
 } & Partial<DefaultProps>;
 
 /**
@@ -43,7 +44,7 @@ class EventOrGroupHeader extends React.Component<Props> {
   };
 
   getTitleChildren() {
-    const {hideIcons, hideLevel, data} = this.props;
+    const {hideIcons, hideLevel, data, index} = this.props;
     const {level, status, isBookmarked, hasSeen} = data as Group;
 
     return (
@@ -69,6 +70,8 @@ class EventOrGroupHeader extends React.Component<Props> {
           {...this.props}
           style={{fontWeight: hasSeen ? 400 : 600}}
           withStackTracePreview
+          hasGuideAnchor={index === 0}
+          guideAnchorName="issue_stream_title"
         />
       </React.Fragment>
     );

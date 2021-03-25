@@ -5,6 +5,7 @@ from datetime import timedelta
 from threading import Lock
 from typing import Iterator, Optional, Sequence, Tuple
 
+import sentry_sdk
 import zstandard
 from django.utils import timezone
 from google.api_core import exceptions, retry
@@ -330,23 +331,27 @@ class BigtableNodeStorage(NodeStorage):
         if self.skip_deletes:
             return
 
-        try:
-            self.store.delete(id)
-        finally:
-            self._delete_cache_item(id)
+        with sentry_sdk.start_span(op="nodestore.bigtable.delete"):
+            try:
+                self.store.delete(id)
+            finally:
+                self._delete_cache_item(id)
 
     def delete_multi(self, id_list):
         if self.skip_deletes:
             return
 
-        if len(id_list) == 1:
-            self.delete(id_list[0])
-            return
+        with sentry_sdk.start_span(op="nodestore.bigtable.delete_multi") as span:
+            span.set_tag("num_ids", len(id_list))
 
-        try:
-            self.store.delete_many(id_list)
-        finally:
-            self._delete_cache_items(id_list)
+            if len(id_list) == 1:
+                self.delete(id_list[0])
+                return
+
+            try:
+                self.store.delete_many(id_list)
+            finally:
+                self._delete_cache_items(id_list)
 
     def bootstrap(self):
         self.store.bootstrap(automatic_expiry=self.automatic_expiry)
