@@ -47,12 +47,13 @@ class NotificationsManager(BaseManager):
         """
         from sentry.models.useroption import UserOption
 
-        setting_option = self.find_settings(
-            provider, type, user, team, project, organization
-        ).first()
+        # The `unique_together` constraint should guarantee 0 or 1 rows, but
+        # using `list()` rather than `.first()` to prevent Django from adding an
+        # ordering that could make the query slow.
+        settings = list(self.find_settings(provider, type, user, team, project, organization))[:1]
         value = (
-            NotificationSettingOptionValues(setting_option.value)
-            if setting_option
+            NotificationSettingOptionValues(settings[0].value)
+            if settings
             else NotificationSettingOptionValues.DEFAULT
         )
 
