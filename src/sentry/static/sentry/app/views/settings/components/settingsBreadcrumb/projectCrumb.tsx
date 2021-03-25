@@ -78,7 +78,7 @@ const ProjectCrumb = ({
                 projectId: latestProject.slug,
               })}
             >
-              <IdBadge project={latestProject} avatarSize={18} />
+              <IdBadge project={latestProject} avatarSize={18} disableLink />
             </CrumbLink>
           )}
         </ProjectName>
@@ -93,6 +93,7 @@ const ProjectCrumb = ({
               project={project}
               avatarProps={{consistentWidth: true}}
               avatarSize={18}
+              disableLink
             />
           </MenuItem>
         ),
