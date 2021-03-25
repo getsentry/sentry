@@ -75,7 +75,7 @@ class WidgetCard extends React.Component<Props> {
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           <IconClick>
             <StyledIconGrabbable
-              color="gray500"
+              color="textColor"
               {...draggableProps?.listeners}
               {...draggableProps?.attributes}
             />
@@ -86,7 +86,7 @@ class WidgetCard extends React.Component<Props> {
               onEdit();
             }}
           >
-            <IconEdit color="gray500" />
+            <IconEdit color="textColor" />
           </IconClick>
           <IconClick
             data-test-id="widget-delete"
@@ -94,7 +94,7 @@ class WidgetCard extends React.Component<Props> {
               onDelete();
             }}
           >
-            <IconDelete color="gray500" />
+            <IconDelete color="textColor" />
           </IconClick>
         </IconContainer>
       </ToolbarPanel>
@@ -245,7 +245,7 @@ const ToolbarPanel = styled('div')`
   justify-content: flex-end;
   align-items: flex-start;
 
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: ${p => p.theme.overlayBackgroundAlpha};
   border-radius: ${p => p.theme.borderRadius};
 `;
 

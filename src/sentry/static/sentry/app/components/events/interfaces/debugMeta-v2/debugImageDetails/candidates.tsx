@@ -387,15 +387,15 @@ const Title = styled('div')`
 const Search = styled('div')`
   flex-grow: 1;
   display: flex;
-  flex-direction: row;
-  justify-content: flex-end;
+  flex-direction: column;
+  justify-content: flex-start;
+  .drop-down-filter-menu {
+    border-top-right-radius: ${p => p.theme.borderRadius};
+  }
 
-  @media (max-width: ${props => props.theme.breakpoints[0]}) {
-    flex-direction: column;
-    justify-content: flex-start;
-    .drop-down-filter-menu {
-      border-top-right-radius: ${p => p.theme.borderRadius};
-    }
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    flex-direction: row;
+    justify-content: flex-end;
   }
 `;
 
