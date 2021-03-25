@@ -38,7 +38,13 @@ class IncidentSerializer(Serializer):
             results[incident]["alert_rule"] = alert_rules.get(str(incident.alert_rule.id))
 
             if "activities" in self.expand:
-                results[incident]["activities"] = serialize(list(IncidentActivity.objects.filter(incident=incident).select_related("user", "incident")))
+                results[incident]["activities"] = serialize(
+                    list(
+                        IncidentActivity.objects.filter(incident=incident).select_related(
+                            "user", "incident"
+                        )
+                    )
+                )
 
             if "seen_by" in self.expand:
                 (seen_by, has_seen) = self._get_incident_seen_list(incident, user)
@@ -57,7 +63,6 @@ class IncidentSerializer(Serializer):
         has_seen = any(seen_by for seen_by in seen_by_list if seen_by.id == user.id)
 
         return serialize(seen_by_list), has_seen
-
 
     def serialize(self, obj, attrs, user):
         date_closed = obj.date_closed.replace(second=0, microsecond=0) if obj.date_closed else None
@@ -84,9 +89,9 @@ class IncidentSerializer(Serializer):
 class DetailedIncidentSerializer(IncidentSerializer):
     def __init__(self, expand=None):
         if expand is None:
-            expand = ['seen_by']
-        elif 'seen_by' not in expand:
-            expand.append('seen_by')
+            expand = ["seen_by"]
+        elif "seen_by" not in expand:
+            expand.append("seen_by")
         self.expand = expand
 
     def get_attrs(self, item_list, user, **kwargs):
