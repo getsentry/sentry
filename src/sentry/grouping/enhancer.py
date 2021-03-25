@@ -277,32 +277,21 @@ class RangeMatch(Match):
 
     def matches_frame(self, frames, idx, platform, exception_data):
         if self.end is not None:
-            end_matches = (
-                idx2
-                for idx2 in reversed(range(0, idx))
-                if self.end.matches_frame(frames, idx2, platform, exception_data)
-            )
+            start_idx = 0 if not self.end_neighbouring else max(0, idx - 1)
 
-            if self.end_neighbouring:
-                if next(end_matches, None) != idx - 1:
-                    return False
+            for idx2 in reversed(range(start_idx, idx)):
+                if self.end.matches_frame(frames, idx2, platform, exception_data):
+                    break
             else:
-                if next(end_matches, None) is None:
-                    return False
+                return False
 
         if self.start is not None:
-            start_matches = (
-                idx2
-                for idx2 in range(idx + 1, len(frames))
-                if self.start.matches_frame(frames, idx2, platform, exception_data)
-            )
-
-            if self.start_neighbouring:
-                if next(start_matches, None) != idx + 1:
-                    return False
+            end_idx = len(frames) if not self.start_neighbouring else min(len(frames), idx + 2)
+            for idx2 in range(idx + 1, end_idx):
+                if self.start.matches_frame(frames, idx2, platform, exception_data):
+                    break
             else:
-                if next(start_matches, None) is None:
-                    return False
+                return False
 
         return True
 
@@ -623,6 +612,11 @@ class Enhancements:
 class Rule:
     def __init__(self, matchers, actions):
         self.matchers = matchers
+        # FrameMatch matchers are faster than RangeMatch matchers, so apply
+        # them first to bail out early.
+        self._sorted_matchers = sorted(
+            matchers, key=lambda m: 0 if isinstance(m, FrameMatch) else 1
+        )
         self.actions = actions
 
     @property
@@ -648,7 +642,10 @@ class Rule:
         rv = []
 
         for idx, frame in enumerate(frames):
-            if all(m.matches_frame(frames, idx, platform, exception_data) for m in self.matchers):
+            if all(
+                m.matches_frame(frames, idx, platform, exception_data)
+                for m in self._sorted_matchers
+            ):
                 for action in self.actions:
                     rv.append((idx, action))
 
