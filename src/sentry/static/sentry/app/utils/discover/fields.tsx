@@ -301,6 +301,31 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'area',
   },
+  count_miserable: {
+    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
+      if (parameter.kind === 'column') {
+        return 'user';
+      }
+      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+    },
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['string'],
+        defaultValue: 'user',
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance
@@ -542,6 +567,7 @@ export const TRACING_FIELDS = [
   'failure_rate',
   'apdex',
   'count_miserable',
+  'user_misery',
   'eps',
   'epm',
   ...Object.keys(MEASUREMENTS),

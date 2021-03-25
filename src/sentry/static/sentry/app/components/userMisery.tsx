@@ -37,10 +37,13 @@ function UserMisery(props: Props) {
       }
     );
   } else {
-    title = tct('Probability that users waited more than [duration]ms is [userMisery]', {
-      duration: 4 * miseryLimit,
-      userMisery: userMisery.toFixed(3),
-    });
+    title = tct(
+      'Some users waited more than [duration]ms represented by a User Misery score of [userMisery].',
+      {
+        duration: 4 * miseryLimit,
+        userMisery: userMisery.toFixed(3),
+      }
+    );
   }
   return (
     <Tooltip title={title} containerDisplayMode="block">
