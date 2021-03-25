@@ -57,9 +57,9 @@
         "type": "default",
         "category": "console",
         "level": "info",
-        "message": "BACKEND is:  https://scefali-flask-m3uuizd7iq-uc.a.run.app",
+        "message": "BACKEND is:  https://app.example.com",
         "data": {
-          "arguments": ["BACKEND is: ", "https://scefali-flask-m3uuizd7iq-uc.a.run.app"],
+          "arguments": ["BACKEND is: ", "https://app.example.com"],
           "logger": "console"
         }
       },
@@ -68,9 +68,9 @@
         "type": "default",
         "category": "console",
         "level": "info",
-        "message": "BACKEND is:  https://scefali-flask-m3uuizd7iq-uc.a.run.app",
+        "message": "BACKEND is:  https://app.example.com",
         "data": {
-          "arguments": ["BACKEND is: ", "https://scefali-flask-m3uuizd7iq-uc.a.run.app"],
+          "arguments": ["BACKEND is: ", "https://app.example.com"],
           "logger": "console"
         }
       },
@@ -96,7 +96,7 @@
         "data": {
           "method": "GET",
           "status_code": 200,
-          "url": "https://scefali-flask-m3uuizd7iq-uc.a.run.app/tools"
+          "url": "https://app.example.com/tools"
         }
       },
       {
@@ -826,7 +826,7 @@
         "data": {
           "method": "POST",
           "status_code": 500,
-          "url": "https://scefali-flask-m3uuizd7iq-uc.a.run.app/checkout"
+          "url": "https://app.example.com/checkout"
         }
       }
     ]
