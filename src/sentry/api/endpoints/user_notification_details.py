@@ -26,11 +26,11 @@ class UserNotificationsSerializer(Serializer):
             ).select_related("user")
         )
 
-        actor_mapping = {user.actor: user for user in item_list}
+        actor_mapping = {user.actor_id: user for user in item_list}
         notification_settings = NotificationSetting.objects._filter(
             ExternalProviders.EMAIL,
             scope_type=NotificationScopeType.USER,
-            targets=actor_mapping.keys(),
+            target_ids=actor_mapping.keys(),
         )
         data += map_notification_settings_to_legacy(notification_settings, actor_mapping)
 

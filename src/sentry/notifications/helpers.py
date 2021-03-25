@@ -73,10 +73,10 @@ def transform_to_notification_settings_by_user(
     Given a unorganized list of notification settings, create a mapping of
     users to a map of notification scopes to setting values.
     """
-    actor_mapping = {user.actor: user for user in users}
+    actor_mapping = {user.actor_id: user for user in users}
     notification_settings_by_user = defaultdict(dict)
     for notification_setting in notification_settings:
-        user = actor_mapping.get(notification_setting.target)
+        user = actor_mapping.get(notification_setting.target_id)
         notification_settings_by_user[user][
             NotificationScopeType(notification_setting.scope_type)
         ] = NotificationSettingOptionValues(notification_setting.value)
@@ -142,9 +142,9 @@ def get_scope(
     raise Exception("scope must be either user, organization, or project")
 
 
-def get_target(user: Optional = None, team: Optional = None):
+def get_target_id(user: Optional = None, team: Optional = None) -> int:
     """ :returns the Actor object from a User or Team. """
     try:
-        return getattr((user or team), "actor")
+        return getattr((user or team), "actor_id")
     except AttributeError:
         raise Exception("target must be either a user or a team")
