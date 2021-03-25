@@ -12,10 +12,12 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
+    OrganizationStatus,
     Project,
     ProjectKey,
     Team,
 )
+from sentry.tasks.deletion import delete_organization
 from sentry.utils.email import create_fake_email
 
 from .data_population import populate_connected_event_scenario_1, generate_releases
@@ -32,7 +34,8 @@ def create_demo_org(quick=False) -> Organization:
 
         slug = slugify(name)
 
-        org = DemoOrganization.create_org(name=name, slug=slug)
+        demo_org = DemoOrganization.create_org(name=name, slug=slug)
+        org = demo_org.organization
 
         logger.info("create_demo_org.created_org", {"organization_slug": slug})
 
@@ -54,12 +57,27 @@ def create_demo_org(quick=False) -> Organization:
             flags=F("flags").bitor(Project.flags.has_transactions)
         )
 
-    # TODO: delete org if data population fails
     logger.info(
-        "create_demo_org.post-transaction", extra={"organization_slug": org.slug, "quick": quick}
+        "create_demo_org.post-transaction",
+        extra={"organization_slug": org.slug, "quick": quick},
     )
-    generate_releases([react_project, python_project], quick=quick)
-    populate_connected_event_scenario_1(react_project, python_project, quick=quick)
+    try:
+        generate_releases([react_project, python_project], quick=quick)
+        populate_connected_event_scenario_1(react_project, python_project, quick=quick)
+    except Exception as e:
+        logger.error(
+            "create_demo_org.population_error",
+            extra={"organization_slug": org.slug, "quick": quick, "error": str(e)},
+        )
+        # delete the organization if data population fails
+        org.status = OrganizationStatus.PENDING_DELETION
+        org.save()
+        delete_organization.apply_async(kwargs={"object_id": org.id})
+        raise
+
+    # update the org status now that it's populated
+    demo_org.status = DemoOrgStatus.PENDING
+    demo_org.save()
 
     return org
 
