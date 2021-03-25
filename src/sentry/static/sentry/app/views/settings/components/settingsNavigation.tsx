@@ -6,8 +6,6 @@ import space from 'app/styles/space';
 import SettingsNavigationGroup from 'app/views/settings/components/settingsNavigationGroup';
 import {NavigationProps, NavigationSection} from 'app/views/settings/types';
 
-const FOOTER_HEIGHT = 93;
-
 type DefaultProps = {
   /**
    * Additional navigation configuration driven by hooks
@@ -71,7 +69,6 @@ const PositionStickyWrapper = styled('div')<{stickyTop: string}>`
     position: sticky;
     top: ${p => p.stickyTop};
     overflow: scroll;
-    height: calc(100vh - ${p => p.stickyTop} - ${FOOTER_HEIGHT}px);
     -ms-overflow-style: none;
     scrollbar-width: none;
 
