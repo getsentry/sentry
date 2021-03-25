@@ -1,7 +1,7 @@
 {
   "get": {
     "tags": ["Events"],
-    "description": "Returns details for given tag key related to an issue.",
+    "description": "Returns details for given tag key related to an issue. \n\nWhen [paginated](/api/pagination) can return at most 1000 values.",
     "operationId": "List a Tag's Values Related to an Issue",
     "parameters": [
       {

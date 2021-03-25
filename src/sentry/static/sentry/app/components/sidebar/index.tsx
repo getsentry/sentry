@@ -11,6 +11,7 @@ import Reflux from 'reflux';
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
 import SidebarPanelActions from 'app/actions/sidebarPanelActions';
 import Feature from 'app/components/acl/feature';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import {
   IconActivity,
@@ -217,7 +218,7 @@ class Sidebar extends React.Component<Props, State> {
         index
         onClick={this.hidePanel}
         icon={<IconProject size="md" />}
-        label={t('Projects')}
+        label={<GuideAnchor target="projects">{t('Projects')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/projects/`}
         id="projects"
       />
@@ -233,7 +234,7 @@ class Sidebar extends React.Component<Props, State> {
           )
         }
         icon={<IconIssues size="md" />}
-        label={t('Issues')}
+        label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/issues/`}
         id="issues"
       />
@@ -251,7 +252,7 @@ class Sidebar extends React.Component<Props, State> {
             this.navigateWithGlobalSelection(getDiscoverLandingUrl(organization), evt)
           }
           icon={<IconTelescope size="md" />}
-          label={t('Discover')}
+          label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
           to={getDiscoverLandingUrl(organization)}
           id="discover-v2"
         />
@@ -273,7 +274,7 @@ class Sidebar extends React.Component<Props, State> {
             )
           }
           icon={<IconLightning size="md" />}
-          label={t('Performance')}
+          label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/performance/`}
           id="performance"
         />
@@ -290,7 +291,7 @@ class Sidebar extends React.Component<Props, State> {
           )
         }
         icon={<IconReleases size="md" />}
-        label={t('Releases')}
+        label={<GuideAnchor target="releases">{t('Releases')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/releases/`}
         id="releases"
       />
@@ -352,7 +353,7 @@ class Sidebar extends React.Component<Props, State> {
 
     const dashboards = hasOrganization && (
       <Feature
-        features={['discover', 'discover-query']}
+        features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
         organization={organization}
         requireAll={false}
       >

@@ -25,6 +25,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.utils import metrics
 from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
@@ -130,7 +131,9 @@ class Project(Model, PendingDeletionMixin):
     def next_short_id(self):
         from sentry.models import Counter
 
-        with sentry_sdk.start_span(op="project.next_short_id") as span:
+        with sentry_sdk.start_span(op="project.next_short_id") as span, metrics.timer(
+            "project.next_short_id"
+        ):
             span.set_data("project_id", self.id)
             span.set_data("project_slug", self.slug)
             return Counter.increment(self)
@@ -269,7 +272,7 @@ class Project(Model, PendingDeletionMixin):
                 for uo in UserOption.objects.filter(
                     key="subscribe_by_default", user__in=members_to_check
                 )
-                if uo.value == "0"
+                if str(uo.value) == "0"
             }
             member_set = [x for x in member_set if x not in disabled]
 

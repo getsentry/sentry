@@ -9,7 +9,6 @@ import GlobalModal from 'app/components/globalModal';
 describe('GlobalModal', function () {
   it('renders', function () {
     const wrapper = mountWithTheme(<GlobalModal />);
-    expect(wrapper).toSnapshot();
     wrapper.unmount();
   });
 

@@ -10,6 +10,7 @@ import {
   QuickTrace,
   QuickTraceEvent,
   TraceFull,
+  TraceFullDetailed,
   TraceLite,
 } from 'app/utils/performance/quickTrace/types';
 
@@ -98,7 +99,7 @@ export function flattenRelevantPaths(
 }
 
 function simplifyEvent(event: TraceFull): QuickTraceEvent {
-  return omit(event, ['children', 'start_timestamp', 'timestamp']);
+  return omit(event, ['children']);
 }
 
 type ParsedQuickTrace = {
@@ -228,7 +229,15 @@ export function getQuickTraceRequestPayload({eventView, location}: DiscoverQuery
   return omit(eventView.getEventsAPIPayload(location), ['field', 'sort', 'per_page']);
 }
 
-export function makeEventView(start: string, end: string) {
+export function makeEventView({
+  start,
+  end,
+  statsPeriod,
+}: {
+  start?: string;
+  end?: string;
+  statsPeriod?: string;
+}) {
   return EventView.fromSavedQuery({
     id: undefined,
     version: 2,
@@ -239,15 +248,15 @@ export function makeEventView(start: string, end: string) {
     projects: [ALL_ACCESS_PROJECTS],
     query: '',
     environment: [],
-    range: '',
     start,
     end,
+    range: statsPeriod,
   });
 }
 
 export function reduceTrace<T>(
-  trace: TraceFull,
-  visitor: (acc: T, e: TraceFull) => T,
+  trace: TraceFullDetailed,
+  visitor: (acc: T, e: TraceFullDetailed) => T,
   initialValue: T
 ): T {
   let result = initialValue;
@@ -270,4 +279,20 @@ export function getTraceTimeRangeFromEvent(event: Event): {start: string; end: s
     : new Date(event.dateCreated).getTime();
   const end = isTransaction(event) ? event.endTimestamp : start;
   return getTraceDateTimeRange({start, end});
+}
+
+export function filterTrace(
+  trace: TraceFullDetailed,
+  predicate: (transaction: TraceFullDetailed) => boolean
+): TraceFullDetailed[] {
+  return reduceTrace<TraceFullDetailed[]>(
+    trace,
+    (transactions, transaction) => {
+      if (predicate(transaction)) {
+        transactions.push(transaction);
+      }
+      return transactions;
+    },
+    []
+  );
 }

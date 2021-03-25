@@ -6,39 +6,43 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserNotificationsSerializer
 from sentry.models import (
-    OrganizationMember,
-    OrganizationMemberTeam,
-    OrganizationStatus,
-    ProjectTeam,
+    NotificationSetting,
+    Project,
     UserOption,
     UserEmail,
 )
+from sentry.models.integration import ExternalProviders
+from sentry.notifications.legacy_mappings import (
+    get_option_value_from_int,
+    get_type_from_fine_tuning_key,
+)
+from sentry.notifications.types import FineTuningAPIKey
 
 
-KEY_MAP = {
-    "alerts": {"key": "mail:alert", "type": int},
-    "workflow": {"key": "workflow:notifications", "type": ""},
-    "deploy": {"key": "deploy-emails", "type": ""},
-    "reports": {"key": "reports:disabled-organizations", "type": ""},
-    "email": {"key": "mail:email", "type": ""},
-}
+INVALID_EMAIL_MSG = (
+    "Invalid email value(s) provided. Email values must be verified emails for the given user."
+)
+INVALID_USER_MSG = (
+    "User does not belong to at least one of the requested organizations (org_id: %s)."
+)
 
 
 class UserNotificationFineTuningEndpoint(UserEndpoint):
     def get(self, request, user, notification_type):
-        if notification_type not in KEY_MAP:
+        try:
+            notification_type = FineTuningAPIKey(notification_type)
+        except ValueError:
             return Response(
                 {"detail": "Unknown notification type: %s." % notification_type},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
         notifications = UserNotificationsSerializer()
-
         serialized = serialize(
             user,
             request.user,
             notifications,
-            notification_option_key=KEY_MAP[notification_type]["key"],
+            notification_type=notification_type,
         )
         return Response(serialized)
 
@@ -65,57 +69,18 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         :pparam string notification_type:  One of:  alerts, workflow, reports, deploy, email
         :param map: Expects a map of id -> value (enabled or email)
         """
-
-        if notification_type not in KEY_MAP:
+        try:
+            notification_type = FineTuningAPIKey(notification_type)
+        except ValueError:
             return Response(
                 {"detail": "Unknown notification type: %s." % notification_type},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        key = KEY_MAP[notification_type]
-        filter_args = {"user": user, "key": key["key"]}
+        if notification_type == FineTuningAPIKey.REPORTS:
+            return self._handle_put_reports(user, request.data)
 
-        if notification_type == "reports":
-            (user_option, created) = UserOption.objects.get_or_create(**filter_args)
-
-            value = set(user_option.value or [])
-
-            # set of org ids that user is a member of
-            org_ids = self.get_org_ids(user)
-            for org_id, enabled in request.data.items():
-                org_id = int(org_id)
-                # We want "0" to be falsey
-                enabled = int(enabled)
-
-                # make sure user is in org
-                if org_id not in org_ids:
-                    return Response(
-                        {
-                            "detail": "User does not belong to at least one of the \
-                            requested orgs (org_id: %s)."
-                            % org_id
-                        },
-                        status=status.HTTP_403_FORBIDDEN,
-                    )
-
-                # list contains org ids that should have reports DISABLED
-                # so if enabled need to check if org_id exists in list (because by default
-                # they will have reports enabled)
-                if enabled and org_id in value:
-                    value.remove(org_id)
-                elif not enabled:
-                    value.add(org_id)
-
-            user_option.update(value=list(value))
-            return Response(status=status.HTTP_204_NO_CONTENT)
-
-        if notification_type in ["alerts", "workflow", "email"]:
-            update_key = "project"
-            parent_ids = set(self.get_project_ids(user))
-        else:
-            update_key = "organization"
-            parent_ids = set(self.get_org_ids(user))
-
+        # Validate that all of the IDs are integers.
         try:
             ids_to_update = {int(i) for i in request.data.keys()}
         except ValueError:
@@ -124,8 +89,12 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # make sure that the ids we are going to update are a subset of the user's
-        # list of orgs or projects
+        # Make sure that the IDs we are going to update are a subset of the
+        # user's list of organizations or projects.
+        parents = (
+            user.get_orgs() if notification_type == FineTuningAPIKey.DEPLOY else user.get_projects()
+        )
+        parent_ids = {parent.id for parent in parents}
         if not ids_to_update.issubset(parent_ids):
             bad_ids = ids_to_update - parent_ids
             return Response(
@@ -138,57 +107,96 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if notification_type == "email":
-            # make sure target emails exist and are verified
-            emails_to_check = set(request.data.values())
-            emails = UserEmail.objects.filter(
-                user=user, email__in=emails_to_check, is_verified=True
-            )
+        if notification_type == FineTuningAPIKey.EMAIL:
+            return self._handle_put_emails(user, request.data)
 
-            # Is there a better way to check this?
-            if len(emails) != len(emails_to_check):
+        return self._handle_put_notification_settings(
+            user, notification_type, parents, request.data
+        )
+
+    @staticmethod
+    def _handle_put_reports(user, data):
+        user_option, _ = UserOption.objects.get_or_create(
+            user=user,
+            key="reports:disabled-organizations",
+        )
+
+        value = set(user_option.value or [])
+
+        # The set of IDs of the organizations of which the user is a member.
+        org_ids = {organization.id for organization in user.get_orgs()}
+        for org_id, enabled in data.items():
+            org_id = int(org_id)
+            # We want "0" to be falsey
+            enabled = int(enabled)
+
+            # make sure user is in org
+            if org_id not in org_ids:
                 return Response(
-                    {
-                        "detail": "Invalid email value(s) provided. Email values \
-                        must be verified emails for the given user."
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
+                    {"detail": INVALID_USER_MSG % org_id}, status=status.HTTP_403_FORBIDDEN
                 )
 
+            # The list contains organization IDs that should have reports
+            # DISABLED. If enabled, we need to check if org_id exists in list
+            # (because by default they will have reports enabled.)
+            if enabled and org_id in value:
+                value.remove(org_id)
+            elif not enabled:
+                value.add(org_id)
+
+        user_option.update(value=list(value))
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @staticmethod
+    def _handle_put_emails(user, data):
+        # Make sure target emails exist and are verified
+        emails_to_check = set(data.values())
+        emails = UserEmail.objects.filter(user=user, email__in=emails_to_check, is_verified=True)
+
+        # TODO(mgaeta): Is there a better way to check this?
+        if len(emails) != len(emails_to_check):
+            return Response({"detail": INVALID_EMAIL_MSG}, status=status.HTTP_400_BAD_REQUEST)
+
+        project_ids = [int(id) for id in data.keys()]
+        projects_map = {
+            int(project.id): project for project in Project.objects.filter(id__in=project_ids)
+        }
+
         with transaction.atomic():
-            for id in request.data:
-                val = request.data[id]
-                int_val = int(val) if notification_type != "email" else None
+            for id, value in data.items():
+                user_option, CREATED = UserOption.objects.get_or_create(
+                    user=user,
+                    key="mail:email",
+                    project=projects_map[int(id)],
+                )
+                user_option.update(value=str(value))
 
-                filter_args["%s_id" % update_key] = id
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-                # 'email' doesn't have a default to delete, and it's a string
-                # -1 is a magic value to use "default" value, so just delete option
-                if int_val == -1:
-                    UserOption.objects.filter(**filter_args).delete()
-                else:
-                    user_option, _ = UserOption.objects.get_or_create(**filter_args)
+    @staticmethod
+    def _handle_put_notification_settings(user, notification_type: FineTuningAPIKey, parents, data):
+        with transaction.atomic():
+            for parent in parents:
+                # We fetched every available parent but only care about the ones in `request.data`.
+                if str(parent.id) not in data:
+                    continue
 
-                    # Values have been saved as strings for `mail:alerts` *shrug*
-                    # `reports:disabled-organizations` requires an array of ids
-                    user_option.update(value=int_val if key["type"] is int else str(val))
+                # This partitioning always does the same thing because notification_type stays constant.
+                project_option, organization_option = (
+                    (None, parent)
+                    if notification_type == FineTuningAPIKey.DEPLOY
+                    else (parent, None)
+                )
 
-            return Response(status=status.HTTP_204_NO_CONTENT)
+                type = get_type_from_fine_tuning_key(notification_type)
+                value = int(data[str(parent.id)])
+                NotificationSetting.objects.update_settings(
+                    ExternalProviders.EMAIL,
+                    type,
+                    get_option_value_from_int(type, value),
+                    user=user,
+                    project=project_option,
+                    organization=organization_option,
+                )
 
-    def get_org_ids(self, user):
-        """ Get org ids for user """
-        return set(
-            OrganizationMember.objects.filter(
-                user=user, organization__status=OrganizationStatus.ACTIVE
-            ).values_list("organization_id", flat=True)
-        )
-
-    def get_project_ids(self, user):
-        """ Get project ids that user has access to """
-        return set(
-            ProjectTeam.objects.filter(
-                team_id__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__user=user
-                ).values_list("team_id", flat=True)
-            ).values_list("project_id", flat=True)
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)

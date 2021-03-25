@@ -47,10 +47,12 @@ export enum DynamicSamplingInnerOperator {
 export enum DynamicSamplingInnerName {
   TRACE_RELEASE = 'trace.release',
   TRACE_ENVIRONMENT = 'trace.environment',
-  TRACE_USER = 'trace.user',
+  TRACE_USER_ID = 'trace.user.id',
+  TRACE_USER_SEGMENT = 'trace.user.segment',
   EVENT_RELEASE = 'event.release',
   EVENT_ENVIRONMENT = 'event.environment',
-  EVENT_USER = 'event.user',
+  EVENT_USER_ID = 'event.user.id',
+  EVENT_USER_SEGMENT = 'event.user.segment',
   EVENT_LOCALHOST = 'event.is_local_ip',
   EVENT_WEB_CRAWLERS = 'event.web_crawlers',
   EVENT_BROWSER_EXTENSIONS = 'event.has_bad_browser_extensions',
@@ -79,8 +81,10 @@ type DynamicSamplingConditionLogicalInnerEq = {
   name:
     | DynamicSamplingInnerName.EVENT_ENVIRONMENT
     | DynamicSamplingInnerName.TRACE_ENVIRONMENT
-    | DynamicSamplingInnerName.EVENT_USER
-    | DynamicSamplingInnerName.TRACE_USER;
+    | DynamicSamplingInnerName.EVENT_USER_ID
+    | DynamicSamplingInnerName.TRACE_USER_ID
+    | DynamicSamplingInnerName.EVENT_USER_SEGMENT
+    | DynamicSamplingInnerName.TRACE_USER_SEGMENT;
   value: Array<string>;
   options: {
     ignoreCase: boolean;

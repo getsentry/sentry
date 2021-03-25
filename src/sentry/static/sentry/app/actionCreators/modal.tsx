@@ -5,6 +5,7 @@ import {css} from '@emotion/core';
 
 import ModalActions from 'app/actions/modalActions';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
+import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
 import {DebugFileSource, Group, Organization, Project, SentryApp, Team} from 'app/types';
 import {Event} from 'app/types/event';
 
@@ -222,4 +223,17 @@ export async function openAddDashboardWidgetModal(options: DashboardWidgetModalO
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+}
+
+export async function openReprocessEventModal({
+  onClose,
+  ...options
+}: ReprocessEventModalOptions & {onClose?: () => void}) {
+  const mod = await import(
+    /* webpackChunkName: "ReprocessEventModal" */ 'app/components/modals/reprocessEventModal'
+  );
+
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {onClose});
 }

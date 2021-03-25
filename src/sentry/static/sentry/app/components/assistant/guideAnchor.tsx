@@ -22,9 +22,8 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 type Props = {
-  target?: string;
-  position?: string;
-  disabled?: boolean;
+  target?: string; //Shouldn't target be mandatory?
+  position?: React.ComponentProps<typeof Hovercard>['position'];
   offset?: string;
   to?: {
     pathname: string;
@@ -48,7 +47,7 @@ type State = {
  * from one or more anchors on the page to determine which guides can
  * be shown on the page.
  */
-const GuideAnchor = createReactClass<Props, State>({
+export const GuideAnchor = createReactClass<Props, State>({
   mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange') as any],
 
   getInitialState() {
@@ -184,10 +183,10 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 
   render() {
-    const {disabled, children, position, offset, containerClassName} = this.props;
+    const {children, position, offset, containerClassName} = this.props;
     const {active} = this.state;
 
-    if (!active || disabled) {
+    if (!active) {
       return children ? children : null;
     }
 
@@ -206,6 +205,22 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 });
 
+/**
+ * Wraps the GuideAnchor so we don't have to render it if it's disabled
+ * Using a class so we automatically have children as a typed prop
+ */
+
+type WrapperProps = {disabled?: boolean} & Props;
+export default class GuideAnchorWrapper extends React.Component<WrapperProps> {
+  render() {
+    const {disabled, children, ...rest} = this.props;
+    if (disabled) {
+      return children;
+    }
+    return <GuideAnchor {...rest}>{children}</GuideAnchor>;
+  }
+}
+
 const GuideContainer = styled('div')`
   display: grid;
   grid-template-rows: repeat(2, auto);
@@ -214,7 +229,7 @@ const GuideContainer = styled('div')`
   line-height: 1.5;
   background-color: ${p => p.theme.purple300};
   border-color: ${p => p.theme.purple300};
-  color: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.white};
 `;
 
 const GuideContent = styled('div')`
@@ -223,7 +238,7 @@ const GuideContent = styled('div')`
   grid-gap: ${space(1)};
 
   a {
-    color: ${p => p.theme.backgroundSecondary};
+    color: ${p => p.theme.white};
     text-decoration: underline;
   }
 `;
@@ -273,5 +288,3 @@ const StyledHovercard = styled(Hovercard)`
     width: 300px;
   }
 `;
-
-export default GuideAnchor;
