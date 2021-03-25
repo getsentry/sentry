@@ -43,7 +43,7 @@ class IncidentSerializer(Serializer):
                 results[incident]["has_seen"] = has_seen
 
         if "activities" in self.expand:
-            activities = IncidentActivity.objects.filter(incident__in=item_list)
+            activities = list(IncidentActivity.objects.filter(incident__in=item_list))
             incident_activities = defaultdict(list)
             for activity, serialized_activity in zip(activities, serialize(activities, user=user)):
                 incident_activities[activity.incident_id].append(serialized_activity)
