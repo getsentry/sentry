@@ -1,4 +1,5 @@
 from pytz import utc
+import pytest
 
 from django.core.urlresolvers import reverse
 
@@ -459,6 +460,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["issue"] == "unknown"
 
+    @pytest.mark.skip("Cannot look up group_id of transaction events")
     def test_unknown_issue(self):
         project = self.create_project()
         event = self.store_event(
