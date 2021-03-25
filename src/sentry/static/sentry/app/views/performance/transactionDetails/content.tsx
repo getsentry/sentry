@@ -156,7 +156,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 organization={organization}
                 projectId={this.projectId}
                 location={location}
-                errorDest="performance"
+                errorDest="issue"
                 transactionDest="performance"
               />
             </Layout.Main>
