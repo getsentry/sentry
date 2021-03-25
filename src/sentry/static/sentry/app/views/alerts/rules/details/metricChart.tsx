@@ -6,9 +6,9 @@ import moment from 'moment';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
-import EventsRequest from 'app/components/charts/eventsRequest';
 import Graphic from 'app/components/charts/components/graphic';
 import MarkLine from 'app/components/charts/components/markLine';
+import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
@@ -38,11 +38,11 @@ type Props = {
     custom?: boolean;
   };
   organization: Organization;
-  projects: Project[] | AvatarProject[],
+  projects: Project[] | AvatarProject[];
   metricText: React.ReactNode;
   interval: string;
-  query: string,
-  orgId: string,
+  query: string;
+  orgId: string;
 };
 
 type State = {
@@ -147,7 +147,7 @@ export default class MetricChart extends React.PureComponent<Props, State> {
     }
   };
 
-  getRuleChangeThresholdElements = (data) => {
+  getRuleChangeThresholdElements = data => {
     const {height, width} = this.state;
     const {dateModified} = this.props.rule || {};
 
@@ -196,7 +196,11 @@ export default class MetricChart extends React.PureComponent<Props, State> {
     ];
   };
 
-  renderChartActions(totalDuration: number, criticalDuration: number, warningDuration: number) {
+  renderChartActions(
+    totalDuration: number,
+    criticalDuration: number,
+    warningDuration: number
+  ) {
     const {rule, orgId, projects, timePeriod} = this.props;
     const preset = this.metricPreset;
     const ctaOpts = {
@@ -211,9 +215,12 @@ export default class MetricChart extends React.PureComponent<Props, State> {
       ? preset.makeCtaParams(ctaOpts)
       : makeDefaultCta(ctaOpts);
 
-    const resolvedPercent = (100 * (totalDuration - criticalDuration - warningDuration) / totalDuration).toFixed(2);
-    const criticalPercent = (100 * criticalDuration / totalDuration).toFixed(2);
-    const warningPercent = (100 * warningDuration / totalDuration).toFixed(2);
+    const resolvedPercent = (
+      (100 * (totalDuration - criticalDuration - warningDuration)) /
+      totalDuration
+    ).toFixed(2);
+    const criticalPercent = ((100 * criticalDuration) / totalDuration).toFixed(2);
+    const warningPercent = ((100 * warningDuration) / totalDuration).toFixed(2);
 
     return (
       <ChartActions>
@@ -243,7 +250,12 @@ export default class MetricChart extends React.PureComponent<Props, State> {
     );
   }
 
-  renderChart(data: LineChartSeries[], series: LineChartSeries[], maxThresholdValue: number, maxSeriesValue: number) {
+  renderChart(
+    data: LineChartSeries[],
+    series: LineChartSeries[],
+    maxThresholdValue: number,
+    maxSeriesValue: number
+  ) {
     return (
       <LineChart
         isGroupedByDate
@@ -269,7 +281,6 @@ export default class MetricChart extends React.PureComponent<Props, State> {
     );
   }
 
-
   renderEmpty() {
     return (
       <ChartPanel>
@@ -277,7 +288,7 @@ export default class MetricChart extends React.PureComponent<Props, State> {
           <Placeholder height="200px" />
         </PanelBody>
       </ChartPanel>
-    )
+    );
   }
 
   render() {
@@ -300,7 +311,6 @@ export default class MetricChart extends React.PureComponent<Props, State> {
     const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
     const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
 
-
     return (
       <EventsRequest
         api={api}
@@ -317,7 +327,7 @@ export default class MetricChart extends React.PureComponent<Props, State> {
         partial={false}
       >
         {({loading, timeseriesData}) => {
-          if(loading || !timeseriesData) {
+          if (loading || !timeseriesData) {
             return this.renderEmpty();
           }
 
@@ -360,12 +370,14 @@ export default class MetricChart extends React.PureComponent<Props, State> {
                     ({type, value}) =>
                       type === IncidentActivityType.STATUS_CHANGE &&
                       value &&
-                      [`${IncidentStatus.WARNING}`, `${IncidentStatus.CRITICAL}`].includes(
-                        value
-                      )
+                      [
+                        `${IncidentStatus.WARNING}`,
+                        `${IncidentStatus.CRITICAL}`,
+                      ].includes(value)
                   )
                   .sort(
-                    (a, b) => moment(a.dateCreated).valueOf() - moment(b.dateCreated).valueOf()
+                    (a, b) =>
+                      moment(a.dateCreated).valueOf() - moment(b.dateCreated).valueOf()
                   );
 
                 const incidentEnd = incident.dateClosed ?? moment().valueOf();
@@ -374,18 +386,22 @@ export default class MetricChart extends React.PureComponent<Props, State> {
 
                 series.push(
                   createIncidentSeries(
-                    rule.triggers.find(({label}) => label === 'warning')
-                    && (statusChanges && !statusChanges.find(({value}) => value === `${IncidentStatus.CRITICAL}`))
+                    rule.triggers.find(({label}) => label === 'warning') &&
+                      statusChanges &&
+                      !statusChanges.find(
+                        ({value}) => value === `${IncidentStatus.CRITICAL}`
+                      )
                       ? theme.yellow300
                       : theme.red300,
                     moment(incident.dateStarted).valueOf(),
-                    incident.identifier,
+                    incident.identifier
                   )
                 );
                 const areaStart = moment(incident.dateStarted).valueOf();
-                const areaEnd = statusChanges?.length && statusChanges[0].dateCreated
-                  ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
-                  : moment(incidentEnd).valueOf();
+                const areaEnd =
+                  statusChanges?.length && statusChanges[0].dateCreated
+                    ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
+                    : moment(incidentEnd).valueOf();
                 const areaColor = rule.triggers.find(({label}) => label === 'warning')
                   ? theme.yellow300
                   : theme.red300;
@@ -397,15 +413,20 @@ export default class MetricChart extends React.PureComponent<Props, State> {
                 }
 
                 statusChanges?.forEach((activity, idx) => {
-                  const statusAreaStart = moment(activity.dateCreated).valueOf() - timeWindowMs;
+                  const statusAreaStart =
+                    moment(activity.dateCreated).valueOf() - timeWindowMs;
                   const statusAreaColor =
                     activity.value === `${IncidentStatus.CRITICAL}`
                       ? theme.red300
                       : theme.yellow300;
-                  const statusAreaEnd = idx === statusChanges.length - 1
-                    ? moment(incidentEnd).valueOf()
-                    : moment(statusChanges[idx + 1].dateCreated).valueOf() - timeWindowMs
-                  series.push(createStatusAreaSeries(statusAreaColor, areaStart, statusAreaEnd));
+                  const statusAreaEnd =
+                    idx === statusChanges.length - 1
+                      ? moment(incidentEnd).valueOf()
+                      : moment(statusChanges[idx + 1].dateCreated).valueOf() -
+                        timeWindowMs;
+                  series.push(
+                    createStatusAreaSeries(statusAreaColor, areaStart, statusAreaEnd)
+                  );
                   if (statusAreaColor === theme.yellow300) {
                     warningDuration += statusAreaEnd - statusAreaStart;
                   } else {
@@ -418,14 +439,20 @@ export default class MetricChart extends React.PureComponent<Props, State> {
           let maxThresholdValue = 0;
           if (warningTrigger?.alertThreshold) {
             const {alertThreshold} = warningTrigger;
-            const warningThresholdLine = createThresholdSeries(theme.yellow300, alertThreshold);
+            const warningThresholdLine = createThresholdSeries(
+              theme.yellow300,
+              alertThreshold
+            );
             series.push(warningThresholdLine);
             maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
           }
 
           if (criticalTrigger?.alertThreshold) {
             const {alertThreshold} = criticalTrigger;
-            const criticalThresholdLine = createThresholdSeries(theme.red300, alertThreshold);
+            const criticalThresholdLine = createThresholdSeries(
+              theme.red300,
+              alertThreshold
+            );
             series.push(criticalThresholdLine);
             maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
           }
@@ -434,16 +461,19 @@ export default class MetricChart extends React.PureComponent<Props, State> {
             <ChartPanel>
               <PanelBody withPadding>
                 <ChartHeader>
-                  <PresetName>
-                    {this.metricPreset?.name ?? t('Custom metric')}
-                  </PresetName>
+                  <PresetName>{this.metricPreset?.name ?? t('Custom metric')}</PresetName>
                   {metricText}
                 </ChartHeader>
-                {this.renderChart(timeseriesData, series, maxThresholdValue, maxSeriesValue)}
+                {this.renderChart(
+                  timeseriesData,
+                  series,
+                  maxThresholdValue,
+                  maxSeriesValue
+                )}
               </PanelBody>
               {this.renderChartActions(totalDuration, criticalDuration, warningDuration)}
             </ChartPanel>
-          )
+          );
         }}
       </EventsRequest>
     );
