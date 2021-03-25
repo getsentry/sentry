@@ -37,19 +37,18 @@ class IncidentSerializer(Serializer):
             results[incident] = {"projects": incident_projects.get(incident.id, [])}
             results[incident]["alert_rule"] = alert_rules.get(str(incident.alert_rule.id))
 
-            if "activities" in self.expand:
-                results[incident]["activities"] = serialize(
-                    list(
-                        IncidentActivity.objects.filter(incident=incident).select_related(
-                            "user", "incident"
-                        )
-                    )
-                )
-
             if "seen_by" in self.expand:
                 (seen_by, has_seen) = self._get_incident_seen_list(incident, user)
                 results[incident]["seen_by"] = seen_by
                 results[incident]["has_seen"] = has_seen
+
+        if "activities" in self.expand:
+            activities = IncidentActivity.objects.filter(incident__in=item_list)
+            incident_activities = defaultdict(list)
+            for activity, serialized_activity in zip(activities, serialize(activities, user=user)):
+                incident_activities[activity.incident_id].append(serialized_activity)
+            for incident in item_list:
+                results[incident]["activities"] = incident_activities[incident.id]
 
         return results
 
@@ -72,9 +71,9 @@ class IncidentSerializer(Serializer):
             "organizationId": str(obj.organization_id),
             "projects": attrs["projects"],
             "alertRule": attrs["alert_rule"],
-            "activities": attrs["activities"],
-            "seenBy": attrs["seen_by"],
-            "hasSeen": attrs["has_seen"],
+            "activities": attrs["activities"] if "activities" in self.expand else None,
+            "seenBy": attrs["seen_by"] if "seen_by" in self.expand else None,
+            "hasSeen": attrs["has_seen"] if "seen_by" in self.expand else None,
             "status": obj.status,
             "statusMethod": obj.status_method,
             "type": obj.type,
@@ -88,6 +87,7 @@ class IncidentSerializer(Serializer):
 
 class DetailedIncidentSerializer(IncidentSerializer):
     def __init__(self, expand=None):
+        super().__init__(expand=expand)
         if expand is None:
             expand = ["seen_by"]
         elif "seen_by" not in expand:
