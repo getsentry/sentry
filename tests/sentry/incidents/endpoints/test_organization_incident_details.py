@@ -61,7 +61,7 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
         assert resp.data["dateDetected"] == expected["dateDetected"]
         assert resp.data["dateCreated"] == expected["dateCreated"]
         assert resp.data["projects"] == expected["projects"]
-        assert resp.data["seenBy"] == seen_by
+        assert [item["id"] for item in resp.data["seenBy"]] == [item["id"] for item in seen_by]
 
 
 class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase):
