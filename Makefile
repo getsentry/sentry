@@ -4,9 +4,7 @@ WEBPACK := yarn build-acceptance
 bootstrap: develop init-config run-dependent-services create-db apply-migrations build-platform-assets
 
 develop:
-	@./scripts/do.sh setup-git
-	@./scripts/do.sh install-js-dev
-	@./scripts/do.sh install-py-dev
+	@./scripts/do.sh develop
 
 clean:
 	@echo "--> Cleaning static cache"

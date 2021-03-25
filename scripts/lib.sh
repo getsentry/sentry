@@ -79,3 +79,9 @@ install-js-dev() {
     # Add an additional check against `node_modules`
     yarn check --verify-tree || yarn install --check-files
 }
+
+develop() {
+    setup-git
+    install-js-dev
+    install-py-dev
+}
