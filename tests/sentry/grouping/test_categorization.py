@@ -211,22 +211,24 @@ def cleanup_unused_data():
             modified |= _strip_unknown_keys(get_path(exception, "stacktrace"), ["frames"])
 
             for frame in get_path(exception, "stacktrace", "frames") or ():
-                if not get_path(frame, "data", "category"):
+                # the following fields are inserted as part of the test,
+                # they should not be written back, but we should also not
+                # count removing them as modification
+                category = frame["data"].pop("category", None)
+                frame.pop("in_app", None)
+                frame["data"].pop("orig_in_app", None)
+
+                if not frame["data"]:
+                    del frame["data"]
+
+                modified |= _strip_unknown_keys(
+                    frame, ["package", "filename", "function", "abs_path", "module"]
+                )
+
+                if not category:
                     modified |= frame != {"function": "stripped_application_code"}
                     frame.clear()
                     frame["function"] = "stripped_application_code"
-                else:
-                    # the following fields are inserted as part of the test,
-                    # they should not be written back, but we should also not
-                    # count removing them as modification
-                    del frame["data"]["category"]
-                    frame.pop("in_app", None)
-                    frame["data"].pop("orig_in_app", None)
-
-                    modified |= _strip_unknown_keys(frame["data"], [])
-                    modified |= _strip_unknown_keys(
-                        frame, ["package", "filename", "function", "abs_path", "module", "data"]
-                    )
 
         if modified:
             files_modified.append((input, data))

@@ -16,7 +16,6 @@
           "frames": [
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "start",
               "package": "/usr/lib/system/libdyld.dylib"
@@ -35,35 +34,30 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CFRunLoopRun",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CFRunLoopRunSpecific",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__CFRunLoopRun",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__CFRunLoopDoBlocks",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
@@ -82,7 +76,6 @@
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
               "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "Example App 2020.app/Contents/abcaudiofilterscan.app/Contents/Frameworks/abccore.framework/Versions/A/abccore"
@@ -95,7 +88,6 @@
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
               "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "Example App 2020.app/Contents/abcaudiofilterscan.app/Contents/Frameworks/abccore.framework/Versions/A/abccore"
@@ -126,28 +118,24 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CFBundleGetFunctionPointerForName",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_CFBundleLoadExecutableAndReturnError",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_CFBundleDlfcnLoadBundle",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "dlopen",
               "package": "/usr/lib/system/libdyld.dylib"
@@ -199,7 +187,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "memcmp",
               "package": "/usr/lib/dyld"

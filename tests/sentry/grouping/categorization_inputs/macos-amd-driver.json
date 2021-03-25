@@ -16,7 +16,6 @@
           "frames": [
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "start",
               "module": null,
@@ -63,7 +62,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[NSRunLoop(NSRunLoop) runMode:beforeDate:]",
               "module": null,
@@ -71,7 +69,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CFRunLoopRunSpecific",
               "module": null,
@@ -79,7 +76,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__CFRunLoopRun",
               "module": null,
@@ -87,7 +83,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__CFRunLoopDoSources0",
               "module": null,
@@ -95,7 +90,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__CFRunLoopDoSource0",
               "module": null,
@@ -103,7 +97,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__",
               "module": null,
@@ -168,7 +161,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "glTexSubImage2D",
               "module": null,
@@ -176,7 +168,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "glTexSubImage2D_Exec",
               "module": null,
@@ -184,7 +175,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gleTextureImagePut",
               "module": null,
@@ -192,7 +182,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "module": null,
@@ -200,7 +189,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gpusSubmitDataBuffers",
               "module": null,
@@ -208,7 +196,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "module": null,
@@ -216,7 +203,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gpusGenerateCrashLog",
               "module": null,
@@ -224,7 +210,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gpusGenerateCrashLog.cold.1",
               "module": null,
@@ -232,7 +217,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "abort",
               "module": null,
@@ -240,7 +224,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__pthread_kill",
               "module": null,

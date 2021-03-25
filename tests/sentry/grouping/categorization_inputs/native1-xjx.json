@@ -16,14 +16,12 @@
           "frames": [
             {
               "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.25.28610\\include\\functional",
-              "data": {},
               "filename": "functional",
               "function": "std::_Func_impl_no_alloc<T>::_Delete_this",
               "package": "C:\\Program Files\\Company\\Example App 2020\\Mezzanine.dll"
             },
             {
               "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.25.28610\\include\\xmemory",
-              "data": {},
               "filename": "xmemory",
               "function": "std::_Deallocate",
               "package": "C:\\Program Files\\Company\\Example App 2020\\Mezzanine.dll"
@@ -63,7 +61,6 @@
             },
             {
               "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\function\\function_template.hpp",
-              "data": {},
               "filename": "function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "C:\\Program Files\\Company\\Example App 2020\\Frontend.dll"
@@ -82,21 +79,18 @@
             },
             {
               "abs_path": "d:\\agent\\_work\\1\\s\\src\\vctools\\crt\\vcruntime\\src\\misc\\purevirt.cpp",
-              "data": {},
               "filename": "purevirt.cpp",
               "function": "_purecall",
               "package": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "abort",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "raise",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"

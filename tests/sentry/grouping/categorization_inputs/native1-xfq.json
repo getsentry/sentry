@@ -16,7 +16,6 @@
           "frames": [
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "start",
               "package": "/usr/lib/system/libdyld.dylib"
@@ -41,7 +40,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
@@ -54,42 +52,36 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
@@ -111,7 +103,6 @@
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
               "filename": "../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "Frontend.framework/Versions/A/Frontend"
@@ -121,7 +112,6 @@
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
               "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "abccore.framework/Versions/A/abccore"
@@ -146,7 +136,6 @@
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
               "filename": "../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "Frontend.framework/Versions/A/Frontend"
@@ -198,7 +187,6 @@
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
               "filename": "../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "Frontend.framework/Versions/A/Frontend"
@@ -214,7 +202,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__dynamic_cast",
               "package": "/usr/lib/libc++abi.dylib"

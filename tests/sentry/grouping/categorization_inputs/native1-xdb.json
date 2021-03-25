@@ -16,14 +16,12 @@
           "frames": [
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "RtlUserThreadStart",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "BaseThreadInitThunk",
               "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
@@ -33,98 +31,84 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "exit",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "exit",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "FatalExit",
               "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "RtlExitUserProcess",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "LdrShutdownProcess",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "LdrpCallInitRoutine",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_local_stdio_scanf_options",
               "package": "C:\\Windows\\System32\\WindowManagementAPI.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_local_stdio_scanf_options",
               "package": "C:\\Windows\\System32\\WindowManagementAPI.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__crt_state_management::wrapped_invoke<T>",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "execute_onexit_table",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "execute_onexit_table",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "execute_onexit_table",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "wil::AsyncEventSourceT<T>::~AsyncEventSourceT<T>",
               "package": "C:\\Windows\\System32\\WindowManagementAPI.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "RtlpWakeByAddress",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"

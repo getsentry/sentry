@@ -16,14 +16,12 @@
           "frames": [
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "RtlUserThreadStart",
               "package": "C:\\windows\\SYSTEM32\\ntdll.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "BaseThreadInitThunk",
               "package": "C:\\windows\\System32\\KERNEL32.DLL"
@@ -33,42 +31,36 @@
             },
             {
               "abs_path": "D:\\agent\\_work\\9\\s\\src\\vctools\\crt\\vcstartup\\src\\startup\\exe_common.inl",
-              "data": {},
               "filename": "exe_common.inl",
               "function": "invoke_main",
               "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
             },
             {
               "abs_path": "D:\\releases\\abc\\Farming Simulator\\Frontend\\Src\\Win\\WinMain.cpp",
-              "data": {},
               "filename": "WinMain.cpp",
               "function": "wWinMain",
               "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
             },
             {
               "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
-              "data": {},
               "filename": "xstring",
               "function": "std::basic_string<T>::{ctor}",
               "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
             },
             {
               "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
-              "data": {},
               "filename": "xstring",
               "function": "std::basic_string<T>::assign",
               "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
             },
             {
               "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
-              "data": {},
               "filename": "xstring",
               "function": "std::basic_string<T>::assign",
               "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
             },
             {
               "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
-              "data": {},
               "filename": "xstring",
               "function": "std::basic_string<T>::_Reallocate_for",
               "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
@@ -93,7 +85,6 @@
             },
             {
               "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\functional",
-              "data": {},
               "filename": "functional",
               "function": "std::_Func_class<T>::operator()",
               "package": "C:\\Program Files\\Company\\Example App 2020\\Frontend.dll"
@@ -103,14 +94,12 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "DispatchMessageWorker",
               "package": "C:\\windows\\System32\\USER32.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "UserCallWinProcCheckWow",
               "package": "C:\\windows\\System32\\USER32.dll"
@@ -129,7 +118,6 @@
             },
             {
               "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\function\\function_template.hpp",
-              "data": {},
               "filename": "function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "C:\\Program Files\\Company\\Example App 2020\\Frontend.dll"
@@ -139,28 +127,24 @@
             },
             {
               "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\function\\function_template.hpp",
-              "data": {},
               "filename": "function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "C:\\Program Files\\Company\\Example App 2020\\abcui.dll"
             },
             {
               "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\function\\function_template.hpp",
-              "data": {},
               "filename": "function_template.hpp",
               "function": "boost::detail::function::function_obj_invoker0<T>::invoke",
               "package": "C:\\Program Files\\Company\\Example App 2020\\abcui.dll"
             },
             {
               "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\bind\\bind.hpp",
-              "data": {},
               "filename": "bind.hpp",
               "function": "boost::_bi::bind_t<T>::operator()",
               "package": "C:\\Program Files\\Company\\Example App 2020\\abcui.dll"
             },
             {
               "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\bind\\bind.hpp",
-              "data": {},
               "filename": "bind.hpp",
               "function": "boost::_bi::list5<T>::operator()",
               "package": "C:\\Program Files\\Company\\Example App 2020\\abcui.dll"
@@ -206,7 +190,6 @@
             },
             {
               "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\function\\function_template.hpp",
-              "data": {},
               "filename": "function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "C:\\Program Files\\Company\\Example App 2020\\Frontend.dll"
@@ -237,7 +220,6 @@
             },
             {
               "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xutility",
-              "data": {},
               "filename": "xutility",
               "function": "std::fill",
               "package": "C:\\Program Files\\Company\\Example App 2020\\abccore.dll"
@@ -250,21 +232,18 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "malloc_base",
               "package": "C:\\windows\\System32\\ucrtbase.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "RtlpAllocateHeapInternal",
               "package": "C:\\windows\\SYSTEM32\\ntdll.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "memset",
               "package": "C:\\windows\\SYSTEM32\\VCRUNTIME140.dll"
@@ -274,42 +253,36 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "VTableBootstrapThunkInitHelperStub",
               "package": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscoreei.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "VTableBootstrapThunkInitHelper",
               "package": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscoreei.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CorDllMainWorkerForThunk",
               "package": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscoreei.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CorDllMainForThunk",
               "package": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\clr.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "RaiseComPlusException",
               "package": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\clr.dll"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "RaiseException",
               "package": "C:\\windows\\System32\\KERNELBASE.dll"

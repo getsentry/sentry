@@ -14,62 +14,50 @@
               "function": "stripped_application_code"
             },
             {
-              "data": {},
               "function": "glDeleteTextures_Exec",
               "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLEngine.bundle/GLEngine"
             },
             {
-              "data": {},
               "function": "gleUnbindDeleteHashNamesAndObjects",
               "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLEngine.bundle/GLEngine"
             },
             {
-              "data": {},
               "function": "gleUnbindTextureObject",
               "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLEngine.bundle/GLEngine"
             },
             {
-              "data": {},
               "function": "gldUpdateDispatch",
               "package": "/System/Library/Extensions/GeForceGLDriver.bundle/Contents/MacOS/GeForceGLDriver"
             },
             {
-              "data": {},
               "function": "gldUpdateDispatch",
               "package": "/System/Library/Extensions/GeForceGLDriver.bundle/Contents/MacOS/GeForceGLDriver"
             },
             {
-              "data": {},
               "function": "gpusSubmitDataBuffers",
               "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
             },
             {
-              "data": {},
               "function": "gldCreateDevice",
               "package": "/System/Library/Extensions/GeForceGLDriver.bundle/Contents/MacOS/GeForceGLDriver"
             },
             {
-              "data": {},
               "function": "gpusGenerateCrashLog",
               "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
             },
             {
-              "data": {},
               "function": "gpusGenerateCrashLog.cold.1",
               "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
             },
             {
-              "data": {},
               "function": "abort",
               "package": "/usr/lib/system/libsystem_c.dylib"
             },
             {
-              "data": {},
               "function": "__abort",
               "package": "/usr/lib/system/libsystem_c.dylib"
             },
             {
-              "data": {},
               "function": "__pthread_kill",
               "package": "/usr/lib/system/libsystem_kernel.dylib"
             }

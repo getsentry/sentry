@@ -16,14 +16,12 @@
           "frames": [
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "start",
               "package": "/usr/lib/system/libdyld.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "start",
               "package": "/usr/lib/system/libdyld.dylib"
@@ -48,70 +46,60 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[NSApplication run]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_DPSNextEvent",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_BlockUntilNextEventMatchingListInModeWithFilter",
               "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "ReceiveNextEventCommon",
               "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "RunCurrentEventLoopInMode",
               "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CFRunLoopRunSpecific",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__CFRunLoopRun",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__CFRunLoopDoBlocks",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
@@ -133,7 +121,6 @@
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
               "filename": "../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "Frontend.framework/Versions/A/Frontend"
@@ -143,7 +130,6 @@
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
               "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "abccore.framework/Versions/A/abccore"
@@ -156,28 +142,24 @@
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
               "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "abccore.framework/Versions/A/abccore"
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
               "filename": "../../../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
               "function": "boost::detail::function::void_function_obj_invoker0<T>::invoke",
               "package": "AudioSupport.framework/Versions/A/AudioSupport"
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/bind/bind.hpp",
-              "data": {},
               "filename": "../../../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/bind/bind.hpp",
               "function": "boost::_bi::bind_t<T>::operator()",
               "package": "AudioSupport.framework/Versions/A/AudioSupport"
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/bind/bind.hpp",
-              "data": {},
               "filename": "../../../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/bind/bind.hpp",
               "function": "boost::_bi::list4<T>::operator()<T>",
               "package": "AudioSupport.framework/Versions/A/AudioSupport"
@@ -226,42 +208,36 @@
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/vector",
-              "data": {},
               "filename": "vector",
               "function": "std::__1::vector<T>::vector",
               "package": "abcaudiofilterhost.framework/Versions/A/abcaudiofilterhost"
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/vector",
-              "data": {},
               "filename": "vector",
               "function": "std::__1::vector<T>::vector",
               "package": "abcaudiofilterhost.framework/Versions/A/abcaudiofilterhost"
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/vector",
-              "data": {},
               "filename": "vector",
               "function": "std::__1::vector<T>::__vallocate",
               "package": "abcaudiofilterhost.framework/Versions/A/abcaudiofilterhost"
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/memory",
-              "data": {},
               "filename": "memory",
               "function": "std::__1::allocator_traits<T>::allocate",
               "package": "abcaudiofilterhost.framework/Versions/A/abcaudiofilterhost"
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/memory",
-              "data": {},
               "filename": "memory",
               "function": "std::__1::allocator<T>::allocate",
               "package": "abcaudiofilterhost.framework/Versions/A/abcaudiofilterhost"
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/new",
-              "data": {},
               "filename": "new",
               "function": "std::__1::__libcpp_allocate",
               "package": "abcaudiofilterhost.framework/Versions/A/abcaudiofilterhost"
@@ -271,42 +247,36 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "malloc",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "malloc_zone_malloc",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "nanov2_malloc",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "nanov2_allocate",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "nanov2_allocate_from_block",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "nanov2_allocate_from_block.cold.1",
               "package": "/usr/lib/system/libsystem_malloc.dylib"

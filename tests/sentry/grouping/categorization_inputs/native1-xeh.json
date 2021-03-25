@@ -16,7 +16,6 @@
           "frames": [
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_sigtramp",
               "package": "/usr/lib/system/libsystem_platform.dylib"
@@ -32,112 +31,96 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "NSRunAlertPanel",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_NSTryRunModal",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CA::Transaction::commit",
               "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CA::Context::commit_transaction",
               "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CA::Layer::display_if_needed",
               "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[_NSViewBackingLayer display]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[_NSBackingLayer display]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[CALayer _display]",
               "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CA::Layer::display_",
               "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CABackingStoreUpdate_",
               "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[NSView(NSLayerKitGlue) _drawViewBackingLayer:inContext:drawingHandler:]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_NSViewDrawRect",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
@@ -159,7 +142,6 @@
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
               "filename": "../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "Frontend.framework/Versions/A/Frontend"
@@ -169,7 +151,6 @@
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
               "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "abccore.framework/Versions/A/abccore"
@@ -185,7 +166,6 @@
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/functional",
-              "data": {},
               "filename": "functional",
               "function": "std::__1::const_mem_fun1_ref_t<T>::operator()",
               "package": "abcui.framework/Versions/A/abcui"
@@ -297,42 +277,36 @@
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/shared_ptr.hpp",
-              "data": {},
               "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/shared_ptr.hpp",
               "function": "boost::shared_ptr<T>::reset<T>",
               "package": "abcui.framework/Versions/A/abcui"
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/shared_ptr.hpp",
-              "data": {},
               "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/shared_ptr.hpp",
               "function": "boost::shared_ptr<T>::shared_ptr<T>",
               "package": "abcui.framework/Versions/A/abcui"
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/shared_ptr.hpp",
-              "data": {},
               "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/shared_ptr.hpp",
               "function": "boost::shared_ptr<T>::shared_ptr<T>",
               "package": "abcui.framework/Versions/A/abcui"
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/shared_ptr.hpp",
-              "data": {},
               "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/shared_ptr.hpp",
               "function": "boost::detail::sp_pointer_construct<T>",
               "package": "abcui.framework/Versions/A/abcui"
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/detail/shared_count.hpp",
-              "data": {},
               "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/detail/shared_count.hpp",
               "function": "boost::detail::shared_count::shared_count<T>",
               "package": "abcui.framework/Versions/A/abcui"
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/detail/shared_count.hpp",
-              "data": {},
               "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/detail/shared_count.hpp",
               "function": "boost::detail::shared_count::shared_count<T>",
               "package": "abcui.framework/Versions/A/abcui"
@@ -342,63 +316,54 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_malloc_zone_malloc",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "nanov2_malloc",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "nanov2_allocate",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "nanov2_allocate_from_block",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "nanov2_allocate_from_block.cold.1",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "malloc_zone_error",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "malloc_vreport",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "abort",
               "package": "/usr/lib/system/libsystem_c.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__pthread_kill",
               "package": "/usr/lib/system/libsystem_kernel.dylib"

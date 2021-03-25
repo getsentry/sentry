@@ -16,7 +16,6 @@
           "frames": [
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "start",
               "package": "/usr/lib/system/libdyld.dylib"
@@ -41,126 +40,108 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_BlockUntilNextEventMatchingListInModeWithFilter",
               "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "ReceiveNextEventCommon",
               "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "RunCurrentEventLoopInMode",
               "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_dispatch_main_queue_callback_4CF",
               "package": "/usr/lib/system/libdispatch.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_dispatch_client_callout",
               "package": "/usr/lib/system/libdispatch.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "std::terminate",
               "package": "/usr/lib/libc++abi.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "std::__terminate",
               "package": "/usr/lib/libc++abi.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_objc_terminate",
               "package": "/usr/lib/libobjc.A.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"

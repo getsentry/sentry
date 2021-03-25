@@ -16,7 +16,6 @@
           "frames": [
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "start",
               "module": null,
@@ -24,7 +23,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "start",
               "module": null,
@@ -50,7 +48,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[NSApplication run]",
               "module": null,
@@ -58,7 +55,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]",
               "module": null,
@@ -66,7 +62,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_DPSNextEvent",
               "module": null,
@@ -74,7 +69,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_BlockUntilNextEventMatchingListInModeWithFilter",
               "module": null,
@@ -82,7 +76,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "ReceiveNextEventCommon",
               "module": null,
@@ -90,7 +83,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "RunCurrentEventLoopInMode",
               "module": null,
@@ -98,7 +90,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "module": null,
@@ -106,7 +97,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "module": null,
@@ -114,7 +104,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "module": null,
@@ -122,7 +111,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "module": null,
@@ -130,7 +118,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "module": null,
@@ -138,7 +125,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__NSThreadPerformPerform",
               "module": null,
@@ -149,7 +135,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[NSView displayIfNeeded]",
               "module": null,
@@ -157,7 +142,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[_NSOpenGLViewBackingLayer display]",
               "module": null,
@@ -171,7 +155,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CGLTexImageIOSurface2D",
               "module": null,
@@ -179,7 +162,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CGLDescribeRenderer",
               "module": null,
@@ -187,7 +169,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gliSetInteger",
               "module": null,
@@ -195,7 +176,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gldFlushObject",
               "module": null,
@@ -203,7 +183,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "intelSubmitCommands",
               "module": null,
@@ -211,7 +190,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "IntelCommandBuffer::getNew",
               "module": null,
@@ -219,7 +197,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gpusSubmitDataBuffers",
               "module": null,
@@ -227,7 +204,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gpusKillClientExt",
               "module": null,
@@ -235,7 +211,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gpusGenerateCrashLog",
               "module": null,
@@ -243,7 +218,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gpusGenerateCrashLog.cold.1",
               "module": null,
@@ -251,7 +225,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "abort",
               "module": null,
@@ -259,7 +232,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "module": null,
@@ -267,7 +239,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_sigtramp",
               "module": null,
@@ -284,7 +255,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "NSRunAlertPanel",
               "module": null,
@@ -292,7 +262,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_NSTryRunModal",
               "module": null,
@@ -300,7 +269,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CA::Transaction::commit",
               "module": null,
@@ -308,7 +276,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CA::Context::commit_transaction",
               "module": null,
@@ -316,7 +283,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CA::Layer::display_if_needed",
               "module": null,
@@ -324,7 +290,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "-[_NSOpenGLViewBackingLayer display]",
               "module": null,
@@ -338,7 +303,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CGLTexImageIOSurface2D",
               "module": null,
@@ -346,7 +310,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CGLDescribeRenderer",
               "module": null,
@@ -354,7 +317,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gliSetInteger",
               "module": null,
@@ -362,7 +324,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gldFlushObject",
               "module": null,
@@ -370,7 +331,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "intelSubmitCommands",
               "module": null,
@@ -378,7 +338,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "IntelCommandBuffer::getNew",
               "module": null,
@@ -386,7 +345,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gpusSubmitDataBuffers",
               "module": null,
@@ -394,7 +352,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gpusKillClientExt",
               "module": null,
@@ -402,7 +359,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gpusGenerateCrashLog",
               "module": null,
@@ -410,7 +366,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gpusGenerateCrashLog.cold.1",
               "module": null,
@@ -418,7 +373,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "abort",
               "module": null,
@@ -426,7 +380,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__pthread_kill",
               "module": null,

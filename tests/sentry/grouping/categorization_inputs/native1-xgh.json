@@ -16,7 +16,6 @@
           "frames": [
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "start",
               "package": "/usr/lib/system/libdyld.dylib"
@@ -41,84 +40,72 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_BlockUntilNextEventMatchingListInModeWithFilter",
               "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "ReceiveNextEventCommon",
               "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "RunCurrentEventLoopInMode",
               "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation"
@@ -140,7 +127,6 @@
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
               "filename": "../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "Frontend.framework/Versions/A/Frontend"
@@ -150,7 +136,6 @@
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
               "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "abccore.framework/Versions/A/abccore"
@@ -166,7 +151,6 @@
             },
             {
               "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
-              "data": {},
               "filename": "../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
               "function": "boost::function0<T>::operator()",
               "package": "Frontend.framework/Versions/A/Frontend"
@@ -197,28 +181,24 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CA::Transaction::commit",
               "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CA::Context::commit_transaction",
               "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CA::Layer::display_if_needed",
               "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
@@ -231,21 +211,18 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CGLTexImageIOSurface2D",
               "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CGLDescribeRenderer",
               "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "gliSetInteger",
               "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLEngine.bundle/GLEngine"
@@ -255,14 +232,12 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Extensions/AppleIntelHD4000GraphicsGLDriver.bundle/Contents/MacOS/AppleIntelHD4000GraphicsGLDriver"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Extensions/AppleIntelHD4000GraphicsGLDriver.bundle/Contents/MacOS/AppleIntelHD4000GraphicsGLDriver"
@@ -272,7 +247,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/System/Library/Extensions/AppleIntelHD4000GraphicsGLDriver.bundle/Contents/MacOS/AppleIntelHD4000GraphicsGLDriver"
@@ -285,21 +259,18 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "abort",
               "package": "/usr/lib/system/libsystem_c.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__abort",
               "package": "/usr/lib/system/libsystem_c.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": null,
               "package": "/usr/lib/system/libsystem_kernel.dylib"

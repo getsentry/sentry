@@ -19,14 +19,12 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "thread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_pthread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib"
@@ -39,7 +37,6 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "pthread_mutex_lock",
               "package": "/usr/lib/system/libsystem_pthread.dylib"

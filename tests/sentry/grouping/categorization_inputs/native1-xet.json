@@ -16,14 +16,12 @@
           "frames": [
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "start",
               "package": "/usr/lib/system/libdyld.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "start",
               "package": "/usr/lib/system/libdyld.dylib"
@@ -66,49 +64,42 @@
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/functional",
-              "data": {},
               "filename": "functional",
               "function": "std::__1::function<T>::operator()",
               "package": "abccore.framework/Versions/A/abccore"
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/functional",
-              "data": {},
               "filename": "functional",
               "function": "std::__1::__function::__value_func<T>::operator()",
               "package": "abccore.framework/Versions/A/abccore"
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/functional",
-              "data": {},
               "filename": "functional",
               "function": "std::__1::__function::__func<T>::operator()",
               "package": "Mezzanine.framework/Versions/A/Mezzanine"
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/functional",
-              "data": {},
               "filename": "functional",
               "function": "std::__1::__function::__alloc_func<T>::operator()",
               "package": "Mezzanine.framework/Versions/A/Mezzanine"
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/__functional_base",
-              "data": {},
               "filename": "__functional_base",
               "function": "std::__1::__invoke_void_return_wrapper<T>::__call<T>",
               "package": "Mezzanine.framework/Versions/A/Mezzanine"
             },
             {
               "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/type_traits",
-              "data": {},
               "filename": "type_traits",
               "function": "std::__1::__invoke<T>",
               "package": "Mezzanine.framework/Versions/A/Mezzanine"
             },
             {
               "abs_path": "/releases/abc/Farming Simulator/Mezzanine/Src/Initialize.cpp",
-              "data": {},
               "filename": "Src/Initialize.cpp",
               "function": "MZ::`anonymous namespace'::lambda::operator()",
               "package": "Mezzanine.framework/Versions/A/Mezzanine"
@@ -151,35 +142,30 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "_objc_msgSend_uncached",
               "package": "/usr/lib/libobjc.A.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "lookUpImpOrForward",
               "package": "/usr/lib/libobjc.A.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "initializeAndMaybeRelock",
               "package": "/usr/lib/libobjc.A.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "initializeNonMetaClass",
               "package": "/usr/lib/libobjc.A.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "CALLING_SOME_+initialize_METHOD",
               "package": "/usr/lib/libobjc.A.dylib"
@@ -207,14 +193,12 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "dlopen",
               "package": "/usr/lib/system/libdyld.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "dlopen_internal",
               "package": "/usr/lib/system/libdyld.dylib"
@@ -248,21 +232,18 @@
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "abort",
               "package": "/usr/lib/system/libsystem_c.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__abort",
               "package": "/usr/lib/system/libsystem_c.dylib"
             },
             {
               "abs_path": null,
-              "data": {},
               "filename": null,
               "function": "__pthread_kill",
               "package": "/usr/lib/system/libsystem_kernel.dylib"
