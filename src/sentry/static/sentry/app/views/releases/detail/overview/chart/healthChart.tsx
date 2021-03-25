@@ -76,7 +76,16 @@ class HealthChart extends React.Component<Props> {
     const {timeseriesData, location, shouldRecalculateVisibleSeries} = this.props;
 
     const otherAreasThanHealthyArePositive = timeseriesData
-      .filter(s => s.seriesName !== sessionTerm.healthy)
+      .filter(
+        s =>
+          ![
+            sessionTerm.healthy,
+            sessionTerm.otherHealthy,
+            sessionTerm.otherErrored,
+            sessionTerm.otherCrashed,
+            sessionTerm.otherAbnormal,
+          ].includes(s.seriesName)
+      )
       .some(s => s.data.some(d => d.value > 0));
     const alreadySomethingUnselected = !!decodeScalar(location.query.unselectedSeries);
 
