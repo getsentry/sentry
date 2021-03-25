@@ -19,10 +19,11 @@ import {IconArrow, IconCheckmark} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Organization, Project, Team} from 'app/types';
+import {GlobalSelection, Organization, Project, Team} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Projects from 'app/utils/projects';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withTeams from 'app/utils/withTeams';
 
 import AlertHeader from '../list/header';
@@ -40,6 +41,7 @@ const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
+  selection: GlobalSelection;
   teams: Team[];
 };
 
@@ -287,7 +289,11 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
-        <GlobalSelectionHeader organization={organization} showDateSelector={false}>
+        <GlobalSelectionHeader
+          organization={organization}
+          showDateSelector={false}
+          showEnvironmentSelector={false}
+        >
           <AlertHeader organization={organization} router={router} activeTab="rules" />
           {this.renderList()}
         </GlobalSelectionHeader>
@@ -298,16 +304,23 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
 class AlertRulesListContainer extends React.Component<Props> {
   componentDidMount() {
-    const {organization, router, location} = this.props;
+    const {organization, router, location, selection} = this.props;
+    const query: Record<string, string | number | string[] | number[]> = {
+      project: selection.projects,
+      environment: selection.environments,
+    };
+
     if (organization.features.includes('team-alerts-ownership')) {
-      router.replace({
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          team: ALERT_LIST_QUERY_DEFAULT_TEAMS,
-        },
-      });
+      query.team = ALERT_LIST_QUERY_DEFAULT_TEAMS;
     }
+
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...query,
+        ...location.query,
+      },
+    });
     this.trackView();
   }
 
@@ -333,7 +346,7 @@ class AlertRulesListContainer extends React.Component<Props> {
   }
 }
 
-export default withTeams(AlertRulesListContainer);
+export default withGlobalSelection(withTeams(AlertRulesListContainer));
 
 const StyledLayoutBody = styled(Layout.Body)`
   margin-bottom: -20px;
