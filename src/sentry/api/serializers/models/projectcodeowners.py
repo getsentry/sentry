@@ -1,10 +1,19 @@
-from sentry.api.serializers import Serializer, register
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import ProjectCodeOwners
 from sentry.utils.db import attach_foreignkey
+from sentry.api.serializers.models.repository_project_path_config import (
+    RepositoryProjectPathConfigSerializer,
+)
 
 
 @register(ProjectCodeOwners)
 class ProjectCodeOwnersSerializer(Serializer):
+    def __init__(
+        self,
+        expand=None,
+    ):
+        self.expand = expand or []
+
     def get_attrs(self, item_list, user, **kwargs):
         attach_foreignkey(
             item_list,
@@ -16,7 +25,8 @@ class ProjectCodeOwnersSerializer(Serializer):
             item: {
                 "provider": item.repository_project_path_config.organization_integration.integration.provider
                 if item.repository_project_path_config.organization_integration
-                else "unknown"
+                else "unknown",
+                "codeMapping": item.repository_project_path_config,
             }
             for item in item_list
         }
@@ -32,5 +42,12 @@ class ProjectCodeOwnersSerializer(Serializer):
         }
 
         data["provider"] = attrs.get("provider", "unknown")
+
+        if "codeMapping" in self.expand:
+            config = attrs.get("codeMapping", {})
+            data["codeMapping"] = serialize(
+                config, user=user, serializer=RepositoryProjectPathConfigSerializer()
+            )
+            data.pop("codeMappingId", None)
 
         return data
