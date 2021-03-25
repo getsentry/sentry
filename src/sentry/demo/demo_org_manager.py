@@ -20,7 +20,9 @@ from sentry.models import (
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.email import create_fake_email
 
-from .data_population import populate_connected_event_scenario_1, generate_releases
+from .data_population import (
+    handle_react_python_scenario,
+)
 from .utils import generate_random_name
 from .models import DemoUser, DemoOrganization, DemoOrgStatus
 
@@ -53,6 +55,7 @@ def create_demo_org(quick=False) -> Organization:
         # delete all DSNs for the org so people don't send events
         ProjectKey.objects.filter(project__organization=org).delete()
 
+        # we'll be adding transactions later
         Project.objects.filter(organization=org).update(
             flags=F("flags").bitor(Project.flags.has_transactions)
         )
@@ -62,8 +65,7 @@ def create_demo_org(quick=False) -> Organization:
         extra={"organization_slug": org.slug, "quick": quick},
     )
     try:
-        generate_releases([react_project, python_project], quick=quick)
-        populate_connected_event_scenario_1(react_project, python_project, quick=quick)
+        handle_react_python_scenario(react_project, python_project, quick=quick)
     except Exception as e:
         logger.error(
             "create_demo_org.population_error",
