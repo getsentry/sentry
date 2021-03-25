@@ -143,6 +143,8 @@ class OrganizationsCreateTest(APITestCase):
 
 
 class OrganizationIndex2faTest(TwoFactorAPITestCase):
+    endpoint = "sentry-organization-home"
+
     def setUp(self):
         self.org_2fa = self.create_organization(owner=self.create_user())
         self.enable_org_2fa(self.org_2fa)
@@ -154,12 +156,10 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         return reverse("sentry-organization-home", kwargs={"organization_slug": self.org_2fa.slug})
 
     def assert_can_access_org_home(self):
-        response = self.client.get(self.path)
-        assert response.status_code == 200
+        self.get_valid_response(self.org_2fa.slug)
 
     def assert_redirected_to_2fa(self):
-        response = self.client.get(self.path)
-        assert response.status_code == 302
+        response = self.get_valid_response(self.org_2fa.slug, status_code=302)
         assert self.path_2fa in response.url
 
     def test_preexisting_members_must_enable_2fa(self):
