@@ -38,9 +38,13 @@ class IncidentSerializer(Serializer):
             results[incident]["alert_rule"] = alert_rules.get(str(incident.alert_rule.id))
 
         if "seen_by" in self.expand:
-            incident_seen_list = list(IncidentSeen.objects.filter(incident__in=item_list).select_related('user'))
+            incident_seen_list = list(
+                IncidentSeen.objects.filter(incident__in=item_list).select_related("user")
+            )
             incident_seen_dict = defaultdict(list)
-            for incident_seen, serialized_seen_by in zip(incident_seen_list, serialize(incident_seen_list)):
+            for incident_seen, serialized_seen_by in zip(
+                incident_seen_list, serialize(incident_seen_list)
+            ):
                 incident_seen_dict[incident_seen.incident_id].append(serialized_seen_by)
             for incident in item_list:
                 seen_by = incident_seen_dict[incident.id]
