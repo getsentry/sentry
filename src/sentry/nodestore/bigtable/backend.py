@@ -158,6 +158,8 @@ class BigtableKVStorage:
         return _decompress_data(data, flags)
 
     def set(self, key: str, value: bytes, ttl: Optional[timedelta] = None) -> None:
+        # XXX: There is a type mismatch here -- ``direct_row`` expects
+        # ``bytes`` but we are providing it with ``str``.
         row = self._get_table().direct_row(key)
         # Call to delete is just a state mutation,
         # and in this case is just used to clear all columns
@@ -216,6 +218,8 @@ class BigtableKVStorage:
             raise BigtableError(status.code, status.message)
 
     def delete(self, key: str) -> None:
+        # XXX: There is a type mismatch here -- ``direct_row`` expects
+        # ``bytes`` but we are providing it with ``str``.
         row = self._get_table().direct_row(key)
         row.delete()
 
@@ -228,6 +232,8 @@ class BigtableKVStorage:
 
         rows = []
         for key in keys:
+            # XXX: There is a type mismatch here -- ``direct_row`` expects
+            # ``bytes`` but we are providing it with ``str``.
             row = table.direct_row(key)
             row.delete()
             rows.append(row)
