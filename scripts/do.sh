@@ -15,7 +15,8 @@ fi
 [ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ] && \
     eval "$(sentry-cli bash-hook)"
 
-# This guarantees that we're within a venv and
-eval "${HERE}/ensure-venv.sh"
+# This guarantees that we're within a venv. A caller that is not within
+# a venv can avoid enabling this by setting SENTRY_NO_VENV_CHECK
+[ -z "${SENTRY_NO_VENV_CHECK+x}" ] && eval "${HERE}/ensure-venv.sh"
 # If you call this script
 "$@"
