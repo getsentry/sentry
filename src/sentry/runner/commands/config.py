@@ -14,6 +14,7 @@ def config():
 def list(pattern):
     "List configuration options."
     from fnmatch import fnmatch
+
     from sentry.options import default_manager as manager
 
     for key in manager.all():
@@ -28,6 +29,7 @@ def list(pattern):
 def get(option, silent):
     "Get a configuration option."
     from django.conf import settings
+
     from sentry.options import default_manager as manager
     from sentry.options.manager import UnknownOption
 

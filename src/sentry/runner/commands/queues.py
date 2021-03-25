@@ -1,4 +1,5 @@
 import click
+
 from sentry.runner.decorators import configuration
 
 
@@ -15,6 +16,7 @@ def list(sort_size, reverse):
     "List queues and their sizes."
 
     from django.conf import settings
+
     from sentry.monitoring.queues import backend
 
     if backend is None:
@@ -38,7 +40,7 @@ def list(sort_size, reverse):
 def purge(force, queue):
     "Purge all messages from a queue."
 
-    from sentry.monitoring.queues import get_queue_by_name, backend
+    from sentry.monitoring.queues import backend, get_queue_by_name
 
     if get_queue_by_name(queue) is None:
         raise click.ClickException("unknown queue: %r" % queue)

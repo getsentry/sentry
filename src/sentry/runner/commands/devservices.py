@@ -1,10 +1,10 @@
-import time
-import signal
 import os
+import signal
+import time
+
 import click
 
 from sentry.utils.compat import map
-
 
 # Work around a stupid docker issue: https://github.com/docker/for-mac/issues/5025
 RAW_SOCKET_HACK_PATH = os.path.expanduser(
@@ -221,6 +221,7 @@ def up(ctx, services, project, exclude, fast, skip_only_if):
 
 def _prepare_containers(project, skip_only_if=False, silent=False):
     from django.conf import settings
+
     from sentry import options as sentry_options
 
     containers = {}
@@ -254,6 +255,7 @@ def _start_service(
     client, low_level_client, name, containers, project, fast=False, always_start=False
 ):
     from django.conf import settings
+
     from docker.errors import NotFound
 
     options = containers[name]
@@ -394,7 +396,6 @@ def rm(ctx, project, services):
     an explicit list of services to remove.
     """
     from docker.errors import NotFound
-
     from sentry.runner import configure
 
     configure()

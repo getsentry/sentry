@@ -1,5 +1,7 @@
-import click
 import sys
+
+import click
+
 from sentry.runner.decorators import configuration
 
 
@@ -65,9 +67,10 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
     if not no_password and not password:
         raise click.ClickException("No password set and --no-password not passed.")
 
+    from django.conf import settings
+
     from sentry import roles
     from sentry.models import User
-    from django.conf import settings
 
     fields = dict(
         email=email, username=email, is_superuser=superuser, is_staff=superuser, is_active=True

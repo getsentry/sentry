@@ -18,8 +18,8 @@ def run(ctx, app_name, migration_name):
 
     from django.apps import apps
     from django.db import connections
-    from django.db.migrations.executor import MigrationExecutor
     from django.db.migrations import RunPython
+    from django.db.migrations.executor import MigrationExecutor
 
     migration = MigrationExecutor(connections["default"]).loader.get_migration_by_prefix(
         app_name, migration_name

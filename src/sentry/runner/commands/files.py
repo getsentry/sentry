@@ -1,4 +1,5 @@
 import click
+
 from sentry.runner.decorators import configuration
 
 
