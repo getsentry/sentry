@@ -1,12 +1,14 @@
 import os
 import struct
 from threading import Lock
-import zstandard
 import zlib
 
+import zstandard
+import sentry_sdk
 from google.cloud import bigtable
 from google.cloud.bigtable.row_set import RowSet
 from django.utils import timezone
+
 
 from sentry.nodestore.base import NodeStorage
 
@@ -236,41 +238,45 @@ class BigtableNodeStorage(NodeStorage):
         if self.skip_deletes:
             return
 
-        row = self.connection.row(id)
-        row.delete()
+        with sentry_sdk.start_span(op="nodestore.bigtable.delete"):
+            row = self.connection.row(id)
+            row.delete()
 
-        status = row.commit()
-        if status.code != 0:
-            raise BigtableError(status.code, status.message)
+            status = row.commit()
+            if status.code != 0:
+                raise BigtableError(status.code, status.message)
 
-        self._delete_cache_item(id)
+            self._delete_cache_item(id)
 
     def delete_multi(self, id_list):
         if self.skip_deletes:
             return
 
-        if len(id_list) == 1:
-            self.delete(id_list[0])
-            return
+        with sentry_sdk.start_span(op="nodestore.bigtable.delete_multi") as span:
+            span.set_tag("num_ids", len(id_list))
 
-        rows = []
-        for id in id_list:
-            row = self.connection.row(id)
-            row.delete()
-            rows.append(row)
+            if len(id_list) == 1:
+                self.delete(id_list[0])
+                return
 
-        deleted_ids = []
-        errors = []
-        for id, status in zip(id_list, self.connection.mutate_rows(rows)):
-            if status.code == 0:
-                deleted_ids.append(id)
-            else:
-                errors.append(BigtableError(status.code, status.message))
+            rows = []
+            for id in id_list:
+                row = self.connection.row(id)
+                row.delete()
+                rows.append(row)
 
-        self._delete_cache_items(deleted_ids)
+            deleted_ids = []
+            errors = []
+            for id, status in zip(id_list, self.connection.mutate_rows(rows)):
+                if status.code == 0:
+                    deleted_ids.append(id)
+                else:
+                    errors.append(BigtableError(status.code, status.message))
 
-        if errors:
-            raise BigtableError(errors)
+            self._delete_cache_items(deleted_ids)
+
+            if errors:
+                raise BigtableError(errors)
 
     def cleanup(self, cutoff_timestamp):
         raise NotImplementedError

@@ -1,5 +1,7 @@
 from threading import local
 
+import sentry_sdk
+
 from django.core.cache import caches, InvalidCacheBackendError
 
 from sentry.utils.cache import memoize
@@ -124,17 +126,27 @@ class NodeStorage(local, Service):
         >>> nodestore.get('key1')
         {"message": "hello world"}
         """
-        if subkey is None:
-            item_from_cache = self._get_cache_item(id)
-            if item_from_cache:
-                return item_from_cache
+        with sentry_sdk.start_span(op="nodestore.get") as span:
+            if subkey is None:
+                item_from_cache = self._get_cache_item(id)
+                if item_from_cache:
+                    span.set_tag("origin", "from_cache")
+                    span.set_tag("found", bool(item_from_cache))
+                    return item_from_cache
 
-        bytes_data = self._get_bytes(id)
-        rv = self._decode(bytes_data, subkey=subkey)
-        if subkey is None:
-            # set cache item only after we know decoding did not fail
-            self._set_cache_item(id, rv)
-        return rv
+            span.set_tag("subkey", str(subkey))
+            bytes_data = self._get_bytes(id)
+            rv = self._decode(bytes_data, subkey=subkey)
+            if subkey is None:
+                # set cache item only after we know decoding did not fail
+                self._set_cache_item(id, rv)
+
+            span.set_tag("result", "from_service")
+            if bytes_data:
+                span.set_tag("bytes.size", len(bytes_data))
+            span.set_tag("found", bool(rv))
+
+            return rv
 
     def _get_bytes_multi(self, id_list):
         """
@@ -154,23 +166,32 @@ class NodeStorage(local, Service):
             "key2": {"message": "hello world"}
         }
         """
-        if subkey is None:
-            cache_items = self._get_cache_items(id_list)
-            if len(cache_items) == len(id_list):
-                return cache_items
+        with sentry_sdk.start_span(op="nodestore.get_multi") as span:
+            span.set_tag("subkey", str(subkey))
+            span.set_tag("num_ids", len(id_list))
 
-            uncached_ids = [id for id in id_list if id not in cache_items]
-        else:
-            uncached_ids = id_list
+            if subkey is None:
+                cache_items = self._get_cache_items(id_list)
+                if len(cache_items) == len(id_list):
+                    span.set_tag("result", "from_cache")
+                    return cache_items
 
-        items = {
-            id: self._decode(value, subkey=subkey)
-            for id, value in self._get_bytes_multi(uncached_ids).items()
-        }
-        if subkey is None:
-            self._set_cache_items(items)
-            items.update(cache_items)
-        return items
+                uncached_ids = [id for id in id_list if id not in cache_items]
+            else:
+                uncached_ids = id_list
+
+            items = {
+                id: self._decode(value, subkey=subkey)
+                for id, value in self._get_bytes_multi(uncached_ids).items()
+            }
+            if subkey is None:
+                self._set_cache_items(items)
+                items.update(cache_items)
+
+            span.set_tag("result", "from_service")
+            span.set_tag("found", len(items))
+
+            return items
 
     def _encode(self, data):
         """
@@ -217,11 +238,12 @@ class NodeStorage(local, Service):
         >>> nodestore.get('key1', subkey='reprocessing')
         {'foo': 'bam'}
         """
-        cache_item = data.get(None)
-        bytes_data = self._encode(data)
-        self._set_bytes(id, bytes_data, ttl=ttl)
-        # set cache only after encoding and write to nodestore has succeeded
-        self._set_cache_item(id, cache_item)
+        with sentry_sdk.start_span(op="nodestore.set_subkeys"):
+            cache_item = data.get(None)
+            bytes_data = self._encode(data)
+            self._set_bytes(id, bytes_data, ttl=ttl)
+            # set cache only after encoding and write to nodestore has succeeded
+            self._set_cache_item(id, cache_item)
 
     def cleanup(self, cutoff_timestamp):
         raise NotImplementedError
