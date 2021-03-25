@@ -276,7 +276,7 @@ export function reduceTrace<T>(
 export function getTraceTimeRangeFromEvent(event: Event): {start: string; end: string} {
   const start = isTransaction(event)
     ? event.startTimestamp
-    : new Date(event.dateCreated).getTime();
+    : new Date(event.dateCreated).getTime() / 1000;
   const end = isTransaction(event) ? event.endTimestamp : start;
   return getTraceDateTimeRange({start, end});
 }
