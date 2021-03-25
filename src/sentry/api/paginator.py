@@ -678,24 +678,25 @@ class ChainPaginator:
 
         if self.max_offset is not None and offset >= self.max_offset:
             raise BadPaginationError("Pagination offset too large")
+        if limit <= 0:
+            raise BadPaginationError("Limit must be positive")
         if offset < 0:
             raise BadPaginationError("Pagination offset cannot be negative")
 
         results = []
-        # Get an addition item so we can check for a next page.
-        remaining = limit + 1
+        # note: we shouldn't use itertools.islice(itertools.chain.from_iterable(self.sources))
+        # because source may be a QuerySet which is much more efficient to slice directly
         for source in self.sources:
-            source_results = list(source[offset:remaining])
-            results.extend(source_results)
-            result_count = len(results)
-            if result_count == 0 and result_count < remaining:
-                # Advance the offset based on the rows we skipped.
-                offset = offset - len(source)
-            elif result_count > 0 and result_count < remaining:
-                # Start at the beginning of the next source
+            # Get an additional item so we can check for a next page.
+            remaining = limit - len(results) + 1
+            results.extend(source[offset : offset + remaining])
+            # don't do offset = max(0, offset - len(source)) because len(source) may be expensive
+            if len(results) == 0:
+                offset -= len(source)
+            else:
                 offset = 0
-                remaining = remaining - result_count
-            elif result_count >= limit:
+            if len(results) > limit:
+                assert len(results) == limit + 1
                 break
 
         next_cursor = Cursor(limit, page + 1, False, len(results) > limit)

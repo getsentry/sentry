@@ -639,13 +639,17 @@ class TestChainPaginator(TestCase):
         assert result.prev.has_results is False
 
     def test_small_first(self):
-        sources = [[1, 2], [3, 4, 5, 6]]
+        sources = [[1, 2], [3, 4, 5, 6, 7, 8, 9, 10]]
         paginator = self.cls(sources=sources)
-        result = paginator.get_result(limit=5)
-        assert len(result.results) == 5
-        assert result.results == [1, 2, 3, 4, 5]
-        assert result.next.has_results
-        assert result.prev.has_results is False
+        first = paginator.get_result(limit=4)
+        assert first.results == [1, 2, 3, 4]
+        assert first.next.has_results
+        assert not first.prev.has_results
+
+        second = paginator.get_result(limit=4, cursor=first.next)
+        assert second.results == [5, 6, 7, 8]
+        assert second.prev.has_results
+        assert second.next.has_results
 
     def test_results_from_two_sources(self):
         sources = [[1, 2, 3, 4], [5, 6, 7, 8]]
