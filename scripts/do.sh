@@ -8,12 +8,13 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd -P)"
 source "${HERE}/lib.sh"
 
 # This block is to enable reporting issues to Sentry.io
-if ! require sentry-cli; then
-    curl -sL https://sentry.io/get-cli/ | bash
-fi
 # SENTRY_DSN already defined in .envrc
-[ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ] && \
+if [ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
+    if ! require sentry-cli; then
+        curl -sL https://sentry.io/get-cli/ | bash
+    fi
     eval "$(sentry-cli bash-hook)"
+fi
 
 # This guarantees that we're within a venv. A caller that is not within
 # a venv can avoid enabling this by setting SENTRY_NO_VENV_CHECK
