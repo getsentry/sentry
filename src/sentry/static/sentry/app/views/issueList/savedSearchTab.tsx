@@ -94,10 +94,15 @@ const TabWrapper = styled('li')<{isActive?: boolean}>`
     display: block;
   }
   & > span > .dropdown-menu {
+    padding: 0;
     margin-top: ${space(1)};
     min-width: 20vw;
     max-width: 25vw;
     z-index: ${p => p.theme.zIndex.globalSelectionHeader};
+
+    :after {
+      border-bottom-color: ${p => p.theme.backgroundSecondary};
+    }
   }
 
   @media (max-width: ${p => p.theme.breakpoints[4]}) {

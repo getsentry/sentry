@@ -96,7 +96,7 @@ function SavedSearchMenu({savedSearchList, ...props}: Props) {
   const commonSearches = savedSearchList.filter(search => search.isGlobal);
 
   return (
-    <MenuContainer>
+    <React.Fragment>
       <MenuHeader>{t('Saved Searches')}</MenuHeader>
       {savedSearches.length === 0 ? (
         <EmptyItem>{t('No saved searches yet.')}</EmptyItem>
@@ -123,7 +123,7 @@ function SavedSearchMenu({savedSearchList, ...props}: Props) {
           />
         ))
       )}
-    </MenuContainer>
+    </React.Fragment>
   );
 }
 
@@ -175,10 +175,6 @@ const DeleteButton = styled(Button)`
   }
 `;
 
-const MenuContainer = styled('div')`
-  margin: -5px 0;
-`;
-
 const MenuHeader = styled('div')`
   align-items: center;
   color: ${p => p.theme.gray400};
@@ -200,8 +196,8 @@ const StyledMenuItem = styled(MenuItem)<{isActive: boolean; isLast: boolean}>`
   font-size: ${p => p.theme.fontSizeMedium};
   padding: 0;
 
-  & > a {
-    padding: ${space(0.75)} 0;
+  & > span > a {
+    padding: ${space(0.75)} 0 ${space(1)} 0;
   }
 
   ${p =>
