@@ -449,8 +449,8 @@ const TraceViewContainer = styled('div')`
 
 const GuideAnchorWrapper = styled('div')`
   height: 0;
-  width: 50%;
-  float: right;
+  width: 0;
+  margin-left: 50%;
 `;
 
 /**

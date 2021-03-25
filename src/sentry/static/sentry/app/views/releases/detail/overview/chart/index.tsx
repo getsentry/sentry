@@ -327,7 +327,7 @@ class ReleaseChartContainer extends React.Component<Props> {
 export default withTheme(ReleaseChartContainer);
 
 const AnchorWrapper = styled('div')`
-  height: 0px;
-  width: 50%;
-  float: right;
+  height: 0;
+  width: 0;
+  margin-left: 50%;
 `;
