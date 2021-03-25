@@ -376,7 +376,12 @@ export default class MetricChart extends React.PureComponent<Props, State> {
                 const timeWindowMs = rule.timeWindow * 60 * 1000;
 
                 series.push(
-                  createIncidentSeries(warningTrigger && statusChanges && !statusChanges.find(({value}) => value === `${IncidentStatus.CRITICAL}`)
+                  createIncidentSeries(
+                    warningTrigger &&
+                      statusChanges &&
+                      !statusChanges.find(
+                        ({value}) => value === `${IncidentStatus.CRITICAL}`
+                      )
                       ? theme.yellow300
                       : theme.red300,
                     moment(incident.dateStarted).valueOf(),
