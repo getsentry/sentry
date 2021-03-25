@@ -5,7 +5,7 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
-import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
+import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
 import {EventLite, TraceError} from 'app/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
@@ -18,11 +18,10 @@ export type TransactionDestination = 'discover' | 'performance';
 
 function generateIssueEventTarget(
   event: EventLite | TraceError,
-  organization: OrganizationSummary,
-  location: Location
+  organization: OrganizationSummary
 ): LocationDescriptor {
   // TODO(txiao): This requires the group permalink, linking to discover for now.
-  return generateDiscoverEventTarget(event, organization, location);
+  return generateDiscoverEventTarget(event, organization);
 }
 
 function generatePerformanceEventTarget(
@@ -44,18 +43,19 @@ function generatePerformanceEventTarget(
 
 function generateDiscoverEventTarget(
   event: EventLite | TraceError,
-  organization: OrganizationSummary,
-  location: Location
+  organization: OrganizationSummary
 ): LocationDescriptor {
   const eventSlug = generateEventSlug({
     id: event.event_id,
     project: event.project_slug,
   });
-  return eventDetailsRouteWithEventView({
-    orgSlug: organization.slug,
-    eventSlug,
-    eventView: EventView.fromLocation(location),
-  });
+  return {
+    pathname: eventDetailsRoute({
+      orgSlug: organization.slug,
+      eventSlug,
+    }),
+    query: {},
+  };
 }
 
 export function generateSingleErrorTarget(
@@ -66,12 +66,12 @@ export function generateSingleErrorTarget(
 ): LocationDescriptor {
   switch (destination) {
     case 'issue':
-      return generateIssueEventTarget(event, organization, location);
+      return generateIssueEventTarget(event, organization);
     case 'performance':
       return generatePerformanceEventTarget(event, organization, location);
     case 'discover':
     default:
-      return generateDiscoverEventTarget(event, organization, location);
+      return generateDiscoverEventTarget(event, organization);
   }
 }
 
@@ -86,7 +86,7 @@ export function generateSingleTransactionTarget(
       return generatePerformanceEventTarget(event, organization, location);
     case 'discover':
     default:
-      return generateDiscoverEventTarget(event, organization, location);
+      return generateDiscoverEventTarget(event, organization);
   }
 }
 
