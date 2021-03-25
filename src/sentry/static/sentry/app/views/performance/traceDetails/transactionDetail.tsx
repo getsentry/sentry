@@ -71,13 +71,7 @@ class TransactionDetail extends React.Component<Props> {
     const eventView = EventView.fromSavedQuery({
       id: undefined,
       name: `Errors events associated with transaction ${transaction.event_id}`,
-      fields: [
-        'transaction',
-        'project',
-        'trace.span',
-        'transaction.duration',
-        'timestamp',
-      ],
+      fields: ['title', 'project', 'issue', 'timestamp'],
       orderby: '-timestamp',
       query: stringifyQueryObject(queryResults),
       projects: organization.features.includes('global-views')

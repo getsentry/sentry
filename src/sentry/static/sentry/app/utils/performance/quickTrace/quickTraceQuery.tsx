@@ -8,7 +8,6 @@ import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/typ
 import {
   flattenRelevantPaths,
   getTraceTimeRangeFromEvent,
-  isTransaction,
 } from 'app/utils/performance/quickTrace/utils';
 
 type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
@@ -40,8 +39,6 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
       traceId={traceId}
       start={start}
       end={end}
-      // TODO(wmak): Trace Lite doesn't return errors
-      shouldSkipQuery={!isTransaction(event)}
       {...props}
     >
       {traceLiteResults => (

@@ -14,15 +14,7 @@ export type GuideStep = {
   hasNextGuide?: boolean;
 };
 
-export type Guide = {
-  guide: string;
-  requiredTargets: string[];
-  dateThreshold?: Date;
-  steps: GuideStep[];
-  seen: boolean;
-};
-
-export type GuidesContent = {
+type BaseGuide = {
   guide: string;
   /**
    * Anchor targets required on the page. An empty list will cause the
@@ -31,7 +23,18 @@ export type GuidesContent = {
   requiredTargets: string[];
   dateThreshold?: Date;
   steps: GuideStep[];
-}[];
+  /**
+   * When two guides could be active, the guide with the lower priority value
+   * level takes precedent.
+   */
+  priority?: number;
+};
+
+export type Guide = BaseGuide & {
+  seen: boolean;
+};
+
+export type GuidesContent = BaseGuide[];
 
 export type GuidesServerData = {
   guide: string;

@@ -85,6 +85,10 @@ const SidebarItem = ({
   onClick,
   ...props
 }: Props) => {
+  // label might be wrapped in a guideAnchor
+  if (React.isValidElement(label)) {
+    label = label?.props?.children ?? label;
+  }
   // If there is no active panel open and if path is active according to react-router
   const isActiveRouter =
     (!hasPanel && router && to && location.pathname.startsWith(to)) ||
