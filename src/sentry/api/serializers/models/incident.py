@@ -16,10 +16,7 @@ from sentry.utils.db import attach_foreignkey
 
 @register(Incident)
 class IncidentSerializer(Serializer):
-    def __init__(
-        self,
-        expand=None,
-    ):
+    def __init__(self, expand=None):
         self.expand = expand or []
 
     def get_attrs(self, item_list, user, **kwargs):
@@ -40,7 +37,27 @@ class IncidentSerializer(Serializer):
             results[incident] = {"projects": incident_projects.get(incident.id, [])}
             results[incident]["alert_rule"] = alert_rules.get(str(incident.alert_rule.id))
 
+            if "activities" in self.expand:
+                results[incident]["activities"] = serialize(list(IncidentActivity.objects.filter(incident=incident).select_related("user", "incident")))
+
+            if "seen_by" in self.expand:
+                (seen_by, has_seen) = self._get_incident_seen_list(incident, user)
+                results[incident]["seen_by"] = seen_by
+                results[incident]["has_seen"] = has_seen
+
         return results
+
+    def _get_incident_seen_list(self, incident, user):
+        seen_by_list = list(
+            User.objects.filter(incidentseen__incident=incident).order_by(
+                "-incidentseen__last_seen"
+            )
+        )
+
+        has_seen = any(seen_by for seen_by in seen_by_list if seen_by.id == user.id)
+
+        return serialize(seen_by_list), has_seen
+
 
     def serialize(self, obj, attrs, user):
         date_closed = obj.date_closed.replace(second=0, microsecond=0) if obj.date_closed else None
@@ -50,6 +67,9 @@ class IncidentSerializer(Serializer):
             "organizationId": str(obj.organization_id),
             "projects": attrs["projects"],
             "alertRule": attrs["alert_rule"],
+            "activities": attrs["activities"],
+            "seenBy": attrs["seen_by"],
+            "hasSeen": attrs["has_seen"],
             "status": obj.status,
             "statusMethod": obj.status_method,
             "type": obj.type,
@@ -62,6 +82,13 @@ class IncidentSerializer(Serializer):
 
 
 class DetailedIncidentSerializer(IncidentSerializer):
+    def __init__(self, expand=None):
+        if expand is None:
+            expand = ['seen_by']
+        elif 'seen_by' not in expand:
+            expand.append('seen_by')
+        self.expand = expand
+
     def get_attrs(self, item_list, user, **kwargs):
         results = super().get_attrs(item_list, user=user, **kwargs)
         subscribed_incidents = set()
@@ -76,24 +103,9 @@ class DetailedIncidentSerializer(IncidentSerializer):
             results[item]["is_subscribed"] = item.id in subscribed_incidents
         return results
 
-    def _get_incident_seen_list(self, incident, user):
-        seen_by_list = list(
-            User.objects.filter(incidentseen__incident=incident).order_by(
-                "-incidentseen__last_seen"
-            )
-        )
-
-        has_seen = any(seen_by for seen_by in seen_by_list if seen_by.id == user.id)
-
-        return {"seen_by": serialize(seen_by_list), "has_seen": has_seen}
-
     def serialize(self, obj, attrs, user):
         context = super().serialize(obj, attrs, user)
-        seen_list = self._get_incident_seen_list(obj, user)
-
         context["isSubscribed"] = attrs["is_subscribed"]
-        context["seenBy"] = seen_list["seen_by"]
-        context["hasSeen"] = seen_list["has_seen"]
         # The query we should use to get accurate results in Discover.
         context["discoverQuery"] = self._build_discover_query(obj)
 
