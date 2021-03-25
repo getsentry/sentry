@@ -103,7 +103,7 @@ family:native function:start_wqthread category=threadbase
 family:native function:_pthread_wqthread category=threadbase
 family:native function:boost::*::thread_proxy category=threadbase
 
-family:native package:/usr/lib/system/libsystem_malloc.dylib category=malloc
+family:native package:"/usr/lib/system/libsystem_malloc.dylib" category=malloc
 family:native function:malloc category=malloc
 family:native function:malloc_report category=oom
 family:native function:malloc_vreport category=oom
@@ -173,6 +173,7 @@ family:native function:pthread_mutex_lock category=lock
 # Semi-interesting frames
 category:driver +sentinel +prefix
 category:free +sentinel +prefix
+category:malloc +sentinel +prefix
 category:lock +sentinel +prefix
 category:dyld +sentinel +prefix
 category:gl +sentinel
@@ -185,6 +186,8 @@ category:gl +sentinel
 
 # Only group by top-level GL operaton, not any helper functions it may have called.
 [ .. | category:gl ] category:gl -group
+
+[ .. | category:malloc ] category:malloc -group
 
 # Not very interesting frames -- better add the next frame too
 # category:system +prefix

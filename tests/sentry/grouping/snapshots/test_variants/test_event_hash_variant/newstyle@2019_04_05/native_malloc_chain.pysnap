@@ -1,0 +1,58 @@
+---
+created: '2021-03-25T19:56:04.392658Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            function*
+              "application_frame"
+          frame (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+            function*
+              "malloc_zone_malloc"
+          frame (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+            function*
+              "nanov2_malloc"
+          frame (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+            function*
+              "nanov2_allocate"
+          frame (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+            function*
+              "nanov2_allocate_from_block"
+          frame (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+            function*
+              "nanov2_allocate_from_block.cold.1"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+--------------------------------------------------------------------------
+system:
+  hash: "3ff01ce959249abecc6bc8a8f1432b0b"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "application_frame"
+          frame* (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+            function*
+              "malloc_zone_malloc"
+          frame (ignored by stack trace rule ([ .. | category:malloc] category:malloc -group))
+            function*
+              "nanov2_malloc"
+          frame (ignored by stack trace rule ([ .. | category:malloc] category:malloc -group))
+            function*
+              "nanov2_allocate"
+          frame (ignored by stack trace rule ([ .. | category:malloc] category:malloc -group))
+            function*
+              "nanov2_allocate_from_block"
+          frame (ignored by stack trace rule ([ .. | category:malloc] category:malloc -group))
+            function*
+              "nanov2_allocate_from_block.cold.1"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
