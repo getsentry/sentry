@@ -15,7 +15,12 @@ import {PageContent} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {Column, isAggregateField, WebVital} from 'app/utils/discover/fields';
+import {
+  AggregationKey,
+  Column,
+  isAggregateField,
+  WebVital,
+} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
@@ -138,6 +143,10 @@ class TransactionSummary extends React.Component<Props, State> {
       {
         kind: 'function',
         function: ['tpm', '', undefined],
+      },
+      {
+        kind: 'function',
+        function: ['user_misery_prototype' as AggregationKey, threshold, undefined],
       },
       ...vitals.map(
         vital =>

@@ -318,6 +318,7 @@ class SearchVisitor(NodeVisitor):
         "p99",
         "failure_rate",
         "user_misery",
+        "user_misery_prototype",
     }
     date_keys = {
         "start",
@@ -2060,6 +2061,26 @@ FUNCTIONS = {
             required_args=[NumberRange("satisfaction", 0, None)],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
             transform="uniqIf(user, greater(duration, {tolerated:g}))",
+            default_result_type="number",
+        ),
+        Function(
+            "user_misery_prototype",
+            required_args=[NumberRange("satisfaction", 0, None)],
+            # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
+            # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
+            # to be 0.0004. This allows us to calculate the alpha (5.8875) and beta (111.8625) parameters,
+            # with the user misery being adjusted for each fast/slow unique transaction. See:
+            # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
+            # for an intuitive explanation of the Beta Distribution Function.
+            optional_args=[
+                with_default(5.8875, NumberRange("alpha", 0, None)),
+                with_default(111.8625, NumberRange("beta", 0, None)),
+            ],
+            calculated_args=[
+                {"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0},
+                {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
+            ],
+            transform="ifNull(divide(plus(uniqIf(user, greater(duration, {tolerated:g})), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
             default_result_type="number",
         ),
         Function("failure_rate", transform="failure_rate()", default_result_type="percentage"),

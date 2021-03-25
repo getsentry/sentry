@@ -542,6 +542,7 @@ export const TRACING_FIELDS = [
   'failure_rate',
   'apdex',
   'user_misery',
+  'user_misery_prototype',
   'eps',
   'epm',
   ...Object.keys(MEASUREMENTS),

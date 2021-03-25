@@ -158,6 +158,7 @@ describe('aggregateOutputType', function () {
     expect(aggregateOutputType('apdex()')).toEqual('number');
     expect(aggregateOutputType('apdex(500)')).toEqual('number');
     expect(aggregateOutputType('user_misery(500)')).toEqual('number');
+    expect(aggregateOutputType('user_misery_prototype(500)')).toEqual('number');
     expect(aggregateOutputType('eps()')).toEqual('number');
     expect(aggregateOutputType('epm()')).toEqual('number');
   });
