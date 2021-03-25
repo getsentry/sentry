@@ -79,6 +79,7 @@ type Props = {
   memberList?: User[];
   onMarkReviewed?: (itemIds: string[]) => void;
   showInboxTime?: boolean;
+  index?: number;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -332,6 +333,7 @@ class StreamGroup extends React.Component<Props, State> {
   render() {
     const {data, reviewed} = this.state;
     const {
+      index,
       query,
       hasGuideAnchor,
       canSelect,
@@ -385,6 +387,7 @@ class StreamGroup extends React.Component<Props, State> {
           flex="1"
         >
           <EventOrGroupHeader
+            index={index}
             organization={organization}
             includeLink
             data={data}
