@@ -615,7 +615,7 @@ def populate_connected_event_scenario_2(
     react_project: Project, python_project: Project, quick=False
 ):
     """
-    This function populates a set of four related events with the same trace id:
+    This function populates a set of two related events with the same trace id:
     - Front-end transaction
     - Back-end transaction
     Occurrance times and durations are randomized
