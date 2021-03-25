@@ -41,7 +41,7 @@ class SnubaTest(TestCase, SnubaTestCase):
                 2,
                 "insert",
                 {
-                    "event_id": "x" * 32,
+                    "event_id": "a" * 32,
                     "primary_hash": "1" * 32,
                     "group_id": 1,
                     "project_id": self.project.id,

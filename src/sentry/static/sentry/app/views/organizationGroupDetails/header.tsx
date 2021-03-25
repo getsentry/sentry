@@ -7,6 +7,7 @@ import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Badge from 'app/components/badge';
 import Count from 'app/components/count';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import ErrorLevel from 'app/components/events/errorLevel';
@@ -21,6 +22,7 @@ import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import SeenByList from 'app/components/seenByList';
 import ShortId from 'app/components/shortId';
+import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
 import {IconChat} from 'app/icons';
 import {t} from 'app/locale';
@@ -250,29 +252,25 @@ class GroupHeader extends React.Component<Props, State> {
             isActive={() => currentTab === TAB.DETAILS}
             disabled={hasGroupBeenReprocessedAndHasntEvent}
           >
-            {t('Details')}
+            <GuideAnchor target="issue_details">{t('Details')}</GuideAnchor>
           </ListLink>
           <StyledListLink
             to={`${baseUrl}activity/${location.search}`}
             isActive={() => currentTab === TAB.ACTIVITY}
             disabled={isGroupBeingReprocessing}
           >
-            {t('Activity')} <TabCount>{group.numComments}</TabCount>
-            <IconChat
-              size="xs"
-              color={
-                group.subscriptionDetails?.reason === 'mentioned'
-                  ? 'green300'
-                  : 'purple300'
-              }
-            />
+            {t('Activity')}
+            <StyledTag>
+              <TabCount>{group.numComments}</TabCount>
+              <IconChat size="xs" color="white" />
+            </StyledTag>
           </StyledListLink>
           <StyledListLink
             to={`${baseUrl}feedback/${location.search}`}
             isActive={() => currentTab === TAB.USER_FEEDBACK}
             disabled={isGroupBeingReprocessing}
           >
-            {t('User Feedback')} <TabCount>{group.userReportCount}</TabCount>
+            {t('User Feedback')} <Badge text={group.userReportCount} />
           </StyledListLink>
           {hasEventAttachments && (
             <ListLink
@@ -347,11 +345,21 @@ const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
 const StyledListLink = styled(ListLink)`
   svg {
     margin-left: ${space(0.5)};
+    margin-bottom: ${space(0.25)};
+    vertical-align: middle;
   }
 `;
 
+const StyledTag = styled(Tag)`
+  div {
+    background-color: ${p => p.theme.badge.default.background};
+  }
+  margin-left: ${space(0.75)};
+`;
+
 const TabCount = styled('span')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.white};
+  font-weight: 600;
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`

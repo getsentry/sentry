@@ -102,6 +102,11 @@ _REDIS_SYNC_TTL = 3600 * 24
 # Note: Event attachments and group reports are migrated in save_event.
 GROUP_MODELS_TO_MIGRATE = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
 
+# If we were to move groupinbox to the new, empty group, inbox would show the
+# empty, unactionable group while it is reprocessing. Let post-process take
+# care of assigning GroupInbox like normally.
+GROUP_MODELS_TO_MIGRATE = tuple(x for x in GROUP_MODELS_TO_MIGRATE if x != models.GroupInbox)
+
 
 def _generate_unprocessed_event_node_id(project_id, event_id):
     return hashlib.md5(f"{project_id}:{event_id}:unprocessed".encode("utf-8")).hexdigest()

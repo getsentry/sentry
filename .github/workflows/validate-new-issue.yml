@@ -41,7 +41,7 @@ jobs:
           # - is a report about buggy validation 😅 or ...
           # - not empty (ignoring whitespace)
           # - matches a template
-          #   - all the headings are also in this issue
+          #   - at least one of the headings are also in this issue
           #   - extra headings in the issue are fine
           #   - order doesn't matter
           #   - case-sensitive tho
@@ -66,7 +66,7 @@ jobs:
               echo -n "$(basename $template)? "
               if [ ! -s headings-in-template ]; then
                 echo "No headers in template. 🤷"
-              elif [ -z "$(comm -23 headings-in-template headings-in-issue)" ]; then
+              elif [ "$(comm -12 headings-in-template headings-in-issue)" ]; then
                 echo "Match! 👍 💃"
                 if diff -Bw "$template" issue > /dev/null; then
                   echo "... like, an /exact/ match. 😖"
