@@ -82,6 +82,8 @@ def copy_useroption_to_notificationsetting(apps, schema_editor):
             try:
                 int_value = int(user_option.value)
             except (ValueError, TypeError):
+                # if for some reason this isn't an int or a stringified int, it's garbage and we'll skip
+                # because an empty value is meaningless
                 continue
             if int_value == 0:
                 value = NotificationSettingOptionValues.NEVER.value
