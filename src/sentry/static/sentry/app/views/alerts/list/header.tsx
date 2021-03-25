@@ -7,8 +7,8 @@ import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CreateAlertButton from 'app/components/createAlertButton';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import * as Layout from 'app/components/layouts/thirds';
-import Link from 'app/components/links/link';
 import {IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -60,15 +60,15 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
         <Layout.HeaderNavTabs underlined>
           <Feature features={['incidents']} organization={organization}>
             <li className={activeTab === 'stream' ? 'active' : ''}>
-              <Link to={`/organizations/${organization.slug}/alerts/`}>
+              <GlobalSelectionLink to={`/organizations/${organization.slug}/alerts/`}>
                 {t('Metric Alerts')}
-              </Link>
+              </GlobalSelectionLink>
             </li>
           </Feature>
           <li className={activeTab === 'rules' ? 'active' : ''}>
-            <Link to={`/organizations/${organization.slug}/alerts/rules/`}>
+            <GlobalSelectionLink to={`/organizations/${organization.slug}/alerts/rules/`}>
               {t('Alert Rules')}
-            </Link>
+            </GlobalSelectionLink>
           </li>
         </Layout.HeaderNavTabs>
       </TabLayoutHeader>
