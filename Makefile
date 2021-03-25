@@ -51,7 +51,7 @@ setup-pyenv:
 	@./scripts/pyenv_setup.sh
 
 upgrade-pip:
-	@SENTRY_NO_VENV_CHECK=1 ./scripts/python.sh upgrade-pip
+	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh upgrade-pip
 
 setup-git-config:
 	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh setup-git-config
