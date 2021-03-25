@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T16:01:19.606049Z'
+created: '2021-03-25T19:10:45.482984Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -95,7 +95,7 @@ app:
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function*
               "gpusSubmitDataBuffers"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
             function*
               "gpusKillClientExt"
           frame (non app frame)
@@ -165,7 +165,7 @@ app:
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function*
               "gpusSubmitDataBuffers"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
             function*
               "gpusKillClientExt"
           frame (non app frame)
@@ -186,7 +186,7 @@ app:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "076a7fc5a2854a755dbc01d934ef6ea0"
+  hash: "7273ec8d3ae5af594dcc344b280501b1"
   component:
     system*
       exception*
@@ -274,10 +274,10 @@ system:
           frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
             function*
               "IntelCommandBuffer::getNew"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function*
               "gpusSubmitDataBuffers"
-          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (ignored by stack trace rule (category:telemetry -group))
             function*
               "gpusKillClientExt"
           frame (ignored by stack trace rule (category:telemetry -group))
@@ -344,7 +344,7 @@ system:
           frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
             function*
               "IntelCommandBuffer::getNew"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "gpusSubmitDataBuffers"
           frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))

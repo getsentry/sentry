@@ -161,6 +161,7 @@ family:native package:C:\Windows\SYSTEM32\OPENGL32.dll category=gl
 family:native package:/System/Library/Frameworks/OpenGL.framework/** category=gl
 
 family:native package:"/System/Library/PrivateFrameworks/GPUSupport.framework/**" function:gpusGenerateCrashLog* category=telemetry
+family:native function:gpusKillClientExt category=telemetry
 
 family:native function:dlopen category=dyld
 

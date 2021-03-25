@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T11:25:26.661992Z'
+created: '2021-03-25T19:10:37.143861Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -95,7 +95,7 @@ app:
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function (function name is not used if module or filename are available)
               "gpusSubmitDataBuffers"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "gpusKillClientExt"
           frame (frame considered in-app because no frame is in-app)
@@ -165,7 +165,7 @@ app:
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function (function name is not used if module or filename are available)
               "gpusSubmitDataBuffers"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "gpusKillClientExt"
           frame (frame considered in-app because no frame is in-app)
@@ -277,7 +277,7 @@ system:
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function (function name is not used if module or filename are available)
               "gpusSubmitDataBuffers"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
             function (function name is not used if module or filename are available)
               "gpusKillClientExt"
           frame
@@ -347,7 +347,7 @@ system:
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function (function name is not used if module or filename are available)
               "gpusSubmitDataBuffers"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
             function (function name is not used if module or filename are available)
               "gpusKillClientExt"
           frame
