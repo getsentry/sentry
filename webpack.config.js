@@ -273,7 +273,7 @@ let appConfig = {
             options: {
               // This needs to be `false` because of platformicons package
               esModule: false,
-              name: '[name].[hash:6].[ext]',
+              name: '[folder]/[name].[hash:6].[ext]',
             },
           },
         ],
