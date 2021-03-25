@@ -77,12 +77,16 @@ export function stringifyQueryList(query: string | [key: string, value: string][
     return query;
   }
 
-  const queryObj: Record<string, string> = {};
+  const queryObj: Record<string, string[]> = {};
   for (const kv of query) {
     if (kv !== null && kv.length === 2) {
-      const [k, v] = kv;
-      if (v !== null) {
-        queryObj[k] = v;
+      const [key, value] = kv;
+      if (value !== null) {
+        if (Array.isArray(queryObj[key])) {
+          queryObj[key].push(value);
+        } else {
+          queryObj[key] = [value];
+        }
       }
     }
   }
