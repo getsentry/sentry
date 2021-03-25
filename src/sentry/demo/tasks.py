@@ -46,9 +46,6 @@ def delete_users_orgs(**kwargs):
         delete_organization.apply_async(kwargs={"object_id": org.id})
 
 
-ORG_BUFFER_SIZE = 3
-
-
 @instrumented_task(
     name="sentry.demo.tasks.build_up_org_buffer",
 )
@@ -56,16 +53,15 @@ def build_up_org_buffer():
     if not settings.DEMO_MODE:
         return
 
-    # find how many orgs we have waiting assignment
-    num_orgs = DemoOrganization.objects.filter(status=DemoOrgStatus.PENDING).count()
+    ORG_BUFFER_SIZE = settings.DEMO_DATA_GEN_PARAMS["ORG_BUFFER_SIZE"]
+
+    # find how many orgs we have waiting assignment or being initialized
+    num_orgs = DemoOrganization.objects.filter(
+        status__in=[DemoOrgStatus.PENDING, DemoOrgStatus.INITIALIZING]
+    ).count()
     num_to_populate = ORG_BUFFER_SIZE - num_orgs
 
     # synchronnously build up our org buffer if under sized
     if num_to_populate > 0:
         create_demo_org()
         build_up_org_buffer.apply_async()
-
-
-# on initialization, start building up our org buffer
-if settings.DEMO_MODE:
-    build_up_org_buffer.apply_async()
