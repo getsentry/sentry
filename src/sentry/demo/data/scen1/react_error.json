@@ -22,7 +22,7 @@
     ["user", "email:0vrp@yahoo.com"],
     ["session_id", "_6clz768pg"],
     ["transaction", "checkout"],
-    ["url", "https://scefali-react-m3uuizd7iq-uc.a.run.app/toolstore"]
+    ["url", "https://app.example.com/toolstore"]
   ],
   "_meta": {
     "breadcrumbs": {
@@ -57,9 +57,9 @@
         "type": "default",
         "category": "console",
         "level": "info",
-        "message": "BACKEND is:  https://scefali-flask-m3uuizd7iq-uc.a.run.app",
+        "message": "BACKEND is:  https://app.example.com",
         "data": {
-          "arguments": ["BACKEND is: ", "https://scefali-flask-m3uuizd7iq-uc.a.run.app"],
+          "arguments": ["BACKEND is: ", "https://app.example.com"],
           "logger": "console"
         }
       },
@@ -68,9 +68,9 @@
         "type": "default",
         "category": "console",
         "level": "info",
-        "message": "BACKEND is:  https://scefali-flask-m3uuizd7iq-uc.a.run.app",
+        "message": "BACKEND is:  https://app.example.com",
         "data": {
-          "arguments": ["BACKEND is: ", "https://scefali-flask-m3uuizd7iq-uc.a.run.app"],
+          "arguments": ["BACKEND is: ", "https://app.example.com"],
           "logger": "console"
         }
       },
@@ -96,7 +96,7 @@
         "data": {
           "method": "GET",
           "status_code": 200,
-          "url": "https://scefali-flask-m3uuizd7iq-uc.a.run.app/tools"
+          "url": "https://app.example.com/tools"
         }
       },
       {
@@ -826,7 +826,7 @@
         "data": {
           "method": "POST",
           "status_code": 500,
-          "url": "https://scefali-flask-m3uuizd7iq-uc.a.run.app/checkout"
+          "url": "https://app.example.com/checkout"
         }
       }
     ]
@@ -1059,7 +1059,7 @@
             {
               "module": "main",
               "filename": "../static/js/main.5bf584f2.js",
-              "abs_path": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/static/js/main.5bf584f2.js",
+              "abs_path": "https://app.example.com/static/static/js/main.5bf584f2.js",
               "lineno": 23949,
               "colno": 830,
               "pre_context": [
@@ -1079,14 +1079,14 @@
               ],
               "in_app": true,
               "data": {
-                "sourcemap": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/js/main.5bf584f2.js.map"
+                "sourcemap": "https://app.example.com/static/js/main.5bf584f2.js.map"
               }
             },
             {
               "function": "step",
               "module": "main",
               "filename": "../static/js/main.5bf584f2.js",
-              "abs_path": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/static/js/main.5bf584f2.js",
+              "abs_path": "https://app.example.com/static/static/js/main.5bf584f2.js",
               "lineno": 23949,
               "colno": 677,
               "pre_context": [
@@ -1106,14 +1106,14 @@
               ],
               "in_app": true,
               "data": {
-                "sourcemap": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/js/main.5bf584f2.js.map"
+                "sourcemap": "https://app.example.com/static/js/main.5bf584f2.js.map"
               }
             },
             {
               "function": "key",
               "module": "react-scripts/node_modules/regenerator-runtime/runtime",
               "filename": "../node_modules/react-scripts/node_modules/regenerator-runtime/runtime.js",
-              "abs_path": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/node_modules/react-scripts/node_modules/regenerator-runtime/runtime.js",
+              "abs_path": "https://app.example.com/static/node_modules/react-scripts/node_modules/regenerator-runtime/runtime.js",
               "lineno": 117,
               "colno": 1,
               "pre_context": [
@@ -1133,14 +1133,14 @@
               ],
               "in_app": false,
               "data": {
-                "sourcemap": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/js/main.5bf584f2.js.map"
+                "sourcemap": "https://app.example.com/static/js/main.5bf584f2.js.map"
               }
             },
             {
               "function": "_invoke",
               "module": "react-scripts/node_modules/regenerator-runtime/runtime",
               "filename": "../node_modules/react-scripts/node_modules/regenerator-runtime/runtime.js",
-              "abs_path": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/node_modules/react-scripts/node_modules/regenerator-runtime/runtime.js",
+              "abs_path": "https://app.example.com/static/node_modules/react-scripts/node_modules/regenerator-runtime/runtime.js",
               "lineno": 303,
               "colno": 1,
               "pre_context": [
@@ -1160,14 +1160,14 @@
               ],
               "in_app": false,
               "data": {
-                "sourcemap": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/js/main.5bf584f2.js.map"
+                "sourcemap": "https://app.example.com/static/js/main.5bf584f2.js.map"
               }
             },
             {
               "function": "tryCatch",
               "module": "react-scripts/node_modules/regenerator-runtime/runtime",
               "filename": "../node_modules/react-scripts/node_modules/regenerator-runtime/runtime.js",
-              "abs_path": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/node_modules/react-scripts/node_modules/regenerator-runtime/runtime.js",
+              "abs_path": "https://app.example.com/static/node_modules/react-scripts/node_modules/regenerator-runtime/runtime.js",
               "lineno": 65,
               "colno": 15,
               "pre_context": [
@@ -1187,14 +1187,14 @@
               ],
               "in_app": false,
               "data": {
-                "sourcemap": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/js/main.5bf584f2.js.map"
+                "sourcemap": "https://app.example.com/static/js/main.5bf584f2.js.map"
               }
             },
             {
               "function": "call",
               "module": "components/ShoppingCart",
               "filename": "components/ShoppingCart.js",
-              "abs_path": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/js/components/ShoppingCart.js",
+              "abs_path": "https://app.example.com/static/js/components/ShoppingCart.js",
               "lineno": 43,
               "colno": 35,
               "pre_context": [
@@ -1214,7 +1214,7 @@
               ],
               "in_app": true,
               "data": {
-                "sourcemap": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/js/main.5bf584f2.js.map"
+                "sourcemap": "https://app.example.com/static/js/main.5bf584f2.js.map"
               }
             }
           ]
@@ -1223,7 +1223,7 @@
           "frames": [
             {
               "filename": "/static/js/main.5bf584f2.js",
-              "abs_path": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/js/main.5bf584f2.js",
+              "abs_path": "https://app.example.com/static/js/main.5bf584f2.js",
               "lineno": 1,
               "colno": 215258,
               "context_line": "{snip} n(e)}if(!a.done)return Promise.resolve(u).then(function(e){r(\"next\",e)},function(e){r(\"throw\",e)});e(u)}return r(\"next\")})}}function i(e,t){ {snip}",
@@ -1233,7 +1233,7 @@
             {
               "function": "r",
               "filename": "/static/js/main.5bf584f2.js",
-              "abs_path": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/js/main.5bf584f2.js",
+              "abs_path": "https://app.example.com/static/js/main.5bf584f2.js",
               "lineno": 1,
               "colno": 215164,
               "context_line": "{snip} rn new Promise(function(e,n){function r(i,o){try{var a=t[i](o),u=a.value}catch(e){return void n(e)}if(!a.done)return Promise.resolve(u).then {snip}",
@@ -1243,7 +1243,7 @@
             {
               "function": "Generator.e.<computed> [as next]",
               "filename": "/static/js/main.5bf584f2.js",
-              "abs_path": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/js/main.5bf584f2.js",
+              "abs_path": "https://app.example.com/static/js/main.5bf584f2.js",
               "lineno": 1,
               "colno": 357177,
               "context_line": "{snip} \"return\"].forEach(function(t){e[t]=function(e){return this._invoke(t,e)}})}function s(e){function n(t,i,o,a){var u=r(e[t],e,i);if(\"throw\"!== {snip}",
@@ -1253,7 +1253,7 @@
             {
               "function": "Generator._invoke",
               "filename": "/static/js/main.5bf584f2.js",
-              "abs_path": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/js/main.5bf584f2.js",
+              "abs_path": "https://app.example.com/static/js/main.5bf584f2.js",
               "lineno": 1,
               "colno": 358120,
               "context_line": "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);i=O;var c=r(e,t,n);if(\"normal\"===c.type){if(i=n.done?C:k,c.arg===P)continue;return{value:c. {snip}",
@@ -1263,7 +1263,7 @@
             {
               "function": "r",
               "filename": "/static/js/main.5bf584f2.js",
-              "abs_path": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/js/main.5bf584f2.js",
+              "abs_path": "https://app.example.com/static/js/main.5bf584f2.js",
               "lineno": 1,
               "colno": 356998,
               "context_line": "{snip} (e,n,u),a}function r(e,t,n){try{return{type:\"normal\",arg:e.call(t,n)}}catch(e){return{type:\"throw\",arg:e}}}function i(){}function o(){}funct {snip}",
@@ -1273,7 +1273,7 @@
             {
               "function": "t.<anonymous>",
               "filename": "/static/js/main.5bf584f2.js",
-              "abs_path": "https://scefali-react-m3uuizd7iq-uc.a.run.app/static/js/main.5bf584f2.js",
+              "abs_path": "https://app.example.com/static/js/main.5bf584f2.js",
               "lineno": 1,
               "colno": 217373,
               "context_line": "{snip} tion(e){throw Error(e)});case 2:return n=e.sent,n.ok||(p.h(new Error(n.status+\" - \"+(n.statusText||\"INTERNAL SERVER ERROR\"))),this.setState( {snip}",
@@ -1310,7 +1310,7 @@
   },
   "received": 1615500020.246863,
   "request": {
-    "url": "https://scefali-react-m3uuizd7iq-uc.a.run.app/toolstore",
+    "url": "https://app.example.com/toolstore",
     "headers": [
       [
         "User-Agent",

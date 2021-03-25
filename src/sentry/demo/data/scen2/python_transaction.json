@@ -1,0 +1,166 @@
+{
+  "event_id": "6c5712924a014166869d8c38d81f59f2",
+  "project": 1316515,
+  "release": "167.3",
+  "dist": null,
+  "platform": "python",
+  "message": "",
+  "datetime": "2021-03-24T02:10:49.564622+00:00",
+  "tags": [
+    ["browser", "Chrome 89.0.4389"],
+    ["browser.name", "Chrome"],
+    ["client_os", "Mac OS X 10.11.6"],
+    ["client_os.name", "Mac OS X"],
+    ["device", "Mac"],
+    ["device.family", "Mac"],
+    ["environment", "prod"],
+    ["http.status_code", "200"],
+    ["level", "info"],
+    ["runtime", "CPython 2.7.18"],
+    ["runtime.name", "CPython"],
+    ["release", "167.3"],
+    ["user", "email:gttq@yahoo.com"],
+    ["server_name", "localhost"],
+    ["transaction", "getProductList"],
+    ["url", "https://app.example.com/products"]
+  ],
+  "_meta": {
+    "request": {"headers": {"16": {"1": {"": {"rem": [["!config", "x", 0, 11]]}}}}}
+  },
+  "_metrics": {"bytes.ingested.event": 3448, "bytes.stored.event": 4534},
+  "contexts": {
+    "browser": {"name": "Chrome", "version": "89.0.4389", "type": "browser"},
+    "client_os": {"name": "Mac OS X", "version": "10.11.6", "type": "os"},
+    "device": {"family": "Mac", "model": "Mac", "brand": "Apple", "type": "device"},
+    "runtime": {
+      "name": "CPython",
+      "version": "2.7.18",
+      "build": "2.7.18 (default, Apr 20 2020, 19:34:11) \n[GCC 8.3.0]",
+      "type": "runtime"
+    },
+    "trace": {
+      "trace_id": "96519f891e2a4ad2a0f2b325069c1126",
+      "span_id": "84c310a40416ae8b",
+      "parent_span_id": "a2370db1a4100f06",
+      "op": "http.server",
+      "status": "ok",
+      "type": "trace"
+    }
+  },
+  "culprit": "getProductList",
+  "environment": "prod",
+  "extra": {
+    "inventory": {"hammer": 1, "nails": 1, "wrench": 0},
+    "sys.argv": ["/usr/local/bin/flask", "run", "--host=0.0.0.0", "-p", "8080"]
+  },
+  "grouping_config": {
+    "enhancements": "eJybzDhxY05qemJypZWRgaGlroGxrqHRBABbEwcC",
+    "id": "legacy:2019-03-12"
+  },
+  "key_id": "1237205",
+  "level": "info",
+  "location": "getProductList",
+  "logger": "",
+  "metadata": {"location": "getProductList", "title": "getProductList"},
+  "received": 1616551849.571442,
+  "request": {
+    "url": "https://app.example.com/products",
+    "method": "GET",
+    "headers": [
+      ["Accept", "*/*"],
+      ["Accept-Encoding", "gzip, deflate, br"],
+      ["Accept-Language", "en-US,en;q=0.9"],
+      ["Content-Length", "0"],
+      ["Email", "gttq@yahoo.com"],
+      ["Forwarded", "for=\"66.85.48.72\";proto=https"],
+      ["Host", "neilmanvar-flask-m3uuizd7iq-uc.a.run.app"],
+      ["Origin", "https://app.example.com"],
+      ["Referer", "https://app.example.com/"],
+      ["Sec-Fetch-Dest", "empty"],
+      ["Sec-Fetch-Mode", "cors"],
+      ["Sec-Fetch-Site", "cross-site"],
+      ["Sentry-Trace", "96519f891e2a4ad2a0f2b325069c1126-a2370db1a4100f06-1"],
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Safari/537.36"
+      ],
+      ["X-Client-Data", "CgSM6ZsV"],
+      ["X-Cloud-Trace-Context", "39c9250bdcfebe2ba47e172b4b629f5b/6457087999817838061"],
+      ["X-Forwarded-For", ""],
+      ["X-Forwarded-Proto", "https"]
+    ],
+    "env": {"SERVER_NAME": "0.0.0.0", "SERVER_PORT": "8080"}
+  },
+  "sdk": {
+    "name": "sentry.python",
+    "version": "0.19.2",
+    "integrations": [
+      "argv",
+      "atexit",
+      "dedupe",
+      "excepthook",
+      "flask",
+      "logging",
+      "modules",
+      "sqlalchemy",
+      "stdlib",
+      "threading"
+    ],
+    "packages": [{"name": "pypi:sentry-sdk", "version": "0.19.2"}]
+  },
+  "spans": [
+    {
+      "timestamp": 1616551849.482626,
+      "start_timestamp": 1616551841.291488,
+      "op": "db function: get all products",
+      "span_id": "871fde3b0db1eb60",
+      "parent_span_id": "84c310a40416ae8b",
+      "trace_id": "96519f891e2a4ad2a0f2b325069c1126",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1616551841.292163,
+      "start_timestamp": 1616551841.291874,
+      "op": "connect to db",
+      "span_id": "99621c233c17edc4",
+      "parent_span_id": "871fde3b0db1eb60",
+      "trace_id": "96519f891e2a4ad2a0f2b325069c1126",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1616551849.477578,
+      "start_timestamp": 1616551841.292241,
+      "op": "run query",
+      "span_id": "93d489bddf146390",
+      "parent_span_id": "871fde3b0db1eb60",
+      "trace_id": "96519f891e2a4ad2a0f2b325069c1126",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1616551849.477096,
+      "start_timestamp": 1616551849.467436,
+      "description": "SELECT * FROM products",
+      "op": "db",
+      "span_id": "a950df9608c683ab",
+      "parent_span_id": "93d489bddf146390",
+      "trace_id": "96519f891e2a4ad2a0f2b325069c1126",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1616551849.482058,
+      "start_timestamp": 1616551849.480952,
+      "op": "format results",
+      "span_id": "8a03092f94a19240",
+      "parent_span_id": "871fde3b0db1eb60",
+      "trace_id": "96519f891e2a4ad2a0f2b325069c1126",
+      "same_process_as_parent": true
+    }
+  ],
+  "start_timestamp": 1616551841.290421,
+  "timestamp": 1616551849.564622,
+  "title": "getProductList",
+  "transaction": "getProductList",
+  "type": "transaction",
+  "user": {"email": "gttq@yahoo.com"},
+  "version": "7"
+}
