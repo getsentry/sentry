@@ -33,7 +33,8 @@ type IncidentProps = {
 class TimelineIncident extends React.Component<IncidentProps> {
   renderActivity(activity: ActivityType, idx: number) {
     const {incident, rule} = this.props;
-    const last = incident.activities && idx === incident.activities.length - 1;
+    const {activities} = incident;
+    const last = activities && idx === activities.length - 1;
     const authorName = activity.user?.name ?? 'Sentry';
 
     const isDetected = activity.type === IncidentActivityType.DETECTED;
@@ -46,9 +47,7 @@ class TimelineIncident extends React.Component<IncidentProps> {
 
     // Unknown activity, don't render anything
     if (
-      (!isStarted && !isDetected && !isClosed && !isTriggerChange) ||
-      !incident.activities ||
-      !incident.activities.length
+      (!isStarted && !isDetected && !isClosed && !isTriggerChange) || !activities || !activities.length
     ) {
       return null;
     }
@@ -59,10 +58,10 @@ class TimelineIncident extends React.Component<IncidentProps> {
     let subtext: React.ReactNode;
     if (isTriggerChange) {
       const nextActivity =
-        incident.activities.find(({previousValue}) => previousValue === activity.value) ||
+        activities.find(({previousValue}) => previousValue === activity.value) ||
         (activity.value &&
           activity.value === `${IncidentStatus.OPENED}` &&
-          incident.activities.find(({type}) => type === IncidentActivityType.DETECTED));
+          activities.find(({type}) => type === IncidentActivityType.DETECTED));
       const activityDuration = (nextActivity
         ? moment(nextActivity.dateCreated)
         : moment()

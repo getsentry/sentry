@@ -344,17 +344,8 @@ export default class MetricChart extends React.PureComponent<Props, State> {
           const totalDuration = lastPoint - firstPoint;
           let criticalDuration = 0;
           let warningDuration = 0;
-          const resolvedArea = {
-            seriesName: 'Resolved Area',
-            type: 'line',
-            markLine: MarkLine({
-              silent: true,
-              lineStyle: {color: theme.green300, type: 'solid', width: 4},
-              data: [[{coord: [firstPoint, 0]}, {coord: [lastPoint, 0]}] as any],
-            }),
-            data: [],
-          };
-          series.push(resolvedArea);
+
+          series.push(createStatusAreaSeries(theme.green300, firstPoint, lastPoint));
           if (incidents) {
             // select incidents that fall within the graph range
             const periodStart = moment.utc(firstPoint);
@@ -385,12 +376,7 @@ export default class MetricChart extends React.PureComponent<Props, State> {
                 const timeWindowMs = rule.timeWindow * 60 * 1000;
 
                 series.push(
-                  createIncidentSeries(
-                    rule.triggers.find(({label}) => label === 'warning') &&
-                      statusChanges &&
-                      !statusChanges.find(
-                        ({value}) => value === `${IncidentStatus.CRITICAL}`
-                      )
+                  createIncidentSeries(warningTrigger && statusChanges && !statusChanges.find(({value}) => value === `${IncidentStatus.CRITICAL}`)
                       ? theme.yellow300
                       : theme.red300,
                     moment(incident.dateStarted).valueOf(),
@@ -402,9 +388,7 @@ export default class MetricChart extends React.PureComponent<Props, State> {
                   statusChanges?.length && statusChanges[0].dateCreated
                     ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
                     : moment(incidentEnd).valueOf();
-                const areaColor = rule.triggers.find(({label}) => label === 'warning')
-                  ? theme.yellow300
-                  : theme.red300;
+                const areaColor = warningTrigger ? theme.yellow300 : theme.red300;
                 series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
                 if (areaColor === theme.yellow300) {
                   warningDuration += areaEnd - areaStart;
