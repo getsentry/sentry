@@ -13,10 +13,10 @@ reset-db \
 setup-git \
 node-version-check \
 install-js-dev \
-install-py-dev \
-build-platform-assets :
+install-py-dev :
 	@./scripts/do.sh $@
 
+build-platform-assets \
 upgrade-pip \
 setup-git-config :
 	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh $@
