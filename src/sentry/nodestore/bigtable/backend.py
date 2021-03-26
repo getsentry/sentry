@@ -39,6 +39,11 @@ class BigtableNodeStorage(NodeStorage):
         compression=False,
         **client_options,
     ):
+        if compression is True:
+            compression = "zlib"
+        elif compression is False:
+            compression = None
+
         self.store = self.store_class(
             project=project,
             instance=instance,
