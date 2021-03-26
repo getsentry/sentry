@@ -24,8 +24,8 @@ def update_user_misery_column_on_saved_queries(apps, schema_editor):
             match = re.match(USER_MISERY_REGEX, field)
             if match:
                 fields[i] = f"count_miserable(user, {match.group(1)})"
-                query["fields"] = fields
-                query.save()
+                saved_query.query["fields"] = fields
+                saved_query.save()
                 break
 
 
