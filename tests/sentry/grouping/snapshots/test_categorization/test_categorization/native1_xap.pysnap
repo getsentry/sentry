@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:19:12.847074Z'
+created: '2021-03-26T18:36:03.508466Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -8,7 +8,7 @@ source: tests/sentry/grouping/test_categorization.py
 EXCEPTION_ACCESS_VIOLATION_READ:Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ (thread_id:_, crashed:_)
                                               stripped_application_code
             C:\Windows\SYSTEM32\MSVCP140.dll  ??? category=internals
-               C:\Windows\SYSTEM32\ntdll.dll  RtlDispatchException category=system
+               C:\Windows\SYSTEM32\ntdll.dll  RtlDispatchException category=indirection
                C:\Windows\SYSTEM32\ntdll.dll  RtlpExecuteHandlerForException category=handler
         C:\Windows\SYSTEM32\VCRUNTIME140.dll  __C_specific_handler category=internals
                                               stripped_application_code

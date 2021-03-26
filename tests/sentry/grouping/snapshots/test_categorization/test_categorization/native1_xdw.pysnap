@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:19:12.462979Z'
+created: '2021-03-26T18:36:03.763398Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -12,18 +12,18 @@ EXCEPTION_ACCESS_VIOLATION_WRITE:Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE (
                                               stripped_application_code
             C:\Windows\System32\ucrtbase.dll  exit category=shutdown
             C:\Windows\System32\ucrtbase.dll  __crt_state_management::enter_os_call category=internals
-            C:\Windows\System32\ucrtbase.dll  strset category=system
+            C:\Windows\System32\ucrtbase.dll  strset category=indirection
             C:\Windows\System32\KERNEL32.DLL  ExitProcessImplementation category=shutdown
                C:\Windows\SYSTEM32\ntdll.dll  RtlExitUserProcess category=shutdown
                C:\Windows\SYSTEM32\ntdll.dll  RtlUnlockProcessHeapOnProcessTerminate category=system
                C:\Windows\SYSTEM32\ntdll.dll  LdrShutdownProcess category=internals
                                               stripped_application_code
-               C:\Windows\SYSTEM32\ntdll.dll  LdrShutdownProcess category=system
+               C:\Windows\SYSTEM32\ntdll.dll  LdrShutdownProcess category=indirection
                                               stripped_application_code
                C:\Windows\SYSTEM32\ntdll.dll  RtlpFlsDataCleanup category=system
                C:\Windows\SYSTEM32\ntdll.dll  LdrpCallInitRoutine category=internals
                                               stripped_application_code
-               C:\Windows\SYSTEM32\ntdll.dll  RtlActivateActivationContextUnsafeFast category=system
+               C:\Windows\SYSTEM32\ntdll.dll  RtlActivateActivationContextUnsafeFast category=indirection
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code

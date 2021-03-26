@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:27:56.984819Z'
+created: '2021-03-26T18:36:05.505457Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -52,7 +52,7 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
                                               stripped_application_code
                /usr/lib/system/libdyld.dylib  dlopen category=dyld
-               /usr/lib/system/libdyld.dylib  dlopen_internal category=system
+               /usr/lib/system/libdyld.dylib  dlopen_internal category=indirection
                                /usr/lib/dyld  ??? category=internals
                                /usr/lib/dyld  ??? category=internals
                                /usr/lib/dyld  ??? category=internals

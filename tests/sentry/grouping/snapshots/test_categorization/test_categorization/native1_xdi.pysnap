@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:19:15.798685Z'
+created: '2021-03-26T18:36:04.280945Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -8,7 +8,7 @@ source: tests/sentry/grouping/test_categorization.py
 EXCEPTION_ACCESS_VIOLATION_EXEC:Fatal Error: EXCEPTION_ACCESS_VIOLATION_EXEC (thread_id:_, crashed:_)
                C:\Windows\SYSTEM32\ntdll.dll  RtlUserThreadStart category=threadbase
             C:\Windows\System32\KERNEL32.DLL  BaseThreadInitThunk category=threadbase
-               C:\Windows\SYSTEM32\ntdll.dll  TppWorkerThread category=system
+               C:\Windows\SYSTEM32\ntdll.dll  TppWorkerThread category=indirection
                C:\Windows\SYSTEM32\ntdll.dll  RtlExitUserThread category=throw
                C:\Windows\SYSTEM32\ntdll.dll  LdrShutdownThread category=system
                C:\Windows\SYSTEM32\ntdll.dll  RtlpFlsDataCleanup category=internals

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:19:15.761998Z'
+created: '2021-03-26T18:36:05.031104Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
-  /System/Library/Frameworks/Foundation.fram  -[NSRunLoop(NSRunLoop) runMode:beforeDate:] category=system
+  /System/Library/Frameworks/Foundation.fram  -[NSRunLoop(NSRunLoop) runMode:beforeDate:] category=indirection
   /System/Library/Frameworks/CoreFoundation.  ??? category=internals
   /System/Library/Frameworks/CoreFoundation.  ??? category=internals
   /System/Library/Frameworks/CoreFoundation.  ??? category=internals

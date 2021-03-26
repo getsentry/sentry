@@ -174,9 +174,6 @@ family:native function:dlopen category=dyld
 
 family:native function:pthread_mutex_lock category=lock
 
-# System frame wedged between two other frames is just noise.
-[ !category:system | .. | !category:system ] category:system -group
-
 # Semi-interesting frames
 category:driver +sentinel +prefix
 category:free +sentinel +prefix
@@ -241,6 +238,9 @@ family:native function:_INTERNAL* category=internals
 #   foo -> bar
 #   foo -> foo.cold.1 -> bar
 family:native function:*.cold.1 category=indirection
+
+# System frame wedged between two other frames is just noise.
+[ !category:system | .. | !category:system ] category:system category=indirection
 
 # TODO: multi-category / category inheritance
 category:system [ .. | category:free ] category=internals

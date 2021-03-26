@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T14:30:02.043040Z'
+created: '2021-03-26T18:36:05.725376Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -7,9 +7,9 @@ source: tests/sentry/grouping/test_categorization.py
 
 EXCEPTION_ACCESS_VIOLATION_READ:Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ (thread_id:_, crashed:_)
                                     once.hpp  boost::call_once category=std
-               C:\WINDOWS\SYSTEM32\ntdll.dll  LdrpCallInitRoutine category=system
+               C:\WINDOWS\SYSTEM32\ntdll.dll  LdrpCallInitRoutine category=indirection
                                               stripped_application_code
-               C:\WINDOWS\SYSTEM32\mscms.dll  DllMain category=system
+               C:\WINDOWS\SYSTEM32\mscms.dll  DllMain category=indirection
                                               stripped_application_code
                        function_template.hpp  boost::function1<T>::operator() category=indirection
                        function_template.hpp  boost::detail::function::void_function_obj_invoker1<T>::invoke category=std
@@ -57,7 +57,7 @@ EXCEPTION_ACCESS_VIOLATION_READ:Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ (th
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
-               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpFreeHeapInternal category=system
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpFreeHeapInternal category=indirection
                                               stripped_application_code
                C:\WINDOWS\SYSTEM32\ntdll.dll  RtlFreeHeap category=free
                                               stripped_application_code

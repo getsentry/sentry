@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:19:11.875684Z'
+created: '2021-03-26T18:36:04.684850Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -62,7 +62,7 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
             C:\windows\System32\ucrtbase.dll  malloc_base category=malloc
                C:\windows\SYSTEM32\ntdll.dll  RtlpAllocateHeapInternal category=internals
-        C:\windows\SYSTEM32\VCRUNTIME140.dll  memset category=system
+        C:\windows\SYSTEM32\VCRUNTIME140.dll  memset category=indirection
                                               stripped_application_code
   C:\Windows\Microsoft.NET\Framework64\v4.0.  VTableBootstrapThunkInitHelperStub category=system
   C:\Windows\Microsoft.NET\Framework64\v4.0.  VTableBootstrapThunkInitHelper category=internals

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:19:14.088644Z'
+created: '2021-03-26T18:36:03.318049Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -22,7 +22,7 @@ EXCEPTION_INT_DIVIDE_BY_ZERO:Fatal Error: EXCEPTION_INT_DIVIDE_BY_ZERO (thread_i
               C:\WINDOWS\System32\win32u.dll  NtUserGetMessage category=internals
                C:\WINDOWS\SYSTEM32\ntdll.dll  KiUserCallbackDispatcher category=internals
               C:\WINDOWS\System32\USER32.dll  _fnHkINLPMSG category=internals
-              C:\WINDOWS\System32\USER32.dll  CallHookWithSEH category=system
+              C:\WINDOWS\System32\USER32.dll  CallHookWithSEH category=indirection
               C:\WINDOWS\System32\USER32.dll  DispatchHookW category=handler
   C:\Program Files\NVIDIA Corporation\nView\  DestroyThreadFeatureManager category=internals
   C:\Program Files\NVIDIA Corporation\nView\  DestroyThreadFeatureManager category=internals

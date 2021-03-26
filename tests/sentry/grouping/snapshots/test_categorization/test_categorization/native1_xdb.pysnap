@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:19:10.231879Z'
+created: '2021-03-26T18:36:03.034322Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -11,7 +11,7 @@ EXCEPTION_ACCESS_VIOLATION_READ:Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ (th
                                               stripped_application_code
             C:\WINDOWS\System32\ucrtbase.dll  exit category=shutdown
             C:\WINDOWS\System32\ucrtbase.dll  exit category=shutdown
-            C:\WINDOWS\System32\KERNEL32.DLL  FatalExit category=system
+            C:\WINDOWS\System32\KERNEL32.DLL  FatalExit category=indirection
                C:\WINDOWS\SYSTEM32\ntdll.dll  RtlExitUserProcess category=shutdown
                C:\WINDOWS\SYSTEM32\ntdll.dll  LdrShutdownProcess category=system
                C:\WINDOWS\SYSTEM32\ntdll.dll  LdrpCallInitRoutine category=internals

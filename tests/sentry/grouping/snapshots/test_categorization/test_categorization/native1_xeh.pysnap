@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:19:13.147197Z'
+created: '2021-03-26T18:36:05.039808Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -10,7 +10,7 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
-  /System/Library/Frameworks/AppKit.framewor  NSRunAlertPanel category=system
+  /System/Library/Frameworks/AppKit.framewor  NSRunAlertPanel category=indirection
   /System/Library/Frameworks/AppKit.framewor  _NSTryRunModal category=internals
   /System/Library/Frameworks/QuartzCore.fram  CA::Transaction::commit category=system
   /System/Library/Frameworks/QuartzCore.fram  CA::Context::commit_transaction category=internals
