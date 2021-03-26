@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T12:01:03.639169Z'
+created: '2021-03-26T18:19:10.777136Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -22,5 +22,5 @@ EXC_BAD_ACCESS / KERN_INVALID_ADDRESS:Fatal Error: EXC_BAD_ACCESS / KERN_INVALID
         abccore.framework/Versions/A/abccore  std::__1::queue<T>::push category=std
         abccore.framework/Versions/A/abccore  std::__1::deque<T>::push_back category=std
         abccore.framework/Versions/A/abccore  std::__1::allocator_traits<T>::construct<T> category=malloc
-        abccore.framework/Versions/A/abccore  std::__1::allocator_traits<T>::__construct<T> category=malloc
+        abccore.framework/Versions/A/abccore  std::__1::allocator_traits<T>::__construct<T> category=internals
         abccore.framework/Versions/A/abccore  std::__1::allocator<T>::construct<T> category=std

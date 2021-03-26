@@ -15,8 +15,6 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "start",
               "package": "/usr/lib/system/libdyld.dylib"
             },
@@ -39,9 +37,6 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
@@ -51,39 +46,21 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
@@ -201,8 +178,6 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__dynamic_cast",
               "package": "/usr/lib/libc++abi.dylib"
             }

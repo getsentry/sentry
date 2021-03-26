@@ -15,14 +15,10 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "start",
               "package": "/usr/lib/system/libdyld.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "start",
               "package": "/usr/lib/system/libdyld.dylib"
             },
@@ -141,32 +137,22 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_objc_msgSend_uncached",
               "package": "/usr/lib/libobjc.A.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "lookUpImpOrForward",
               "package": "/usr/lib/libobjc.A.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "initializeAndMaybeRelock",
               "package": "/usr/lib/libobjc.A.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "initializeNonMetaClass",
               "package": "/usr/lib/libobjc.A.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CALLING_SOME_+initialize_METHOD",
               "package": "/usr/lib/libobjc.A.dylib"
             },
@@ -192,14 +178,10 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "dlopen",
               "package": "/usr/lib/system/libdyld.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "dlopen_internal",
               "package": "/usr/lib/system/libdyld.dylib"
             },
@@ -231,20 +213,14 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "abort",
               "package": "/usr/lib/system/libsystem_c.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__abort",
               "package": "/usr/lib/system/libsystem_c.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__pthread_kill",
               "package": "/usr/lib/system/libsystem_kernel.dylib"
             }

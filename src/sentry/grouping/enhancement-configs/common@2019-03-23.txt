@@ -102,6 +102,7 @@ family:native function:_dispatch_client_callout category=threadbase
 family:native function:start_wqthread category=threadbase
 family:native function:_pthread_wqthread category=threadbase
 family:native function:boost::*::thread_proxy category=threadbase
+family:native package:/usr/lib/system/libsystem_pthread.dylib function:"<unknown>" category=threadbase
 
 family:native package:"/usr/lib/system/libsystem_malloc.dylib" category=malloc
 family:native function:malloc category=malloc
@@ -162,9 +163,12 @@ family:native category:system function:free category=free
 
 family:native package:C:\Windows\SYSTEM32\OPENGL32.dll category=gl
 family:native package:/System/Library/Frameworks/OpenGL.framework/** category=gl
+# Not a graphics library but we've seen it be interchangeable with OpenGL in stacktraces.
+family:native package:/System/Library/Frameworks/OpenCL.framework/** category=gl
 
 family:native package:"/System/Library/PrivateFrameworks/GPUSupport.framework/**" function:gpusGenerateCrashLog* category=telemetry
 family:native function:gpusKillClientExt category=telemetry
+family:native function:crashpad::* category=telemetry
 
 family:native function:dlopen category=dyld
 
@@ -185,16 +189,28 @@ category:gl +sentinel
 # removes a lot of noise from the stack especially if most of the called frames
 # failed symbolication, stack scanning was done or to paper over differences in
 # driver versions.
-[ category:driver | .. ] category:driver -group
+[ category:driver | .. ] category:driver category=internals
 
 # Only group by top-level GL operaton, not any helper functions it may have called.
-[ .. | category:gl ] category:gl -group
+[ .. | category:gl ] category:gl category=internals
+# If we have a GL frame, its symbolication is more reliable than any driver frame to group by.
+# todo: find testcase
+# [ .. | category:gl ] category:driver category=internals
 
-[ .. | category:malloc ] category:malloc -group
+# Only group by top-level malloc op, not any helper function it may have called.
+[ .. | category:malloc ] category:malloc category=internals
 
 # abort() and exception raising is technically the culprit for crashes, but not
 # the thing we want to show.
 category:throw +sentinel +prefix ^-group
+
+# On Windows, _purecall internally aborts when the function pointer is invalid.
+# We want to treat this the same as a segfault happening before calling
+# _purecall.
+category:throw [ .. | function:_purecall ] category=internals
+
+# raise() called by abort() should only group by abort()
+category:throw [ .. | category:throw ] category=internals
 
 # Thread bases such as `main()` are just noise and are called by noise.
 category:threadbase -group v-group
@@ -211,4 +227,24 @@ category:handler ^-group -group
 category:telemetry -group
 
 category:indirection -group
-category:threadbase v-group
+category:internals -group
+category:threadbase v-group -group
+
+# system frames starting with underscore are likely garbage
+# unsymbolicated system frames are likely system frames starting with underscore
+family:native category:system function:_* category=internals
+family:native category:system function:"<unknown>" category=internals
+family:native function:_INTERNAL* category=internals
+
+# frames with .cold.1 are probably hotpaths vs slow paths but not relevant for grouping
+# e.g., two callstacks that should group together:
+#   foo -> bar
+#   foo -> foo.cold.1 -> bar
+family:native function:*.cold.1 category=indirection
+
+# TODO: multi-category / category inheritance
+category:system [ .. | category:free ] category=internals
+category:system [ .. | category:system ] category=internals
+# TODO: findtestcase
+# category:system [ .. | category:dlopen ] category=internals
+# category:system [ .. | category:driver ] category=internals

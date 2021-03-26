@@ -15,20 +15,14 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "register_onexit_function",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "register_onexit_function",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "register_onexit_function",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
@@ -162,75 +156,39 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
             }
           ]

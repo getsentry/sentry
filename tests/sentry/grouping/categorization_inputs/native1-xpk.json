@@ -21,14 +21,10 @@
               "package": "boost_threads.framework/Versions/A/boost_threads"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "thread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_pthread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib"
             },
@@ -84,26 +80,18 @@
               "package": "abccore.framework/Versions/A/abccore"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "gmtsub",
               "package": "/usr/lib/system/libsystem_c.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "notify_check_tz",
               "package": "/usr/lib/system/libsystem_c.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "notify_check",
               "package": "/usr/lib/system/libsystem_notify.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "notify_monitor_file",
               "package": "/usr/lib/system/libsystem_notify.dylib"
             },
@@ -111,8 +99,6 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_sigtramp",
               "package": "/usr/lib/system/libsystem_platform.dylib"
             },
@@ -132,8 +118,6 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "OSAtomicDequeue",
               "package": "/usr/lib/system/libsystem_platform.dylib"
             }

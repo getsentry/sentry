@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T12:01:04.172128Z'
+created: '2021-03-26T18:19:11.636030Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -9,19 +9,19 @@ Unhandled C++ Exception:Fatal Error: Unhandled C++ Exception (thread_id:_, crash
                C:\WINDOWS\SYSTEM32\ntdll.dll  RtlUserThreadStart category=threadbase
             C:\WINDOWS\System32\KERNEL32.DLL  BaseThreadInitThunk category=threadbase
                C:\WINDOWS\SYSTEM32\ntdll.dll  TppWorkerThread category=system
-               C:\WINDOWS\SYSTEM32\ntdll.dll  TppWorkpExecuteCallback category=system
-             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_THREAD_POOL::_StaticWorkItemCallback category=system
-             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::OnWorkItem category=system
-             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::_ControlledAppCallback category=system
-             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::_SafeAppCallback category=system
+               C:\WINDOWS\SYSTEM32\ntdll.dll  TppWorkpExecuteCallback category=internals
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_THREAD_POOL::_StaticWorkItemCallback category=internals
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::OnWorkItem category=internals
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::_ControlledAppCallback category=internals
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::_SafeAppCallback category=internals
                                               stripped_application_code
-             C:\WINDOWS\SYSTEM32\WINHTTP.dll  ??? category=system
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  ??? category=internals
              C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::IndicateCompletionStatusCommon category=system
-             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::_SafeAppCallback category=system
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::_SafeAppCallback category=internals
                                               stripped_application_code
              C:\WINDOWS\SYSTEM32\WINHTTP.dll  WinHttpReadData category=system
-             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::IndicateCompletionStatusCommon category=system
-             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::_SafeAppCallback category=system
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::IndicateCompletionStatusCommon category=internals
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::_SafeAppCallback category=internals
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
@@ -41,4 +41,4 @@ Unhandled C++ Exception:Fatal Error: Unhandled C++ Exception (thread_id:_, crash
                                               stripped_application_code
                                               stripped_application_code
         C:\WINDOWS\SYSTEM32\VCRUNTIME140.dll  _CxxThrowException category=throw
-          C:\WINDOWS\System32\KERNELBASE.dll  RaiseException category=throw
+          C:\WINDOWS\System32\KERNELBASE.dll  RaiseException category=internals

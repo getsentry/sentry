@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T12:01:07.649815Z'
+created: '2021-03-26T18:19:17.719430Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -12,10 +12,10 @@ EXC_BAD_ACCESS / 0x00000032:Fatal Error: EXC_BAD_ACCESS / 0x00000032 (thread_id:
                                               stripped_application_code
                                               stripped_application_code
   /System/Library/Frameworks/CoreFoundation.  CFRunLoopRun category=system
-  /System/Library/Frameworks/CoreFoundation.  CFRunLoopRunSpecific category=system
-  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopRun category=system
-  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopDoBlocks category=system
-  /System/Library/Frameworks/CoreFoundation.  __CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__ category=system
+  /System/Library/Frameworks/CoreFoundation.  CFRunLoopRunSpecific category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopRun category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopDoBlocks category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__ category=internals
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
@@ -33,8 +33,8 @@ EXC_BAD_ACCESS / 0x00000032:Fatal Error: EXC_BAD_ACCESS / 0x00000032 (thread_id:
                                               stripped_application_code
                                               stripped_application_code
   /System/Library/Frameworks/CoreFoundation.  CFBundleGetFunctionPointerForName category=system
-  /System/Library/Frameworks/CoreFoundation.  _CFBundleLoadExecutableAndReturnError category=system
-  /System/Library/Frameworks/CoreFoundation.  _CFBundleDlfcnLoadBundle category=system
+  /System/Library/Frameworks/CoreFoundation.  _CFBundleLoadExecutableAndReturnError category=internals
+  /System/Library/Frameworks/CoreFoundation.  _CFBundleDlfcnLoadBundle category=internals
                /usr/lib/system/libdyld.dylib  dlopen category=dyld
                                               stripped_application_code
                                               stripped_application_code

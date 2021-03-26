@@ -15,14 +15,10 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlUserThreadStart",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "BaseThreadInitThunk",
               "package": "C:\\Windows\\System32\\KERNEL32.DLL"
             },
@@ -30,38 +26,26 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "exit",
               "package": "C:\\Windows\\System32\\ucrtbase.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "exit",
               "package": "C:\\Windows\\System32\\ucrtbase.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "FatalExit",
               "package": "C:\\Windows\\System32\\KERNEL32.DLL"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlExitUserProcess",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "LdrShutdownProcess",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlDeactivateActivationContextUnsafeFast",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
@@ -75,14 +59,10 @@
               "package": "C:\\Windows\\SYSTEM32\\MSVCR100.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlFreeHeap",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlpFreeHeapInternal",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             }

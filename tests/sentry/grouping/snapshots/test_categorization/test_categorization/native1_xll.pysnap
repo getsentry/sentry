@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T12:01:05.621506Z'
+created: '2021-03-26T18:19:13.212518Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -14,8 +14,8 @@ EXCEPTION_ACCESS_VIOLATION_READ:Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ (th
             C:\Windows\System32\KERNEL32.DLL  FatalExit category=system
                C:\Windows\SYSTEM32\ntdll.dll  RtlExitUserProcess category=shutdown
                C:\Windows\SYSTEM32\ntdll.dll  LdrShutdownProcess category=system
-               C:\Windows\SYSTEM32\ntdll.dll  RtlDeactivateActivationContextUnsafeFast category=system
+               C:\Windows\SYSTEM32\ntdll.dll  RtlDeactivateActivationContextUnsafeFast category=internals
                                               stripped_application_code
             C:\Windows\SYSTEM32\MSVCR100.dll  free category=free
                C:\Windows\SYSTEM32\ntdll.dll  RtlFreeHeap category=free
-               C:\Windows\SYSTEM32\ntdll.dll  RtlpFreeHeapInternal category=system
+               C:\Windows\SYSTEM32\ntdll.dll  RtlpFreeHeapInternal category=internals

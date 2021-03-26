@@ -15,14 +15,10 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlUserThreadStart",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "BaseThreadInitThunk",
               "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
             },
@@ -30,38 +26,26 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "exit",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__crt_state_management::enter_os_call",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "ExitProcessImplementation",
               "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlExitUserProcess",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "LdrShutdownProcess",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlActivateActivationContextUnsafeFast",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
@@ -150,20 +134,14 @@
               "package": "C:\\WINDOWS\\SYSTEM32\\MSVCR120.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CreateThreadpoolWaitStub",
               "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "memset",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "TppRaiseInvalidParameter",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             }

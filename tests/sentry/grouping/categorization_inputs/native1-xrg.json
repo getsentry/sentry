@@ -15,50 +15,34 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlUserThreadStart",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "BaseThreadInitThunk",
               "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "TppWorkerThread",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "TppWorkpExecuteCallback",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "HTTP_THREAD_POOL::_StaticWorkItemCallback",
               "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "HTTP_REQUEST_HANDLE_OBJECT::OnWorkItem",
               "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "HTTP_REQUEST_HANDLE_OBJECT::_ControlledAppCallback",
               "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "HTTP_REQUEST_HANDLE_OBJECT::_SafeAppCallback",
               "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
             },
@@ -66,20 +50,13 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "HTTP_REQUEST_HANDLE_OBJECT::IndicateCompletionStatusCommon",
               "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "HTTP_REQUEST_HANDLE_OBJECT::_SafeAppCallback",
               "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
             },
@@ -87,20 +64,14 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "WinHttpReadData",
               "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "HTTP_REQUEST_HANDLE_OBJECT::IndicateCompletionStatusCommon",
               "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "HTTP_REQUEST_HANDLE_OBJECT::_SafeAppCallback",
               "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
             },
@@ -165,8 +136,6 @@
               "package": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RaiseException",
               "package": "C:\\WINDOWS\\System32\\KERNELBASE.dll"
             }

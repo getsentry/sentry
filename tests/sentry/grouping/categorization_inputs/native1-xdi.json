@@ -15,38 +15,26 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlUserThreadStart",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "BaseThreadInitThunk",
               "package": "C:\\Windows\\System32\\KERNEL32.DLL"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "TppWorkerThread",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlExitUserThread",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "LdrShutdownThread",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlpFlsDataCleanup",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },

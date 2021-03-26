@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T12:01:04.657256Z'
+created: '2021-03-26T18:19:12.324384Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -25,6 +25,6 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
                                               stripped_application_code
         C:\WINDOWS\SYSTEM32\VCRUNTIME140.dll  _purecall category=indirection
-            C:\WINDOWS\System32\ucrtbase.dll  abort category=throw
+            C:\WINDOWS\System32\ucrtbase.dll  abort category=internals
             C:\WINDOWS\System32\ucrtbase.dll  raise category=throw
                                               stripped_application_code

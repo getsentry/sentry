@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T12:01:06.193878Z'
+created: '2021-03-26T18:19:14.088644Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -19,13 +19,13 @@ EXCEPTION_INT_DIVIDE_BY_ZERO:Fatal Error: EXCEPTION_INT_DIVIDE_BY_ZERO (thread_i
                                               stripped_application_code
                                               stripped_application_code
               C:\WINDOWS\System32\USER32.dll  GetMessageW category=system
-              C:\WINDOWS\System32\win32u.dll  NtUserGetMessage category=system
-               C:\WINDOWS\SYSTEM32\ntdll.dll  KiUserCallbackDispatcher category=system
-              C:\WINDOWS\System32\USER32.dll  _fnHkINLPMSG category=system
+              C:\WINDOWS\System32\win32u.dll  NtUserGetMessage category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  KiUserCallbackDispatcher category=internals
+              C:\WINDOWS\System32\USER32.dll  _fnHkINLPMSG category=internals
               C:\WINDOWS\System32\USER32.dll  CallHookWithSEH category=system
               C:\WINDOWS\System32\USER32.dll  DispatchHookW category=handler
-  C:\Program Files\NVIDIA Corporation\nView\  DestroyThreadFeatureManager category=driver
-  C:\Program Files\NVIDIA Corporation\nView\  DestroyThreadFeatureManager category=driver
-  C:\Program Files\NVIDIA Corporation\nView\  ??? category=driver
-  C:\Program Files\NVIDIA Corporation\nView\  ??? category=driver
+  C:\Program Files\NVIDIA Corporation\nView\  DestroyThreadFeatureManager category=internals
+  C:\Program Files\NVIDIA Corporation\nView\  DestroyThreadFeatureManager category=internals
+  C:\Program Files\NVIDIA Corporation\nView\  ??? category=internals
+  C:\Program Files\NVIDIA Corporation\nView\  ??? category=internals
   C:\Program Files\NVIDIA Corporation\nView\  DestroyThreadFeatureManager category=driver

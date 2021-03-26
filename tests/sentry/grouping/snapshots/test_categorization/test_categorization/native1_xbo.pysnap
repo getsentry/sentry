@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T12:01:04.400107Z'
+created: '2021-03-26T18:19:11.875684Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -24,7 +24,7 @@ source: tests/sentry/grouping/test_categorization.py
   C:\Program Files\Company\Example App 2020\  std::_Func_class<T>::operator() category=indirection
                                               stripped_application_code
               C:\windows\System32\USER32.dll  DispatchMessageWorker category=system
-              C:\windows\System32\USER32.dll  UserCallWinProcCheckWow category=system
+              C:\windows\System32\USER32.dll  UserCallWinProcCheckWow category=internals
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
@@ -61,12 +61,12 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
                                               stripped_application_code
             C:\windows\System32\ucrtbase.dll  malloc_base category=malloc
-               C:\windows\SYSTEM32\ntdll.dll  RtlpAllocateHeapInternal category=malloc
+               C:\windows\SYSTEM32\ntdll.dll  RtlpAllocateHeapInternal category=internals
         C:\windows\SYSTEM32\VCRUNTIME140.dll  memset category=system
                                               stripped_application_code
   C:\Windows\Microsoft.NET\Framework64\v4.0.  VTableBootstrapThunkInitHelperStub category=system
-  C:\Windows\Microsoft.NET\Framework64\v4.0.  VTableBootstrapThunkInitHelper category=system
-  C:\Windows\Microsoft.NET\Framework64\v4.0.  CorDllMainWorkerForThunk category=system
-  C:\Windows\Microsoft.NET\Framework64\v4.0.  CorDllMainForThunk category=system
+  C:\Windows\Microsoft.NET\Framework64\v4.0.  VTableBootstrapThunkInitHelper category=internals
+  C:\Windows\Microsoft.NET\Framework64\v4.0.  CorDllMainWorkerForThunk category=internals
+  C:\Windows\Microsoft.NET\Framework64\v4.0.  CorDllMainForThunk category=internals
   C:\Windows\Microsoft.NET\Framework64\v4.0.  RaiseComPlusException category=throw
-          C:\windows\System32\KERNELBASE.dll  RaiseException category=throw
+          C:\windows\System32\KERNELBASE.dll  RaiseException category=internals

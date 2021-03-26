@@ -15,8 +15,6 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_sigtramp",
               "package": "/usr/lib/system/libsystem_platform.dylib"
             },
@@ -30,98 +28,66 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "NSRunAlertPanel",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_NSTryRunModal",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CA::Transaction::commit",
               "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CA::Context::commit_transaction",
               "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CA::Layer::display_if_needed",
               "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "-[_NSViewBackingLayer display]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "-[_NSBackingLayer display]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "-[CALayer _display]",
               "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CA::Layer::display_",
               "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CABackingStoreUpdate_",
               "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "-[NSView(NSLayerKitGlue) _drawViewBackingLayer:inContext:drawingHandler:]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "-[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "-[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "-[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "-[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:]",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_NSViewDrawRect",
               "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
             },
@@ -315,56 +281,38 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_malloc_zone_malloc",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "nanov2_malloc",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "nanov2_allocate",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "nanov2_allocate_from_block",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "nanov2_allocate_from_block.cold.1",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "malloc_zone_error",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "malloc_vreport",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "abort",
               "package": "/usr/lib/system/libsystem_c.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__pthread_kill",
               "package": "/usr/lib/system/libsystem_kernel.dylib"
             }

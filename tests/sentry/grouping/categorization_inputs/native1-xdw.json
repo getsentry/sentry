@@ -15,20 +15,14 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "TerminateProcessOnMemoryExhaustion",
               "package": "C:\\Windows\\System32\\KERNELBASE.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlUserThreadStart",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "BaseThreadInitThunk",
               "package": "C:\\Windows\\System32\\KERNEL32.DLL"
             },
@@ -36,44 +30,30 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "exit",
               "package": "C:\\Windows\\System32\\ucrtbase.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__crt_state_management::enter_os_call",
               "package": "C:\\Windows\\System32\\ucrtbase.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "strset",
               "package": "C:\\Windows\\System32\\ucrtbase.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "ExitProcessImplementation",
               "package": "C:\\Windows\\System32\\KERNEL32.DLL"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlExitUserProcess",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlUnlockProcessHeapOnProcessTerminate",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "LdrShutdownProcess",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
@@ -81,8 +61,6 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "LdrShutdownProcess",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
@@ -90,14 +68,10 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlpFlsDataCleanup",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "LdrpCallInitRoutine",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
@@ -105,8 +79,6 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlActivateActivationContextUnsafeFast",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
@@ -123,86 +95,58 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CInputProcessorProfiles::Release",
               "package": "C:\\Windows\\System32\\MSCTF.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CInputProcessorProfiles::~CInputProcessorProfiles",
               "package": "C:\\Windows\\System32\\MSCTF.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CTextInputClientOwnerAdapter::Release",
               "package": "C:\\Windows\\System32\\MSCTF.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "wil::details::in1diag3::Log_Hr",
               "package": "C:\\Windows\\System32\\MSCTF.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "wil::details::ReportFailure_Hr",
               "package": "C:\\Windows\\System32\\MSCTF.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "wil::details::ReportFailure",
               "package": "C:\\Windows\\System32\\MSCTF.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "wil::details::LogFailure",
               "package": "C:\\Windows\\System32\\MSCTF.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "wil::details::GetContextAndNotifyFailure",
               "package": "C:\\Windows\\System32\\MSCTF.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "wil::details::ThreadFailureCallbackHolder::GetContextAndNotifyFailure",
               "package": "C:\\Windows\\System32\\MSCTF.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CtfTraceLoggingTelemetry::FallbackTelemetryCallback",
               "package": "C:\\Windows\\System32\\MSCTF.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "wil::details::static_lazy<T>::get",
               "package": "C:\\Windows\\System32\\MSCTF.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "atexit",
               "package": "C:\\Windows\\System32\\MSCTF.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "onexit",
               "package": "C:\\Windows\\System32\\MSCTF.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_dllonexit",
               "package": "C:\\Windows\\System32\\msvcrt.dll"
             }

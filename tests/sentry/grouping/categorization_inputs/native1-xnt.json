@@ -66,68 +66,44 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "GetMessageW",
               "package": "C:\\WINDOWS\\System32\\USER32.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "NtUserGetMessage",
               "package": "C:\\WINDOWS\\System32\\win32u.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "KiUserCallbackDispatcher",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_fnHkINLPMSG",
               "package": "C:\\WINDOWS\\System32\\USER32.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CallHookWithSEH",
               "package": "C:\\WINDOWS\\System32\\USER32.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "DispatchHookW",
               "package": "C:\\WINDOWS\\System32\\USER32.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "DestroyThreadFeatureManager",
               "package": "C:\\Program Files\\NVIDIA Corporation\\nView\\nViewH64.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "DestroyThreadFeatureManager",
               "package": "C:\\Program Files\\NVIDIA Corporation\\nView\\nViewH64.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\Program Files\\NVIDIA Corporation\\nView\\nViewH64.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\Program Files\\NVIDIA Corporation\\nView\\nViewH64.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "DestroyThreadFeatureManager",
               "package": "C:\\Program Files\\NVIDIA Corporation\\nView\\nViewH64.dll"
             }

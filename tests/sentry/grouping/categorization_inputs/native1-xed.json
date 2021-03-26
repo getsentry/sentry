@@ -15,44 +15,30 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_dispatch_root_queues_init_once",
               "package": "/usr/lib/system/libdispatch.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "start_wqthread",
               "package": "/usr/lib/system/libsystem_pthread.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_pthread_wqthread",
               "package": "/usr/lib/system/libsystem_pthread.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_dispatch_worker_thread2",
               "package": "/usr/lib/system/libdispatch.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_dispatch_root_queue_drain",
               "package": "/usr/lib/system/libdispatch.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_dispatch_queue_override_invoke",
               "package": "/usr/lib/system/libdispatch.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_dispatch_client_callout",
               "package": "/usr/lib/system/libdispatch.dylib"
             },
@@ -288,32 +274,22 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "TISCreateInputSourceList",
               "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "TSMGetInputSourceCountWithFilteredAdditions",
               "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "islGetInputSourceListWithAdditions",
               "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "dispatch_assert_queue",
               "package": "/usr/lib/system/libdispatch.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_dispatch_assert_queue_fail",
               "package": "/usr/lib/system/libdispatch.dylib"
             }

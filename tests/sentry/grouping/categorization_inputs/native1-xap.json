@@ -18,20 +18,13 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\Windows\\SYSTEM32\\MSVCP140.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlDispatchException",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlpExecuteHandlerForException",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },

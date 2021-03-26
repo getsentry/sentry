@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T12:01:05.561500Z'
+created: '2021-03-26T18:19:13.147197Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -11,21 +11,21 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
                                               stripped_application_code
   /System/Library/Frameworks/AppKit.framewor  NSRunAlertPanel category=system
-  /System/Library/Frameworks/AppKit.framewor  _NSTryRunModal category=system
+  /System/Library/Frameworks/AppKit.framewor  _NSTryRunModal category=internals
   /System/Library/Frameworks/QuartzCore.fram  CA::Transaction::commit category=system
-  /System/Library/Frameworks/QuartzCore.fram  CA::Context::commit_transaction category=system
-  /System/Library/Frameworks/QuartzCore.fram  CA::Layer::display_if_needed category=system
-  /System/Library/Frameworks/AppKit.framewor  -[_NSViewBackingLayer display] category=system
-  /System/Library/Frameworks/AppKit.framewor  -[_NSBackingLayer display] category=system
-  /System/Library/Frameworks/QuartzCore.fram  -[CALayer _display] category=system
-  /System/Library/Frameworks/QuartzCore.fram  CA::Layer::display_ category=system
-  /System/Library/Frameworks/QuartzCore.fram  CABackingStoreUpdate_ category=system
-  /System/Library/Frameworks/AppKit.framewor  -[NSView(NSLayerKitGlue) _drawViewBackingLayer:inContext:drawingHandler:] category=system
-  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=system
-  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=system
-  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=system
-  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=system
-  /System/Library/Frameworks/AppKit.framewor  _NSViewDrawRect category=system
+  /System/Library/Frameworks/QuartzCore.fram  CA::Context::commit_transaction category=internals
+  /System/Library/Frameworks/QuartzCore.fram  CA::Layer::display_if_needed category=internals
+  /System/Library/Frameworks/AppKit.framewor  -[_NSViewBackingLayer display] category=internals
+  /System/Library/Frameworks/AppKit.framewor  -[_NSBackingLayer display] category=internals
+  /System/Library/Frameworks/QuartzCore.fram  -[CALayer _display] category=internals
+  /System/Library/Frameworks/QuartzCore.fram  CA::Layer::display_ category=internals
+  /System/Library/Frameworks/QuartzCore.fram  CABackingStoreUpdate_ category=internals
+  /System/Library/Frameworks/AppKit.framewor  -[NSView(NSLayerKitGlue) _drawViewBackingLayer:inContext:drawingHandler:] category=internals
+  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=internals
+  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=internals
+  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=internals
+  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=internals
+  /System/Library/Frameworks/AppKit.framewor  _NSViewDrawRect category=internals
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
@@ -81,11 +81,11 @@ source: tests/sentry/grouping/test_categorization.py
             abcui.framework/Versions/A/abcui  boost::detail::shared_count::shared_count<T> category=std
                                               stripped_application_code
       /usr/lib/system/libsystem_malloc.dylib  _malloc_zone_malloc category=malloc
-      /usr/lib/system/libsystem_malloc.dylib  nanov2_malloc category=malloc
-      /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate category=malloc
-      /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate_from_block category=malloc
-      /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate_from_block.cold.1 category=malloc
-      /usr/lib/system/libsystem_malloc.dylib  malloc_zone_error category=malloc
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_malloc category=internals
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate category=internals
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate_from_block category=internals
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate_from_block.cold.1 category=indirection
+      /usr/lib/system/libsystem_malloc.dylib  malloc_zone_error category=internals
       /usr/lib/system/libsystem_malloc.dylib  malloc_vreport category=oom
            /usr/lib/system/libsystem_c.dylib  abort category=throw
-      /usr/lib/system/libsystem_kernel.dylib  __pthread_kill category=system
+      /usr/lib/system/libsystem_kernel.dylib  __pthread_kill category=internals

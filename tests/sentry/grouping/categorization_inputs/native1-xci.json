@@ -15,32 +15,22 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlUserThreadStart",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "BaseThreadInitThunk",
               "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "TppWorkerThread",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "TppTimerpExecuteCallback",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlpTpTimerCallback",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
@@ -117,8 +107,6 @@
               "package": "C:\\Program Files\\Company\\Example App 2020\\MediaFoundation.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "destructor'",
               "package": "C:\\Program Files\\Company\\Example App 2020\\ImporterHost.dll"
             },
@@ -147,56 +135,38 @@
               "package": "C:\\Program Files\\Company\\Example App 2020\\ImporterHost.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "free_base",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlFreeHeap",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlpFreeHeapInternal",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlpFreeHeap",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlEnterCriticalSection",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlpEnterCriticalSectionContended",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlpWaitOnCriticalSection",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlpWaitOnAddress",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlpOptimizeWaitOnAddressWaitList",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             }

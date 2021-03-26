@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T12:01:03.564933Z'
+created: '2021-03-26T18:19:10.673277Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -15,12 +15,12 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
                                               stripped_application_code
   /System/Library/Frameworks/AppKit.framewor  -[NSApplication run] category=system
-  /System/Library/Frameworks/AppKit.framewor  -[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] category=system
-  /System/Library/Frameworks/AppKit.framewor  _DPSNextEvent category=system
-  /System/Library/Frameworks/Carbon.framewor  _BlockUntilNextEventMatchingListInModeWithFilter category=system
+  /System/Library/Frameworks/AppKit.framewor  -[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] category=internals
+  /System/Library/Frameworks/AppKit.framewor  _DPSNextEvent category=internals
+  /System/Library/Frameworks/Carbon.framewor  _BlockUntilNextEventMatchingListInModeWithFilter category=internals
   /System/Library/Frameworks/Carbon.framewor  ReceiveNextEventCommon category=system
-  /System/Library/Frameworks/Carbon.framewor  RunCurrentEventLoopInMode category=system
-  /System/Library/Frameworks/CoreFoundation.  CFRunLoopRunSpecific category=system
-  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopRun category=system
-  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopServiceMachPort category=system
+  /System/Library/Frameworks/Carbon.framewor  RunCurrentEventLoopInMode category=internals
+  /System/Library/Frameworks/CoreFoundation.  CFRunLoopRunSpecific category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopRun category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopServiceMachPort category=internals
       /usr/lib/system/libsystem_kernel.dylib  mach_msg_trap category=system

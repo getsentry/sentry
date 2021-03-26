@@ -15,8 +15,6 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "start",
               "package": "/usr/lib/system/libdyld.dylib"
             },
@@ -33,32 +31,22 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CFRunLoopRun",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CFRunLoopRunSpecific",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__CFRunLoopRun",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__CFRunLoopDoBlocks",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
@@ -117,26 +105,18 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CFBundleGetFunctionPointerForName",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_CFBundleLoadExecutableAndReturnError",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_CFBundleDlfcnLoadBundle",
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "dlopen",
               "package": "/usr/lib/system/libdyld.dylib"
             },
@@ -186,8 +166,6 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "memcmp",
               "package": "/usr/lib/dyld"
             }

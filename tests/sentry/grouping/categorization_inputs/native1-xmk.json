@@ -15,20 +15,14 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "register_onexit_function",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "register_onexit_function",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "register_onexit_function",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
@@ -84,32 +78,22 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "DispatchMessageWorker",
               "package": "C:\\WINDOWS\\System32\\USER32.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "UserCallWinProcCheckWow",
               "package": "C:\\WINDOWS\\System32\\USER32.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "wglWndProc",
               "package": "C:\\WINDOWS\\SYSTEM32\\OPENGL32.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CallWindowProcW",
               "package": "C:\\WINDOWS\\System32\\USER32.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "UserCallWinProcCheckWow",
               "package": "C:\\WINDOWS\\System32\\USER32.dll"
             },
@@ -246,32 +230,22 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "ZwUserCallHwndLock",
               "package": "C:\\WINDOWS\\System32\\win32u.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "KiUserCallbackDispatcher",
               "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_fnDWORD",
               "package": "C:\\WINDOWS\\System32\\USER32.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "DispatchClientMessage",
               "package": "C:\\WINDOWS\\System32\\USER32.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "UserCallWinProcCheckWow",
               "package": "C:\\WINDOWS\\System32\\USER32.dll"
             },

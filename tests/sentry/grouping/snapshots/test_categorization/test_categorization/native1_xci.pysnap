@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T12:01:05.027164Z'
+created: '2021-03-26T18:19:12.714167Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -9,8 +9,8 @@ EXCEPTION_ACCESS_VIOLATION_WRITE:Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE (
                C:\WINDOWS\SYSTEM32\ntdll.dll  RtlUserThreadStart category=threadbase
             C:\WINDOWS\System32\KERNEL32.DLL  BaseThreadInitThunk category=threadbase
                C:\WINDOWS\SYSTEM32\ntdll.dll  TppWorkerThread category=system
-               C:\WINDOWS\SYSTEM32\ntdll.dll  TppTimerpExecuteCallback category=system
-               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpTpTimerCallback category=system
+               C:\WINDOWS\SYSTEM32\ntdll.dll  TppTimerpExecuteCallback category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpTpTimerCallback category=internals
                                               stripped_application_code
                                               stripped_application_code
   C:\Program Files\Company\Example App 2020\  boost::function0<T>::operator() category=indirection
@@ -33,12 +33,12 @@ EXCEPTION_ACCESS_VIOLATION_WRITE:Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE (
   C:\Program Files\Company\Example App 2020\  std::vector<T>::_Tidy category=std
   C:\Program Files\Company\Example App 2020\  std::allocator<T>::deallocate category=std
   C:\Program Files\Company\Example App 2020\  std::_Deallocate category=free
-            C:\WINDOWS\System32\ucrtbase.dll  free_base category=system
+            C:\WINDOWS\System32\ucrtbase.dll  free_base category=internals
                C:\WINDOWS\SYSTEM32\ntdll.dll  RtlFreeHeap category=free
-               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpFreeHeapInternal category=system
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpFreeHeapInternal category=internals
                C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpFreeHeap category=system
-               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlEnterCriticalSection category=system
-               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpEnterCriticalSectionContended category=system
-               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpWaitOnCriticalSection category=system
-               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpWaitOnAddress category=system
-               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpOptimizeWaitOnAddressWaitList category=system
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlEnterCriticalSection category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpEnterCriticalSectionContended category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpWaitOnCriticalSection category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpWaitOnAddress category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpOptimizeWaitOnAddressWaitList category=internals

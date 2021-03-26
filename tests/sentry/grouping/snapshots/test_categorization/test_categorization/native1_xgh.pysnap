@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T12:01:04.575055Z'
+created: '2021-03-26T18:19:12.232102Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -13,18 +13,18 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
-  /System/Library/Frameworks/AppKit.framewor  ??? category=system
-  /System/Library/Frameworks/AppKit.framewor  ??? category=system
-  /System/Library/Frameworks/AppKit.framewor  ??? category=system
-  /System/Library/Frameworks/Carbon.framewor  _BlockUntilNextEventMatchingListInModeWithFilter category=system
+  /System/Library/Frameworks/AppKit.framewor  ??? category=internals
+  /System/Library/Frameworks/AppKit.framewor  ??? category=internals
+  /System/Library/Frameworks/AppKit.framewor  ??? category=internals
+  /System/Library/Frameworks/Carbon.framewor  _BlockUntilNextEventMatchingListInModeWithFilter category=internals
   /System/Library/Frameworks/Carbon.framewor  ReceiveNextEventCommon category=system
-  /System/Library/Frameworks/Carbon.framewor  RunCurrentEventLoopInMode category=system
-  /System/Library/Frameworks/CoreFoundation.  ??? category=system
-  /System/Library/Frameworks/CoreFoundation.  ??? category=system
-  /System/Library/Frameworks/CoreFoundation.  ??? category=system
-  /System/Library/Frameworks/CoreFoundation.  ??? category=system
-  /System/Library/Frameworks/CoreFoundation.  ??? category=system
-  /System/Library/Frameworks/Foundation.fram  ??? category=system
+  /System/Library/Frameworks/Carbon.framewor  RunCurrentEventLoopInMode category=internals
+  /System/Library/Frameworks/CoreFoundation.  ??? category=internals
+  /System/Library/Frameworks/CoreFoundation.  ??? category=internals
+  /System/Library/Frameworks/CoreFoundation.  ??? category=internals
+  /System/Library/Frameworks/CoreFoundation.  ??? category=internals
+  /System/Library/Frameworks/CoreFoundation.  ??? category=internals
+  /System/Library/Frameworks/Foundation.fram  ??? category=internals
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
@@ -46,21 +46,21 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
                                               stripped_application_code
   /System/Library/Frameworks/QuartzCore.fram  CA::Transaction::commit category=system
-  /System/Library/Frameworks/QuartzCore.fram  CA::Context::commit_transaction category=system
-  /System/Library/Frameworks/QuartzCore.fram  CA::Layer::display_if_needed category=system
-  /System/Library/Frameworks/AppKit.framewor  ??? category=system
+  /System/Library/Frameworks/QuartzCore.fram  CA::Context::commit_transaction category=internals
+  /System/Library/Frameworks/QuartzCore.fram  CA::Layer::display_if_needed category=internals
+  /System/Library/Frameworks/AppKit.framewor  ??? category=internals
                                               stripped_application_code
                                               stripped_application_code
   /System/Library/Frameworks/OpenGL.framewor  CGLTexImageIOSurface2D category=gl
-  /System/Library/Frameworks/OpenGL.framewor  CGLDescribeRenderer category=gl
-  /System/Library/Frameworks/OpenGL.framewor  gliSetInteger category=gl
+  /System/Library/Frameworks/OpenGL.framewor  CGLDescribeRenderer category=internals
+  /System/Library/Frameworks/OpenGL.framewor  gliSetInteger category=internals
                                               stripped_application_code
-  /System/Library/Extensions/AppleIntelHD400  ??? category=driver
+  /System/Library/Extensions/AppleIntelHD400  ??? category=internals
   /System/Library/Extensions/AppleIntelHD400  ??? category=driver
                                               stripped_application_code
   /System/Library/Extensions/AppleIntelHD400  ??? category=driver
                                               stripped_application_code
                                               stripped_application_code
            /usr/lib/system/libsystem_c.dylib  abort category=throw
-           /usr/lib/system/libsystem_c.dylib  __abort category=system
-      /usr/lib/system/libsystem_kernel.dylib  ??? category=system
+           /usr/lib/system/libsystem_c.dylib  __abort category=internals
+      /usr/lib/system/libsystem_kernel.dylib  ??? category=internals

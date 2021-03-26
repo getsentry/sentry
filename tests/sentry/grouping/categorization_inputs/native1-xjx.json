@@ -84,14 +84,10 @@
               "package": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "abort",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "raise",
               "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
             },

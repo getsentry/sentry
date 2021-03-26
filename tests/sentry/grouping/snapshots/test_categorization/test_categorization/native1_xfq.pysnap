@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T12:01:06.509407Z'
+created: '2021-03-26T18:19:15.247200Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -13,15 +13,15 @@ EXC_BAD_ACCESS / KERN_INVALID_ADDRESS:Fatal Error: EXC_BAD_ACCESS / KERN_INVALID
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
-  /System/Library/Frameworks/AppKit.framewor  ??? category=system
+  /System/Library/Frameworks/AppKit.framewor  ??? category=internals
                                               stripped_application_code
                                               stripped_application_code
-  /System/Library/Frameworks/AppKit.framewor  ??? category=system
-  /System/Library/Frameworks/AppKit.framewor  ??? category=system
-  /System/Library/Frameworks/AppKit.framewor  ??? category=system
-  /System/Library/Frameworks/AppKit.framewor  ??? category=system
-  /System/Library/Frameworks/AppKit.framewor  ??? category=system
-  /System/Library/Frameworks/AppKit.framewor  ??? category=system
+  /System/Library/Frameworks/AppKit.framewor  ??? category=internals
+  /System/Library/Frameworks/AppKit.framewor  ??? category=internals
+  /System/Library/Frameworks/AppKit.framewor  ??? category=internals
+  /System/Library/Frameworks/AppKit.framewor  ??? category=internals
+  /System/Library/Frameworks/AppKit.framewor  ??? category=internals
+  /System/Library/Frameworks/AppKit.framewor  ??? category=internals
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code

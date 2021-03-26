@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T12:01:06.313648Z'
+created: '2021-03-26T18:19:15.022211Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -10,27 +10,27 @@ source: tests/sentry/grouping/test_categorization.py
             C:\WINDOWS\System32\KERNEL32.DLL  BaseThreadInitThunk category=threadbase
                                               stripped_application_code
             C:\WINDOWS\System32\ucrtbase.dll  exit category=shutdown
-            C:\WINDOWS\System32\ucrtbase.dll  __crt_state_management::enter_os_call category=system
+            C:\WINDOWS\System32\ucrtbase.dll  __crt_state_management::enter_os_call category=internals
             C:\WINDOWS\System32\KERNEL32.DLL  ExitProcessImplementation category=shutdown
                C:\WINDOWS\SYSTEM32\ntdll.dll  RtlExitUserProcess category=shutdown
                C:\WINDOWS\SYSTEM32\ntdll.dll  LdrShutdownProcess category=system
-               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlActivateActivationContextUnsafeFast category=system
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlActivateActivationContextUnsafeFast category=internals
                                               stripped_application_code
                                               stripped_application_code
             C:\WINDOWS\SYSTEM32\MSVCR120.dll  free category=free
                                               stripped_application_code
                                               stripped_application_code
-            C:\WINDOWS\SYSTEM32\MSVCP120.dll  _Call_onceEx category=system
-            C:\WINDOWS\SYSTEM32\MSVCP120.dll  _Mtx_guard::{ctor} category=system
+            C:\WINDOWS\SYSTEM32\MSVCP120.dll  _Call_onceEx category=internals
+            C:\WINDOWS\SYSTEM32\MSVCP120.dll  _Mtx_guard::{ctor} category=internals
             C:\WINDOWS\SYSTEM32\MSVCP120.dll  mtx_do_lock category=system
-            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::critical_section::lock category=system
-            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::LockQueueNode::{ctor} category=system
-            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::SchedulerBase::CurrentContext category=system
-            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::SchedulerBase::CreateContextFromDefaultScheduler category=system
-            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::SchedulerBase::AttachExternalContext category=system
-            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::SchedulerBase::GetExternalContext category=system
-            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::ExternalContextBase::PrepareForUse category=system
-            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::RegisterAsyncWaitAndLoadLibrary category=system
-            C:\WINDOWS\System32\KERNEL32.DLL  CreateThreadpoolWaitStub category=system
-               C:\WINDOWS\SYSTEM32\ntdll.dll  memset category=system
+            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::critical_section::lock category=internals
+            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::LockQueueNode::{ctor} category=internals
+            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::SchedulerBase::CurrentContext category=internals
+            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::SchedulerBase::CreateContextFromDefaultScheduler category=internals
+            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::SchedulerBase::AttachExternalContext category=internals
+            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::SchedulerBase::GetExternalContext category=internals
+            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::ExternalContextBase::PrepareForUse category=internals
+            C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::RegisterAsyncWaitAndLoadLibrary category=internals
+            C:\WINDOWS\System32\KERNEL32.DLL  CreateThreadpoolWaitStub category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  memset category=internals
                C:\WINDOWS\SYSTEM32\ntdll.dll  TppRaiseInvalidParameter category=throw

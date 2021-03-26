@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T12:01:07.438391Z'
+created: '2021-03-26T18:19:16.402990Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -39,11 +39,11 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
-                    /usr/lib/libobjc.A.dylib  _objc_msgSend_uncached category=system
+                    /usr/lib/libobjc.A.dylib  _objc_msgSend_uncached category=internals
                     /usr/lib/libobjc.A.dylib  lookUpImpOrForward category=system
-                    /usr/lib/libobjc.A.dylib  initializeAndMaybeRelock category=system
-                    /usr/lib/libobjc.A.dylib  initializeNonMetaClass category=system
-                    /usr/lib/libobjc.A.dylib  CALLING_SOME_+initialize_METHOD category=system
+                    /usr/lib/libobjc.A.dylib  initializeAndMaybeRelock category=internals
+                    /usr/lib/libobjc.A.dylib  initializeNonMetaClass category=internals
+                    /usr/lib/libobjc.A.dylib  CALLING_SOME_+initialize_METHOD category=internals
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
@@ -63,5 +63,5 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
                                               stripped_application_code
            /usr/lib/system/libsystem_c.dylib  abort category=throw
-           /usr/lib/system/libsystem_c.dylib  __abort category=system
-      /usr/lib/system/libsystem_kernel.dylib  __pthread_kill category=system
+           /usr/lib/system/libsystem_c.dylib  __abort category=internals
+      /usr/lib/system/libsystem_kernel.dylib  __pthread_kill category=internals

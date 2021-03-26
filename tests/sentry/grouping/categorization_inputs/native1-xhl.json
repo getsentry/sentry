@@ -21,14 +21,10 @@
               "package": "boost_threads.framework/Versions/A/boost_threads"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "thread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "_pthread_start",
               "package": "/usr/lib/system/libsystem_pthread.dylib"
             },
@@ -99,32 +95,22 @@
               "package": "abccore.framework/Versions/A/abccore"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "malloc_report",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "malloc_vreport",
               "package": "/usr/lib/system/libsystem_malloc.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "abort",
               "package": "/usr/lib/system/libsystem_c.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__abort",
               "package": "/usr/lib/system/libsystem_c.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__pthread_kill",
               "package": "/usr/lib/system/libsystem_kernel.dylib"
             }

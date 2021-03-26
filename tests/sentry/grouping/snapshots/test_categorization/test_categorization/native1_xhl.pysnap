@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T12:35:43.296853Z'
+created: '2021-03-26T18:19:13.993795Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -25,5 +25,5 @@ source: tests/sentry/grouping/test_categorization.py
       /usr/lib/system/libsystem_malloc.dylib  malloc_report category=oom
       /usr/lib/system/libsystem_malloc.dylib  malloc_vreport category=oom
            /usr/lib/system/libsystem_c.dylib  abort category=throw
-           /usr/lib/system/libsystem_c.dylib  __abort category=system
-      /usr/lib/system/libsystem_kernel.dylib  __pthread_kill category=system
+           /usr/lib/system/libsystem_c.dylib  __abort category=internals
+      /usr/lib/system/libsystem_kernel.dylib  __pthread_kill category=internals

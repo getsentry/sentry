@@ -15,15 +15,10 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlFreeUnicodeString",
               "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
               "package": "C:\\Windows\\System32\\DriverStore\\FileRepository\\u0360470.inf_amd64_35c64671e7fac064\\B360357\\atio6axx.dll"
             }
           ]

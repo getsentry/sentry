@@ -15,14 +15,10 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlUserThreadStart",
               "package": "C:\\windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "BaseThreadInitThunk",
               "package": "C:\\windows\\System32\\KERNEL32.DLL"
             },
@@ -93,14 +89,10 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "DispatchMessageWorker",
               "package": "C:\\windows\\System32\\USER32.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "UserCallWinProcCheckWow",
               "package": "C:\\windows\\System32\\USER32.dll"
             },
@@ -231,20 +223,14 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "malloc_base",
               "package": "C:\\windows\\System32\\ucrtbase.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RtlpAllocateHeapInternal",
               "package": "C:\\windows\\SYSTEM32\\ntdll.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "memset",
               "package": "C:\\windows\\SYSTEM32\\VCRUNTIME140.dll"
             },
@@ -252,38 +238,26 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "VTableBootstrapThunkInitHelperStub",
               "package": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscoreei.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "VTableBootstrapThunkInitHelper",
               "package": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscoreei.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CorDllMainWorkerForThunk",
               "package": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscoreei.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CorDllMainForThunk",
               "package": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\clr.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RaiseComPlusException",
               "package": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\clr.dll"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "RaiseException",
               "package": "C:\\windows\\System32\\KERNELBASE.dll"
             }

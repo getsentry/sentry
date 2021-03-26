@@ -1,5 +1,5 @@
 {
-  "event_id": "8c99a975783d4f839706645d982e489a",
+  "event_id": "bcf6b63cfccd4bd3bc4e8040a212925b",
   "exception": {
     "values": [
       {
@@ -15,10 +15,11 @@
         "stacktrace": {
           "frames": [
             {
-              "abs_path": null,
-              "filename": null,
               "function": "start",
-              "module": null,
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "function": "start",
               "package": "/usr/lib/system/libdyld.dylib"
             },
             {
@@ -61,45 +62,27 @@
               "function": "stripped_application_code"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "-[NSRunLoop(NSRunLoop) runMode:beforeDate:]",
-              "module": null,
               "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "CFRunLoopRunSpecific",
-              "module": null,
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__CFRunLoopRun",
-              "module": null,
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__CFRunLoopDoSources0",
-              "module": null,
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__CFRunLoopDoSource0",
-              "module": null,
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__",
-              "module": null,
               "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
             },
             {
@@ -145,88 +128,35 @@
               "function": "stripped_application_code"
             },
             {
-              "function": "stripped_application_code"
+              "function": "intelSubmitCommands",
+              "package": "/System/Library/Extensions/AppleIntelBDWGraphicsGLDriver.bundle/Contents/MacOS/AppleIntelBDWGraphicsGLDriver"
             },
             {
-              "function": "stripped_application_code"
+              "function": "IntelCommandBuffer::getNew",
+              "package": "/System/Library/Extensions/AppleIntelBDWGraphicsGLDriver.bundle/Contents/MacOS/AppleIntelBDWGraphicsGLDriver"
             },
             {
-              "function": "stripped_application_code"
-            },
-            {
-              "function": "stripped_application_code"
-            },
-            {
-              "function": "stripped_application_code"
-            },
-            {
-              "abs_path": null,
-              "filename": null,
-              "function": "glTexSubImage2D",
-              "module": null,
-              "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib"
-            },
-            {
-              "abs_path": null,
-              "filename": null,
-              "function": "glTexSubImage2D_Exec",
-              "module": null,
-              "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLEngine.bundle/GLEngine"
-            },
-            {
-              "abs_path": null,
-              "filename": null,
-              "function": "gleTextureImagePut",
-              "module": null,
-              "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLEngine.bundle/GLEngine"
-            },
-            {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
-              "module": null,
-              "package": "/System/Library/Extensions/AMDRadeonX5000GLDriver.bundle/Contents/MacOS/AMDRadeonX5000GLDriver"
-            },
-            {
-              "abs_path": null,
-              "filename": null,
               "function": "gpusSubmitDataBuffers",
-              "module": null,
               "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
-              "function": null,
-              "module": null,
-              "package": "/System/Library/Extensions/AMDRadeonX5000GLDriver.bundle/Contents/MacOS/AMDRadeonX5000GLDriver"
+              "function": "gpusKillClientExt",
+              "package": "/System/Library/Extensions/AppleIntelBDWGraphicsGLDriver.bundle/Contents/MacOS/AppleIntelBDWGraphicsGLDriver"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "gpusGenerateCrashLog",
-              "module": null,
               "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "gpusGenerateCrashLog.cold.1",
-              "module": null,
               "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "abort",
-              "module": null,
               "package": "/usr/lib/system/libsystem_c.dylib"
             },
             {
-              "abs_path": null,
-              "filename": null,
               "function": "__pthread_kill",
-              "module": null,
               "package": "/usr/lib/system/libsystem_kernel.dylib"
             }
           ]
