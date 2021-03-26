@@ -186,11 +186,16 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         # XXX: There is a type mismatch here -- ``direct_row`` expects
         # ``bytes`` but we are providing it with ``str``.
         row = self._get_table().direct_row(key)
+
         # Call to delete is just a state mutation, and in this case is just
         # used to clear all columns so the entire row will be replaced.
         # Otherwise, if an existing row were mutated, and it took up more than
         # one column, it'd be possible to overwrite beginning columns and still
-        # retain the end ones.
+        # retain the end ones. This also ensures old data is collected during
+        # garbage collection, as well ensuring that TTL mutation is respected,
+        # particularly if the TTL is reduced (if the prior state was retained,
+        # cell values would persist using the longest TTL, not the most
+        # recently set TTL.)
         row.delete()
 
         # If we are setting a TTL on this row, we want to set the timestamp of
