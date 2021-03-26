@@ -116,6 +116,9 @@ family:native function:*<lambda>* category=indirection
 family:native function:destructor' category=indirection
 family:native function:__dynamic_cast category=indirection
 family:native function:_purecall category=indirection
+family:native function:boost::function* category=indirection
+family:native function:boost::_bi::* category=indirection
+family:native function:boost::detail::function::functor_manager* category=indirection
 
 family:native function:"*::\{dtor\}" category=dtor
 
@@ -189,11 +192,6 @@ category:gl +sentinel
 
 [ .. | category:malloc ] category:malloc -group
 
-# Not very interesting frames -- better add the next frame too
-# category:system +prefix
-# TODO: consider -group
-category:indirection +prefix
-
 # abort() and exception raising is technically the culprit for crashes, but not
 # the thing we want to show.
 category:throw +sentinel +prefix ^-group
@@ -212,5 +210,5 @@ category:handler ^-group -group
 # too, apparently (Apple's GPUSupport module)
 category:telemetry -group
 
-# category:indirection -group
-# category:threadbase v-group
+category:indirection -group
+category:threadbase v-group
