@@ -236,8 +236,8 @@ def get_parent_mappings(
         if notification_setting.scope_type == NotificationScopeType.ORGANIZATION.value:
             organization_ids.append(notification_setting.scope_identifier)
 
-    projects = Project.objects.get(id__in=project_ids)
-    organizations = Organization.objects.get(id__in=organization_ids)
+    projects = Project.objects.filter(id__in=project_ids)
+    organizations = Organization.objects.filter(id__in=organization_ids)
 
     project_mapping = {project.id: project for project in projects}
     organization_mapping = {organization.id: organization for organization in organizations}
