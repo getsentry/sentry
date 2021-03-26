@@ -216,11 +216,11 @@ export default class MetricChart extends React.PureComponent<Props, State> {
       : makeDefaultCta(ctaOpts);
 
     const resolvedPercent = (
-      (100 * (totalDuration - criticalDuration - warningDuration)) /
+      (100 * Math.max(totalDuration - criticalDuration - warningDuration, 0)) /
       totalDuration
     ).toFixed(2);
-    const criticalPercent = ((100 * criticalDuration) / totalDuration).toFixed(2);
-    const warningPercent = ((100 * warningDuration) / totalDuration).toFixed(2);
+    const criticalPercent = (100 * Math.min(criticalDuration / totalDuration, 1)).toFixed(2);
+    const warningPercent = (100 * Math.min(warningDuration / totalDuration, 1)).toFixed(2);
 
     return (
       <ChartActions>
