@@ -1,6 +1,7 @@
+import re
+
 from django.conf import settings
 from django.conf.urls import include, url
-from django.conf.urls.static import static
 from django.http import HttpResponse
 from django.views.generic import RedirectView
 
@@ -58,21 +59,29 @@ if getattr(settings, "DEBUG_VIEWS", settings.DEBUG):
 
     urlpatterns += debug_urls
 
-if settings.DEBUG:
+if getattr(settings, "SERVE_UPLOADED_FILES", settings.DEBUG):
+    from django.views.static import serve
+
+    # Serve FileSystemStorage files in development. In production this
+    # would typically be handled by some static server.
     urlpatterns += [
-        # Special favicon in debug mode
+        url(
+            r"^{}(?P<path>.*)$".format(re.escape(settings.MEDIA_URL)),
+            serve,
+            {"document_root": settings.MEDIA_ROOT},
+            name="sentry-serve-media",
+        )
+    ]
+
+if settings.DEBUG:
+    # Special favicon in debug mode
+    urlpatterns += [
         url(
             r"^_static/[^/]+/[^/]+/images/favicon\.(ico|png)$",
             generic.dev_favicon,
             name="sentry-dev-favicon",
         ),
     ]
-    # Serve FileSystemStorage files in development. In production this
-    # would typically be handled by some static server.
-    urlpatterns += static(
-        settings.MEDIA_URL,
-        document_root=settings.MEDIA_ROOT,
-    )
 
 urlpatterns += [
     url(

@@ -106,6 +106,7 @@ def pytest_configure(config):
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
     settings.DEBUG_VIEWS = True
+    settings.SERVE_UPLOADED_FILES = True
 
     settings.SENTRY_ENCRYPTION_SCHEMES = ()
 

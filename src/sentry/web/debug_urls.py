@@ -55,6 +55,7 @@ from sentry.web.frontend.debug.debug_sso_link_email import (
 )
 from sentry.web.frontend.debug.debug_setup_2fa_email import DebugSetup2faEmailView
 from sentry.web.frontend.debug import debug_auth_views
+from sentry.web.frontend.debug.debug_chart_renderer import DebugChartRendererView
 from sentry.web.frontend.debug.debug_oauth_authorize import (
     DebugOAuthAuthorizeView,
     DebugOAuthAuthorizeErrorView,
@@ -119,4 +120,5 @@ urlpatterns = [
     url(r"^debug/sudo/$", TemplateView.as_view(template_name="sentry/account/sudo.html")),
     url(r"^debug/oauth/authorize/$", DebugOAuthAuthorizeView.as_view()),
     url(r"^debug/oauth/authorize/error/$", DebugOAuthAuthorizeErrorView.as_view()),
+    url(r"^debug/chart-renderer/$", DebugChartRendererView.as_view()),
 ]
