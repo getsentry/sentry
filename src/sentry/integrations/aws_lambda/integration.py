@@ -102,6 +102,12 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             latest_version = get_latest_layer_version(function)
             current_version = get_version_of_arn(sentry_layer)
             out_of_date = latest_version > current_version
+
+            # If env variable "SENTRY_INITIAL_HANDLER" is not present, then
+            # it is should be assumed that this function is not enabled!
+            env_variables = function.get("Environment", {}).get("Variables", {})
+            if "SENTRY_INITIAL_HANDLER" not in env_variables:
+                current_version = -1
         else:
             current_version = -1
             out_of_date = False
