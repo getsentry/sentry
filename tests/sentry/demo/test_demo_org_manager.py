@@ -10,6 +10,7 @@ from sentry.models import (
     User,
     Organization,
     OrganizationMember,
+    OrganizationStatus,
     Project,
     ProjectKey,
     Team,
@@ -24,13 +25,10 @@ org_name = "Org Name"
 
 
 @override_settings(DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email)
-class DemoOrgManagerTeest(TestCase):
-    @mock.patch("sentry.demo.demo_org_manager.generate_releases")
-    @mock.patch("sentry.demo.demo_org_manager.populate_connected_event_scenario_1")
+class DemoOrgManagerTest(TestCase):
+    @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
-    def test_create_demo_org(
-        self, mock_generate_name, mock_populate_connected_event, mock_gen_releases
-    ):
+    def test_create_demo_org(self, mock_generate_name, mock_handle_scenario):
         owner = User.objects.create(email=org_owner_email)
 
         create_demo_org()
@@ -46,7 +44,7 @@ class DemoOrgManagerTeest(TestCase):
 
         assert len(Project.objects.filter(organization=org)) == 2
         assert not ProjectKey.objects.filter(project__organization=org).exists()
-        mock_populate_connected_event.assert_called_once_with(mock.ANY, mock.ANY, quick=False)
+        mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY, quick=False)
 
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
     def test_no_owner(self, mock_generate_name):
@@ -64,7 +62,7 @@ class DemoOrgManagerTeest(TestCase):
 
         org_slug = "some_org"
         org = self.create_organization(org_slug)
-        DemoOrganization.objects.create(organization=org)
+        DemoOrganization.objects.create(organization=org, status=DemoOrgStatus.PENDING)
 
         Team.objects.create(organization=org)
 
@@ -83,9 +81,28 @@ class DemoOrgManagerTeest(TestCase):
 
         mock_build_up_org_buffer.assert_called_once_with()
 
-    @mock.patch("sentry.demo.demo_org_manager.generate_releases")
-    @mock.patch("sentry.demo.demo_org_manager.populate_connected_event_scenario_1")
-    def test_no_org_ready(self, mock_populate_connected_event, mock_gen_releases):
+    @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
+    def test_no_org_ready(self, mock_handle_scenario):
         User.objects.create(email=org_owner_email)
-        [org, user] = assign_demo_org()
-        mock_populate_connected_event.assert_called_once_with(mock.ANY, mock.ANY, quick=True)
+        assign_demo_org()
+        mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY, quick=True)
+
+    @mock.patch("sentry.demo.demo_org_manager.delete_organization.apply_async")
+    @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
+    @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
+    def test_data_population_fails(
+        self, mock_generate_name, mock_handle_scenario, mock_delete_organization
+    ):
+        User.objects.create(email=org_owner_email)
+
+        class HandleScenarioException(Exception):
+            pass
+
+        mock_handle_scenario.side_effect = HandleScenarioException("failure")
+        with pytest.raises(HandleScenarioException):
+            assign_demo_org()
+
+        org = Organization.objects.get(name=org_name)
+        assert org.status == OrganizationStatus.PENDING_DELETION
+
+        mock_delete_organization.assert_called_once_with(kwargs={"object_id": org.id})

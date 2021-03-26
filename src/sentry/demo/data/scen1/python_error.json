@@ -23,7 +23,7 @@
     ["user", "email:m0u9@yahoo.com"],
     ["server_name", "localhost"],
     ["transaction", "checkout"],
-    ["url", "http://aj-flask-m3uuizd7iq-uc.a.run.app/checkout"]
+    ["url", "https://app.example.com/checkout"]
   ],
   "_meta": {
     "exception": {
@@ -105,11 +105,11 @@
               ],
               "in_app": true,
               "vars": {
-                "ctx": "<RequestContext 'http://aj-flask-m3uuizd7iq-uc.a.run.app/checkout' [POST] of app>",
+                "ctx": "<RequestContext 'https://app.example.com/checkout' [POST] of app>",
                 "e": "Exception(u'Not enough inventory for wrench',)",
                 "environ": {
-                  "HTTP_ORIGIN": "'https://aj-react-m3uuizd7iq-uc.a.run.app'",
-                  "HTTP_REFERER": "'https://aj-react-m3uuizd7iq-uc.a.run.app/'",
+                  "HTTP_ORIGIN": "'https://app.example.com'",
+                  "HTTP_REFERER": "'https://app.example.com/'",
                   "PATH_INFO": "'/checkout'",
                   "QUERY_STRING": "''",
                   "REMOTE_ADDR": "'169.254.8.129'",
@@ -264,7 +264,7 @@
               ],
               "in_app": true,
               "vars": {
-                "req": "<Request 'http://aj-flask-m3uuizd7iq-uc.a.run.app/checkout' [POST]>",
+                "req": "<Request 'https://app.example.com/checkout' [POST]>",
                 "rule": "<Rule '/checkout' (POST, OPTIONS) -> checkout>",
                 "self": "<Flask 'app'>"
               }
@@ -488,7 +488,7 @@
   },
   "received": 1615563864.388874,
   "request": {
-    "url": "http://aj-flask-m3uuizd7iq-uc.a.run.app/checkout",
+    "url": "https://app.example.com/checkout",
     "method": "POST",
     "data": {
       "cart": [
@@ -535,8 +535,8 @@
       ["Email", "m0u9@yahoo.com"],
       ["Forwarded", "for=\"66.85.48.72\";proto=https"],
       ["Host", "aj-flask-m3uuizd7iq-uc.a.run.app"],
-      ["Origin", "https://aj-react-m3uuizd7iq-uc.a.run.app"],
-      ["Referer", "https://aj-react-m3uuizd7iq-uc.a.run.app/"],
+      ["Origin", "https://app.example.com"],
+      ["Referer", "https://app.example.com/"],
       ["Sec-Fetch-Dest", "empty"],
       ["Sec-Fetch-Mode", "cors"],
       ["Sec-Fetch-Site", "cross-site"],

@@ -13,8 +13,9 @@ class CaseInsensitiveChoice(Choice):
 
 def configuration(f):
     "Load and configure Sentry."
-    import click
     from functools import update_wrapper
+
+    import click
 
     @click.pass_context
     def inner(ctx, *args, **kwargs):
@@ -36,8 +37,10 @@ def log_options(default=None):
         Give ability to configure global logging level/format.
         Must be used before configuration.
         """
-        import click
         from functools import update_wrapper
+
+        import click
+
         from sentry.logging import LoggingFormat
 
         formats = [LoggingFormat.HUMAN, LoggingFormat.MACHINE]
