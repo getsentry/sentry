@@ -34,7 +34,7 @@ class UserNotificationFineTuningTest(APITestCase):
             project=self.project,
         )
         response = self.get_valid_response("me", "alerts")
-        assert response.data.get(self.project.id) == 1
+        assert response.data.get(self.project.id) == "1"
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
@@ -53,7 +53,7 @@ class UserNotificationFineTuningTest(APITestCase):
             value=[self.org.id],
         )
         response = self.get_valid_response("me", "reports")
-        assert response.data.get(self.org.id) == 0
+        assert response.data.get(self.org.id) == "0"
 
     def test_invalid_notification_type(self):
         self.get_valid_response("me", "invalid", status_code=404)
