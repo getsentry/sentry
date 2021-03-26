@@ -98,14 +98,13 @@ run-dependent-services() {
 }
 
 create-db() {
-    local CREATEDB
-    CREATEDB=$(command -v createdb 2> /dev/null)
-    if [ -z "${CREATEDB:+}" ]; then
-        # This command works when sentry devservices have first been started
-        CREATEDB=$(docker exec sentry_postgres createdb)
+    # shellcheck disable=SC2155
+    local CREATEDB=$(command -v createdb 2> /dev/null)
+    if [[ -z "$CREATEDB" ]]; then
+        CREATEDB="docker exec sentry_postgres createdb"
     fi
     echo "--> Creating 'sentry' database"
-    "$CREATEDB" -h 127.0.0.1 -U postgres -E utf-8 sentry || true
+    ${CREATEDB} -h 127.0.0.1 -U postgres -E utf-8 sentry || true
 }
 
 apply-migrations() {
@@ -140,12 +139,13 @@ clean() {
 }
 
 drop-db() {
-    # DROPDB := $(shell command -v dropdb 2> /dev/null)
-    # ifndef DROPDB
-    #     DROPDB = docker exec sentry_postgres dropdb
-    # endif
+    # shellcheck disable=SC2155
+    local DROPDB=$(command -v dropdb 2> /dev/null)
+    if [[ -z "$DROPDB" ]]; then
+        DROPDB="docker exec sentry_postgres dropdb"
+    fi
     echo "--> Dropping existing 'sentry' database"
-    $(DROPDB) -h 127.0.0.1 -U postgres sentry || true
+    ${DROPDB} -h 127.0.0.1 -U postgres sentry || true
 }
 
 reset-db() {
