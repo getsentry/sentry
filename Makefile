@@ -151,47 +151,4 @@ lint-js:
 	@echo ""
 
 
-# https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
-.PHONY: bootstrap \
-        develop \
-        clean \
-        init-config \
-        run-dependent-services \
-        drop-db \
-        create-db \
-        apply-migrations \
-        reset-db \
-        setup-git \
-        node-version-check \
-        install-js-dev \
-        install-py-dev \
-        build-platform-assets \
-        upgrade-pip \
-        setup-git-config \
-        setup-pyenv \
-        build-js-po \
-        build \
-        merge-locale-catalogs \
-        compile-locale \
-        locale \
-        sync-transifex \
-        update-transifex \
-        fetch-release-registry \
-        run-acceptance \
-        test-cli \
-        test-js-build \
-        test-js \
-        test-js-ci \
-        test-python \
-        test-python-ci \
-        test-snuba \
-        backend-typing \
-        test-symbolicator \
-        test-acceptance \
-        test-plugins \
-        test-relay-integration \
-        test-api-docs \
-        review-python-snapshots \
-        accept-python-snapshots \
-        reject-python-snapshots \
-        lint-js
+.PHONY: build
