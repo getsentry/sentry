@@ -9,9 +9,8 @@ import BaseChart from './baseChart';
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 export type LineChartSeries = Series &
-  Omit<EChartOption.SeriesLine, 'data' | 'name' | 'lineStyle'> & {
+  Omit<EChartOption.SeriesLine, 'data' | 'name'> & {
     dataArray?: EChartOption.SeriesLine['data'];
-    lineStyle?: any; // TODO(ts): Fix when echarts type is updated so that EchartOption.LineStyle matches SeriesLine['lineStyle']
   };
 
 type Props = Omit<ChartProps, 'series'> & {
