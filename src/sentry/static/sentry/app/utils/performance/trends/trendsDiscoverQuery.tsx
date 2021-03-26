@@ -30,7 +30,6 @@ type ChildrenProps = Omit<GenericChildrenProps<TrendsData>, 'tableData'> & {
 };
 
 type Props = RequestProps & {
-  setError?: (msg: string | undefined) => void;
   children: (props: ChildrenProps) => React.ReactNode;
 };
 
@@ -39,7 +38,6 @@ type EventChildrenProps = Omit<GenericChildrenProps<TrendsDataEvents>, 'tableDat
 };
 
 type EventProps = RequestProps & {
-  setError?: (msg: string | undefined) => void;
   children: (props: EventChildrenProps) => React.ReactNode;
 };
 
