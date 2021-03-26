@@ -25,13 +25,14 @@ export type ColumnType =
 export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
 
 type ValidateColumnValueFunction = ({name: string, dataType: ColumnType}) => boolean;
+type ValidateColumnFunction = ({name: string}) => boolean;
 
 export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
 
 export type AggregateParameter =
   | {
       kind: 'column';
-      columnTypes: Readonly<ValidateColumnTypes>;
+      columnTypes: Readonly<ValidateColumnTypes | ValidateColumnFunction>;
       defaultValue?: string;
       required: boolean;
     }
@@ -301,6 +302,31 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'area',
   },
+  count_miserable: {
+    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
+      if (parameter.kind === 'column') {
+        return 'user';
+      }
+      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+    },
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateAllowedColumns(['user']),
+        defaultValue: 'user',
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance
@@ -543,6 +569,7 @@ export const TRACING_FIELDS = [
   'apdex',
   'user_misery',
   'user_misery_prototype',
+  'count_miserable',
   'eps',
   'epm',
   ...Object.keys(MEASUREMENTS),
@@ -754,6 +781,12 @@ function validateForNumericAggregate(
     }
 
     return validColumnTypes.includes(dataType);
+  };
+}
+
+function validateAllowedColumns(validColumns: string[]): ValidateColumnFunction {
+  return function ({name}: {name: string}): boolean {
+    return validColumns.includes(name);
   };
 }
 
