@@ -12,6 +12,7 @@ apply-migrations \
 reset-db \
 setup-git \
 node-version-check \
+install-js-dev
 install-py-dev \
 build-platform-assets :
 	@./scripts/do.sh $@
@@ -150,6 +151,7 @@ lint-js:
 	@echo ""
 
 
+# https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
 .PHONY: bootstrap \
         develop \
         clean \
@@ -159,12 +161,14 @@ lint-js:
         create-db \
         apply-migrations \
         reset-db \
-        setup-pyenv \
-        setup-git-config \
         setup-git \
         node-version-check \
         install-js-dev \
         install-py-dev \
+        build-platform-assets \
+        upgrade-pip \
+        setup-git-config \
+        setup-pyenv \
         build-js-po \
         build \
         merge-locale-catalogs \
@@ -172,7 +176,6 @@ lint-js:
         locale \
         sync-transifex \
         update-transifex \
-        build-platform-assets \
         fetch-release-registry \
         run-acceptance \
         test-cli \
@@ -182,6 +185,7 @@ lint-js:
         test-python \
         test-python-ci \
         test-snuba \
+        backend-typing:
         test-symbolicator \
         test-acceptance \
         test-plugins \
