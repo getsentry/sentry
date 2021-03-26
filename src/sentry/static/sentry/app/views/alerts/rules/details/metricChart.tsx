@@ -1,4 +1,6 @@
 import React from 'react';
+import {withRouter} from 'react-router';
+import {WithRouterProps} from 'react-router/lib/withRouter';
 import styled from '@emotion/styled';
 import color from 'color';
 import moment from 'moment';
@@ -17,6 +19,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {AvatarProject, Organization, Project} from 'app/types';
 import {ReactEchartsRef} from 'app/types/echarts';
+import {getFormattedDate} from 'app/utils/dates';
 import theme from 'app/utils/theme';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
@@ -27,7 +30,7 @@ import {getIncidentRuleMetricPreset} from '../../utils';
 const X_AXIS_BOUNDARY_GAP = 15;
 const VERTICAL_PADDING = 22;
 
-type Props = {
+type Props = WithRouterProps & {
   api: Client;
   rule?: IncidentRule;
   incidents?: Incident[];
@@ -88,30 +91,62 @@ function createStatusAreaSeries(
 }
 
 function createIncidentSeries(
+  router: Props['router'],
+  orgSlug: string,
   lineColor: string,
   incidentTimestamp: number,
-  label?: string
+  identifier?: string,
+  dataPoint?: LineChartSeries['data'][0],
+  seriesName?: string
 ) {
-  return {
+  const series = {
     seriesName: 'Incident Line',
     type: 'line',
     markLine: MarkLine({
-      silent: true,
+      silent: false,
       lineStyle: {color: lineColor, type: 'solid'},
-      data: [{xAxis: incidentTimestamp}] as any,
+      data: [
+        {
+          xAxis: incidentTimestamp,
+          onClick: () => {
+            router.push({
+              pathname: `/organizations/${orgSlug}/alerts/${identifier}/`,
+              query: {redirect: false},
+            });
+          },
+        },
+      ] as any,
       label: {
-        show: !!label,
+        show: !!identifier,
         position: 'insideEndBottom',
-        formatter: label || '-',
+        formatter: identifier || '-',
         color: lineColor,
         fontSize: 10,
       } as any,
     }),
     data: [],
   };
+  // tooltip conflicts with MarkLine types
+  (series.markLine as any).tooltip = {
+    trigger: 'item',
+    alwaysShowContent: true,
+    formatter: ({value, marker}) => {
+      const time = getFormattedDate(value, 'MMM D, YYYY LT');
+      return [
+        `<div class="tooltip-series"><div>`,
+        `<span class="tooltip-label">${marker} <strong>${t(
+          'Alert'
+        )} #${identifier}</strong></span>${seriesName} ${dataPoint?.value}</div></div>`,
+        `<div class="tooltip-date">${time}</div>`,
+        `<div class="tooltip-arrow"></div>`,
+      ].join('');
+    },
+  };
+
+  return series;
 }
 
-export default class MetricChart extends React.PureComponent<Props, State> {
+class MetricChart extends React.PureComponent<Props, State> {
   state = {
     width: -1,
     height: -1,
@@ -305,6 +340,7 @@ export default class MetricChart extends React.PureComponent<Props, State> {
   render() {
     const {
       api,
+      router,
       rule,
       organization,
       timePeriod,
@@ -386,8 +422,12 @@ export default class MetricChart extends React.PureComponent<Props, State> {
 
                 const timeWindowMs = rule.timeWindow * 60 * 1000;
 
+                const areaStart = moment(incident.dateStarted).valueOf();
+                const incidentStartValue = dataArr.find(point => point.name >= areaStart);
                 series.push(
                   createIncidentSeries(
+                    router,
+                    organization.slug,
                     warningTrigger &&
                       statusChanges &&
                       !statusChanges.find(
@@ -395,11 +435,12 @@ export default class MetricChart extends React.PureComponent<Props, State> {
                       )
                       ? theme.yellow300
                       : theme.red300,
-                    moment(incident.dateStarted).valueOf(),
-                    incident.identifier
+                    areaStart,
+                    incident.identifier,
+                    incidentStartValue,
+                    series[0].seriesName
                   )
                 );
-                const areaStart = moment(incident.dateStarted).valueOf();
                 const areaEnd =
                   statusChanges?.length && statusChanges[0].dateCreated
                     ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
@@ -493,6 +534,8 @@ export default class MetricChart extends React.PureComponent<Props, State> {
     );
   }
 }
+
+export default withRouter(MetricChart);
 
 const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
