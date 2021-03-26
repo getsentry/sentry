@@ -14,10 +14,6 @@ query_big_sur() {
     return 1
 }
 
-ensure-venv() {
-    eval "${HERE}/ensure-venv.sh"
-}
-
 upgrade-pip() {
     # pip versions before 20.1 do not have `pip cache` as a command which is necessary for the CI
     pip install --no-cache-dir --upgrade "pip>=20.1"
@@ -27,7 +23,6 @@ upgrade-pip() {
 }
 
 install-py-dev() {
-    ensure-venv
     upgrade-pip
     # It places us within top src dir to be at the same path as setup.py
     # This helps when getsentry calls into this script
@@ -61,7 +56,14 @@ setup-git() {
     echo ""
 }
 
+node-version-check() {
+    # Checks to see if node's version matches the one specified in package.json for Volta.
+	node -pe "process.exit(Number(!(process.version == 'v' + require('./package.json').volta.node )))" || \
+	(echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'; exit 1)
+}
+
 install-js-dev() {
+    node-version-check
     echo "--> Installing Yarn packages (for development)"
     # Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
     NODE_ENV=development yarn install --frozen-lockfile
@@ -105,4 +107,40 @@ apply-migrations() {
 build-platform-assets() {
     echo "--> Building platform assets"
     echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
+}
+
+bootstrap() {
+    develop
+    init-config
+    run-dependent-services
+    create-db
+    apply-migrations
+    build-platform-assets
+}
+
+clean() {
+    echo "--> Cleaning static cache"
+    rm -rf dist/* static/dist/*
+    echo "--> Cleaning integration docs cache"
+    rm -rf src/sentry/integration-docs
+    echo "--> Cleaning pyc files"
+    find . -name "*.pyc" -delete
+    echo "--> Cleaning python build artifacts"
+    rm -rf build/ dist/ src/sentry/assets.json
+    echo ""
+}
+
+drop-db() {
+    # DROPDB := $(shell command -v dropdb 2> /dev/null)
+    # ifndef DROPDB
+    #     DROPDB = docker exec sentry_postgres dropdb
+    # endif
+    echo "--> Dropping existing 'sentry' database"
+    $(DROPDB) -h 127.0.0.1 -U postgres sentry || true
+}
+
+reset-db() {
+    drop-db
+    create-db
+    apply-migrations
 }
