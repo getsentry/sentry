@@ -22,7 +22,7 @@ class DateTime extends React.Component<Props> {
     seconds: true,
   };
 
-  getFormat = ({clock24Hours}: {clock24Hours: boolean}): string => {
+  getFormat = ({clock24Hours}: {clock24Hours?: boolean}): string => {
     const {dateOnly, timeOnly, seconds, shortDate, timeAndDate, format} = this.props;
 
     if (format) {

@@ -396,7 +396,7 @@ export type AvatarUser = {
   // Compatibility shim with EventUser serializer
   ipAddress?: string;
   options?: {
-    avatarType: string;
+    avatarType?: string;
   };
   lastSeen?: string;
 };
@@ -649,8 +649,7 @@ export interface Config {
   urlPrefix: string;
   needsUpgrade: boolean;
   supportEmail: string;
-  // ?: to work around tests
-  user?: User;
+  user: User;
 
   invitesEnabled: boolean;
   privacyUrl: string | null;

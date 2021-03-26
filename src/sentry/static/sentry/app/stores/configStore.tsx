@@ -48,13 +48,13 @@ const configStoreConfig: Reflux.StoreDefinition &
    */
   updateTheme(theme) {
     this.systemTheme = theme;
-    if (this.config.user?.options.theme === 'system' && theme !== this.config.theme) {
+    if (this.config.user.options.theme === 'system' && theme !== this.config.theme) {
       this.set('theme', theme);
     }
   },
 
   getTheme() {
-    // options?. to work around tests
+    // ?. to work around tests
     const themeOption = this.config.user?.options?.theme;
     return (themeOption === 'system' ? this.systemTheme : themeOption) || 'light';
   },

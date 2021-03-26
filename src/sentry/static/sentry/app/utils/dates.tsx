@@ -47,7 +47,7 @@ export function getFormattedDate(
  */
 export function getUserTimezone(): string {
   const user = ConfigStore.get('user');
-  return user && user.options && user.options.timezone;
+  return user.options?.timezone ?? 'UTC';
 }
 
 /**
