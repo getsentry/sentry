@@ -181,13 +181,12 @@ def get_key_value_from_legacy(
     return type, option_value
 
 
-def get_legacy_from_notification_settings(
-    notification_setting: Any, actor_mapping: Mapping[int, Any]
+def get_legacy_object(
+    notification_setting: Any,
+    actor_mapping: Mapping[int, Any],
+    parent_mapping: Mapping[int, Any],
+    organization_mapping: Mapping[int, Any],
 ) -> Any:
-    """
-    TODO(mgaeta): If getting projects and organizations is a bottleneck,
-     prefetch them and pass them as a Mapping.
-    """
     type = NotificationSettingTypes(notification_setting.type)
     key = get_legacy_key(notification_setting.type)
     value = NotificationSettingOptionValues(notification_setting.value)
@@ -201,22 +200,46 @@ def get_legacy_from_notification_settings(
     }
 
     if notification_setting.scope_type == NotificationScopeType.PROJECT.value:
-        from sentry.models.project import Project
-
-        data["project"] = Project.objects.get(id=notification_setting.scope_identifier)
-
+        data["project"] = parent_mapping.get(notification_setting.scope_identifier)
     if notification_setting.scope_type == NotificationScopeType.ORGANIZATION.value:
-        from sentry.models.organization import Organization
+        data["organization"] = organization_mapping.get(notification_setting.scope_identifier)
 
-        data["organization"] = Organization.objects.get(id=notification_setting.scope_identifier)
     return LegacyUserOptionClone(**data)
 
 
 def map_notification_settings_to_legacy(
-    notification_settings: Iterable[Any], actor_mapping: Mapping[int, Any]
+    notification_settings: Iterable[Any],
+    actor_mapping: Mapping[int, Any],
 ) -> List[Any]:
     """ A hack for legacy serializers. Pretend a list of NotificationSettings is a list of UserOptions. """
+    project_mapping, organization_mapping = get_parent_mappings(notification_settings)
     return [
-        get_legacy_from_notification_settings(notification_setting, actor_mapping)
+        get_legacy_object(
+            notification_setting, actor_mapping, project_mapping, organization_mapping
+        )
         for notification_setting in notification_settings
     ]
+
+
+def get_parent_mappings(
+    notification_settings: Iterable[Any],
+) -> Tuple[Mapping[int, Any], Mapping[int, Any]]:
+    """ Prefetch a list of Project or Organization objects for the Serializer. """
+    from sentry.models.project import Project
+    from sentry.models.organization import Organization
+
+    project_ids = []
+    organization_ids = []
+    for notification_setting in notification_settings:
+        if notification_setting.scope_type == NotificationScopeType.PROJECT.value:
+            project_ids.append(notification_setting.scope_identifier)
+        if notification_setting.scope_type == NotificationScopeType.ORGANIZATION.value:
+            organization_ids.append(notification_setting.scope_identifier)
+
+    projects = Project.objects.get(id__in=project_ids)
+    organizations = Organization.objects.get(id__in=organization_ids)
+
+    project_mapping = {project.id: project for project in projects}
+    organization_mapping = {organization.id: organization for organization in organizations}
+
+    return project_mapping, organization_mapping
