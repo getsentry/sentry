@@ -56,6 +56,7 @@ runs:
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
 
         ### services configuration ###
+        echo "BIGTABLE_EMULATOR_HOST=localhost:8086" >> $GITHUB_ENV
         # Note: some backend tests (e.g. tests/sentry/eventstream/kafka/test_consumer.py) will behave
         # differently if these are set.
         if [ "$NEED_KAFKA" = "true" ]; then
@@ -101,6 +102,10 @@ runs:
 
         # redis, postgres are needed for almost every code path.
         sentry devservices up redis postgres
+
+        if [ "$BIGTABLE_EMULATOR_HOST" ]; then
+          sentry devservices up --skip-only-if bigtable
+        fi
 
         # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
         if [ "$NEED_KAFKA" = "true" ]; then
