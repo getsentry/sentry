@@ -12,7 +12,7 @@ apply-migrations \
 reset-db \
 setup-git \
 node-version-check \
-install-js-dev
+install-js-dev \
 install-py-dev \
 build-platform-assets :
 	@./scripts/do.sh $@
@@ -185,7 +185,7 @@ lint-js:
         test-python \
         test-python-ci \
         test-snuba \
-        backend-typing:
+        backend-typing \
         test-symbolicator \
         test-acceptance \
         test-plugins \
