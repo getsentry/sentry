@@ -6,6 +6,7 @@ import moment from 'moment';
 
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import {SectionHeading} from 'app/components/charts/styles';
 import {getInterval} from 'app/components/charts/utils';
@@ -17,7 +18,7 @@ import * as Layout from 'app/components/layouts/thirds';
 import {Panel, PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import TimeSince from 'app/components/timeSince';
-import {IconCheckmark, IconFire, IconUser, IconWarning} from 'app/icons';
+import {IconCheckmark, IconFire, IconInfo, IconUser, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -276,6 +277,9 @@ export default class DetailsBody extends React.Component<Props> {
         {({initiallyLoaded, projects}) => {
           return initiallyLoaded ? (
             <Layout.Body>
+              <Alert type="info" icon={<IconInfo size="md" />}>
+                {t("You’re viewing the new alert details page. To view the old experience, select an alert below.")}
+              </Alert>
               <Layout.Main>
                 <ChartControls>
                   <DropdownControl label={timePeriod.label}>
