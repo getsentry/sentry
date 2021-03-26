@@ -81,6 +81,7 @@ function DurationChart(props: Props) {
       includePrevious={false}
       yAxis={[field]}
       partial
+      hideError
     >
       {({loading, reloading, errored, timeseriesData: results}) => {
         const series = results
