@@ -16,10 +16,12 @@ import EventView from 'app/utils/discover/eventView';
 import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
 import getDynamicText from 'app/utils/getDynamicText';
 import {TraceError, TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 import {getTransactionDetailsUrl} from 'app/views/performance/utils';
 
-import {Row, TransactionDetails, TransactionDetailsContainer} from './styles';
+import {Row, Tags, TransactionDetails, TransactionDetailsContainer} from './styles';
 
 type Props = {
   location: Location;
@@ -140,11 +142,50 @@ class TransactionDetail extends React.Component<Props> {
   }
 
   renderGoToSummaryButton() {
-    return null;
+    const {location, organization, transaction} = this.props;
+
+    const target = transactionSummaryRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transaction.transaction,
+      query: location.query,
+      projectID: String(transaction.project_id),
+    });
+
+    return (
+      <StyledButton size="xsmall" to={target}>
+        {t('View Summary')}
+      </StyledButton>
+    );
+  }
+
+  renderMeasurements() {
+    const {transaction} = this.props;
+    const {measurements = {}} = transaction;
+
+    const measurementKeys = Object.keys(measurements)
+      .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
+      .sort();
+
+    if (measurementKeys.length <= 0) {
+      return null;
+    }
+
+    return (
+      <React.Fragment>
+        {measurementKeys.map(measurement => (
+          <Row
+            key={measurement}
+            title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
+          >
+            {`${Number(measurements[measurement].value.toFixed(3)).toLocaleString()}ms`}
+          </Row>
+        ))}
+      </React.Fragment>
+    );
   }
 
   renderTransactionDetail() {
-    const {transaction} = this.props;
+    const {location, organization, transaction} = this.props;
     const startTimestamp = Math.min(transaction.start_timestamp, transaction.timestamp);
     const endTimestamp = Math.max(transaction.start_timestamp, transaction.timestamp);
     const duration = (endTimestamp - startTimestamp) * 1000;
@@ -160,6 +201,7 @@ class TransactionDetail extends React.Component<Props> {
             <Row title="Transaction" extra={this.renderGoToSummaryButton()}>
               {transaction.transaction}
             </Row>
+            <Row title="Transaction Status">{transaction['transaction.status']}</Row>
             <Row title="Start Date">
               {getDynamicText({
                 fixed: 'Mar 19, 2021 11:06:27 AM UTC',
@@ -184,6 +226,12 @@ class TransactionDetail extends React.Component<Props> {
             </Row>
             <Row title="Duration">{durationString}</Row>
             <Row title="Operation">{transaction['transaction.op'] || ''}</Row>
+            {this.renderMeasurements()}
+            <Tags
+              location={location}
+              organization={organization}
+              transaction={transaction}
+            />
           </tbody>
         </table>
       </TransactionDetails>
