@@ -1,5 +1,5 @@
 ---
-created: '2021-03-23T23:55:25.496612Z'
+created: '2021-03-26T18:39:28.507609Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -15,7 +15,7 @@ app:
           frame (non app frame)
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame (marked as prefix frame by stack trace rule (category:indirection +prefix))
+          frame (non app frame)
             function*
               "<lambda>::operator()"
         type (ignored because exception is synthetic)
@@ -24,7 +24,7 @@ app:
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
-  hash: "9bb5de55b854491dacc677184c9b019a"
+  hash: "8f4c7709e4af98d3c47ce3519690e6d9"
   component:
     system*
       exception*
@@ -32,10 +32,10 @@ system:
           frame (ignored because only 1 frame is considered by stack trace rule (family:native max-frames=1))
             function*
               "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
-          frame (ignored because only 1 frame is considered by stack trace rule (family:native max-frames=1))
+          frame*
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame* (marked as prefix frame by stack trace rule (category:indirection +prefix))
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "<lambda>::operator()"
         type (ignored because exception is synthetic)

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T19:10:59.718618Z'
+created: '2021-03-26T19:03:39.784679Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -29,7 +29,7 @@ app-depth-1:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "734d4d73b9912a412017131dcdd531f8"
+  hash: "36be6e0b6123ef6ecfbef62f5cb88406"
   tree_label: "<entire stacktrace>"
   component:
     system*
@@ -68,32 +68,32 @@ system:
               "-[NSApplication run]"
             package (ignored because function takes precedence)
               "appkit"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]"
             package (ignored because function takes precedence)
               "appkit"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "_DPSNextEvent"
             package (ignored because function takes precedence)
               "appkit"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "_BlockUntilNextEventMatchingListInModeWithFilter"
             package (ignored because function takes precedence)
               "hitoolbox"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "ReceiveNextEventCommon"
             package (ignored because function takes precedence)
               "hitoolbox"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "RunCurrentEventLoopInMode"
             package (ignored because function takes precedence)
               "hitoolbox"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             package* (used as fallback because function name is not available)
               "corefoundation"
           frame (ignored due to recursion)
@@ -108,7 +108,7 @@ system:
           frame (ignored due to recursion)
             package* (used as fallback because function name is not available)
               "corefoundation"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__NSThreadPerformPerform"
             package (ignored because function takes precedence)
@@ -121,7 +121,7 @@ system:
               "-[NSView displayIfNeeded]"
             package (ignored because function takes precedence)
               "appkit"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[_NSOpenGLViewBackingLayer display]"
             package (ignored because function takes precedence)
@@ -137,27 +137,27 @@ system:
               "CGLTexImageIOSurface2D"
             package (ignored because function takes precedence)
               "opengl"
-          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "CGLDescribeRenderer"
             package (ignored because function takes precedence)
               "opengl"
-          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "gliSetInteger"
             package (ignored because function takes precedence)
               "glengine"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "gldFlushObject"
             package (ignored because function takes precedence)
               "libgpusupportmercury.dylib"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "intelSubmitCommands"
             package (ignored because function takes precedence)
               "appleinteliclgraphicsgldriver"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "IntelCommandBuffer::getNew"
             package (ignored because function takes precedence)
@@ -177,7 +177,7 @@ system:
               "gpusGenerateCrashLog"
             package (ignored because function takes precedence)
               "libgpusupportmercury.dylib"
-          frame (ignored by stack trace rule (category:telemetry -group))
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
             package (ignored because function takes precedence)
@@ -187,7 +187,7 @@ system:
               "abort"
             package (ignored because function takes precedence)
               "libsystem_c.dylib"
-          frame (ignored by stack trace rule ([ category:system | .. | category:system] category:system -group))
+          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
             package* (used as fallback because function name is not available)
               "corefoundation"
           frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
@@ -245,27 +245,27 @@ system:
               "CGLTexImageIOSurface2D"
             package (ignored because function takes precedence)
               "opengl"
-          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
+          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "CGLDescribeRenderer"
             package (ignored because function takes precedence)
               "opengl"
-          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
+          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "gliSetInteger"
             package (ignored because function takes precedence)
               "glengine"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "gldFlushObject"
             package (ignored because function takes precedence)
               "libgpusupportmercury.dylib"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "intelSubmitCommands"
             package (ignored because function takes precedence)
               "appleinteliclgraphicsgldriver"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "IntelCommandBuffer::getNew"
             package (ignored because function takes precedence)

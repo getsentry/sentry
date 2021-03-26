@@ -1,5 +1,5 @@
 ---
-created: '2021-03-24T14:53:12.579280Z'
+created: '2021-03-26T18:39:24.001307Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,10 +18,10 @@ app:
           frame (non app frame)
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
             function*
               "OpenAdapter10"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"
@@ -29,7 +29,7 @@ app:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------
 system:
-  hash: "867c784955c597ddf31e7021c5fd29ef"
+  hash: "c85e23e804b52ea4b9f290ba838e77a0"
   component:
     system*
       exception*
@@ -37,16 +37,16 @@ system:
           frame*
             function*
               "CUseCountedObject<T>::UCDestroy"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "CContext::LUCBeginLayerDestruction"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "OpenAdapter10"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"

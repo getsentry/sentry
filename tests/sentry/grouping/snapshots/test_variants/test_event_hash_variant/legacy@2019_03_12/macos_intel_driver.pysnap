@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T19:10:37.143861Z'
+created: '2021-03-26T18:39:02.120023Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -77,19 +77,19 @@ app:
           frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function (function name is not used if module or filename are available)
               "CGLTexImageIOSurface2D"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "CGLDescribeRenderer"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "gliSetInteger"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "gldFlushObject"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "intelSubmitCommands"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "IntelCommandBuffer::getNew"
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
@@ -147,19 +147,19 @@ app:
           frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function (function name is not used if module or filename are available)
               "CGLTexImageIOSurface2D"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "CGLDescribeRenderer"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "gliSetInteger"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "gldFlushObject"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "intelSubmitCommands"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "IntelCommandBuffer::getNew"
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
@@ -259,19 +259,19 @@ system:
           frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function (function name is not used if module or filename are available)
               "CGLTexImageIOSurface2D"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame
             function (function name is not used if module or filename are available)
               "CGLDescribeRenderer"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame
             function (function name is not used if module or filename are available)
               "gliSetInteger"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
             function (function name is not used if module or filename are available)
               "gldFlushObject"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
             function (function name is not used if module or filename are available)
               "intelSubmitCommands"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
             function (function name is not used if module or filename are available)
               "IntelCommandBuffer::getNew"
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
@@ -329,19 +329,19 @@ system:
           frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function (function name is not used if module or filename are available)
               "CGLTexImageIOSurface2D"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame
             function (function name is not used if module or filename are available)
               "CGLDescribeRenderer"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame
             function (function name is not used if module or filename are available)
               "gliSetInteger"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
             function (function name is not used if module or filename are available)
               "gldFlushObject"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
             function (function name is not used if module or filename are available)
               "intelSubmitCommands"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
             function (function name is not used if module or filename are available)
               "IntelCommandBuffer::getNew"
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))

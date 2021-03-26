@@ -89,6 +89,8 @@ family:native function:memcmp category=system
 family:native function:boost::* category=std
 family:native function:std::* category=std
 
+family:native function:std::_* category=internals
+
 family:native package:/usr/lib/system/** function:start category=threadbase
 family:native function:wWinMain category=threadbase
 family:native function:invoke_main category=threadbase
@@ -116,12 +118,12 @@ family:native function:*::operator()* category=indirection
 family:native function:*<lambda>* category=indirection
 family:native function:destructor' category=indirection
 family:native function:__dynamic_cast category=indirection
-family:native function:_purecall category=indirection
 family:native function:boost::function* category=indirection
 family:native function:boost::_bi::* category=indirection
 family:native function:boost::detail::function::functor_manager* category=indirection
 
 family:native function:"*::\{dtor\}" category=dtor
+family:native function:"destructor'" category=dtor
 
 family:native function:exit category=shutdown
 family:native function:RtlExitUserProcess category=shutdown
@@ -229,7 +231,8 @@ category:threadbase v-group -group
 
 # system frames starting with underscore are likely garbage
 # unsymbolicated system frames are likely system frames starting with underscore
-family:native category:system function:_* category=internals
+# _purecall is an exception as it is often the only important frame in a block of system frames
+family:native category:system function:_* !function:_purecall category=internals
 family:native category:system function:"<unknown>" category=internals
 family:native function:_INTERNAL* category=internals
 
@@ -245,6 +248,10 @@ family:native function:*.cold.1 category=indirection
 # TODO: multi-category / category inheritance
 category:system [ .. | category:free ] category=internals
 category:system [ .. | category:system ] category=internals
+category:system [ .. | category:dyld ] category=internals
+category:system [ .. | category:internals ] category=internals
+category:throw [ .. | category:dyld ] category=internals
 # TODO: findtestcase
-# category:system [ .. | category:dlopen ] category=internals
 # category:system [ .. | category:driver ] category=internals
+
+category:dtor [ .. | category:dtor ] category=internals

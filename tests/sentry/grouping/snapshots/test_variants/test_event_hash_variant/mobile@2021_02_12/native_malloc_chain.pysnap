@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T19:55:55.645336Z'
+created: '2021-03-26T18:39:13.022210Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -36,22 +36,22 @@ system:
               "malloc_zone_malloc"
             package (ignored because function takes precedence)
               "libsystem_malloc.dylib"
-          frame (ignored by stack trace rule ([ .. | category:malloc] category:malloc -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "nanov2_malloc"
             package (ignored because function takes precedence)
               "libsystem_malloc.dylib"
-          frame (ignored by stack trace rule ([ .. | category:malloc] category:malloc -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "nanov2_allocate"
             package (ignored because function takes precedence)
               "libsystem_malloc.dylib"
-          frame (ignored by stack trace rule ([ .. | category:malloc] category:malloc -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "nanov2_allocate_from_block"
             package (ignored because function takes precedence)
               "libsystem_malloc.dylib"
-          frame (ignored by stack trace rule ([ .. | category:malloc] category:malloc -group))
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "nanov2_allocate_from_block.cold.1"
             package (ignored because function takes precedence)

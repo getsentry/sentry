@@ -1,5 +1,5 @@
 ---
-created: '2021-03-24T14:17:25.768519Z'
+created: '2021-03-26T18:39:02.427980Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,7 +14,7 @@ app:
               "?UCDestroy@?$CUseCountedObject@VCDeviceChild@NOutermost@@@@UEAAXXZ"
             function (function name is not used if module or filename are available)
               "CUseCountedObject<class NOutermost::CDeviceChild>::UCDestroy(void)"
-          frame (marked as prefix frame by stack trace rule (category:indirection +prefix))
+          frame (frame considered in-app because no frame is in-app)
             symbol (symbol is not used if module or filename are available)
               "??_E?$CUseCountedObject@VCDeviceChild@NOutermost@@@@UEAAPEAXI@Z"
             function (function name is not used if module or filename are available)
@@ -34,7 +34,7 @@ app:
               "?DestroyDriverInstance@CDevice@NDXGI@@UEAAXXZ"
             function (function name is not used if module or filename are available)
               "NDXGI::CDevice::DestroyDriverInstance(void)"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (frame considered in-app because no frame is in-app)
             symbol (symbol is not used if module or filename are available)
               "OpenAdapter10"
             function (function name is not used if module or filename are available)
@@ -56,7 +56,7 @@ system:
               "?UCDestroy@?$CUseCountedObject@VCDeviceChild@NOutermost@@@@UEAAXXZ"
             function (function name is not used if module or filename are available)
               "CUseCountedObject<class NOutermost::CDeviceChild>::UCDestroy(void)"
-          frame (marked as prefix frame by stack trace rule (category:indirection +prefix))
+          frame
             symbol (symbol is not used if module or filename are available)
               "??_E?$CUseCountedObject@VCDeviceChild@NOutermost@@@@UEAAPEAXI@Z"
             function (function name is not used if module or filename are available)
@@ -76,7 +76,7 @@ system:
               "?DestroyDriverInstance@CDevice@NDXGI@@UEAAXXZ"
             function (function name is not used if module or filename are available)
               "NDXGI::CDevice::DestroyDriverInstance(void)"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
             symbol (symbol is not used if module or filename are available)
               "OpenAdapter10"
             function (function name is not used if module or filename are available)

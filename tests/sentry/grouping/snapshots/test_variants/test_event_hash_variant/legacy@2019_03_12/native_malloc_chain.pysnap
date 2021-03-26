@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T19:55:29.020029Z'
+created: '2021-03-26T18:39:00.694514Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -17,22 +17,22 @@ app:
               "malloc_zone_malloc"
             function (function name is not used if module or filename are available)
               "malloc_zone_malloc"
-          frame (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             symbol (symbol is not used if module or filename are available)
               "nanov2_malloc"
             function (function name is not used if module or filename are available)
               "nanov2_malloc"
-          frame (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             symbol (symbol is not used if module or filename are available)
               "nanov2_allocate"
             function (function name is not used if module or filename are available)
               "nanov2_allocate"
-          frame (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             symbol (symbol is not used if module or filename are available)
               "nanov2_allocate_from_block"
             function (function name is not used if module or filename are available)
               "nanov2_allocate_from_block"
-          frame (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             symbol (symbol is not used if module or filename are available)
               "nanov2_allocate_from_block.cold.1"
             function (function name is not used if module or filename are available)
@@ -56,22 +56,22 @@ system:
               "malloc_zone_malloc"
             function (function name is not used if module or filename are available)
               "malloc_zone_malloc"
-          frame (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             symbol (symbol is not used if module or filename are available)
               "nanov2_malloc"
             function (function name is not used if module or filename are available)
               "nanov2_malloc"
-          frame (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             symbol (symbol is not used if module or filename are available)
               "nanov2_allocate"
             function (function name is not used if module or filename are available)
               "nanov2_allocate"
-          frame (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             symbol (symbol is not used if module or filename are available)
               "nanov2_allocate_from_block"
             function (function name is not used if module or filename are available)
               "nanov2_allocate_from_block"
-          frame (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             symbol (symbol is not used if module or filename are available)
               "nanov2_allocate_from_block.cold.1"
             function (function name is not used if module or filename are available)

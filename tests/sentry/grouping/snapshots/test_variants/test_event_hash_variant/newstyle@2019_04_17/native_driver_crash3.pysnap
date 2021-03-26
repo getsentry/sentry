@@ -1,5 +1,5 @@
 ---
-created: '2021-03-24T14:53:14.049148Z'
+created: '2021-03-26T19:01:54.597991Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,7 +12,7 @@ app:
           frame (non app frame)
             function*
               "CUseCountedObject<T>::UCDestroy"
-          frame (marked as prefix frame by stack trace rule (category:indirection +prefix))
+          frame (non app frame)
             function*
               "destructor'"
           frame (non app frame)
@@ -24,8 +24,8 @@ app:
           frame (non app frame)
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
+          frame (non app frame)
             function*
               "OpenAdapter12"
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
@@ -35,7 +35,7 @@ app:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------
 system:
-  hash: "c72e415a0139ae258a82f9b672ed9e2f"
+  hash: "784442a33bd16c15013bb8f69f68e7d6"
   component:
     system*
       exception*
@@ -43,20 +43,20 @@ system:
           frame*
             function*
               "CUseCountedObject<T>::UCDestroy"
-          frame* (marked as prefix frame by stack trace rule (category:indirection +prefix))
+          frame*
             function*
               "destructor'"
           frame*
             function*
               "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "CContext::LUCBeginLayerDestruction"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "OpenAdapter12"
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))

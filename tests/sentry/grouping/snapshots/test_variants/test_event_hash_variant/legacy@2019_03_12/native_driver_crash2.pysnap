@@ -1,5 +1,5 @@
 ---
-created: '2021-03-24T14:17:22.738720Z'
+created: '2021-03-26T18:39:00.453528Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -24,12 +24,12 @@ app:
               "?DestroyDriverInstance@CDevice@NDXGI@@UEAAXXZ"
             function (function name is not used if module or filename are available)
               "NDXGI::CDevice::DestroyDriverInstance(void)"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (frame considered in-app because no frame is in-app)
             symbol (symbol is not used if module or filename are available)
               "OpenAdapter10"
             function (function name is not used if module or filename are available)
               "OpenAdapter10"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (frame considered in-app because no frame is in-app)
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
         type*
           "EXCEPTION_ACCESS_VIOLATION_READ"
@@ -57,12 +57,12 @@ system:
               "?DestroyDriverInstance@CDevice@NDXGI@@UEAAXXZ"
             function (function name is not used if module or filename are available)
               "NDXGI::CDevice::DestroyDriverInstance(void)"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
             symbol (symbol is not used if module or filename are available)
               "OpenAdapter10"
             function (function name is not used if module or filename are available)
               "OpenAdapter10"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
         type*
           "EXCEPTION_ACCESS_VIOLATION_READ"

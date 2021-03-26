@@ -1,11 +1,11 @@
 ---
-created: '2021-03-25T11:33:38.996895Z'
+created: '2021-03-26T19:01:44.628776Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "6ac1a47a30c5f91eec05b0b89fc1d9e9"
-  tree_label: "nvwgf2umx.dll | NDXGI::CDevice::DestroyDriverInstance [driver/system]"
+  hash: "664bc3a4dacc3a650b5f327d04cc9931"
+  tree_label: "nvwgf2umx.dll | CD3D11LayeredChild<T>::LUCBeginLayerDestruction [driver/system]"
   component:
     app-depth-1*
       exception*
@@ -15,14 +15,14 @@ app-depth-1:
               "nvwgf2umx.dll"
           frame*
             function*
-              "NDXGI::CDevice::DestroyDriverInstance"
+              "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
             package (ignored because function takes precedence)
               "d3d11.dll"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------
 system:
-  hash: "5573f663479e236ca14eff43ab077aa3"
+  hash: "dace415c7739d08199fdcba4a694e255"
   tree_label: "<entire stacktrace>"
   component:
     system*
@@ -33,7 +33,7 @@ system:
               "CUseCountedObject<T>::UCDestroy"
             package (ignored because function takes precedence)
               "d3d11.dll"
-          frame* (marked as prefix frame by stack trace rule (category:indirection +prefix))
+          frame*
             function*
               "destructor'"
             package (ignored because function takes precedence)
@@ -43,17 +43,17 @@ system:
               "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
             package (ignored because function takes precedence)
               "d3d11.dll"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "CContext::LUCBeginLayerDestruction"
             package (ignored because function takes precedence)
               "d3d11.dll"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
             package (ignored because function takes precedence)
               "d3d11.dll"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "OpenAdapter10"
             package (ignored because function takes precedence)

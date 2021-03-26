@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T19:11:07.855331Z'
+created: '2021-03-26T19:03:45.581243Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -77,19 +77,19 @@ app:
           frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "CGLTexImageIOSurface2D"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (non app frame)
             function*
               "CGLDescribeRenderer"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (non app frame)
             function*
               "gliSetInteger"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
             function*
               "gldFlushObject"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
             function*
               "intelSubmitCommands"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
             function*
               "IntelCommandBuffer::getNew"
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
@@ -147,19 +147,19 @@ app:
           frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "CGLTexImageIOSurface2D"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (non app frame)
             function*
               "CGLDescribeRenderer"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (non app frame)
             function*
               "gliSetInteger"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
             function*
               "gldFlushObject"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
             function*
               "intelSubmitCommands"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
             function*
               "IntelCommandBuffer::getNew"
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
@@ -184,7 +184,7 @@ app:
           "0x00000000 / 0x00000000"
 --------------------------------------------------------------------------
 system:
-  hash: "7273ec8d3ae5af594dcc344b280501b1"
+  hash: "36be6e0b6123ef6ecfbef62f5cb88406"
   component:
     system*
       exception*
@@ -216,19 +216,19 @@ system:
           frame*
             function*
               "-[NSApplication run]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "_DPSNextEvent"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "_BlockUntilNextEventMatchingListInModeWithFilter"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "ReceiveNextEventCommon"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "RunCurrentEventLoopInMode"
           frame
@@ -236,7 +236,7 @@ system:
           frame (ignored due to recursion)
           frame (ignored due to recursion)
           frame (ignored due to recursion)
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__NSThreadPerformPerform"
           frame*
@@ -245,7 +245,7 @@ system:
           frame*
             function*
               "-[NSView displayIfNeeded]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[_NSOpenGLViewBackingLayer display]"
           frame*
@@ -257,19 +257,19 @@ system:
           frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "CGLTexImageIOSurface2D"
-          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "CGLDescribeRenderer"
-          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "gliSetInteger"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "gldFlushObject"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "intelSubmitCommands"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "IntelCommandBuffer::getNew"
           frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
@@ -281,7 +281,7 @@ system:
           frame (ignored by stack trace rule (category:telemetry -group))
             function*
               "gpusGenerateCrashLog"
-          frame (ignored by stack trace rule (category:telemetry -group))
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
           frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
@@ -327,19 +327,19 @@ system:
           frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "CGLTexImageIOSurface2D"
-          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
+          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "CGLDescribeRenderer"
-          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
+          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "gliSetInteger"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "gldFlushObject"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "intelSubmitCommands"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "IntelCommandBuffer::getNew"
           frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))

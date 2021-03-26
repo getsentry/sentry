@@ -1,5 +1,5 @@
 ---
-created: '2021-03-25T16:01:37.477173Z'
+created: '2021-03-26T18:39:12.273947Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -27,7 +27,7 @@ app-depth-1:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "2e66525bf932712cdf9c92909190fbd2"
+  hash: "0a16eff3ac6acb7f1b7926d65019e155"
   tree_label: "<entire stacktrace>"
   component:
     system*
@@ -82,27 +82,27 @@ system:
               "-[NSRunLoop(NSRunLoop) runMode:beforeDate:]"
             package (ignored because function takes precedence)
               "foundation"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "CFRunLoopRunSpecific"
             package (ignored because function takes precedence)
               "corefoundation"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopRun"
             package (ignored because function takes precedence)
               "corefoundation"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopDoSources0"
             package (ignored because function takes precedence)
               "corefoundation"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopDoSource0"
             package (ignored because function takes precedence)
               "corefoundation"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
             package (ignored because function takes precedence)
@@ -169,20 +169,20 @@ system:
               "glTexSubImage2D"
             package (ignored because function takes precedence)
               "libgl.dylib"
-          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "glTexSubImage2D_Exec"
             package (ignored because function takes precedence)
               "glengine"
-          frame (ignored by stack trace rule ([ .. | category:gl] category:gl -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "gleTextureImagePut"
             package (ignored because function takes precedence)
               "glengine"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:internals -group))
             package* (used as fallback because function name is not available)
               "amdradeonx5000gldriver"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "gpusSubmitDataBuffers"
             package (ignored because function takes precedence)
@@ -195,7 +195,7 @@ system:
               "gpusGenerateCrashLog"
             package (ignored because function takes precedence)
               "libgpusupportmercury.dylib"
-          frame (ignored by stack trace rule (category:telemetry -group))
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
             package (ignored because function takes precedence)

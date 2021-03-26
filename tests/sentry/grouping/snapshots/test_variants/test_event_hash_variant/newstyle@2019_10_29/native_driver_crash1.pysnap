@@ -1,5 +1,5 @@
 ---
-created: '2021-03-24T14:52:52.147462Z'
+created: '2021-03-26T19:01:37.446534Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,7 +12,7 @@ app:
           frame (non app frame)
             function*
               "CUseCountedObject<T>::UCDestroy"
-          frame (marked as prefix frame by stack trace rule (category:indirection +prefix))
+          frame (non app frame)
             function*
               "destructor'"
           frame (non app frame)
@@ -24,7 +24,7 @@ app:
           frame (non app frame)
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
             function*
               "OpenAdapter10"
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
@@ -34,7 +34,7 @@ app:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------
 system:
-  hash: "242910cf8a85f97f2034cb1a3abe6c25"
+  hash: "2e0d26cae5986fcda5edf66612a78268"
   component:
     system*
       exception*
@@ -42,19 +42,19 @@ system:
           frame*
             function*
               "CUseCountedObject<T>::UCDestroy"
-          frame* (marked as prefix frame by stack trace rule (category:indirection +prefix))
+          frame*
             function*
               "destructor'"
           frame*
             function*
               "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "CContext::LUCBeginLayerDestruction"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
-          frame (ignored by stack trace rule ([ category:driver | .. ] category:driver -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "OpenAdapter10"
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
