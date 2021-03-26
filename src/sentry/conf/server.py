@@ -135,6 +135,8 @@ SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
 # here. This directory may not exist until that file is generated.
 CHARTCUTERIE_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "chartcuterie")
 
+SNUBA_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "snuba")
+
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -1650,8 +1652,7 @@ SENTRY_DEVSERVICES = {
         "command": ["devserver"],
         "environment": {
             "PYTHONUNBUFFERED": "1",
-            "SNUBA_SETTINGS": "docker",
-            "DEBUG": "1",
+            "SNUBA_SETTINGS": "/etc/snuba/settings.py",
             "CLICKHOUSE_HOST": "{containers[clickhouse][name]}",
             "CLICKHOUSE_PORT": "9000",
             "CLICKHOUSE_HTTP_PORT": "8123",
@@ -1660,6 +1661,7 @@ SENTRY_DEVSERVICES = {
             "REDIS_PORT": "6379",
             "REDIS_DB": "1",
         },
+        "volumes": {SNUBA_CONFIG_DIR: {"bind": "/etc/snuba"}},
         "only_if": lambda settings, options: (
             "snuba" in settings.SENTRY_EVENTSTREAM or "kafka" in settings.SENTRY_EVENTSTREAM
         ),
