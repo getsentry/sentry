@@ -150,6 +150,7 @@ def get_type_from_user_option_settings_key(key: UserOptionsSettingsKey) -> Notif
     return {
         UserOptionsSettingsKey.DEPLOY: NotificationSettingTypes.DEPLOY,
         UserOptionsSettingsKey.WORKFLOW: NotificationSettingTypes.WORKFLOW,
+        UserOptionsSettingsKey.SUBSCRIBE_BY_DEFAULT: NotificationSettingTypes.ISSUE_ALERTS,
     }.get(key)
 
 
