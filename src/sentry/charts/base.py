@@ -12,7 +12,7 @@ logger = logging.getLogger("sentry.charts")
 
 class ChartRenderer(Service):
     """
-    The chart rendering service is used to transalte arbitrary data into a
+    The chart rendering service is used to translate arbitrary data into a
     image representation of that data, usually a chart.
     """
 
