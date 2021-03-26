@@ -1,16 +1,18 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import NotAvailable from 'app/components/notAvailable';
+import {t} from 'app/locale';
 import {
   CandidateDownloadStatus,
   ImageCandidate,
   ImageCandidateOk,
 } from 'app/types/debugImage';
 
-import ProcessingItem from '../../processing/item';
-import ProcessingList from '../../processing/list';
+import ProcessingItem from '../../../processing/item';
+import ProcessingList from '../../../processing/list';
 
-import ProcessingIcon from './processingIcon';
+import Icon from './icon';
 
 type Props = {
   candidate: ImageCandidate;
@@ -23,7 +25,7 @@ function Processings({candidate}: Props) {
     candidate.download.status !== CandidateDownloadStatus.OK &&
     candidate.download.status !== CandidateDownloadStatus.DELETED
   ) {
-    return <NotAvailable />;
+    return <NotAvailable tooltip={t('Processing info not available')} />;
   }
 
   const {debug, unwind} = candidate as ImageCandidateOk;
@@ -33,7 +35,7 @@ function Processings({candidate}: Props) {
       <ProcessingItem
         key="symbolication"
         type="symbolication"
-        icon={<ProcessingIcon processingInfo={debug} />}
+        icon={<Icon processingInfo={debug} />}
       />
     );
   }
@@ -43,12 +45,16 @@ function Processings({candidate}: Props) {
       <ProcessingItem
         key="stack_unwinding"
         type="stack_unwinding"
-        icon={<ProcessingIcon processingInfo={unwind} />}
+        icon={<Icon processingInfo={unwind} />}
       />
     );
   }
 
-  return <ProcessingList items={items} />;
+  return <StyledProcessingList items={items} />;
 }
 
 export default Processings;
+
+const StyledProcessingList = styled(ProcessingList)`
+  flex-direction: column;
+`;

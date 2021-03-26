@@ -1,19 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {BuiltinSymbolSource} from 'app/types/debugFiles';
 import {ImageCandidate} from 'app/types/debugImage';
 
 import {INTERNAL_SOURCE} from '../utils';
 
+import StatusTooltip from './status/statusTooltip';
 import Actions from './actions';
-import Features from './features';
+import Information from './information';
 import Processings from './processings';
-import StatusTooltip from './statusTooltip';
-import {getSourceTooltipDescription} from './utils';
 
 type Props = {
   candidate: ImageCandidate;
@@ -21,6 +18,7 @@ type Props = {
   organization: Organization;
   projectId: Project['slug'];
   baseUrl: string;
+  eventDateCreated: string;
   onDelete: (debugFileId: string) => void;
 };
 
@@ -30,9 +28,10 @@ function Candidate({
   organization,
   projectId,
   baseUrl,
+  eventDateCreated,
   onDelete,
 }: Props) {
-  const {location, download, source_name, source} = candidate;
+  const {source} = candidate;
   const isInternalSource = source === INTERNAL_SOURCE;
 
   return (
@@ -41,22 +40,20 @@ function Candidate({
         <StatusTooltip candidate={candidate} />
       </Column>
 
-      <DebugFileColumn>
-        <Tooltip title={getSourceTooltipDescription(source, builtinSymbolSources)}>
-          <SourceName>{source_name ?? t('Unknown')}</SourceName>
-        </Tooltip>
-        {location && !isInternalSource && <Location>{location}</Location>}
-      </DebugFileColumn>
+      <InformationColumn>
+        <Information
+          candidate={candidate}
+          builtinSymbolSources={builtinSymbolSources}
+          isInternalSource={isInternalSource}
+          eventDateCreated={eventDateCreated}
+        />
+      </InformationColumn>
 
       <Column>
         <Processings candidate={candidate} />
       </Column>
 
-      <Column>
-        <Features download={download} />
-      </Column>
-
-      <Column>
+      <ActionsColumn>
         <Actions
           onDelete={onDelete}
           baseUrl={baseUrl}
@@ -65,7 +62,7 @@ function Candidate({
           candidate={candidate}
           isInternalSource={isInternalSource}
         />
-      </Column>
+      </ActionsColumn>
     </React.Fragment>
   );
 }
@@ -77,19 +74,11 @@ const Column = styled('div')`
   align-items: center;
 `;
 
-// Debug File Info Column
-const DebugFileColumn = styled(Column)`
+const InformationColumn = styled(Column)`
   flex-direction: column;
   align-items: flex-start;
 `;
 
-const SourceName = styled('div')`
-  color: ${p => p.theme.textColor};
-  width: 100%;
-  white-space: pre-wrap;
-  word-break: break-all;
-`;
-
-const Location = styled(SourceName)`
-  color: ${p => p.theme.gray300};
+const ActionsColumn = styled(Column)`
+  justify-content: flex-end;
 `;
