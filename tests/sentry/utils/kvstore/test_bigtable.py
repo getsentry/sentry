@@ -12,7 +12,7 @@ from sentry.utils.kvstore.bigtable import BigtableKVStorage
 def credentials() -> Credentials:
     if "BIGTABLE_EMULATOR_HOST" not in os.environ:
         pytest.skip(
-            "Bigtable is not available, set BIGTABLE_EMULATOR_HOST enironment variable to enable"
+            "Bigtable is not available, set BIGTABLE_EMULATOR_HOST environment variable to enable"
         )
 
     # The bigtable emulator requires _something_ to be passed as credentials,
