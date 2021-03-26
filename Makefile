@@ -96,6 +96,10 @@ build-platform-assets:
 	@echo "--> Building platform assets"
 	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
 
+build-chartcuterie-config:
+	@echo "--> Building chartcuterie config module"
+	yarn build-chartcuterie-config
+
 fetch-release-registry:
 	@echo "--> Fetching release registry"
 	@echo "from sentry.utils.distutils import sync_registry; sync_registry()" | sentry exec
@@ -156,6 +160,11 @@ backend-typing:
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
 	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=".artifacts/symbolicator.junit.xml"
+	@echo ""
+
+test-chartcuterie:
+	@echo "--> Running chartcuterie tests"
+	pytest tests/chartcuterie -vv --cov . --cov-report="xml:.artifacts/chartcuterie.coverage.xml" --junit-xml=".artifacts/chartcuterie.junit.xml"
 	@echo ""
 
 test-acceptance: node-version-check
@@ -222,6 +231,7 @@ lint-js:
         sync-transifex \
         update-transifex \
         build-platform-assets \
+        build-chartcuterie-config \
         fetch-release-registry \
         run-acceptance \
         test-cli \
@@ -232,6 +242,7 @@ lint-js:
         test-python-ci \
         test-snuba \
         test-symbolicator \
+        test-chartcuterie \
         test-acceptance \
         test-plugins \
         test-relay-integration \
