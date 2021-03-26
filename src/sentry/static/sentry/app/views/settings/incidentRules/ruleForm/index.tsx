@@ -10,6 +10,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {fetchOrganizationTags} from 'app/actionCreators/tags';
 import Access from 'app/components/acl/access';
+import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -29,6 +30,7 @@ import hasThresholdValue from 'app/views/settings/incidentRules/utils/hasThresho
 import {addOrUpdateRule} from '../actions';
 import {createDefaultTrigger} from '../constants';
 import RuleConditionsForm from '../ruleConditionsForm';
+import RuleConditionsFormForWizard from '../ruleConditionsFormForWizard';
 import {
   AlertRuleThresholdType,
   Dataset,
@@ -634,14 +636,29 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             }
             submitLabel={t('Save Rule')}
           >
-            <RuleConditionsForm
-              api={this.api}
-              projectSlug={params.projectId}
-              organization={organization}
-              disabled={!hasAccess || !canEdit}
-              thresholdChart={chart}
-              onFilterSearch={this.handleFilterUpdate}
-            />
+            <Feature organization={organization} features={['alert-wizard']}>
+              {({hasFeature}) =>
+                hasFeature ? (
+                  <RuleConditionsFormForWizard
+                    api={this.api}
+                    projectSlug={params.projectId}
+                    organization={organization}
+                    disabled={!hasAccess || !canEdit}
+                    thresholdChart={chart}
+                    onFilterSearch={this.handleFilterUpdate}
+                  />
+                ) : (
+                  <RuleConditionsForm
+                    api={this.api}
+                    projectSlug={params.projectId}
+                    organization={organization}
+                    disabled={!hasAccess || !canEdit}
+                    thresholdChart={chart}
+                    onFilterSearch={this.handleFilterUpdate}
+                  />
+                )
+              }
+            </Feature>
             <Triggers
               disabled={!hasAccess || !canEdit}
               projects={this.state.projects}

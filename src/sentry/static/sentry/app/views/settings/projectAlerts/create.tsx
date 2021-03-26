@@ -100,7 +100,8 @@ class Create extends React.Component<Props, State> {
     } = this.props;
     const {alertType, eventView, wizardTemplate} = this.state;
 
-    const shouldShowAlertTypeChooser = hasMetricAlerts;
+    const hasWizard = organization.features.includes('alert-wizard');
+    const shouldShowAlertTypeChooser = hasMetricAlerts && !hasWizard;
     const title = t('New Alert Rule');
 
     return (
