@@ -28,6 +28,7 @@ class ProjectCodeOwners(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_projectcodeowners"
+        unique_together = (("project", "repository_project_path_config"),)
 
     __repr__ = sane_repr("project_id", "id")
 
