@@ -1662,9 +1662,6 @@ SENTRY_DEVSERVICES = {
             "REDIS_DB": "1",
         },
         "volumes": {SNUBA_CONFIG_DIR: {"bind": "/etc/snuba"}},
-        "only_if": lambda settings, options: (
-            "snuba" in settings.SENTRY_EVENTSTREAM or "kafka" in settings.SENTRY_EVENTSTREAM
-        ),
     },
     "bigtable": {
         "image": "mattrobenolt/cbtemulator:0.51.0",
