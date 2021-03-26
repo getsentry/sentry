@@ -405,11 +405,21 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
 
     const uniqueUsers = data.count_unique_user;
     const userMisery = data[userMiseryField];
-    const miserableUsers = countMiserableUserField
-      ? data[countMiserableUserField]
-      : undefined;
 
     const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
+
+    let miserableUsers: number | undefined;
+
+    if (countMiserableUserField) {
+      const countMiserableMiseryLimit = parseInt(
+        countMiserableUserField.split('_').pop() || '',
+        10
+      );
+      miserableUsers =
+        countMiserableMiseryLimit === miseryLimit
+          ? data[countMiserableUserField]
+          : undefined;
+    }
 
     return (
       <BarContainer>
