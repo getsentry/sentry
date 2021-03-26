@@ -3,10 +3,8 @@ WEBPACK := yarn build-acceptance
 
 bootstrap: develop init-config run-dependent-services create-db apply-migrations build-platform-assets
 
-develop: ensure-venv upgrade-pip
-	@./scripts/do.sh setup-git
-	@./scripts/do.sh install-js-dev
-	@./scripts/do.sh install-py-dev
+develop:
+	@./scripts/do.sh develop
 
 clean:
 	@echo "--> Cleaning static cache"
@@ -19,10 +17,10 @@ clean:
 	rm -rf build/ dist/ src/sentry/assets.json
 	@echo ""
 
-init-config: ensure-venv
+init-config:
 	@./scripts/do.sh init-config
 
-run-dependent-services: ensure-venv
+run-dependent-services:
 	@./scripts/do.sh run-dependent-services
 
 DROPDB := $(shell command -v dropdb 2> /dev/null)
@@ -37,7 +35,7 @@ drop-db:
 create-db:
 	@./scripts/do.sh create-db
 
-apply-migrations: ensure-venv
+apply-migrations:
 	@./scripts/do.sh apply-migrations
 
 reset-db: drop-db create-db apply-migrations
@@ -45,16 +43,13 @@ reset-db: drop-db create-db apply-migrations
 setup-pyenv:
 	@./scripts/pyenv_setup.sh
 
-ensure-venv:
-	@./scripts/ensure-venv.sh
-
 upgrade-pip:
-	@./scripts/do.sh upgrade-pip
+	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh upgrade-pip
 
 setup-git-config:
-	@./scripts/do.sh setup-git-config
+	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh setup-git-config
 
-setup-git: ensure-venv setup-git-config
+setup-git:
 	@./scripts/do.sh setup-git
 
 node-version-check:
@@ -147,6 +142,11 @@ test-snuba:
 	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 	@echo ""
 
+backend-typing:
+	@echo "--> Running Python typing checks"
+	mypy --strict --warn-unreachable --config-file mypy.ini
+	@echo ""
+
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
 	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=".artifacts/symbolicator.junit.xml"
@@ -193,4 +193,44 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop bootstrap build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
+.PHONY: bootstrap \
+        develop \
+        clean \
+        init-config \
+        run-dependent-services \
+        drop-db \
+        create-db \
+        apply-migrations \
+        reset-db \
+        setup-pyenv \
+        setup-git-config \
+        setup-git \
+        node-version-check \
+        install-js-dev \
+        install-py-dev \
+        build-js-po \
+        build \
+        merge-locale-catalogs \
+        compile-locale \
+        locale \
+        sync-transifex \
+        update-transifex \
+        build-platform-assets \
+        fetch-release-registry \
+        run-acceptance \
+        test-cli \
+        test-js-build \
+        test-js \
+        test-js-ci \
+        test-python \
+        test-python-ci \
+        test-snuba \
+        test-symbolicator \
+        test-acceptance \
+        test-plugins \
+        test-relay-integration \
+        test-api-docs \
+        review-python-snapshots \
+        accept-python-snapshots \
+        reject-python-snapshots \
+        lint-js

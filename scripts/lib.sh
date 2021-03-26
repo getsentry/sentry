@@ -2,8 +2,6 @@
 # Module containing code shared across various shell scripts
 # Execute functions from this module via the script do.sh
 
-alias pip="python -m pip --disable-pip-version-check"
-
 # Check if a command is available
 require() {
     command -v "$1" >/dev/null 2>&1
@@ -53,6 +51,7 @@ setup-git-config() {
 }
 
 setup-git() {
+    setup-git-config
     echo "--> Installing git hooks"
     mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./ && cd - || exit
     # shellcheck disable=SC2016
@@ -71,6 +70,12 @@ install-js-dev() {
     # account the state of the current filesystem (it only checks .yarn-integrity).
     # Add an additional check against `node_modules`
     yarn check --verify-tree || yarn install --check-files
+}
+
+develop() {
+    setup-git
+    install-js-dev
+    install-py-dev
 }
 
 init-config() {

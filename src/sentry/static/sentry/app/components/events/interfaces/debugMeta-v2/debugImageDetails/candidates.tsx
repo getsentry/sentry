@@ -301,7 +301,7 @@ class Candidates extends React.Component<Props, State> {
       <Wrapper>
         <Header>
           <Title>
-            {t('Debug Files')}
+            {t('Debug File Candidates')}
             <QuestionTooltip
               title={tct(
                 'These are the Debug Information Files (DIFs) corresponding to this image which have been looked up on [docLink:symbol servers] during the processing of the stacktrace.',
@@ -330,7 +330,7 @@ class Candidates extends React.Component<Props, State> {
         <StyledPanelTable
           headers={[
             t('Status'),
-            t('Debug File'),
+            t('Location'),
             t('Processing'),
             t('Features'),
             t('Actions'),
@@ -387,15 +387,15 @@ const Title = styled('div')`
 const Search = styled('div')`
   flex-grow: 1;
   display: flex;
-  flex-direction: row;
-  justify-content: flex-end;
+  flex-direction: column;
+  justify-content: flex-start;
+  .drop-down-filter-menu {
+    border-top-right-radius: ${p => p.theme.borderRadius};
+  }
 
-  @media (max-width: ${props => props.theme.breakpoints[0]}) {
-    flex-direction: column;
-    justify-content: flex-start;
-    .drop-down-filter-menu {
-      border-top-right-radius: ${p => p.theme.borderRadius};
-    }
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    flex-direction: row;
+    justify-content: flex-end;
   }
 `;
 

@@ -4,8 +4,9 @@ import GenericDiscoverQuery, {
   DiscoverQueryProps,
 } from 'app/utils/discover/genericDiscoverQuery';
 import {
+  BaseTraceChildrenProps,
+  PartialQuickTrace,
   TraceLite,
-  TraceLiteQueryChildrenProps,
   TraceRequestProps,
 } from 'app/utils/performance/quickTrace/types';
 import {
@@ -15,15 +16,24 @@ import {
 } from 'app/utils/performance/quickTrace/utils';
 import withApi from 'app/utils/withApi';
 
-type QueryProps = Omit<TraceRequestProps, 'eventView'> & {
-  children: (props: TraceLiteQueryChildrenProps) => React.ReactNode;
-  shouldSkipQuery: boolean;
+type AdditionalQueryProps = {
+  eventId: string;
 };
 
-function getQuickTraceLiteRequestPayload({
+type TraceLiteQueryChildrenProps = BaseTraceChildrenProps &
+  Omit<PartialQuickTrace, 'trace'> & {
+    trace: TraceLite | null;
+  };
+
+type QueryProps = Omit<TraceRequestProps, 'eventView'> &
+  AdditionalQueryProps & {
+    children: (props: TraceLiteQueryChildrenProps) => React.ReactNode;
+  };
+
+function getTraceLiteRequestPayload({
   eventId,
   ...props
-}: DiscoverQueryProps & Pick<TraceRequestProps, 'eventId'>) {
+}: DiscoverQueryProps & AdditionalQueryProps) {
   const additionalApiPayload = getQuickTraceRequestPayload(props);
   return Object.assign({event_id: eventId}, additionalApiPayload);
 }
@@ -45,20 +55,20 @@ function TraceLiteQuery({
   traceId,
   start,
   end,
+  statsPeriod,
   children,
-  shouldSkipQuery,
   ...props
 }: QueryProps) {
-  if (!traceId || shouldSkipQuery) {
+  if (!traceId) {
     return <EmptyTrace>{children}</EmptyTrace>;
   }
 
-  const eventView = makeEventView(start, end);
+  const eventView = makeEventView({start, end, statsPeriod});
 
   return (
-    <GenericDiscoverQuery<TraceLite, {eventId: string}>
+    <GenericDiscoverQuery<TraceLite, AdditionalQueryProps>
       route={`events-trace-light/${traceId}`}
-      getRequestPayload={getQuickTraceLiteRequestPayload}
+      getRequestPayload={getTraceLiteRequestPayload}
       beforeFetch={beforeFetch}
       eventView={eventView}
       {...props}

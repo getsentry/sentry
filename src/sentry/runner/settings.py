@@ -1,4 +1,5 @@
 import os
+
 import click
 
 DEFAULT_SETTINGS_MODULE = "sentry.conf.server"

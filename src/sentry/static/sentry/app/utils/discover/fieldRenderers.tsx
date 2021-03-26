@@ -8,6 +8,7 @@ import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import UserMisery from 'app/components/userMisery';
+import UserMiseryPrototype from 'app/components/userMiseryPrototype';
 import Version from 'app/components/version';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
@@ -166,6 +167,7 @@ type SpecialField = {
 
 type SpecialFields = {
   id: SpecialField;
+  trace: SpecialField;
   project: SpecialField;
   user: SpecialField;
   'user.display': SpecialField;
@@ -188,6 +190,17 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'id',
     renderFunc: data => {
       const id: string | unknown = data?.id;
+      if (typeof id !== 'string') {
+        return null;
+      }
+
+      return <Container>{getShortEventId(id)}</Container>;
+    },
+  },
+  trace: {
+    sortField: 'trace',
+    renderFunc: data => {
+      const id: string | unknown = data?.trace;
       if (typeof id !== 'string') {
         return null;
       }
@@ -368,6 +381,7 @@ const SPECIAL_FIELDS: SpecialFields = {
 };
 
 type SpecialFunctions = {
+  user_misery_prototype: SpecialFieldRenderFunc;
   user_misery: SpecialFieldRenderFunc;
 };
 
@@ -376,6 +390,40 @@ type SpecialFunctions = {
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FUNCTIONS: SpecialFunctions = {
+  user_misery_prototype: data => {
+    const uniqueUsers = data.count_unique_user;
+    let miseryField: string = '';
+    let userMiseryField: string = '';
+    for (const field in data) {
+      if (field.startsWith('user_misery_prototype')) {
+        miseryField = field;
+      } else if (field.startsWith('user_misery')) {
+        userMiseryField = field;
+      }
+    }
+
+    if (!miseryField) {
+      return <NumberContainer>{emptyValue}</NumberContainer>;
+    }
+
+    const miserableUsers = userMiseryField ? data[userMiseryField] : undefined;
+    const userMisery = miseryField ? data[miseryField] : undefined;
+
+    const miseryLimit = parseInt(miseryField.split('_').pop() || '', 10);
+
+    return (
+      <BarContainer>
+        <UserMiseryPrototype
+          bars={10}
+          barHeight={20}
+          miseryLimit={miseryLimit}
+          totalUsers={uniqueUsers}
+          userMisery={userMisery}
+          miserableUsers={miserableUsers}
+        />
+      </BarContainer>
+    );
+  },
   user_misery: data => {
     const uniqueUsers = data.count_unique_user;
     let userMiseryField: string = '';
@@ -426,6 +474,10 @@ export function getSortField(
   }
 
   if (!tableMeta) {
+    return field;
+  }
+
+  if (field.startsWith('user_misery_prototype')) {
     return field;
   }
 

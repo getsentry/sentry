@@ -1,0 +1,1041 @@
+{
+  "event_id": "d88832dfdcc44d4fb3e64f1e66877751",
+  "project": 5641783,
+  "release": "52f7c8a62a97cecf029f6a68adb411c1714c4836",
+  "dist": null,
+  "platform": "javascript",
+  "message": "",
+  "datetime": "2021-03-09T20:17:35.548000+00:00",
+  "tags": [
+    ["browser", "Safari 12.1.1"],
+    ["browser.name", "Safari"],
+    ["customerType", "enterprise"],
+    ["device", "Mac"],
+    ["device.family", "Mac"],
+    ["environment", "prod"],
+    ["level", "info"],
+    ["os", "Mac OS X 10.13.6"],
+    ["os.name", "Mac OS X"],
+    ["release", "52f7c8a62a97cecf029f6a68adb411c1714c4836"],
+    ["user", "email:6rp8@yahoo.com"],
+    ["session_id", "_z5x4maawt"],
+    ["transaction", "checkout"],
+    ["url", "https://app.example.com/toolstore"]
+  ],
+  "_meta": {
+    "breadcrumbs": {
+      "values": {
+        "1": {"event_id": {"": {"err": ["invalid_attribute"]}}},
+        "22": {"event_id": {"": {"err": ["invalid_attribute"]}}},
+        "43": {"event_id": {"": {"err": ["invalid_attribute"]}}}
+      }
+    }
+  },
+  "_metrics": {"bytes.ingested.event": 15306, "bytes.stored.event": 17780},
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1615321046.449,
+        "type": "info",
+        "category": "redux.action",
+        "level": "info",
+        "data": {"type": "@@redux/INITb.m.o.t.9.8"}
+      },
+      {
+        "timestamp": 1615321046.458,
+        "type": "default",
+        "category": "sentry.transaction",
+        "level": "info",
+        "message": "1342ce7328f047ea8883cc99848d2cb9",
+        "event_id": null
+      },
+      {
+        "timestamp": 1615321046.461,
+        "type": "default",
+        "category": "navigation",
+        "level": "info",
+        "data": {"from": "/", "to": "/toolstore"}
+      },
+      {
+        "timestamp": 1615321046.466,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "BACKEND is:  https://aj-flask-m3uuizd7iq-uc.a.run.app",
+        "data": {
+          "arguments": ["BACKEND is: ", "https://aj-flask-m3uuizd7iq-uc.a.run.app"],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321046.468,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "BACKEND is:  https://aj-flask-m3uuizd7iq-uc.a.run.app",
+        "data": {
+          "arguments": ["BACKEND is: ", "https://aj-flask-m3uuizd7iq-uc.a.run.app"],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321049.06,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 200,
+          "url": "https://aj-flask-m3uuizd7iq-uc.a.run.app/tools"
+        }
+      },
+      {
+        "timestamp": 1615321049.071,
+        "type": "info",
+        "category": "redux.action",
+        "level": "info",
+        "data": {
+          "payload": {
+            "tools": [
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]",
+              "[Object]"
+            ]
+          },
+          "type": "SET_TOOLS"
+        }
+      },
+      {
+        "timestamp": 1615321049.153,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c prev state color: #9E9E9E; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c prev state",
+            "color: #9E9E9E; font-weight: bold",
+            {"cart": "[Array]", "tools": "[Array]"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321049.153,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c action     color: #03A9F4; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c action    ",
+            "color: #03A9F4; font-weight: bold",
+            {"payload": "[Object]", "type": "SET_TOOLS"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321049.153,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c next state color: #4CAF50; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c next state",
+            "color: #4CAF50; font-weight: bold",
+            {"cart": "[Array]", "tools": "[Array]"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321049.522,
+        "type": "default",
+        "category": "ui.click",
+        "level": "info",
+        "message": "tbody > tr > td.item > div.button-wrapper > button"
+      },
+      {
+        "timestamp": 1615321049.523,
+        "type": "info",
+        "category": "redux.action",
+        "level": "info",
+        "data": {
+          "payload": {
+            "tool": {
+              "id": 1,
+              "image": "/static/media/wrench.0371ec11.png",
+              "name": "allen wrench",
+              "price": 5672,
+              "sku": "asyqtzmrhsabqxri",
+              "type": "wrench"
+            }
+          },
+          "type": "ADD_TOOL"
+        }
+      },
+      {
+        "timestamp": 1615321049.524,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c prev state color: #9E9E9E; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c prev state",
+            "color: #9E9E9E; font-weight: bold",
+            {"cart": "[Array]", "tools": "[Array]"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321049.524,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c action     color: #03A9F4; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c action    ",
+            "color: #03A9F4; font-weight: bold",
+            {"payload": "[Object]", "type": "ADD_TOOL"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321049.524,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c next state color: #4CAF50; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c next state",
+            "color: #4CAF50; font-weight: bold",
+            {"cart": "[Array]", "tools": "[Array]"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321049.524,
+        "type": "default",
+        "category": "cart",
+        "level": "info",
+        "message": "User added allen wrench to cart"
+      },
+      {
+        "timestamp": 1615321049.913,
+        "type": "default",
+        "category": "ui.click",
+        "level": "info",
+        "message": "tbody > tr > td.item > div.button-wrapper > button"
+      },
+      {
+        "timestamp": 1615321049.914,
+        "type": "info",
+        "category": "redux.action",
+        "level": "info",
+        "data": {
+          "payload": {
+            "tool": {
+              "id": 1,
+              "image": "/static/media/wrench.0371ec11.png",
+              "name": "allen wrench",
+              "price": 5672,
+              "sku": "asyqtzmrhsabqxri",
+              "type": "wrench"
+            }
+          },
+          "type": "ADD_TOOL"
+        }
+      },
+      {
+        "timestamp": 1615321049.915,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c prev state color: #9E9E9E; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c prev state",
+            "color: #9E9E9E; font-weight: bold",
+            {"cart": "[Array]", "tools": "[Array]"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321049.915,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c action     color: #03A9F4; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c action    ",
+            "color: #03A9F4; font-weight: bold",
+            {"payload": "[Object]", "type": "ADD_TOOL"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321049.915,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c next state color: #4CAF50; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c next state",
+            "color: #4CAF50; font-weight: bold",
+            {"cart": "[Array]", "tools": "[Array]"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321049.915,
+        "type": "default",
+        "category": "cart",
+        "level": "info",
+        "message": "User added allen wrench to cart"
+      },
+      {
+        "timestamp": 1615321050.069,
+        "type": "default",
+        "category": "sentry.transaction",
+        "level": "info",
+        "message": "602eb470c3a44f87a4c5871df40a3ada",
+        "event_id": null
+      },
+      {
+        "timestamp": 1615321050.283,
+        "type": "default",
+        "category": "ui.click",
+        "level": "info",
+        "message": "tbody > tr > td.item > div.button-wrapper > button"
+      },
+      {
+        "timestamp": 1615321050.284,
+        "type": "info",
+        "category": "redux.action",
+        "level": "info",
+        "data": {
+          "payload": {
+            "tool": {
+              "id": 1,
+              "image": "/static/media/wrench.0371ec11.png",
+              "name": "allen wrench",
+              "price": 5672,
+              "sku": "asyqtzmrhsabqxri",
+              "type": "wrench"
+            }
+          },
+          "type": "ADD_TOOL"
+        }
+      },
+      {
+        "timestamp": 1615321050.284,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c prev state color: #9E9E9E; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c prev state",
+            "color: #9E9E9E; font-weight: bold",
+            {"cart": "[Array]", "tools": "[Array]"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321050.284,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c action     color: #03A9F4; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c action    ",
+            "color: #03A9F4; font-weight: bold",
+            {"payload": "[Object]", "type": "ADD_TOOL"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321050.284,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c next state color: #4CAF50; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c next state",
+            "color: #4CAF50; font-weight: bold",
+            {"cart": "[Array]", "tools": "[Array]"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321050.284,
+        "type": "default",
+        "category": "cart",
+        "level": "info",
+        "message": "User added allen wrench to cart"
+      },
+      {
+        "timestamp": 1615321050.638,
+        "type": "default",
+        "category": "ui.click",
+        "level": "info",
+        "message": "tbody > tr > td.item > div.button-wrapper > button"
+      },
+      {
+        "timestamp": 1615321050.638,
+        "type": "info",
+        "category": "redux.action",
+        "level": "info",
+        "data": {
+          "payload": {
+            "tool": {
+              "id": 1,
+              "image": "/static/media/wrench.0371ec11.png",
+              "name": "allen wrench",
+              "price": 5672,
+              "sku": "asyqtzmrhsabqxri",
+              "type": "wrench"
+            }
+          },
+          "type": "ADD_TOOL"
+        }
+      },
+      {
+        "timestamp": 1615321050.639,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c prev state color: #9E9E9E; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c prev state",
+            "color: #9E9E9E; font-weight: bold",
+            {"cart": "[Array]", "tools": "[Array]"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321050.639,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c action     color: #03A9F4; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c action    ",
+            "color: #03A9F4; font-weight: bold",
+            {"payload": "[Object]", "type": "ADD_TOOL"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321050.639,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c next state color: #4CAF50; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c next state",
+            "color: #4CAF50; font-weight: bold",
+            {"cart": "[Array]", "tools": "[Array]"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321050.639,
+        "type": "default",
+        "category": "cart",
+        "level": "info",
+        "message": "User added allen wrench to cart"
+      },
+      {
+        "timestamp": 1615321051.048,
+        "type": "default",
+        "category": "ui.click",
+        "level": "info",
+        "message": "tbody > tr > td.item > div.button-wrapper > button"
+      },
+      {
+        "timestamp": 1615321051.049,
+        "type": "info",
+        "category": "redux.action",
+        "level": "info",
+        "data": {
+          "payload": {
+            "tool": {
+              "id": 1,
+              "image": "/static/media/wrench.0371ec11.png",
+              "name": "allen wrench",
+              "price": 5672,
+              "sku": "asyqtzmrhsabqxri",
+              "type": "wrench"
+            }
+          },
+          "type": "ADD_TOOL"
+        }
+      },
+      {
+        "timestamp": 1615321051.049,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c prev state color: #9E9E9E; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c prev state",
+            "color: #9E9E9E; font-weight: bold",
+            {"cart": "[Array]", "tools": "[Array]"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321051.049,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c action     color: #03A9F4; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c action    ",
+            "color: #03A9F4; font-weight: bold",
+            {"payload": "[Object]", "type": "ADD_TOOL"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321051.049,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c next state color: #4CAF50; font-weight: bold [object Object]",
+        "data": {
+          "arguments": [
+            "%c next state",
+            "color: #4CAF50; font-weight: bold",
+            {"cart": "[Array]", "tools": "[Array]"}
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1615321051.049,
+        "type": "default",
+        "category": "cart",
+        "level": "info",
+        "message": "User added allen wrench to cart"
+      },
+      {
+        "timestamp": 1615321051.709,
+        "type": "default",
+        "category": "ui.click",
+        "level": "info",
+        "message": "div#root.root > div > div.App > div.sidebar > button"
+      },
+      {
+        "timestamp": 1615321055.539,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "method": "POST",
+          "status_code": 500,
+          "url": "https://aj-flask-m3uuizd7iq-uc.a.run.app/checkout"
+        }
+      },
+      {
+        "timestamp": 1615321055.545,
+        "type": "default",
+        "category": "sentry.event",
+        "level": "error",
+        "message": "Error: 500 - INTERNAL SERVER ERROR",
+        "event_id": null
+      }
+    ]
+  },
+  "contexts": {
+    "browser": {"name": "Safari", "version": "12.1.1", "type": "browser"},
+    "device": {"family": "Mac", "model": "Mac", "brand": "Apple", "type": "device"},
+    "os": {"name": "Mac OS X", "version": "10.13.6", "type": "os"},
+    "redux.state": {
+      "cart": ["[Object]", "[Object]", "[Object]", "[Object]", "[Object]"],
+      "tools": [
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]",
+        "[Object]"
+      ],
+      "type": "redux.state"
+    },
+    "trace": {
+      "trace_id": "39ecb9f463bb4982a6d76e426915d3ab",
+      "span_id": "ac7e3ef6047fd004",
+      "op": "default",
+      "type": "trace"
+    }
+  },
+  "culprit": "checkout",
+  "environment": "prod",
+  "errors": [
+    {"type": "invalid_attribute", "name": "breadcrumbs.values.1.event_id"},
+    {"type": "invalid_attribute", "name": "breadcrumbs.values.22.event_id"},
+    {"type": "invalid_attribute", "name": "breadcrumbs.values.43.event_id"}
+  ],
+  "extra": {
+    "cart": "[{\"sku\":\"asyqtzmrhsabqxri\",\"name\":\"allen wrench\",\"image\":\"/static/media/wrench.0371ec11.png\",\"id\":1,\"type\":\"wrench\",\"price\":5672},{\"sku\":\"asyqtzmrhsabqxri\",\"name\":\"allen wrench\",\"image\":\"/static/media/wrench.0371ec11.png\",\"id\":1,\"type\":\"wrench\",\"price\":5672},{\"sku\":\"asyqtzmrhsabqxri\",\"name\":\"allen wrench\",\"image\":\"/static/media/wrench.0371ec11.png\",\"id\":1,\"type\":\"wrench\",\"price\":5672},{\"sku\":\"asyqtzmrhsabqxri\",\"name\":\"allen wrench\",\"image\":\"/static/media/wrench.0371ec11.png\",\"id\":1,\"type\":\"wrench\",\"price\":5672}]"
+  },
+  "grouping_config": {
+    "enhancements": "eJybzDhxY3J-bm5-npWRgaGlroGxrpHxBABcTQcY",
+    "id": "newstyle:2019-10-29"
+  },
+  "key_id": "1512182",
+  "level": "info",
+  "location": "checkout",
+  "logger": "",
+  "metadata": {"location": "checkout", "title": "checkout"},
+  "received": 1615321043.385451,
+  "request": {
+    "url": "https://app.example.com/toolstore",
+    "headers": [
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 Safari/605.1.15"
+      ]
+    ]
+  },
+  "sdk": {
+    "name": "sentry.javascript.react",
+    "version": "5.27.3",
+    "integrations": [
+      "InboundFilters",
+      "FunctionToString",
+      "TryCatch",
+      "Breadcrumbs",
+      "GlobalHandlers",
+      "LinkedErrors",
+      "UserAgent",
+      "BrowserTracing"
+    ],
+    "packages": [
+      {"name": "npm:@sentry/browser", "version": "5.27.3"},
+      {"name": "npm:@sentry/react", "version": "5.27.3"}
+    ]
+  },
+  "spans": [
+    {
+      "timestamp": 1615321055.54,
+      "start_timestamp": 1615321051.711,
+      "description": "POST https://aj-flask-m3uuizd7iq-uc.a.run.app/checkout",
+      "op": "http",
+      "span_id": "a2254b6b8281d31d",
+      "parent_span_id": "ac7e3ef6047fd004",
+      "trace_id": "39ecb9f463bb4982a6d76e426915d3ab",
+      "status": "internal_error",
+      "tags": {"http.status_code": "500"},
+      "data": {
+        "method": "POST",
+        "type": "fetch",
+        "url": "https://aj-flask-m3uuizd7iq-uc.a.run.app/checkout"
+      }
+    },
+    {
+      "timestamp": 1615321055.548,
+      "start_timestamp": 1615321055.548,
+      "description": "processing shopping cart result",
+      "op": "task",
+      "span_id": "a5fa70f3f5ea8ecc",
+      "parent_span_id": "ac7e3ef6047fd004",
+      "trace_id": "39ecb9f463bb4982a6d76e426915d3ab",
+      "data": {"httpResponseData": "500 - "}
+    }
+  ],
+  "start_timestamp": 1615321051.711,
+  "timestamp": 1615321055.548,
+  "title": "checkout",
+  "transaction": "checkout",
+  "type": "transaction",
+  "user": {
+    "email": "6rp8@yahoo.com",
+    "ip_address": "66.85.48.78",
+    "geo": {"country_code": "US", "city": "Santa Clara", "region": "United States"}
+  },
+  "version": "7"
+}

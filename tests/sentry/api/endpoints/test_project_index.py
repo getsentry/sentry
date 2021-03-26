@@ -1,9 +1,11 @@
+from django.urls import reverse
+
 from sentry.models import Project, ProjectStatus, SentryAppInstallationToken
 from sentry.testutils import APITestCase
 
 
 class ProjectsListTest(APITestCase):
-    path = "/api/0/projects/"
+    endpoint = "sentry-api-0-projects"
 
     def test_member_constraints(self):
         user = self.create_user(is_superuser=True)
@@ -15,8 +17,8 @@ class ProjectsListTest(APITestCase):
         self.create_project(teams=[team2])
 
         self.login_as(user=user, superuser=True)
-        response = self.client.get(self.path)
-        assert response.status_code == 200
+
+        response = self.get_valid_response()
         assert len(response.data) == 1
 
         assert response.data[0]["id"] == str(project.id)
@@ -34,8 +36,7 @@ class ProjectsListTest(APITestCase):
         self.create_project(organization=org2)
 
         self.login_as(user=user, superuser=True)
-        response = self.client.get(f"{self.path}?show=all")
-        assert response.status_code == 200
+        response = self.get_valid_response(qs_params={"show": "all"})
         assert len(response.data) == 2
 
     def test_show_all_without_superuser(self):
@@ -50,8 +51,7 @@ class ProjectsListTest(APITestCase):
         self.create_project(organization=org2)
 
         self.login_as(user=user)
-        response = self.client.get(self.path)
-        assert response.status_code == 200
+        response = self.get_valid_response()
         assert len(response.data) == 0
 
     def test_status_filter(self):
@@ -65,13 +65,11 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        response = self.client.get(self.path + "?status=active")
-        assert response.status_code == 200
+        response = self.get_valid_response(qs_params={"status": "active"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project1.id)
 
-        response = self.client.get(self.path + "?status=deleted")
-        assert response.status_code == 200
+        response = self.get_valid_response(qs_params={"status": "deleted"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project2.id)
 
@@ -86,13 +84,11 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        response = self.client.get(self.path + "?query=foo")
-        assert response.status_code == 200
+        response = self.get_valid_response(qs_params={"query": "foo"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project1.id)
 
-        response = self.client.get(self.path + "?query=baz")
-        assert response.status_code == 200
+        response = self.get_valid_response(qs_params={"query": "baz"})
         assert len(response.data) == 0
 
     def test_slug_query(self):
@@ -106,13 +102,11 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        response = self.client.get(self.path + "?query=slug:foo")
-        assert response.status_code == 200
+        response = self.get_valid_response(qs_params={"query": "slug:foo"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project1.id)
 
-        response = self.client.get(self.path + "?query=slug:baz")
-        assert response.status_code == 200
+        response = self.get_valid_response(qs_params={"query": "slug:baz"})
         assert len(response.data) == 0
 
     def test_id_query(self):
@@ -126,13 +120,11 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        response = self.client.get(f"{self.path}?query=id:{project1.id}")
-        assert response.status_code == 200
+        response = self.get_valid_response(qs_params={"query": f"id:{project1.id}"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project1.id)
 
-        response = self.client.get(f"{self.path}?query=id:-1")
-        assert response.status_code == 200
+        response = self.get_valid_response(qs_params={"query": "id:-1"})
         assert len(response.data) == 0
 
     def test_valid_with_internal_integration(self):
@@ -145,9 +137,8 @@ class ProjectsListTest(APITestCase):
         )
         # there should only be one record created so just grab the first one
         token = SentryAppInstallationToken.objects.first()
-        response = self.client.get(
-            f"{self.path}", HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}"
-        )
+        path = reverse(self.endpoint)
+        response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}")
         assert project.name.encode("utf-8") in response.content
 
     def test_deleted_token_with_internal_integration(self):
@@ -164,5 +155,6 @@ class ProjectsListTest(APITestCase):
         # Delete the token
         SentryAppInstallationToken.objects.all().delete()
 
-        response = self.client.get(f"{self.path}", HTTP_AUTHORIZATION=f"Bearer {token}")
+        path = reverse(self.endpoint)
+        response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token}")
         assert response.status_code == 401

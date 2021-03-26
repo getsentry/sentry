@@ -48,6 +48,13 @@ FEATURES = [
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
+    FeatureDescription(
+        """
+        Link your Sentry stack traces back to your GitHub source code with stack
+        trace linking.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
+    ),
 ]
 
 
@@ -147,10 +154,15 @@ class GitHubIntegrationProvider(IntegrationProvider):
     name = "GitHub"
     metadata = metadata
     integration_cls = GitHubIntegration
-    features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.ISSUE_BASIC])
+    features = frozenset(
+        [
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.STACKTRACE_LINK,
+        ]
+    )
 
     setup_dialog_config = {"width": 1030, "height": 1000}
-    has_stacktrace_linking = True
 
     def post_install(self, integration, organization, extra=None):
         repo_ids = Repository.objects.filter(

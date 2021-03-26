@@ -1158,7 +1158,6 @@ export type IntegrationProvider = BaseIntegrationProvider & {
     source_url: string;
     aspects: IntegrationAspects;
   };
-  hasStacktraceLinking?: boolean; // TODO: Remove when we GA the feature
 };
 
 export type IntegrationFeature = {
@@ -1994,3 +1993,8 @@ export type SessionApiResponse = {
     series: Record<string, number[]>;
   }[];
 };
+
+export enum HealthStatsPeriodOption {
+  AUTO = 'auto',
+  TWENTY_FOUR_HOURS = '24h',
+}
