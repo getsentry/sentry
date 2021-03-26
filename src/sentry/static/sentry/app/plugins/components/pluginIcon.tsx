@@ -25,6 +25,7 @@ import lighthouse from 'sentry-images/logos/logo-lighthouse.svg';
 import linear from 'sentry-images/logos/logo-linear.svg';
 import msteams from 'sentry-images/logos/logo-msteams.svg';
 import netlify from 'sentry-images/logos/logo-netlify.svg';
+import octohook from 'sentry-images/logos/logo-octohook.svg';
 import opsgenie from 'sentry-images/logos/logo-opsgenie.svg';
 import pagerduty from 'sentry-images/logos/logo-pagerduty.svg';
 import phabricator from 'sentry-images/logos/logo-phabricator.svg';
@@ -89,6 +90,7 @@ export const ICON_PATHS = {
   linear,
   msteams,
   netlify,
+  octohook,
   opsgenie,
   pagerduty,
   phabricator,

@@ -8,7 +8,7 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
+import {openReprocessEventModal} from 'app/actionCreators/modal';
 import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
 import ActionButton from 'app/components/actions/button';
@@ -17,6 +17,7 @@ import ResolveActions from 'app/components/actions/resolve';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Tooltip from 'app/components/tooltip';
 import {IconStar} from 'app/icons';
+import {IconRefresh} from 'app/icons/iconRefresh';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -28,15 +29,14 @@ import {
 } from 'app/types';
 import {Event} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
+import {displayReprocessEventAction} from 'app/utils/displayReprocessEventAction';
 import {uniqueId} from 'app/utils/guid';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import ReviewAction from 'app/views/issueList/actions/reviewAction';
 import ShareIssue from 'app/views/organizationGroupDetails/actions/shareIssue';
-import ReprocessingDialogForm from 'app/views/organizationGroupDetails/reprocessingDialogForm';
 
 import DeleteAction from './deleteAction';
-import ReprocessAction from './reprocessAction';
 import SubscribeAction from './subscribeAction';
 
 type Props = {
@@ -139,18 +139,9 @@ class Actions extends React.Component<Props, State> {
     );
   };
 
-  onReprocess = () => {
-    const {group, organization, project} = this.props;
-    openModal(({closeModal, Header, Body}) => (
-      <ReprocessingDialogForm
-        group={group}
-        organization={organization}
-        project={project}
-        closeModal={closeModal}
-        Header={Header}
-        Body={Body}
-      />
-    ));
+  onReprocessEvent = () => {
+    const {group, organization} = this.props;
+    openReprocessEventModal({organization, groupId: group.id});
   };
 
   onShare(shared: boolean) {
@@ -251,8 +242,8 @@ class Actions extends React.Component<Props, State> {
             hasRelease={hasRelease}
             latestRelease={project.latestRelease}
             onUpdate={this.onUpdate}
-            orgId={organization.slug}
-            projectId={project.slug}
+            orgSlug={organization.slug}
+            projectSlug={project.slug}
             isResolved={isResolved}
             isAutoResolved={
               group.status === 'resolved' ? group.statusDetails.autoResolved : undefined
@@ -286,7 +277,7 @@ class Actions extends React.Component<Props, State> {
 
         {orgFeatures.has('discover-basic') && (
           <ActionButton disabled={disabled} to={disabled ? '' : this.getDiscoverUrl()}>
-            {t('Open in Discover')}
+            <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
         )}
 
@@ -305,17 +296,21 @@ class Actions extends React.Component<Props, State> {
           onClick={this.handleClick(disabled, this.onToggleSubscribe)}
         />
 
-        {orgFeatures.has('reprocessing-v2') && (
+        {displayReprocessEventAction(organization.features, event) && (
           <ReprocessAction
-            event={event}
             disabled={disabled}
-            onClick={this.handleClick(disabled, this.onReprocess)}
+            icon={<IconRefresh size="xs" />}
+            title={t('Reprocess this issue')}
+            label={t('Reprocess this issue')}
+            onClick={this.handleClick(disabled, this.onReprocessEvent)}
           />
         )}
       </Wrapper>
     );
   }
 }
+
+const ReprocessAction = styled(ActionButton)``;
 
 const BookmarkButton = styled(ActionButton)<{isActive: boolean}>`
   ${p =>

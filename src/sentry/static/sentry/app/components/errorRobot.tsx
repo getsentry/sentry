@@ -150,12 +150,6 @@ const ErrorRobotWrapper = styled('div')<{gradient: boolean}>`
   border-radius: 0 0 3px 3px;
   padding: 40px ${space(3)} ${space(3)};
   min-height: 260px;
-  ${p =>
-    p.gradient
-      ? `
-          background-image: linear-gradient(to bottom, ${p.theme.backgroundSecondary}, ${p.theme.background});
-         `
-      : ''};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     flex-direction: column;

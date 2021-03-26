@@ -121,6 +121,7 @@ class Dashboard extends React.Component<Props> {
       isEditing,
       onUpdate,
       dashboard: {widgets},
+      organization,
     } = this.props;
 
     const items = this.getWidgetIds();
@@ -145,7 +146,13 @@ class Dashboard extends React.Component<Props> {
         <WidgetContainer>
           <SortableContext items={items} strategy={rectSortingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
-            {isEditing && <AddWidget onClick={this.handleStartAdd} />}
+            {isEditing && (
+              <AddWidget
+                orgSlug={organization.slug}
+                orgFeatures={organization.features}
+                onClick={this.handleStartAdd}
+              />
+            )}
           </SortableContext>
         </WidgetContainer>
       </DndContext>
@@ -157,12 +164,20 @@ export default withApi(withGlobalSelection(Dashboard));
 
 const WidgetContainer = styled('div')`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   grid-auto-flow: row dense;
   grid-gap: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 1fr;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[4]}) {
+    grid-template-columns: repeat(8, 1fr);
   }
 `;
 

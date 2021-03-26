@@ -227,7 +227,6 @@ class QueryDefinition:
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    # XXX: Do *not* enable `allow_minute_resolution` yet outside of unit tests!
     def __init__(self, query, params, allow_minute_resolution=False):
         self.query = query.get("query", "")
         raw_fields = query.getlist("field", [])
@@ -309,6 +308,7 @@ def _get_constrained_date_range(params, allow_minute_resolution=False):
     using_minute_resolution = interval % ONE_HOUR != 0
 
     start, end = get_date_range_from_params(params)
+    now = datetime.now(tz=pytz.utc)
 
     # if `end` is explicitly given, we add a second to it, so it is treated as
     # inclusive. the rounding logic down below will take care of the rest.
@@ -319,6 +319,9 @@ def _get_constrained_date_range(params, allow_minute_resolution=False):
     # round the range up to a multiple of the interval.
     # the minimum is 1h so the "totals" will not go out of sync, as they will
     # use the materialized storage due to no grouping on the `started` column.
+    # NOTE: we can remove the difference between `interval` / `rounding_interval`
+    # as soon as snuba can provide us with grouped totals in the same query
+    # as the timeseries (using `WITH ROLLUP` in clickhouse)
     rounding_interval = int(math.ceil(interval / ONE_HOUR) * ONE_HOUR)
     date_range = timedelta(
         seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))
@@ -329,7 +332,7 @@ def _get_constrained_date_range(params, allow_minute_resolution=False):
             raise InvalidParams(
                 "The time-range when using one-minute resolution intervals is restricted to 6 hours."
             )
-        if (datetime.now(tz=pytz.utc) - start).total_seconds() > 30 * ONE_DAY:
+        if (now - start).total_seconds() > 30 * ONE_DAY:
             raise InvalidParams(
                 "The time-range when using one-minute resolution intervals is restricted to the last 30 days."
             )
@@ -350,6 +353,12 @@ def _get_constrained_date_range(params, allow_minute_resolution=False):
     if rounding_interval > interval and (end - date_range) > start:
         date_range += timedelta(seconds=rounding_interval)
     start = end - date_range
+
+    # snuba <-> sentry has a 5 minute cache for *exact* queries, which these
+    # are because of the way we do our rounding. For that reason we round the end
+    # of "realtime" queries to one minute into the future to get a one-minute cache instead.
+    if end > now:
+        end = to_datetime(ONE_MINUTE * (math.floor(to_timestamp(now) / ONE_MINUTE) + 1))
 
     return start, end, interval
 
@@ -474,10 +483,16 @@ def massage_sessions_result(query, result_totals, result_timeseries):
         groups.append(group)
 
     return {
+        "start": _isoformat_z(query.start),
+        "end": _isoformat_z(query.end),
         "query": query.query,
         "intervals": timestamps,
         "groups": groups,
     }
+
+
+def _isoformat_z(date):
+    return datetime.utcfromtimestamp(int(to_timestamp(date))).isoformat() + "Z"
 
 
 def _get_timestamps(query):

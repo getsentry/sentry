@@ -72,6 +72,11 @@ def get_test_message(default_project):
     return inner
 
 
+@pytest.fixture
+def random_group_id():
+    return f"test-consumer-{random.randint(0, 2 ** 16)}"
+
+
 @pytest.mark.django_db(transaction=True)
 def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     task_runner,
@@ -80,8 +85,8 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     requires_kafka,
     default_project,
     get_test_message,
+    random_group_id,
 ):
-    group_id = f"test-consumer-{random.randint(0, 2 ** 16)}"
     topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
 
     admin = kafka_admin(settings)
@@ -98,7 +103,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
         consumer = get_ingest_consumer(
             max_batch_size=2,
             max_batch_time=5000,
-            group_id=group_id,
+            group_id=random_group_id,
             consumer_types={ConsumerType.Events},
             auto_offset_reset="earliest",
         )
@@ -127,10 +132,8 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
 
 
 def test_ingest_consumer_fails_when_not_autocreating_topics(
-    kafka_admin,
-    requires_kafka,
+    kafka_admin, requires_kafka, random_group_id
 ):
-    group_id = f"test-consumer-{random.randint(0, 2 ** 16)}"
     topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
 
     admin = kafka_admin(settings)
@@ -140,7 +143,7 @@ def test_ingest_consumer_fails_when_not_autocreating_topics(
         consumer = get_ingest_consumer(
             max_batch_size=2,
             max_batch_time=5000,
-            group_id=group_id,
+            group_id=random_group_id,
             consumer_types={ConsumerType.Events},
             auto_offset_reset="earliest",
         )
@@ -150,3 +153,59 @@ def test_ingest_consumer_fails_when_not_autocreating_topics(
 
     kafka_error = err.value.args[0]
     assert kafka_error.code() == KafkaError.UNKNOWN_TOPIC_OR_PART
+
+
+@pytest.mark.django_db(transaction=True)
+def test_ingest_topic_can_be_overridden(
+    task_runner,
+    kafka_admin,
+    requires_kafka,
+    random_group_id,
+    default_project,
+    get_test_message,
+    kafka_producer,
+):
+    """
+    Tests that 'force_topic' overrides the value provided in settings
+    """
+    default_event_topic = ConsumerType.get_topic_name(ConsumerType.Events)
+    new_event_topic = default_event_topic + "-new"
+
+    admin = kafka_admin(settings)
+    admin.delete_topic(default_event_topic)
+    admin.delete_topic(new_event_topic)
+
+    producer = kafka_producer(settings)
+    message, event_id = get_test_message(type="event")
+    producer.produce(new_event_topic, message)
+
+    with override_settings(KAFKA_CONSUMER_AUTO_CREATE_TOPICS=True):
+        consumer = get_ingest_consumer(
+            max_batch_size=2,
+            max_batch_time=5000,
+            group_id=random_group_id,
+            consumer_types={ConsumerType.Events},
+            auto_offset_reset="earliest",
+            force_topic=new_event_topic,
+            force_cluster="default",
+        )
+
+    with task_runner():
+        i = 0
+        while i < MAX_POLL_ITERATIONS:
+            message = eventstore.get_event_by_id(default_project.id, event_id)
+
+            if message:
+                break
+
+            consumer._run_once()
+            i += 1
+
+    # Check that we got the message
+    assert message.data["event_id"] == event_id
+    assert message.data["extra"]["the_id"] == event_id
+
+    # Check that the default topic was not created
+    all_topics = admin.admin_client.list_topics().topics.keys()
+    assert new_event_topic in all_topics
+    assert default_event_topic not in all_topics

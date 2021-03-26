@@ -3,6 +3,7 @@ import sentry_sdk
 
 from collections import defaultdict, deque, OrderedDict
 
+from django.http import Http404
 from rest_framework.response import Response
 
 from sentry import features, eventstore
@@ -14,7 +15,13 @@ from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE = 100
 NODESTORE_KEYS = ["timestamp", "start_timestamp"]
-DETAILED_NODESTORE_KEYS = ["environment", "release"]
+ERROR_COLUMNS = [
+    "id",
+    "project",
+    "timestamp",
+    "trace.span",
+    "transaction",
+]
 
 
 def find_event(items, function, default=None):
@@ -22,7 +29,7 @@ def find_event(items, function, default=None):
 
 
 def is_root(item):
-    return item["root"] == "1"
+    return item.get("root", "0") == "1"
 
 
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
@@ -45,7 +52,29 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             "parent_span_id": event["trace.parent_span"] or None,
             # Can be None on the light trace when we don't know the parent
             "generation": generation,
+            "errors": [],
         }
+
+    def serialize_error(self, event):
+        return {
+            "event_id": event["id"],
+            "span": event["trace.span"],
+            "project_id": event["project.id"],
+            "project_slug": event["project"],
+        }
+
+    def construct_span_map(self, events, key):
+        """A mapping of span ids to their events
+
+        key depends on the event type:
+        - Errors are associated to transactions via span_id
+        - Transactions are associated to each other via parent_span_id
+        """
+        parent_map = defaultdict(list)
+        for item in events:
+            if not is_root(item):
+                parent_map[item[key]].append(item)
+        return parent_map
 
     def get(self, request, organization, trace_id):
         if not self.has_feature(organization, request):
@@ -94,21 +123,13 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             if len(result["data"]) == 0:
                 return Response(status=404)
             len_transactions = len(result["data"])
-            sentry_sdk.set_tag("trace.num_transactions", len_transactions)
+            sentry_sdk.set_tag("discover.trace-view.num_transactions", len_transactions)
             sentry_sdk.set_tag(
-                "trace.num_transactions.grouped",
+                "discover.trace-view.num_transactions.grouped",
                 "<10" if len_transactions < 10 else "<100" if len_transactions < 100 else ">100",
             )
 
         warning_extra = {"trace": trace_id, "organization": organization}
-
-        if event_id:
-            snuba_event = find_event(result["data"], lambda item: item["id"] == event_id)
-            # The current event couldn't be found in the snuba results
-            if snuba_event is None:
-                return Response(status=404)
-        else:
-            snuba_event = None
 
         if not is_root(result["data"][0]):
             sentry_sdk.set_tag("discover.trace-view.warning", "root.not-found")
@@ -134,49 +155,104 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 {"extra_roots": extra_roots, **warning_extra},
             )
 
-        parent_map = defaultdict(list)
-        for item in result["data"]:
-            if not is_root(item):
-                parent_map[item["trace.parent_span"]].append(item)
-
         # Temporarily feature flagging this out, since errors will impact performance
         if not features.has("organizations:trace-view-summary", organization, actor=request.user):
-            error_map = []
+            errors = []
         else:
-            error_map = self.get_error_map(organization, trace_id, params)
+            current_transaction = find_event(result["data"], lambda t: t["id"] == event_id)
+            errors = self.get_errors(organization, trace_id, params, current_transaction, event_id)
 
         return Response(
-            self.serialize(
-                parent_map, error_map, root, warning_extra, params, snuba_event, event_id, detailed
-            )
+            self.serialize(result["data"], errors, root, warning_extra, event_id, detailed)
         )
 
 
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
-    def get_error_map(self, *args, **kwargs):
-        """We don't get the error map for the light view
+    def get_current_transaction(self, transactions, errors, event_id):
+        """Given an event_id return the related transaction event
 
-        This is because we only get spans for the root + current event, which means we could only create an error
-        to transaction association for up to two events.
+        The event_id could be for an error, since we show the quick-trace
+        for both event types
+        We occasionally have to get the nodestore data, so this function returns
+        the nodestore event as well so that we're doing that in one location.
         """
-        return {}
+        transaction_event = find_event(transactions, lambda item: item["id"] == event_id)
+        if transaction_event is not None:
+            return transaction_event, eventstore.get_event_by_id(
+                transaction_event["project.id"], transaction_event["id"]
+            )
+
+        # The event couldn't be found, it might be an error
+        error_event = find_event(errors, lambda item: item["id"] == event_id)
+        # Alright so we're looking at an error, time to see if we can find its transaction
+        if error_event:
+            # Unfortunately the only association from an event back to its transaction is name & span_id
+            # First maybe we got lucky and the error happened on the transaction's "span"
+            transaction_event = find_event(
+                transactions, lambda item: item["trace.span"] == error_event["trace.span"]
+            )
+            if transaction_event:
+                return transaction_event, eventstore.get_event_by_id(
+                    transaction_event["project.id"], transaction_event["id"]
+                )
+            # We didn't get lucky, time to talk to nodestore...
+            for transaction_event in transactions:
+                if transaction_event["transaction"] != error_event["transaction"]:
+                    continue
+
+                nodestore_event = eventstore.get_event_by_id(
+                    transaction_event["project.id"], transaction_event["id"]
+                )
+                for span in nodestore_event.data.get("spans", []):
+                    if span["span_id"] == error_event["trace.span"]:
+                        return transaction_event, nodestore_event
+
+        # The current event couldn't be found in errors or transactions
+        raise Http404()
+
+    def get_errors(self, organization, trace_id, params, current_event, event_id):
+        """Get errors for this trace
+
+        We try to optimize the light view's error retrieval, compared to
+        the full trace, so we try to get as few errors as possible
+        """
+        with sentry_sdk.start_span(op="discover", description="getting trace errors"):
+            with self.handle_query_errors():
+                # Search for errors for the current event if its a transaction, otherwise look for the exact error
+                query_extra = (
+                    f"transaction:{current_event['transaction']}"
+                    if current_event
+                    else f"id:{event_id}"
+                )
+                # This can't be combined with the transaction query since we need dataset specific fields
+                error_results = discover.query(
+                    selected_columns=ERROR_COLUMNS,
+                    orderby=["-timestamp", "id"],
+                    params=params,
+                    query=f"!event.type:transaction trace:{trace_id} {query_extra}",
+                    limit=MAX_TRACE_SIZE,
+                    auto_fields=False,
+                    referrer="api.trace-view.get-errors-light",
+                )
+                return error_results["data"]
 
     def serialize(
         self,
-        parent_map,
-        error_map,
+        transactions,
+        errors,
         root,
         warning_extra,
-        params,
-        snuba_event,
-        event_id=None,
+        event_id,
         detailed=False,
     ):
         """ Because the light endpoint could potentially have gaps between root and event we return a flattened list """
+        snuba_event, nodestore_event = self.get_current_transaction(transactions, errors, event_id)
+        parent_map = self.construct_span_map(transactions, "trace.parent_span")
+        error_map = self.construct_span_map(errors, "trace.span")
         trace_results = [self.serialize_event(root, None, 0)]
 
         with sentry_sdk.start_span(op="building.trace", description="light trace"):
-            if root["id"] != event_id:
+            if root["id"] != snuba_event["id"]:
                 # Get the root event and see if the current event's span is in the root event
                 root_event = eventstore.get_event_by_id(root["project.id"], root["id"])
                 root_span = find_event(
@@ -194,18 +270,31 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                     )
                 )
 
-            event = eventstore.get_event_by_id(snuba_event["project.id"], event_id)
+            # The current event should be the last item in the trace_results
+            current_event = trace_results[-1]
 
-            spans = event.data.get("spans", [])
+            spans = nodestore_event.data.get("spans", [])
             # Need to include the transaction as a span as well
             spans.append({"span_id": snuba_event["trace.span"]})
 
             for span in spans:
+                if span["span_id"] in error_map:
+                    current_event["errors"].extend(
+                        [self.serialize_error(error) for error in error_map.pop(span["span_id"])]
+                    )
                 if span["span_id"] in parent_map:
-                    child_events = parent_map[span["span_id"]]
+                    child_events = parent_map.pop(span["span_id"])
                     trace_results.extend(
                         [
-                            self.serialize_event(child_event, event_id)
+                            self.serialize_event(
+                                child_event,
+                                snuba_event["id"],
+                                (
+                                    current_event["generation"] + 1
+                                    if current_event["generation"] is not None
+                                    else None
+                                ),
+                            )
                             for child_event in child_events
                         ]
                     )
@@ -214,39 +303,21 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 
 
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
-    def get_error_map(self, organization, trace_id, params):
+    def get_errors(self, organization, trace_id, params, *args):
+        """ Ignores current_event since we get all errors """
         with sentry_sdk.start_span(op="discover", description="getting trace errors"):
-            # This can't be combined with the transaction query since we need dataset specific fields
-            error_results = discover.query(
-                selected_columns=[
-                    "id",
-                    "project",
-                    "timestamp",
-                    "trace.span",
-                ],
-                orderby=["-timestamp", "id"],
-                params=params,
-                query=f"!event.type:transaction trace:{trace_id}",
-                limit=MAX_TRACE_SIZE,
-                # we can get project from the associated transaction, which can save us a db query
-                auto_fields=False,
-                referrer="api.trace-view.get-errors",
-            )
-
-            # Use issue ids to get the error's short id
-            error_map = defaultdict(list)
-            if error_results["data"]:
-                for row in error_results["data"]:
-                    error_map[row["trace.span"]].append(self.serialize_error(row))
-            return error_map
-
-    def serialize_error(self, event):
-        return {
-            "event_id": event["id"],
-            "span": event["trace.span"],
-            "project_id": event["project.id"],
-            "project_slug": event["project"],
-        }
+            with self.handle_query_errors():
+                # This can't be combined with the transaction query since we need dataset specific fields
+                error_results = discover.query(
+                    selected_columns=ERROR_COLUMNS,
+                    orderby=["-timestamp", "id"],
+                    params=params,
+                    query=f"!event.type:transaction trace:{trace_id}",
+                    limit=MAX_TRACE_SIZE,
+                    auto_fields=False,
+                    referrer="api.trace-view.get-errors",
+                )
+                return error_results["data"]
 
     def serialize_event(self, event, *args, **kwargs):
         result = super().serialize_event(event, *args, **kwargs)
@@ -261,23 +332,25 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         result.update(
             {
                 "children": [],
-                "errors": [],
             }
         )
         return result
 
-    def update_event_extra(self, event, nodestore_data, detailed=False):
+    def update_nodestore_extra(self, event, nodestore_data, detailed=False):
         """ Add extra data that we get from Nodestore """
         event.update({event_key: nodestore_data.get(event_key) for event_key in NODESTORE_KEYS})
         if detailed:
-            event.update(
-                {event_key: nodestore_data.get(event_key) for event_key in DETAILED_NODESTORE_KEYS}
-            )
             if "measurements" in nodestore_data:
                 event["measurements"] = nodestore_data.get("measurements")
-            event["tags"] = {}
-            for [tag_key, tag_value] in nodestore_data.get("tags"):
-                event["tags"][tag_key] = tag_value
+            event["tags"] = [
+                {
+                    "key": tag_key.split("sentry:", 1)[-1],
+                    "value": tag_value,
+                }
+                for [tag_key, tag_value] in sorted(
+                    nodestore_data.get("tags"), key=lambda tag: tag[0]
+                )
+            ]
 
     def update_generations(self, event):
         parents = [event]
@@ -291,16 +364,16 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
     def serialize(
         self,
-        parent_map,
-        error_map,
+        transactions,
+        errors,
         root,
         warning_extra,
-        params,
-        snuba_event=None,
-        event_id=None,
+        event_id,
         detailed=False,
     ):
         """ For the full event trace, we return the results as a graph instead of a flattened list """
+        parent_map = self.construct_span_map(transactions, "trace.parent_span")
+        error_map = self.construct_span_map(errors, "trace.span")
         parent_events = {}
         parent_events[root["id"]] = self.serialize_event(root, None, 0)
         # TODO(wmak): Dictionary ordering in py3.6 is an implementation detail, using an OrderedDict because this way
@@ -344,7 +417,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         current_event["project.id"], current_event["id"]
                     )
 
-                self.update_event_extra(previous_event, nodestore_event.data, detailed)
+                self.update_nodestore_extra(previous_event, nodestore_event.data, detailed)
 
                 spans = nodestore_event.data.get("spans", [])
                 # Need to include the transaction as a span as well
@@ -352,7 +425,12 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
                 for child in spans:
                     if child["span_id"] in error_map:
-                        previous_event["errors"].extend(error_map.pop(child["span_id"]))
+                        previous_event["errors"].extend(
+                            [
+                                self.serialize_error(error)
+                                for error in error_map.pop(child["span_id"])
+                            ]
+                        )
                     # We need to connect back to an existing orphan trace
                     if has_orphans and child["span_id"] in results_map:
                         previous_event["children"].extend(results_map.pop(child["span_id"]))

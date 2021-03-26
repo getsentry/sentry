@@ -7,7 +7,7 @@ import {IconInput, IconLink, IconSettings} from 'app/icons';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
 import highlightFuseMatches from 'app/utils/highlightFuseMatches';
-import SettingsSearch from 'app/views/settings/components/settingsSearch';
+import {StyledSettingsSearch} from 'app/views/settings/components/settingsSearch';
 
 import {Result} from './sources/types';
 
@@ -143,7 +143,7 @@ const Content = styled('div')`
 `;
 
 const IconWrapper = styled('div')`
-  ${/* sc-selector*/ SettingsSearch} & {
+  ${/* sc-selector*/ StyledSettingsSearch} & {
     color: inherit;
   }
 `;

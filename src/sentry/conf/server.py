@@ -876,6 +876,8 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable the new Metrics page
+    "organizations:metrics": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1737,7 +1739,6 @@ SENTRY_SDK_CONFIG = {
     "release": sentry.__build__,
     "environment": ENVIRONMENT,
     "in_app_include": ["sentry", "sentry_plugins"],
-    "_experiments": {"smart_transaction_trimming": True},
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
@@ -2149,15 +2150,10 @@ DEMO_NO_ORG_BUFFER = False
 DEMO_ORG_OWNER_EMAIL = None
 
 # paramters that determine how demo events are generated
-DEMO_DATA_GEN_PARAMS = {
-    "MAX_DAYS": 7,  # how many days of data
-    "SCALE_FACTOR": 1,  # scales the frequency of events
-    "BASE_OFFSET": 0.5,  # higher values increases the minum number of events in an hour
-    "NAME_STEP_SIZE": 20,  # higher value means fewr possible test users in sample
-    "BREADCRUMB_LOOKBACK_TIME": 5,  # how far back should breadcrumbs go from the time of the event
-    "DEFAULT_BACKOFF_TIME": 0,  # backoff time between sending events
-    "ERROR_BACKOFF_TIME": 0.5,  # backoff time after a snuba error
-}
+DEMO_DATA_GEN_PARAMS = {}
+
+# parameters for an org when quickly generating them synchronously
+DEMO_DATA_QUICK_GEN_PARAMS = {}
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []

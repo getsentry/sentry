@@ -5,6 +5,7 @@ import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
   getQueryDatasource,
 } from 'app/views/alerts/utils';
+import {WizardRuleTemplate} from 'app/views/alerts/wizard/options';
 import {
   AlertRuleThresholdType,
   Dataset,
@@ -104,5 +105,16 @@ export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRu
         ? 'p95(transaction.duration)'
         : eventView.getYAxis(),
     environment: eventView.environment.length ? eventView.environment[0] : null,
+  };
+}
+
+export function createRuleFromWizardTemplate(
+  wizardTemplate: WizardRuleTemplate
+): UnsavedIncidentRule {
+  const {eventTypes, ...aggregateDataset} = wizardTemplate;
+  return {
+    ...createDefaultRule(),
+    eventTypes: [eventTypes],
+    ...aggregateDataset,
   };
 }

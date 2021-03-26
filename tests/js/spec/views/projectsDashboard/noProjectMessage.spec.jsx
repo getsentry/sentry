@@ -3,6 +3,7 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import NoProjectMessage from 'app/components/noProjectMessage';
+import ConfigStore from 'app/stores/configStore';
 
 describe('NoProjectMessage', function () {
   const org = TestStubs.Organization();
@@ -87,5 +88,22 @@ describe('NoProjectMessage', function () {
     );
     // ensure loading projects causes children to render
     expect(wrapper.find('div')).toHaveLength(1);
+  });
+
+  it('shows empty message to superusers that are not members', function () {
+    ConfigStore.config.user = {isSuperuser: true};
+    const wrapper = mountWithTheme(
+      <NoProjectMessage
+        organization={{
+          ...org,
+          projects: [TestStubs.Project({hasAccess: true, isMember: false})],
+        }}
+        superuserNeedsToBeProjectMember
+      >
+        {null}
+      </NoProjectMessage>,
+      TestStubs.routerContext()
+    );
+    expect(wrapper.find('HelpMessage')).toHaveLength(1);
   });
 });
