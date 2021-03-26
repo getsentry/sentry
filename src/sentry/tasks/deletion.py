@@ -167,14 +167,8 @@ def delete_team(object_id, transaction_id=None, **kwargs):
     task = deletions.get(
         model=Team, query={"id": object_id}, transaction_id=transaction_id or uuid4().hex
     )
-
-    alert_rules = AlertRule.objects.filter(owner_id=instance.actor_id)
-    for r in alert_rules:
-        r.update(owner=None)
-
-    rules = Rule.objects.filter(owner_id=instance.actor_id)
-    for r in rules:
-        r.update(owner=None)
+    AlertRule.objects.filter(owner_id=instance.actor_id).update(owner=None)
+    Rule.objects.filter(owner_id=instance.actor_id).update(owner=None)
 
     has_more = task.chunk()
     if has_more:
