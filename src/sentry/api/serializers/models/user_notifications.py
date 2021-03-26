@@ -45,9 +45,9 @@ class UserNotificationsSerializer(Serializer):
                 # that should not receive reports
                 # This UserOption should have both project + organization = None
                 for org_id in uo.value:
-                    data[org_id] = 0
+                    data[org_id] = "0"
             elif uo.project is not None:
-                data[uo.project.id] = uo.value
+                data[uo.project.id] = str(uo.value)
             elif uo.organization is not None:
-                data[uo.organization.id] = uo.value
+                data[uo.organization.id] = str(uo.value)
         return data
