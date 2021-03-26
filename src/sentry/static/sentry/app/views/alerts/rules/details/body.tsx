@@ -278,7 +278,7 @@ export default class DetailsBody extends React.Component<Props> {
           return initiallyLoaded ? (
             <Layout.Body>
               <Alert type="info" icon={<IconInfo size="md" />}>
-                {t("You’re viewing the new alert details page. To view the old experience, select an alert below.")}
+                {t('You’re viewing the new alert details page. To view the old experience, select an alert below.')}
               </Alert>
               <Layout.Main>
                 <ChartControls>
