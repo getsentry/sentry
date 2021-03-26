@@ -33,3 +33,7 @@ class KVStorage(ABC, Generic[K, V]):
     @abstractmethod
     def bootstrap(self) -> None:
         raise NotImplementedError
+
+    @abstractmethod
+    def destroy(self) -> None:
+        raise NotImplementedError
