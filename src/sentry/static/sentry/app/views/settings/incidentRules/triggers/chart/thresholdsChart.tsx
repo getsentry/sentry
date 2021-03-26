@@ -165,7 +165,8 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     const yAxisPosition = typeof yAxisPixelPosition === 'number' ? yAxisPixelPosition : 0;
     // As the yAxis gets larger we want to start our line/area further to the right
     // Handle case where the graph max is 1 and includes decimals
-    const yAxisMax = Math.max(maxValue ?? 1, this.state.yAxisMax ?? 1);
+    const yAxisMax =
+      (Math.round(Math.max(maxValue ?? 1, this.state.yAxisMax ?? 1)) * 100) / 100;
     const yAxisSize = 15 + (yAxisMax <= 1 ? 15 : `${yAxisMax ?? ''}`.length * 8);
     // Shave off the right margin and yAxisSize from the width to get the actual area we want to render content in
     const graphAreaWidth =

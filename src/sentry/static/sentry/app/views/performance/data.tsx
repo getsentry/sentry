@@ -39,7 +39,7 @@ export enum PERFORMANCE_TERM {
   P95 = 'p95',
   P99 = 'p99',
   LCP = 'lcp',
-  USER_MISERY = 'userMisery',
+  USER_MISERY = 'userMiseryPrototype',
   STATUS_BREAKDOWN = 'statusBreakdown',
   DURATION_DISTRIBUTION = 'durationDistribution',
 }
@@ -216,7 +216,7 @@ type TermFormatter = (organization: LightWeightOrganization) => string;
 const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   apdex: () =>
     t(
-      'Apdex is the ratio of both satisfactory and tolerable response times to all response times.'
+      'Apdex is the ratio of both satisfactory and tolerable response times to all response times. To adjust the tolerable threshold, go to performance settings.'
     ),
   tpm: () => t('TPM is the number of recorded transaction events per minute.'),
   throughput: () =>
@@ -231,9 +231,9 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   p99: () => t('p99 indicates the duration that 99% of transactions are faster than.'),
   lcp: () =>
     t('Largest contentful paint (LCP) is a web vital meant to represent user load times'),
-  userMisery: organization =>
+  userMiseryPrototype: organization =>
     t(
-      "User misery is the percentage of users who are experiencing load times 4x your organization's apdex threshold of %sms.",
+      "User Misery is a score that represents the number of unique users who have experienced load times 4x your organization's apdex threshold of %sms.",
       organization.apdexThreshold
     ),
   statusBreakdown: () =>
@@ -279,6 +279,7 @@ function generateGenericPerformanceEventView(
       `apdex(${organization.apdexThreshold})`,
       'count_unique(user)',
       `user_misery(${organization.apdexThreshold})`,
+      `user_misery_prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };
@@ -333,6 +334,7 @@ function generateBackendPerformanceEventView(
       `apdex(${organization.apdexThreshold})`,
       'count_unique(user)',
       `user_misery(${organization.apdexThreshold})`,
+      `user_misery_prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };
@@ -386,6 +388,7 @@ function generateFrontendPageloadPerformanceEventView(
       'p75(measurements.cls)',
       'count_unique(user)',
       `user_misery(${organization.apdexThreshold})`,
+      `user_misery_prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };
@@ -436,6 +439,7 @@ function generateFrontendOtherPerformanceEventView(
       'p95(transaction.duration)',
       'count_unique(user)',
       `user_misery(${organization.apdexThreshold})`,
+      `user_misery_prototype(${organization.apdexThreshold})`,
     ],
     version: 2,
   };

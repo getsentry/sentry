@@ -1,0 +1,39 @@
+---
+created: '2021-03-24T22:52:16.337094Z'
+creator: sentry
+source: tests/sentry/relay/test_config.py
+---
+config:
+  allowedDomains:
+  - '*'
+  datascrubbingSettings:
+    excludeFields: []
+    scrubData: true
+    scrubDefaults: true
+    scrubIpAddresses: false
+    sensitiveFields: []
+  piiConfig:
+    applications:
+      $string:
+      - organization:remove_ips_and_macs
+      - project:remove_ips_and_macs
+    rules:
+      organization:remove_ips_and_macs:
+        hide_rule: false
+        redaction:
+          method: remove
+        rules:
+        - '@ip'
+        - '@mac'
+        type: multiple
+      project:remove_ips_and_macs:
+        hide_rule: false
+        redaction:
+          method: remove
+        rules:
+        - '@ip'
+        - '@mac'
+        type: multiple
+  trustedRelays: []
+disabled: false
+slug: bar

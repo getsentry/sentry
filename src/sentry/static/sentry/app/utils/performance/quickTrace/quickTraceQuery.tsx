@@ -1,15 +1,13 @@
 import React from 'react';
-import * as Sentry from '@sentry/react';
 
-import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import {Event} from 'app/types/event';
 import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
-import TraceFullQuery from 'app/utils/performance/quickTrace/traceFullQuery';
+import {TraceFullQuery} from 'app/utils/performance/quickTrace/traceFullQuery';
 import TraceLiteQuery from 'app/utils/performance/quickTrace/traceLiteQuery';
 import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
 import {
   flattenRelevantPaths,
-  isTransaction,
+  getTraceTimeRangeFromEvent,
 } from 'app/utils/performance/quickTrace/utils';
 
 type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
@@ -20,8 +18,7 @@ type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
 export default function QuickTraceQuery({children, event, ...props}: QueryProps) {
   const traceId = event.contexts?.trace?.trace_id;
 
-  // non transaction events are currently unsupported
-  if (!isTransaction(event) || !traceId) {
+  if (!traceId) {
     return (
       <React.Fragment>
         {children({
@@ -34,10 +31,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
     );
   }
 
-  const {start, end} = getTraceDateTimeRange({
-    start: event.startTimestamp,
-    end: event.endTimestamp,
-  });
+  const {start, end} = getTraceTimeRangeFromEvent(event);
 
   return (
     <TraceLiteQuery
@@ -61,9 +55,8 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
                   ...traceFullResults,
                   trace,
                 });
-              } catch (error) {
-                Sentry.setTag('current.trace_id', traceId);
-                Sentry.captureException(error);
+              } catch {
+                // let this fall through and use the lite results
               }
             }
 

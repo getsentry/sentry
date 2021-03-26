@@ -16,6 +16,13 @@ from sentry.utils.canonical import CanonicalKeyDict
 epoch = datetime.utcfromtimestamp(0)
 
 
+def random_normal(mu, sigma, minimum, maximum=None):
+    random_value = max(random.normalvariate(mu, sigma), minimum)
+    if maximum is not None:
+        random_value = min(random_value, maximum)
+    return random_value
+
+
 def milliseconds_ago(now, milliseconds):
     ago = now - timedelta(milliseconds=milliseconds)
     return (ago - epoch).total_seconds()
@@ -289,7 +296,10 @@ def create_sample_event(
         data["contexts"]["trace"]["parent_span_id"] = kwargs.pop("parent_span_id")
 
     data.update(kwargs)
+    return create_sample_event_basic(data, project.id, raw=raw)
 
+
+def create_sample_event_basic(data, project_id, raw=True):
     manager = EventManager(data)
     manager.normalize()
-    return manager.save(project.id, raw=raw)
+    return manager.save(project_id, raw=raw)

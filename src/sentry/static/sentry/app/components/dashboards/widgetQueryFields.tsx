@@ -71,6 +71,7 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
         data-test-id="columns"
         label={t('Columns')}
         inline={false}
+        style={{padding: `8px 0`}}
         flexibleControlStateSize
         stacked
         error={errors?.fields}

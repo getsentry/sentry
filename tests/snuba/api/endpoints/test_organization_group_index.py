@@ -312,14 +312,14 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
         assert (
             response.data["detail"]
-            == 'Your search query could not be parsed: Boolean statements containing "OR" or "AND" are not supported in this search'
+            == 'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search'
         )
 
         response = self.get_response(sort_by="date", query="title:hello AND title:goodbye")
         assert response.status_code == 400
         assert (
             response.data["detail"]
-            == 'Your search query could not be parsed: Boolean statements containing "OR" or "AND" are not supported in this search'
+            == 'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search'
         )
 
     def test_invalid_query(self):
@@ -329,7 +329,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.get_response(sort_by="date", query="timesSeen:>1t")
         assert response.status_code == 400
-        assert "Invalid format for numeric field" in response.data["detail"]
+        assert "Invalid number" in response.data["detail"]
 
     def test_valid_numeric_query(self):
         now = timezone.now()
@@ -2162,10 +2162,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
-        class uuid:
-            hex = "abc123"
-
-        mock_uuid4.return_value = uuid
+        mock_uuid4.return_value = self.get_mock_uuid()
         group1 = self.create_group(checksum="a" * 32, times_seen=1)
         group2 = self.create_group(checksum="b" * 32, times_seen=50)
         group3 = self.create_group(checksum="c" * 32, times_seen=2)

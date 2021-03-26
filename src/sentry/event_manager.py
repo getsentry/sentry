@@ -68,7 +68,11 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
-from sentry.reprocessing2 import save_unprocessed_event, is_reprocessed_event
+from sentry.reprocessing2 import (
+    save_unprocessed_event,
+    is_reprocessed_event,
+    delete_old_primary_hash,
+)
 
 logger = logging.getLogger("sentry.events")
 
@@ -487,6 +491,9 @@ class EventManager:
                 first_event_received.send_robust(
                     project=project, event=job["event"], sender=Project
                 )
+
+        if is_reprocessed:
+            safe_execute(delete_old_primary_hash, job["event"])
 
         _eventstream_insert_many(jobs)
 

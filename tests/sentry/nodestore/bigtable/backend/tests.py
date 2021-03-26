@@ -1,47 +1,50 @@
-import pytest
+import os
+from contextlib import contextmanager
 
-from sentry.nodestore.bigtable.backend import BigtableNodeStorage
-from sentry.utils.cache import memoize
+import pytest
+from google.oauth2.credentials import Credentials
+from google.rpc.status_pb2 import Status
+from sentry.nodestore.bigtable.backend import BigtableNodeStorage, BigtableKVStorage
 from sentry.utils.compat import mock
 
 
-class MockedBigtableNodeStorage(BigtableNodeStorage):
+class MockedBigtableKVStorage(BigtableKVStorage):
     class Cell:
         def __init__(self, value, timestamp):
             self.value = value
             self.timestamp = timestamp
 
     class Row:
-        def __init__(self, connection, row_key):
+        def __init__(self, table, row_key):
             self.row_key = row_key.encode("utf8")
-            self.connection = connection
+            self.table = table
 
         def delete(self):
-            self.connection._table.pop(self.row_key, None)
+            self.table._rows.pop(self.row_key, None)
 
         def set_cell(self, family, col, value, timestamp):
             assert family == "x"
-            self.connection._table.setdefault(self.row_key, {})[col] = [
-                MockedBigtableNodeStorage.Cell(value, timestamp)
+            self.table._rows.setdefault(self.row_key, {})[col] = [
+                MockedBigtableKVStorage.Cell(value, timestamp)
             ]
 
         def commit(self):
             # commits not implemented, changes are applied immediately
-            pass
+            return Status(code=0)
 
         @property
         def cells(self):
-            return {"x": dict(self.connection._table.get(self.row_key) or ())}
+            return {"x": dict(self.table._rows.get(self.row_key) or ())}
 
-    class Connection:
+    class Table:
         def __init__(self):
-            self._table = {}
+            self._rows = {}
 
-        def row(self, key):
-            return MockedBigtableNodeStorage.Row(self, key)
+        def direct_row(self, key):
+            return MockedBigtableKVStorage.Row(self, key)
 
         def read_row(self, key):
-            return MockedBigtableNodeStorage.Row(self, key)
+            return MockedBigtableKVStorage.Row(self, key)
 
         def read_rows(self, row_set):
             assert not row_set.row_ranges, "unsupported"
@@ -49,24 +52,55 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
 
         def mutate_rows(self, rows):
             # commits not implemented, changes are applied immediately
-            pass
+            return [Status(code=0) for row in rows]
 
-    @memoize
-    def connection(self):
-        return MockedBigtableNodeStorage.Connection()
+    def _get_table(self, admin: bool = False):
+        try:
+            table = self.__table
+        except AttributeError:
+            table = self.__table = MockedBigtableKVStorage.Table()
 
-    def bootstrap(self):
+        return table
+
+    def bootstrap(self, automatic_expiry):
         pass
+
+
+class MockedBigtableNodeStorage(BigtableNodeStorage):
+    store_class = MockedBigtableKVStorage
+
+
+@contextmanager
+def get_temporary_bigtable_nodestorage() -> BigtableNodeStorage:
+    if "BIGTABLE_EMULATOR_HOST" not in os.environ:
+        pytest.skip(
+            "Bigtable is not available, set BIGTABLE_EMULATOR_HOST enironment variable to enable"
+        )
+
+    # The bigtable emulator requires _something_ to be passed as credentials,
+    # even if they're totally bogus ones.
+    ns = BigtableNodeStorage(
+        project="test",
+        credentials=Credentials.from_authorized_user_info(
+            {key: "invalid" for key in ["client_id", "refresh_token", "client_secret"]}
+        ),
+    )
+
+    ns.bootstrap()
+
+    try:
+        yield ns
+    finally:
+        ns.store._get_table(admin=True).delete()
 
 
 @pytest.fixture(params=[MockedBigtableNodeStorage, BigtableNodeStorage])
 def ns(request):
     if request.param is BigtableNodeStorage:
-        pytest.skip("Bigtable is not available in CI")
-
-    ns = request.param(project="test")
-    ns.bootstrap()
-    return ns
+        with get_temporary_bigtable_nodestorage() as ns:
+            yield ns
+    else:
+        yield MockedBigtableNodeStorage(project="test")
 
 
 @pytest.mark.parametrize(
@@ -75,19 +109,19 @@ def ns(request):
     ids=["zlib", "ident", "zstd"],
 )
 def test_get(ns, compression, expected_prefix):
-    ns.compression = compression
+    ns.store.compression = compression
     node_id = "node_id"
     data = {"foo": "bar"}
     ns.set(node_id, data)
 
     # Make sure this value does not get used during read. We may have various
     # forms of compression in bigtable.
-    ns.compression = lambda: 1 / 0
+    ns.store.compression = lambda: 1 / 0
     # Do not use cache as that entirely bypasses what we want to test here.
     ns.cache = None
     assert ns.get(node_id) == data
 
-    raw_data = ns.connection.read_row("node_id").cells["x"][b"0"][0].value
+    raw_data = ns.store._get_table().read_row("node_id").cells["x"][b"0"][0].value
     assert raw_data.startswith(expected_prefix)
 
 
@@ -105,18 +139,21 @@ def test_cache(ns):
         node_2[0]: node_2[1],
         node_3[0]: node_3[1],
     }
-    with mock.patch.object(ns.connection, "read_row") as mock_read_row:
+
+    table = ns.store._get_table()
+
+    with mock.patch.object(table, "read_row") as mock_read_row:
         assert ns.get(node_1[0]) == node_1[1]
         assert ns.get(node_2[0]) == node_2[1]
         assert ns.get(node_3[0]) == node_3[1]
         assert mock_read_row.call_count == 0
 
-    with mock.patch.object(ns.connection, "read_rows") as mock_read_rows:
+    with mock.patch.object(table, "read_rows") as mock_read_rows:
         assert ns.get_multi([node_1[0], node_2[0], node_3[0]])
         assert mock_read_rows.call_count == 0
 
     # Manually deleted item should still retrievable from cache
-    row = ns.connection.row(node_1[0])
+    row = table.direct_row(node_1[0])
     row.delete()
     row.commit()
     assert ns.get(node_1[0]) == node_1[1]
@@ -134,13 +171,13 @@ def test_cache(ns):
     # Setting the item updates cache
     new_value = {"event_id": "d" * 32}
     ns.set(node_1[0], new_value)
-    with mock.patch.object(ns.connection, "read_row") as mock_read_row:
+    with mock.patch.object(table, "read_row") as mock_read_row:
         assert ns.get(node_1[0]) == new_value
         assert mock_read_row.call_count == 0
 
     # Missing rows are never cached
     assert ns.get("node_4") is None
-    with mock.patch.object(ns.connection, "read_row") as mock_read_row:
+    with mock.patch.object(table, "read_row") as mock_read_row:
         mock_read_row.return_value = None
         ns.get("node_4")
         ns.get("node_4")

@@ -197,14 +197,6 @@
     line-height: 24px;
   }
 
-  .event-users,
-  .event-count {
-    span {
-      .stream-count;
-      transition: all linear 0.3s;
-    }
-  }
-
   .severity {
     padding-top: 35px;
   }
@@ -266,106 +258,6 @@
       }
     }
 
-    .icon-comments {
-      font-size: 12px;
-      position: relative;
-      top: 1px;
-      margin-right: 3px;
-    }
-
-    .more-menu {
-      .more-menu-toggle {
-        color: @gray-light;
-        display: inline-block;
-        height: 24px;
-        margin-top: 6px;
-
-        &:hover {
-          color: @gray;
-        }
-      }
-
-      .dropdown-menu {
-        padding: 0;
-        min-width: 0;
-        width: 132px;
-        left: -110px;
-        top: -64px;
-        .clearfix;
-
-        li {
-          display: inline-block;
-          width: 44px;
-          height: 44px;
-          position: relative;
-
-          a {
-            display: block;
-            padding: 0;
-            text-align: center;
-            height: 44px;
-            line-height: 46px;
-          }
-
-          &:after {
-            display: block;
-            content: '';
-            position: absolute;
-            top: 12px;
-            bottom: 12px;
-            right: 0;
-            width: 1px;
-            background: darken(#f1f2f3, 4);
-          }
-
-          &:first-child {
-            a {
-              border-radius: 2px 0 0 2px;
-            }
-          }
-
-          &:last-child {
-            &:after {
-              display: none;
-            }
-
-            a {
-              border-radius: 0 2px 2px 0;
-            }
-          }
-        }
-
-        &:before {
-          top: auto;
-          bottom: -9px;
-          left: 107px;
-          border-bottom: none;
-          border-top: 9px solid rgba(52, 60, 69, 0.45);
-        }
-
-        &:after {
-          top: auto;
-          bottom: -8px;
-          left: 108px;
-          border-bottom: none;
-          border-top: 8px solid #fff;
-        }
-      }
-
-      &.open {
-        .more-menu-toggle {
-          color: @gray-dark;
-        }
-      }
-    }
-
-    .more-menu-container {
-      position: absolute;
-      width: 20px;
-      right: 14px;
-      top: 13px;
-    }
-
     &.with-graph {
       position: relative;
       padding-right: 180px;
@@ -375,8 +267,4 @@
       border-bottom: 0;
     }
   }
-}
-
-.stream-count {
-  font-size: 20px;
 }

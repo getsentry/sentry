@@ -5,16 +5,13 @@ import Reflux from 'reflux';
 
 import {bulkUpdate} from 'app/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
-import DropdownLink from 'app/components/dropdownLink';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import ErrorLevel from 'app/components/events/errorLevel';
-import SnoozeActionModal from 'app/components/issues/snoozeActionModal';
 import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
 import GroupChart from 'app/components/stream/groupChart';
-import {IconChat, IconCheckmark, IconEllipsis, IconMute, IconStar} from 'app/icons';
+import {IconChat, IconMute, IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
 import space from 'app/styles/space';
@@ -82,7 +79,6 @@ type Props = {
   id: string;
   organization: LightWeightOrganization;
   statsPeriod?: string;
-  showActions?: boolean;
   eventId?: string;
   data?: Group;
 };
@@ -190,46 +186,6 @@ const CompactIssue = createReactClass<Props, State>({
         {this.props.statsPeriod && (
           <div className="event-graph">
             <GroupChart statsPeriod={this.props.statsPeriod} data={this.props.data} />
-          </div>
-        )}
-        {this.props.showActions && (
-          <div className="more-menu-container align-right">
-            <DropdownLink
-              topLevelClasses="more-menu"
-              className="more-menu-toggle"
-              caret={false}
-              title={<IconEllipsis size="xs" />}
-            >
-              <li>
-                <IconLink
-                  to=""
-                  onClick={this.onUpdate.bind(this, {
-                    status: issue.status !== 'resolved' ? 'resolved' : 'unresolved',
-                  })}
-                >
-                  <IconCheckmark size="xs" />
-                </IconLink>
-              </li>
-              <li>
-                <IconLink
-                  to=""
-                  onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}
-                >
-                  <IconStar isSolid size="xs" />
-                </IconLink>
-              </li>
-              <li>
-                <a
-                  onClick={() =>
-                    openModal(deps => (
-                      <SnoozeActionModal {...deps} onSnooze={this.onSnooze} />
-                    ))
-                  }
-                >
-                  <span>{t('zZz')}</span>
-                </a>
-              </li>
-            </DropdownLink>
           </div>
         )}
         {this.props.children}

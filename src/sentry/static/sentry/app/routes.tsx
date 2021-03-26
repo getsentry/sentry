@@ -1184,6 +1184,15 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
             />
+            <Route
+              path="widgetBuilder"
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "WidgetBuilder" */ 'app/views/dashboardsV2/widgetBuilder'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
           </Route>
 
           <Route
@@ -1565,6 +1574,16 @@ function routes() {
                 componentPromise={() =>
                   import(
                     /* webpackChunkName: "ProjectAlertsCreate" */ 'app/views/settings/projectAlerts/create'
+                  )
+                }
+              />
+              <Route
+                path="wizard/"
+                name="Alert Creation Wizard"
+                component={errorHandler(LazyLoad)}
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "ProjectAlertsWizard" */ 'app/views/alerts/wizard'
                   )
                 }
               />

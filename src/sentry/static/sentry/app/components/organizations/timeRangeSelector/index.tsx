@@ -327,6 +327,14 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
     });
   };
 
+  handleOpen = () => {
+    this.setState({isOpen: true});
+    // Start loading react-date-picker
+    import(
+      /* webpackChunkName: "DateRangePicker" */ '../timeRangeSelector/dateRange/index'
+    );
+  };
+
   render() {
     const {defaultPeriod, showAbsolute, showRelative, organization, hint} = this.props;
     const {start, end, relative} = this.state;
@@ -347,7 +355,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
     return (
       <DropdownMenu
         isOpen={this.state.isOpen}
-        onOpen={() => this.setState({isOpen: true})}
+        onOpen={this.handleOpen}
         onClose={this.handleCloseMenu}
         keepMenuOpen
       >

@@ -1,14 +1,25 @@
 {
   "Sessions": {
     "type": "object",
-    "required": ["intervals", "groups"],
+    "required": ["start", "end", "intervals", "groups"],
     "properties": {
+      "start": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The start time of the data being returned."
+      },
+      "end": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The exclusive end time of the data being returned."
+      },
       "intervals": {
         "type": "array",
         "items": {
           "type": "string",
           "format": "date-time"
-        }
+        },
+        "description": "The time slices of the timeseries data given in the `groups[].series` field."
       },
       "groups": {
         "type": "array",
@@ -33,7 +44,7 @@
       },
       "series": {
         "type": "object",
-        "description": "These are key/value pairs, the key boeing the requested `field`, and the value is an array of aggregated values. The array corresponds to the times given in the `intervals` array.",
+        "description": "These are key/value pairs, the key being the requested `field`, and the value is an array of aggregated values. The array corresponds to the times given in the `intervals` array.",
         "additionalProperties": {"type": "array"}
       }
     }

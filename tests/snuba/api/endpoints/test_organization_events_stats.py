@@ -1,4 +1,5 @@
 import uuid
+import pytest
 
 from pytz import utc
 from datetime import timedelta
@@ -80,6 +81,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 "start": iso_format(self.day_ago - timedelta(minutes=30)),
                 "end": iso_format(self.day_ago + timedelta(hours=1, minutes=30)),
                 "interval": "1h",
+                "partial": "1",
             },
             format="json",
         )
@@ -1219,6 +1221,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             [{"count": 0}],
         ]
 
+    @pytest.mark.skip(reason="A query with group_id will not return transactions")
     def test_top_events_none_filter(self):
         """When a field is None in one of the top events, make sure we filter by it
 
@@ -1256,6 +1259,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 attrs for time, attrs in results["data"]
             ]
 
+    @pytest.mark.skip(reason="Invalid query - transaction events don't have group_id field")
     def test_top_events_one_field_with_none(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -1316,6 +1320,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "orderby": ["-count()"],
                     "field": ["count()", "error.handled"],
                     "topEvents": 5,
+                    "query": "!event.type:transaction",
                 },
                 format="json",
             )
@@ -1325,7 +1330,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert len(data) == 3
 
         results = data[""]
-        assert [attrs for time, attrs in results["data"]] == [[{"count": 22}], [{"count": 6}]]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 19}], [{"count": 6}]]
         assert results["order"] == 0
 
         results = data["1"]

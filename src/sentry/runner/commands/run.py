@@ -4,9 +4,9 @@ from multiprocessing import cpu_count
 
 import click
 
-from sentry.runner.decorators import configuration, log_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
+from sentry.runner.decorators import configuration, log_options
 
 
 class AddressParamType(click.ParamType):
@@ -400,7 +400,7 @@ def batching_kafka_options(group):
             "--consumer-group",
             "group_id",
             default=group,
-            help="Kafka consumer group for the outcomes consumer. ",
+            help="Kafka consumer group for the consumer.",
         )(f)
 
         f = click.option(
@@ -425,6 +425,22 @@ def batching_kafka_options(group):
             default="latest",
             type=click.Choice(["earliest", "latest", "error"]),
             help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+        )(f)
+
+        f = click.option(
+            "--force-topic",
+            "force_topic",
+            default=None,
+            type=str,
+            help="Override the Kafka topic the consumer will read from.",
+        )(f)
+
+        f = click.option(
+            "--force-cluster",
+            "force_cluster",
+            default=None,
+            type=str,
+            help="Kafka cluster ID of the overriden topic. Configure clusters via KAFKA_CLUSTERS in server settings.",
         )(f)
 
         return f

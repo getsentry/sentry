@@ -143,6 +143,14 @@ type EventsRequestPartialProps = {
    */
   name?: string;
   /**
+   * Whether or not to include the last partial bucket. This happens for example when the
+   * current time is 11:26 and the last bucket ranges from 11:25-11:30. This means that
+   * the last bucket contains 1 minute worth of data while the rest contains 5 minutes.
+   *
+   * This flag indicates whether or not this last bucket should be included in the result.
+   */
+  partial: boolean;
+  /**
    * Hide error toast (used for pages which also query eventsV2)
    */
   hideError?: boolean;

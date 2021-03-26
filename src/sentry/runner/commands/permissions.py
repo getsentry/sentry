@@ -29,6 +29,7 @@ def permissions():
 def add(user, permission):
     "Add a permission to a user."
     from django.db import IntegrityError, transaction
+
     from sentry.models import UserPermission
 
     user = user_param_to_user(user)
