@@ -8,7 +8,6 @@ from freezegun import freeze_time
 import unittest
 from django.conf import settings
 from django.core import mail
-from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from sentry.api.event_search import InvalidSearchQuery
@@ -1369,99 +1368,6 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 target_type,
                 target_identifier=channel_name,
                 integration=integration,
-            )
-
-    @responses.activate
-    def test_slack_channel_id_provided(self):
-        integration = Integration.objects.create(
-            external_id="2",
-            provider="slack",
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-        integration.add_organization(self.organization, self.user)
-        type = AlertRuleTriggerAction.Type.SLACK
-        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        channel_name = "#some_channel"
-        channel_id = "s_c"
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(
-                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
-            ),
-        )
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.info",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(
-                {"ok": "true", "channel": {"name": channel_name[1:], "id": channel_id}}
-            ),
-        )
-
-        action = create_alert_rule_trigger_action(
-            self.trigger,
-            type,
-            target_type,
-            target_identifier=channel_name,
-            integration=integration,
-            input_channel_id=channel_id,
-        )
-        assert action.alert_rule_trigger == self.trigger
-        assert action.type == type.value
-        assert action.target_type == target_type.value
-        assert action.target_identifier == channel_id
-        assert action.target_display == channel_name
-        assert action.integration == integration
-
-    @responses.activate
-    def test_invalid_slack_channel_name_provided(self):
-        integration = Integration.objects.create(
-            external_id="2",
-            provider="slack",
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-        integration.add_organization(self.organization, self.user)
-        type = AlertRuleTriggerAction.Type.SLACK
-        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        channel_name = "#some_channel"
-        channel_id = "s_c"
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(
-                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
-            ),
-        )
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.info",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(
-                {"ok": "true", "channel": {"name": channel_name[1:], "id": channel_id}}
-            ),
-        )
-
-        with self.assertRaises(ValidationError):
-            create_alert_rule_trigger_action(
-                self.trigger,
-                type,
-                target_type,
-                target_identifier="some_other_channel",
-                integration=integration,
-                input_channel_id=channel_id,
             )
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
