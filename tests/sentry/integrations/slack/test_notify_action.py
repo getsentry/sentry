@@ -212,6 +212,28 @@ class SlackNotifyActionTest(RuleTestCase):
         assert form.is_valid()
 
     @responses.activate
+    def test_invalid_channel_id_provided(self):
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": False, "error": "channel_not_found"}),
+        )
+        rule = self.get_rule(
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-chanel",
+                "input_channel_id": "C1234567",
+                "tags": "",
+            }
+        )
+
+        form = rule.get_form_instance()
+        assert not form.is_valid()
+        assert "Channel not found. Invalid ID provided." in str(form.errors.values())
+
+    @responses.activate
     def test_invalid_channel_name_provided(self):
         responses.add(
             method=responses.GET,
