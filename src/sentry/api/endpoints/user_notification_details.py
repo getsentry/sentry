@@ -79,8 +79,8 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            if key in [UserOptionsSettingsKey.DEPLOY, UserOptionsSettingsKey.WORKFLOW]:
-                type = get_type_from_user_option_settings_key(key)
+            type = get_type_from_user_option_settings_key(key)
+            if type:
                 NotificationSetting.objects.update_settings(
                     ExternalProviders.EMAIL,
                     type,
