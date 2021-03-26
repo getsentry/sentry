@@ -4,7 +4,7 @@
 
 // palette generated via: https://gka.github.io/palettes/#colors=444674,69519A,E1567C,FB7D46,F2B712|steps=20|bez=1|coL=1
 export const CHART_PALETTE = [
-  ['#444674'],
+  ['#f58c46'],
   ['#444674', '#f2b712'],
   ['#444674', '#d6567f', '#f2b712'],
   ['#444674', '#a35488', '#ef7061', '#f2b712'],
