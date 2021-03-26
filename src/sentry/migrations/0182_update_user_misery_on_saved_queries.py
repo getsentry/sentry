@@ -18,11 +18,8 @@ def update_user_misery_column_on_saved_queries(apps, schema_editor):
 
         fields = query["fields"]
         for i, field in enumerate(fields):
-            if field == "count_unique(user)":
-                break
-
             match = re.match(USER_MISERY_REGEX, field)
-            if match:
+            if match and "count_unique(user)" not in fields:
                 fields[i] = f"count_miserable(user, {match.group(1)})"
                 saved_query.query["fields"] = fields
                 saved_query.save()
