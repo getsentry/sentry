@@ -94,6 +94,7 @@ install_pyenv() {
 
 # Setup pyenv of path
 setup_pyenv() {
+  configure-sentry-cli
   install_pyenv
   _startup_script=$(get_shell_startup_script)
   append_to_config "$_startup_script"
