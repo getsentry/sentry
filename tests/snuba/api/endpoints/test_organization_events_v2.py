@@ -1974,6 +1974,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "p100()",
                 "percentile(transaction.duration, 0.99)",
                 "apdex(300)",
+                "count_miserable(user, 300)",
                 "user_misery(300)",
                 "user_misery_prototype(300)",
                 "failure_rate()",
@@ -2118,6 +2119,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "field": [
                 "event.type",
                 "apdex(300)",
+                "count_miserable(user, 300)",
                 "user_misery(300)",
                 "user_misery_prototype(300)",
                 "failure_rate()",
