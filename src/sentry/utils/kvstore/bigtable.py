@@ -29,14 +29,28 @@ class BigtableError(Exception):
 
 
 class BigtableKVStorage(KVStorage[str, bytes]):
-    max_size = 1024 * 1024 * 10
     column_family = "x"
 
+    # The data collection contains a bytearray up that may be up to
+    # ``max_size`` bytes. The value may be compressed or otherwise encoded
+    # based on the value of the ``flags`` column.
+    data_column = b"0"
+    max_size = 1024 * 1024 * 10
+
+    # The TTL column contains an integer that represents the original TTL
+    # (default or row-level) a row was written with in seconds. (The original
+    # write timestamp can be calculated by taking the cell timestamp and
+    # subtracting this value.) If this column is not present, the row was
+    # written without a TTL, and all other columns (data, and optionally flags)
+    # will have a cell timestamp that corresponds to when the write occurred.
     ttl_column = b"t"
     ttl_struct = struct.Struct("<I")
+
+    # The flags column contains a single byte that represents a bit set. The
+    # structure of the bit set is defined in ``Flags``. If this column is not
+    # present in the row returned by Bigtable, its value is assumed to be 0.
     flags_column = b"f"
     flags_struct = struct.Struct("B")
-    data_column = b"0"
 
     class Flags(enum.IntFlag):
         # XXX: Compression flags are assumed to be mutually exclusive, the
