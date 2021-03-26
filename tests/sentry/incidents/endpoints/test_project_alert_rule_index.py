@@ -319,7 +319,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             )
             assert actions[0].target_identifier == "(10, False)"
             assert actions[0].target_display == "my-channel"
-            assert actions[1].target_identifier == "(10, False)"
+            assert actions[1].target_identifier == "(20, False)"
             assert actions[1].target_display == "another-channel"
 
             # Now an invalid action (we want to early out with a good validationerror and not schedule the task):
