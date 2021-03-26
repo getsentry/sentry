@@ -139,7 +139,9 @@ class TimelineIncident extends React.Component<IncidentProps> {
     return (
       <IncidentSection key={incident.identifier}>
         <IncidentHeader>
-          <Link to={`/organizations/${orgId}/alerts/${incident.identifier}/?redirect=false`}>
+          <Link
+            to={`/organizations/${orgId}/alerts/${incident.identifier}/?redirect=false`}
+          >
             {tct('Alert #[id]', {id: incident.identifier})}
           </Link>
           <SeenByTab>
