@@ -865,6 +865,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "orderby": ["-count()"],
                     "field": ["count()", "message", "issue"],
                     "topEvents": 5,
+                    "query": "!event.type:transaction",
                 },
                 format="json",
             )
@@ -874,8 +875,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        for index, event in enumerate(self.events[:5]):
-            message = event.message or event.transaction
+        for index, event in enumerate(self.events[:4]):
+            message = event.message
             # Because we deleted the group for event 0
             if index == 0 or event.group is None:
                 issue = "unknown"
