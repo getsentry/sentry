@@ -25,14 +25,13 @@ export type ColumnType =
 export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
 
 type ValidateColumnValueFunction = ({name: string, dataType: ColumnType}) => boolean;
-type ValidateColumnFunction = ({name: string}) => boolean;
 
 export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
 
 export type AggregateParameter =
   | {
       kind: 'column';
-      columnTypes: Readonly<ValidateColumnTypes | ValidateColumnFunction>;
+      columnTypes: Readonly<ValidateColumnTypes>;
       defaultValue?: string;
       required: boolean;
     }
@@ -784,8 +783,8 @@ function validateForNumericAggregate(
   };
 }
 
-function validateAllowedColumns(validColumns: string[]): ValidateColumnFunction {
-  return function ({name}: {name: string}): boolean {
+function validateAllowedColumns(validColumns: string[]): ValidateColumnValueFunction {
+  return function ({name}): boolean {
     return validColumns.includes(name);
   };
 }
