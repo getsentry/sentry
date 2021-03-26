@@ -17,7 +17,7 @@ export type ErrorDestination = 'discover' | 'issue';
 export type TransactionDestination = 'discover' | 'performance';
 
 function generateIssueEventTarget(
-  event: EventLite | TraceError,
+  event: TraceError,
   organization: OrganizationSummary,
   location: Location
 ): LocationDescriptor {
@@ -26,7 +26,7 @@ function generateIssueEventTarget(
 }
 
 function generatePerformanceEventTarget(
-  event: EventLite | TraceError,
+  event: EventLite,
   organization: OrganizationSummary,
   location: Location
 ): LocationDescriptor {
@@ -59,7 +59,7 @@ function generateDiscoverEventTarget(
 }
 
 export function generateSingleErrorTarget(
-  event: EventLite | TraceError,
+  event: TraceError,
   organization: OrganizationSummary,
   location: Location,
   destination: ErrorDestination
@@ -74,7 +74,7 @@ export function generateSingleErrorTarget(
 }
 
 export function generateSingleTransactionTarget(
-  event: EventLite | TraceError,
+  event: EventLite,
   organization: OrganizationSummary,
   location: Location,
   destination: TransactionDestination
