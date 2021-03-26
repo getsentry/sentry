@@ -862,20 +862,12 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     elif name == "issue.id":
         # Handle "has" queries
         if search_filter.value.raw_value == "":
-            if search_filter.operator == "=":
-                # The state of having no issues is represented differently on transactions vs
-                # other events. On the transactions table, it is represented by 0 whereas it is
-                # represented by NULL everywhere else. This means we have to check for both 0
-                # or NULL.
-                return [
-                    [["isNull", [name]], search_filter.operator, 1],
-                    [name, search_filter.operator, 0],
-                ]
-            else:
-                # Based the reasoning above, we should be checking that it is not 0 and not NULL.
-                # However, because NULL != 0 evaluates to NULL in Clickhouse, we can simplify it
-                # to check just not 0.
-                return [name, search_filter.operator, 0]
+            # The state of having no issues is represented differently on transactions vs
+            # other events. On the transactions table, it is represented by 0 whereas it is
+            # represented by NULL everywhere else. We use coalesce here so we can treat this
+            # consistently
+            name = ["coalesce", [name, 0]]
+            value = 0
 
         # Skip isNull check on group_id value as we want to
         # allow snuba's prewhere optimizer to find this condition.
