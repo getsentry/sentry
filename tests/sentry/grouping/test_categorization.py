@@ -60,6 +60,7 @@ from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 _fixture_path = os.path.join(os.path.dirname(__file__), "categorization_inputs")
 
 _SHOULD_DELETE_DATA = os.environ.get("SENTRY_TEST_GROUPING_DELETE_USELESS_DATA") == "1"
+_DELETE_KEYWORDS = os.environ.get("SENTRY_TEST_GROUPING_DELETE_KEYWORDS", "").lower().split(",")
 
 
 class CategorizationInput:
@@ -196,7 +197,7 @@ def cleanup_unused_data():
         data = dict(input.data)  # type: ignore
 
         modified = False
-        modified |= _strip_unknown_keys(data, ["exception", "platform", "event_id"])
+        modified |= _strip_sensitive_keys(data, ["exception", "platform", "event_id"])
 
         if "event_id" not in data:
             data["event_id"] = str(uuid.uuid4()).replace("-", "")
@@ -207,8 +208,10 @@ def cleanup_unused_data():
             modified = True
 
         for exception in get_path(data, "exception", "values") or ():
-            modified |= _strip_unknown_keys(exception, ["stacktrace", "type", "value", "mechanism"])
-            modified |= _strip_unknown_keys(get_path(exception, "stacktrace"), ["frames"])
+            modified |= _strip_sensitive_keys(
+                exception, ["stacktrace", "type", "value", "mechanism"]
+            )
+            modified |= _strip_sensitive_keys(get_path(exception, "stacktrace"), ["frames"])
 
             for frame in get_path(exception, "stacktrace", "frames") or ():
                 # the following fields are inserted as part of the test,
@@ -221,7 +224,7 @@ def cleanup_unused_data():
                 if not frame["data"]:
                     del frame["data"]
 
-                modified |= _strip_unknown_keys(
+                modified |= _strip_sensitive_keys(
                     frame, ["package", "filename", "function", "abs_path", "module"]
                 )
 
@@ -246,13 +249,25 @@ def cleanup_unused_data():
             )
 
 
-def _strip_unknown_keys(data, keys):
+def _strip_sensitive_keys(data, keys):
     if not data:
         return False
 
     rv = False
     for key in list(data):
         if key not in keys:
+            del data[key]
+            rv = True
+
+        elif data[key] is None:
+            del data[key]
+            rv = True
+
+        elif any(x in key.lower() for x in _DELETE_KEYWORDS):
+            del data[key]
+            rv = True
+
+        elif isinstance(data[key], str) and any(x in data[key].lower() for x in _DELETE_KEYWORDS):
             del data[key]
             rv = True
 
