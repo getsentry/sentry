@@ -310,5 +310,97 @@ function getDemoModeGuides(): GuidesContent {
         },
       ],
     },
+    {
+      guide: 'releases',
+      requiredTargets: ['release_version'],
+      steps: [
+        {
+          title: t('Release'),
+          target: 'release_version',
+          description: t(`See the details of your release and how it's performing.`),
+        },
+        {
+          title: t('View'),
+          target: 'view_release',
+          description: t(`You can also get release details by clicking here.`),
+        },
+      ],
+    },
+    {
+      guide: 'release_details',
+      requiredTargets: ['release_chart'],
+      steps: [
+        {
+          title: t('Chart'),
+          target: 'release_chart',
+          description: t(
+            `Click and drag to zoom in on a specific section of the histogram.`
+          ),
+        },
+        {
+          title: t('Discover'),
+          target: 'release_issues_open_in_discover',
+          description: t(
+            `Click here to analyze new errors by URL, geography, device, browser, etc.`
+          ),
+        },
+        {
+          title: t('Discover'),
+          target: 'release_transactions_open_in_discover',
+          description: t(
+            `Click here to analyze new performance issues by URL, geography, device, browser, etc.`
+          ),
+        },
+      ],
+    },
+    {
+      guide: 'discover_landing',
+      requiredTargets: ['discover_landing_header'],
+      steps: [
+        {
+          title: t('Discover'),
+          target: 'discover_landing_header',
+          description: t(
+            `Click into any of the queries below to analyze trends in event data.`
+          ),
+        },
+      ],
+    },
+    {
+      guide: 'discover_event_view',
+      requiredTargets: ['create_alert_from_discover'],
+      steps: [
+        {
+          title: t('Create Alert'),
+          target: 'create_alert_from_discover',
+          description: t(
+            `Create an alert based on this query to get notified when an event exceeds user-defined thresholds.`
+          ),
+        },
+        {
+          title: t('Columns'),
+          target: 'columns_header_button',
+          description: t(`View all query conditions.`),
+        },
+      ],
+    },
+    {
+      guide: 'transaction_details',
+      requiredTargets: ['span_tree'],
+      steps: [
+        {
+          title: t('Span Tree'),
+          target: 'span_tree',
+          description: t(`Click to expand the spans and see dependencies.`),
+        },
+        {
+          title: t('Breadcrumbs'),
+          target: 'breadcrumbs',
+          description: t(
+            `Check out the play by play of what your user experienced till they encountered the performance issue.`
+          ),
+        },
+      ],
+    },
   ];
 }

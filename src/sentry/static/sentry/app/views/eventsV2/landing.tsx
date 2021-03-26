@@ -9,6 +9,7 @@ import {stringify} from 'query-string';
 
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
@@ -350,7 +351,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             <LightWeightNoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  {t('Discover')}
+                  <GuideAnchor target="discover_landing_header">
+                    {t('Discover')}
+                  </GuideAnchor>
                   <StyledButton
                     data-test-id="build-new-query"
                     to={to}

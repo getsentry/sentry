@@ -1,9 +1,11 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import styled from '@emotion/styled';
 import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import EventsChart from 'app/components/charts/eventsChart';
 import {ChartContainer, HeaderTitleLegend} from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
@@ -297,6 +299,11 @@ class ReleaseChartContainer extends React.Component<Props> {
                 ? this.renderStackedChart()
                 : this.renderHealthChart(loading, reloading, errored, chartData)}
             </ChartContainer>
+            <AnchorWrapper>
+              <GuideAnchor target="release_chart" position="bottom" offset="-80px">
+                <React.Fragment />
+              </GuideAnchor>
+            </AnchorWrapper>
             <ReleaseChartControls
               summary={chartSummary}
               yAxis={yAxis}
@@ -318,3 +325,9 @@ class ReleaseChartContainer extends React.Component<Props> {
 }
 
 export default withTheme(ReleaseChartContainer);
+
+const AnchorWrapper = styled('div')`
+  height: 0;
+  width: 0;
+  margin-left: 50%;
+`;

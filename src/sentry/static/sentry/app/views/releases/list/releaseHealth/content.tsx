@@ -94,7 +94,7 @@ const Content = ({
             </CollapseButtonWrapper>
           )}
         >
-          {projects.map(project => {
+          {projects.map((project, index) => {
             const {id, slug, newGroups} = project;
 
             const crashCount = getHealthData.getCrashCount(
@@ -213,12 +213,17 @@ const Content = ({
                   </NewIssuesColumn>
 
                   <ViewColumn>
-                    <ProjectLink
-                      orgSlug={organization.slug}
-                      project={project}
-                      releaseVersion={releaseVersion}
-                      location={location}
-                    />
+                    <GuideAnchor
+                      disabled={!isTopRelease || index !== 0}
+                      target="view_release"
+                    >
+                      <ProjectLink
+                        orgSlug={organization.slug}
+                        project={project}
+                        releaseVersion={releaseVersion}
+                        location={location}
+                      />
+                    </GuideAnchor>
                   </ViewColumn>
                 </Layout>
               </ProjectRow>
