@@ -7,7 +7,6 @@ from django.utils import timezone
 
 from sentry.runner.decorators import log_options
 
-
 # allows services like tagstore to add their own (abstracted) models
 # to cleanup
 EXTRA_BULK_QUERY_DELETES = []
@@ -38,6 +37,7 @@ API_TOKEN_TTL_IN_DAYS = 30
 def multiprocess_worker(task_queue):
     # Configure within each Process
     import logging
+
     from sentry.utils.imports import import_string
 
     logger = logging.getLogger("sentry.cleanup")
@@ -56,9 +56,7 @@ def multiprocess_worker(task_queue):
 
             configure()
 
-            from sentry import models
-            from sentry import deletions
-            from sentry import similarity
+            from sentry import deletions, models, similarity
 
             skip_models = [
                 # Handled by other parts of cleanup
@@ -133,7 +131,8 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
-    from multiprocessing import Process, JoinableQueue as Queue
+    from multiprocessing import JoinableQueue as Queue
+    from multiprocessing import Process
 
     pool = []
     task_queue = Queue(1000)
@@ -148,13 +147,15 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     configure()
 
     from django.db import router as db_router
-    from sentry.app import nodestore
-    from sentry.db.deletion import BulkDeleteQuery
+
     from sentry import models
+    from sentry.app import nodestore
     from sentry.data_export.models import ExportedData
+    from sentry.db.deletion import BulkDeleteQuery
 
     if timed:
         import time
+
         from sentry.utils import metrics
 
         start_time = time.time()

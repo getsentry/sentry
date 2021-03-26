@@ -2213,7 +2213,7 @@ class QueryTransformTest(TestCase):
         }
 
 
-class TimeseriesQueryTest(SnubaTestCase, TestCase):
+class TimeseriesBase(SnubaTestCase, TestCase):
     def setUp(self):
         super().setUp()
 
@@ -2251,6 +2251,8 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
 
+
+class TimeseriesQueryTest(TimeseriesBase):
     def test_invalid_field_in_function(self):
         with pytest.raises(InvalidSearchQuery):
             discover.timeseries_query(
@@ -2425,6 +2427,65 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
         for d in data:
             if "count" in d:
                 assert d["count"] == 2
+
+
+class TopEventsTimeseriesQueryTest(TimeseriesBase):
+    @patch("sentry.snuba.discover.raw_query")
+    def test_project_filter_adjusts_filter(self, mock_query):
+        """ While the function is called with 2 project_ids, we should limit it down to the 1 in top_events """
+        project2 = self.create_project(organization=self.organization)
+        top_events = {
+            "data": [
+                {
+                    "project": self.project.slug,
+                    "project.id": self.project.id,
+                }
+            ]
+        }
+        start = before_now(minutes=5)
+        end = before_now(seconds=1)
+        discover.top_events_timeseries(
+            selected_columns=["project", "count()"],
+            params={
+                "start": start,
+                "end": end,
+                "project_id": [self.project.id, project2.id],
+            },
+            rollup=3600,
+            top_events=top_events,
+            timeseries_columns=["count()"],
+            user_query="",
+            orderby=["count()"],
+            limit=10000,
+            organization=self.organization,
+        )
+        mock_query.assert_called_with(
+            aggregations=[["count", None, "count"]],
+            conditions=[],
+            # Should be limited to the project in top_events
+            filter_keys={"project_id": [self.project.id]},
+            selected_columns=[
+                "project_id",
+                [
+                    "transform",
+                    [
+                        ["toString", ["project_id"]],
+                        ["array", [f"'{project.id}'" for project in [self.project, project2]]],
+                        ["array", [f"'{project.slug}'" for project in [self.project, project2]]],
+                        "''",
+                    ],
+                    "project",
+                ],
+            ],
+            start=start,
+            end=end,
+            rollup=3600,
+            orderby=["time", "project_id"],
+            groupby=["time", "project_id"],
+            dataset=Dataset.Discover,
+            limit=10000,
+            referrer=None,
+        )
 
 
 def format_project_event(project_slug, event_id):

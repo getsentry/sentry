@@ -259,7 +259,7 @@ class Table extends React.Component<Props, State> {
   }
 
   render() {
-    const {eventView, organization, location} = this.props;
+    const {eventView, organization, location, setError} = this.props;
 
     const {widths} = this.state;
     const columnOrder = eventView
@@ -288,6 +288,7 @@ class Table extends React.Component<Props, State> {
           eventView={sortedEventView}
           orgSlug={organization.slug}
           location={location}
+          setError={setError}
         >
           {({pageLinks, isLoading, tableData}) => (
             <React.Fragment>

@@ -1,7 +1,5 @@
 import logging
 
-from django.utils import timezone
-
 from rest_framework import serializers, status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
@@ -125,14 +123,6 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError("This code mapping does not exist.")
 
     def create(self, validated_data):
-        # Create a project_ownership record with default values if none exists.
-        ownership = self.context["ownership"]
-        if ownership.id is None:
-            now = timezone.now()
-            ownership.date_created = now
-            ownership.last_updated = now
-            ownership.save()
-
         # Save projectcodeowners record
         repository_project_path_config = validated_data.pop("code_mapping_id", None)
         project = self.context["project"]
