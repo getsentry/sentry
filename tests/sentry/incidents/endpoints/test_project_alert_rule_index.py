@@ -278,7 +278,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             alert_rule = AlertRule.objects.get(name=name)
             trigger = AlertRuleTrigger.objects.get(alert_rule_id=alert_rule.id)
             action = AlertRuleTriggerAction.objects.get(alert_rule_trigger=trigger)
-            assert action.target_identifier == "10"
+            assert action.target_identifier == "(10, False)"
             assert action.target_display == "my-channel"
 
             # Now two actions with slack:
@@ -317,9 +317,9 @@ class AlertRuleCreateEndpointTest(APITestCase):
             actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger).order_by(
                 "id"
             )
-            assert actions[0].target_identifier == "10"
+            assert actions[0].target_identifier == "(10, False)"
             assert actions[0].target_display == "my-channel"
-            assert actions[1].target_identifier == "20"
+            assert actions[1].target_identifier == "(10, False)"
             assert actions[1].target_display == "another-channel"
 
             # Now an invalid action (we want to early out with a good validationerror and not schedule the task):

@@ -227,7 +227,7 @@ class SlackTasksTest(TestCase):
         mock_get_channel_id.assert_called_with(self.integration, "my-channel", 180)
 
         trigger_action = AlertRuleTriggerAction.objects.get(integration=self.integration.id)
-        assert trigger_action.target_identifier == "chan-id"
+        assert trigger_action.target_identifier == "('chan-id', False)"
 
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
@@ -300,5 +300,5 @@ class SlackTasksTest(TestCase):
         mock_get_channel_id.assert_called_with(self.integration, "my-channel", 180)
 
         trigger_action = AlertRuleTriggerAction.objects.get(integration=self.integration.id)
-        assert trigger_action.target_identifier == "chan-id"
+        assert trigger_action.target_identifier == "('chan-id', False)"
         assert AlertRule.objects.get(id=alert_rule.id)
