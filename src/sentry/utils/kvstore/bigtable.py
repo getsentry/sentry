@@ -31,9 +31,9 @@ class BigtableError(Exception):
 class BigtableKVStorage(KVStorage[str, bytes]):
     column_family = "x"
 
-    # The data collection contains a bytearray up that may be up to
-    # ``max_size`` bytes. The value may be compressed or otherwise encoded
-    # based on the value of the ``flags`` column.
+    # The data column contains a bytearray up that may be up to ``max_size``
+    # bytes. The value may be compressed or otherwise encoded based on the
+    # value of the ``flags`` column.
     data_column = b"0"
     max_size = 1024 * 1024 * 10
 
