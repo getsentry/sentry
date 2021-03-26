@@ -346,12 +346,15 @@ class Group(Model):
         )
         super().save(*args, **kwargs)
 
-    def get_absolute_url(self, params=None, event_id=None):
+    def get_absolute_url(self, params=None, event_id=None, organization_slug=None):
         # Built manually in preference to django.core.urlresolvers.reverse,
         # because reverse has a measured performance impact.
         event_path = f"events/{event_id}/" if event_id else ""
         url = "organizations/{org}/issues/{id}/{event_path}{params}".format(
-            org=urlquote(self.organization.slug),
+            # Pass organization_slug if this needs to be called multiple times to avoid n+1 queries
+            org=urlquote(
+                self.organization.slug if organization_slug is None else organization_slug
+            ),
             id=self.id,
             event_path=event_path,
             params="?" + urlencode(params) if params else "",

@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.core.urlresolvers import reverse
 
+from sentry.models import Group
 from sentry.utils.samples import load_data
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -46,6 +47,9 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
             for key, value in measurements.items():
                 data["measurements"][key]["value"] = value
         return self.store_event(data, project_id=project_id)
+
+    def get_error_url(self, error):
+        return Group.objects.get(id=error.group_id).get_absolute_url()
 
     def setUp(self):
         """
@@ -451,6 +455,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             assert event["parent_span_id"] == self.root_span_ids[0]
             assert len(event["errors"]) == 1
             assert event["errors"][0]["event_id"] == error.event_id
+            assert event["errors"][0]["url"] == self.get_error_url(error)
 
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -799,12 +804,14 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "span": self.gen1_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
+            "url": self.get_error_url(error),
         } in gen1_event["errors"]
         assert {
             "event_id": error1.event_id,
             "span": self.gen1_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
+            "url": self.get_error_url(error1),
         } in gen1_event["errors"]
 
     def test_with_default(self):
@@ -838,4 +845,5 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "span": self.root_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
+            "url": self.get_error_url(default_event),
         } in root_event["errors"]
