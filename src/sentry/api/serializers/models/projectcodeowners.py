@@ -48,6 +48,5 @@ class ProjectCodeOwnersSerializer(Serializer):
             data["codeMapping"] = serialize(
                 config, user=user, serializer=RepositoryProjectPathConfigSerializer()
             )
-            data.pop("codeMappingId", None)
 
         return data

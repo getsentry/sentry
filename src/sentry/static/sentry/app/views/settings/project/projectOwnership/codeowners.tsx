@@ -67,7 +67,6 @@ class CodeOwners extends AsyncComponent<Props, State> {
             ).fromNow()}`}</InnerPanelHeader>
             <InnerPanelBody>
               <StyledTextArea
-                // disabled={true}
                 value={raw}
                 spellCheck="false"
                 autoComplete="off"
@@ -157,6 +156,8 @@ const InnerPanel = styled(Panel)`
 
 const InnerPanelHeader = styled(PanelHeader)`
   text-transform: none;
+  font-size 16px;
+  font-weight 400;
 `;
 const InnerPanelBody = styled(PanelBody)`
   height: auto;
@@ -177,6 +178,7 @@ const StyledTextArea = styled(TextareaAutosize)`
   border: none;
   box-shadow: none;
   padding: ${space(2)};
+  color: #9386a0;
 
   &:hover,
   &:focus,
