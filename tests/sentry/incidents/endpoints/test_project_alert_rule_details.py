@@ -294,15 +294,12 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 resp = self.get_response(
                     self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
                 )
-            resp.data[
-                "uuid"
-            ] = "abc123"  # putting this in cause the assert is failing and I see something in the previous test about it
             assert resp.data["uuid"] == "abc123"
             assert mock_get_channel_id.call_count == 1
             # Using get deliberately as there should only be one. Test should fail otherwise.
             trigger = AlertRuleTrigger.objects.get(alert_rule_id=self.alert_rule.id)
             action = AlertRuleTriggerAction.objects.get(alert_rule_trigger=trigger)
-            assert action.target_identifier == "10"
+            assert action.target_identifier == "(10, False)"
             assert action.target_display == "my-channel"
 
             # Now two actions with slack:
@@ -361,15 +358,15 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 alert_rule_trigger__in=triggers
             ).order_by("id")
             # The 3 critical trigger actions:
-            assert actions[0].target_identifier == "10"
+            assert actions[0].target_identifier == "(10, False)"
             assert actions[0].target_display == "my-channel"
-            assert actions[1].target_identifier == "20"
+            assert actions[1].target_identifier == "(20, False)"
             assert actions[1].target_display == "another-channel"
-            assert actions[2].target_identifier == "20"
+            assert actions[2].target_identifier == "(20, False)"
             assert actions[2].target_display == "another-channel"
 
             # This is the warning trigger action:
-            assert actions[3].target_identifier == "10"
+            assert actions[3].target_identifier == "(10, False)"
             assert actions[3].target_display == "my-channel"
 
             # Now an invalid action (we want to early out with a good validationerror and not schedule the task):

@@ -170,8 +170,9 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
         attrs["input_channel_id"] = self.context.get("input_channel_id")
         if attrs["input_channel_id"]:
-            validate_channel_id(identifier, attrs["integration"].id, attrs["input_channel_id"])
-
+            if not isinstance(attrs["input_channel_id"], tuple):
+                # input_channel_id is ONLY ever a tuple when it's added in the task and NOT but a user via the API
+                validate_channel_id(identifier, attrs["integration"].id, attrs["input_channel_id"])
         return attrs
 
     def create(self, validated_data):
