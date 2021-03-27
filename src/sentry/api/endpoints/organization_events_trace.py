@@ -131,15 +131,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         warning_extra = {"trace": trace_id, "organization": organization}
 
-        if not is_root(result["data"][0]):
-            sentry_sdk.set_tag("discover.trace-view.warning", "root.not-found")
-            logger.warning(
-                "discover.trace-view.root.not-found",
-                extra=warning_extra,
-            )
-            return Response(status=204)
-
-        root = result["data"][0]
+        root = result["data"][0] if is_root(result["data"][0]) else None
 
         # Look for extra roots
         extra_roots = 0
@@ -249,10 +241,11 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         snuba_event, nodestore_event = self.get_current_transaction(transactions, errors, event_id)
         parent_map = self.construct_span_map(transactions, "trace.parent_span")
         error_map = self.construct_span_map(errors, "trace.span")
-        trace_results = [self.serialize_event(root, None, 0)]
+        trace_results = []
 
         with sentry_sdk.start_span(op="building.trace", description="light trace"):
-            if root["id"] != snuba_event["id"]:
+            # We might not be necessarily connected to the root if we're on an orphan event
+            if root is not None and root["id"] != snuba_event["id"]:
                 # Get the root event and see if the current event's span is in the root event
                 root_event = eventstore.get_event_by_id(root["project.id"], root["id"])
                 root_span = find_event(
@@ -262,16 +255,24 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 
                 # For the light response, the parent will be unknown unless it is a direct descendent of the root
                 is_root_child = root_span is not None
-                trace_results.append(
-                    self.serialize_event(
-                        snuba_event,
-                        root["id"] if is_root_child else None,
-                        1 if is_root_child else None,
+                # We only know to add the root if its the direct parent
+                if is_root_child:
+                    trace_results.append(
+                        self.serialize_event(
+                            root,
+                            None,
+                            0,
+                        )
                     )
-                )
+            else:
+                is_root_child = None
 
-            # The current event should be the last item in the trace_results
-            current_event = trace_results[-1]
+            current_event = self.serialize_event(
+                snuba_event,
+                root["id"] if is_root_child else None,
+                1 if is_root_child else 0 if root and root["id"] == snuba_event["id"] else None,
+            )
+            trace_results.append(current_event)
 
             spans = nodestore_event.data.get("spans", [])
             # Need to include the transaction as a span as well
@@ -375,15 +376,18 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         parent_map = self.construct_span_map(transactions, "trace.parent_span")
         error_map = self.construct_span_map(errors, "trace.span")
         parent_events = {}
-        parent_events[root["id"]] = self.serialize_event(root, None, 0)
         # TODO(wmak): Dictionary ordering in py3.6 is an implementation detail, using an OrderedDict because this way
-        # we can guarantee in py3.6 that the first item is the root
+        # we try to guarantee in py3.6 that the first item is the root
         # So we can switch back to a normal dict when either the frontend doesn't depend on the root being the first
         # element, or if we're on python 3.7
-        results_map = OrderedDict({None: [parent_events[root["id"]]]})
+        results_map = OrderedDict()
+        to_check = deque()
+        if root:
+            parent_events[root["id"]] = self.serialize_event(root, None, 0)
+            results_map[None] = [parent_events[root["id"]]]
+            to_check.append(root)
 
         with sentry_sdk.start_span(op="building.trace", description="full trace"):
-            to_check = deque([root])
             iteration = 0
             has_orphans = False
             while parent_map or to_check:
