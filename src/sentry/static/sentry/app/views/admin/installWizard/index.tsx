@@ -15,9 +15,7 @@ import AsyncView from 'app/views/asyncView';
 
 import {getForm, getOptionDefault, getOptionField} from '../options';
 
-type Props = {
-  onConfigured: () => void;
-} & AsyncView['props'];
+type Props = {} & AsyncView['props'];
 
 type State = {} & AsyncView['state'];
 
@@ -126,7 +124,7 @@ export default class InstallWizard extends AsyncView<Props, State> {
         apiEndpoint={this.getEndpoints()[0][1]}
         submitLabel={t('Continue')}
         initialData={this.getInitialData()}
-        onSubmitSuccess={this.props.onConfigured}
+        onSubmitSuccess={() => ConfigStore.set('needsUpgrade', false)}
       >
         <p>{t('Complete setup by filling out the required configuration.')}</p>
 

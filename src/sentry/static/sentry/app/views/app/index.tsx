@@ -2,7 +2,6 @@ import React from 'react';
 import keydown from 'react-keydown';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 
 import {
@@ -46,9 +45,6 @@ type Props = {
 type State = {
   loading: boolean;
   error: boolean;
-  needsUpgrade: boolean;
-  newsletterConsentPrompt: boolean;
-  user?: Config['user'];
 };
 
 class App extends React.Component<Props, State> {
@@ -59,8 +55,6 @@ class App extends React.Component<Props, State> {
   state = {
     loading: false,
     error: false,
-    needsUpgrade: ConfigStore.get('user')?.isSuperuser && ConfigStore.get('needsUpgrade'),
-    newsletterConsentPrompt: ConfigStore.get('user')?.flags?.newsletter_consent_prompt,
   };
 
   getChildContext() {
@@ -128,33 +122,11 @@ class App extends React.Component<Props, State> {
     fetchGuides();
   }
 
-  componentDidUpdate(prevProps) {
-    const {config} = this.props;
-    if (!isEqual(config, prevProps.config)) {
-      this.handleConfigStoreChange(config);
-    }
-  }
-
   componentWillUnmount() {
     OrganizationsStore.load([]);
   }
 
   mainContainerRef = React.createRef<HTMLDivElement>();
-
-  handleConfigStoreChange(config) {
-    const newState = {} as State;
-    if (config.needsUpgrade !== undefined) {
-      newState.needsUpgrade = config.needsUpgrade;
-    }
-
-    if (config.user !== undefined) {
-      newState.user = config.user;
-    }
-
-    if (Object.keys(newState).length > 0) {
-      this.setState(newState);
-    }
-  }
 
   @keydown('meta+shift+p', 'meta+k', 'ctrl+shift+p', 'ctrl+k')
   openCommandPalette(e) {
@@ -170,12 +142,6 @@ class App extends React.Component<Props, State> {
 
   onConfigured = () => this.setState({needsUpgrade: false});
 
-  // this is somewhat hackish
-  handleNewsletterConsent = () =>
-    this.setState({
-      newsletterConsentPrompt: false,
-    });
-
   handleGlobalModalClose = () => {
     if (typeof this.mainContainerRef.current?.focus === 'function') {
       // Focus the main container to get hotkeys to keep working after modal closes
@@ -184,9 +150,7 @@ class App extends React.Component<Props, State> {
   };
 
   renderBody() {
-    const {needsUpgrade, newsletterConsentPrompt} = this.state;
-
-    if (needsUpgrade) {
+    if (ConfigStore.get('user').isSuperuser && ConfigStore.get('needsUpgrade')) {
       const InstallWizard = React.lazy(
         () =>
           import(/* webpackChunkName: "InstallWizard" */ 'app/views/admin/installWizard')
@@ -194,13 +158,13 @@ class App extends React.Component<Props, State> {
 
       return (
         <React.Suspense fallback={null}>
-          <InstallWizard onConfigured={this.onConfigured} />;
+          <InstallWizard />;
         </React.Suspense>
       );
     }
 
-    if (newsletterConsentPrompt) {
-      return <NewsletterConsent onSubmitSuccess={this.handleNewsletterConsent} />;
+    if (ConfigStore.get('user').flags.newsletter_consent_prompt) {
+      return <NewsletterConsent />;
     }
 
     return this.props.children;

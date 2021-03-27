@@ -3,7 +3,7 @@ import * as qs from 'query-string';
 import Reflux from 'reflux';
 
 import {setLocale} from 'app/locale';
-import {Config} from 'app/types';
+import {Config, User} from 'app/types';
 
 type ConfigStoreInterface = {
   config: Config;
@@ -13,6 +13,12 @@ type ConfigStoreInterface = {
   getConfig(): Config;
   updateTheme(theme: 'light' | 'dark'): void;
   loadInitialData(config: Config): void;
+};
+
+const getTheme = (user: User, systemTheme?: 'light' | 'dark') => {
+  // ?. to work around tests
+  const themeOption = user?.options?.theme;
+  return (themeOption === 'system' ? systemTheme : themeOption) || 'light';
 };
 
 const configStoreConfig: Reflux.StoreDefinition &
@@ -37,7 +43,8 @@ const configStoreConfig: Reflux.StoreDefinition &
       [key]: value,
     };
     if (key === 'user') {
-      this.config.theme = this.getTheme();
+      // as User shouldn't be necessary but current tsc balks
+      this.config.theme = getTheme(value as User, this.systemTheme);
     }
     this.trigger();
   },
@@ -53,12 +60,6 @@ const configStoreConfig: Reflux.StoreDefinition &
     }
   },
 
-  getTheme() {
-    // ?. to work around tests
-    const themeOption = this.config.user?.options?.theme;
-    return (themeOption === 'system' ? this.systemTheme : themeOption) || 'light';
-  },
-
   getConfig() {
     return this.config;
   },
@@ -67,8 +68,9 @@ const configStoreConfig: Reflux.StoreDefinition &
     this.config = {
       ...config,
       features: new Set(config.features || []),
+      // systemTheme is almost certainly not set yet but it doesn't hurt to pass it
+      theme: getTheme(config.user, this.systemTheme),
     };
-    this.config.theme = this.getTheme();
 
     // Language code is passed from django
     let languageCode = config.languageCode;

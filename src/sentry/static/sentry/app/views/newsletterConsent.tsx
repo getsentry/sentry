@@ -4,6 +4,7 @@ import {ApiForm, RadioBooleanField} from 'app/components/forms';
 import ExternalLink from 'app/components/links/externalLink';
 import NarrowLayout from 'app/components/narrowLayout';
 import {t, tct} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 
 type Props = {
   onSubmitSuccess?: () => void;
@@ -29,7 +30,9 @@ export default class NewsletterConsent extends React.Component<Props> {
         <ApiForm
           apiMethod="POST"
           apiEndpoint="/users/me/subscriptions/"
-          onSubmitSuccess={() => this.props.onSubmitSuccess?.()}
+          onSubmitSuccess={() => {
+            ConfigStore.get('user').flags.newsletter_consent_prompt = false;
+          }}
           submitLabel={t('Continue')}
         >
           <RadioBooleanField
