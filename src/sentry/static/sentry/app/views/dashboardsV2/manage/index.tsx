@@ -8,7 +8,7 @@ import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
-import DashboardsV2ManageList from 'app/views/dashboardsV2/manage/list';
+import MiniDashboardList from 'app/views/dashboardsV2/manage/miniDashboardList';
 
 type Props = {
   organization: Organization;
@@ -37,7 +37,7 @@ class DashboardsV2Manage extends React.Component<Props> {
             <PageHeading>Manage Dashboards</PageHeading>
           </PageHeader>
           <PageContent>
-            <DashboardsV2ManageList location={location} />
+            <MiniDashboardList location={location} />
           </PageContent>
         </PageContent>
       </SentryDocumentTitle>

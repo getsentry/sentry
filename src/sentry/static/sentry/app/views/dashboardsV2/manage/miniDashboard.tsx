@@ -8,6 +8,7 @@ import WidgetLine3 from 'sentry-images/dashboards/widget-line-3.svg';
 import WidgetTable from 'sentry-images/dashboards/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboards/widget-world-map.svg';
 
+import MiniCard from 'app/components/miniCard';
 import TimeSince from 'app/components/timeSince';
 import {tct, tn} from 'app/locale';
 import space from 'app/styles/space';
@@ -15,7 +16,6 @@ import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import {DashboardDetailedListItem, DisplayType} from 'app/views/dashboardsV2/types';
 import {WidgetContainer} from 'app/views/dashboardsV2/utils';
-import QueryCard from 'app/views/eventsV2/querycard';
 
 type Props = {
   organization: Organization;
@@ -45,9 +45,9 @@ class MiniDashboard extends React.PureComponent<Props> {
   render() {
     const {organization, dashboard} = this.props;
     return (
-      <QueryCard
+      <MiniCard
         title={dashboard.title}
-        queryDetail={tn('%s widget', '%s widgets', dashboard.widgets.length)}
+        detail={tn('%s widget', '%s widgets', dashboard.widgets.length)}
         to={`/organizations/${organization.slug}/dashboards/${dashboard.id}`}
         createdBy={dashboard.createdBy}
         dateStatus={
@@ -66,7 +66,7 @@ class MiniDashboard extends React.PureComponent<Props> {
             })
           )}
         </StyledWidgetContainer>
-      </QueryCard>
+      </MiniCard>
     );
   }
 }

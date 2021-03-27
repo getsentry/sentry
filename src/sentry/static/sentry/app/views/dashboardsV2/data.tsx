@@ -5,7 +5,6 @@ import {DashboardDetails} from './types';
 export const EMPTY_DASHBOARD: DashboardDetails = {
   id: '',
   dateCreated: '',
-  createdBy: '',
   title: t('Untitled dashboard'),
   widgets: [],
 };

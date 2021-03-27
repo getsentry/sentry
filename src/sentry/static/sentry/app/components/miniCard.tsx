@@ -12,7 +12,7 @@ import {callIfFunction} from 'app/utils/callIfFunction';
 type Props = {
   title?: string;
   subtitle?: string;
-  queryDetail?: string;
+  detail?: string;
   createdBy?: User | undefined;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;
@@ -20,7 +20,7 @@ type Props = {
   bodyHeight?: string;
 } & Pick<Link['props'], 'to'>;
 
-class QueryCard extends React.PureComponent<Props> {
+class MiniCard extends React.PureComponent<Props> {
   handleClick = () => {
     const {onEventClick} = this.props;
     callIfFunction(onEventClick);
@@ -30,7 +30,7 @@ class QueryCard extends React.PureComponent<Props> {
     const {
       title,
       subtitle,
-      queryDetail,
+      detail,
       renderContextMenu,
       children,
       createdBy,
@@ -41,12 +41,12 @@ class QueryCard extends React.PureComponent<Props> {
 
     return (
       <Link data-test-id={`card-${title}`} onClick={this.handleClick} to={to}>
-        <StyledQueryCard interactive>
-          <QueryCardHeader>
-            <QueryCardContent>
-              <QueryTitle>{title}</QueryTitle>
-              <QueryDetail>{queryDetail}</QueryDetail>
-            </QueryCardContent>
+        <StyledCard interactive>
+          <MiniCardHeader>
+            <MiniCardContent>
+              <MiniCardTitle>{title}</MiniCardTitle>
+              <MiniCardDetail>{detail}</MiniCardDetail>
+            </MiniCardContent>
             <AvatarWrapper>
               {createdBy ? (
                 <ActivityAvatar type="user" user={createdBy} size={34} />
@@ -54,16 +54,16 @@ class QueryCard extends React.PureComponent<Props> {
                 <ActivityAvatar type="system" size={34} />
               )}
             </AvatarWrapper>
-          </QueryCardHeader>
-          <QueryCardBody height={bodyHeight ?? '100px'}>{children}</QueryCardBody>
-          <QueryCardFooter>
+          </MiniCardHeader>
+          <MiniCardBody height={bodyHeight ?? '100px'}>{children}</MiniCardBody>
+          <MiniCardFooter>
             <DateSelected>
               {subtitle}
               {dateStatus && <DateStatus>{dateStatus}</DateStatus>}
             </DateSelected>
             {renderContextMenu && renderContextMenu()}
-          </QueryCardFooter>
-        </StyledQueryCard>
+          </MiniCardFooter>
+        </StyledCard>
       </Link>
     );
   }
@@ -75,13 +75,13 @@ const AvatarWrapper = styled('span')`
   height: min-content;
 `;
 
-const QueryCardContent = styled('div')`
+const MiniCardContent = styled('div')`
   flex-grow: 1;
   overflow: hidden;
   margin-right: ${space(1)};
 `;
 
-const StyledQueryCard = styled(Card)`
+const StyledCard = styled(Card)`
   justify-content: space-between;
   height: 100%;
   &:focus,
@@ -90,17 +90,17 @@ const StyledQueryCard = styled(Card)`
   }
 `;
 
-const QueryCardHeader = styled('div')`
+const MiniCardHeader = styled('div')`
   display: flex;
   padding: ${space(1.5)} ${space(2)};
 `;
 
-const QueryTitle = styled('div')`
+const MiniCardTitle = styled('div')`
   color: ${p => p.theme.textColor};
   ${overflowEllipsis};
 `;
 
-const QueryDetail = styled('div')`
+const MiniCardDetail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
@@ -108,14 +108,14 @@ const QueryDetail = styled('div')`
   ${overflowEllipsis};
 `;
 
-const QueryCardBody = styled('div')<{height}>`
+const MiniCardBody = styled('div')<{height}>`
   background: ${p => p.theme.backgroundSecondary};
   max-height: ${p => p.height};
   height: 100%;
   overflow: hidden;
 `;
 
-const QueryCardFooter = styled('div')`
+const MiniCardFooter = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -135,4 +135,4 @@ const DateStatus = styled('span')`
   padding-left: ${space(1)};
 `;
 
-export default QueryCard;
+export default MiniCard;

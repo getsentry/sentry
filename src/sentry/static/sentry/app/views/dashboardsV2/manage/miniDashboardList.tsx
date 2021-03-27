@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import AsyncComponent from 'app/components/asyncComponent';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Pagination from 'app/components/pagination';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
@@ -20,7 +22,7 @@ type State = {
   savedQueriesPageLinks?: string;
 } & AsyncComponent['state'];
 
-class DashboardsV2ManageList extends AsyncComponent<Props, State> {
+class MiniDashboardList extends AsyncComponent<Props, State> {
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -50,18 +52,24 @@ class DashboardsV2ManageList extends AsyncComponent<Props, State> {
     const {dashboards, dashboardsPageLinks} = this.state;
     return (
       <React.Fragment>
-        <DashboardGrid>
-          {dashboards!.map(dashboard => (
-            <MiniDashboard key={`${dashboard.id}`} dashboard={dashboard} />
-          ))}
-        </DashboardGrid>
+        {dashboards ? (
+          <DashboardGrid>
+            {dashboards.map(dashboard => (
+              <MiniDashboard key={`${dashboard.id}`} dashboard={dashboard} />
+            ))}
+          </DashboardGrid>
+        ) : (
+          <EmptyStateWarning>
+            <p>{t('No dashboards match that filter')}</p>
+          </EmptyStateWarning>
+        )}
         <Pagination pageLinks={dashboardsPageLinks} />
       </React.Fragment>
     );
   }
 }
 
-export default withOrganization(DashboardsV2ManageList);
+export default withOrganization(MiniDashboardList);
 
 const DashboardGrid = styled('div')`
   display: grid;

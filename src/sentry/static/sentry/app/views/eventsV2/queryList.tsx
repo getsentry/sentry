@@ -10,6 +10,7 @@ import {Client} from 'app/api';
 import DropdownMenu from 'app/components/dropdownMenu';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import MenuItem from 'app/components/menuItem';
+import MiniCard from 'app/components/miniCard';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
 import {IconEllipsis} from 'app/icons';
@@ -23,7 +24,6 @@ import withApi from 'app/utils/withApi';
 
 import {handleCreateQuery, handleDeleteQuery} from './savedQuery/utils';
 import MiniGraph from './miniGraph';
-import QueryCard from './querycard';
 import {getPrebuiltQueries} from './utils';
 
 type Props = {
@@ -135,12 +135,12 @@ class QueryList extends React.Component<Props> {
       const to = eventView.getResultsViewUrlTarget(organization.slug);
 
       return (
-        <QueryCard
+        <MiniCard
           key={`${index}-${eventView.name}`}
           to={to}
           title={eventView.name}
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
-          queryDetail={eventView.query}
+          detail={eventView.query}
           createdBy={eventView.createdBy}
           onEventClick={() => {
             trackAnalyticsEvent({
@@ -156,7 +156,7 @@ class QueryList extends React.Component<Props> {
             eventView={eventView}
             organization={organization}
           />
-        </QueryCard>
+        </MiniCard>
       );
     });
 
@@ -184,12 +184,12 @@ class QueryList extends React.Component<Props> {
       });
 
       return (
-        <QueryCard
+        <MiniCard
           key={`${index}-${eventView.id}`}
           to={to}
           title={eventView.name}
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
-          queryDetail={eventView.query}
+          detail={eventView.query}
           createdBy={eventView.createdBy}
           dateStatus={dateStatus}
           onEventClick={() => {
@@ -221,7 +221,7 @@ class QueryList extends React.Component<Props> {
             eventView={eventView}
             organization={organization}
           />
-        </QueryCard>
+        </MiniCard>
       );
     });
   }

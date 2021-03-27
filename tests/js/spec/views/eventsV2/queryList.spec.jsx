@@ -65,7 +65,7 @@ describe('EventsV2 > QueryList', function () {
       />,
       TestStubs.routerContext()
     );
-    const content = wrapper.find('QueryCard');
+    const content = wrapper.find('MiniCard');
     // No queries
     expect(content).toHaveLength(0);
     expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
@@ -83,7 +83,7 @@ describe('EventsV2 > QueryList', function () {
       />,
       TestStubs.routerContext()
     );
-    const content = wrapper.find('QueryCard');
+    const content = wrapper.find('MiniCard');
     // pre built + saved queries
     expect(content).toHaveLength(5);
   });
@@ -99,14 +99,14 @@ describe('EventsV2 > QueryList', function () {
       />,
       TestStubs.routerContext()
     );
-    let card = wrapper.find('QueryCard').last();
-    expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
+    let card = wrapper.find('MiniCard').last();
+    expect(card.find('MiniCardContent').text()).toEqual(savedQueries[1].name);
 
     openContextMenu(card);
     wrapper.update();
 
     // Get a fresh node
-    card = wrapper.find('QueryCard').last();
+    card = wrapper.find('MiniCard').last();
     clickMenuItem(card, 'duplicate-query');
 
     // wait for request
@@ -127,13 +127,13 @@ describe('EventsV2 > QueryList', function () {
       />,
       TestStubs.routerContext()
     );
-    let card = wrapper.find('QueryCard').last();
-    expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
+    let card = wrapper.find('MiniCard').last();
+    expect(card.find('MiniCardContent').text()).toEqual(savedQueries[1].name);
 
     openContextMenu(card);
     wrapper.update();
 
-    card = wrapper.find('QueryCard').last();
+    card = wrapper.find('MiniCard').last();
     clickMenuItem(card, 'delete-query');
 
     // wait for request
@@ -154,14 +154,14 @@ describe('EventsV2 > QueryList', function () {
       />,
       TestStubs.routerContext()
     );
-    let card = wrapper.find('QueryCard').last();
-    expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
+    let card = wrapper.find('MiniCard').last();
+    expect(card.find('MiniCardContent').text()).toEqual(savedQueries[1].name);
 
     // Open the context menu
     openContextMenu(card);
     wrapper.update();
 
-    card = wrapper.find('QueryCard').last();
+    card = wrapper.find('MiniCard').last();
     clickMenuItem(card, 'delete-query');
 
     // wait for request
