@@ -63,8 +63,7 @@ class TeamDetails extends React.Component<Props, State> {
   }
 
   setActiveTeam() {
-    const {teamId} = this.props.params;
-    const team = this.props.teams?.find((item: Team) => item.id === teamId) ?? null;
+    const team = TeamStore.getBySlug(this.props.params.teamId);
     const loading = !TeamStore.initialized;
     const error = !loading && !team;
 
