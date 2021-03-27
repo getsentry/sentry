@@ -140,8 +140,6 @@ class App extends React.Component<Props, State> {
     ConfigStore.set('theme', ConfigStore.get('theme') === 'light' ? 'dark' : 'light');
   }
 
-  onConfigured = () => this.setState({needsUpgrade: false});
-
   handleGlobalModalClose = () => {
     if (typeof this.mainContainerRef.current?.focus === 'function') {
       // Focus the main container to get hotkeys to keep working after modal closes
