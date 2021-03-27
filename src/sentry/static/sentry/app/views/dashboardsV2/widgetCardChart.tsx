@@ -73,7 +73,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     errorMessage,
     tableResults,
   }: TableResultProps): React.ReactNode {
-    const {location, widget, organization} = this.props;
+    const {widget, organization} = this.props;
     if (errorMessage) {
       return (
         <ErrorPanel>
@@ -92,7 +92,6 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return (
         <StyledSimpleTableChart
           key={`table:${result.title}`}
-          location={location}
           fields={fields}
           title={tableResults.length > 1 ? result.title : ''}
           loading={loading}

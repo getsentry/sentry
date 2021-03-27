@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import partial from 'lodash/partial';
 
 import Count from 'app/components/count';
@@ -37,7 +36,6 @@ import {
  */
 type RenderFunctionBaggage = {
   organization: Organization;
-  location: Location;
 };
 
 type FieldFormatterRenderFunction = (field: string, data: EventData) => React.ReactNode;

@@ -92,7 +92,7 @@ class Table extends React.Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, projects, location, summaryConditions} = this.props;
+    const {eventView, organization, projects, summaryConditions} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -101,7 +101,7 @@ class Table extends React.Component<Props, State> {
 
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta);
-    const rendered = fieldRenderer(dataRow, {organization, location});
+    const rendered = fieldRenderer(dataRow, {organization});
 
     const allowActions = [
       Actions.ADD,

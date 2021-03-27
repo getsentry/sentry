@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import PanelTable, {PanelTableHeader} from 'app/components/panels/panelTable';
 import {Organization} from 'app/types';
@@ -12,7 +11,6 @@ import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 
 type Props = {
   organization: Organization;
-  location: Location;
   loading: boolean;
   fields: string[];
   title: string;
@@ -28,11 +26,11 @@ class SimpleTableChart extends React.Component<Props> {
     tableMeta: NonNullable<TableData['meta']>,
     columns: ReturnType<typeof decodeColumnOrder>
   ) {
-    const {location, organization} = this.props;
+    const {organization} = this.props;
 
     return columns.map(column => {
       const fieldRenderer = getFieldRenderer(column.name, tableMeta);
-      const rendered = fieldRenderer(row, {organization, location});
+      const rendered = fieldRenderer(row, {organization});
       return <div key={`${index}:${column.name}`}>{rendered}</div>;
     });
   }

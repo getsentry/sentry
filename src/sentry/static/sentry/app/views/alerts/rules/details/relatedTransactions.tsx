@@ -56,7 +56,7 @@ class Table extends React.Component<TableProps, TableState> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, projects, location, summaryConditions} = this.props;
+    const {eventView, organization, projects, summaryConditions} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -65,7 +65,7 @@ class Table extends React.Component<TableProps, TableState> {
 
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta);
-    const rendered = fieldRenderer(dataRow, {organization, location});
+    const rendered = fieldRenderer(dataRow, {organization});
 
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
