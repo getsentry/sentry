@@ -97,26 +97,28 @@ def is_safe_hostname(hostname):
     return True
 
 
-# Mostly yanked from https://github.com/urllib3/urllib3/blob/1.22/urllib3/util/connection.py#L36
+# Mostly yanked from https://github.com/urllib3/urllib3/blob/1.25.11/src/urllib3/util/connection.py#L33
 def safe_create_connection(
-    address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None, socket_options=None
+    address,
+    timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
+    source_address=None,
+    socket_options=None,
 ):
     host, port = address
     if host.startswith("["):
         host = host.strip("[]")
     err = None
 
+    # Begin divergent code block.
     host = ensure_fqdn(host)
+    # End divergent code block.
 
-    # Using the value from allowed_gai_family() in the context of getaddrinfo lets
-    # us select whether to work with IPv4 DNS records, IPv6 records, or both.
-    # The original create_connection function always returns all records.
     family = allowed_gai_family()
 
     for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
         af, socktype, proto, canonname, sa = res
 
-        # HACK(mattrobenolt): This is the only code that diverges
+        # Begin divergent code block.
         ip = sa[0]
         if not is_ipaddress_allowed(ip):
             # I am explicitly choosing to be overly aggressive here. This means
@@ -127,12 +129,11 @@ def safe_create_connection(
             if host == ip:
                 raise RestrictedIPAddress("(%s) matches the URL blacklist" % ip)
             raise RestrictedIPAddress(f"({host}/{ip}) matches the URL blacklist")
+        # End divergent code block.
 
         sock = None
         try:
             sock = socket.socket(af, socktype, proto)
-
-            # If provided, set socket level options before connecting.
             _set_socket_options(sock, socket_options)
 
             if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
