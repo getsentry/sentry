@@ -9,19 +9,20 @@ from rest_framework.response import Response
 from sentry import features, eventstore
 from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
 from sentry.snuba import discover
+from sentry.models import Group
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE = 100
 NODESTORE_KEYS = ["timestamp", "start_timestamp"]
-DETAILED_NODESTORE_KEYS = ["environment", "release"]
 ERROR_COLUMNS = [
     "id",
     "project",
     "timestamp",
     "trace.span",
     "transaction",
+    "issue",
 ]
 
 
@@ -62,6 +63,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             "span": event["trace.span"],
             "project_id": event["project.id"],
             "project_slug": event["project"],
+            "url": event["url"],
         }
 
     def construct_span_map(self, events, key):
@@ -162,6 +164,19 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         else:
             current_transaction = find_event(result["data"], lambda t: t["id"] == event_id)
             errors = self.get_errors(organization, trace_id, params, current_transaction, event_id)
+            if errors:
+                groups = {
+                    group.id: group
+                    for group in Group.objects.filter(
+                        id__in=[row["issue.id"] for row in errors],
+                        project_id__in=params.get("project_id", []),
+                        project__organization=organization,
+                    )
+                }
+                for row in errors:
+                    row["url"] = groups[row["issue.id"]].get_absolute_url(
+                        organization_slug=organization.slug
+                    )
 
         return Response(
             self.serialize(result["data"], errors, root, warning_extra, event_id, detailed)
@@ -341,14 +356,17 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         """ Add extra data that we get from Nodestore """
         event.update({event_key: nodestore_data.get(event_key) for event_key in NODESTORE_KEYS})
         if detailed:
-            event.update(
-                {event_key: nodestore_data.get(event_key) for event_key in DETAILED_NODESTORE_KEYS}
-            )
             if "measurements" in nodestore_data:
                 event["measurements"] = nodestore_data.get("measurements")
-            event["tags"] = {}
-            for [tag_key, tag_value] in nodestore_data.get("tags"):
-                event["tags"][tag_key] = tag_value
+            event["tags"] = [
+                {
+                    "key": tag_key.split("sentry:", 1)[-1],
+                    "value": tag_value,
+                }
+                for [tag_key, tag_value] in sorted(
+                    nodestore_data.get("tags"), key=lambda tag: tag[0]
+                )
+            ]
 
     def update_generations(self, event):
         parents = [event]

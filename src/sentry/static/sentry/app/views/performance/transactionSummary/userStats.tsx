@@ -7,7 +7,7 @@ import {SectionHeading} from 'app/components/charts/styles';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
-import UserMisery from 'app/components/userMisery';
+import UserMiseryPrototype from 'app/components/userMiseryPrototype';
 import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -50,19 +50,19 @@ function UserStats({
   let vitalsPassRate: React.ReactNode = null;
 
   if (!isLoading && error === null && totals) {
-    const miserableUsers = Number(totals[`user_misery_${threshold}`]);
-    const totalUsers = Number(totals.count_unique_user);
-    if (!isNaN(miserableUsers) && !isNaN(totalUsers)) {
-      userMisery = (
-        <UserMisery
-          bars={40}
-          barHeight={30}
-          miseryLimit={threshold}
-          totalUsers={totalUsers}
-          miserableUsers={miserableUsers}
-        />
-      );
-    }
+    const miserableUsers = totals[`user_misery_${threshold}`];
+    const userMiseryScore = totals[`user_misery_prototype_${threshold}`];
+    const totalUsers = totals.count_unique_user;
+    userMisery = (
+      <UserMiseryPrototype
+        bars={40}
+        barHeight={30}
+        userMisery={userMiseryScore}
+        miseryLimit={threshold}
+        totalUsers={totalUsers}
+        miserableUsers={miserableUsers}
+      />
+    );
 
     const [vitalsPassed, vitalsTotal] = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce(
       ([passed, total], vs) => {

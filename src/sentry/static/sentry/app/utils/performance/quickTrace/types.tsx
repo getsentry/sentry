@@ -1,3 +1,4 @@
+import {EventTag, Measurement} from 'app/types/event';
 import {
   DiscoverQueryProps,
   GenericChildrenProps,
@@ -13,7 +14,6 @@ export type EventLite = {
   span_id: string;
   transaction: string;
   'transaction.duration': number;
-  'transaction.op': string;
   project_id: number;
   project_slug: string;
   parent_event_id: string | null;
@@ -38,6 +38,8 @@ export type QuickTraceEvent = EventLite & {
 /**
  * The `events-trace` endpoint returns a tree structure that gives
  * the parent-child relationships between events.
+ *
+ * This is the type returned with `detailed=0`
  */
 export type TraceFull = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
   /**
@@ -46,12 +48,25 @@ export type TraceFull = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
   children: TraceFull[];
   errors: TraceError[];
   generation: number;
+};
+
+/**
+ * The `events-trace` endpoint has a parameter to get
+ * additional information by setting `detailed=1`.
+ */
+export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
+  children: TraceFullDetailed[];
+  environment: string;
+  measurements?: Record<string, Measurement>;
+  tags?: EventTag[];
+  release: string;
   start_timestamp: number;
   timestamp: number;
+  'transaction.op': string;
+  'transaction.status': string;
 };
 
 export type TraceProps = {
-  eventId: string;
   traceId: string;
   start?: string;
   end?: string;
@@ -60,36 +75,25 @@ export type TraceProps = {
 
 export type TraceRequestProps = DiscoverQueryProps & TraceProps;
 
-type EmptyQuickTrace = {
+export type EmptyQuickTrace = {
   type: 'empty';
   trace: QuickTraceEvent[];
 };
 
-type PartialQuickTrace = {
+export type PartialQuickTrace = {
   type: 'partial';
   trace: QuickTraceEvent[] | null;
 };
 
-type FullQuickTrace = {
+export type FullQuickTrace = {
   type: 'full';
   trace: QuickTraceEvent[] | null;
 };
 
-type BaseTraceChildrenProps = Omit<
+export type BaseTraceChildrenProps = Omit<
   GenericChildrenProps<TraceProps>,
   'tableData' | 'pageLinks'
 >;
-
-export type TraceLiteQueryChildrenProps = BaseTraceChildrenProps & PartialQuickTrace;
-
-export type TraceFullQueryChildrenProps = BaseTraceChildrenProps &
-  Omit<FullQuickTrace, 'trace'> & {
-    /**
-     * The `event-trace` endpoint returns a full trace with the parent-child
-     * relationships. It can be flattened into a `QuickTraceEvent` if necessary.
-     */
-    trace: TraceFull | null;
-  };
 
 export type QuickTrace = EmptyQuickTrace | PartialQuickTrace | FullQuickTrace;
 

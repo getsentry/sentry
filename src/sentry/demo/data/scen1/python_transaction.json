@@ -22,7 +22,7 @@
     ["user", "email:zllm@yahoo.com"],
     ["server_name", "localhost"],
     ["transaction", "checkout"],
-    ["url", "http://aj-flask-m3uuizd7iq-uc.a.run.app/checkout"]
+    ["url", "https://app.example.com/checkout"]
   ],
   "_meta": {
     "request": {"headers": {"13": {"1": {"": {"rem": [["!config", "x", 0, 11]]}}}}}
@@ -64,7 +64,7 @@
   "metadata": {"location": "checkout", "title": "checkout"},
   "received": 1615837034.494997,
   "request": {
-    "url": "http://aj-flask-m3uuizd7iq-uc.a.run.app/checkout",
+    "url": "https://app.example.com/checkout",
     "method": "POST",
     "headers": [
       ["Accept", "*/*"],
@@ -75,8 +75,8 @@
       ["Email", "zllm@yahoo.com"],
       ["Forwarded", "for=\"66.85.48.76\";proto=https"],
       ["Host", "aj-flask-m3uuizd7iq-uc.a.run.app"],
-      ["Origin", "https://aj-react-m3uuizd7iq-uc.a.run.app"],
-      ["Referer", "https://aj-react-m3uuizd7iq-uc.a.run.app/toolstore"],
+      ["Origin", "https://app.example.com"],
+      ["Referer", "https://app.example.com/toolstore"],
       ["Sentry-Trace", "eaf14e4485864075aec039797501aca2-923dcc257d229405-1"],
       [
         "User-Agent",

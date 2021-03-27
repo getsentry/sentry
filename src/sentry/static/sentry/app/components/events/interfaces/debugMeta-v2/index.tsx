@@ -578,12 +578,6 @@ export default withRouter(DebugMeta);
 const StyledEventDataSection = styled(EventDataSection)`
   padding-bottom: ${space(4)};
 
-  > * :nth-child(1) {
-    > *:nth-child(2) {
-      min-width: calc(100% - 45%);
-    }
-  }
-
   /* to increase specificity */
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding-bottom: ${space(2)};
@@ -639,15 +633,28 @@ const StyledList = styled(List)<{height: number}>`
   outline: none;
 `;
 
-// Search
 const Search = styled('div')`
-  display: flex;
-  justify-content: flex-end;
+  display: grid;
+  grid-gap: ${space(2)};
   width: 100%;
   margin-top: ${space(1)};
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
     margin-top: 0;
+    grid-gap: 0;
+    grid-template-columns: ${p =>
+      p.children && React.Children.toArray(p.children).length === 1
+        ? '1fr'
+        : 'max-content 1fr'};
+    justify-content: flex-end;
+  }
+
+  @media (min-width: ${props => props.theme.breakpoints[1]}) {
+    width: 400px;
+  }
+
+  @media (min-width: ${props => props.theme.breakpoints[3]}) {
+    width: 600px;
   }
 `;
 
@@ -665,17 +672,16 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
     display: flex;
     align-items: center;
   }
-  ${p =>
-    p.blendWithFilter &&
-    `
-      .search-input,
-      .search-input:focus {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-      }
-    `}
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    max-width: 600px;
+    ${p =>
+      p.blendWithFilter &&
+      `
+        .search-input,
+        .search-input:focus {
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+        }
+      `}
   }
 `;

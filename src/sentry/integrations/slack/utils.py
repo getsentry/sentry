@@ -326,6 +326,12 @@ def build_incident_attachment(action, incident, metric_value=None, method=None):
         "Critical": LEVEL_TO_COLOR["fatal"],
     }
 
+    incident_footer_ts = (
+        "<!date^{:.0f}^Sentry Incident - Started {} at {} | Sentry Incident>".format(
+            to_timestamp(data["ts"]), "{date_pretty}", "{time}"
+        )
+    )
+
     return {
         "fallback": data["title"],
         "title": data["title"],
@@ -334,8 +340,7 @@ def build_incident_attachment(action, incident, metric_value=None, method=None):
         "fields": [],
         "mrkdwn_in": ["text"],
         "footer_icon": data["logo_url"],
-        "footer": "Sentry Incident",
-        "ts": to_timestamp(data["ts"]),
+        "footer": incident_footer_ts,
         "color": colors[data["status"]],
         "actions": [],
     }

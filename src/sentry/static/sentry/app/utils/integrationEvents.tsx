@@ -58,6 +58,7 @@ type IntegrationInstalltionInputValueChangeEventParams = {
 
 //define the event key to payload mappings
 export type IntegrationEventParameters = {
+  'integrations.upgrade_plan_modal_opened': SingleIntegrationEventParams;
   'integrations.install_modal_opened': SingleIntegrationEventParams;
   'integrations.integration_viewed': SingleIntegrationEventParams;
   'integrations.installation_start': SingleIntegrationEventParams;
@@ -95,6 +96,7 @@ export type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
 
 //define the event key to event name mappings
 export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
+  'integrations.upgrade_plan_modal_opened': 'Integrations: Upgrade Plan Modal Opened',
   'integrations.install_modal_opened': 'Integrations: Install Modal Opened',
   'integrations.integration_viewed': 'Integrations: Integration Viewed',
   'integrations.installation_start': 'Integrations: Installation Start',
