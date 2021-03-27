@@ -89,14 +89,7 @@ class DocumentationSetup extends React.Component<Props, State> {
       const platformDocs = await loadDocs(api, organization.slug, project.slug, platform);
       this.setState({platformDocs, loadedPlatform: platform, hasError: false});
     } catch (error) {
-      if (platform === 'other') {
-        // TODO(epurkhiser): There are currently no docs for the other
-        // platform. We should add generic documentation, in which case, this
-        // check should go away.
-        return;
-      }
-
-      this.setState({hasError: error});
+      this.setState({hasError: true});
       throw error;
     }
   };
@@ -113,7 +106,7 @@ class DocumentationSetup extends React.Component<Props, State> {
   get missingExampleWarning() {
     const {loadedPlatform, platformDocs} = this.state;
     const missingExample =
-      platformDocs && platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
+      !platformDocs || platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
 
     if (!missingExample) {
       return null;
@@ -127,8 +120,13 @@ class DocumentationSetup extends React.Component<Props, State> {
            yet. If you have trouble sending your first event be sure to consult
            the [docsLink:full documentation] for [platform].`,
           {
-            docsLink: <ExternalLink href={platformDocs?.link} />,
-            platform: platforms.find(p => p.id === loadedPlatform)?.name,
+            docsLink: platformDocs ? (
+              <ExternalLink href={platformDocs.link} />
+            ) : (
+              <React.Fragment />
+            ),
+            platform:
+              platforms.find(p => p.id === loadedPlatform)?.name || t('your platform'),
           }
         )}
       </Alert>
@@ -173,9 +171,11 @@ class DocumentationSetup extends React.Component<Props, State> {
       </React.Fragment>
     );
 
-    const docs = platformDocs !== null && (
-      <DocsWrapper key={platformDocs.html}>
-        <Content dangerouslySetInnerHTML={{__html: platformDocs.html}} />
+    const docs = (
+      <DocsWrapper>
+        {platformDocs !== null && (
+          <Content dangerouslySetInnerHTML={{__html: platformDocs.html}} />
+        )}
         {this.missingExampleWarning}
 
         {project && (
