@@ -147,6 +147,7 @@ class Session(_Session):
         response = _Session.request(self, *args, **kwargs)
         # requests' attempts to use chardet internally when no encoding is found
         # and we want to avoid that slow behavior
+        # TODO(joshuarli): investigate
         if not response.encoding:
             response.encoding = "utf-8"
         return response
