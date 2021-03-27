@@ -80,6 +80,8 @@ function DurationChart(props: Props) {
       query={eventView.getEventsAPIPayload(location).query}
       includePrevious={false}
       yAxis={[field]}
+      partial
+      hideError
     >
       {({loading, reloading, errored, timeseriesData: results}) => {
         const series = results

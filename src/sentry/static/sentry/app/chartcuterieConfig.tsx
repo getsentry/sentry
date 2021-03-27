@@ -8,12 +8,6 @@
  * into the configuration file loaded by the service.
  */
 
-import type {
-  ChartcuterieConfig,
-  RenderConfig,
-  RenderDescriptor,
-} from '@sentry/chartcuterie/lib/types';
-
 import Grid from 'app/components/charts/components/grid';
 import Legend from 'app/components/charts/components/legend';
 import XAxis from 'app/components/charts/components/xAxis';
@@ -21,11 +15,19 @@ import YAxis from 'app/components/charts/components/yAxis';
 import AreaSeries from 'app/components/charts/series/areaSeries';
 import {getColorPalette} from 'app/components/charts/utils';
 import {EventsStatsData} from 'app/types';
+import type {
+  ChartcuterieConfig,
+  RenderConfig,
+  RenderDescriptor,
+} from 'app/types/chartcuterie';
 import {lightTheme as theme} from 'app/utils/theme';
 
 /**
  * Defines the keys which may be passed into the chartcuterie chart rendering
  * service.
+ *
+ * When adding or removing from this list, please also update the
+ * sentry/charts/types.py file
  */
 export enum ChartType {
   SLACK_DISCOVER_TOTAL_PERIOD = 'slack:discover.totalPeriod',
@@ -49,16 +51,13 @@ register({
   key: ChartType.SLACK_DISCOVER_TOTAL_PERIOD,
   height: 150,
   width: 450,
-  getOption: (data: EventsStatsData) => {
-    const color = getColorPalette(theme, data.length);
+  getOption: (data: {seriesName: string; series: EventsStatsData}) => {
+    const color = getColorPalette(theme, data.series.length);
 
-    const series = {
-      seriesName: 'Current',
-      data: data.map(([timestamp, countsForTimestamp]) => ({
-        name: timestamp * 1000,
-        value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-      })),
-    };
+    const series = data.series.map(([timestamp, countsForTimestamp]) => ({
+      name: timestamp * 1000,
+      value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+    }));
 
     return {
       useUTC: true,
@@ -78,8 +77,8 @@ register({
       }),
       series: [
         AreaSeries({
-          name: 'Current',
-          data: series.data.map(({name, value}) => [name, value]),
+          name: data.seriesName,
+          data: series.map(({name, value}) => [name, value]),
           lineStyle: {
             color: color?.[0],
             opacity: 1,

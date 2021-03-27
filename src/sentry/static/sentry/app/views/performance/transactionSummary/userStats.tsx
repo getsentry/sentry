@@ -7,13 +7,12 @@ import {SectionHeading} from 'app/components/charts/styles';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
-import UserMisery from 'app/components/userMisery';
+import UserMiseryPrototype from 'app/components/userMiseryPrototype';
 import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {decodeScalar} from 'app/utils/queryString';
@@ -48,28 +47,22 @@ function UserStats({
 }: Props) {
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
   const threshold = organization.apdexThreshold;
-  let apdex: React.ReactNode =
-    error !== null ? <div>{'\u2014'}</div> : <Placeholder height="24px" />;
   let vitalsPassRate: React.ReactNode = null;
 
   if (!isLoading && error === null && totals) {
-    const miserableUsers = Number(totals[`user_misery_${threshold}`]);
-    const totalUsers = Number(totals.count_unique_user);
-    if (!isNaN(miserableUsers) && !isNaN(totalUsers)) {
-      userMisery = (
-        <UserMisery
-          bars={40}
-          barHeight={30}
-          miseryLimit={threshold}
-          totalUsers={totalUsers}
-          miserableUsers={miserableUsers}
-        />
-      );
-    }
-
-    const apdexKey = `apdex_${threshold}`;
-    const formatter = getFieldRenderer(apdexKey, {[apdexKey]: 'number'});
-    apdex = formatter(totals, {organization, location});
+    const miserableUsers = totals[`user_misery_${threshold}`];
+    const userMiseryScore = totals[`user_misery_prototype_${threshold}`];
+    const totalUsers = totals.count_unique_user;
+    userMisery = (
+      <UserMiseryPrototype
+        bars={40}
+        barHeight={30}
+        userMisery={userMiseryScore}
+        miseryLimit={threshold}
+        totalUsers={totalUsers}
+        miserableUsers={miserableUsers}
+      />
+    );
 
     const [vitalsPassed, vitalsTotal] = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce(
       ([passed, total], vs) => {
@@ -100,25 +93,6 @@ function UserStats({
 
   return (
     <React.Fragment>
-      <SectionHeading>
-        {t('Apdex Score')}
-        <QuestionTooltip
-          position="top"
-          title={t(
-            'Apdex is the ratio of both satisfactory and tolerable response time to all response times.'
-          )}
-          size="sm"
-        />
-      </SectionHeading>
-      <StatNumber>{apdex}</StatNumber>
-      <Link to={`/settings/${organization.slug}/performance/`}>
-        <SectionValue>
-          {threshold}ms {t('threshold')}
-        </SectionValue>
-      </Link>
-
-      <SidebarSpacer />
-
       <Feature features={['organizations:performance-vitals-overview']}>
         {({hasFeature}) => {
           if (vitalsPassRate !== null && hasFeature) {
@@ -177,7 +151,6 @@ function UserStats({
           }
         }}
       </Feature>
-
       <SectionHeading>
         {t('User Misery')}
         <QuestionTooltip
@@ -187,6 +160,7 @@ function UserStats({
         />
       </SectionHeading>
       {userMisery}
+      <SidebarSpacer />
     </React.Fragment>
   );
 }

@@ -70,6 +70,7 @@ class HeaderItem extends React.Component<Props> {
         <IconContainer {...textColorProps}>{icon}</IconContainer>
         <Content>
           <StyledContent>{children}</StyledContent>
+
           {settingsLink && (
             <SettingsIconLink to={settingsLink}>
               <IconSettings />

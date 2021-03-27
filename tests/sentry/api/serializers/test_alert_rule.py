@@ -45,10 +45,11 @@ class BaseAlertRuleSerializerTest:
             assert result["environment"] == alert_rule.snuba_query.environment.name
         else:
             assert result["environment"] is None
+
         if alert_rule.owner:
             assert result["owner"] == alert_rule.owner.get_actor_identifier()
         else:
-            assert alert_rule.owner is None
+            assert result["owner"] is None
 
     def create_issue_alert_rule(self, data):
         """data format
@@ -56,6 +57,7 @@ class BaseAlertRuleSerializerTest:
             "project": project
             "environment": environment
             "name": "My rule name",
+            "owner": actor id,
             "conditions": [],
             "actions": [],
             "actionMatch": "all"
@@ -78,6 +80,8 @@ class BaseAlertRuleSerializerTest:
             rule.data["frequency"] = data["frequency"]
         if data.get("date_added"):
             rule.date_added = data["date_added"]
+        if data.get("owner"):
+            rule.owner = data["owner"]
 
         rule.save()
         return rule

@@ -6,11 +6,11 @@ from sentry.testutils import APITestCase
 
 
 class UserEmailsTest(APITestCase):
+    endpoint = "sentry-api-0-user-ips"
+
     def setUp(self):
         super().setUp()
-        self.user = self.create_user(email="foo@example.com")
-        self.login_as(user=self.user)
-        self.url = "/api/0/users/me/ips/"
+        self.login_as(self.user)
 
     def test_simple(self):
         UserIP.objects.create(
@@ -28,8 +28,7 @@ class UserEmailsTest(APITestCase):
             last_seen=datetime(2013, 4, 10, 3, 29, 45, tzinfo=timezone.utc),
         )
 
-        response = self.client.get(self.url)
-        assert response.status_code == 200, response.content
+        response = self.get_valid_response("me")
         assert len(response.data) == 2
 
         assert response.data[0]["ipAddress"] == "127.0.0.1"

@@ -10,7 +10,7 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import {openModal} from 'app/actionCreators/modal';
+import {openModal, openReprocessEventModal} from 'app/actionCreators/modal';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import EventDataSection from 'app/components/events/eventDataSection';
@@ -22,13 +22,13 @@ import {t} from 'app/locale';
 import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Group, Organization, Project} from 'app/types';
 import {Image, ImageStatus} from 'app/types/debugImage';
 import {Event} from 'app/types/event';
+import {defined} from 'app/utils';
 
 import Status from './debugImage/status';
 import DebugImage from './debugImage';
-import DebugImageDetails, {modalCss} from './debugImageDetails';
 import Filter from './filter';
 import layout from './layout';
 import {
@@ -36,6 +36,7 @@ import {
   getFileName,
   IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT,
   normalizeId,
+  shouldSkipSection,
 } from './utils';
 
 const IMAGE_INFO_UNAVAILABLE = '-1';
@@ -54,6 +55,7 @@ type Props = DefaultProps &
     event: Event;
     organization: Organization;
     projectId: Project['id'];
+    groupId?: Group['id'];
   };
 
 type State = {
@@ -206,8 +208,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
     );
   }
 
-  openImageDetailsModal() {
-    const {location, organization, projectId} = this.props;
+  openImageDetailsModal = async () => {
+    const {filteredImages} = this.state;
+
+    if (!filteredImages.length) {
+      return;
+    }
+
+    const {location, organization, projectId, groupId, event} = this.props;
     const {query} = location;
 
     const {imageCodeId, imageDebugId} = query;
@@ -216,7 +224,6 @@ class DebugMeta extends React.PureComponent<Props, State> {
       return;
     }
 
-    const {filteredImages} = this.state;
     const image =
       imageCodeId !== IMAGE_INFO_UNAVAILABLE || imageDebugId !== IMAGE_INFO_UNAVAILABLE
         ? filteredImages.find(
@@ -224,13 +231,23 @@ class DebugMeta extends React.PureComponent<Props, State> {
           )
         : undefined;
 
+    const mod = await import(
+      /* webpackChunkName: "DebugImageDetails" */ 'app/components/events/interfaces/debugMeta-v2/debugImageDetails'
+    );
+
+    const {default: Modal, modalCss} = mod;
+
     openModal(
-      modalProps => (
-        <DebugImageDetails
-          {...modalProps}
+      deps => (
+        <Modal
+          {...deps}
           image={image}
           organization={organization}
           projectId={projectId}
+          event={event}
+          onReprocessEvent={
+            defined(groupId) ? this.handleReprocessEvent(groupId) : undefined
+          }
         />
       ),
       {
@@ -238,7 +255,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         onClose: this.handleCloseImageDetailsModal,
       }
     );
-  }
+  };
 
   getPanelBodyHeight() {
     const panelTableHeight = this.panelTableRef?.current?.offsetHeight;
@@ -267,7 +284,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
     // There are a bunch of images in debug_meta that are not relevant to this
     // component. Filter those out to reduce the noise. Most importantly, this
     // includes proguard images, which are rendered separately.
-    const relevantImages = images.filter(this.isValidImage).map(releventImage => {
+
+    const relevantImages = images.filter(this.isValidImage);
+
+    if (!relevantImages.length) {
+      return;
+    }
+
+    const formattedRelevantImages = relevantImages.map(releventImage => {
       const {debug_status, unwind_status} = releventImage as Image;
       return {
         ...releventImage,
@@ -278,13 +302,13 @@ class DebugMeta extends React.PureComponent<Props, State> {
     // Sort images by their start address. We assume that images have
     // non-overlapping ranges. Each address is given as hex string (e.g.
     // "0xbeef").
-    relevantImages.sort(
+    formattedRelevantImages.sort(
       (a, b) => parseAddress(a.image_addr) - parseAddress(b.image_addr)
     );
 
     const unusedImages: Images = [];
 
-    const usedImages = relevantImages.filter(image => {
+    const usedImages = formattedRelevantImages.filter(image => {
       if (image.debug_status === ImageStatus.UNUSED) {
         unusedImages.push(image as Images[0]);
         return false;
@@ -393,6 +417,15 @@ class DebugMeta extends React.PureComponent<Props, State> {
     });
   };
 
+  handleReprocessEvent = (groupId: Group['id']) => () => {
+    const {organization} = this.props;
+    openReprocessEventModal({
+      organization,
+      groupId,
+      onClose: this.openImageDetailsModal,
+    });
+  };
+
   renderRow = ({index, key, parent, style}: ListRowProps) => {
     const {filteredImagesByFilter: images} = this.state;
 
@@ -483,8 +516,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
       searchTerm,
       filterOptions,
       scrollbarWidth,
-      filteredImagesByFilter: images,
+      filteredImagesByFilter: filteredImages,
     } = this.state;
+    const {data} = this.props;
+    const {images} = data;
+
+    if (shouldSkipSection(filteredImages, images)) {
+      return null;
+    }
 
     const displayFilter = (Object.values(filterOptions ?? {})[0] ?? []).length > 1;
 
@@ -522,7 +561,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         isCentered
       >
         <StyledPanelTable
-          isEmpty={!images.length}
+          isEmpty={!filteredImages.length}
           scrollbarWidth={scrollbarWidth}
           headers={[t('Status'), t('Image'), t('Processing'), t('Details'), '']}
           {...this.getEmptyMessage()}
@@ -538,12 +577,6 @@ export default withRouter(DebugMeta);
 
 const StyledEventDataSection = styled(EventDataSection)`
   padding-bottom: ${space(4)};
-
-  > * :nth-child(1) {
-    > *:nth-child(2) {
-      min-width: calc(100% - 45%);
-    }
-  }
 
   /* to increase specificity */
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
@@ -600,15 +633,28 @@ const StyledList = styled(List)<{height: number}>`
   outline: none;
 `;
 
-// Search
 const Search = styled('div')`
-  display: flex;
-  justify-content: flex-end;
+  display: grid;
+  grid-gap: ${space(2)};
   width: 100%;
   margin-top: ${space(1)};
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
     margin-top: 0;
+    grid-gap: 0;
+    grid-template-columns: ${p =>
+      p.children && React.Children.toArray(p.children).length === 1
+        ? '1fr'
+        : 'max-content 1fr'};
+    justify-content: flex-end;
+  }
+
+  @media (min-width: ${props => props.theme.breakpoints[1]}) {
+    width: 400px;
+  }
+
+  @media (min-width: ${props => props.theme.breakpoints[3]}) {
+    width: 600px;
   }
 `;
 
@@ -626,17 +672,16 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
     display: flex;
     align-items: center;
   }
-  ${p =>
-    p.blendWithFilter &&
-    `
-      .search-input,
-      .search-input:focus {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-      }
-    `}
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    max-width: 600px;
+    ${p =>
+      p.blendWithFilter &&
+      `
+        .search-input,
+        .search-input:focus {
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+        }
+      `}
   }
 `;

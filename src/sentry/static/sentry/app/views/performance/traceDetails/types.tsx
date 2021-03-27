@@ -1,20 +1,28 @@
 export type TraceInfo = {
   /**
-   * The total number projects in the trace.
+   * The projects in the trace with an error that matched the user condition.
    */
-  totalProjects: number;
+  relevantProjectsWithErrors: Set<string>;
   /**
-   * The number of projects in the trace that matched the user condition.
+   * The projects in the trace wth a transaction that matched the user condition.
    */
-  relevantProjects: number;
+  relevantProjectsWithTransactions: Set<string>;
   /**
-   * The total number transactions in the trace.
+   * The errors in the trace that matched the user conditions.
    */
-  totalTransactions: number;
+  relevantErrors: Set<string>;
   /**
-   * The number of transactions in the trace that matched the user condition.
+   * The transactions in the trace that matched the user conditions.
    */
-  relevantTransactions: number;
+  relevantTransactions: Set<string>;
+  /**
+   * The errors in the trace.
+   */
+  errors: Set<string>;
+  /**
+   * The transactions in the trace.
+   */
+  transactions: Set<string>;
   /**
    * The very earliest start timestamp in the trace.
    */
@@ -24,7 +32,7 @@ export type TraceInfo = {
    */
   endTimestamp: number;
   /**
-   *
+   * The maximum generation in the trace.
    */
   maxGeneration: number;
 };

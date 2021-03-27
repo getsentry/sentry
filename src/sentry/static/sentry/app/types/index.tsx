@@ -198,6 +198,7 @@ export type SharedViewOrganization = {
 export type AvatarProject = {
   slug: string;
   platform?: PlatformKey;
+  id?: string | number;
 };
 
 /**
@@ -685,6 +686,12 @@ export interface Config {
   demoMode: boolean;
 }
 
+export enum DataCategory {
+  ERRORS = 'errors',
+  TRANSACTIONS = 'transactions',
+  ATTACHMENTS = 'attachments',
+}
+
 export type EventOrGroupType =
   | 'error'
   | 'csp'
@@ -1151,7 +1158,6 @@ export type IntegrationProvider = BaseIntegrationProvider & {
     source_url: string;
     aspects: IntegrationAspects;
   };
-  hasStacktraceLinking?: boolean; // TODO: Remove when we GA the feature
 };
 
 export type IntegrationFeature = {
@@ -1982,8 +1988,13 @@ export type SessionApiResponse = {
   query: string;
   intervals: string[];
   groups: {
-    by: Record<string, string>;
+    by: Record<string, string | number>;
     totals: Record<string, number>;
     series: Record<string, number[]>;
   }[];
 };
+
+export enum HealthStatsPeriodOption {
+  AUTO = 'auto',
+  TWENTY_FOUR_HOURS = '24h',
+}

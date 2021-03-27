@@ -21,6 +21,7 @@ export type Incident = {
   title: string;
   hasSeen: boolean;
   alertRule: IncidentRule;
+  activities?: ActivityType[];
 };
 
 export type IncidentStats = {

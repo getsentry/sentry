@@ -20,20 +20,20 @@ class ExternalTeamDetailsTest(APITestCase):
         )
 
     def test_basic_delete(self):
-        with self.feature({"organizations:external-team-associations": True}):
+        with self.feature({"organizations:import-codeowners": True}):
             resp = self.client.delete(self.url)
         assert resp.status_code == 204
         assert not ExternalTeam.objects.filter(id=str(self.external_team.id)).exists()
 
     def test_basic_update(self):
-        with self.feature({"organizations:external-team-associations": True}):
+        with self.feature({"organizations:import-codeowners": True}):
             resp = self.client.put(self.url, {"externalName": "@getsentry/growth"})
         assert resp.status_code == 200
         assert resp.data["id"] == str(self.external_team.id)
         assert resp.data["externalName"] == "@getsentry/growth"
 
     def test_invalid_provider_update(self):
-        with self.feature({"organizations:external-team-associations": True}):
+        with self.feature({"organizations:import-codeowners": True}):
             resp = self.client.put(self.url, {"provider": "git"})
         assert resp.status_code == 400
         assert resp.data == {"provider": ['"git" is not a valid choice.']}

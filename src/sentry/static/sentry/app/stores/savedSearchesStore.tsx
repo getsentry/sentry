@@ -15,7 +15,8 @@ type SavedSearchesStoreInterface = {
   get: () => State;
   getFilteredSearches: (type: SavedSearchType, id?: string) => SavedSearch[];
   updateExistingSearch: (id: string, changes: Partial<SavedSearch>) => SavedSearch;
-  findByQuery: (query: string) => SavedSearch | undefined;
+  findByQuery: (query: string, sort: string) => SavedSearch | undefined;
+  onPinSearch: (type: SavedSearchType, query: string, sort: string) => void;
 };
 
 const savedSearchesStoreConfig: Reflux.StoreDefinition & SavedSearchesStoreInterface = {
@@ -114,8 +115,10 @@ const savedSearchesStoreConfig: Reflux.StoreDefinition & SavedSearchesStoreInter
   /**
    * Find saved search by query string
    */
-  findByQuery(query) {
-    return this.state.savedSearches.find(savedSearch => query === savedSearch.query);
+  findByQuery(query, sort) {
+    return this.state.savedSearches.find(
+      savedSearch => query === savedSearch.query && sort === savedSearch.sort
+    );
   },
 
   /**
@@ -174,24 +177,25 @@ const savedSearchesStoreConfig: Reflux.StoreDefinition & SavedSearchesStoreInter
     this.trigger(this.state);
   },
 
-  onPinSearch(type, query) {
-    const existingSearch = this.findByQuery(query);
+  onPinSearch(type, query, sort) {
+    const existingSearch = this.findByQuery(query, sort);
 
     if (existingSearch) {
       this.updateExistingSearch(existingSearch.id, {isPinned: true});
     }
 
-    const newPinnedSearch =
-      (!existingSearch && [
-        {
-          id: null,
-          name: 'My Pinned Search',
-          type,
-          query,
-          isPinned: true,
-        },
-      ]) ||
-      [];
+    const newPinnedSearch = !existingSearch
+      ? [
+          {
+            id: null,
+            name: 'My Pinned Search',
+            type,
+            query,
+            sort,
+            isPinned: true,
+          },
+        ]
+      : [];
 
     this.state = {
       ...this.state,
@@ -207,7 +211,7 @@ const savedSearchesStoreConfig: Reflux.StoreDefinition & SavedSearchesStoreInter
   },
 
   onPinSearchSuccess(resp) {
-    const existingSearch = this.findByQuery(resp.query);
+    const existingSearch = this.findByQuery(resp.query, resp.sort);
 
     if (existingSearch) {
       this.updateExistingSearch(existingSearch.id, resp);

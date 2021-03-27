@@ -8,10 +8,7 @@ import BaseChart from './baseChart';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
-export type AreaChartSeries = Series &
-  Omit<EChartOption.SeriesLine, 'data' | 'name' | 'lineStyle'> & {
-    lineStyle?: any; // TODO(ts): Fix when echarts type is updated so that EchartOption.LineStyle matches SeriesLine['lineStyle']
-  };
+export type AreaChartSeries = Series & Omit<EChartOption.SeriesLine, 'data' | 'name'>;
 
 type Props = Omit<ChartProps, 'series'> & {
   stacked?: boolean;

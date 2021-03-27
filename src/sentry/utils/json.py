@@ -50,15 +50,12 @@ def better_default_encoder(o):
 
 class JSONEncoderForHTML(JSONEncoder):
     # Our variant of JSONEncoderForHTML that also accounts for apostrophes
-    # See: https://github.com/simplejson/simplejson/blob/master/simplejson/encoder.py#L380-L386
+    # See: https://github.com/simplejson/simplejson/blob/master/simplejson/encoder.py
     def encode(self, o):
         # Override JSONEncoder.encode because it has hacks for
         # performance that make things more complicated.
         chunks = self.iterencode(o, True)
-        if self.ensure_ascii:
-            return "".join(chunks)
-        else:
-            return "".join(chunks)
+        return "".join(chunks)
 
     def iterencode(self, o, _one_shot=False):
         chunks = super().iterencode(o, _one_shot)
@@ -71,26 +68,18 @@ class JSONEncoderForHTML(JSONEncoder):
 
 
 _default_encoder = JSONEncoder(
+    # upstream: (', ', ': ')
+    # Ours eliminates whitespace.
     separators=(",", ":"),
+    # upstream: False
+    # True makes nan, inf, -inf serialize as null in compliance with ECMA-262.
     ignore_nan=True,
-    skipkeys=False,
-    ensure_ascii=True,
-    check_circular=True,
-    allow_nan=True,
-    indent=None,
-    encoding="utf-8",
     default=better_default_encoder,
 )
 
 _default_escaped_encoder = JSONEncoderForHTML(
     separators=(",", ":"),
     ignore_nan=True,
-    skipkeys=False,
-    ensure_ascii=True,
-    check_circular=True,
-    allow_nan=True,
-    indent=None,
-    encoding="utf-8",
     default=better_default_encoder,
 )
 

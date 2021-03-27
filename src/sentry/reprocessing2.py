@@ -102,6 +102,11 @@ _REDIS_SYNC_TTL = 3600 * 24
 # Note: Event attachments and group reports are migrated in save_event.
 GROUP_MODELS_TO_MIGRATE = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
 
+# If we were to move groupinbox to the new, empty group, inbox would show the
+# empty, unactionable group while it is reprocessing. Let post-process take
+# care of assigning GroupInbox like normally.
+GROUP_MODELS_TO_MIGRATE = tuple(x for x in GROUP_MODELS_TO_MIGRATE if x != models.GroupInbox)
+
 
 def _generate_unprocessed_event_node_id(project_id, event_id):
     return hashlib.md5(f"{project_id}:{event_id}:unprocessed".encode("utf-8")).hexdigest()
@@ -175,6 +180,9 @@ def reprocess_event(project_id, event_id, start_time):
     # Step 1: Fix up the event payload for reprocessing and put it in event
     # cache/event_processing_store
     set_path(data, "contexts", "reprocessing", "original_issue_id", value=event.group_id)
+    set_path(
+        data, "contexts", "reprocessing", "original_primary_hash", value=event.get_primary_hash()
+    )
     cache_key = event_processing_store.store(data)
 
     # Step 2: Copy attachments into attachment cache
@@ -203,6 +211,31 @@ def reprocess_event(project_id, event_id, start_time):
     preprocess_event_from_reprocessing(
         cache_key=cache_key, start_time=start_time, event_id=event_id
     )
+
+
+def delete_old_primary_hash(event):
+    """In case the primary hash changed during reprocessing, we need to tell
+    Snuba before reinserting the event. Snuba may then insert a tombstone row
+    depending on whether the primary_hash is part of the PK/sortkey or not.
+
+    Only when the primary_hash changed and is part of the sortkey, we need to
+    explicitly tombstone the old row.
+
+    If the primary_hash is not part of the PK/sortkey, or if the primary_hash
+    did not change, nothing needs to be done as ClickHouse's table merge will
+    merge the two rows together.
+    """
+
+    old_primary_hash = get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
+
+    if old_primary_hash is not None and old_primary_hash != event.get_primary_hash():
+        from sentry import eventstream
+
+        eventstream.tombstone_events_unsafe(
+            event.project_id,
+            [event.event_id],
+            old_primary_hash=old_primary_hash,
+        )
 
 
 def _copy_attachment_into_cache(attachment_id, attachment, file, cache_key, cache_timeout):
