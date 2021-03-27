@@ -57,7 +57,7 @@ symbolic==8.0.3
 toronado==0.1.0
 ua-parser==0.10.0
 unidiff==0.5.5
-urllib3==1.25.11
+urllib3==1.24.2
 uWSGI==2.0.19.1
 zstandard==0.14.1
 
