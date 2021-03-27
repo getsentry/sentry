@@ -96,7 +96,7 @@ def is_safe_hostname(hostname):
     return True
 
 
-# Mostly yanked from https://github.com/urllib3/urllib3/blob/1.25.11/src/urllib3/util/connection.py#L33
+# https://github.com/urllib3/urllib3/blob/1.25.11/src/urllib3/util/connection.py#L33
 def safe_create_connection(
     address,
     timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
