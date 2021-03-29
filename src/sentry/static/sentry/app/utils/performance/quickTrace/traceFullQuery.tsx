@@ -27,7 +27,7 @@ type TraceFullQueryChildrenProps<T> = BaseTraceChildrenProps &
      * The `event-trace` endpoint returns a full trace with the parent-child
      * relationships. It can be flattened into a `QuickTraceEvent` if necessary.
      */
-    trace: T | null;
+    traces: T | null;
   };
 
 type QueryProps<T> = Omit<TraceRequestProps, 'eventView'> &
@@ -50,7 +50,7 @@ function EmptyTrace<T>({children}: Pick<QueryProps<T>, 'children'>) {
       {children({
         isLoading: false,
         error: null,
-        trace: null,
+        traces: null,
         type: 'full',
       })}
     </React.Fragment>
@@ -86,7 +86,7 @@ function GenericTraceFullQuery<T>({
           // is 204. And we want the empty string, undefined and
           // null to be converted to null.
           // TODO(tonyx): update to return the entire array
-          trace: tableData || null,
+          traces: tableData || null,
           type: 'full',
           ...rest,
         })
