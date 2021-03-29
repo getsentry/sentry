@@ -310,9 +310,8 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
         const result = this.renderTransaction(trace, {
           ...acc,
-          // we assume the first item in the trace results is the main branch
-          // while all others are orphan branches
-          isOrphan: index > 0,
+          // if the root of a subtrace has a parent_span_idk, then it must be an orphan
+          isOrphan: trace.parent_span_id !== null,
           isLast: isLastTransaction,
           continuingDepths: !isLastTransaction && hasChildren ? [0] : [],
         });
