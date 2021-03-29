@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 
+from sentry import analytics
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ProjectCodeOwners
@@ -57,6 +58,14 @@ class ProjectCodeOwnersDetailsEndpoint(
         )
         if serializer.is_valid():
             updated_codeowners = serializer.save()
+
+            analytics.record(
+                "codeowners.updated",
+                user_id=request.user.id if request.user and request.user.id else None,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                codeowners_id=updated_codeowners.id,
+            )
 
             return Response(serialize(updated_codeowners, request.user), status=status.HTTP_200_OK)
 
