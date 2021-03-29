@@ -155,9 +155,10 @@ const InnerPanel = styled(Panel)`
 
 const InnerPanelHeader = styled(PanelHeader)`
   text-transform: none;
-  font-size 16px;
-  font-weight 400;
+  font-size: 16px;
+  font-weight: 400;
 `;
+
 const InnerPanelBody = styled(PanelBody)`
   height: auto;
 `;
