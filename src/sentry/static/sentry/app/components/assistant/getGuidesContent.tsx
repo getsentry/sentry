@@ -285,7 +285,9 @@ function getDemoModeGuides(): GuidesContent {
         {
           title: t('Exception'),
           target: 'exception',
-          description: t(`Source code right in the stack trace, so you don’t need to find it yourself.`),
+          description: t(
+            `Source code right in the stack trace, so you don’t need to find it yourself.`
+          ),
         },
         {
           title: t('Tags'),
@@ -317,7 +319,9 @@ function getDemoModeGuides(): GuidesContent {
         {
           title: t('Release'),
           target: 'release_version',
-          description: t(`Click here to easily identify new issues, regressions, and track the health every release.`),
+          description: t(
+            `Click here to easily identify new issues, regressions, and track the health every release.`
+          ),
         },
       ],
     },
@@ -335,9 +339,7 @@ function getDemoModeGuides(): GuidesContent {
         {
           title: t('Discover'),
           target: 'release_issues_open_in_discover',
-          description: t(
-            `Aalyze these errors by URL, geography, device, browser, etc.`
-          ),
+          description: t(`Aalyze these errors by URL, geography, device, browser, etc.`),
         },
         {
           title: t('Discover'),
@@ -375,7 +377,9 @@ function getDemoModeGuides(): GuidesContent {
         {
           title: t('Columns'),
           target: 'columns_header_button',
-          description: t(`There's a whole lot more to... _discover_. View all the query conditions.`),
+          description: t(
+            `There's a whole lot more to... _discover_. View all the query conditions.`
+          ),
         },
       ],
     },
@@ -386,7 +390,9 @@ function getDemoModeGuides(): GuidesContent {
         {
           title: t('Span Tree'),
           target: 'span_tree',
-          description: t(`Expand the spans to see span details from start date, end date to the operation.`),
+          description: t(
+            `Expand the spans to see span details from start date, end date to the operation.`
+          ),
         },
         {
           title: t('Breadcrumbs'),
