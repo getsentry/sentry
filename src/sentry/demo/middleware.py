@@ -42,11 +42,10 @@ class DemoMiddleware:
             return
 
         # don't want people to see the login page in demo mode
-        if (
-            path == reverse("sentry-auth-organization", kwargs=view_kwargs)
-            and disable_login
-            and method == "GET"
-        ):
+        org_login_path = reverse(
+            "sentry-auth-organization", args=[view_kwargs["organization_slug"]]
+        )
+        if path == org_login_path and disable_login and method == "GET":
             return HttpResponseRedirect(login_redirect_route)
 
         # automatically log in logged out users when they land
