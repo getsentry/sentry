@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'app/actionCreators/modal';
@@ -26,6 +27,7 @@ import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
+import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 import {getExpandedResults, pushEventViewToLocation} from '../utils';
@@ -127,8 +129,16 @@ class TableView extends React.Component<TableViewProps> {
       };
 
       return [
-        <Tooltip key={`eventlink${rowIndex}`} title={t('Open Stack')}>
-          <Link to={target} data-test-id="open-stack">
+        <Tooltip key={`eventlink${rowIndex}`} title={t('Open Group')}>
+          <Link
+            to={target}
+            data-test-id="open-group"
+            onClick={() => {
+              if (nextView.isEqualTo(eventView)) {
+                Sentry.captureException(new Error('Failed to drilldown'));
+              }
+            }}
+          >
             <StyledIcon size="sm" />
           </Link>
         </Tooltip>,
@@ -233,6 +243,24 @@ class TableView extends React.Component<TableViewProps> {
           </StyledLink>
         </Tooltip>
       );
+    } else if (columnKey === 'trace') {
+      const dateSelection = eventView.normalizeDateSelection(location);
+      if (dataRow.trace) {
+        const target = getTraceDetailsUrl(
+          organization,
+          String(dataRow.trace),
+          dateSelection,
+          {}
+        );
+
+        cell = (
+          <Tooltip title={t('View Trace')}>
+            <StyledLink data-test-id="view-trace" to={target}>
+              {cell}
+            </StyledLink>
+          </Tooltip>
+        );
+      }
     }
 
     return (

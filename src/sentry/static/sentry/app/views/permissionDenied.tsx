@@ -44,7 +44,9 @@ class PermissionDenied extends React.Component<Props> {
               `Your role does not have the necessary permissions to access this
                resource, please read more about [link:organizational roles]`,
               {
-                link: <ExternalLink href="https://docs.sentry.io/learn/membership/" />,
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/accounts/membership/" />
+                ),
               }
             )}
           />

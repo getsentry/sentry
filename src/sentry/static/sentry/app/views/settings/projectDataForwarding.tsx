@@ -59,7 +59,7 @@ class DataForwardingStats extends AsyncComponent<StatProps, StatState> {
 
     return (
       <Panel>
-        <SentryDocumentTitle title={t('Data Forwarding')} objSlug={projectId} />
+        <SentryDocumentTitle title={t('Data Forwarding')} projectSlug={projectId} />
         <PanelHeader>{t('Forwarded events in the last 30 days (by day)')}</PanelHeader>
         <PanelBody withPadding>
           {forwardedAny ? (
@@ -155,7 +155,7 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
                 more about this functionality in our [link:documentation].`,
                   {
                     link: (
-                      <ExternalLink href="https://docs.sentry.io/learn/data-forwarding/" />
+                      <ExternalLink href="https://docs.sentry.io/product/data-management-settings/data-forwarding/" />
                     ),
                   }
                 )}

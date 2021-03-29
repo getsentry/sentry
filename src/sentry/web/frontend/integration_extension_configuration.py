@@ -73,9 +73,7 @@ class IntegrationExtensionConfigurationView(BaseView):
                         )
 
         # if anything before fails, we give up and send them to the link page where we can display errors
-        return self.redirect(
-            "/extensions/{}/link/?{}".format(self.provider, urlencode(request.GET.dict()))
-        )
+        return self.redirect(f"/extensions/{self.provider}/link/?{urlencode(request.GET.dict())}")
 
     def init_pipeline(self, request, organization, params):
         pipeline = ExternalIntegrationPipeline(

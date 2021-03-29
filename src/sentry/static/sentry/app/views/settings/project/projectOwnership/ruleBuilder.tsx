@@ -62,8 +62,8 @@ class RuleBuilder extends React.Component<Props, State> {
     }));
   };
 
-  handleTypeChange = (val: string) => {
-    this.setState({type: val});
+  handleTypeChange = (val: string | number | boolean) => {
+    this.setState({type: val as string}); // TODO(ts): Add select value type as generic to select controls
     this.checkIsValid();
   };
 
@@ -231,7 +231,7 @@ const BuilderBar = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const BuilderSelect = styled(SelectField)`
+const BuilderSelect = styled(SelectField)<SelectField['props']>`
   margin-right: ${space(1.5)};
   width: 50px;
   flex-shrink: 0;

@@ -1,4 +1,5 @@
 from pytz import utc
+import pytest
 
 from django.core.urlresolvers import reverse
 
@@ -402,20 +403,57 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.store_event(data, project_id=project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
+
+        # should only show 1 event of type default
         query = {"field": ["project", "issue"], "query": "has:issue", "statsPeriod": "14d"}
         response = self.do_request(query, features=features)
-
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["issue"] == event.group.qualified_short_id
 
-        query = {"field": ["project", "issue"], "query": "!has:issue", "statsPeriod": "14d"}
+        # should only show 1 event of type default
+        query = {
+            "field": ["project", "issue"],
+            "query": "event.type:default has:issue",
+            "statsPeriod": "14d",
+        }
         response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == event.group.qualified_short_id
 
+        # should show no results because no the default event has an issue
+        query = {
+            "field": ["project", "issue"],
+            "query": "event.type:default !has:issue",
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
+        # should show no results because no transactions have issues
+        query = {
+            "field": ["project", "issue"],
+            "query": "event.type:transaction has:issue",
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
+        # should only show 1 event of type transaction since they dont have issues
+        query = {
+            "field": ["project", "issue"],
+            "query": "event.type:transaction !has:issue",
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["issue"] == "unknown"
 
+    @pytest.mark.skip("Cannot look up group_id of transaction events")
     def test_unknown_issue(self):
         project = self.create_project()
         event = self.store_event(
@@ -823,7 +861,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/user_misery/horribilis/{idx}"
-            data["user"] = {"email": "{}@example.com".format(event[0])}
+            data["user"] = {"email": f"{event[0]}@example.com"}
             self.store_event(data, project_id=project.id)
         query = {"field": ["user_misery(300)"], "query": "event.type:transaction"}
         response = self.do_request(query)
@@ -832,6 +870,35 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         assert data[0]["user_misery_300"] == 2
+
+    def test_user_misery_prototype_alias_field(self):
+        project = self.create_project()
+
+        events = [
+            ("one", 300),
+            ("one", 300),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/user_misery_prototype/{idx}"
+            data["user"] = {"email": f"{event[0]}@example.com"}
+            self.store_event(data, project_id=project.id)
+        query = {"field": ["user_misery_prototype(300)"], "query": "event.type:transaction"}
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert abs(data[0]["user_misery_prototype_300"] - 0.0653) < 0.0001
 
     def test_aggregation(self):
         project = self.create_project()
@@ -1874,6 +1941,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "percentile(transaction.duration, 0.99)",
                 "apdex(300)",
                 "user_misery(300)",
+                "user_misery_prototype(300)",
                 "failure_rate()",
             ],
             "query": "event.type:transaction",
@@ -1890,6 +1958,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["apdex_300"] == "number"
         assert meta["failure_rate"] == "percentage"
         assert meta["user_misery_300"] == "number"
+        assert meta["user_misery_prototype_300"] == "number"
 
         data = response.data["data"]
         assert len(data) == 1
@@ -1901,6 +1970,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["percentile_transaction_duration_0_99"] == 5000
         assert data[0]["apdex_300"] == 0.0
         assert data[0]["user_misery_300"] == 1
+        assert data[0]["user_misery_prototype_300"] == 0.058
         assert data[0]["failure_rate"] == 0.5
 
         query = {
@@ -1923,6 +1993,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "min(transaction.duration)",
                 "max(transaction.duration)",
                 "avg(transaction.duration)",
+                "stddev(transaction.duration)",
+                "var(transaction.duration)",
                 "sum(transaction.duration)",
             ],
             "query": "event.type:transaction",
@@ -1937,7 +2009,33 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["min_transaction_duration"] == 5000
         assert data[0]["max_transaction_duration"] == 5000
         assert data[0]["avg_transaction_duration"] == 5000
+        assert data[0]["stddev_transaction_duration"] == 0.0
+        assert data[0]["var_transaction_duration"] == 0.0
         assert data[0]["sum_transaction_duration"] == 10000
+
+    def test_null_user_misery_prototype_returns_zero(self):
+        project = self.create_project()
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=2),
+            start_timestamp=before_now(minutes=2, seconds=5),
+        )
+        data["user"] = None
+        data["transaction"] = "/no_users/1"
+        self.store_event(data, project_id=project.id)
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+
+        query = {
+            "field": ["user_misery_prototype(300)"],
+            "query": "event.type:transaction",
+        }
+
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta["user_misery_prototype_300"] == "number"
+        data = response.data["data"]
+        assert data[0]["user_misery_prototype_300"] == 0
 
     def test_all_aggregates_in_query(self):
         project = self.create_project()
@@ -1981,7 +2079,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["percentile_transaction_duration_0_99"] == 5000
 
         query = {
-            "field": ["event.type", "apdex(300)", "user_misery(300)", "failure_rate()"],
+            "field": [
+                "event.type",
+                "apdex(300)",
+                "user_misery(300)",
+                "user_misery_prototype(300)",
+                "failure_rate()",
+            ],
             "query": "event.type:transaction apdex(300):>-1.0 failure_rate():>0.25",
         }
         response = self.do_request(query, features=features)
@@ -1990,6 +2094,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 1
         assert data[0]["apdex_300"] == 0.0
         assert data[0]["user_misery_300"] == 1
+        assert data[0]["user_misery_prototype_300"] == 0.058
         assert data[0]["failure_rate"] == 0.5
 
         query = {
@@ -2020,8 +2125,20 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "max(transaction.duration)",
                 "avg(transaction.duration)",
                 "sum(transaction.duration)",
+                "stddev(transaction.duration)",
+                "var(transaction.duration)",
             ],
-            "query": "event.type:transaction min(transaction.duration):>1000 max(transaction.duration):>1000 avg(transaction.duration):>1000 sum(transaction.duration):>1000",
+            "query": " ".join(
+                [
+                    "event.type:transaction",
+                    "min(transaction.duration):>1000",
+                    "max(transaction.duration):>1000",
+                    "avg(transaction.duration):>1000",
+                    "sum(transaction.duration):>1000",
+                    "stddev(transaction.duration):>=0.0",
+                    "var(transaction.duration):>=0.0",
+                ]
+            ),
         }
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
@@ -2030,6 +2147,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["min_transaction_duration"] == 5000
         assert data[0]["max_transaction_duration"] == 5000
         assert data[0]["avg_transaction_duration"] == 5000
+        assert data[0]["stddev_transaction_duration"] == 0.0
+        assert data[0]["var_transaction_duration"] == 0.0
         assert data[0]["sum_transaction_duration"] == 10000
 
         query = {
@@ -2195,7 +2314,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         query = {
             "field": ["id", "last_seen()"],
-            "query": "last_seen():>{}".format(iso_format(before_now(days=30))),
+            "query": f"last_seen():>{iso_format(before_now(days=30))}",
         }
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         response = self.do_request(query, features=features)
@@ -2520,7 +2639,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def test_count_at_least_query(self):
         self.store_event(self.transaction_data, self.project.id)
 
-        response = self.do_request({"field": "count_at_least(measurements.fcp, {})".format(0)})
+        response = self.do_request({"field": "count_at_least(measurements.fcp, 0)"})
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["count_at_least_measurements_fcp_0"] == 1
@@ -2574,6 +2693,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.store_event(self.transaction_data, self.project.id)
 
         # should try all the potential aggregates
+        # Skipped tests for stddev and var since sampling one data point
+        # results in nan.
         query = {
             "field": [
                 "percentile(measurements.fcp, 0.5)",
@@ -2637,17 +2758,15 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         # equality condition
         # We use json dumps here to ensure precision when converting from float to str
         # This is necessary because equality on floating point values need to be precise
-        self.assert_measurement_condition_with_results(
-            "measurements.fcp:{}".format(json.dumps(fcp))
-        )
+        self.assert_measurement_condition_with_results(f"measurements.fcp:{json.dumps(fcp)}")
 
         # greater than condition
-        self.assert_measurement_condition_with_results("measurements.fcp:>{}".format(fcp - 1))
-        self.assert_measurement_condition_without_results("measurements.fcp:>{}".format(fcp + 1))
+        self.assert_measurement_condition_with_results(f"measurements.fcp:>{fcp - 1}")
+        self.assert_measurement_condition_without_results(f"measurements.fcp:>{fcp + 1}")
 
         # less than condition
-        self.assert_measurement_condition_with_results("measurements.fcp:<{}".format(fcp + 1))
-        self.assert_measurement_condition_without_results("measurements.fcp:<{}".format(fcp - 1))
+        self.assert_measurement_condition_with_results(f"measurements.fcp:<{fcp + 1}")
+        self.assert_measurement_condition_without_results(f"measurements.fcp:<{fcp - 1}")
 
         # has condition
         self.assert_measurement_condition_with_results("has:measurements.fcp")
@@ -2667,16 +2786,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         for function in functions:
             self.assert_measurement_condition_with_results(
-                "{}:>{}".format(function, fcp - 1), field=[function]
+                f"{function}:>{fcp - 1}", field=[function]
             )
             self.assert_measurement_condition_without_results(
-                "{}:>{}".format(function, fcp + 1), field=[function]
+                f"{function}:>{fcp + 1}", field=[function]
             )
             self.assert_measurement_condition_with_results(
-                "{}:<{}".format(function, fcp + 1), field=[function]
+                f"{function}:<{fcp + 1}", field=[function]
             )
             self.assert_measurement_condition_without_results(
-                "{}:<{}".format(function, fcp - 1), field=[function]
+                f"{function}:<{fcp - 1}", field=[function]
             )
 
         count_unique = "count_unique(measurements.fcp)"

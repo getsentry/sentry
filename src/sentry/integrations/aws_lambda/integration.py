@@ -31,10 +31,9 @@ from .utils import (
     enable_single_lambda,
     disable_single_lambda,
     get_dsn_for_project,
-    get_invalid_layer_name,
     wrap_lambda_updater,
     ALL_AWS_REGIONS,
-    INVALID_LAYER_TEXT,
+    get_sentry_err_message,
 )
 
 logger = logging.getLogger("sentry.integrations.aws_lambda")
@@ -92,6 +91,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
     def serialize_lambda_function(self, function):
         layers = get_function_layer_arns(function)
         layer_arn = get_latest_layer_for_function(function)
+        function_runtime = function["Runtime"]
 
         # find our sentry layer
         sentry_layer_index = get_index_of_sentry_layer(layers, layer_arn)
@@ -103,13 +103,21 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             latest_version = get_latest_layer_version(function)
             current_version = get_version_of_arn(sentry_layer)
             out_of_date = latest_version > current_version
+
+            if function_runtime.startswith("python"):
+                # If env variable "SENTRY_INITIAL_HANDLER" is not present, then
+                # it is should be assumed that this function is not enabled!
+                env_variables = function.get("Environment", {}).get("Variables", {})
+                if "SENTRY_INITIAL_HANDLER" not in env_variables:
+                    current_version = -1
+                    out_of_date = False
         else:
             current_version = -1
             out_of_date = False
 
         return {
             "name": function["FunctionName"],
-            "runtime": function["Runtime"],
+            "runtime": function_runtime,
             "version": current_version,
             "outOfDate": out_of_date,
             "enabled": current_version > -1,
@@ -295,7 +303,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",
                     extra={"error": str(e)},
                 )
-                return render_response(_("Unknown errror"))
+                return render_response(_("Unknown error"))
 
             # if no error, continue
             return pipeline.next_step()
@@ -380,10 +388,8 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                 else:
                     # need to make sure we catch any error to continue to the next function
                     err_message = str(e)
-                    invalid_layer = get_invalid_layer_name(err_message)
-                    if invalid_layer:
-                        err_message = _(INVALID_LAYER_TEXT) % invalid_layer
-                    else:
+                    is_custom_err, err_message = get_sentry_err_message(err_message)
+                    if not is_custom_err:
                         capture_exception(e)
                         err_message = _("Unknown Error")
                     failures.append({"name": function["FunctionName"], "error": err_message})

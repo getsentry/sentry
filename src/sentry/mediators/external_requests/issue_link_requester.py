@@ -64,7 +64,7 @@ class IssueLinkRequester(Mediator):
                 self._build_url(),
                 self.sentry_app,
                 self.install.organization_id,
-                "external_issue.{}".format(action_to_past_tense[self.action]),
+                f"external_issue.{action_to_past_tense[self.action]}",
                 headers=self._build_headers(),
                 method="POST",
                 data=self.body,

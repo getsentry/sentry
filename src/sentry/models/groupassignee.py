@@ -239,6 +239,6 @@ class GroupAssignee(Model):
         raise NotImplementedError("Unknown Assignee")
 
     def assigned_actor(self):
-        from sentry.api.fields.actor import Actor
+        from sentry.models import ActorTuple
 
-        return Actor.from_actor_identifier(self.assigned_actor_id())
+        return ActorTuple.from_actor_identifier(self.assigned_actor_id())

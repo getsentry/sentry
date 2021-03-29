@@ -3,7 +3,7 @@ import React from 'react';
 import RepoLabel from 'app/components/repoLabel';
 
 export default {
-  title: 'Core/Badges+Tags/RepoLabel',
+  title: 'Core/Tags/RepoLabel',
 };
 
 export const Default = () => {

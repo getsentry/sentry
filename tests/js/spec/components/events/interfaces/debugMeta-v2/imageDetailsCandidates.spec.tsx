@@ -15,6 +15,8 @@ describe('Debug Meta - Image Details Candidates', function () {
   // @ts-expect-error
   const organization = TestStubs.Organization();
   // @ts-expect-error
+  const event = TestStubs.Event();
+  // @ts-expect-error
   const eventEntryDebugMeta = TestStubs.EventEntryDebugMeta();
   const {data} = eventEntryDebugMeta;
   const {images} = data;
@@ -44,6 +46,7 @@ describe('Debug Meta - Image Details Candidates', function () {
           image={debugImage}
           organization={organization}
           projectId={projectId}
+          event={event}
         />
       ),
       {
@@ -58,9 +61,8 @@ describe('Debug Meta - Image Details Candidates', function () {
   });
 
   it('Image Details Modal is open', () => {
-    expect(wrapper.find('[data-test-id="modal-title"]').text()).toEqual(
-      getFileName(debugImage.code_file)
-    );
+    const fileName = wrapper.find('Title FileName');
+    expect(fileName.text()).toEqual(getFileName(debugImage.code_file));
   });
 
   it('Image Candidates correctly sorted', () => {
@@ -70,9 +72,9 @@ describe('Debug Meta - Image Details Candidates', function () {
     // The UI shall sort the candidates by status. However, this sorting is not alphabetical but in the following order:
     // Permissions -> Failed -> Ok -> Deleted (previous Ok) -> Unapplied -> Not Found
     const statusColumns = candidates
-      .find('Status')
+      .find('StatusTag')
       .map(statusColumn => statusColumn.text());
-    expect(statusColumns).toEqual(['Failed', 'Failed', 'Failed', 'Deleted', 'Not Found']);
+    expect(statusColumns).toEqual(['Failed', 'Failed', 'Failed', 'Deleted']);
 
     const debugFileColumn = candidates.find('DebugFileColumn');
 
@@ -81,7 +83,7 @@ describe('Debug Meta - Image Details Candidates', function () {
     const sourceNames = debugFileColumn
       .find('SourceName')
       .map(sourceName => sourceName.text());
-    expect(sourceNames).toEqual(['America', 'Austria', 'Belgium', 'Sentry', 'Microsoft']);
+    expect(sourceNames).toEqual(['America', 'Austria', 'Belgium', 'Sentry']);
 
     // Check location order.
     // The UI shall sort the candidates by source location (alphabetical)

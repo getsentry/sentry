@@ -242,6 +242,7 @@ class EventView {
   yAxis: string | undefined;
   display: string | undefined;
   interval: string | undefined;
+  expired?: boolean;
   createdBy: User | undefined;
   additionalConditions: QueryResults; // This allows views to always add additional conditins to the query to get specific data. It should not show up in the UI unless explicitly called.
 
@@ -259,6 +260,7 @@ class EventView {
     yAxis: string | undefined;
     display: string | undefined;
     interval?: string;
+    expired?: boolean;
     createdBy: User | undefined;
     additionalConditions: QueryResults;
   }) {
@@ -291,6 +293,7 @@ class EventView {
     this.display = props.display;
     this.interval = props.interval;
     this.createdBy = props.createdBy;
+    this.expired = props.expired;
     this.additionalConditions = props.additionalConditions ?? new QueryResults([]);
   }
 
@@ -378,6 +381,7 @@ class EventView {
       yAxis: saved.yAxis,
       display: saved.display,
       createdBy: saved.createdBy,
+      expired: saved.expired,
       additionalConditions: new QueryResults([]),
     });
   }
@@ -594,6 +598,7 @@ class EventView {
       yAxis: this.yAxis,
       display: this.display,
       interval: this.interval,
+      expired: this.expired,
       createdBy: this.createdBy,
       additionalConditions: this.additionalConditions,
     });
@@ -895,8 +900,7 @@ class EventView {
     return payload;
   }
 
-  // Takes an EventView instance and converts it into the format required for the events API
-  getEventsAPIPayload(location: Location): EventQuery & LocationQuery {
+  normalizeDateSelection(location: Location) {
     const query = (location && location.query) || {};
 
     // pick only the query strings that we care about
@@ -919,10 +923,19 @@ class EventView {
         };
 
     // normalize datetime selection
-    const normalizedTimeWindowParams = getParams({
+    return getParams({
       ...dateSelection,
       utc: decodeScalar(query.utc),
     });
+  }
+
+  // Takes an EventView instance and converts it into the format required for the events API
+  getEventsAPIPayload(location: Location): EventQuery & LocationQuery {
+    // pick only the query strings that we care about
+    const picked = pickRelevantLocationQueryStrings(location);
+
+    // normalize datetime selection
+    const normalizedTimeWindowParams = this.normalizeDateSelection(location);
 
     const sort =
       this.sorts.length <= 0

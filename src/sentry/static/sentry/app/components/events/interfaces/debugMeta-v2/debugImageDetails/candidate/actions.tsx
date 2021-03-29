@@ -6,6 +6,7 @@ import Role from 'app/components/acl/role';
 import Button from 'app/components/actions/button';
 import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
 import DropdownLink from 'app/components/dropdownLink';
+import NotAvailable from 'app/components/notAvailable';
 import Tooltip from 'app/components/tooltip';
 import {IconDownload, IconEllipsis} from 'app/icons';
 import {t} from 'app/locale';
@@ -17,14 +18,22 @@ type Props = {
   organization: Organization;
   baseUrl: string;
   projectId: string;
+  isInternalSource: boolean;
   onDelete: (debugFileId: string) => void;
 };
 
-function Actions({candidate, organization, baseUrl, projectId, onDelete}: Props) {
+function Actions({
+  candidate,
+  organization,
+  baseUrl,
+  projectId,
+  isInternalSource,
+  onDelete,
+}: Props) {
   const {download, location: debugFileId} = candidate;
 
-  if (!debugFileId) {
-    return null;
+  if (!debugFileId || isInternalSource) {
+    return <NotAvailable />;
   }
 
   const {status} = download;

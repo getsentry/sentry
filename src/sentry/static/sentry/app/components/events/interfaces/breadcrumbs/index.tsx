@@ -347,7 +347,7 @@ class Breadcrumbs extends React.Component<Props, State> {
       <StyledEventDataSection
         type={type}
         title={
-          <GuideAnchor target="breadcrumbs" position="bottom">
+          <GuideAnchor target="breadcrumbs" position="right">
             <h3>{t('Breadcrumbs')}</h3>
           </GuideAnchor>
         }

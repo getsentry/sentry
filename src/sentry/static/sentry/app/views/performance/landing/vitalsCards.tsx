@@ -21,14 +21,14 @@ import {getUtcToLocalDateObject} from 'app/utils/dates';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
-import {decodeList} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
-import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import VitalsCardsDiscoverQuery, {
   VitalData,
   VitalsData,
-} from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
+} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {decodeList} from 'app/utils/queryString';
+import theme from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
 
 import ColorBar from '../vitalDetail/colorBar';
 import {
@@ -174,6 +174,7 @@ function _BackendCards(props: BackendCardsProps) {
           query={eventView.getEventsAPIPayload(location).query}
           includePrevious={false}
           yAxis={eventView.getFields()}
+          partial
         >
           {({results}) => {
             const series = results?.reduce((allSeries, oneSeries) => {
@@ -333,6 +334,7 @@ export function VitalBar(props: VitalBarProps) {
           </div>
         )}
         <VitalPercents
+          vital={vital}
           percents={percents}
           showVitalPercentNames={showVitalPercentNames}
         />

@@ -5,17 +5,19 @@ import memoize from 'lodash/memoize';
 import moment from 'moment';
 
 import Access from 'app/components/acl/access';
+import Feature from 'app/components/acl/feature';
+import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
-import {IconDelete, IconSettings} from 'app/icons';
+import {IconDelete, IconSettings, IconUser} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Actor, Organization, Project} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 
 import {isIssueAlert} from '../utils';
@@ -27,6 +29,8 @@ type Props = {
   orgId: string;
   organization: Organization;
   onDelete: (projectId: string, rule: IssueAlertRule) => void;
+  // Set of team ids that the user belongs to
+  userTeams: Set<string>;
 };
 
 type State = {};
@@ -40,7 +44,15 @@ class RuleListRow extends React.Component<Props, State> {
   );
 
   render() {
-    const {rule, projectsLoaded, projects, organization, orgId, onDelete} = this.props;
+    const {
+      rule,
+      projectsLoaded,
+      projects,
+      organization,
+      orgId,
+      onDelete,
+      userTeams,
+    } = this.props;
     const dateCreated = moment(rule.dateCreated).format('ll');
     const slug = rule.projects[0];
     const editLink = `/organizations/${orgId}/alerts/${
@@ -50,6 +62,13 @@ class RuleListRow extends React.Component<Props, State> {
     const hasRedesign =
       !isIssueAlert(rule) && organization.features.includes('alert-details-redesign');
     const detailsLink = `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
+
+    const ownerId = rule.owner?.split(':')[1];
+    const teamActor = ownerId
+      ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
+      : null;
+
+    const canEdit = ownerId ? userTeams.has(ownerId) : true;
 
     return (
       <ErrorBoundary>
@@ -61,6 +80,15 @@ class RuleListRow extends React.Component<Props, State> {
           avatarSize={18}
           project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
         />
+        <Feature features={['organizations:team-alerts-ownership']}>
+          <TeamIcon>
+            {teamActor ? (
+              <ActorAvatar actor={teamActor} size={24} />
+            ) : (
+              <IconUser size="20px" color="gray400" />
+            )}
+          </TeamIcon>
+        </Feature>
         <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>
         <div>{dateCreated}</div>
         <RightColumn>
@@ -68,7 +96,7 @@ class RuleListRow extends React.Component<Props, State> {
             {({hasAccess}) => (
               <ButtonBar gap={1}>
                 <Confirm
-                  disabled={!hasAccess}
+                  disabled={!hasAccess || !canEdit}
                   message={tct(
                     "Are you sure you want to delete [name]? You won't be able to view the history of this alert once it's deleted.",
                     {
@@ -89,6 +117,7 @@ class RuleListRow extends React.Component<Props, State> {
                 </Confirm>
                 <Button
                   size="small"
+                  type="button"
                   icon={<IconSettings />}
                   title={t('Edit')}
                   to={editLink}
@@ -136,6 +165,11 @@ const CreatedBy = styled('div')`
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
+`;
+
+const TeamIcon = styled('div')`
+  display: flex;
+  align-items: center;
 `;
 
 export default RuleListRow;

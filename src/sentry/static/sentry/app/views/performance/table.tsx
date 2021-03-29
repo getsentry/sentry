@@ -136,8 +136,11 @@ class Table extends React.Component<Props, State> {
       );
     }
 
-    if (field.startsWith('key_transaction') || field.startsWith('user_misery')) {
-      // don't display per cell actions for key_transaction or user_misery
+    if (
+      field.startsWith('key_transaction') ||
+      field.startsWith('user_misery_prototype')
+    ) {
+      // don't display per cell actions for key_transaction or user_misery_prototype
       return rendered;
     }
 
@@ -259,14 +262,17 @@ class Table extends React.Component<Props, State> {
   }
 
   render() {
-    const {eventView, organization, location} = this.props;
+    const {eventView, organization, location, setError} = this.props;
 
     const {widths} = this.state;
     const columnOrder = eventView
       .getColumns()
       // remove key_transactions from the column order as we'll be rendering it
       // via a prepended column
-      .filter((col: TableColumn<React.ReactText>) => col.name !== 'key_transaction')
+      .filter(
+        (col: TableColumn<React.ReactText>) =>
+          col.name !== 'key_transaction' && !col.name.startsWith('user_misery(')
+      )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};
@@ -285,6 +291,7 @@ class Table extends React.Component<Props, State> {
           eventView={sortedEventView}
           orgSlug={organization.slug}
           location={location}
+          setError={setError}
         >
           {({pageLinks, isLoading, tableData}) => (
             <React.Fragment>

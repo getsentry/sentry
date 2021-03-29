@@ -11,6 +11,7 @@ import Reflux from 'reflux';
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
 import SidebarPanelActions from 'app/actions/sidebarPanelActions';
 import Feature from 'app/components/acl/feature';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import {
   IconActivity,
@@ -23,7 +24,6 @@ import {
   IconReleases,
   IconSettings,
   IconSiren,
-  IconStack,
   IconStats,
   IconSupport,
   IconTelescope,
@@ -173,7 +173,6 @@ class Sidebar extends React.Component<Props, State> {
     const globalSelectionRoutes = [
       'dashboards',
       'issues',
-      'events',
       'releases',
       'user-feedback',
       'discover',
@@ -199,47 +198,6 @@ class Sidebar extends React.Component<Props, State> {
     this.hidePanel();
   };
 
-  /**
-   * Determine which mix of discovers and events tabs to show for an account.
-   */
-  discoverSidebarState() {
-    const {organization} = this.props;
-    // Default all things to off
-    const sidebarState = {
-      discover1: false,
-      discover2: false,
-      events: false,
-    };
-
-    // Bail as we can't do any more checks.
-    if (!organization || !organization.features) {
-      return sidebarState;
-    }
-    const features = organization.features;
-
-    if (features.includes('discover-basic')) {
-      sidebarState.discover2 = true;
-      return sidebarState;
-    }
-
-    // If an account has the old features they continue to have
-    // access to them.
-    if (features.includes('discover')) {
-      sidebarState.discover1 = true;
-    }
-    if (features.includes('events')) {
-      sidebarState.events = true;
-    }
-
-    // If an organization doesn't have events, or discover-basic
-    // Enable the tab so we can show an upsell state in saas.
-    if (!sidebarState.events) {
-      sidebarState.discover2 = true;
-    }
-
-    return sidebarState;
-  }
-
   render() {
     const {activePanel, organization, collapsed} = this.props;
     const {horizontal} = this.state;
@@ -254,15 +212,13 @@ class Sidebar extends React.Component<Props, State> {
     };
     const hasOrganization = !!organization;
 
-    const discoverState = this.discoverSidebarState();
-
     const projects = hasOrganization && (
       <SidebarItem
         {...sidebarItemProps}
         index
         onClick={this.hidePanel}
         icon={<IconProject size="md" />}
-        label={t('Projects')}
+        label={<GuideAnchor target="projects">{t('Projects')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/projects/`}
         id="projects"
       />
@@ -278,52 +234,13 @@ class Sidebar extends React.Component<Props, State> {
           )
         }
         icon={<IconIssues size="md" />}
-        label={t('Issues')}
+        label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/issues/`}
         id="issues"
       />
     );
 
-    const events = hasOrganization && discoverState.events && (
-      <Feature
-        features={['events']}
-        hookName="feature-disabled:events-sidebar-item"
-        organization={organization}
-      >
-        <SidebarItem
-          {...sidebarItemProps}
-          onClick={(_id, evt) =>
-            this.navigateWithGlobalSelection(
-              `/organizations/${organization.slug}/events/`,
-              evt
-            )
-          }
-          icon={<IconStack size="md" />}
-          label={t('Events')}
-          to={`/organizations/${organization.slug}/events/`}
-          id="events"
-        />
-      </Feature>
-    );
-
-    const discover1 = hasOrganization && discoverState.discover1 && (
-      <Feature
-        features={['discover']}
-        hookName="feature-disabled:discover-sidebar-item"
-        organization={organization}
-      >
-        <SidebarItem
-          {...sidebarItemProps}
-          onClick={this.hidePanel}
-          icon={<IconTelescope size="md" />}
-          label={t('Discover')}
-          to={`/organizations/${organization.slug}/discover/`}
-          id="discover"
-        />
-      </Feature>
-    );
-
-    const discover2 = hasOrganization && discoverState.discover2 && (
+    const discover2 = hasOrganization && (
       <Feature
         hookName="feature-disabled:discover2-sidebar-item"
         features={['discover-basic']}
@@ -335,7 +252,7 @@ class Sidebar extends React.Component<Props, State> {
             this.navigateWithGlobalSelection(getDiscoverLandingUrl(organization), evt)
           }
           icon={<IconTelescope size="md" />}
-          label={t('Discover')}
+          label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
           to={getDiscoverLandingUrl(organization)}
           id="discover-v2"
         />
@@ -357,7 +274,7 @@ class Sidebar extends React.Component<Props, State> {
             )
           }
           icon={<IconLightning size="md" />}
-          label={t('Performance')}
+          label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/performance/`}
           id="performance"
         />
@@ -374,7 +291,7 @@ class Sidebar extends React.Component<Props, State> {
           )
         }
         icon={<IconReleases size="md" />}
-        label={t('Releases')}
+        label={<GuideAnchor target="releases">{t('Releases')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/releases/`}
         id="releases"
       />
@@ -436,7 +353,7 @@ class Sidebar extends React.Component<Props, State> {
 
     const dashboards = hasOrganization && (
       <Feature
-        features={['discover', 'discover-query']}
+        features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
         organization={organization}
         requireAll={false}
       >
@@ -513,9 +430,7 @@ class Sidebar extends React.Component<Props, State> {
                   {releases}
                   {userFeedback}
                   {alerts}
-                  {discover1}
                   {discover2}
-                  {events}
                 </SidebarSection>
 
                 <SidebarSection>
@@ -644,7 +559,7 @@ const StyledSidebar = styled('div')<{collapsed: boolean}>`
   padding: 12px 0 2px; /* Allows for 32px avatars  */
   width: ${p => p.theme.sidebar.expandedWidth};
   position: fixed;
-  top: 0;
+  top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   left: 0;
   bottom: 0;
   justify-content: space-between;

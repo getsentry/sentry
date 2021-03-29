@@ -1,7 +1,6 @@
 import time
 import hmac
 import base64
-import qrcode
 import hashlib
 
 from datetime import datetime
@@ -95,10 +94,3 @@ class TOTP:
         if self.interval != 30:
             rv += "&period=%d" % self.interval
         return rv
-
-    def get_provision_qrcode(self, user, issuer=None):
-        qr = qrcode.QRCode(border=0)
-        qr.add_data(self.get_provision_url(user, issuer=issuer))
-
-        # Frontend expects the matrix to be serialized as 1/0, not True/False
-        return [[int(c) for c in row] for row in qr.get_matrix()]

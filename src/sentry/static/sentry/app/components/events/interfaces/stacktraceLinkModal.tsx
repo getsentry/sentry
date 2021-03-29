@@ -73,10 +73,14 @@ class StacktraceLinkModal extends React.Component<Props, State> {
         },
       });
 
-      const configEndpoint = `/organizations/${organization.slug}/integrations/${configData.integrationId}/repo-project-path-configs/`;
+      const configEndpoint = `/organizations/${organization.slug}/repo-project-path-configs/`;
       await api.requestPromise(configEndpoint, {
         method: 'POST',
-        data: {...configData, projectId: project.id},
+        data: {
+          ...configData,
+          projectId: project.id,
+          integrationId: configData.integrationId,
+        },
       });
 
       addSuccessMessage(t('Stack trace configuration saved.'));
@@ -172,10 +176,9 @@ class StacktraceLinkModal extends React.Component<Props, State> {
         </Body>
         <Footer>
           <Alert type="info" icon={<IconInfo />}>
-            {tct(
-              'Stack trace linking is in Beta. Got feedback? Email [email:ecosystem-feedback@sentry.io].',
-              {email: <a href="mailto:ecosystem-feedback@sentry.io" />}
-            )}
+            {tct('Got feedback? Email [email:ecosystem-feedback@sentry.io].', {
+              email: <a href="mailto:ecosystem-feedback@sentry.io" />,
+            })}
           </Alert>
         </Footer>
       </React.Fragment>

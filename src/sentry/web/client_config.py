@@ -177,6 +177,7 @@ def get_client_config(request=None):
                 else list("" if settings.ALLOWED_HOSTS == ["*"] else settings.ALLOWED_HOSTS)
             ),
         },
+        "demoMode": settings.DEMO_MODE,
     }
     if user and user.is_authenticated():
         context.update(

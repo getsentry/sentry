@@ -52,10 +52,10 @@ class RedisQuota(Quota):
             local_key = f"{quota.id}{{{organization_id}}}{scope_id}"
         else:
             # legacy key format
-            local_key = "{}:{}".format(quota.id, quota.scope_id or organization_id)
+            local_key = f"{quota.id}:{quota.scope_id or organization_id}"
 
         interval = quota.window
-        return "{}:{}:{}".format(self.namespace, local_key, int((timestamp - shift) // interval))
+        return f"{self.namespace}:{local_key}:{int((timestamp - shift) // interval)}"
 
     def get_quotas(self, project, key=None, keys=None):
         if key:

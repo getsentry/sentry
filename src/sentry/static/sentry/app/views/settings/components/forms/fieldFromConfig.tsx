@@ -65,10 +65,6 @@ export default class FieldFromConfig extends React.Component<Props> {
         if (props.multiline) {
           return <TextareaField {...props} />;
         }
-
-        // TODO(billy): Handle `props.choices` with a "creatable" SelectField
-        // if (props.choices) return <Select2TextField {...props} />;
-
         return <TextField {...props} />;
       case 'number':
         return <NumberField {...props} />;
@@ -77,12 +73,7 @@ export default class FieldFromConfig extends React.Component<Props> {
       case 'choice':
       case 'select':
       case 'array':
-        // TODO(billy): Handle `props.has_autocomplete` with an "async" SelectField
-        // if (props.has_autocomplete) {
-        // return <SelectAsyncField {...props} />;
-        // }
-
-        return <SelectField deprecatedSelectControl {...props} />;
+        return <SelectField {...props} />;
       case 'choice_mapper':
         // TODO(ts) The switch on field.type is not resolving
         // the Field union for this component. The union might be 'too big'.

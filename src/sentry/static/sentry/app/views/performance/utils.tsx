@@ -5,12 +5,22 @@ import {statsPeriodToDays} from 'app/utils/dates';
 import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import {decodeScalar} from 'app/utils/queryString';
 
+import {FilterViews} from './landing';
+
 export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
   return `/organizations/${organization.slug}/performance/`;
 }
 
 export function getTransactionSearchQuery(location: Location, query: string = '') {
   return decodeScalar(location.query.query, query).trim();
+}
+
+export function getCurrentPerformanceView(location: Location): string {
+  const currentView = location.query.view as FilterViews;
+  if (Object.values(FilterViews).includes(currentView)) {
+    return currentView;
+  }
+  return FilterViews.ALL_TRANSACTIONS;
 }
 
 export function getTransactionDetailsUrl(

@@ -2,7 +2,7 @@ import re
 from itertools import islice
 
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.strategies.base import strategy
+from sentry.grouping.strategies.base import strategy, produces_variants
 from sentry.grouping.strategies.similarity_encoders import text_shingle_encoder
 
 
@@ -105,21 +105,26 @@ def trim_message_for_grouping(string):
     return _irrelevant_re.sub(_handle_match, s)
 
 
-@strategy(id="message:v1", interfaces=["message"], variants=["default"], score=0)
+@strategy(id="message:v1", interfaces=["message"], score=0)
+@produces_variants(["default"])
 def message_v1(message_interface, context, **meta):
     if context["trim_message"]:
         message_in = message_interface.message or message_interface.formatted or ""
         message_trimmed = trim_message_for_grouping(message_in)
         hint = "stripped common values" if message_in != message_trimmed else None
-        return GroupingComponent(
-            id="message",
-            values=[message_trimmed],
-            hint=hint,
-            similarity_encoder=text_shingle_encoder(5),
-        )
+        return {
+            context["variant"]: GroupingComponent(
+                id="message",
+                values=[message_trimmed],
+                hint=hint,
+                similarity_encoder=text_shingle_encoder(5),
+            )
+        }
     else:
-        return GroupingComponent(
-            id="message",
-            values=[message_interface.message or message_interface.formatted or ""],
-            similarity_encoder=text_shingle_encoder(5),
-        )
+        return {
+            context["variant"]: GroupingComponent(
+                id="message",
+                values=[message_interface.message or message_interface.formatted or ""],
+                similarity_encoder=text_shingle_encoder(5),
+            )
+        }

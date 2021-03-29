@@ -4,7 +4,7 @@ import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
 
 export default {
-  title: 'Core/Badges+Tags/Pills',
+  title: 'Core/Tags/Pills',
 };
 
 export const Default = () => (

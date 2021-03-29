@@ -72,6 +72,7 @@ default_manager.add("organizations:filters-and-sampling", OrganizationFeature)  
 default_manager.add("organizations:global-views", OrganizationFeature)  # NOQA
 default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
 default_manager.add("organizations:metric-alert-builder-aggregate", OrganizationFeature)  # NOQA
+default_manager.add("organizations:import-codeowners", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-event-hooks", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-issue-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)  # NOQA
@@ -94,8 +95,11 @@ default_manager.add("organizations:performance-view", OrganizationFeature)  # NO
 default_manager.add("organizations:trace-view-quick", OrganizationFeature)  # NOQA
 default_manager.add("organizations:trace-view-summary", OrganizationFeature)  # NOQA
 default_manager.add("organizations:project-detail", OrganizationFeature)  # NOQA
+default_manager.add("organizations:project-detail-links", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
 default_manager.add("organizations:releases-top-charts", OrganizationFeature)  # NOQA
+default_manager.add("organizations:metrics", OrganizationFeature)  # NOQA
+default_manager.add("organizations:minute-resolution-sessions", OrganizationFeature)  # NOQA
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA
@@ -118,7 +122,10 @@ default_manager.add("organizations:invite-members-rate-limits", OrganizationFeat
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-landing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-vitals-overview", OrganizationFeature)  # NOQA
-
+default_manager.add("organizations:performance-ops-breakdown", OrganizationFeature)  # NOQA
+default_manager.add("organizations:performance-tag-explorer", OrganizationFeature)  # NOQA
+default_manager.add("organizations:team-alerts-ownership", OrganizationFeature)  # NOQA
+default_manager.add("organizations:alert-wizard", OrganizationFeature)  # NOQA
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 
@@ -129,6 +136,7 @@ default_manager.add("projects:data-forwarding", ProjectFeature)  # NOQA
 default_manager.add("projects:discard-groups", ProjectFeature)  # NOQA
 default_manager.add("projects:issue-alerts-targeting", ProjectFeature)  # NOQA
 default_manager.add("projects:minidump", ProjectFeature)  # NOQA
+default_manager.add("projects:race-free-group-creation", ProjectFeature)  # NOQA
 default_manager.add("projects:rate-limits", ProjectFeature)  # NOQA
 default_manager.add("projects:sample-events", ProjectFeature)  # NOQA
 default_manager.add("projects:servicehooks", ProjectFeature)  # NOQA
@@ -149,6 +157,7 @@ requires_snuba = (
     "organizations:performance-view",
     "organizations:global-views",
     "organizations:incidents",
+    "organizations:minute-resolution-sessions",
 )
 
 # expose public api

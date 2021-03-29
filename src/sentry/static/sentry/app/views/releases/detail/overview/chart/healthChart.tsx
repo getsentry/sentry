@@ -1,5 +1,6 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -18,7 +19,8 @@ import {getUtcDateString} from 'app/utils/dates';
 import {axisDuration} from 'app/utils/discover/charts';
 import {getExactDuration} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
+import {displayCrashFreePercent} from 'app/views/releases/utils';
 
 import {
   getSessionTermDescription,
@@ -27,8 +29,10 @@ import {
 } from '../../../utils/sessionTerm';
 
 import {YAxis} from './releaseChartControls';
+import {isOtherSeries, sortSessionSeries} from './utils';
 
 type Props = {
+  theme: Theme;
   reloading: boolean;
   timeseriesData: Series[];
   zoomRenderProps: ZoomRenderProps;
@@ -72,7 +76,16 @@ class HealthChart extends React.Component<Props> {
     const {timeseriesData, location, shouldRecalculateVisibleSeries} = this.props;
 
     const otherAreasThanHealthyArePositive = timeseriesData
-      .filter(s => s.seriesName !== sessionTerm.healthy)
+      .filter(
+        s =>
+          ![
+            sessionTerm.healthy,
+            sessionTerm.otherHealthy,
+            sessionTerm.otherErrored,
+            sessionTerm.otherCrashed,
+            sessionTerm.otherAbnormal,
+          ].includes(s.seriesName)
+      )
       .some(s => s.data.some(d => d.value > 0));
     const alreadySomethingUnselected = !!decodeScalar(location.query.unselectedSeries);
 
@@ -113,14 +126,14 @@ class HealthChart extends React.Component<Props> {
   };
 
   configureYAxis() {
-    const {yAxis} = this.props;
+    const {theme, yAxis} = this.props;
     switch (yAxis) {
       case YAxis.CRASH_FREE:
         return {
           max: 100,
           scale: true,
           axisLabel: {
-            formatter: '{value}%',
+            formatter: (value: number) => displayCrashFreePercent(value),
             color: theme.chartLabel,
           },
         };
@@ -196,16 +209,57 @@ class HealthChart extends React.Component<Props> {
     }
   }
 
+  getLegendSeries() {
+    const {timeseriesData} = this.props;
+    return (
+      timeseriesData
+        .filter(d => !isOtherSeries(d))
+        // we don't want Other Healthy, Other Crashed, etc. to show up in the legend
+        .sort(sortSessionSeries)
+        .map(d => d.seriesName)
+    );
+  }
+
+  getLegendSelectedSeries() {
+    const {location, yAxis} = this.props;
+
+    const selection = getSeriesSelection(location) ?? {};
+    // otherReleases toggles all "other" series (other healthy, other crashed, etc.) at once
+    const otherReleasesVisible = !(selection[sessionTerm.otherReleases] === false);
+
+    if (yAxis === YAxis.SESSIONS || yAxis === YAxis.USERS) {
+      selection[sessionTerm.otherErrored] =
+        !selection?.hasOwnProperty(sessionTerm.errored) && otherReleasesVisible;
+      selection[sessionTerm.otherCrashed] =
+        !selection?.hasOwnProperty(sessionTerm.crashed) && otherReleasesVisible;
+      selection[sessionTerm.otherAbnormal] =
+        !selection?.hasOwnProperty(sessionTerm.abnormal) && otherReleasesVisible;
+      selection[sessionTerm.otherHealthy] =
+        !selection?.hasOwnProperty(sessionTerm.healthy) && otherReleasesVisible;
+    }
+
+    if (yAxis === YAxis.CRASH_FREE) {
+      selection[sessionTerm.otherCrashFreeSessions] =
+        !selection?.hasOwnProperty(sessionTerm['crash-free-sessions']) &&
+        otherReleasesVisible;
+      selection[sessionTerm.otherCrashFreeUsers] =
+        !selection?.hasOwnProperty(sessionTerm['crash-free-users']) &&
+        otherReleasesVisible;
+    }
+
+    return selection;
+  }
+
   render() {
-    const {timeseriesData, zoomRenderProps, location, title, help} = this.props;
+    const {timeseriesData, zoomRenderProps, title, help} = this.props;
 
     const Chart = this.getChart();
 
     const legend = {
       right: 10,
       top: 0,
-      data: timeseriesData.map(d => d.seriesName).reverse(),
-      selected: getSeriesSelection(location),
+      data: this.getLegendSeries(),
+      selected: this.getLegendSelectedSeries(),
       tooltip: {
         show: true,
         // TODO(ts) tooltip.formatter has incorrect types in echarts 4
@@ -253,4 +307,4 @@ class HealthChart extends React.Component<Props> {
   }
 }
 
-export default HealthChart;
+export default withTheme(HealthChart);

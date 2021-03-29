@@ -126,7 +126,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             pass
 
         if interface_id == "totp":
-            response["qrcode"] = interface.get_provision_qrcode(user.email)
+            response["qrcode"] = interface.get_provision_url(user.email)
 
         if interface_id == "u2f":
             response["challenge"] = interface.start_enrollment()

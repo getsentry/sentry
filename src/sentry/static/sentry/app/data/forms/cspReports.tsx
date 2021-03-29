@@ -27,6 +27,7 @@ const formGroups: JsonFormObject[] = [
         type: 'string',
         multiline: true,
         autosize: true,
+        rows: 4,
         placeholder: 'e.g.\nfile://*\n*.example.com\nexample.com',
         label: t('Additional ignored sources'),
         help: t(

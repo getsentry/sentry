@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import {Location, Query} from 'history';
 
 import {Client} from 'app/api';
-import ProjectAvatar from 'app/components/avatar/projectAvatar';
 import Button from 'app/components/button';
 import {HeaderTitleLegend} from 'app/components/charts/styles';
 import Count from 'app/components/count';
 import DropdownLink from 'app/components/dropdownLink';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MenuItem from 'app/components/menuItem';
@@ -24,6 +24,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {AvatarProject, Organization, Project} from 'app/types';
 import {formatPercentage, getDuration} from 'app/utils/formatters';
+import TrendsDiscoverQuery from 'app/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
@@ -35,7 +36,6 @@ import {DisplayModes} from '../transactionSummary/charts';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
 import Chart from './chart';
-import TrendsDiscoverQuery from './trendsDiscoverQuery';
 import {
   NormalizedTrendsTransaction,
   TrendChangeType,
@@ -478,7 +478,7 @@ function TrendsListItem(props: TrendsListItemProps) {
       <ItemTransactionDurationChange>
         {project && (
           <Tooltip title={transaction.project}>
-            <ProjectAvatar project={project} />
+            <IdBadge avatarSize={16} project={project} hideName />
           </Tooltip>
         )}
         <CompareDurations {...props} />

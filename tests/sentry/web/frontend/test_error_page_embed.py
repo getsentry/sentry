@@ -47,7 +47,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp["Content-Type"] == "text/javascript"
 
     def test_missing_eventId(self):
-        path = "{}?dsn={}".format(self.path, quote(self.key.dsn_public))
+        path = f"{self.path}?dsn={quote(self.key.dsn_public)}"
         with self.settings(SENTRY_ALLOW_ORIGIN="*"):
             resp = self.client.get(
                 path, HTTP_REFERER="http://example.com", HTTP_ACCEPT="text/html, text/javascript"
@@ -58,7 +58,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp.content == b""
 
     def test_missing_dsn(self):
-        path = "{}?eventId={}".format(self.path, quote(self.event_id))
+        path = f"{self.path}?eventId={quote(self.event_id)}"
         with self.settings(SENTRY_ALLOW_ORIGIN="*"):
             resp = self.client.get(
                 path, HTTP_REFERER="http://example.com", HTTP_ACCEPT="text/html, text/javascript"

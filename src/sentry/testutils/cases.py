@@ -80,11 +80,13 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
 from sentry.tagstore.snuba import SnubaTagStorage
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
-
+from sentry.utils.snuba import _snuba_pool
+from . import assert_status_code
 from .fixtures import Fixtures
 from .factories import Factories
 from .skips import requires_snuba
@@ -274,6 +276,13 @@ class BaseTestCase(Fixtures, Exam):
         with context:
             func(*args, **kwargs)
 
+    def get_mock_uuid(self):
+        class uuid:
+            hex = "abc123"
+            bytes = b"\x00\x01\x02"
+
+        return uuid
+
 
 class _AssertQueriesContext(CaptureQueriesContext):
     def __init__(self, test_case, queries, debug, connection):
@@ -331,10 +340,27 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
+    """
+    Extend APITestCase to inherit access to `client`, an object with methods
+    that simulate API calls to Sentry, and the helper `get_response`, which
+    combines and simplify a lot of tedious parts of making API calls in tests.
+    When creating API tests, use a new class per endpoint-method pair. The class
+    must set the string `endpoint`.
+    """
+
     endpoint = None
     method = "get"
 
     def get_response(self, *args, **params):
+        """
+        Simulate an API call to the test case's URI and method.
+
+        :param params:
+            * qs_params: (Optional) Dict mapping keys to values that will be
+             url-encoded into a API call's query string. Note: The name is
+             intentionally a little funny to prevent name collisions.
+        :returns Response object
+        """
         if self.endpoint is None:
             raise Exception("Implement self.endpoint to use this method.")
 
@@ -350,10 +376,58 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         return getattr(self.client, method)(url, format="json", data=params)
 
     def get_valid_response(self, *args, **params):
+        """ Deprecated. Calls `get_response` (see above) and asserts a specific status code. """
         status_code = params.pop("status_code", 200)
         resp = self.get_response(*args, **params)
         assert resp.status_code == status_code, (resp.status_code, resp.content)
         return resp
+
+    def get_success_response(self, *args, **params):
+        """
+        Call `get_response` (see above) and assert the response's status code.
+
+        :param params:
+            * status_code: (Optional) Assert that the response's status code is
+            a specific code. Omit to assert any successful status_code.
+        :returns Response object
+        """
+        status_code = params.pop("status_code", None)
+
+        if status_code >= 400:
+            raise Exception("status_code must be < 400")
+
+        response = self.get_response(*args, **params)
+
+        if status_code:
+            assert_status_code(response, status_code)
+        else:
+            assert_status_code(response, 200, 300)
+
+        return response
+
+    def get_error_response(self, *args, **params):
+        """
+        Call `get_response` (see above) and assert that the response's status
+        code is an error code. Basically it's syntactic sugar.
+
+        :param params:
+            * status_code: (Optional) Assert that the response's status code is
+            a specific error code. Omit to assert any error status_code.
+        :returns Response object
+        """
+        status_code = params.pop("status_code", None)
+
+        if status_code < 400:
+            raise Exception("status_code must be >= 400 (an error status code)")
+
+        response = self.get_response(*args, **params)
+
+        if status_code:
+            assert_status_code(response, status_code)
+        else:
+            assert_status_code(response, 400, 600)
+
+        return response
 
 
 class TwoFactorAPITestCase(APITestCase):
@@ -587,6 +661,8 @@ class CliTestCase(TestCase):
 
 @pytest.mark.usefixtures("browser")
 class AcceptanceTestCase(TransactionTestCase):
+    browser: Browser
+
     def setUp(self):
         patcher = patch(
             "django.utils.timezone.now",
@@ -670,6 +746,20 @@ class SnubaTestCase(BaseTestCase):
     def initialize(self, reset_snuba, call_snuba):
         self.call_snuba = call_snuba
 
+    @contextmanager
+    def disable_snuba_query_cache(self):
+        self.snuba_update_config({"use_readthrough_query_cache": 0, "use_cache": 0})
+        yield
+        self.snuba_update_config({"use_readthrough_query_cache": None, "use_cache": None})
+
+    @classmethod
+    def snuba_get_config(cls):
+        return _snuba_pool.request("GET", "/config.json").data
+
+    @classmethod
+    def snuba_update_config(cls, config_vals):
+        return _snuba_pool.request("POST", "/config.json", body=json.dumps(config_vals))
+
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
@@ -693,14 +783,19 @@ class SnubaTestCase(BaseTestCase):
         # While snuba is synchronous, clickhouse isn't entirely synchronous.
         attempt = 0
         snuba_filter = eventstore.Filter(project_ids=[project_id])
+        last_events_seen = 0
+
         while attempt < attempts:
             events = eventstore.get_events(snuba_filter)
+            last_events_seen = len(events)
             if len(events) >= total:
                 break
             attempt += 1
             time.sleep(0.05)
         if attempt == attempts:
-            assert False, f"Could not ensure event was persisted within {attempt} attempt(s)"
+            assert (
+                False
+            ), f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
 
     def store_session(self, session):
         assert (
@@ -819,7 +914,7 @@ class OutcomesSnubaTest(TestCase):
         super().setUp()
         assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
 
-    def __format(self, org_id, project_id, outcome, timestamp, key_id):
+    def __format(self, org_id, project_id, outcome, category, timestamp, key_id):
         return {
             "project_id": project_id,
             "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
@@ -827,12 +922,13 @@ class OutcomesSnubaTest(TestCase):
             "reason": None,
             "key_id": key_id,
             "outcome": outcome,
+            "category": category,
         }
 
-    def store_outcomes(self, org_id, project_id, outcome, timestamp, key_id, num_times):
+    def store_outcomes(self, org_id, project_id, outcome, category, timestamp, key_id, num_times):
         outcomes = []
         for _ in range(num_times):
-            outcomes.append(self.__format(org_id, project_id, outcome, timestamp, key_id))
+            outcomes.append(self.__format(org_id, project_id, outcome, category, timestamp, key_id))
 
         assert (
             requests.post(

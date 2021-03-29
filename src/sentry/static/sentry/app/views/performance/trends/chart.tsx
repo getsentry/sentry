@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory, withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
+import {withTheme} from 'emotion-theming';
 
 import {Client} from 'app/api';
 import ChartZoom from 'app/components/charts/chartZoom';
@@ -8,14 +9,15 @@ import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {EventsStatsData, OrganizationSummary, Project} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
-import {decodeList, decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import {decodeList} from 'app/utils/queryString';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
 
@@ -42,6 +44,7 @@ type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
 type Props = WithRouterProps &
   ViewProps & {
+    theme: Theme;
     api: Client;
     location: Location;
     organization: OrganizationSummary;
@@ -89,6 +92,7 @@ function getLegend(trendFunction: string) {
 }
 
 function getIntervalLine(
+  theme: Theme,
   series: Series[],
   intervalRatio: number,
   transaction?: NormalizedTrendsTransaction
@@ -221,6 +225,7 @@ class Chart extends React.Component<Props> {
     const props = this.props;
 
     const {
+      theme,
       trendChangeType,
       router,
       statsPeriod,
@@ -254,7 +259,7 @@ class Chart extends React.Component<Props> {
 
     const start = props.start ? getUtcToLocalDateObject(props.start) : null;
     const end = props.end ? getUtcToLocalDateObject(props.end) : null;
-    const utc = decodeScalar(router.location.query.utc) !== 'false';
+    const {utc} = getParams(location.query);
 
     const seriesSelection = decodeList(
       location.query[getUnselectedSeries(trendChangeType)]
@@ -311,7 +316,13 @@ class Chart extends React.Component<Props> {
     };
 
     return (
-      <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
+      <ChartZoom
+        router={router}
+        period={statsPeriod}
+        start={start}
+        end={end}
+        utc={utc === 'true'}
+      >
         {zoomRenderProps => {
           const smoothedSeries = smoothedResults
             ? smoothedResults.map(values => {
@@ -325,7 +336,12 @@ class Chart extends React.Component<Props> {
               })
             : [];
 
-          const intervalSeries = getIntervalLine(smoothedResults || [], 0.5, transaction);
+          const intervalSeries = getIntervalLine(
+            theme,
+            smoothedResults || [],
+            0.5,
+            transaction
+          );
 
           return (
             <ReleaseSeries
@@ -333,7 +349,7 @@ class Chart extends React.Component<Props> {
               end={end}
               queryExtra={queryExtra}
               period={statsPeriod}
-              utc={utc}
+              utc={utc === 'true'}
               projects={isNaN(transactionProject) ? project : [transactionProject]}
               environments={environment}
               memoized
@@ -375,4 +391,4 @@ class Chart extends React.Component<Props> {
   }
 }
 
-export default withApi(withRouter(Chart));
+export default withTheme(withApi(withRouter(Chart)));

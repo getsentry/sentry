@@ -84,7 +84,7 @@ const groupedItems = [
 ];
 
 export default {
-  title: 'Core/Dropdowns/DropdownAutoComplete',
+  title: 'Core/Buttons/Dropdowns/DropdownAutoComplete',
   component: DropdownAutoComplete,
 };
 

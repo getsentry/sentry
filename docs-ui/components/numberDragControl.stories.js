@@ -5,7 +5,7 @@ import {action} from '@storybook/addon-actions';
 import NumberDragControl from 'app/components/numberDragControl';
 
 export default {
-  title: 'Core/Forms/Controls',
+  title: 'Forms/Controls',
   componet: NumberDragControl,
   args: {
     step: 1,

@@ -5,14 +5,16 @@ import {Panel} from 'app/components/panels';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
-import {decodeScalar} from 'app/utils/queryString';
+import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
+import {DataFilter, HistogramData} from 'app/utils/performance/histogram/types';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
+import {VitalGroup} from 'app/utils/performance/vitals/types';
 import VitalsCardDiscoverQuery, {
   VitalData,
-} from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
+} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {decodeScalar} from 'app/utils/queryString';
 
-import {NUM_BUCKETS, VITAL_GROUPS, WEB_VITAL_DETAILS} from './constants';
-import HistogramQuery from './histogramQuery';
-import {DataFilter, HistogramData, VitalGroup} from './types';
+import {NUM_BUCKETS, VITAL_GROUPS} from './constants';
 import VitalCard from './vitalCard';
 
 type Props = {
@@ -28,7 +30,7 @@ class VitalsPanel extends React.Component<Props> {
     isLoading: boolean,
     error: boolean,
     data: VitalData | null,
-    histogram: HistogramData[],
+    histogram: HistogramData,
     color: [string],
     min?: number,
     max?: number,

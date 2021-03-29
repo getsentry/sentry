@@ -13,7 +13,7 @@ class TagType:
     def __repr__(self):
         return "<{}: {}>".format(
             type(self).__name__,
-            ", ".join("{}={!r}".format(name, getattr(self, name)) for name in self.__slots__),
+            ", ".join(f"{name}={getattr(self, name)!r}" for name in self.__slots__),
         )
 
     def __hash__(self):

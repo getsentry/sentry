@@ -181,7 +181,7 @@ class EventCauseEmpty extends React.Component<Props, State> {
               <DocsButton
                 size="small"
                 priority="primary"
-                href="https://docs.sentry.io/workflow/releases/#create-release"
+                href="https://docs.sentry.io/product/releases/setup/"
                 onClick={() =>
                   this.trackAnalytics({
                     eventKey: 'event_cause.docs_clicked',

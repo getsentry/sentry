@@ -115,6 +115,6 @@ class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
                 ),
             },
         )
-        msg.send_async([user.email for user in owners_list])
+        msg.send([user.email for user in owners_list])
 
         return Response(status=201)

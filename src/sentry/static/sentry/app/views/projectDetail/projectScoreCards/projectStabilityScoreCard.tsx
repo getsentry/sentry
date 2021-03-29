@@ -122,7 +122,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
           project: selection.projects[0],
           field: 'sum(session)',
           statsPeriod: '90d',
-          interval: '90d',
+          interval: '1d',
         },
       }
     );
@@ -137,7 +137,11 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardHelp() {
-    return getSessionTermDescription(SessionTerm.STABILITY, null);
+    return this.trend
+      ? t(
+          'The percentage of crash free sessions and how it has changed since the last period.'
+        )
+      : getSessionTermDescription(SessionTerm.STABILITY, null);
   }
 
   get score() {

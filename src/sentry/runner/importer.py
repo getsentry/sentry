@@ -26,7 +26,7 @@ class Importer:
         self.callback = callback
 
     def __repr__(self):
-        return "<{} for '{}' ({})>".format(type(self), self.name, self.config_path)
+        return f"<{type(self)} for '{self.name}' ({self.config_path})>"
 
     def find_module(self, fullname, path=None):
         if fullname != self.name:
@@ -45,7 +45,7 @@ class Importer:
 
             msg = str(e)
             if msg:
-                msg = "{}: {}".format(type(e).__name__, msg)
+                msg = f"{type(e).__name__}: {msg}"
             else:
                 msg = type(e).__name__
             reraise_as(ConfigurationError(msg))

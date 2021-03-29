@@ -2,43 +2,52 @@ from django.http import Http404
 
 from rest_framework import status
 
-from sentry.api.bases.organization import OrganizationIntegrationsPermission
-from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
+from sentry.api.bases.organization import OrganizationIntegrationsPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import RepositoryProjectPathConfig
 
 from .organization_integration_repository_project_path_configs import (
     RepositoryProjectPathConfigSerializer,
+    NullableOrganizationIntegrationMixin,
 )
 
 
 class OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint(
-    OrganizationIntegrationBaseEndpoint
+    OrganizationEndpoint, NullableOrganizationIntegrationMixin
 ):
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def convert_args(self, request, organization_slug, integration_id, config_id, *args, **kwargs):
-        args, kwargs = super().convert_args(
-            request, organization_slug, integration_id, config_id, *args, **kwargs
-        )
-
-        org_integration = self.get_organization_integration(kwargs["organization"], integration_id)
-        kwargs["org_integration"] = org_integration
+    def convert_args(self, request, organization_slug, config_id, *args, **kwargs):
+        args, kwargs = super().convert_args(request, organization_slug, config_id, *args, **kwargs)
 
         try:
             kwargs["config"] = RepositoryProjectPathConfig.objects.get(
                 id=config_id,
-                organization_integration_id=org_integration.id,
             )
         except RepositoryProjectPathConfig.DoesNotExist:
             raise Http404
+
         return (args, kwargs)
 
-    def put(
-        self, request, organization_slug, integration_id, organization, org_integration, config
-    ):
+    def put(self, request, config_id, organization, config):
+        """
+        Update a repository project path config
+        ``````````````````
+
+        :pparam string organization_slug: the slug of the organization the
+                                          team should be created for.
+        :param int repository_id:
+        :param int project_id:
+        :param string stack_root:
+        :param string source_root:
+        :param string default_branch:
+        :auth: required
+        """
         serializer = RepositoryProjectPathConfigSerializer(
-            context={"organization_integration": org_integration},
+            context={
+                "organization": organization,
+                "organization_integration": config.organization_integration,
+            },
             instance=config,
             data=request.data,
         )
@@ -48,11 +57,13 @@ class OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint(
                 serialize(repository_project_path_config, request.user),
                 status=status.HTTP_200_OK,
             )
-
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(
-        self, request, organization_slug, integration_id, organization, org_integration, config
-    ):
+    def delete(self, request, config_id, organization, config):
+        """
+        Delete a repository project path config
+
+        :auth: required
+        """
         config.delete()
         return self.respond(status=status.HTTP_204_NO_CONTENT)

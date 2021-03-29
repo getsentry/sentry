@@ -1,6 +1,5 @@
 from collections import Counter, defaultdict, OrderedDict
-from sentry.models import OrganizationMemberTeam, ProjectOwnership, Team, User
-from sentry.api.fields.actor import Actor
+from sentry.models import ActorTuple, OrganizationMemberTeam, ProjectOwnership, Team, User
 
 
 # TODO(tkaemming): This should probably just be part of `build_digest`.
@@ -90,7 +89,7 @@ def build_events_by_actor(project_id, events, user_ids):
         # Just wanted to make as few changes as possible for now.
         actors, __ = ProjectOwnership.get_owners(project_id, event.data)
         if actors == ProjectOwnership.Everyone:
-            actors = [Actor(user_id, User) for user_id in user_ids]
+            actors = [ActorTuple(user_id, User) for user_id in user_ids]
         for actor in actors:
             events_by_actor[actor].add(event)
     return events_by_actor

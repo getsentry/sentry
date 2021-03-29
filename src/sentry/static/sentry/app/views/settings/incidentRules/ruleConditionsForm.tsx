@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
+import SearchBar from 'app/components/events/searchBar';
 import SelectControl from 'app/components/forms/selectControl';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
@@ -11,7 +11,7 @@ import {Panel, PanelBody} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Environment, Organization} from 'app/types';
+import {Environment, Organization, SelectValue} from 'app/types';
 import {getDisplayName} from 'app/utils/environment';
 import theme from 'app/utils/theme';
 import {
@@ -19,13 +19,12 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'app/views/alerts/utils';
-import SearchBar from 'app/views/events/searchBar';
 import FormField from 'app/views/settings/components/forms/formField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
-import {DEFAULT_AGGREGATE} from './constants';
+import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
 import MetricField from './metricField';
-import {Datasource, IncidentRule, TimeWindow} from './types';
+import {Datasource, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute window'),
@@ -83,8 +82,11 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
     const {organization, disabled, onFilterSearch} = this.props;
     const {environments} = this.state;
 
-    const environmentList: [IncidentRule['environment'], React.ReactNode][] =
-      environments?.map((env: Environment) => [env.name, getDisplayName(env)]) ?? [];
+    const environmentOptions: SelectValue<string | null>[] =
+      environments?.map((env: Environment) => ({
+        value: env.name,
+        label: getDisplayName(env),
+      })) ?? [];
 
     const anyEnvironmentLabel = (
       <React.Fragment>
@@ -99,7 +101,39 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
         </div>
       </React.Fragment>
     );
-    environmentList.unshift([null, anyEnvironmentLabel]);
+    environmentOptions.unshift({value: null, label: anyEnvironmentLabel});
+
+    const dataSourceOptions = [
+      {
+        label: t('Errors'),
+        options: [
+          {
+            value: Datasource.ERROR_DEFAULT,
+            label: DATA_SOURCE_LABELS[Datasource.ERROR_DEFAULT],
+          },
+          {
+            value: Datasource.DEFAULT,
+            label: DATA_SOURCE_LABELS[Datasource.DEFAULT],
+          },
+          {
+            value: Datasource.ERROR,
+            label: DATA_SOURCE_LABELS[Datasource.ERROR],
+          },
+        ],
+      },
+    ];
+
+    if (organization.features.includes('performance-view')) {
+      dataSourceOptions.push({
+        label: t('Transactions'),
+        options: [
+          {
+            value: Datasource.TRANSACTION,
+            label: DATA_SOURCE_LABELS[Datasource.TRANSACTION],
+          },
+        ],
+      });
+    }
 
     const formElemBaseStyle = {
       padding: `${space(0.5)}`,
@@ -135,85 +169,58 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                     },
                   }),
                 }}
-                choices={environmentList}
+                options={environmentOptions}
                 isDisabled={disabled || this.state.environments === null}
                 isClearable
                 inline={false}
                 flexibleControlStateSize
                 inFieldLabel={t('Environment: ')}
               />
-              <Feature requireAll features={['organizations:performance-view']}>
-                <FormField
-                  name="datasource"
-                  inline={false}
-                  style={{
-                    ...formElemBaseStyle,
-                    minWidth: 300,
-                    flex: 2,
-                  }}
-                  flexibleControlStateSize
-                >
-                  {({onChange, onBlur, model}) => {
-                    const formDataset = model.getValue('dataset');
-                    const formEventTypes = model.getValue('eventTypes');
-                    const mappedValue = convertDatasetEventTypesToSource(
-                      formDataset,
-                      formEventTypes
-                    );
-                    return (
-                      <SelectControl
-                        value={mappedValue}
-                        inFieldLabel={t('Data Source: ')}
-                        onChange={optionObj => {
-                          const optionValue = optionObj.value;
-                          onChange(optionValue, {});
-                          onBlur(optionValue, {});
-                          // Reset the aggregate to the default (which works across
-                          // datatypes), otherwise we may send snuba an invalid query
-                          // (transaction aggregate on events datasource = bad).
-                          model.setValue('aggregate', DEFAULT_AGGREGATE);
+              <FormField
+                name="datasource"
+                inline={false}
+                style={{
+                  ...formElemBaseStyle,
+                  minWidth: 300,
+                  flex: 2,
+                }}
+                flexibleControlStateSize
+              >
+                {({onChange, onBlur, model}) => {
+                  const formDataset = model.getValue('dataset');
+                  const formEventTypes = model.getValue('eventTypes');
+                  const mappedValue = convertDatasetEventTypesToSource(
+                    formDataset,
+                    formEventTypes
+                  );
+                  return (
+                    <SelectControl
+                      value={mappedValue}
+                      inFieldLabel={t('Data Source: ')}
+                      onChange={optionObj => {
+                        const optionValue = optionObj.value;
+                        onChange(optionValue, {});
+                        onBlur(optionValue, {});
+                        // Reset the aggregate to the default (which works across
+                        // datatypes), otherwise we may send snuba an invalid query
+                        // (transaction aggregate on events datasource = bad).
+                        optionValue === 'transaction'
+                          ? model.setValue('aggregate', DEFAULT_TRANSACTION_AGGREGATE)
+                          : model.setValue('aggregate', DEFAULT_AGGREGATE);
 
-                          // set the value of the dataset and event type from data source
-                          const {dataset, eventTypes} =
-                            DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
-                          model.setValue('dataset', dataset);
-                          model.setValue('eventTypes', eventTypes);
-                        }}
-                        options={[
-                          {
-                            label: t('Errors'),
-                            options: [
-                              {
-                                value: Datasource.ERROR_DEFAULT,
-                                label: DATA_SOURCE_LABELS[Datasource.ERROR_DEFAULT],
-                              },
-                              {
-                                value: Datasource.DEFAULT,
-                                label: DATA_SOURCE_LABELS[Datasource.DEFAULT],
-                              },
-                              {
-                                value: Datasource.ERROR,
-                                label: DATA_SOURCE_LABELS[Datasource.ERROR],
-                              },
-                            ],
-                          },
-                          {
-                            label: t('Transactions'),
-                            options: [
-                              {
-                                value: Datasource.TRANSACTION,
-                                label: DATA_SOURCE_LABELS[Datasource.TRANSACTION],
-                              },
-                            ],
-                          },
-                        ]}
-                        isDisabled={disabled}
-                        required
-                      />
-                    );
-                  }}
-                </FormField>
-              </Feature>
+                        // set the value of the dataset and event type from data source
+                        const {dataset, eventTypes} =
+                          DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
+                        model.setValue('dataset', dataset);
+                        model.setValue('eventTypes', eventTypes);
+                      }}
+                      options={dataSourceOptions}
+                      isDisabled={disabled}
+                      required
+                    />
+                  );
+                }}
+              </FormField>
               <FormField
                 name="query"
                 inline={false}

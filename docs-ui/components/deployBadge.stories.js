@@ -3,7 +3,7 @@ import React from 'react';
 import DeployBadge from 'app/components/deployBadge';
 
 export default {
-  title: 'Core/Badges+Tags/DeployBadge',
+  title: 'Core/Tags/DeployBadge',
   component: DeployBadge,
   args: {
     deploy: {

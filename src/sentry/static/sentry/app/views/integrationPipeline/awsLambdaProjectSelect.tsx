@@ -46,7 +46,7 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
         <StyledList symbol="colored-numeric">
           <React.Fragment />
           <ListItem>
-            <h4>{t('Select a project for your AWS Lambdas')}</h4>
+            <h3>{t('Select a project for your AWS Lambdas')}</h3>
             <Form model={this.model} hideFooter>
               <StyledSentryProjectSelectorField
                 placeholder={t('Select a project')}
@@ -58,7 +58,7 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
                 stacked
               />
               <Alert type="info">
-                {t('Currently only supports Node Lambda functions')}
+                {t('Currently only supports Node and Python Lambda functions')}
               </Alert>
             </Form>
           </ListItem>

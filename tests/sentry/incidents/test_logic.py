@@ -78,7 +78,7 @@ from sentry.incidents.models import (
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, BaseIncidentsTest
-from sentry.models import PagerDutyService
+from sentry.models import ActorTuple, PagerDutyService
 
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils import json
@@ -699,6 +699,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
+        assert alert_rule.owner is None
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
         assert alert_rule.snuba_query.dataset == QueryDatasets.EVENTS.value
@@ -824,6 +825,32 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule_1.name == alert_rule_2.name
         assert alert_rule_1.status == AlertRuleStatus.SNAPSHOT.value
         assert alert_rule_2.status == AlertRuleStatus.SNAPSHOT.value
+
+    def test_alert_rule_owner(self):
+        alert_rule_1 = create_alert_rule(
+            self.organization,
+            [self.project],
+            "alert rule 1",
+            "level:error",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            owner=ActorTuple.from_actor_identifier(self.user.id),
+        )
+        assert alert_rule_1.owner.id == self.user.actor.id
+        alert_rule_2 = create_alert_rule(
+            self.organization,
+            [self.project],
+            "alert rule 2",
+            "level:error",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
+        )
+        assert alert_rule_2.owner.id == self.team.actor.id
 
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -1040,6 +1067,40 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert action_snapshot.target_type == action.target_type
             assert action_snapshot.target_identifier == action.target_identifier
             assert action_snapshot.target_display == action.target_display
+
+    def test_alert_rule_owner(self):
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "alert rule 1",
+            "level:error",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            owner=ActorTuple.from_actor_identifier(self.user.id),
+        )
+        assert alert_rule.owner.id == self.user.actor.id
+        update_alert_rule(
+            alert_rule=alert_rule,
+            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
+        )
+        assert alert_rule.owner.id == self.team.actor.id
+        update_alert_rule(
+            alert_rule=alert_rule,
+            owner=ActorTuple.from_actor_identifier(f"user:{self.user.id}"),
+        )
+        assert alert_rule.owner.id == self.user.actor.id
+        update_alert_rule(
+            alert_rule=alert_rule,
+            owner=ActorTuple.from_actor_identifier(self.user.id),
+        )
+        assert alert_rule.owner.id == self.user.actor.id
+        update_alert_rule(
+            alert_rule=alert_rule,
+            name="not updating owner",
+        )
+        assert alert_rule.owner.id == self.user.actor.id
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -1308,6 +1369,46 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 target_identifier=channel_name,
                 integration=integration,
             )
+
+    @responses.activate
+    def test_slack_channel_id_provided(self):
+        integration = Integration.objects.create(
+            external_id="2",
+            provider="slack",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.SLACK
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_name = "#some_channel"
+        channel_id = "s_c"
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
+            ),
+        )
+
+        action = create_alert_rule_trigger_action(
+            self.trigger,
+            type,
+            target_type,
+            target_identifier=channel_name,
+            integration=integration,
+            input_channel_id=channel_id,
+        )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == channel_id
+        assert action.target_display == channel_name
+        assert action.integration == integration
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
     def test_msteams(self, mock_get_channel_id):

@@ -6,13 +6,13 @@ from django.http import Http404
 from urllib.parse import urlparse, urlencode, parse_qs
 
 from sentry import tagstore
-from sentry.api.fields.actor import Actor
 from sentry.constants import ObjectStatus
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 from sentry.models import (
+    ActorTuple,
     GroupStatus,
     GroupAssignee,
     OrganizationMember,
@@ -124,7 +124,7 @@ def build_attachment_text(group, event=None):
 
 
 def build_assigned_text(group, identity, assignee):
-    actor = Actor.from_actor_identifier(assignee)
+    actor = ActorTuple.from_actor_identifier(assignee)
 
     try:
         assigned_actor = actor.resolve()
@@ -282,10 +282,10 @@ def build_group_attachment(
 
     if rules:
         rule_url = build_rule_url(rules[0], group, project)
-        footer += " via <{}|{}>".format(rule_url, rules[0].label)
+        footer += f" via <{rule_url}|{rules[0].label}>"
 
         if len(rules) > 1:
-            footer += " (+{} other)".format(len(rules) - 1)
+            footer += f" (+{len(rules) - 1} other)"
 
     obj = event if event is not None else group
     if event and link_to_event:
@@ -326,6 +326,12 @@ def build_incident_attachment(action, incident, metric_value=None, method=None):
         "Critical": LEVEL_TO_COLOR["fatal"],
     }
 
+    incident_footer_ts = (
+        "<!date^{:.0f}^Sentry Incident - Started {} at {} | Sentry Incident>".format(
+            to_timestamp(data["ts"]), "{date_pretty}", "{time}"
+        )
+    )
+
     return {
         "fallback": data["title"],
         "title": data["title"],
@@ -334,8 +340,7 @@ def build_incident_attachment(action, incident, metric_value=None, method=None):
         "fields": [],
         "mrkdwn_in": ["text"],
         "footer_icon": data["logo_url"],
-        "footer": "Sentry Incident",
-        "ts": to_timestamp(data["ts"]),
+        "footer": incident_footer_ts,
         "color": colors[data["status"]],
         "actions": [],
     }
@@ -390,16 +395,13 @@ def get_channel_id_with_timeout(integration, name, timeout):
         3. timed_out: boolean (whether we hit our self-imposed time limit)
     """
 
-    token_payload = {"token": integration.metadata["access_token"]}
+    headers = {"Authorization": "Bearer %s" % integration.metadata["access_token"]}
 
-    payload = dict(
-        token_payload,
-        **{
-            "exclude_archived": False,
-            "exclude_members": True,
-            "types": "public_channel,private_channel",
-        },
-    )
+    payload = {
+        "exclude_archived": False,
+        "exclude_members": True,
+        "types": "public_channel,private_channel",
+    }
 
     list_types = LIST_TYPES
 
@@ -414,7 +416,9 @@ def get_channel_id_with_timeout(integration, name, timeout):
             endpoint = "/%s.list" % list_type
             try:
                 # Slack limits the response of `<list_type>.list` to 1000 channels
-                items = client.get(endpoint, params=dict(payload, cursor=cursor, limit=1000))
+                items = client.get(
+                    endpoint, headers=headers, params=dict(payload, cursor=cursor, limit=1000)
+                )
             except ApiError as e:
                 logger.info("rule.slack.%s_list_failed" % list_type, extra={"error": str(e)})
                 return (prefix, None, False)

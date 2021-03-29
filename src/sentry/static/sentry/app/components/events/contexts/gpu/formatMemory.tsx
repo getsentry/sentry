@@ -1,4 +1,4 @@
-import {formatBytes} from 'app/utils';
+import {formatBytesBase2} from 'app/utils';
 
 const MEGABYTE_IN_BYTES = 1048576;
 
@@ -8,7 +8,7 @@ function formatMemory(memory_size: number) {
   }
 
   // 'usable_memory' is in defined in MB
-  return formatBytes(memory_size * MEGABYTE_IN_BYTES);
+  return formatBytesBase2(memory_size * MEGABYTE_IN_BYTES);
 }
 
 export default formatMemory;

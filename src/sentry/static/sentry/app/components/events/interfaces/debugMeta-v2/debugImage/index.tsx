@@ -2,7 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import {IconStack} from 'app/icons';
+import NotAvailable from 'app/components/notAvailable';
+import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Image, ImageStatus} from 'app/types/debugImage';
@@ -35,26 +36,24 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
         <Status status={status} />
       </StatusColumn>
       <ImageColumn>
-        {fileName && <FileName>{fileName}</FileName>}
+        {fileName && (
+          <Tooltip title={code_file}>
+            <FileName>{fileName}</FileName>
+          </Tooltip>
+        )}
         <ImageAddress>{imageAddress}</ImageAddress>
       </ImageColumn>
       <Column>
-        <Processings unwind_status={unwind_status} debug_status={debug_status} />
+        {unwind_status || debug_status ? (
+          <Processings unwind_status={unwind_status} debug_status={debug_status} />
+        ) : (
+          <NotAvailable />
+        )}
       </Column>
       <DebugFilesColumn>
-        <Button
-          size="xsmall"
-          icon={<IconStack size="xs" />}
-          onClick={() => onOpenImageDetailsModal(code_id, debug_id)}
-        >
+        <Button size="xsmall" onClick={() => onOpenImageDetailsModal(code_id, debug_id)}>
           {t('View')}
         </Button>
-        <Button
-          size="xsmall"
-          icon={<IconStack size="xs" />}
-          onClick={() => onOpenImageDetailsModal(code_id, debug_id)}
-          label={t('View')}
-        />
       </DebugFilesColumn>
     </Wrapper>
   );
@@ -110,35 +109,4 @@ const ImageAddress = styled('div')`
 // Debug Files Column
 const DebugFilesColumn = styled(Column)`
   justify-content: flex-end;
-
-  > *:first-child {
-    display: none;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    > *:first-child {
-      display: flex;
-    }
-    > *:nth-child(2) {
-      display: none;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    > *:first-child {
-      display: none;
-    }
-    > *:nth-child(2) {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    > *:first-child {
-      display: flex;
-    }
-    > *:nth-child(2) {
-      display: none;
-    }
-  }
 `;

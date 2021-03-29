@@ -32,6 +32,10 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
    */
   to?: React.ComponentProps<typeof Link>['to'];
   /**
+   * Triggered when the item is clicked
+   */
+  onClick?: (eventKey: any) => void;
+  /**
    * Makes the tag clickable. Use for external links.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
    */
@@ -51,6 +55,7 @@ function Tag({
   icon,
   tooltipText,
   to,
+  onClick,
   href,
   onDismiss,
   children,
@@ -63,7 +68,7 @@ function Tag({
   };
 
   const tag = (
-    <Tooltip title={tooltipText} containerDisplayMode="inline">
+    <Tooltip title={tooltipText} containerDisplayMode="inline-flex">
       <Background type={type}>
         {tagIcon()}
 
@@ -111,7 +116,13 @@ function Tag({
       return <ExternalLink href={href}>{tag}</ExternalLink>;
     }
 
-    if (defined(to)) {
+    if (defined(to) && defined(onClick)) {
+      return (
+        <Link to={to} onClick={onClick}>
+          {tag}
+        </Link>
+      );
+    } else if (defined(to)) {
       return <Link to={to}>{tag}</Link>;
     }
 
@@ -146,9 +157,6 @@ const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
   white-space: nowrap;
   text-overflow: ellipsis;
   line-height: ${TAG_HEIGHT};
-  a:hover & {
-    color: ${p => p.theme.gray500};
-  }
 `;
 
 const DismissButton = styled(Button)`

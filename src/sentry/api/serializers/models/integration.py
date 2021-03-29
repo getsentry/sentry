@@ -1,7 +1,6 @@
+import logging
 from collections import defaultdict
 
-
-from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import (
     ExternalIssue,
@@ -9,9 +8,11 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
     ExternalTeam,
-    EXTERNAL_PROVIDERS,
-    ExternalProviders,
+    ExternalUser,
 )
+from sentry.shared_integrations.exceptions import ApiError
+
+logger = logging.getLogger(__name__)
 
 
 # converts the provider to JSON
@@ -90,22 +91,33 @@ class OrganizationIntegrationSerializer(Serializer):
             include_config=include_config,
         )
 
-        # TODO: skip adding configData if include_config is False
-        # we need to wait until the Slack migration is complete first
-        # because we have a dependency on configData in the integration directory
+        dynamic_display_information = None
+        config_data = None
+
         try:
             installation = obj.integration.get_installation(obj.organization_id)
         except NotImplementedError:
             # slack doesn't have an installation implementation
-            config_data = obj.config
-            dynamic_display_information = None
+            config_data = obj.config if include_config else None
         else:
-            # just doing this to avoid querying for an object we already have
-            installation._org_integration = obj
-            config_data = installation.get_config_data()
-            dynamic_display_information = installation.get_dynamic_display_information()
+            try:
+                # just doing this to avoid querying for an object we already have
+                installation._org_integration = obj
+                config_data = installation.get_config_data() if include_config else None
+                dynamic_display_information = installation.get_dynamic_display_information()
+            except ApiError as e:
+                # If there is an ApiError from our 3rd party integration providers, assume there is an problem with the configuration and set it to disabled.
+                integration.update({"status": "disabled"})
+                name = "sentry.serializers.model.organizationintegration"
+                log_info = {
+                    "error": str(e),
+                    "integration_id": obj.integration.id,
+                    "integration_provider": obj.integration.provider,
+                }
+                logger.info(name, extra=log_info)
 
         integration.update({"configData": config_data})
+
         if dynamic_display_information:
             integration.update({"dynamicDisplayInformation": dynamic_display_information})
 
@@ -117,7 +129,7 @@ class IntegrationProviderSerializer(Serializer):
         metadata = obj.metadata
         metadata = metadata and metadata._asdict() or None
 
-        output = {
+        return {
             "key": obj.key,
             "slug": obj.key,
             "name": obj.name,
@@ -130,17 +142,6 @@ class IntegrationProviderSerializer(Serializer):
                 **obj.setup_dialog_config,
             ),
         }
-
-        # until we GA the stack trace linking feature to everyone it's easier to
-        # control whether we show the feature this way
-        if obj.has_stacktrace_linking:
-            feature_flag_name = "organizations:integrations-stacktrace-link"
-            has_stacktrace_linking = features.has(feature_flag_name, organization, actor=user)
-            if has_stacktrace_linking:
-                # only putting the field in if it's true to minimize test changes
-                output["hasStacktraceLinking"] = True
-
-        return output
 
 
 class IntegrationIssueConfigSerializer(IntegrationSerializer):
@@ -210,13 +211,22 @@ class IntegrationIssueSerializer(IntegrationSerializer):
 @register(ExternalTeam)
 class ExternalTeamSerializer(Serializer):
     def serialize(self, obj, attrs, user):
-        provider = self.get_provider_string(obj.provider)
+        provider = ExternalTeam.get_provider_string(obj.provider)
         return {
-            "id": obj.id,
-            "team_id": obj.team_id,
+            "id": str(obj.id),
+            "teamId": str(obj.team_id),
             "provider": provider,
-            "external_id": obj.external_id,
+            "externalName": obj.external_name,
         }
 
-    def get_provider_string(self, provider):
-        return EXTERNAL_PROVIDERS.get(ExternalProviders(provider), "unknown")
+
+@register(ExternalUser)
+class ExternalUserSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        provider = ExternalUser.get_provider_string(obj.provider)
+        return {
+            "id": str(obj.id),
+            "memberId": str(obj.organizationmember_id),
+            "provider": provider,
+            "externalName": obj.external_name,
+        }

@@ -134,6 +134,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
             status: err.status,
           },
         });
+
         const message = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({
           isLoading: false,

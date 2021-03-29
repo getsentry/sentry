@@ -83,7 +83,7 @@ stack.function:malloc -> memory-allocation-error`}
             {
               pattern: <code>matcher:glob [^v]?[+-]flag</code>,
               docs: (
-                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=%2Fdata-management%2Fevent-grouping%2Fgrouping-enhancements%2F" />
+                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/data-management/event-grouping/stack-trace-rules/" />
               ),
             }
           )}
@@ -101,7 +101,8 @@ stack.function:mylibrary_* +app`}
   },
   groupingConfig: {
     name: 'groupingConfig',
-    type: 'array',
+    type: 'select',
+    deprecatedSelectControl: false,
     label: t('Grouping Config'),
     saveOnBlur: false,
     saveMessageAlertType: 'info',
@@ -136,7 +137,8 @@ stack.function:mylibrary_* +app`}
   },
   groupingEnhancementsBase: {
     name: 'groupingEnhancementsBase',
-    type: 'array',
+    type: 'select',
+    deprecatedSelectControl: false,
     label: t('Stack Trace Rules Base'),
     saveOnBlur: false,
     saveMessageAlertType: 'info',

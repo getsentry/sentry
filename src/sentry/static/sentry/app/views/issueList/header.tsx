@@ -25,9 +25,29 @@ import {
   TAB_MAX_COUNT,
 } from './utils';
 
+type WrapGuideProps = {
+  children: React.ReactElement;
+  tabQuery: string;
+  query: string;
+  to: React.ComponentProps<typeof GuideAnchor>['to'];
+};
+
+function WrapGuideTabs({children, tabQuery, query, to}: WrapGuideProps) {
+  if (isForReviewQuery(tabQuery)) {
+    return (
+      <GuideAnchor target="inbox_guide_tab" disabled={isForReviewQuery(query)} to={to}>
+        <GuideAnchor target="for_review_guide_tab">{children}</GuideAnchor>
+      </GuideAnchor>
+    );
+  }
+
+  return children;
+}
+
 type Props = {
   organization: Organization;
   query: string;
+  sort: string;
   queryCounts: QueryCounts;
   realtimeActive: boolean;
   orgSlug: Organization['slug'];
@@ -42,6 +62,7 @@ type Props = {
 function IssueListHeader({
   organization,
   query,
+  sort,
   queryCount,
   queryCounts,
   realtimeActive,
@@ -59,6 +80,8 @@ function IssueListHeader({
   const savedSearchTabActive = !visibleTabs.some(([tabQuery]) => tabQuery === query);
   // Remove cursor and page when switching tabs
   const {cursor: _, page: __, ...queryParms} = router?.location?.query ?? {};
+  const sortParam =
+    queryParms.sort === IssueSortOptions.INBOX ? undefined : queryParms.sort;
 
   function trackTabClick(tabQuery: string) {
     // Clicking on inbox tab and currently another tab is active
@@ -80,9 +103,7 @@ function IssueListHeader({
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
             <Button
-              title={t(
-                'You’re seeing the new issues experience because you’ve opted to be an early adopter of new features. Send us feedback via email'
-              )}
+              title={t('Send us feedback via email')}
               size="small"
               href="mailto:workflow-feedback@sentry.io?subject=Issues Feedback"
             >
@@ -102,17 +123,11 @@ function IssueListHeader({
         <Layout.HeaderNavTabs underlined>
           {visibleTabs.map(
             ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable}]) => {
-              const inboxGuideStepOne = queryName === 'For Review' && query !== tabQuery;
-              const inboxGuideStepTwo = queryName === 'For Review' && query === tabQuery;
               const to = {
                 query: {
                   ...queryParms,
                   query: tabQuery,
-                  sort:
-                    queryParms.sort === IssueSortOptions.INBOX &&
-                    !isForReviewQuery(tabQuery)
-                      ? undefined
-                      : queryParms.sort,
+                  sort: isForReviewQuery(tabQuery) ? IssueSortOptions.INBOX : sortParam,
                 },
                 pathname: `/organizations/${organization.slug}/issues/`,
               };
@@ -120,32 +135,30 @@ function IssueListHeader({
               return (
                 <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
                   <Link to={to} onClick={() => trackTabClick(tabQuery)}>
-                    <GuideAnchor
-                      target={inboxGuideStepOne ? 'inbox_guide_tab' : 'none'}
-                      disabled={!inboxGuideStepOne}
-                      to={to}
-                    >
-                      <GuideAnchor
-                        target={inboxGuideStepTwo ? 'for_review_guide_tab' : 'none'}
-                        disabled={!inboxGuideStepTwo}
+                    <WrapGuideTabs query={query} tabQuery={tabQuery} to={to}>
+                      <Tooltip
+                        title={tooltipTitle}
+                        position="bottom"
+                        isHoverable={tooltipHoverable}
+                        delay={1000}
                       >
-                        <Tooltip
-                          title={tooltipTitle}
-                          position="bottom"
-                          isHoverable={tooltipHoverable}
-                          delay={1000}
-                        >
-                          {queryName}{' '}
-                          {queryCounts[tabQuery] && (
-                            <StyledQueryCount
-                              isTag
-                              count={queryCounts[tabQuery].count}
-                              max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
-                            />
-                          )}
-                        </Tooltip>
-                      </GuideAnchor>
-                    </GuideAnchor>
+                        {queryName}{' '}
+                        {queryCounts[tabQuery] && (
+                          <StyledQueryCount
+                            isTag
+                            tagProps={{
+                              type:
+                                isForReviewQuery(tabQuery) &&
+                                queryCounts[tabQuery].count > 0
+                                  ? 'warning'
+                                  : 'default',
+                            }}
+                            count={queryCounts[tabQuery].count}
+                            max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
+                          />
+                        )}
+                      </Tooltip>
+                    </WrapGuideTabs>
                   </Link>
                 </li>
               );
@@ -154,6 +167,7 @@ function IssueListHeader({
           <SavedSearchTab
             organization={organization}
             query={query}
+            sort={sort}
             savedSearchList={savedSearchList}
             onSavedSearchSelect={onSavedSearchSelect}
             onSavedSearchDelete={onSavedSearchDelete}

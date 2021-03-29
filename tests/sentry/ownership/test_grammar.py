@@ -1,6 +1,15 @@
 import pytest
 
-from sentry.ownership.grammar import Rule, Matcher, Owner, parse_rules, dump_schema, load_schema
+from sentry.ownership.grammar import (
+    Rule,
+    Matcher,
+    Owner,
+    parse_rules,
+    dump_schema,
+    load_schema,
+    parse_code_owners,
+    convert_codeowners_syntax,
+)
 
 fixture_data = """
 # cool stuff comment
@@ -13,6 +22,20 @@ path:src/sentry/*       david@sentry.io
 
 tags.foo:bar             tagperson@sentry.io
 tags.foo:"bar baz"       tagperson@sentry.io
+
+module:foo.bar  #workflow
+module:"foo bar"  meow@sentry.io
+"""
+
+codeowners_fixture_data = """
+# cool stuff comment
+*.js                    @getsentry/frontend @NisanthanNanthakumar
+# good comment
+
+
+  docs/*  @getsentry/docs @getsentry/ecosystem
+src/sentry/*       @AnotherUser
+api/*    nisanthan.nanthakumar@sentry.io
 """
 
 
@@ -23,6 +46,8 @@ def test_parse_rules():
         Rule(Matcher("path", "src/sentry/*"), [Owner("user", "david@sentry.io")]),
         Rule(Matcher("tags.foo", "bar"), [Owner("user", "tagperson@sentry.io")]),
         Rule(Matcher("tags.foo", "bar baz"), [Owner("user", "tagperson@sentry.io")]),
+        Rule(Matcher("module", "foo.bar"), [Owner("team", "workflow")]),
+        Rule(Matcher("module", "foo bar"), [Owner("user", "meow@sentry.io")]),
     ]
 
 
@@ -122,7 +147,68 @@ def test_matcher_test_tags():
     assert not Matcher("tags.barz", "barval").test(data)
 
 
+def test_matcher_test_module():
+    data = {
+        "stacktrace": {
+            "frames": [
+                {
+                    "module": "com.android.internal.os.Init",
+                    "filename": "Init.java",
+                    "abs_path": "Init.java",
+                },
+                {
+                    "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                    "filename": "RuntimeInit.java",
+                    "abs_path": "RuntimeInit.java",
+                },
+                {
+                    "module": "com.sentry.somethinginthemiddle.CustomModuleForMeowing",
+                    "filename": "SourceFile",
+                    "abs_path": "SourceFile",
+                },
+            ]
+        },
+    }
+    assert Matcher("module", "*os.Init").test(data)
+    assert Matcher("module", "*somethinginthemiddle*").test(data)
+    assert Matcher("module", "com.android.internal.os.RuntimeInit$MethodAndArgsCaller").test(data)
+    assert Matcher("module", "com.android*").test(data)
+    assert not Matcher("module", "com.android").test(data)
+    assert not Matcher("module", "os.Init").test(data)
+    assert not Matcher("module", "*somethingattheend").test(data)
+    assert not Matcher("module", "com.android.internal.os").test(data)
+
+
 @pytest.mark.parametrize("data", [{}, {"tags": None}, {"tags": [None]}])
 def test_matcher_test_tags_without_tag_data(data):
     assert not Matcher("tags.foo", "foo_value").test(data)
     assert not Matcher("tags.bar", "barval").test(data)
+
+
+def test_parse_code_owners():
+    assert parse_code_owners(codeowners_fixture_data) == (
+        ["@getsentry/frontend", "@getsentry/docs", "@getsentry/ecosystem"],
+        ["@NisanthanNanthakumar", "@AnotherUser"],
+        ["nisanthan.nanthakumar@sentry.io"],
+    )
+
+
+def test_convert_codeowners_syntax():
+    code_mapping = type("", (), {})()
+    code_mapping.stack_root = "webpack://docs"
+    code_mapping.source_root = "docs"
+    assert (
+        convert_codeowners_syntax(
+            codeowners_fixture_data,
+            {
+                "@getsentry/frontend": "front-sentry",
+                "@getsentry/docs": "docs-sentry",
+                "@getsentry/ecosystem": "ecosystem",
+                "@NisanthanNanthakumar": "nisanthan.nanthakumar@sentry.io",
+                "@AnotherUser": "anotheruser@sentry.io",
+                "nisanthan.nanthakumar@sentry.io": "nisanthan.nanthakumar@sentry.io",
+            },
+            code_mapping,
+        )
+        == "\n# cool stuff comment\npath:*.js front-sentry nisanthan.nanthakumar@sentry.io\n# good comment\n\n\npath:webpack://docs/* docs-sentry ecosystem\npath:src/sentry/* anotheruser@sentry.io\npath:api/* nisanthan.nanthakumar@sentry.io\n"
+    )

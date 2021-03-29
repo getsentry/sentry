@@ -69,6 +69,9 @@ from sentry.models import (
     ReleaseFile,
     RepositoryProjectPathConfig,
     Rule,
+    ExternalUser,
+    ExternalTeam,
+    ProjectCodeOwners,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
@@ -431,6 +434,7 @@ class Factories:
     def create_code_mapping(project, repo=None, **kwargs):
         kwargs.setdefault("stack_root", "")
         kwargs.setdefault("source_root", "")
+        kwargs.setdefault("default_branch", "master")
 
         if not repo:
             repo = Factories.create_repo(project=project)
@@ -878,6 +882,7 @@ class Factories:
         organization,
         projects,
         name=None,
+        owner=None,
         query="level:error",
         aggregate="count()",
         time_window=10,
@@ -904,6 +909,7 @@ class Factories:
             time_window,
             threshold_type,
             threshold_period,
+            owner=owner,
             resolve_threshold=resolve_threshold,
             dataset=dataset,
             environment=environment,
@@ -945,4 +951,26 @@ class Factories:
     ):
         return create_alert_rule_trigger_action(
             trigger, type, target_type, target_identifier, integration, sentry_app
+        )
+
+    @staticmethod
+    def create_external_user(organizationmember, **kwargs):
+        kwargs.setdefault("provider", ExternalUser.get_provider_enum("github"))
+        kwargs.setdefault("external_name", "")
+
+        return ExternalUser.objects.create(organizationmember=organizationmember, **kwargs)
+
+    @staticmethod
+    def create_external_team(team, **kwargs):
+        kwargs.setdefault("provider", ExternalTeam.get_provider_enum("github"))
+        kwargs.setdefault("external_name", "@getsentry/ecosystem")
+
+        return ExternalTeam.objects.create(team=team, **kwargs)
+
+    @staticmethod
+    def create_codeowners(project, code_mapping, **kwargs):
+        kwargs.setdefault("raw", "")
+
+        return ProjectCodeOwners.objects.create(
+            project=project, repository_project_path_config=code_mapping, **kwargs
         )

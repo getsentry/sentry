@@ -145,7 +145,7 @@ class VstsIssueSync(IssueSyncMixin):
         return fields
 
     def get_issue_url(self, key, **kwargs):
-        return "{}_workitems/edit/{}".format(self.instance, str(key))
+        return f"{self.instance}_workitems/edit/{key}"
 
     def create_issue(self, data, **kwargs):
         """

@@ -368,7 +368,7 @@ class MessageBuilder:
         if not to:
             return ""
         if len(to) > MAX_RECIPIENTS:
-            to = to[:MAX_RECIPIENTS] + ["and {} more.".format(len(to[MAX_RECIPIENTS:]))]
+            to = to[:MAX_RECIPIENTS] + [f"and {len(to[MAX_RECIPIENTS:])} more."]
         return ", ".join(to)
 
     def send(self, to=None, cc=None, bcc=None, fail_silently=False):

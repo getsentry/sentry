@@ -7,7 +7,7 @@ import {toTitleCase} from 'app/utils';
 import theme from 'app/utils/theme';
 
 export default {
-  title: 'Core/Badges+Tags/Tag',
+  title: 'Core/Tags/Tag',
   component: Tag,
   argTypes: {
     tooltipText: {

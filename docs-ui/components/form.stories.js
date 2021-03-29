@@ -8,7 +8,7 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 
 export default {
-  title: 'Core/Forms/Form',
+  title: 'Forms/Form',
   args: {
     alignRight: false,
     required: false,

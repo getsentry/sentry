@@ -1,4 +1,4 @@
-FROM python:3.6-slim-buster
+FROM python:3.6.13-slim-buster
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
@@ -67,7 +67,6 @@ RUN set -x \
   # uwsgi
   && buildDeps="$buildDeps \
   gcc \
-  g++ \
   wget \
   " \
   # maxminddb

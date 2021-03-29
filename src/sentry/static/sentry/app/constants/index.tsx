@@ -163,8 +163,6 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
 export const DEFAULT_TOAST_DURATION = 6000;
 export const DEFAULT_DEBOUNCE_DURATION = 300;
 
-export const CSRF_COOKIE_NAME = window.csrfCookieName ?? 'sc';
-
 export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
 
 // See http://fusejs.io/ for more information
@@ -218,6 +216,10 @@ export const MAX_AUTOCOMPLETE_RELEASES = 5;
 export const DEFAULT_PER_PAGE = 50;
 export const TEAMS_PER_PAGE = 25;
 
+// Limit query length so paginated response headers don't
+// go over HTTP header size limits (4Kb)
+export const MAX_QUERY_LENGTH = 400;
+
 // Webpack configures DEPLOY_PREVIEW_CONFIG for deploy preview builds.
 export const DEPLOY_PREVIEW_CONFIG = (process.env.DEPLOY_PREVIEW_CONFIG as unknown) as
   | undefined
@@ -243,7 +245,7 @@ export const ORGANIZATION_FETCH_ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',
 };
 
-export const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';
+export const CONFIG_DOCS_URL = 'https://develop.sentry.dev/config/';
 export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queries/';
 
 export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;

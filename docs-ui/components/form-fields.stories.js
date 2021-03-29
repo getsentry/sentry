@@ -17,7 +17,7 @@ import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import TextField from 'app/views/settings/components/forms/textField';
 
 export default {
-  title: 'Core/Forms/Fields',
+  title: 'Forms/Fields',
 };
 
 export const _TextField = () => (
@@ -143,7 +143,7 @@ export const _TextareaField = ({autosize, rows}) => (
 _TextareaField.storyName = 'TextareaField';
 _TextareaField.args = {
   autosize: true,
-  rows: 2,
+  rows: 1,
 };
 
 export const __BooleanField = () => (

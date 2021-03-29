@@ -28,7 +28,7 @@ const TextAreaControl = React.forwardRef(function TextAreaControl(
   ref: React.Ref<HTMLTextAreaElement>
 ) {
   return autosize ? (
-    <TextareaAutosize async ref={ref} rows={rows ? rows : 2} maxRows={maxRows} {...p} />
+    <TextareaAutosize {...p} async ref={ref} rows={rows ? rows : 2} maxRows={maxRows} />
   ) : (
     <textarea ref={ref} {...p} />
   );
@@ -41,8 +41,15 @@ const propFilter = (p: string) =>
 
 const TextArea = styled(TextAreaControl, {shouldForwardProp: propFilter})`
   ${inputStyles};
-  padding: ${space(1)};
-  line-height: 1.3em;
+  min-height: 40px;
+  padding: calc(${space(1)} - 1px) ${space(1)};
+  line-height: 1.5em;
+  ${p =>
+    p.autosize &&
+    `
+      padding: calc(${space(1)} - 2px) ${space(1)};
+      line-height: 1.6em;
+    `}
 `;
 
 export default TextArea;

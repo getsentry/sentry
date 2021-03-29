@@ -1,10 +1,15 @@
 import React from 'react';
 
-import navigationConfiguration from 'app/views/settings/account/navigationConfiguration';
+import {Organization} from 'app/types';
+import getConfiguration from 'app/views/settings/account/navigationConfiguration';
 import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
 
-const AccountSettingsNavigation = () => (
-  <SettingsNavigation navigationObjects={navigationConfiguration} />
+type Props = {
+  organization: Organization;
+};
+
+const AccountSettingsNavigation = ({organization}: Props) => (
+  <SettingsNavigation navigationObjects={getConfiguration({organization})} />
 );
 
 export default AccountSettingsNavigation;

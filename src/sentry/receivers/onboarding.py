@@ -64,7 +64,7 @@ def record_new_project(project, user, **kwargs):
                 Organization.objects.get(id=project.organization_id).get_default_owner().id
             )
         except IndexError:
-            logging.getLogger("sentry").warn(
+            logging.getLogger("sentry").warning(
                 "Cannot initiate onboarding for organization (%s) due to missing owners",
                 project.organization_id,
             )

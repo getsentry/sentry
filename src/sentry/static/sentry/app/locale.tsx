@@ -7,25 +7,28 @@ import isString from 'lodash/isString';
 import {sprintf} from 'sprintf-js';
 
 import {getTranslations} from 'app/translations';
+import localStorage from 'app/utils/localStorage';
 
 const markerCss = css`
   background: #ff801790;
   outline: 2px solid #ff801790;
 `;
 
-const sessionStorage = window.sessionStorage;
-const LOCALE_DEBUG = sessionStorage && sessionStorage.getItem('localeDebug') === '1';
+const LOCALE_DEBUG = localStorage.getItem('localeDebug') === '1';
 
 export function setLocaleDebug(value: boolean) {
-  sessionStorage.setItem('localeDebug', value ? '1' : '0');
+  localStorage.setItem('localeDebug', value ? '1' : '0');
   // eslint-disable-next-line no-console
   console.log(`Locale debug is: ${value ? 'on' : 'off'}. Reload page to apply changes!`);
 }
 
+/**
+ * Toggles the locale debug flag in local storage, but does _not_ reload the
+ * page. The caller should do this.
+ */
 export function toggleLocaleDebug() {
-  const currentValue = sessionStorage.getItem('localeDebug');
+  const currentValue = localStorage.getItem('localeDebug');
   setLocaleDebug(currentValue !== '1');
-  window.location.reload();
 }
 
 /**

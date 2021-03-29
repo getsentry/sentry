@@ -1,10 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import itertools
+import math
+import pytz
 
 from sentry.api.event_search import get_filter
-from sentry.api.utils import get_date_range_rollup_from_params
-from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import Dataset, raw_query
+from sentry.api.utils import get_date_range_from_params
+from sentry.utils.dates import parse_stats_period, to_timestamp, to_datetime
+from sentry.utils.snuba import Dataset, raw_query, resolve_condition
 
 """
 The new Sessions API defines a "metrics"-like interface which is can be used in
@@ -122,6 +124,12 @@ class UsersField:
         return 0
 
 
+def finite_or_none(val):
+    if not math.isfinite(val):
+        return None
+    return val
+
+
 class DurationAverageField:
     def get_snuba_columns(self, raw_groupby):
         return ["duration_avg"]
@@ -131,7 +139,7 @@ class DurationAverageField:
             return None
         status = group.get("session.status")
         if status is None or status == "healthy":
-            return row["duration_avg"]
+            return finite_or_none(row["duration_avg"])
         return None
 
 
@@ -147,7 +155,7 @@ class DurationQuantileField:
             return None
         status = group.get("session.status")
         if status is None or status == "healthy":
-            return row["duration_quantiles"][self.quantile_index]
+            return finite_or_none(row["duration_quantiles"][self.quantile_index])
         return None
 
 
@@ -190,12 +198,22 @@ class SessionStatusGroupBy:
         return [("session.status", key) for key in ["healthy", "abnormal", "crashed", "errored"]]
 
 
+# NOTE: in the future we might add new `user_agent` and `os` fields
+
 GROUPBY_MAP = {
     "project": SimpleGroupBy("project_id", "project"),
     "environment": SimpleGroupBy("environment"),
     "release": SimpleGroupBy("release"),
     "session.status": SessionStatusGroupBy(),
 }
+
+CONDITION_COLUMNS = ["project", "environment", "release"]
+
+
+def resolve_column(col):
+    if col in CONDITION_COLUMNS:
+        return col
+    raise InvalidField(f'Invalid query field: "{col}"')
 
 
 class InvalidField(Exception):
@@ -209,7 +227,7 @@ class QueryDefinition:
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, query, project_ids=None):
+    def __init__(self, query, params, allow_minute_resolution=False):
         self.query = query.get("query", "")
         raw_fields = query.getlist("field", [])
         raw_groupby = query.getlist("groupBy", [])
@@ -229,7 +247,7 @@ class QueryDefinition:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
-        start, end, rollup = get_date_range_rollup_from_params(query, "1h", round_range=True)
+        start, end, rollup = _get_constrained_date_range(query, allow_minute_resolution)
         self.rollup = rollup
         self.start = start
         self.end = end
@@ -246,12 +264,103 @@ class QueryDefinition:
             query_groupby.update(groupby.get_snuba_groupby())
         self.query_groupby = list(query_groupby)
 
-        params = {"project_id": project_ids or []}
+        # the `params` are:
+        # project_id, organization_id, environment;
+        # also: start, end; but we got those ourselves.
         snuba_filter = get_filter(self.query, params)
 
+        # this makes sure that literals in complex queries are properly quoted,
+        # and unknown fields are raised as errors
+        conditions = [resolve_condition(c, resolve_column) for c in snuba_filter.conditions]
+
         self.aggregations = snuba_filter.aggregations
-        self.conditions = snuba_filter.conditions
+        self.conditions = conditions
         self.filter_keys = snuba_filter.filter_keys
+
+
+MAX_POINTS = 1000
+ONE_DAY = timedelta(days=1).total_seconds()
+ONE_HOUR = timedelta(hours=1).total_seconds()
+ONE_MINUTE = timedelta(minutes=1).total_seconds()
+
+
+class InvalidParams(Exception):
+    pass
+
+
+def _get_constrained_date_range(params, allow_minute_resolution=False):
+    interval = parse_stats_period(params.get("interval", "1h"))
+    interval = int(3600 if interval is None else interval.total_seconds())
+
+    smallest_interval = ONE_MINUTE if allow_minute_resolution else ONE_HOUR
+    if interval % smallest_interval != 0 or interval < smallest_interval:
+        interval_str = "one minute" if allow_minute_resolution else "one hour"
+        raise InvalidParams(
+            f"The interval has to be a multiple of the minimum interval of {interval_str}."
+        )
+
+    if interval > ONE_DAY:
+        raise InvalidParams("The interval has to be less than one day.")
+
+    if ONE_DAY % interval != 0:
+        raise InvalidParams("The interval should divide one day without a remainder.")
+
+    using_minute_resolution = interval % ONE_HOUR != 0
+
+    start, end = get_date_range_from_params(params)
+    now = datetime.now(tz=pytz.utc)
+
+    # if `end` is explicitly given, we add a second to it, so it is treated as
+    # inclusive. the rounding logic down below will take care of the rest.
+    if params.get("end"):
+        end += timedelta(seconds=1)
+
+    date_range = end - start
+    # round the range up to a multiple of the interval.
+    # the minimum is 1h so the "totals" will not go out of sync, as they will
+    # use the materialized storage due to no grouping on the `started` column.
+    # NOTE: we can remove the difference between `interval` / `rounding_interval`
+    # as soon as snuba can provide us with grouped totals in the same query
+    # as the timeseries (using `WITH ROLLUP` in clickhouse)
+    rounding_interval = int(math.ceil(interval / ONE_HOUR) * ONE_HOUR)
+    date_range = timedelta(
+        seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))
+    )
+
+    if using_minute_resolution:
+        if date_range.total_seconds() > 6 * ONE_HOUR:
+            raise InvalidParams(
+                "The time-range when using one-minute resolution intervals is restricted to 6 hours."
+            )
+        if (now - start).total_seconds() > 30 * ONE_DAY:
+            raise InvalidParams(
+                "The time-range when using one-minute resolution intervals is restricted to the last 30 days."
+            )
+
+    if date_range.total_seconds() / interval > MAX_POINTS:
+        raise InvalidParams(
+            "Your interval and date range would create too many results. "
+            "Use a larger interval, or a smaller date range."
+        )
+
+    end_ts = int(rounding_interval * math.ceil(to_timestamp(end) / rounding_interval))
+    end = to_datetime(end_ts)
+    # when expanding the rounding interval, we would adjust the end time too far
+    # to the future, in which case the start time would not actually contain our
+    # desired date range. adjust for this by extend the time by another interval.
+    # for example, when "45m" means the range from 08:49:00-09:34:00, our rounding
+    # has to go from 08:00:00 to 10:00:00.
+    if rounding_interval > interval and (end - date_range) > start:
+        date_range += timedelta(seconds=rounding_interval)
+    start = end - date_range
+
+    # snuba <-> sentry has a 5 minute cache for *exact* queries, which these
+    # are because of the way we do our rounding. For that reason we round the end
+    # of "realtime" queries to one minute into the future to get a one-minute cache instead.
+    if end > now:
+        end = to_datetime(ONE_MINUTE * (math.floor(to_timestamp(now) / ONE_MINUTE) + 1))
+
+    return start, end, interval
 
 
 TS_COL = "bucketed_started"
@@ -374,10 +483,16 @@ def massage_sessions_result(query, result_totals, result_timeseries):
         groups.append(group)
 
     return {
+        "start": _isoformat_z(query.start),
+        "end": _isoformat_z(query.end),
         "query": query.query,
         "intervals": timestamps,
         "groups": groups,
     }
+
+
+def _isoformat_z(date):
+    return datetime.utcfromtimestamp(int(to_timestamp(date))).isoformat() + "Z"
 
 
 def _get_timestamps(query):

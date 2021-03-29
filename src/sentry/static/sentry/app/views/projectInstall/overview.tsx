@@ -61,7 +61,7 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
 
     return (
       <div>
-        <SentryDocumentTitle title={t('Instrumentation')} objSlug={projectId} />
+        <SentryDocumentTitle title={t('Instrumentation')} projectSlug={projectId} />
         <SettingsPageHeader title={t('Configure your application')} />
         <TextBlock>
           {t(

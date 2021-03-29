@@ -1,6 +1,6 @@
 import React from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {Modal} from 'react-bootstrap';
+import Modal from 'react-bootstrap/lib/Modal';
 import {browserHistory} from 'react-router';
 import {ClassNames} from '@emotion/core';
 import createReactClass from 'create-react-class';
@@ -61,7 +61,7 @@ class GlobalModal extends React.Component<Props> {
     const renderedChild =
       typeof children === 'function'
         ? children({
-            closeModal,
+            closeModal: this.handleCloseModal,
             Header: Modal.Header,
             Body: Modal.Body,
             Footer: Modal.Footer,
@@ -128,4 +128,5 @@ const GlobalModalContainer = createReactClass<Partial<Props>>({
     );
   },
 });
+
 export default GlobalModalContainer;

@@ -53,7 +53,7 @@ class Environment(Model):
 
     @classmethod
     def get_cache_key(cls, organization_id, name):
-        return "env:2:{}:{}".format(organization_id, md5_text(name).hexdigest())
+        return f"env:2:{organization_id}:{md5_text(name).hexdigest()}"
 
     @classmethod
     def get_name_or_default(cls, name):

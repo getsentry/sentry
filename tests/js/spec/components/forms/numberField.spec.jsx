@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {NumberField} from 'app/components/forms';
 import Form from 'app/components/forms/form';
@@ -37,7 +37,7 @@ describe('NumberField', function () {
     });
 
     it('doesnt save `NaN` when new value is empty string', function () {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <Form onSubmit={() => {}}>
           <NumberField name="fieldName" defaultValue="2" />
         </Form>

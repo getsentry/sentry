@@ -22,7 +22,9 @@ import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import SeenByList from 'app/components/seenByList';
 import ShortId from 'app/components/shortId';
+import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
+import {IconChat} from 'app/icons';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -185,7 +187,7 @@ class GroupHeader extends React.Component<Props, State> {
                         )}
                         position="bottom"
                       >
-                        <ExternalLink href="https://docs.sentry.io/learn/releases/#resolving-issues-via-commits">
+                        <ExternalLink href="https://docs.sentry.io/product/integrations/github/#resolve-via-commit-or-pull-request">
                           {t('Issue #')}
                         </ExternalLink>
                       </Tooltip>
@@ -250,22 +252,26 @@ class GroupHeader extends React.Component<Props, State> {
             isActive={() => currentTab === TAB.DETAILS}
             disabled={hasGroupBeenReprocessedAndHasntEvent}
           >
-            {t('Details')}
+            <GuideAnchor target="issue_details">{t('Details')}</GuideAnchor>
           </ListLink>
-          <ListLink
+          <StyledListLink
             to={`${baseUrl}activity/${location.search}`}
             isActive={() => currentTab === TAB.ACTIVITY}
             disabled={isGroupBeingReprocessing}
           >
-            {t('Activity')} <Badge text={group.numComments} />
-          </ListLink>
-          <ListLink
+            {t('Activity')}
+            <StyledTag>
+              <TabCount>{group.numComments}</TabCount>
+              <IconChat size="xs" color="white" />
+            </StyledTag>
+          </StyledListLink>
+          <StyledListLink
             to={`${baseUrl}feedback/${location.search}`}
             isActive={() => currentTab === TAB.USER_FEEDBACK}
             disabled={isGroupBeingReprocessing}
           >
             {t('User Feedback')} <Badge text={group.userReportCount} />
-          </ListLink>
+          </StyledListLink>
           {hasEventAttachments && (
             <ListLink
               to={`${baseUrl}attachments/${location.search}`}
@@ -334,6 +340,26 @@ const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     margin-bottom: ${space(2)};
   }
+`;
+
+const StyledListLink = styled(ListLink)`
+  svg {
+    margin-left: ${space(0.5)};
+    margin-bottom: ${space(0.25)};
+    vertical-align: middle;
+  }
+`;
+
+const StyledTag = styled(Tag)`
+  div {
+    background-color: ${p => p.theme.badge.default.background};
+  }
+  margin-left: ${space(0.75)};
+`;
+
+const TabCount = styled('span')`
+  color: ${p => p.theme.white};
+  font-weight: 600;
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`

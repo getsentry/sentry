@@ -1,9 +1,11 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import styled from '@emotion/styled';
 import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import EventsChart from 'app/components/charts/eventsChart';
 import {ChartContainer, HeaderTitleLegend} from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
@@ -17,7 +19,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
-import {ReleaseStatsRequestRenderProps} from '../releaseStatsRequest';
+import ReleaseStatsRequest from '../releaseStatsRequest';
 
 import HealthChartContainer from './healthChartContainer';
 import ReleaseChartControls, {
@@ -27,7 +29,7 @@ import ReleaseChartControls, {
 } from './releaseChartControls';
 import {getReleaseEventView} from './utils';
 
-type Props = Omit<ReleaseStatsRequestRenderProps, 'crashFreeTimeBreakdown'> & {
+type Props = {
   releaseMeta: ReleaseMeta;
   selection: GlobalSelection;
   platform: PlatformKey;
@@ -46,17 +48,25 @@ type Props = Omit<ReleaseStatsRequestRenderProps, 'crashFreeTimeBreakdown'> & {
   hasDiscover: boolean;
   hasPerformance: boolean;
   theme: Theme;
+  defaultStatsPeriod: string;
+  projectSlug: string;
 };
 
 class ReleaseChartContainer extends React.Component<Props> {
-  getTransactionsChartColors(): [string, string] {
+  /**
+   * This returns an array with 3 colors, one for each of
+   * 1. This Release
+   * 2. Other Releases
+   * 3. Releases (the markers)
+   */
+  getTransactionsChartColors(): [string, string, string] {
     const {yAxis, theme} = this.props;
 
     switch (yAxis) {
       case YAxis.FAILED_TRANSACTIONS:
-        return [theme.red300, theme.red100];
+        return [theme.red300, theme.red100, theme.purple300];
       default:
-        return [theme.purple300, theme.purple100];
+        return [theme.purple300, theme.purple100, theme.purple300];
     }
   }
 
@@ -220,17 +230,13 @@ class ReleaseChartContainer extends React.Component<Props> {
     );
   }
 
-  renderHealthChart() {
-    const {
-      loading,
-      errored,
-      reloading,
-      chartData,
-      selection,
-      yAxis,
-      router,
-      platform,
-    } = this.props;
+  renderHealthChart(
+    loading: boolean,
+    reloading: boolean,
+    errored: boolean,
+    chartData: Series[]
+  ) {
+    const {selection, yAxis, router, platform} = this.props;
     const {title, help} = this.getChartTitle();
 
     return (
@@ -257,42 +263,71 @@ class ReleaseChartContainer extends React.Component<Props> {
       hasDiscover,
       hasHealthData,
       hasPerformance,
-      chartSummary,
       onYAxisChange,
       onEventTypeChange,
       onVitalTypeChange,
       organization,
+      defaultStatsPeriod,
+      api,
+      version,
+      selection,
+      location,
+      projectSlug,
     } = this.props;
 
-    let chart: React.ReactNode = null;
-    if (
-      (hasDiscover && yAxis === YAxis.EVENTS) ||
-      (hasPerformance && PERFORMANCE_AXIS.includes(yAxis))
-    ) {
-      chart = this.renderStackedChart();
-    } else {
-      chart = this.renderHealthChart();
-    }
-
     return (
-      <Panel>
-        <ChartContainer>{chart}</ChartContainer>
-        <ReleaseChartControls
-          summary={chartSummary}
-          yAxis={yAxis}
-          onYAxisChange={onYAxisChange}
-          eventType={eventType}
-          onEventTypeChange={onEventTypeChange}
-          vitalType={vitalType}
-          onVitalTypeChange={onVitalTypeChange}
-          organization={organization}
-          hasDiscover={hasDiscover}
-          hasHealthData={hasHealthData}
-          hasPerformance={hasPerformance}
-        />
-      </Panel>
+      <ReleaseStatsRequest
+        api={api}
+        organization={organization}
+        projectSlug={projectSlug}
+        version={version}
+        selection={selection}
+        location={location}
+        yAxis={yAxis}
+        eventType={eventType}
+        vitalType={vitalType}
+        hasHealthData={hasHealthData}
+        hasDiscover={hasDiscover}
+        hasPerformance={hasPerformance}
+        defaultStatsPeriod={defaultStatsPeriod}
+      >
+        {({loading, reloading, errored, chartData, chartSummary}) => (
+          <Panel>
+            <ChartContainer>
+              {((hasDiscover || hasPerformance) && yAxis === YAxis.EVENTS) ||
+              (hasPerformance && PERFORMANCE_AXIS.includes(yAxis))
+                ? this.renderStackedChart()
+                : this.renderHealthChart(loading, reloading, errored, chartData)}
+            </ChartContainer>
+            <AnchorWrapper>
+              <GuideAnchor target="release_chart" position="bottom" offset="-80px">
+                <React.Fragment />
+              </GuideAnchor>
+            </AnchorWrapper>
+            <ReleaseChartControls
+              summary={chartSummary}
+              yAxis={yAxis}
+              onYAxisChange={onYAxisChange}
+              eventType={eventType}
+              onEventTypeChange={onEventTypeChange}
+              vitalType={vitalType}
+              onVitalTypeChange={onVitalTypeChange}
+              organization={organization}
+              hasDiscover={hasDiscover}
+              hasHealthData={hasHealthData}
+              hasPerformance={hasPerformance}
+            />
+          </Panel>
+        )}
+      </ReleaseStatsRequest>
     );
   }
 }
 
 export default withTheme(ReleaseChartContainer);
+
+const AnchorWrapper = styled('div')`
+  height: 0;
+  width: 0;
+  margin-left: 50%;
+`;

@@ -66,7 +66,11 @@ class Dashboard extends React.Component<Props> {
 
     if (showEmptyMessage) {
       return (
-        <NoProjectMessage organization={organization} projects={projects}>
+        <NoProjectMessage
+          organization={organization}
+          projects={projects}
+          superuserNeedsToBeProjectMember
+        >
           {null}
         </NoProjectMessage>
       );
@@ -76,7 +80,7 @@ class Dashboard extends React.Component<Props> {
       <React.Fragment>
         <SentryDocumentTitle
           title={t('Projects Dashboard')}
-          objSlug={organization.slug}
+          orgSlug={organization.slug}
         />
         {projects.length > 0 && (
           <ProjectsHeader>

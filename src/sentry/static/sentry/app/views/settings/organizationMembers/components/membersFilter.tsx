@@ -29,7 +29,9 @@ type Filters = {
 };
 
 const getBoolean = (list: string[]) =>
-  Array.isArray(list) ? list && list.map(v => v.toLowerCase()).includes('true') : null;
+  Array.isArray(list) && list.length
+    ? list && list.map(v => v.toLowerCase()).includes('true')
+    : null;
 
 const MembersFilter = ({className, roles, query, onChange}: Props) => {
   const search = tokenizeSearch(query);

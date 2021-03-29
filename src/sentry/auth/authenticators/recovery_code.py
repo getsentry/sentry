@@ -66,5 +66,5 @@ class RecoveryCodeInterface(AuthenticatorInterface):
         rv = []
         for idx, code in enumerate(self.get_codes()):
             if not mask & (1 << idx):
-                rv.append("{}-{}".format(code[:4], code[4:]))
+                rv.append(f"{code[:4]}-{code[4:]}")
         return rv

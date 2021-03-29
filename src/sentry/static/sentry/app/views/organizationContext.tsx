@@ -58,7 +58,7 @@ type State = {
 };
 
 class OrganizationContext extends React.Component<Props, State> {
-  static getDerivedStateFromProps(props: Props, prevState: State): State {
+  static getDerivedStateFromProps(props: Readonly<Props>, prevState: State): State {
     const {prevProps} = prevState;
 
     if (OrganizationContext.shouldRemount(prevProps, props)) {

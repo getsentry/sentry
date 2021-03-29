@@ -83,7 +83,7 @@ class NodeData(collections.MutableMapping):
     def __repr__(self):
         cls_name = type(self).__name__
         if self._node_data:
-            return "<{}: id={} data={!r}>".format(cls_name, self.id, repr(self._node_data))
+            return f"<{cls_name}: id={self.id} data={self._node_data!r}>"
         return f"<{cls_name}: id={self.id}>"
 
     def get_ref(self, instance):

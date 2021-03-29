@@ -335,6 +335,18 @@ describe('utils/tokenizeSearch', function () {
 
       expect(results.getTagKeys()).toEqual(['tag', 'other']);
     });
+
+    it('getTagValues', () => {
+      const results = new QueryResults([
+        'tag:value',
+        'other:value',
+        'tag:value2',
+        'additional text',
+      ]);
+      expect(results.getTagValues('tag')).toEqual(['value', 'value2']);
+
+      expect(results.getTagValues('nonexistent')).toEqual([]);
+    });
   });
 
   describe('stringifyQueryObject()', function () {

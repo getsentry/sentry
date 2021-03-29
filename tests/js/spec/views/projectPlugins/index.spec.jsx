@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {disablePlugin, enablePlugin, fetchPlugins} from 'app/actionCreators/plugins';
 import ProjectPlugins from 'app/views/settings/projectPlugins';
@@ -51,7 +51,7 @@ describe('ProjectPluginsContainer', function () {
       url: `/projects/${org.slug}/${project.slug}/plugins/github/`,
       method: 'DELETE',
     });
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ProjectPlugins params={params} organization={organization} />,
       routerContext
     );

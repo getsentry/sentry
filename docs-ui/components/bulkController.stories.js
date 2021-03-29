@@ -33,6 +33,8 @@ const dummy = [
   },
 ];
 
+const pageIds = dummy.map(d => d.id);
+
 export default {
   title: 'Core/Tables/BulkController',
   component: BulkController,
@@ -40,7 +42,8 @@ export default {
 
 export const _BulkController = () => (
   <BulkController
-    pageIds={dummy.map(d => d.id)}
+    pageIds={pageIds}
+    defaultSelectedIds={pageIds.slice(0, 2)}
     allRowsCount={23}
     columnsCount={3}
     bulkLimit={1000}

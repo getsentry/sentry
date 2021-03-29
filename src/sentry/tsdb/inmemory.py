@@ -61,7 +61,9 @@ class InMemoryTSDB(BaseTSDB):
                         for timestamp in series:
                             data.pop(self.normalize_to_rollup(timestamp, rollup), 0)
 
-    def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
+    def get_range(
+        self, model, keys, start, end, rollup=None, environment_ids=None, use_cache=False
+    ):
         self.validate_arguments([model], environment_ids if environment_ids is not None else [None])
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
@@ -119,7 +121,7 @@ class InMemoryTSDB(BaseTSDB):
         return results
 
     def get_distinct_counts_totals(
-        self, model, keys, start, end=None, rollup=None, environment_id=None
+        self, model, keys, start, end=None, rollup=None, environment_id=None, use_cache=False
     ):
         self.validate_arguments([model], [environment_id])
 

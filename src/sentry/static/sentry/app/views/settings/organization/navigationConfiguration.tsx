@@ -82,7 +82,6 @@ const organizationNavigation: NavigationSection[] = [
         show: ({features}) => features!.has('relay'),
         description: t('Manage relays connected to the organization'),
         id: 'relay',
-        badge: () => 'new',
       },
       {
         path: `${pathPrefix}/repos/`,

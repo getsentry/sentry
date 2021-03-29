@@ -1,7 +1,6 @@
 import React from 'react';
-import LazyLoad from 'react-lazyload';
-import {DndContext} from '@dnd-kit/core';
-import {arrayMove, rectSwappingStrategy, SortableContext} from '@dnd-kit/sortable';
+import {closestCenter, DndContext} from '@dnd-kit/core';
+import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
@@ -106,15 +105,14 @@ class Dashboard extends React.Component<Props> {
     const dragId = key;
 
     return (
-      <LazyLoad key={key} once height={240} offset={100}>
-        <SortableWidget
-          widget={widget}
-          dragId={dragId}
-          isEditing={isEditing}
-          onDelete={this.handleDeleteWidget(index)}
-          onEdit={this.handleEditWidget(widget, index)}
-        />
-      </LazyLoad>
+      <SortableWidget
+        key={key}
+        widget={widget}
+        dragId={dragId}
+        isEditing={isEditing}
+        onDelete={this.handleDeleteWidget(index)}
+        onEdit={this.handleEditWidget(widget, index)}
+      />
     );
   }
 
@@ -123,12 +121,14 @@ class Dashboard extends React.Component<Props> {
       isEditing,
       onUpdate,
       dashboard: {widgets},
+      organization,
     } = this.props;
 
     const items = this.getWidgetIds();
 
     return (
       <DndContext
+        collisionDetection={closestCenter}
         onDragEnd={({over, active}) => {
           const activeDragId = active.id;
           const getIndex = items.indexOf.bind(items);
@@ -144,9 +144,15 @@ class Dashboard extends React.Component<Props> {
         }}
       >
         <WidgetContainer>
-          <SortableContext items={items} strategy={rectSwappingStrategy}>
+          <SortableContext items={items} strategy={rectSortingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
-            {isEditing && <AddWidget onClick={this.handleStartAdd} />}
+            {isEditing && (
+              <AddWidget
+                orgSlug={organization.slug}
+                orgFeatures={organization.features}
+                onClick={this.handleStartAdd}
+              />
+            )}
           </SortableContext>
         </WidgetContainer>
       </DndContext>
@@ -158,15 +164,23 @@ export default withApi(withGlobalSelection(Dashboard));
 
 const WidgetContainer = styled('div')`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   grid-auto-flow: row dense;
   grid-gap: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 1fr;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[4]}) {
+    grid-template-columns: repeat(8, 1fr);
   }
 `;
 
 function generateWidgetId(widget: Widget, index: number) {
-  return widget.id ?? `index-${index}`;
+  return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
 }

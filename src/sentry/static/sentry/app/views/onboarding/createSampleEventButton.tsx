@@ -26,8 +26,8 @@ type State = {
   creating: boolean;
 };
 
-const EVENT_POLL_RETRIES = 6;
-const EVENT_POLL_INTERVAL = 800;
+const EVENT_POLL_RETRIES = 10;
+const EVENT_POLL_INTERVAL = 1000;
 
 async function latestEventAvailable(
   api: Client,
@@ -102,7 +102,9 @@ class CreateSampleEventButton extends React.Component<Props, State> {
       return;
     }
 
-    addLoadingMessage(t('Processing sample event...'));
+    addLoadingMessage(t('Processing sample event...'), {
+      duration: EVENT_POLL_RETRIES * EVENT_POLL_INTERVAL,
+    });
     this.setState({creating: true});
 
     try {
@@ -114,6 +116,7 @@ class CreateSampleEventButton extends React.Component<Props, State> {
         Sentry.captureException(new Error('Failed to create sample event'));
       });
       this.setState({creating: false});
+      clearIndicators();
       addErrorMessage(t('Failed to create a new sample event'));
       return;
     }

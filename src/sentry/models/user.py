@@ -10,7 +10,7 @@ from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, sane_repr
+from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, FlexibleForeignKey, sane_repr
 from sentry.models import LostPasswordHash
 from sentry.utils.http import absolute_uri
 
@@ -50,7 +50,7 @@ class User(BaseModel, AbstractBaseUser):
     is_staff = models.BooleanField(
         _("staff status"),
         default=False,
-        help_text=_("Designates whether the user can log into this admin " "site."),
+        help_text=_("Designates whether the user can log into this admin site."),
     )
     is_active = models.BooleanField(
         _("active"),
@@ -64,7 +64,7 @@ class User(BaseModel, AbstractBaseUser):
         _("superuser status"),
         default=False,
         help_text=_(
-            "Designates that this user has all permissions without " "explicitly assigning them."
+            "Designates that this user has all permissions without explicitly assigning them."
         ),
     )
     is_managed = models.BooleanField(
@@ -108,7 +108,9 @@ class User(BaseModel, AbstractBaseUser):
     )
 
     session_nonce = models.CharField(max_length=12, null=True)
-
+    actor = FlexibleForeignKey(
+        "sentry.Actor", db_index=True, unique=True, null=True, on_delete=models.PROTECT
+    )
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
 
@@ -316,6 +318,18 @@ class User(BaseModel, AbstractBaseUser):
         return Organization.objects.filter(
             status=OrganizationStatus.VISIBLE,
             id__in=OrganizationMember.objects.filter(user=self).values("organization"),
+        )
+
+    def get_projects(self):
+        from sentry.models import Project, ProjectStatus, ProjectTeam, OrganizationMemberTeam
+
+        return Project.objects.filter(
+            status=ProjectStatus.VISIBLE,
+            id__in=ProjectTeam.objects.filter(
+                team_id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__user=self
+                ).values_list("team_id", flat=True)
+            ).values_list("project_id", flat=True),
         )
 
     def get_orgs_require_2fa(self):

@@ -9,7 +9,15 @@ import {Guide, GuidesContent, GuidesServerData} from 'app/components/assistant/t
 import ConfigStore from 'app/stores/configStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
-const guidesContent: GuidesContent = getGuidesContent();
+function guidePrioritySort(a: Guide, b: Guide) {
+  const a_priority = a.priority ?? Number.MAX_SAFE_INTEGER;
+  const b_priority = b.priority ?? Number.MAX_SAFE_INTEGER;
+  if (a_priority === b_priority) {
+    return a.guide.localeCompare(b.guide);
+  }
+  // lower number takes priority
+  return a_priority - b_priority;
+}
 
 export type GuideStoreState = {
   /**
@@ -33,6 +41,10 @@ export type GuideStoreState = {
    */
   orgId: string | null;
   /**
+   * Current organization slug
+   */
+  orgSlug: string | null;
+  /**
    * We force show a guide if the URL contains #assistant
    */
   forceShow: boolean;
@@ -48,6 +60,7 @@ const defaultState: GuideStoreState = {
   currentGuide: null,
   currentStep: 0,
   orgId: null,
+  orgSlug: null,
   forceShow: false,
   prevGuide: null,
 };
@@ -88,6 +101,7 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
 
   onSetActiveOrganization(data) {
     this.state.orgId = data ? data.id : null;
+    this.state.orgSlug = data ? data.slug : null;
     this.updateCurrentGuide();
   },
 
@@ -100,6 +114,7 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
       return;
     }
 
+    const guidesContent: GuidesContent = getGuidesContent(this.state.orgSlug);
     // map server guide state (i.e. seen status) with guide content
     const guides = guidesContent.reduce((acc: Guide[], content) => {
       const serverGuide = data.find(guide => guide.guide === content.guide);
@@ -186,7 +201,7 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
     const {anchors, guides, forceShow} = this.state;
 
     let guideOptions = guides
-      .sort((a, b) => a.guide.localeCompare(b.guide))
+      .sort(guidePrioritySort)
       .filter(guide => guide.requiredTargets.every(target => anchors.has(target)));
 
     const user = ConfigStore.get('user');
@@ -200,8 +215,8 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
         } else if (user?.isSuperuser) {
           return true;
         } else if (dateThreshold) {
-          // Don't show the guide to users who've joined after the date threshold
-          return userDateJoined > dateThreshold;
+          // Show the guide to users who've joined before the date threshold
+          return userDateJoined < dateThreshold;
         } else {
           return userDateJoined > assistantThreshold;
         }

@@ -1,6 +1,8 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
+import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import set from 'lodash/set';
 
@@ -10,10 +12,9 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import WidgetQueryForm from 'app/components/dashboards/widgetQueryForm';
+import WidgetQueriesForm from 'app/components/dashboards/widgetQueriesForm';
 import SelectControl from 'app/components/forms/selectControl';
 import {PanelAlert} from 'app/components/panels';
-import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
@@ -89,6 +90,85 @@ function mapErrors(
   return update;
 }
 
+function normalizeQueries(
+  displayType: Widget['displayType'],
+  queries: Widget['queries']
+): Widget['queries'] {
+  const isTimeseriesChart = ['line', 'area', 'stacked_area', 'bar'].includes(displayType);
+
+  if (['table', 'world_map', 'big_number'].includes(displayType)) {
+    // Some display types may only support at most 1 query.
+    queries = queries.slice(0, 1);
+  } else if (isTimeseriesChart) {
+    // Timeseries charts supports at most 3 queries.
+    queries = queries.slice(0, 3);
+  }
+
+  if (displayType === 'table') {
+    return queries;
+  }
+
+  // Filter out non-aggregate fields
+  queries = queries.map(query => {
+    let fields = query.fields.filter(isAggregateField);
+
+    if (isTimeseriesChart && fields.length && fields.length > 3) {
+      // Timeseries charts supports at most 3 fields.
+      fields = fields.slice(0, 3);
+    }
+
+    return {
+      ...query,
+      fields: fields.length ? fields : ['count()'],
+    };
+  });
+
+  if (isTimeseriesChart) {
+    // For timeseries widget, all queries must share identical set of fields.
+
+    const referenceFields = [...queries[0].fields];
+
+    queryLoop: for (const query of queries) {
+      if (referenceFields.length >= 3) {
+        break;
+      }
+
+      if (isEqual(referenceFields, query.fields)) {
+        continue;
+      }
+
+      for (const field of query.fields) {
+        if (referenceFields.length >= 3) {
+          break queryLoop;
+        }
+
+        if (!referenceFields.includes(field)) {
+          referenceFields.push(field);
+        }
+      }
+    }
+
+    queries = queries.map(query => {
+      return {
+        ...query,
+        fields: referenceFields,
+      };
+    });
+  }
+
+  if (['world_map', 'big_number'].includes(displayType)) {
+    // For world map chart, cap fields of the queries to only one field.
+    queries = queries.map(query => {
+      return {
+        ...query,
+        fields: query.fields.slice(0, 1),
+      };
+    });
+  }
+
+  return queries;
+}
+
 class AddDashboardWidgetModal extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -111,7 +191,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       title: widget.title,
       displayType: widget.displayType,
       interval: widget.interval,
-      queries: widget.queries,
+      queries: normalizeQueries(widget.displayType, widget.queries),
       errors: undefined,
       loading: false,
     };
@@ -164,41 +244,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       set(newState, field, value);
 
       if (field === 'displayType') {
-        let newQueries = prevState.queries;
-
-        if (['table', 'world_map', 'big_number'].includes(value)) {
-          // Some display types may only support at most 1 query.
-          set(newState, 'queries', prevState.queries.slice(0, 1));
-          newQueries = newState.queries;
-        }
-
-        if (value === 'table') {
-          return newState;
-        }
-
-        // Filter out non-aggregate fields
-        newQueries = newQueries.map(query => {
-          const fields = query.fields.filter(isAggregateField);
-          return {
-            ...query,
-            fields: fields.length ? fields : ['count()'],
-          };
-        });
-
-        if (['world_map', 'big_number'].includes(value)) {
-          // For world map chart, cap fields of the queries to only one field.
-          newQueries = newQueries.map(query => {
-            return {
-              ...query,
-              fields: query.fields.slice(0, 1),
-            };
-          });
-        }
-
-        set(newState, 'queries', newQueries);
+        const displayType = value as Widget['displayType'];
+        set(newState, 'queries', normalizeQueries(displayType, prevState.queries));
       }
 
-      return newState;
+      return {...newState, errors: undefined};
     });
   };
 
@@ -207,7 +257,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       const newState = cloneDeep(prevState);
       set(newState, `queries.${index}`, widgetQuery);
 
-      return newState;
+      return {...newState, errors: undefined};
     });
   };
 
@@ -216,16 +266,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       const newState = cloneDeep(prevState);
       newState.queries.splice(index, index + 1);
 
-      // If there is only one query, then its name will not be visible.
-      if (newState.queries.length === 1) {
-        newState.queries[0].name = '';
-      }
-
-      return newState;
+      return {...newState, errors: undefined};
     });
   };
 
-  handleAddOverlay = () => {
+  handleAddSearchConditions = () => {
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       newState.queries.push(cloneDeep(newQuery));
@@ -234,8 +279,13 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     });
   };
 
-  canAddOverlay() {
-    return ['line', 'area', 'stacked_area', 'bar'].includes(this.state.displayType);
+  canAddSearchConditions() {
+    const rightDisplayType = ['line', 'area', 'stacked_area', 'bar'].includes(
+      this.state.displayType
+    );
+    const underQueryLimit = this.state.queries.length < 3;
+
+    return rightDisplayType && underQueryLimit;
   }
 
   render() {
@@ -316,41 +366,23 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               const measurementKeys = Object.values(measurements).map(({key}) => key);
               const amendedFieldOptions = fieldOptions(measurementKeys);
               return (
-                <React.Fragment>
-                  {state.queries.map((query, i) => {
-                    return (
-                      <WidgetQueryForm
-                        key={i}
-                        api={api}
-                        organization={organization}
-                        selection={selection}
-                        fieldOptions={amendedFieldOptions}
-                        displayType={state.displayType}
-                        widgetQuery={query}
-                        canRemove={state.queries.length > 1}
-                        onRemove={() => this.handleQueryRemove(i)}
-                        onChange={(widgetQuery: WidgetQuery) =>
-                          this.handleQueryChange(widgetQuery, i)
-                        }
-                        errors={errors?.queries?.[i]}
-                      />
-                    );
-                  })}
-                </React.Fragment>
+                <WidgetQueriesForm
+                  organization={organization}
+                  selection={selection}
+                  fieldOptions={amendedFieldOptions}
+                  displayType={state.displayType}
+                  queries={state.queries}
+                  errors={errors?.queries}
+                  onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
+                    this.handleQueryChange(widgetQuery, queryIndex)
+                  }
+                  canAddSearchConditions={this.canAddSearchConditions()}
+                  handleAddSearchConditions={this.handleAddSearchConditions}
+                  handleDeleteQuery={this.handleQueryRemove}
+                />
               );
             }}
           </Measurements>
-          {this.canAddOverlay() && (
-            <AddOverlayButton
-              icon={<IconAdd isCircled />}
-              onClick={(event: React.MouseEvent) => {
-                event.preventDefault();
-                this.handleAddOverlay();
-              }}
-            >
-              {t('New Query Overlay')}
-            </AddOverlayButton>
-          )}
           <WidgetCard
             api={api}
             organization={organization}
@@ -370,7 +402,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         </Body>
         <Footer>
           <ButtonBar gap={1}>
-            <Button external href="https://docs.sentry.io/product/dashboards/">
+            <Button
+              external
+              href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
+            >
               {t('Read the docs')}
             </Button>
             <Button
@@ -397,8 +432,13 @@ const DoubleFieldWrapper = styled('div')`
   width: 100%;
 `;
 
-const AddOverlayButton = styled(Button)`
-  margin-bottom: ${space(2)};
+export const modalCss = css`
+  .modal-dialog {
+    position: unset;
+    width: 100%;
+    max-width: 700px;
+    margin: 70px auto;
+  }
 `;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));

@@ -4,7 +4,7 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import MenuItem from 'app/components/menuItem';
 
 export default {
-  title: 'Core/Dropdowns/DropdownControl',
+  title: 'Core/Buttons/Dropdowns/DropdownControl',
 };
 
 export const BasicLabelKnobs = ({

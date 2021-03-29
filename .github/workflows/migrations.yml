@@ -1,14 +1,46 @@
 name: migrations
-on:
-  pull_request:
-    paths:
-      - 'src/sentry/migrations/*'
+on: pull_request
 
 jobs:
+  did-migration-change:
+    name: check if any migration changes
+    runs-on: ubuntu-20.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      added: ${{ steps.changes.outputs.migrations_added }}
+      modified: ${{ steps.changes.outputs.migrations_modified }}
+    steps:
+      - name: Checkout sentry
+        uses: actions/checkout@v2
+
+      - name: Match migration files
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+  modified-migration:
+    name: check if modified migration
+    runs-on: ubuntu-20.04
+    timeout-minutes: 4
+    needs: did-migration-change
+    if: ${{ needs.did-migration-change.outputs.modified == 'true' }}
+
+    steps:
+      - name: Failure because of modified migration
+        shell: bash
+        run: |
+          echo "If you have a valid reason to modify a migration please get approval"
+          echo "from @getsentry/owners-migrations, then ask a Github admin to merge." && exit 1
+
   sql:
     name: Generate SQL
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 8
+    needs: did-migration-change
+    if: ${{ needs.did-migration-change.outputs.added == 'true' }}
 
     steps:
       # Checkout master to run all merged migrations.
@@ -34,9 +66,10 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+          key: |
+            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -54,8 +87,8 @@ jobs:
       - name: Get changed migration files
         id: file
         run: |
-          echo $(git diff --diff-filter=AM --name-only origin/master HEAD)
-          echo "::set-output name=modified::$(git diff --diff-filter=AM --name-only origin/master HEAD | grep 'src/sentry/migrations/')"
+          echo $(git diff --diff-filter=A --name-only origin/master HEAD)
+          echo "::set-output name=added::$(git diff --diff-filter=A --name-only origin/master HEAD | grep 'src/sentry/migrations/')"
 
       - name: Generate SQL for migration
         uses: getsentry/action-migrations@v1.0.7
@@ -63,4 +96,4 @@ jobs:
           SENTRY_LOG_LEVEL: ERROR
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          migration: ${{ steps.file.outputs.modified }}
+          migration: ${{ steps.file.outputs.added }}

@@ -14,6 +14,7 @@ import {ReleaseStatsRequestRenderProps} from '../releaseStatsRequest';
 
 import HealthChart from './healthChart';
 import {YAxis} from './releaseChartControls';
+import {sortSessionSeries} from './utils';
 
 type Props = Omit<
   ReleaseStatsRequestRenderProps,
@@ -60,7 +61,8 @@ class ReleaseChartContainer extends React.Component<Props, State> {
     const timeseriesData = chartData.filter(({seriesName}) => {
       // There is no concept of Abnormal sessions in javascript
       if (
-        seriesName === sessionTerm.abnormal &&
+        (seriesName === sessionTerm.abnormal ||
+          seriesName === sessionTerm.otherAbnormal) &&
         ['javascript', 'node'].includes(platform)
       ) {
         return false;
@@ -84,7 +86,7 @@ class ReleaseChartContainer extends React.Component<Props, State> {
             <TransitionChart loading={loading} reloading={reloading}>
               <TransparentLoadingMask visible={reloading} />
               <HealthChart
-                timeseriesData={timeseriesData}
+                timeseriesData={timeseriesData.sort(sortSessionSeries)}
                 zoomRenderProps={zoomRenderProps}
                 reloading={reloading}
                 yAxis={yAxis}

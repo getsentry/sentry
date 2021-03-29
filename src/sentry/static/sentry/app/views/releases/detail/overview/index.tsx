@@ -36,7 +36,6 @@ import OtherProjects from './otherProjects';
 import ProjectReleaseDetails from './projectReleaseDetails';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
 import ReleaseStats from './releaseStats';
-import ReleaseStatsRequest from './releaseStatsRequest';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
 
 export enum TransactionsListOption {
@@ -245,9 +244,18 @@ class ReleaseOverview extends AsyncView<Props> {
 
     return (
       <ReleaseContext.Consumer>
-        {({release, project, deploys, releaseMeta, refetchData, defaultStatsPeriod}) => {
+        {({
+          release,
+          project,
+          deploys,
+          releaseMeta,
+          refetchData,
+          defaultStatsPeriod,
+          isHealthLoading,
+          getHealthData,
+          hasHealthData,
+        }) => {
           const {commitCount, version} = release;
-          const {hasHealthData} = project.healthData || {};
           const hasDiscover = organization.features.includes('discover-basic');
           const hasPerformance = organization.features.includes('performance-view');
           const yAxis = this.getYAxis(hasHealthData, hasPerformance);
@@ -280,119 +288,110 @@ class ReleaseOverview extends AsyncView<Props> {
           };
 
           return (
-            <ReleaseStatsRequest
-              api={api}
-              organization={organization}
-              projectSlug={project.slug}
-              version={version}
-              selection={selection}
-              location={location}
-              yAxis={yAxis}
-              eventType={eventType}
-              vitalType={vitalType}
-              hasHealthData={hasHealthData}
-              hasDiscover={hasDiscover}
-              hasPerformance={hasPerformance}
-              defaultStatsPeriod={defaultStatsPeriod}
-            >
-              {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
-                <Body>
-                  <Main>
-                    {isReleaseArchived(release) && (
-                      <ReleaseArchivedNotice
-                        onRestore={() => this.handleRestore(project, refetchData)}
-                      />
-                    )}
+            <Body>
+              <Main>
+                {isReleaseArchived(release) && (
+                  <ReleaseArchivedNotice
+                    onRestore={() => this.handleRestore(project, refetchData)}
+                  />
+                )}
 
-                    {(hasDiscover || hasPerformance || hasHealthData) && (
-                      <ReleaseChart
-                        {...releaseStatsProps}
-                        releaseMeta={releaseMeta}
-                        selection={selection}
-                        yAxis={yAxis}
-                        onYAxisChange={this.handleYAxisChange}
-                        eventType={eventType}
-                        onEventTypeChange={this.handleEventTypeChange}
-                        vitalType={vitalType}
-                        onVitalTypeChange={this.handleVitalTypeChange}
-                        router={router}
-                        organization={organization}
-                        hasHealthData={hasHealthData}
-                        location={location}
-                        api={api}
-                        version={version}
-                        hasDiscover={hasDiscover}
-                        hasPerformance={hasPerformance}
-                        platform={project.platform}
-                      />
-                    )}
-                    <Issues
-                      orgId={organization.slug}
-                      selection={selection}
-                      version={version}
-                      location={location}
-                      defaultStatsPeriod={defaultStatsPeriod}
-                    />
-                    <Feature features={['performance-view']}>
-                      <TransactionsList
-                        location={location}
-                        organization={organization}
-                        eventView={releaseEventView}
-                        trendView={releaseTrendView}
-                        selected={selectedSort}
-                        options={sortOptions}
-                        handleDropdownChange={this.handleTransactionsListSortChange}
-                        titles={titles}
-                        generateLink={generateLink}
-                      />
-                    </Feature>
-                  </Main>
-                  <Side>
-                    <ReleaseStats
-                      organization={organization}
-                      release={release}
-                      project={project}
-                      location={location}
-                      selection={selection}
-                    />
-                    <ProjectReleaseDetails
-                      release={release}
-                      releaseMeta={releaseMeta}
-                      orgSlug={organization.slug}
-                      projectSlug={project.slug}
-                    />
-                    {commitCount > 0 && (
-                      <CommitAuthorBreakdown
-                        version={version}
-                        orgId={organization.slug}
-                        projectSlug={project.slug}
-                      />
-                    )}
-                    {releaseMeta.projects.length > 1 && (
-                      <OtherProjects
-                        projects={releaseMeta.projects.filter(
-                          p => p.slug !== project.slug
-                        )}
-                        location={location}
-                      />
-                    )}
-                    {hasHealthData && (
-                      <TotalCrashFreeUsers
-                        crashFreeTimeBreakdown={crashFreeTimeBreakdown}
-                      />
-                    )}
-                    {deploys.length > 0 && (
-                      <Deploys
-                        version={version}
-                        orgSlug={organization.slug}
-                        deploys={deploys}
-                        projectId={project.id}
-                      />
-                    )}
-                  </Side>
-                </Body>
-              )}
-            </ReleaseStatsRequest>
+                {(hasDiscover || hasPerformance || hasHealthData) && (
+                  <ReleaseChart
+                    releaseMeta={releaseMeta}
+                    selection={selection}
+                    yAxis={yAxis}
+                    onYAxisChange={this.handleYAxisChange}
+                    eventType={eventType}
+                    onEventTypeChange={this.handleEventTypeChange}
+                    vitalType={vitalType}
+                    onVitalTypeChange={this.handleVitalTypeChange}
+                    router={router}
+                    organization={organization}
+                    hasHealthData={hasHealthData}
+                    location={location}
+                    api={api}
+                    version={version}
+                    hasDiscover={hasDiscover}
+                    hasPerformance={hasPerformance}
+                    platform={project.platform}
+                    defaultStatsPeriod={defaultStatsPeriod}
+                    projectSlug={project.slug}
+                  />
+                )}
+                <Issues
+                  orgId={organization.slug}
+                  selection={selection}
+                  version={version}
+                  location={location}
+                  defaultStatsPeriod={defaultStatsPeriod}
+                />
+                <Feature features={['performance-view']}>
+                  <TransactionsList
+                    location={location}
+                    organization={organization}
+                    eventView={releaseEventView}
+                    trendView={releaseTrendView}
+                    selected={selectedSort}
+                    options={sortOptions}
+                    handleDropdownChange={this.handleTransactionsListSortChange}
+                    titles={titles}
+                    generateLink={generateLink}
+                  />
+                </Feature>
+              </Main>
+              <Side>
+                <ReleaseStats
+                  organization={organization}
+                  release={release}
+                  project={project}
+                  location={location}
+                  selection={selection}
+                  hasHealthData={hasHealthData}
+                  getHealthData={getHealthData}
+                  isHealthLoading={isHealthLoading}
+                />
+                <ProjectReleaseDetails
+                  release={release}
+                  releaseMeta={releaseMeta}
+                  orgSlug={organization.slug}
+                  projectSlug={project.slug}
+                />
+                {commitCount > 0 && (
+                  <CommitAuthorBreakdown
+                    version={version}
+                    orgId={organization.slug}
+                    projectSlug={project.slug}
+                  />
+                )}
+                {releaseMeta.projects.length > 1 && (
+                  <OtherProjects
+                    projects={releaseMeta.projects.filter(p => p.slug !== project.slug)}
+                    location={location}
+                    version={version}
+                    organization={organization}
+                  />
+                )}
+                {hasHealthData && (
+                  <TotalCrashFreeUsers
+                    organization={organization}
+                    version={version}
+                    projectSlug={project.slug}
+                    location={location}
+                    defaultStatsPeriod={defaultStatsPeriod}
+                    selection={selection}
+                  />
+                )}
+                {deploys.length > 0 && (
+                  <Deploys
+                    version={version}
+                    orgSlug={organization.slug}
+                    deploys={deploys}
+                    projectId={project.id}
+                  />
+                )}
+              </Side>
+            </Body>
           );
         }}
       </ReleaseContext.Consumer>

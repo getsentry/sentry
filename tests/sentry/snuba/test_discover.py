@@ -17,6 +17,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
 
+        self.event_time = before_now(minutes=1)
         self.event = self.store_event(
             data={
                 "message": "oh no",
@@ -24,7 +25,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": iso_format(self.event_time),
             },
             project_id=self.project.id,
         )
@@ -132,7 +133,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
-            selected_columns=["project.id", "user", "release"],
+            selected_columns=["project.id", "user", "release", "timestamp.to_hour"],
             query="",
             params={"project_id": [self.project.id]},
         )
@@ -142,11 +143,15 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["user"] == "id:99"
         assert data[0]["release"] == "first-release"
 
-        assert len(result["meta"]) == 3
+        event_hour = self.event_time.replace(minute=0, second=0)
+        assert data[0]["timestamp.to_hour"] == iso_format(event_hour) + "+00:00"
+
+        assert len(result["meta"]) == 4
         assert result["meta"] == {
             "project.id": "integer",
             "user": "string",
             "release": "string",
+            "timestamp.to_hour": "date",
         }
 
     def test_field_alias_with_component(self):
@@ -230,7 +235,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
     def test_release_condition(self):
         result = discover.query(
             selected_columns=["id", "message"],
-            query="release:{}".format(self.create_release(self.project).version),
+            query=f"release:{self.create_release(self.project).version}",
             params={"project_id": [self.project.id]},
         )
         assert len(result["data"]) == 0
@@ -261,7 +266,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
     def test_environment_condition(self):
         result = discover.query(
             selected_columns=["id", "message"],
-            query="environment:{}".format(self.create_environment(self.project).name),
+            query=f"environment:{self.create_environment(self.project).name}",
             params={"project_id": [self.project.id]},
         )
         assert len(result["data"]) == 0
@@ -461,6 +466,26 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[1]["transaction"] == "c" * 32
         assert data[1]["count"] == 3
 
+    def test_timestamp_rollup_filter(self):
+        event_hour = self.event_time.replace(minute=0, second=0)
+        result = discover.query(
+            selected_columns=["project.id", "user", "release"],
+            query="timestamp.to_hour:" + iso_format(event_hour),
+            params={"project_id": [self.project.id]},
+        )
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["project.id"] == self.project.id
+        assert data[0]["user"] == "id:99"
+        assert data[0]["release"] == "first-release"
+
+        assert len(result["meta"]) == 3
+        assert result["meta"] == {
+            "project.id": "integer",
+            "user": "string",
+            "release": "string",
+        }
+
     def test_count_with_or(self):
         data = load_data("transaction", timestamp=before_now(seconds=3))
         data["transaction"] = "a" * 32
@@ -507,6 +532,24 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
             )
+
+    def test_any_function(self):
+        data = load_data("transaction", timestamp=before_now(seconds=3))
+        data["transaction"] = "a" * 32
+        self.store_event(data=data, project_id=self.project.id)
+
+        results = discover.query(
+            selected_columns=["count()", "any(transaction)", "any(user.id)"],
+            query="",
+            params={"project_id": [self.project.id]},
+            use_aggregate_conditions=True,
+        )
+
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0]["any_transaction"] == "a" * 32
+        assert data[0]["any_user_id"] == "99"
+        assert data[0]["count"] == 2
 
 
 class QueryTransformTest(TestCase):
@@ -1313,8 +1356,13 @@ class QueryTransformTest(TestCase):
         end_time = before_now(seconds=1)
 
         discover.query(
-            selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
-            query="http.method:GET max(time):>2019-12-01",
+            selected_columns=[
+                "transaction",
+                "avg(transaction.duration)",
+                "stddev(transaction.duration)",
+                "max(timestamp)",
+            ],
+            query="http.method:GET max(timestamp):>2019-12-01",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
         )
@@ -1326,9 +1374,10 @@ class QueryTransformTest(TestCase):
             dataset=Dataset.Discover,
             aggregations=[
                 ["avg", "duration", "avg_transaction_duration"],
-                ["max", "time", "max_time"],
+                ["stddevSamp", "duration", "stddev_transaction_duration"],
+                ["max", "timestamp", "max_timestamp"],
             ],
-            having=[["max_time", ">", 1575158400]],
+            having=[["max_timestamp", ">", 1575158400]],
             end=end_time,
             start=start_time,
             orderby=None,
@@ -1354,7 +1403,12 @@ class QueryTransformTest(TestCase):
                 "data": [{"transaction": "api.do_things", "duration": 200}],
             }
             discover.query(
-                selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
+                selected_columns=[
+                    "transaction",
+                    "avg(transaction.duration)",
+                    "stddev(transaction.duration)",
+                    "max(timestamp)",
+                ],
                 query=f"http.method:GET avg(transaction.duration):>{query_string}",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
@@ -1367,7 +1421,8 @@ class QueryTransformTest(TestCase):
                 dataset=Dataset.Discover,
                 aggregations=[
                     ["avg", "duration", "avg_transaction_duration"],
-                    ["max", "time", "max_time"],
+                    ["stddevSamp", "duration", "stddev_transaction_duration"],
+                    ["max", "timestamp", "max_timestamp"],
                 ],
                 having=[["avg_transaction_duration", ">", value]],
                 end=end_time,
@@ -1390,7 +1445,7 @@ class QueryTransformTest(TestCase):
         with pytest.raises(InvalidSearchQuery):
             discover.query(
                 selected_columns=["transaction"],
-                query="http.method:GET max(time):>5",
+                query="http.method:GET max(timestamp):>5",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
             )
@@ -1407,7 +1462,7 @@ class QueryTransformTest(TestCase):
         with pytest.raises(InvalidSearchQuery):
             discover.query(
                 selected_columns=["transaction"],
-                query="http.method:GET max(time):>5",
+                query="http.method:GET max(timestamp):>5",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
                 auto_aggregations=True,
@@ -1425,7 +1480,7 @@ class QueryTransformTest(TestCase):
         with pytest.raises(AssertionError):
             discover.query(
                 selected_columns=["transaction"],
-                query="http.method:GET max(time):>5",
+                query="http.method:GET max(timestamp):>5",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=False,
                 auto_aggregations=True,
@@ -1442,14 +1497,17 @@ class QueryTransformTest(TestCase):
 
         discover.query(
             selected_columns=["transaction", "p95()"],
-            query="http.method:GET max(time):>5",
+            query="http.method:GET max(timestamp):>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
             auto_aggregations=True,
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            aggregations=[["quantile(0.95)", "duration", "p95"], ["max", "time", "max_time"]],
+            aggregations=[
+                ["quantile(0.95)", "duration", "p95"],
+                ["max", "timestamp", "max_timestamp"],
+            ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["transaction"],
@@ -1457,7 +1515,7 @@ class QueryTransformTest(TestCase):
             start=start_time,
             end=end_time,
             orderby=None,
-            having=[["max_time", ">", 5.0]],
+            having=[["max_timestamp", ">", 5.0]],
             limit=50,
             offset=None,
             referrer=None,
@@ -1473,15 +1531,18 @@ class QueryTransformTest(TestCase):
         end_time = before_now(seconds=1)
 
         discover.query(
-            selected_columns=["transaction", "min(time)"],
-            query="max(time):>5 AND min(time):<10",
+            selected_columns=["transaction", "min(timestamp)"],
+            query="max(timestamp):>5 AND min(timestamp):<10",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
             auto_aggregations=True,
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            aggregations=[["min", "time", "min_time"], ["max", "time", "max_time"]],
+            aggregations=[
+                ["min", "timestamp", "min_timestamp"],
+                ["max", "timestamp", "max_timestamp"],
+            ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["transaction"],
@@ -1489,7 +1550,7 @@ class QueryTransformTest(TestCase):
             start=start_time,
             end=end_time,
             orderby=None,
-            having=[["max_time", ">", 5.0], ["min_time", "<", 10.0]],
+            having=[["max_timestamp", ">", 5.0], ["min_timestamp", "<", 10.0]],
             limit=50,
             offset=None,
             referrer=None,
@@ -2116,7 +2177,7 @@ class QueryTransformTest(TestCase):
         }
 
 
-class TimeseriesQueryTest(SnubaTestCase, TestCase):
+class TimeseriesBase(SnubaTestCase, TestCase):
     def setUp(self):
         super().setUp()
 
@@ -2154,6 +2215,8 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
 
+
+class TimeseriesQueryTest(TimeseriesBase):
     def test_invalid_field_in_function(self):
         with pytest.raises(InvalidSearchQuery):
             discover.timeseries_query(
@@ -2328,6 +2391,65 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
         for d in data:
             if "count" in d:
                 assert d["count"] == 2
+
+
+class TopEventsTimeseriesQueryTest(TimeseriesBase):
+    @patch("sentry.snuba.discover.raw_query")
+    def test_project_filter_adjusts_filter(self, mock_query):
+        """ While the function is called with 2 project_ids, we should limit it down to the 1 in top_events """
+        project2 = self.create_project(organization=self.organization)
+        top_events = {
+            "data": [
+                {
+                    "project": self.project.slug,
+                    "project.id": self.project.id,
+                }
+            ]
+        }
+        start = before_now(minutes=5)
+        end = before_now(seconds=1)
+        discover.top_events_timeseries(
+            selected_columns=["project", "count()"],
+            params={
+                "start": start,
+                "end": end,
+                "project_id": [self.project.id, project2.id],
+            },
+            rollup=3600,
+            top_events=top_events,
+            timeseries_columns=["count()"],
+            user_query="",
+            orderby=["count()"],
+            limit=10000,
+            organization=self.organization,
+        )
+        mock_query.assert_called_with(
+            aggregations=[["count", None, "count"]],
+            conditions=[],
+            # Should be limited to the project in top_events
+            filter_keys={"project_id": [self.project.id]},
+            selected_columns=[
+                "project_id",
+                [
+                    "transform",
+                    [
+                        ["toString", ["project_id"]],
+                        ["array", [f"'{project.id}'" for project in [self.project, project2]]],
+                        ["array", [f"'{project.slug}'" for project in [self.project, project2]]],
+                        "''",
+                    ],
+                    "project",
+                ],
+            ],
+            start=start,
+            end=end,
+            rollup=3600,
+            orderby=["time", "project_id"],
+            groupby=["time", "project_id"],
+            dataset=Dataset.Discover,
+            limit=10000,
+            referrer=None,
+        )
 
 
 def format_project_event(project_slug, event_id):
@@ -2520,6 +2642,72 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
+
+
+# Temporary basic coverage for performance facets
+class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.project = self.create_project()
+        self.min_ago = before_now(minutes=1)
+        self.day_ago = before_now(days=1)
+        self.two_mins_ago = before_now(minutes=2)
+        self._transaction_count = 0
+
+    def store_transaction(self, name="exampleTransaction", duration=100, tags=None):
+        if tags is None:
+            tags = []
+        event = load_data("transaction").copy()
+        event.data["tags"].extend(tags)
+        event.update(
+            {
+                "transaction": name,
+                "event_id": f"{self._transaction_count:02x}".rjust(32, "0"),
+                "start_timestamp": iso_format(self.two_mins_ago - timedelta(seconds=duration)),
+                "timestamp": iso_format(self.two_mins_ago),
+            }
+        )
+        self._transaction_count += 1
+        self.store_event(data=event, project_id=self.project.id)
+
+    def test_invalid_query(self):
+        with pytest.raises(InvalidSearchQuery):
+            discover.get_performance_facets(
+                "\n", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+            )
+
+    def test_no_results(self):
+        results = discover.get_performance_facets(
+            "", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+        )
+        assert results == []
+
+    def test_single_project(self):
+        self.store_transaction(duration=1, tags=[["color", "red"]])
+        self.store_transaction(duration=2, tags=[["color", "blue"]])
+
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+
+        with self.options(
+            {
+                "discover2.tags_performance_facet_sample_rate": 1,
+            }
+        ):
+            result = discover.get_performance_facets("", params)
+            self.wait_for_event_count(self.project.id, 2)
+
+            assert len(result) == 12
+            for r in result:
+                if r.key == "color" and r.value == "red":
+                    assert r.count == 1
+                    assert r.performance == 1000
+                elif r.key == "color" and r.value == "blue":
+                    assert r.count == 1
+                    assert r.performance == 2000
+                else:
+                    assert r.count == 2
+                    assert r.performance == 1500
 
 
 def test_zerofill():

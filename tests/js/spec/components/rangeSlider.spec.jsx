@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 
@@ -17,14 +17,14 @@ describe('RangeSlider', function () {
   });
 
   it('has right label', function () {
-    const wrapper = mount(creator());
+    const wrapper = mountWithTheme(creator());
     expect(wrapper.find('Label').text()).toBe('5');
     wrapper.find('Slider').simulate('input', {target: {value: 7}});
     expect(wrapper.find('Label').text()).toBe('7');
   });
 
   it('can use formatLabel', function () {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       creator({
         formatLabel: value => (
           <div className="test">{value === 7 ? 'SEVEN!' : value + 1}</div>
@@ -51,7 +51,7 @@ describe('RangeSlider', function () {
 
   it('can provide a list of allowedValues', function () {
     const onChange = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       creator({
         // support unsorted arrays?
         allowedValues: [0, 100, 1000, 10000, 20000],
@@ -74,7 +74,7 @@ describe('RangeSlider', function () {
 
   it('handles invalid values', function () {
     const onChange = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       creator({
         // support unsorted arrays?
         allowedValues: [0, 100, 1000, 10000, 20000],

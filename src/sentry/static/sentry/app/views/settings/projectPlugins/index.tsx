@@ -57,7 +57,7 @@ class ProjectPluginsContainer extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={title} objSlug={orgId} />
+        <SentryDocumentTitle title={title} orgSlug={orgId} />
         <SettingsPageHeader title={title} />
         <PermissionAlert />
 

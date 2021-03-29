@@ -41,6 +41,7 @@ const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
  */
 // Ports used by webpack dev server to proxy to backend and webpack
 const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
+const SENTRY_WEBPACK_PROXY_HOST = env.SENTRY_WEBPACK_PROXY_HOST;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 // Used by sentry devserver runner to force using webpack-dev-server
 const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
@@ -228,7 +229,7 @@ let appConfig = {
     sentry: 'less/sentry.less',
 
     /**
-     * old plugins that use select2 when creating a new issue e.g. Trello, Teamwork*
+     * Old plugins that use select2 when creating a new issue e.g. Trello, Teamwork*
      */
     select2: 'less/select2.less',
   },
@@ -256,10 +257,6 @@ let appConfig = {
         },
       },
       {
-        test: /app\/icons\/.*\.svg$/,
-        use: ['svg-sprite-loader', 'svgo-loader'],
-      },
-      {
         test: /\.css/,
         use: ['style-loader', 'css-loader'],
       },
@@ -270,12 +267,13 @@ let appConfig = {
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
-        exclude: /app\/icons\/.*\.svg$/,
         use: [
           {
             loader: 'file-loader',
             options: {
-              name: '[name].[hash:6].[ext]',
+              // This needs to be `false` because of platformicons package
+              esModule: false,
+              name: '[folder]/[name].[hash:6].[ext]',
             },
           },
         ],
@@ -346,6 +344,7 @@ let appConfig = {
     alias: {
       app: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
+      'sentry-fonts': path.join(staticPrefix, 'fonts'),
       '@emotion/styled': path.join(staticPrefix, 'app', 'styled'),
       '@original-emotion/styled': path.join(
         __dirname,
@@ -428,6 +427,7 @@ if (
     // Required for getsentry
     disableHostCheck: true,
     contentBase: './src/sentry/static/sentry',
+    host: SENTRY_WEBPACK_PROXY_HOST,
     hot: true,
     // If below is false, will reload on errors
     hotOnly: true,

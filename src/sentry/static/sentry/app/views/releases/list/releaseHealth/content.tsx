@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import Collapsible from 'app/components/collapsible';
 import Count from 'app/components/count';
@@ -10,19 +11,19 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import NotAvailable from 'app/components/notAvailable';
 import {PanelItem} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import ProgressBar from 'app/components/progressBar';
 import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Release, ReleaseProject} from 'app/types';
+import {Organization, Release, ReleaseProject} from 'app/types';
 import {defined} from 'app/utils';
 
 import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
-import AdoptionTooltip from '../adoptionTooltip';
+import {ReleaseHealthRequestRenderProps} from '../../utils/releaseHealthRequest';
 import CrashFree from '../crashFree';
 import HealthStatsChart from '../healthStatsChart';
-import HealthStatsPeriod, {StatsPeriod} from '../healthStatsPeriod';
+import HealthStatsPeriod from '../healthStatsPeriod';
+import ReleaseAdoption from '../releaseAdoption';
 import {DisplayOption} from '../utils';
 
 import Header from './header';
@@ -31,48 +32,43 @@ import ProjectLink from './projectLink';
 type Props = {
   projects: Array<ReleaseProject>;
   releaseVersion: Release['version'];
-  orgSlug: string;
+  organization: Organization;
   activeDisplay: DisplayOption;
   location: Location;
   showPlaceholders: boolean;
+  isTopRelease: boolean;
+  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
 };
 
 const Content = ({
   projects,
   releaseVersion,
   location,
-  orgSlug,
+  organization,
   activeDisplay,
   showPlaceholders,
+  isTopRelease,
+  getHealthData,
 }: Props) => {
-  const activeStatsPeriod = (location.query.healthStatsPeriod || '24h') as StatsPeriod;
-  const healthStatsPeriod = (
-    <HealthStatsPeriod location={location} activePeriod={activeStatsPeriod} />
-  );
-
   return (
     <React.Fragment>
       <Header>
         <Layout>
           <Column>{t('Project Name')}</Column>
-          <AdoptionColumn>{t('User Adoption')}</AdoptionColumn>
-          {activeDisplay === DisplayOption.CRASH_FREE_USERS ? (
-            <React.Fragment>
-              <SessionsColumn>{t('Crash Free Users')}</SessionsColumn>
-              <DailyColumn>
-                <span>{t('Users')}</span>
-                {healthStatsPeriod}
-              </DailyColumn>
-            </React.Fragment>
-          ) : (
-            <React.Fragment>
-              <SessionsColumn>{t('Crash Free Sessions')}</SessionsColumn>
-              <DailyColumn>
-                <span>{t('Sessions')}</span>
-                {healthStatsPeriod}
-              </DailyColumn>
-            </React.Fragment>
-          )}
+          <AdoptionColumn>
+            <GuideAnchor
+              target="release_adoption"
+              position="bottom"
+              disabled={!(isTopRelease && window.innerWidth >= 800)}
+            >
+              {t('Adoption')}
+            </GuideAnchor>
+          </AdoptionColumn>
+          <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
+          <CountColumn>
+            <span>{t('Count')}</span>
+            <HealthStatsPeriod location={location} />
+          </CountColumn>
           <CrashesColumn>{t('Crashes')}</CrashesColumn>
           <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
           <ViewColumn />
@@ -98,20 +94,38 @@ const Content = ({
             </CollapseButtonWrapper>
           )}
         >
-          {projects.map(project => {
-            const {slug, healthData, newGroups} = project;
-            const {
-              hasHealthData,
-              adoption,
-              stats,
-              crashFreeUsers,
-              crashFreeSessions,
-              sessionsCrashed,
-              totalUsers,
-              totalUsers24h,
-              totalSessions,
-              totalSessions24h,
-            } = healthData || {};
+          {projects.map((project, index) => {
+            const {id, slug, newGroups} = project;
+
+            const crashCount = getHealthData.getCrashCount(
+              releaseVersion,
+              id,
+              DisplayOption.SESSIONS
+            );
+            const crashFreeRate = getHealthData.getCrashFreeRate(
+              releaseVersion,
+              id,
+              activeDisplay
+            );
+            const get24hCountByRelease = getHealthData.get24hCountByRelease(
+              releaseVersion,
+              id,
+              activeDisplay
+            );
+            const get24hCountByProject = getHealthData.get24hCountByProject(
+              id,
+              activeDisplay
+            );
+            const timeSeries = getHealthData.getTimeSeries(
+              releaseVersion,
+              id,
+              activeDisplay
+            );
+            const adoption = getHealthData.getAdoption(releaseVersion, id, activeDisplay);
+            // we currently don't support sub-hour session intervals, we rather hide the count histogram than to show only two bars
+            const hasCountHistogram =
+              timeSeries?.[0].data.length > 7 &&
+              timeSeries[0].data.some(item => item.value > 0);
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
@@ -123,82 +137,60 @@ const Content = ({
                   <AdoptionColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder width="150px" />
-                    ) : defined(adoption) ? (
+                    ) : get24hCountByProject ? (
                       <AdoptionWrapper>
-                        <ProgressBarWrapper>
-                          <Tooltip
-                            containerDisplayMode="block"
-                            title={
-                              <AdoptionTooltip
-                                totalUsers={totalUsers}
-                                totalSessions={totalSessions}
-                                totalUsers24h={totalUsers24h}
-                                totalSessions24h={totalSessions24h}
-                              />
-                            }
-                          >
-                            <ProgressBar value={Math.ceil(adoption)} />
-                          </Tooltip>
-                        </ProgressBarWrapper>
-                        <Count value={totalUsers24h ?? 0} />
+                        <ReleaseAdoption
+                          adoption={adoption ?? 0}
+                          releaseCount={get24hCountByRelease ?? 0}
+                          projectCount={get24hCountByProject ?? 0}
+                          displayOption={activeDisplay}
+                        />
+                        <Count value={get24hCountByRelease ?? 0} />
                       </AdoptionWrapper>
                     ) : (
                       <NotAvailable />
                     )}
                   </AdoptionColumn>
 
-                  {activeDisplay === DisplayOption.CRASH_FREE_USERS ? (
-                    <SessionsColumn>
-                      {showPlaceholders ? (
-                        <StyledPlaceholder width="60px" />
-                      ) : defined(crashFreeUsers) ? (
-                        <CrashFree percent={crashFreeUsers} />
-                      ) : (
-                        <NotAvailable />
-                      )}
-                    </SessionsColumn>
-                  ) : (
-                    <SessionsColumn>
-                      {showPlaceholders ? (
-                        <StyledPlaceholder width="60px" />
-                      ) : defined(crashFreeSessions) ? (
-                        <CrashFree percent={crashFreeSessions} />
-                      ) : (
-                        <NotAvailable />
-                      )}
-                    </SessionsColumn>
-                  )}
+                  <CrashFreeRateColumn>
+                    {showPlaceholders ? (
+                      <StyledPlaceholder width="60px" />
+                    ) : defined(crashFreeRate) ? (
+                      <CrashFree percent={crashFreeRate} />
+                    ) : (
+                      <NotAvailable />
+                    )}
+                  </CrashFreeRateColumn>
 
-                  <DailyColumn>
+                  <CountColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder />
-                    ) : hasHealthData && defined(stats) ? (
+                    ) : hasCountHistogram ? (
                       <ChartWrapper>
                         <HealthStatsChart
-                          data={stats}
+                          data={timeSeries}
                           height={20}
-                          period={activeStatsPeriod}
                           activeDisplay={activeDisplay}
                         />
                       </ChartWrapper>
                     ) : (
                       <NotAvailable />
                     )}
-                  </DailyColumn>
+                  </CountColumn>
 
                   <CrashesColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder width="30px" />
-                    ) : hasHealthData && defined(sessionsCrashed) ? (
+                    ) : defined(crashCount) ? (
                       <Tooltip title={t('Open in Issues')}>
                         <GlobalSelectionLink
                           to={getReleaseUnhandledIssuesUrl(
-                            orgSlug,
+                            organization.slug,
                             project.id,
                             releaseVersion
                           )}
                         >
-                          <Count value={sessionsCrashed} />
+                          <Count value={crashCount} />
                         </GlobalSelectionLink>
                       </Tooltip>
                     ) : (
@@ -209,7 +201,11 @@ const Content = ({
                   <NewIssuesColumn>
                     <Tooltip title={t('Open in Issues')}>
                       <GlobalSelectionLink
-                        to={getReleaseNewIssuesUrl(orgSlug, project.id, releaseVersion)}
+                        to={getReleaseNewIssuesUrl(
+                          organization.slug,
+                          project.id,
+                          releaseVersion
+                        )}
                       >
                         <Count value={newGroups || 0} />
                       </GlobalSelectionLink>
@@ -217,12 +213,17 @@ const Content = ({
                   </NewIssuesColumn>
 
                   <ViewColumn>
-                    <ProjectLink
-                      orgSlug={orgSlug}
-                      project={project}
-                      releaseVersion={releaseVersion}
-                      location={location}
-                    />
+                    <GuideAnchor
+                      disabled={!isTopRelease || index !== 0}
+                      target="view_release"
+                    >
+                      <ProjectLink
+                        orgSlug={organization.slug}
+                        project={project}
+                        releaseVersion={releaseVersion}
+                        location={location}
+                      />
+                    </GuideAnchor>
                   </ViewColumn>
                 </Layout>
               </ProjectRow>
@@ -317,18 +318,21 @@ const AdoptionColumn = styled(Column)`
 
 const AdoptionWrapper = styled('span')`
   display: inline-grid;
-  grid-auto-flow: column;
+  grid-template-columns: 70px 1fr;
   grid-gap: ${space(1)};
   align-items: center;
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: 90px 1fr;
+  }
 `;
 
-const SessionsColumn = styled(Column)`
+const CrashFreeRateColumn = styled(Column)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     text-align: center;
   }
 `;
 
-const DailyColumn = styled(Column)`
+const CountColumn = styled(Column)`
   display: none;
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
@@ -364,9 +368,4 @@ const StyledPlaceholder = styled(Placeholder)`
   display: inline-block;
   position: relative;
   top: ${space(0.25)};
-`;
-
-const ProgressBarWrapper = styled('div')`
-  min-width: 70px;
-  max-width: 90px;
 `;

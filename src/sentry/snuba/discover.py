@@ -49,6 +49,9 @@ logger = logging.getLogger(__name__)
 
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
+PerformanceFacetResult = namedtuple(
+    "PerformanceFacetResult", ["key", "value", "performance", "count"]
+)
 
 resolve_discover_column = resolve_column(Dataset.Discover)
 
@@ -463,8 +466,9 @@ def top_events_timeseries(
         )
 
         for field in selected_columns:
-            # project is handled by filter_keys already
+            # If we have a project field, we need to limit results by project so we dont hit the result limit
             if field in ["project", "project.id"]:
+                snuba_filter.project_ids = [event["project.id"] for event in top_events["data"]]
                 continue
             if field in FIELD_ALIASES:
                 field = FIELD_ALIASES[field].alias
@@ -735,6 +739,117 @@ def get_facets(query, params, limit=10, referrer=None):
     return results
 
 
+def get_performance_facets(
+    query,
+    params,
+    orderby=None,
+    aggregate_column="duration",
+    aggregate_function="avg",
+    limit=20,
+    referrer=None,
+):
+    """
+    High-level API for getting 'facet map' results for performance data
+
+    Performance facets are high frequency tags and the aggregate duration of
+    their most frequent values
+
+    query (str) Filter query string to create conditions from.
+    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
+    limit (int) The number of records to fetch.
+    referrer (str|None) A referrer string to help locate the origin of this query.
+
+    Returns Sequence[FacetResult]
+    """
+    with sentry_sdk.start_span(
+        op="discover.discover", description="facets.filter_transform"
+    ) as span:
+        span.set_data("query", query)
+        snuba_filter = get_filter(query, params)
+
+        # Resolve the public aliases into the discover dataset names.
+        snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
+
+    # Exclude tracing tags as they are noisy and generally not helpful.
+    # TODO(markus): Tracing tags are no longer written but may still reside in DB.
+    excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span", "project"]]
+
+    # Sampling keys for multi-project results as we don't need accuracy
+    # with that much data.
+    sample = len(snuba_filter.filter_keys["project_id"]) > 2
+
+    with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
+        # Get the most relevant tag keys
+        key_names = raw_query(
+            aggregations=[["count", None, "count"]],
+            start=snuba_filter.start,
+            end=snuba_filter.end,
+            conditions=snuba_filter.conditions,
+            filter_keys=snuba_filter.filter_keys,
+            orderby=["-count", "tags_key"],
+            groupby="tags_key",
+            # TODO(Kevan): Check using having vs where before mainlining
+            having=[excluded_tags],
+            dataset=Dataset.Discover,
+            limit=limit,
+            referrer=referrer,
+            turbo=sample,
+        )
+        top_tags = [r["tags_key"] for r in key_names["data"]]
+        if not top_tags:
+            return []
+
+    results = []
+    snuba_filter.conditions.append([aggregate_column, "IS NOT NULL", None])
+
+    # Only enable sampling if over 10000 values
+    sampling_enabled = key_names["data"][0]["count"] > 10000
+    options_sample_rate = options.get("discover2.tags_performance_facet_sample_rate") or 0.1
+
+    sample_rate = options_sample_rate if sampling_enabled else None
+
+    max_aggregate_tags = 20
+    aggregate_tags = []
+    for i, tag in enumerate(top_tags):
+        if i >= len(top_tags) - max_aggregate_tags:
+            aggregate_tags.append(tag)
+
+    if orderby is None:
+        orderby = []
+
+    if aggregate_tags:
+        with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
+            conditions = snuba_filter.conditions
+            conditions.append(["tags_key", "IN", aggregate_tags])
+            tag_values = raw_query(
+                aggregations=[
+                    [aggregate_function, aggregate_column, "aggregate"],
+                    ["count", None, "count"],
+                ],
+                conditions=conditions,
+                start=snuba_filter.start,
+                end=snuba_filter.end,
+                filter_keys=snuba_filter.filter_keys,
+                orderby=orderby + ["tags_key"],
+                groupby=["tags_key", "tags_value"],
+                dataset=Dataset.Discover,
+                referrer=referrer,
+                sample=sample_rate,
+                turbo=sample_rate is not None,
+                limitby=[TOP_VALUES_DEFAULT_LIMIT, "tags_key"],
+            )
+            results.extend(
+                [
+                    PerformanceFacetResult(
+                        r["tags_key"], r["tags_value"], float(r["aggregate"]), int(r["count"])
+                    )
+                    for r in tag_values["data"]
+                ]
+            )
+
+    return results
+
+
 HistogramParams = namedtuple(
     "HistogramParams", ["num_buckets", "bucket_size", "start_offset", "multiplier"]
 )
@@ -988,7 +1103,7 @@ def normalize_histogram_results(fields, key_column, histogram_params, results):
     for row in results["data"]:
         # Fall back to the first field name if there is no `key_name`,
         # otherwise, this is a measurement name and format it as such.
-        key = fields[0] if key_name is None else "measurements.{}".format(row[key_name])
+        key = fields[0] if key_name is None else f"measurements.{row[key_name]}"
         # we expect the bin the be an integer, this is because all floating
         # point values are rounded during the calculation
         bucket = int(row[bin_name])

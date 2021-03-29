@@ -52,6 +52,7 @@ def test_get_json_meta_type():
     assert get_json_meta_type("apdex_transaction_duration_300", "Float32") == "number"
     assert get_json_meta_type("failure_rate", "Float32") == "percentage"
     assert get_json_meta_type("user_misery_300", "Float32") == "number"
+    assert get_json_meta_type("user_misery_prototype_300", "Float32") == "number"
     assert get_json_meta_type("percentile_transaction_duration_0_95", "Float32") == "duration"
     assert get_json_meta_type("count_thing", "UInt64") == "integer"
     assert get_json_meta_type("count_thing", "String") == "string"
@@ -362,7 +363,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_date_formats(self):
         invalid_queries = ["first_seen:hello", "first_seen:123", "first_seen:2018-01-01T00:01ZZ"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for date field"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid date"):
                 parse_search_query(invalid_query)
 
     def test_specific_time_filter(self):
@@ -419,6 +420,24 @@ class ParseSearchQueryTest(unittest.TestCase):
                 operator="=",
                 value=SearchValue(raw_value="2018-01-01T05:06:07"),
             )
+        ]
+
+    def test_timestamp_rollup(self):
+        assert parse_search_query("timestamp.to_hour:2018-01-01T05:06:07+00:00") == [
+            SearchFilter(
+                key=SearchKey(name="timestamp.to_hour"),
+                operator=">=",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
+                ),
+            ),
+            SearchFilter(
+                key=SearchKey(name="timestamp.to_hour"),
+                operator="<",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)
+                ),
+            ),
         ]
 
     def test_quoted_val(self):
@@ -574,7 +593,7 @@ class ParseSearchQueryTest(unittest.TestCase):
         for test in tests:
             with self.assertRaisesRegexp(
                 InvalidSearchQuery,
-                "Invalid quote at '{}': quotes must enclose text or be escaped.".format(test[0]),
+                f"Invalid quote at '{test[0]}': quotes must enclose text or be escaped.",
             ):
                 parse_search_query(test[1].format(test[0]))
 
@@ -689,7 +708,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_boolean_filter(self):
         invalid_queries = ["stack.in_app:lol", "stack.in_app:123", "stack.in_app:>true"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for boolean field"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid boolean"):
                 parse_search_query(invalid_query)
 
     def test_numeric_filter(self):
@@ -712,11 +731,40 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_numeric_filter_with_shorthand(self):
+        assert parse_search_query("stack.colno:>3k") == [
+            SearchFilter(
+                key=SearchKey(name="stack.colno"),
+                operator=">",
+                value=SearchValue(raw_value=3000.0),
+            )
+        ]
+        assert parse_search_query("stack.colno:>3m") == [
+            SearchFilter(
+                key=SearchKey(name="stack.colno"),
+                operator=">",
+                value=SearchValue(raw_value=3000000.0),
+            )
+        ]
+        assert parse_search_query("stack.colno:>3b") == [
+            SearchFilter(
+                key=SearchKey(name="stack.colno"),
+                operator=">",
+                value=SearchValue(raw_value=3000000000.0),
+            )
+        ]
+
     def test_invalid_numeric_fields(self):
         invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric field"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid number"):
                 parse_search_query(invalid_query)
+
+    def test_invalid_numeric_shorthand(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, expected_regex="is not a valid number suffix, must be k, m or b"
+        ):
+            parse_search_query("stack.colno:>3s")
 
     def test_negated_on_boolean_values_and_non_boolean_field(self):
         assert parse_search_query("!user.id:true") == [
@@ -754,12 +802,32 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_duration_filter_overrides_numeric_shorthand(self):
+        # 2m should mean 2 minutes for duration filters (as opposed to 2 million)
+        assert parse_search_query("transaction.duration:>2m") == [
+            SearchFilter(
+                key=SearchKey(name="transaction.duration"),
+                operator=">",
+                value=SearchValue(raw_value=120000.0),
+            )
+        ]
+
     def test_aggregate_duration_filter(self):
         assert parse_search_query("avg(transaction.duration):>500s") == [
             SearchFilter(
                 key=AggregateKey(name="avg(transaction.duration)"),
                 operator=">",
                 value=SearchValue(raw_value=500000.0),
+            )
+        ]
+
+    def test_aggregate_duration_filter_overrides_numeric_shorthand(self):
+        # 2m should mean 2 minutes for duration filters (as opposed to 2 million)
+        assert parse_search_query("avg(transaction.duration):>2m") == [
+            SearchFilter(
+                key=AggregateKey(name="avg(transaction.duration)"),
+                operator=">",
+                value=SearchValue(raw_value=120000.0),
             )
         ]
 
@@ -829,6 +897,28 @@ class ParseSearchQueryTest(unittest.TestCase):
                 value=SearchValue(raw_value=3.1415),
             )
         ]
+
+        assert parse_search_query("min(measurements.size):<3k") == [
+            SearchFilter(
+                key=SearchKey(name="min(measurements.size)"),
+                operator="<",
+                value=SearchValue(raw_value=3000.0),
+            )
+        ]
+
+        assert parse_search_query("min(measurements.size):2m") == [
+            SearchFilter(
+                key=SearchKey(name="min(measurements.size)"),
+                operator="=",
+                value=SearchValue(raw_value=2000000.0),
+            )
+        ]
+
+    def test_invalid_numeric_aggregate_filter(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, expected_regex="is not a valid number suffix, must be k, m or b"
+        ):
+            parse_search_query("min(measurements.size):3s")
 
     def test_duration_measurements_filter(self):
         assert parse_search_query("measurements.fp:1.5s") == [
@@ -1739,6 +1829,18 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_not_has(self):
         assert get_filter("!has:release").conditions == [[["isNull", ["release"]], "=", 1]]
 
+    def test_has_issue(self):
+        has_issue_filter = get_filter("has:issue")
+        assert has_issue_filter.group_ids == []
+        assert has_issue_filter.conditions == [["issue.id", "!=", 0]]
+
+    def test_not_has_issue(self):
+        has_issue_filter = get_filter("!has:issue")
+        assert has_issue_filter.group_ids == []
+        assert has_issue_filter.conditions == [
+            [[["isNull", ["issue.id"]], "=", 1], ["issue.id", "=", 0]]
+        ]
+
     def test_has_issue_id(self):
         has_issue_filter = get_filter("has:issue.id")
         assert has_issue_filter.group_ids == []
@@ -1747,7 +1849,9 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_not_has_issue_id(self):
         has_issue_filter = get_filter("!has:issue.id")
         assert has_issue_filter.group_ids == []
-        assert has_issue_filter.conditions == [[["isNull", ["issue.id"]], "=", 1]]
+        assert has_issue_filter.conditions == [
+            [[["isNull", ["issue.id"]], "=", 1], ["issue.id", "=", 0]]
+        ]
 
     def test_message_empty(self):
         assert get_filter("has:message").conditions == [[["equals", ["message", ""]], "!=", 1]]
@@ -1818,7 +1922,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_unknown_issue_filter(self):
         _filter = get_filter("issue:unknown", {"organization_id": self.organization.id})
-        assert _filter.conditions == [[["isNull", ["issue.id"]], "=", 1]]
+        assert _filter.conditions == [[[["isNull", ["issue.id"]], "=", 1], ["issue.id", "=", 0]]]
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
 
@@ -1925,14 +2029,25 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {"project_id": [p1.id, p2.id]}
         assert _filter.project_ids == [p1.id, p2.id]
 
-        with pytest.raises(InvalidSearchQuery) as err:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
             params = {"project_id": []}
             get_filter(f"project.name:{p1.slug}", params)
+
+        exc = exc_info.value
+        exc_str = f"{exc}"
         assert (
-            "Invalid query. Project %s does not exist or is not an actively selected project"
-            % p1.slug
-            in str(err)
+            f"Invalid query. Project {p1.slug} does not exist or is not an actively selected project"
+            in exc_str
         )
+
+    def test_not_has_project(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("!has:project")
+        assert "Invalid query for 'has' search: 'project' cannot be empty." in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("!has:project.name")
+        assert "Invalid query for 'has' search: 'project' cannot be empty." in str(err)
 
     def test_transaction_status(self):
         for (key, val) in SPAN_STATUS_CODE_TO_NAME.items():
@@ -1940,16 +2055,20 @@ class GetSnubaQueryArgsTest(TestCase):
             assert result.conditions == [["transaction.status", "=", key]]
 
     def test_transaction_status_no_wildcard(self):
-        with pytest.raises(InvalidSearchQuery) as err:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
             get_filter("transaction.status:o*")
-        assert "Invalid value" in str(err)
-        assert "cancelled," in str(err)
+        exc = exc_info.value
+        exc_str = f"{exc}"
+        assert "Invalid value" in exc_str
+        assert "cancelled," in exc_str
 
     def test_transaction_status_invalid(self):
-        with pytest.raises(InvalidSearchQuery) as err:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
             get_filter("transaction.status:lol")
-        assert "Invalid value" in str(err)
-        assert "cancelled," in str(err)
+        exc = exc_info.value
+        exc_str = f"{exc}"
+        assert "Invalid value" in exc_str
+        assert "cancelled," in exc_str
 
     def test_error_handled(self):
         result = get_filter("error.handled:true")
@@ -2096,6 +2215,20 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("trace:a0fa8803753e40fd8124b21eeb2986b5")
         assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
 
+    def test_group_id_query(self):
+        # If a user queries on group_id, make sure it gets turned into a tag not the actual group_id field
+        assert get_filter("group_id:not-a-group-id-but-a-string").conditions == [
+            [["ifNull", ["tags[group_id]", "''"]], "=", "not-a-group-id-but-a-string"]
+        ]
+
+        assert get_filter("group_id:wildcard-string*").conditions == [
+            [
+                ["match", [["ifNull", ["tags[group_id]", "''"]], "'(?i)^wildcard\\-string.*$'"]],
+                "=",
+                1,
+            ]
+        ]
+
 
 class ResolveFieldListTest(unittest.TestCase):
     def test_non_string_field_error(self):
@@ -2163,10 +2296,12 @@ class ResolveFieldListTest(unittest.TestCase):
     def test_field_alias_duration_expansion_with_brackets(self):
         fields = [
             "avg(transaction.duration)",
+            "stddev(transaction.duration)",
             "latest_event()",
             "last_seen()",
             "apdex(300)",
             "user_misery(300)",
+            "user_misery_prototype(300)",
             "percentile(transaction.duration, 0.75)",
             "percentile(transaction.duration, 0.95)",
             "percentile(transaction.duration, 0.99)",
@@ -2179,10 +2314,16 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["avg", "transaction.duration", "avg_transaction_duration"],
+            ["stddevSamp", "transaction.duration", "stddev_transaction_duration"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["max", "timestamp", "last_seen"],
             ["apdex(duration, 300)", None, "apdex_300"],
             ["uniqIf(user, greater(duration, 1200))", None, "user_misery_300"],
+            [
+                "ifNull(divide(plus(uniqIf(user, greater(duration, 1200)), 5.8875), plus(uniq(user), 117.75)), 0)",
+                None,
+                "user_misery_prototype_300",
+            ],
             ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
             ["quantile(0.95)", "transaction.duration", "percentile_transaction_duration_0_95"],
             ["quantile(0.99)", "transaction.duration", "percentile_transaction_duration_0_99"],
@@ -2205,6 +2346,8 @@ class ResolveFieldListTest(unittest.TestCase):
             "issue",
             "user.display",
             "message",
+            "timestamp.to_hour",
+            "timestamp.to_day",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["selected_columns"] == [
@@ -2212,6 +2355,8 @@ class ResolveFieldListTest(unittest.TestCase):
             "issue.id",
             ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
             "message",
+            ["toStartOfHour", ["timestamp"], "timestamp.to_hour"],
+            ["toStartOfDay", ["timestamp"], "timestamp.to_day"],
             "project.id",
             [
                 "transform",
@@ -2228,6 +2373,8 @@ class ResolveFieldListTest(unittest.TestCase):
             "issue.id",
             ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
             "message",
+            "timestamp.to_hour",
+            "timestamp.to_day",
             "project.id",
         ]
 
@@ -2301,24 +2448,24 @@ class ResolveFieldListTest(unittest.TestCase):
         assert "MAX(user) is not a valid function" in str(err)
 
     def test_aggregate_function_invalid_column(self):
-        with pytest.raises(InvalidSearchQuery) as err:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
             fields = ["min(message)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "InvalidSearchQuery: min(message): column argument invalid: message is not a numeric column"
-            in str(err)
-        )
+
+        exc = exc_info.value
+        exc_str = f"{exc}"
+        assert "min(message): column argument invalid: message is not a numeric column" == exc_str
 
     def test_aggregate_function_missing_parameter(self):
-        with pytest.raises(InvalidSearchQuery) as err:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
             fields = ["count_unique()"]
             resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "InvalidSearchQuery: count_unique(): column argument invalid: a column is required"
-            in str(err)
-        )
 
-        with pytest.raises(InvalidSearchQuery) as err:
+        exc = exc_info.value
+        exc_str = f"{exc}"
+        assert "count_unique(): column argument invalid: a column is required" == exc_str
+
+        with pytest.raises(InvalidSearchQuery):
             fields = ["count_unique(  )"]
             resolve_field_list(fields, eventstore.Filter())
 
@@ -2375,9 +2522,14 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["epm(30)"]
+            fields = ["epm(0)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "epm(30): interval argument invalid: 30 must be greater than or equal to 60" in str(
+        assert "epm(0): interval argument invalid: 0 must be greater than or equal to 1" in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["epm(-1)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "epm(-1): interval argument invalid: -1 must be greater than or equal to 1" in str(
             err
         )
 
@@ -2400,6 +2552,26 @@ class ResolveFieldListTest(unittest.TestCase):
             ["divide(count(), divide(3600, 60))", None, "epm"],
         ]
         assert result["groupby"] == []
+
+    def test_stddev_function(self):
+        fields = ["stddev(measurements.fcp)", "stddev(transaction.duration)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            ["stddevSamp", "measurements.fcp", "stddev_measurements_fcp"],
+            ["stddevSamp", "transaction.duration", "stddev_transaction_duration"],
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["stddev(user.id)"]
+            resolve_field_list(fields, eventstore.Filter())
+
+        assert "user.id is not a numeric column" in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["stddev()"]
+            resolve_field_list(fields, eventstore.Filter())
+
+        assert "stddev(): expected 1 argument(s)" in str(err)
 
     def test_tpm_function_alias(self):
         """ TPM should be functionally identical to EPM except in name """
@@ -2992,6 +3164,7 @@ class ResolveFieldListTest(unittest.TestCase):
             "p50(transaction.duration)",
             "avg(measurements.foo)",
             "percentile(measurements.fcp, 0.5)",
+            "stddev(measurements.foo)",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         functions = result["functions"]
@@ -3016,6 +3189,9 @@ class ResolveFieldListTest(unittest.TestCase):
             "column": "measurements.fcp",
             "percentile": 0.5,
         }
+
+        assert functions["stddev_measurements_foo"].instance.name == "stddev"
+        assert functions["stddev_measurements_foo"].arguments == {"column": "measurements.foo"}
 
     def test_to_other_function_basic(self):
         fields = [
@@ -3130,9 +3306,11 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = [
             ["last_seen()", "timestamp"],
             ["avg(measurements.lcp)", "measurements.lcp"],
+            ["stddev(measurements.lcp)", "measurements.lcp"],
             ["min(timestamp)", "timestamp"],
             ["max(timestamp)", "timestamp"],
             ["p95()", "transaction.duration"],
+            ["any(measurements.fcp)", "measurements.fcp"],
         ]
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as error:

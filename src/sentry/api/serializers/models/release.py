@@ -6,7 +6,7 @@ from django.db.models import Sum
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
-from sentry.snuba.sessions import get_release_health_data_overview, check_has_health_data
+from sentry.snuba.sessions import get_release_health_data_overview
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -230,13 +230,18 @@ class ReleaseSerializer(Serializer):
         if project is not None:
             project_ids = [project.id]
             specialized = True
+            organization_id = project.organization_id
         else:
             project_ids, specialized = self.__get_project_id_list(item_list)
+            organization_id = item_list[0].organization_id
 
         first_seen = {}
         last_seen = {}
         tag_values = tagstore.get_release_tags(
-            project_ids, environment_id=None, versions=[o.version for o in item_list]
+            organization_id,
+            project_ids,
+            environment_id=None,
+            versions=[o.version for o in item_list],
         )
         for tv in tag_values:
             first_val = first_seen.get(tv.value)
@@ -340,6 +345,7 @@ class ReleaseSerializer(Serializer):
         for project_id, platform in platforms:
             platforms_by_project[project_id].append(platform)
 
+        # XXX: Legacy should be removed later
         if with_health_data:
             health_data = get_release_health_data_overview(
                 [(pr["project__id"], pr["release__version"]) for pr in project_releases],
@@ -351,12 +357,7 @@ class ReleaseSerializer(Serializer):
             has_health_data = None
         else:
             health_data = None
-            if no_snuba:
-                has_health_data = {}
-            else:
-                has_health_data = check_has_health_data(
-                    [(pr["project__id"], pr["release__version"]) for pr in project_releases]
-                )
+            has_health_data = {}
 
         for pr in project_releases:
             pr_rv = {
@@ -367,6 +368,7 @@ class ReleaseSerializer(Serializer):
                 "platform": pr["project__platform"],
                 "platforms": platforms_by_project.get(pr["project__id"]) or [],
             }
+            # XXX: Legacy should be removed later
             if health_data is not None:
                 pr_rv["health_data"] = health_data.get((pr["project__id"], pr["release__version"]))
                 pr_rv["has_health_data"] = (pr_rv["health_data"] or {}).get(
@@ -420,9 +422,12 @@ class ReleaseSerializer(Serializer):
                 "sessionsErrored": data["sessions_errored"],
                 "totalUsers": data["total_users"],
                 "totalUsers24h": data["total_users_24h"],
+                "totalProjectUsers24h": data["total_project_users_24h"],
                 "totalSessions": data["total_sessions"],
                 "totalSessions24h": data["total_sessions_24h"],
+                "totalProjectSessions24h": data["total_project_sessions_24h"],
                 "adoption": data["adoption"],
+                "sessionsAdoption": data["sessions_adoption"],
                 "stats": data.get("stats"),
                 # XXX: legacy key, should be removed later.
                 "hasHealthData": data["has_health_data"],
@@ -436,6 +441,7 @@ class ReleaseSerializer(Serializer):
                 "newGroups": project["new_groups"],
                 "platform": project["platform"],
                 "platforms": project["platforms"],
+                # XXX: Legacy should be removed
                 "hasHealthData": project["has_health_data"],
             }
             if "health_data" in project:

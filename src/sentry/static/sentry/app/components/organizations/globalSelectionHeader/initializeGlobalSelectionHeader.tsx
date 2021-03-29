@@ -19,7 +19,6 @@ const getDateObjectFromQuery = query =>
   );
 
 type Props = {
-  isDisabled: boolean;
   shouldEnforceSingleProject: boolean;
   /**
    * Skip loading from local storage

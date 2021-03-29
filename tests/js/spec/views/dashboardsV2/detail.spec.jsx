@@ -124,12 +124,16 @@ describe('Dashboards > Detail', function () {
     });
 
     it('disables buttons based on features', async function () {
+      initialData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: ['global-views', 'dashboards-basic', 'discover-query'],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
       wrapper = mountWithTheme(
         <DashboardDetail
-          organization={{
-            ...initialData.organization,
-            features: ['dashboards-basic', 'discover-basic'],
-          }}
+          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -167,6 +171,7 @@ describe('Dashboards > Detail', function () {
           {
             title: 'Errors',
             interval: '1d',
+            id: '1',
           }
         ),
         TestStubs.Widget(
@@ -174,6 +179,21 @@ describe('Dashboards > Detail', function () {
           {
             title: 'Transactions',
             interval: '1d',
+            id: '2',
+          }
+        ),
+        TestStubs.Widget(
+          [
+            {
+              name: '',
+              conditions: 'event.type:transaction transaction:/api/cats',
+              fields: ['p50()'],
+            },
+          ],
+          {
+            title: 'p50 of /api/cats',
+            interval: '1d',
+            id: '3',
           }
         ),
       ];
@@ -231,10 +251,16 @@ describe('Dashboards > Detail', function () {
       const card = wrapper.find('WidgetCard').first();
       card.find('StyledPanel').simulate('mouseOver');
 
-      // Remove the first widget
+      // Remove the second and third widgets
       wrapper
         .find('WidgetCard')
-        .first()
+        .at(1)
+        .find('IconClick[data-test-id="widget-delete"]')
+        .simulate('click');
+
+      wrapper
+        .find('WidgetCard')
+        .at(1)
         .find('IconClick[data-test-id="widget-delete"]')
         .simulate('click');
 
@@ -247,7 +273,7 @@ describe('Dashboards > Detail', function () {
         expect.objectContaining({
           data: expect.objectContaining({
             title: 'Custom Errors',
-            widgets: [widgets[1]],
+            widgets: [widgets[0]],
           }),
         })
       );

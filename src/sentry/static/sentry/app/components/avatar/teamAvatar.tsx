@@ -10,13 +10,13 @@ type Props = {
 
 class TeamAvatar extends React.Component<Props> {
   render() {
-    const {team, ...props} = this.props;
+    const {team, tooltip: tooltipProp, ...props} = this.props;
     if (!team) {
       return null;
     }
     const slug = (team && team.slug) || '';
     const title = explodeSlug(slug);
-    const tooltip = `#${title}`;
+    const tooltip = tooltipProp ?? `#${title}`;
 
     return (
       <BaseAvatar

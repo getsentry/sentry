@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import space from 'app/styles/space';
+import {Theme} from 'app/utils/theme';
 
-// exporting it down with alertStyles caused error  'Props' is not defined  no-undef
-export type Props = {
-  type?: 'muted' | 'info' | 'warning' | 'success' | 'error' | 'beta';
+type Props = {
+  type?: keyof Theme['alert'];
   icon?: React.ReactNode;
   system?: boolean;
 };
@@ -48,7 +48,7 @@ const getSystemAlertColorStyles = ({
   }
 `;
 
-const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: any}) => css`
+const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: Theme}) => css`
   display: flex;
   margin: 0 0 ${space(3)};
   padding: ${space(1.5)} ${space(2)};

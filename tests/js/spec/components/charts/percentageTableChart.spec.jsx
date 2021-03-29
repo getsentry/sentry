@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import PercentageTableChart from 'app/components/charts/percentageTableChart';
 
@@ -9,7 +9,7 @@ describe('PercentageTableChart', function () {
 
   describe('With Previous Data', function () {
     beforeEach(function () {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <PercentageTableChart
           title="User"
           data={[
@@ -63,7 +63,7 @@ describe('PercentageTableChart', function () {
 
   describe('Without Previous Data', function () {
     beforeEach(function () {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <PercentageTableChart
           title="User"
           data={[

@@ -1,6 +1,6 @@
 import u2f from 'u2f-api';
 
-import {Props as AlertProps} from 'app/components/alert';
+import Alert from 'app/components/alert';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
@@ -90,11 +90,6 @@ export type Actor = {
   id: string;
   name: string;
   email?: string;
-};
-
-export type SuggestedAssignee = Actor & {
-  suggestedReason: SuggestedOwnerReason;
-  assignee: Team | User;
 };
 
 /**
@@ -203,6 +198,7 @@ export type SharedViewOrganization = {
 export type AvatarProject = {
   slug: string;
   platform?: PlatformKey;
+  id?: string | number;
 };
 
 /**
@@ -231,6 +227,7 @@ export type Project = {
 
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {
+    next_id: number;
     rules: DynamicSamplingRules;
   } | null;
   plugins: Plugin[];
@@ -280,14 +277,17 @@ export type ProjectKey = {
 export type Health = {
   totalUsers: number;
   totalUsers24h: number | null;
+  totalProjectUsers24h: number | null;
   totalSessions: number;
   totalSessions24h: number | null;
+  totalProjectSessions24h: number | null;
   crashFreeUsers: number | null;
   crashFreeSessions: number | null;
   stats: HealthGraphData;
   sessionsCrashed: number;
   sessionsErrored: number;
   adoption: number | null;
+  sessionsAdoption: number | null;
   hasHealthData: boolean;
   durationP50: number | null;
   durationP90: number | null;
@@ -480,6 +480,7 @@ export type SavedSearch = {
   type: SavedSearchType;
   name: string;
   query: string;
+  sort: string;
   isGlobal: boolean;
   isPinned: boolean;
   isOrgCustom: boolean;
@@ -569,8 +570,6 @@ export type AuthenticatorDevice = {
   timestamp?: string;
 };
 
-type QRCode = (0 | 1)[][];
-
 export type Authenticator = {
   /**
    * String used to display on button for user as CTA to enroll
@@ -622,7 +621,7 @@ export type Authenticator = {
       }
     | {
         id: 'totp';
-        qrcode: QRCode;
+        qrcode: string;
       }
     | {
         id: 'u2f';
@@ -684,6 +683,13 @@ export interface Config {
   distPrefix: string;
   apmSampling: number;
   dsn_requests: string;
+  demoMode: boolean;
+}
+
+export enum DataCategory {
+  ERRORS = 'errors',
+  TRANSACTIONS = 'transactions',
+  ATTACHMENTS = 'attachments',
 }
 
 export type EventOrGroupType =
@@ -954,7 +960,7 @@ export type BaseGroup = {
   latestEvent: Event;
   activity: GroupActivity[];
   annotations: string[];
-  assignedTo: User;
+  assignedTo: Actor;
   culprit: string;
   firstRelease: Release;
   firstSeen: string;
@@ -1085,17 +1091,25 @@ export enum RepositoryStatus {
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
 
-export type RepositoryProjectPathConfig = {
+type BaseRepositoryProjectPathConfig = {
   id: string;
   projectId: string;
   projectSlug: string;
   repoId: string;
   repoName: string;
-  integrationId: string;
-  provider: BaseIntegrationProvider;
   stackRoot: string;
   sourceRoot: string;
   defaultBranch?: string;
+};
+
+export type RepositoryProjectPathConfig = BaseRepositoryProjectPathConfig & {
+  integrationId: string | null;
+  provider: BaseIntegrationProvider | null;
+};
+
+export type RepositoryProjectPathConfigWithIntegration = BaseRepositoryProjectPathConfig & {
+  integrationId: string;
+  provider: BaseIntegrationProvider;
 };
 
 export type PullRequest = {
@@ -1111,7 +1125,7 @@ type IntegrationDialog = {
 };
 
 type IntegrationAspects = {
-  alerts?: Array<AlertProps & {text: string}>;
+  alerts?: Array<React.ComponentProps<typeof Alert> & {text: string}>;
   disable_dialog?: IntegrationDialog;
   removal_dialog?: IntegrationDialog;
   externalInstall?: {
@@ -1144,7 +1158,6 @@ export type IntegrationProvider = BaseIntegrationProvider & {
     source_url: string;
     aspects: IntegrationAspects;
   };
-  hasStacktraceLinking?: boolean; // TODO: Remove when we GA the feature
 };
 
 export type IntegrationFeature = {
@@ -1217,16 +1230,6 @@ export type Integration = {
   accountType: string;
   status: ObjectStatus;
   provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
-  //TODO(Steve): move configData to IntegrationWithConfig when we no longer check
-  //for workspace apps
-  configData: object & {
-    //installationType is only for Slack migration and can be removed after migrations are done
-    installationType?:
-      | 'workspace_app'
-      | 'classic_bot'
-      | 'born_as_bot'
-      | 'migrated_to_bot';
-  };
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
@@ -1240,6 +1243,7 @@ export type Integration = {
 // we include the configOrganization when we need it
 export type IntegrationWithConfig = Integration & {
   configOrganization: Field[];
+  configData: object | null;
 };
 
 export type IntegrationExternalIssue = {
@@ -1257,7 +1261,7 @@ export type GroupIntegration = Integration & {
 
 export type PlatformExternalIssue = {
   id: string;
-  groupId: string;
+  issueId: string;
   serviceType: string;
   displayName: string;
   webUrl: string;
@@ -1476,7 +1480,14 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear' | 'zepel';
+    slug:
+      | 'clickup'
+      | 'clubhouse'
+      | 'linear'
+      | 'rookout'
+      | 'spikesh'
+      | 'teamwork'
+      | 'zepel';
     name: string;
   };
 };
@@ -1494,6 +1505,7 @@ export type NewQuery = {
   fields: Readonly<string[]>;
   widths?: Readonly<string[]>;
   orderby?: string;
+  expired?: boolean;
 
   // GlobalSelectionHeader
   projects: Readonly<number[]>;
@@ -1583,7 +1595,6 @@ export type OnboardingTaskDescriptor = {
   task: OnboardingTaskKey;
   title: string;
   description: string;
-  detailedDescription?: string;
   /**
    * Can this task be skipped?
    */
@@ -1977,8 +1988,13 @@ export type SessionApiResponse = {
   query: string;
   intervals: string[];
   groups: {
-    by: Record<string, string>;
+    by: Record<string, string | number>;
     totals: Record<string, number>;
     series: Record<string, number[]>;
   }[];
 };
+
+export enum HealthStatsPeriodOption {
+  AUTO = 'auto',
+  TWENTY_FOUR_HOURS = '24h',
+}

@@ -42,6 +42,22 @@ class ProjectOwnership(Model):
         return f"projectownership_project_id:1:{project_id}"
 
     @classmethod
+    def get_combined_schema(self, ownership, codeowners):
+        if codeowners and codeowners.schema:
+            ownership.schema = (
+                codeowners.schema
+                if not ownership.schema
+                else {
+                    **ownership.schema,
+                    "rules": [
+                        *codeowners.schema["rules"],
+                        *ownership.schema["rules"],
+                    ],
+                }
+            )
+        return ownership.schema
+
+    @classmethod
     def get_ownership_cached(cls, project_id):
         """
         Cached read access to projectownership.
@@ -67,6 +83,7 @@ class ProjectOwnership(Model):
     def get_owners(cls, project_id, data):
         """
         For a given project_id, and event data blob.
+        We combine the schemas from IssueOwners and CodeOwners.
 
         If Everyone is returned, this means we implicitly are
         falling through our rules and everyone is responsible.
@@ -74,11 +91,17 @@ class ProjectOwnership(Model):
         If an empty list is returned, this means there are explicitly
         no owners.
         """
+        from sentry.models import ProjectCodeOwners
+
         ownership = cls.get_ownership_cached(project_id)
         if not ownership:
             ownership = cls(project_id=project_id)
 
+        codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
+        ownership.schema = cls.get_combined_schema(ownership, codeowners)
+
         rules = cls._matching_ownership_rules(ownership, project_id, data)
+
         if not rules:
             return cls.Everyone if ownership.fallthrough else [], None
 
@@ -98,39 +121,46 @@ class ProjectOwnership(Model):
         """
         Get the auto-assign owner for a project if there are any.
 
+        We combine the schemas from IssueOwners and CodeOwners.
+
         Returns a tuple of (auto_assignment_enabled, list_of_owners).
         """
+        from sentry.models import ProjectCodeOwners
+
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
-            if not ownership:
+            codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
+
+            if not (ownership or codeowners):
                 return False, []
+
+            if not ownership:
+                ownership = cls(project_id=project_id)
+
+            ownership.schema = cls.get_combined_schema(ownership, codeowners)
 
             rules = cls._matching_ownership_rules(ownership, project_id, data)
             if not rules:
                 return ownership.auto_assignment, []
 
-            owners = []
-            # Automatic assignment prefers the owner with the longest
-            # matching pattern as the match is more specific.
-            for rule in rules:
-                candidate = len(rule.matcher.pattern)
-                for i, owner in enumerate(rule.owners):
-                    owners.append((candidate, -i, owner))
-
-            owners.sort(reverse=True)
+            # We want the last matching rule to take the most precedence.
+            owners = [owner for rule in rules for owner in rule.owners]
+            owners.reverse()
             actors = {
                 key: val
-                for key, val in resolve_actors({owner[2] for owner in owners}, project_id).items()
+                for key, val in resolve_actors({owner for owner in owners}, project_id).items()
                 if val
             }
-            actors = [actors[owner[2]] for owner in owners if owner[2] in actors][:limit]
+            actors = [actors[owner] for owner in owners if owner in actors][:limit]
 
             # Can happen if the ownership rule references a user/team that no longer
             # is assigned to the project or has been removed from the org.
             if not actors:
                 return ownership.auto_assignment, []
 
-            return ownership.auto_assignment, actors[0].resolve_many(actors)
+            from sentry.models import ActorTuple
+
+            return ownership.auto_assignment, ActorTuple.resolve_many(actors)
 
     @classmethod
     def _matching_ownership_rules(cls, ownership, project_id, data):
@@ -147,7 +177,7 @@ def resolve_actors(owners, project_id):
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
-    from sentry.api.fields.actor import Actor
+    from sentry.models import ActorTuple
     from sentry.models import User, Team
 
     if not owners:
@@ -170,7 +200,7 @@ def resolve_actors(owners, project_id):
     if users:
         actors.update(
             {
-                ("user", email.lower()): Actor(u_id, User)
+                ("user", email.lower()): ActorTuple(u_id, User)
                 for u_id, email in User.objects.filter(
                     reduce(operator.or_, [Q(emails__email__iexact=o.identifier) for o in users]),
                     # We don't require verified emails
@@ -186,7 +216,7 @@ def resolve_actors(owners, project_id):
     if teams:
         actors.update(
             {
-                ("team", slug): Actor(t_id, Team)
+                ("team", slug): ActorTuple(t_id, Team)
                 for t_id, slug in Team.objects.filter(
                     slug__in=[o.identifier for o in teams], projectteam__project_id=project_id
                 ).values_list("id", "slug")

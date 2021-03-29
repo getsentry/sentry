@@ -2,6 +2,7 @@ import React from 'react';
 
 import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadcasts';
 import {Client} from 'app/api';
+import DemoModeGate from 'app/components/acl/demoModeGate';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import BroadcastSdkUpdates from 'app/components/sidebar/broadcastSdkUpdates';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
@@ -121,49 +122,51 @@ class Broadcasts extends React.Component<Props, State> {
     const unseenPosts = this.unseenIds;
 
     return (
-      <React.Fragment>
-        <SidebarItem
-          data-test-id="sidebar-broadcasts"
-          orientation={orientation}
-          collapsed={collapsed}
-          active={currentPanel === SidebarPanelKey.Broadcasts}
-          badge={unseenPosts.length}
-          icon={<IconBroadcast size="md" />}
-          label={t("What's new")}
-          onClick={this.handleShowPanel}
-          id="broadcasts"
-        />
-
-        {currentPanel === SidebarPanelKey.Broadcasts && (
-          <SidebarPanel
-            data-test-id="sidebar-broadcasts-panel"
+      <DemoModeGate>
+        <React.Fragment>
+          <SidebarItem
+            data-test-id="sidebar-broadcasts"
             orientation={orientation}
             collapsed={collapsed}
-            title={t("What's new in Sentry")}
-            hidePanel={hidePanel}
-          >
-            <BroadcastSdkUpdates />
-            {loading ? (
-              <LoadingIndicator />
-            ) : broadcasts.length === 0 ? (
-              <SidebarPanelEmpty>
-                {t('No recent updates from the Sentry team.')}
-              </SidebarPanelEmpty>
-            ) : (
-              broadcasts.map(item => (
-                <SidebarPanelItem
-                  key={item.id}
-                  hasSeen={item.hasSeen}
-                  title={item.title}
-                  message={item.message}
-                  link={item.link}
-                  cta={item.cta}
-                />
-              ))
-            )}
-          </SidebarPanel>
-        )}
-      </React.Fragment>
+            active={currentPanel === SidebarPanelKey.Broadcasts}
+            badge={unseenPosts.length}
+            icon={<IconBroadcast size="md" />}
+            label={t("What's new")}
+            onClick={this.handleShowPanel}
+            id="broadcasts"
+          />
+
+          {currentPanel === SidebarPanelKey.Broadcasts && (
+            <SidebarPanel
+              data-test-id="sidebar-broadcasts-panel"
+              orientation={orientation}
+              collapsed={collapsed}
+              title={t("What's new in Sentry")}
+              hidePanel={hidePanel}
+            >
+              <BroadcastSdkUpdates />
+              {loading ? (
+                <LoadingIndicator />
+              ) : broadcasts.length === 0 ? (
+                <SidebarPanelEmpty>
+                  {t('No recent updates from the Sentry team.')}
+                </SidebarPanelEmpty>
+              ) : (
+                broadcasts.map(item => (
+                  <SidebarPanelItem
+                    key={item.id}
+                    hasSeen={item.hasSeen}
+                    title={item.title}
+                    message={item.message}
+                    link={item.link}
+                    cta={item.cta}
+                  />
+                ))
+              )}
+            </SidebarPanel>
+          )}
+        </React.Fragment>
+      </DemoModeGate>
     );
   }
 }

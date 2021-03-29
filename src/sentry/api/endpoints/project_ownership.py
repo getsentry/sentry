@@ -95,13 +95,19 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         return changed
 
 
-class ProjectOwnershipEndpoint(ProjectEndpoint):
+class ProjectOwnershipMixin:
     def get_ownership(self, project):
         try:
             return ProjectOwnership.objects.get(project=project)
         except ProjectOwnership.DoesNotExist:
-            return ProjectOwnership(project=project, date_created=None, last_updated=None)
+            return ProjectOwnership(
+                project=project,
+                date_created=None,
+                last_updated=None,
+            )
 
+
+class ProjectOwnershipEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
     def get(self, request, project):
         """
         Retrieve a Project's Ownership configuration

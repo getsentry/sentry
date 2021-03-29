@@ -44,7 +44,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={title} objSlug={organization.slug} />
+        <SentryDocumentTitle title={title} orgSlug={organization.slug} />
         <SettingsPageHeader title={title} />
         <Form
           data-test-id="organization-settings-security-and-privacy"

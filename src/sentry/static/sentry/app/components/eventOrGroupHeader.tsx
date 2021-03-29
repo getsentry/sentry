@@ -11,10 +11,8 @@ import {IconMute, IconStar} from 'app/icons';
 import {tct} from 'app/locale';
 import {Group, GroupTombstone, Level, Organization} from 'app/types';
 import {Event} from 'app/types/event';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getLocation, getMessage} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
-import {isForReviewQuery} from 'app/views/issueList/utils';
 import UnhandledTag, {
   TagAndMessageWrapper,
 } from 'app/views/organizationGroupDetails/unhandledTag';
@@ -31,6 +29,9 @@ type Props = WithRouterProps<{orgId: string}> & {
   hideLevel?: boolean;
   query?: string;
   className?: string;
+  /** Group link clicked */
+  onClick?: () => void;
+  index?: number;
 } & Partial<DefaultProps>;
 
 /**
@@ -42,19 +43,8 @@ class EventOrGroupHeader extends React.Component<Props> {
     size: 'normal',
   };
 
-  trackClickEvent = () => {
-    if (isForReviewQuery(this.props.query)) {
-      trackAnalyticsEvent({
-        eventKey: 'inbox_tab.issue_clicked',
-        eventName: 'Clicked Issue from Inbox Tab',
-        organization_id: this.props.organization.id,
-        group_id: this.props.data.id,
-      });
-    }
-  };
-
   getTitleChildren() {
-    const {hideIcons, hideLevel, data} = this.props;
+    const {hideIcons, hideLevel, data, index} = this.props;
     const {level, status, isBookmarked, hasSeen} = data as Group;
 
     return (
@@ -80,13 +70,15 @@ class EventOrGroupHeader extends React.Component<Props> {
           {...this.props}
           style={{fontWeight: hasSeen ? 400 : 600}}
           withStackTracePreview
+          hasGuideAnchor={index === 0}
+          guideAnchorName="issue_stream_title"
         />
       </React.Fragment>
     );
   }
 
   getTitle() {
-    const {includeLink, data, params, location} = this.props;
+    const {includeLink, data, params, location, onClick} = this.props;
 
     const orgId = params?.orgId;
 
@@ -112,7 +104,7 @@ class EventOrGroupHeader extends React.Component<Props> {
               ...(location.query.project !== undefined ? {} : {_allp: 1}), //This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
             },
           }}
-          onClick={this.trackClickEvent}
+          onClick={onClick}
         >
           {this.getTitleChildren()}
         </GlobalSelectionLink>

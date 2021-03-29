@@ -138,7 +138,7 @@ export class QueryResults {
   }
 
   getTagValues(tag: string) {
-    return this.tagValues[tag];
+    return this.tagValues[tag] ?? [];
   }
 
   getTagKeys() {

@@ -9,7 +9,7 @@ class Cursor:
         self.has_results = has_results
 
     def __str__(self):
-        return "{}:{}:{}".format(self.value, self.offset, int(self.is_prev))
+        return f"{self.value}:{self.offset}:{int(self.is_prev)}"
 
     def __eq__(self, other):
         return all(
@@ -37,7 +37,8 @@ class Cursor:
         if len(bits) != 3:
             raise ValueError
         try:
-            bits = int(bits[0]), int(bits[1]), int(bits[2])
+            value = float(bits[0]) if "." in bits[0] else int(bits[0])
+            bits = value, int(bits[1]), int(bits[2])
         except (TypeError, ValueError):
             raise ValueError
         return cls(*bits)
@@ -61,7 +62,7 @@ class CursorResult(Sequence):
         return self.results[key]
 
     def __repr__(self):
-        return "<{}: results={}>".format(type(self).__name__, len(self.results))
+        return f"<{type(self).__name__}: results={len(self.results)}>"
 
 
 def _build_next_values(cursor, results, key, limit, is_desc):

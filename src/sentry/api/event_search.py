@@ -20,6 +20,7 @@ from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
     parse_datetime_value,
+    parse_numeric_value,
     parse_release,
     InvalidQuery,
 )
@@ -144,7 +145,7 @@ numeric_filter       = search_key sep operator? numeric_value
 # Boolean comparison filter
 boolean_filter       = negation? search_key sep boolean_value
 # Aggregate numeric filter
-aggregate_filter          = negation? aggregate_key sep operator? (numeric_value / duration_format / percentage_format)
+aggregate_filter          = negation? aggregate_key sep operator? (duration_format / numeric_value / percentage_format)
 aggregate_date_filter     = negation? aggregate_key sep operator? (date_format / alt_date_format)
 aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
 
@@ -157,7 +158,7 @@ aggregate_key        = key open_paren function_arg* closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
-numeric_value        = ~r"[-]?[0-9\.]+(?=\s|\)|$)"
+numeric_value        = ~r"([-]?[0-9\.]+)([k|m|b])?(?=\s|\)|$)"
 boolean_value        = ~r"(true|1|false|0)(?=\s|\)|$)"i
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
@@ -265,7 +266,9 @@ class SearchKey(namedtuple("SearchKey", "name")):
     @cached_property
     def is_tag(self):
         return TAG_KEY_RE.match(self.name) or (
-            self.name not in SEARCH_MAP and not self.is_measurement
+            self.name not in SEARCH_MAP
+            and self.name not in FIELD_ALIASES
+            and not self.is_measurement
         )
 
     @cached_property
@@ -315,6 +318,7 @@ class SearchVisitor(NodeVisitor):
         "p99",
         "failure_rate",
         "user_misery",
+        "user_misery_prototype",
     }
     date_keys = {
         "start",
@@ -323,6 +327,8 @@ class SearchVisitor(NodeVisitor):
         "last_seen",
         "time",
         "timestamp",
+        "timestamp.to_hour",
+        "timestamp.to_day",
         "transaction.start_time",
         "transaction.end_time",
     }
@@ -443,9 +449,9 @@ class SearchVisitor(NodeVisitor):
 
         if self.is_numeric_key(search_key.name):
             try:
-                search_value = SearchValue(float(search_value.text))
-            except ValueError:
-                raise InvalidSearchQuery(f"Invalid numeric query: {search_key}")
+                search_value = SearchValue(parse_numeric_value(*search_value.match.groups()))
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, search_value)
         else:
             search_value = SearchValue(
@@ -483,7 +489,7 @@ class SearchVisitor(NodeVisitor):
                         aggregate_value = parse_duration(*search_value.match.groups())
 
             if aggregate_value is None:
-                aggregate_value = float(search_value.text)
+                aggregate_value = parse_numeric_value(*search_value.match.groups())
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:
@@ -541,7 +547,7 @@ class SearchVisitor(NodeVisitor):
             return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
 
     def visit_duration_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
+        (search_key, sep, operator, search_value) = children
 
         operator = operator[0] if not isinstance(operator, Node) else "="
         if self.is_duration_key(search_key.name):
@@ -550,6 +556,8 @@ class SearchVisitor(NodeVisitor):
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
+        elif self.is_numeric_key(search_key.name):
+            return self.visit_numeric_filter(node, (search_key, sep, operator, search_value))
         else:
             search_value = operator + search_value.text if operator != "=" else search_value.text
             return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
@@ -632,11 +640,17 @@ class SearchVisitor(NodeVisitor):
         # If a date or numeric key gets down to the basic filter, then it means
         # that the value wasn't in a valid format, so raise here.
         if search_key.name in self.date_keys:
-            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for date field")
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid date: {search_value.raw_value}. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {datetime.now().isoformat()[:-4]})."
+            )
         if search_key.name in self.boolean_keys:
-            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for boolean field")
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid boolean: {search_value.raw_value}. Expected true, 1, false, or 0."
+            )
         if self.is_numeric_key(search_key.name):
-            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for numeric field")
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid number: {search_value.raw_value}. Expected number then optional k, m, or b suffix (e.g. 500k)."
+            )
 
         return SearchFilter(search_key, operator, search_value)
 
@@ -781,6 +795,11 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     name = search_filter.key.name if key is None else key
     value = search_filter.value.value
 
+    # We want to use group_id elsewhere so shouldn't be removed from the dataset
+    # but if a user has a tag with the same name we want to make sure that works
+    if name in {"group_id"}:
+        name = f"tags[{name}]"
+
     if name in no_conversion:
         return
     elif name == "id" and search_filter.value.is_wildcard():
@@ -844,10 +863,18 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
         # Handle "has" queries
         if search_filter.value.raw_value == "":
             if search_filter.operator == "=":
-                # Use isNull to get events with no issue (transactions)
-                return [["isNull", [name]], search_filter.operator, 1]
+                # The state of having no issues is represented differently on transactions vs
+                # other events. On the transactions table, it is represented by 0 whereas it is
+                # represented by NULL everywhere else. This means we have to check for both 0
+                # or NULL.
+                return [
+                    [["isNull", [name]], search_filter.operator, 1],
+                    [name, search_filter.operator, 0],
+                ]
             else:
-                # Compare to 0 as group_id is not nullable on issues.
+                # Based the reasoning above, we should be checking that it is not 0 and not NULL.
+                # However, because NULL != 0 evaluates to NULL in Clickhouse, we can simplify it
+                # to check just not 0.
                 return [name, search_filter.operator, 0]
 
         # Skip isNull check on group_id value as we want to
@@ -910,11 +937,20 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
     elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
         return [["notEmpty", [name]], "=", 1 if search_filter.operator == "!=" else 0]
     else:
-        value = (
-            int(to_timestamp(value)) * 1000
-            if isinstance(value, datetime) and name != "timestamp"
-            else value
-        )
+        # timestamp{,.to_{hour,day}} need a datetime string
+        # last_seen needs an integer
+        if isinstance(value, datetime) and name not in {
+            "timestamp",
+            "timestamp.to_hour",
+            "timestamp.to_day",
+        }:
+            value = int(to_timestamp(value)) * 1000
+
+        # most field aliases are handled above but timestamp.to_{hour,day} are
+        # handled here
+        if name in FIELD_ALIASES:
+            name = FIELD_ALIASES[name].get_expression(params)
+
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
@@ -930,7 +966,8 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
                 return [["isNull", [name]], search_filter.operator, 1]
 
         is_null_condition = None
-        if search_filter.operator == "!=" and not search_filter.key.is_tag:
+        # TODO(wmak): Skip this for all non-nullable keys not just event.type
+        if search_filter.operator == "!=" and not search_filter.key.is_tag and name != "event.type":
             # Handle null columns on inequality comparisons. Any comparison
             # between a value and a null will result to null, so we need to
             # explicitly check for whether the condition is null, and OR it
@@ -967,6 +1004,8 @@ def format_search_filter(term, params):
     name = term.key.name
     value = term.value.value
     if name in (PROJECT_ALIAS, PROJECT_NAME_ALIAS):
+        if term.operator == "=" and value == "":
+            raise InvalidSearchQuery("Invalid query for 'has' search: 'project' cannot be empty.")
         project = None
         try:
             project = Project.objects.get(id__in=params.get("project_id", []), slug=value)
@@ -1032,7 +1071,7 @@ def convert_condition_to_function(cond):
     function = OPERATOR_TO_FUNCTION.get(cond[1])
     if not function:
         # It's hard to make this error more specific without exposing internals to the end user
-        raise InvalidSearchQuery("Operator {} is not a valid condition operator.".format(cond[1]))
+        raise InvalidSearchQuery(f"Operator {cond[1]} is not a valid condition operator.")
 
     return [function, [cond[0], cond[2]]]
 
@@ -1372,14 +1411,20 @@ def key_transaction_expression(user_id, organization_id, project_ids):
     ]
 
 
-# When adding aliases to this list please also update
-# static/app/utils/discover/fields.tsx so that
-# the UI builder stays in sync.
+# When updating this list, also check if the following need to be updated:
+# - convert_search_filter_to_snuba_query (otherwise aliased field will be treated as tag)
+# - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
 FIELD_ALIASES = {
     field.name: field
     for field in [
         PseudoField("project", "project.id"),
         PseudoField("issue", "issue.id"),
+        PseudoField(
+            "timestamp.to_hour", "timestamp.to_hour", expression=["toStartOfHour", ["timestamp"]]
+        ),
+        PseudoField(
+            "timestamp.to_day", "timestamp.to_day", expression=["toStartOfDay", ["timestamp"]]
+        ),
         PseudoField(ERROR_UNHANDLED_ALIAS, ERROR_UNHANDLED_ALIAS, expression=["notHandled", []]),
         PseudoField(
             USER_DISPLAY_ALIAS,
@@ -1518,6 +1563,19 @@ class CountColumn(FunctionArg):
         elif field.alias is not None:
             return field.alias
         return value
+
+
+class FieldColumn(CountColumn):
+    """ Allow any field column, of any type """
+
+    def get_type(self, value):
+        if is_duration_measurement(value):
+            return "duration"
+        elif value == "transaction.duration":
+            return "duration"
+        elif value == "timestamp":
+            return "date"
+        return "string"
 
 
 class StringArg(FunctionArg):
@@ -1896,7 +1954,7 @@ class Function:
     def validate_result_type(self, result_type):
         assert (
             result_type is None or result_type in RESULT_TYPES
-        ), "{}: result type {} not one of {}".format(self.name, result_type, list(RESULT_TYPES))
+        ), f"{self.name}: result type {result_type} not one of {list(RESULT_TYPES)}"
 
     def is_accessible(self, acl=None):
         if not self.private:
@@ -1915,9 +1973,9 @@ def reflective_result_type(index=0):
     return result_type_fn
 
 
-# When adding functions to this list please also update
-# static/sentry/app/utils/discover/fields.tsx so that
-# the UI builder stays in sync.
+# When updating this list, also check if the following need to be updated:
+# - convert_search_filter_to_snuba_query
+# - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
 FUNCTIONS = {
     function.name: function
     for function in [
@@ -1977,7 +2035,7 @@ FUNCTIONS = {
         ),
         Function(
             "epm",
-            optional_args=[IntervalDefault("interval", 60, None)],
+            optional_args=[IntervalDefault("interval", 1, None)],
             transform="divide(count(), divide({interval:g}, 60))",
             default_result_type="number",
         ),
@@ -2003,6 +2061,26 @@ FUNCTIONS = {
             required_args=[NumberRange("satisfaction", 0, None)],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
             transform="uniqIf(user, greater(duration, {tolerated:g}))",
+            default_result_type="number",
+        ),
+        Function(
+            "user_misery_prototype",
+            required_args=[NumberRange("satisfaction", 0, None)],
+            # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
+            # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
+            # to be 0.0004. This allows us to calculate the alpha (5.8875) and beta (111.8625) parameters,
+            # with the user misery being adjusted for each fast/slow unique transaction. See:
+            # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
+            # for an intuitive explanation of the Beta Distribution Function.
+            optional_args=[
+                with_default(5.8875, NumberRange("alpha", 0, None)),
+                with_default(111.8625, NumberRange("beta", 0, None)),
+            ],
+            calculated_args=[
+                {"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0},
+                {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
+            ],
+            transform="ifNull(divide(plus(uniqIf(user, greater(duration, {tolerated:g})), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
             default_result_type="number",
         ),
         Function("failure_rate", transform="failure_rate()", default_result_type="percentage"),
@@ -2139,11 +2217,32 @@ FUNCTIONS = {
             redundant_grouping=True,
         ),
         Function(
+            "var",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["varSamp", ArgValue("column"), None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
+            "stddev",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["stddevSamp", ArgValue("column"), None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
             "sum",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["sum", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+        ),
+        Function(
+            "any",
+            required_args=[FieldColumn("column")],
+            aggregate=["min", ArgValue("column"), None],
+            result_type_fn=reflective_result_type(),
+            redundant_grouping=True,
         ),
         # Currently only being used by the baseline PoC
         Function(
@@ -2722,7 +2821,7 @@ def resolve_field_list(
                             field=column,
                             function_msg=", ".join(conflicting_functions[:2])
                             + (
-                                " and {} more.".format(len(conflicting_functions) - 2)
+                                f" and {len(conflicting_functions) - 2} more."
                                 if len(conflicting_functions) > 2
                                 else ""
                             ),

@@ -67,7 +67,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 
         # Validate the query that would be created when run.
         conditions = self._get_attr(data, "conditions", "")
-        fields = self._get_attr(data, "fields", [])
+        fields = self._get_attr(data, "fields", []).copy()
         orderby = self._get_attr(data, "orderby", "")
         try:
             # When using the eps/epm functions, they require an interval argument
@@ -77,6 +77,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             params = {
                 "start": datetime.now() - timedelta(days=1),
                 "end": datetime.now(),
+                "project_id": [p.id for p in self.context.get("projects")],
             }
 
             snuba_filter = get_filter(conditions, params=params)

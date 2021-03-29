@@ -313,6 +313,57 @@ class TestProcessResourceChange(TestCase):
         assert not safe_urlopen.called
 
 
+class TestSendResourceChangeWebhook(TestCase):
+    def setUp(self):
+        self.project = self.create_project()
+        self.sentry_app_1 = self.create_sentry_app(
+            organization=self.project.organization,
+            events=["issue.created"],
+            webhook_url="https://google.com",
+        )
+        self.install_1 = self.create_sentry_app_installation(
+            organization=self.project.organization, slug=self.sentry_app_1.slug
+        )
+        self.sentry_app_2 = self.create_sentry_app(
+            organization=self.project.organization,
+            events=["issue.created"],
+            webhook_url="https://apple.com",
+        )
+        self.install_2 = self.create_sentry_app_installation(
+            organization=self.project.organization,
+            slug=self.sentry_app_2.slug,
+        )
+
+    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponse404)
+    @with_feature("organizations:integrations-event-hooks")
+    def test_sends_webhooks_to_all_installs(self, safe_urlopen):
+        one_min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "message": "Foo bar",
+                "exception": {"type": "Foo", "value": "shits on fiah yo"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+            )
+
+        assert len(safe_urlopen.mock_calls) == 2
+        call_urls = [call.kwargs["url"] for call in safe_urlopen.mock_calls]
+        assert self.sentry_app_1.webhook_url in call_urls
+        assert self.sentry_app_2.webhook_url in call_urls
+
+
 @patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")
 class TestInstallationWebhook(TestCase):
     def setUp(self):
@@ -489,7 +540,7 @@ class TestWebhookRequests(TestCase):
         assert first_request["project_id"] == "1"
 
     @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponse404)
-    def test_raises_ignorable_error_for_unpublished_apps(self, safe_urlopen):
+    def test_raises_ignorable_error_for_internal_apps(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
         self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         with self.assertRaises(IgnorableSentryAppError):
@@ -507,7 +558,7 @@ class TestWebhookRequests(TestCase):
         assert first_request["event_type"] == "issue.assigned"
 
     @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponse404)
-    def test_raises_ignorable_error_for_internal_apps(self, safe_urlopen):
+    def test_raises_ignorable_error_for_unpublished_apps(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
         self.sentry_app.update(status=SentryAppStatus.UNPUBLISHED)
         with self.assertRaises(IgnorableSentryAppError):

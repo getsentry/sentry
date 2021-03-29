@@ -112,6 +112,7 @@ const Form = ({
           onChange={handleChange('description')}
           value={values.description}
           disabled={disables.description}
+          autosize
         />
       </Field>
     </form>

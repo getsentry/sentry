@@ -44,7 +44,7 @@ class SpansInterface extends React.Component<Props, State> {
     operationNameFilters: noFilter,
   };
 
-  static getDerivedStateFromProps(props: Props, state: State): State {
+  static getDerivedStateFromProps(props: Readonly<Props>, state: State): State {
     return {
       ...state,
       parsedTrace: parseTrace(props.event),
@@ -118,7 +118,7 @@ class SpansInterface extends React.Component<Props, State> {
     });
 
     const conditions = new QueryResults([
-      'event.type:error',
+      '!event.type:transaction',
       `trace:${parsedTrace.traceID}`,
     ]);
 

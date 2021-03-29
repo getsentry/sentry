@@ -16,6 +16,7 @@ import {
   DocumentIntegration,
   IntegrationFeature,
   IntegrationInstallationStatus,
+  IntegrationType,
   Organization,
   PluginWithProjectList,
   SentryApp,
@@ -153,6 +154,21 @@ export function isDocumentIntegration(
   return integration.hasOwnProperty('docUrl');
 }
 
+export const getIntegrationType = (
+  integration: AppOrProviderOrPlugin
+): IntegrationType => {
+  if (isSentryApp(integration)) {
+    return 'sentry_app';
+  }
+  if (isPlugin(integration)) {
+    return 'plugin';
+  }
+  if (isDocumentIntegration(integration)) {
+    return 'document';
+  }
+  return 'first_party';
+};
+
 export const convertIntegrationTypeToSnakeCase = (
   type: 'plugin' | 'firstParty' | 'sentryApp' | 'documentIntegration'
 ) => {
@@ -201,4 +217,5 @@ export const getIntegrationIcon = (integrationType?: string, size?: string) => {
 //determines what integration maps to what project platform
 export const platfromToIntegrationMap = {
   'node-awslambda': 'aws_lambda',
+  'python-awslambda': 'aws_lambda',
 };

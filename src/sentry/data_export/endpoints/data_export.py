@@ -1,12 +1,14 @@
+import sentry_sdk
+
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from rest_framework.response import Response
 from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
-from sentry.api.event_search import get_filter, InvalidSearchQuery
+from sentry.api.event_search import get_filter, resolve_field_list, InvalidSearchQuery
 from sentry.api.serializers import serialize
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.models import Environment
 from sentry.utils import metrics
 from sentry.utils.compat import map
@@ -56,7 +58,12 @@ class DataExportQuerySerializer(serializers.Serializer):
                 query_info["project"] = [project.id for project in projects]
 
             # make sure to fix the export start/end times to ensure consistent results
-            start, end = get_date_range_from_params(query_info)
+            try:
+                start, end = get_date_range_from_params(query_info)
+            except InvalidParams as e:
+                sentry_sdk.set_tag("query.error_reason", "Invalid date params")
+                raise serializers.ValidationError(str(e))
+
             if "statsPeriod" in query_info:
                 del query_info["statsPeriod"]
             if "statsPeriodStart" in query_info:
@@ -72,7 +79,13 @@ class DataExportQuerySerializer(serializers.Serializer):
                 organization_id=organization.id,
             )
             try:
-                get_filter(query_info["query"], processor.params)
+                snuba_filter = get_filter(query_info["query"], processor.params)
+                resolve_field_list(
+                    fields.copy(),
+                    snuba_filter,
+                    auto_fields=True,
+                    auto_aggregations=True,
+                )
             except InvalidSearchQuery as err:
                 raise serializers.ValidationError(str(err))
 

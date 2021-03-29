@@ -188,7 +188,7 @@ class ProjectEnvironments extends React.Component<Props, State> {
     const baseUrl = recreateRoute('', {routes, params, stepBack: -1});
     return (
       <div>
-        <SentryDocumentTitle title={t('Environments')} objSlug={params.projectId} />
+        <SentryDocumentTitle title={t('Environments')} projectSlug={params.projectId} />
         <SettingsPageHeader
           title={t('Manage Environments')}
           tabs={

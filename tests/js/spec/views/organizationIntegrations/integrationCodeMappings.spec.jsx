@@ -69,7 +69,7 @@ describe('IntegrationCodeMappings', function () {
 
     mockResponse([
       [
-        `/organizations/${org.slug}/integrations/${integration.id}/repo-project-path-configs/`,
+        `/organizations/${org.slug}/repo-project-path-configs/`,
         [pathConfig1, pathConfig2],
       ],
       [`/organizations/${org.slug}/repos/`, repos],
@@ -80,7 +80,7 @@ describe('IntegrationCodeMappings', function () {
     );
   });
 
-  it('shows the paths', () => {
+  it('shows the paths', async () => {
     expect(wrapper.find('RepoName').length).toEqual(2);
     expect(wrapper.find('RepoName').at(0).text()).toEqual(repos[0].name);
     expect(wrapper.find('RepoName').at(1).text()).toEqual(repos[1].name);
@@ -102,7 +102,7 @@ describe('IntegrationCodeMappings', function () {
     const stackRoot = 'my/root';
     const sourceRoot = 'hey/dude';
     const defaultBranch = 'release';
-    const url = `/organizations/${org.slug}/integrations/${integration.id}/repo-project-path-configs/`;
+    const url = `/organizations/${org.slug}/repo-project-path-configs/`;
     const createMock = Client.addMockResponse({
       url,
       method: 'POST',
@@ -133,13 +133,14 @@ describe('IntegrationCodeMappings', function () {
     expect(createMock).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
-        data: {
+        data: expect.objectContaining({
           projectId: projects[1].id,
           repositoryId: repos[1].id,
           stackRoot,
           sourceRoot,
           defaultBranch,
-        },
+          integrationId: integration.id,
+        }),
       })
     );
   });
@@ -148,7 +149,7 @@ describe('IntegrationCodeMappings', function () {
     const stackRoot = 'new/root';
     const sourceRoot = 'source/root';
     const defaultBranch = 'master';
-    const url = `/organizations/${org.slug}/integrations/${integration.id}/repo-project-path-configs/${pathConfig1.id}/`;
+    const url = `/organizations/${org.slug}/repo-project-path-configs/${pathConfig1.id}/`;
     const editMock = Client.addMockResponse({
       url,
       method: 'PUT',
@@ -170,13 +171,13 @@ describe('IntegrationCodeMappings', function () {
     expect(editMock).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
-        data: {
+        data: expect.objectContaining({
           defaultBranch,
           projectId: '2',
           repositoryId: '4',
           sourceRoot,
           stackRoot,
-        },
+        }),
       })
     );
   });

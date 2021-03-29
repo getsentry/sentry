@@ -12,10 +12,11 @@ import {
   formatPercentage,
   getDuration,
 } from 'app/utils/formatters';
+import {HistogramData} from 'app/utils/performance/histogram/types';
 import {decodeScalar} from 'app/utils/queryString';
 
 import {AxisOption, getTermHelp, PERFORMANCE_TERM} from '../data';
-import {HistogramData, Rectangle} from '../transactionVitals/types';
+import {Rectangle} from '../transactionVitals/types';
 
 export const LEFT_AXIS_QUERY_KEY = 'left';
 export const RIGHT_AXIS_QUERY_KEY = 'right';
@@ -34,7 +35,7 @@ export enum LandingDisplayField {
 
 export const LANDING_DISPLAYS = [
   {
-    label: 'All',
+    label: 'All Transactions',
     field: LandingDisplayField.ALL,
   },
   {
@@ -69,10 +70,7 @@ export function getCurrentLandingDisplay(
   return defaultDisplay || LANDING_DISPLAYS[0];
 }
 
-export function getChartWidth(
-  chartData: HistogramData[],
-  refPixelRect: Rectangle | null
-) {
+export function getChartWidth(chartData: HistogramData, refPixelRect: Rectangle | null) {
   const distance = refPixelRect ? refPixelRect.point2.x - refPixelRect.point1.x : 0;
   const chartWidth = chartData.length * distance;
 

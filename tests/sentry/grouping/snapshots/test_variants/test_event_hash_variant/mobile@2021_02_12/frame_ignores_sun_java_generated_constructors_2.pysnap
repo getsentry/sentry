@@ -1,0 +1,27 @@
+---
+created: '2021-03-08T16:39:07.161550Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-max:
+  hash: null
+  component:
+    app-depth-max (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          module* (removed codegen marker)
+            "sun.reflect.GeneratedConstructorAccessor<auto>"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+system:
+  hash: "09e0efcab18f545166318118ed4e0292"
+  tree_label: "invoke"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "sun.reflect.GeneratedConstructorAccessor<auto>"
+          function*
+            "invoke"

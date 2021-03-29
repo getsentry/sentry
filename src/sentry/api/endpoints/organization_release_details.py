@@ -16,7 +16,6 @@ from sentry.models.release import UnsafeReleaseDeletion
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.api.endpoints.organization_releases import get_stats_period_detail
 from sentry.utils.sdk import configure_scope, bind_organization_context
-from sentry.web.decorators import transaction_start
 
 
 class OrganizationReleaseSerializer(ReleaseSerializer):
@@ -27,7 +26,6 @@ class OrganizationReleaseSerializer(ReleaseSerializer):
 
 
 class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
-    @transaction_start("OrganizationReleaseDetailsEndpoint.get")
     def get(self, request, organization, version):
         """
         Retrieve an Organization's Release
@@ -74,7 +72,6 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, Relea
             )
         )
 
-    @transaction_start("OrganizationReleaseDetailsEndpoint.put")
     def put(self, request, organization, version):
         """
         Update an Organization's Release
@@ -196,7 +193,6 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, Relea
 
             return Response(serialize(release, request.user))
 
-    @transaction_start("OrganizationReleaseDetailsEndpoint.delete")
     def delete(self, request, organization, version):
         """
         Delete an Organization's Release

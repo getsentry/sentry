@@ -84,7 +84,8 @@ export function createSavedSearch(
   api: Client,
   orgSlug: string,
   name: string,
-  query: string
+  query: string,
+  sort: string | null
 ): Promise<SavedSearch> {
   const promise = api.requestPromise(`/organizations/${orgSlug}/searches/`, {
     method: 'POST',
@@ -92,6 +93,7 @@ export function createSavedSearch(
       type: SavedSearchType.ISSUE,
       query,
       name,
+      sort,
     },
   });
 
@@ -145,18 +147,20 @@ export function pinSearch(
   api: Client,
   orgSlug: string,
   type: SavedSearchType,
-  query: string
+  query: string,
+  sort?: string
 ): Promise<SavedSearch> {
   const url = getPinSearchUrl(orgSlug);
 
   // Optimistically update store
-  SavedSearchesActions.pinSearch(type, query);
+  SavedSearchesActions.pinSearch(type, query, sort);
 
   const promise = api.requestPromise(url, {
     method: 'PUT',
     data: {
       query,
       type,
+      sort,
     },
   });
 

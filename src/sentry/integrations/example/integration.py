@@ -144,6 +144,9 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_stacktrace_link(self, repo, path, default, version):
         pass
 
+    def format_source_url(self, repo, filepath, branch):
+        return f"https://example.com/{repo.name}/blob/{branch}/{filepath}"
+
 
 class ExampleIntegrationProvider(IntegrationProvider):
     """
@@ -155,9 +158,14 @@ class ExampleIntegrationProvider(IntegrationProvider):
     metadata = metadata
 
     integration_cls = ExampleIntegration
-    has_stacktrace_linking = True
 
-    features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.ISSUE_BASIC])
+    features = frozenset(
+        [
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.STACKTRACE_LINK,
+        ]
+    )
 
     def get_pipeline_views(self):
         return [ExampleSetupView()]

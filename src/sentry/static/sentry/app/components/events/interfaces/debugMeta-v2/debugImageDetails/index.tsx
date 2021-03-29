@@ -6,29 +6,36 @@ import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import AlertLink from 'app/components/alertLink';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import NotAvailable from 'app/components/notAvailable';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {BuiltinSymbolSource, DebugFile} from 'app/types/debugFiles';
-import {CandidateDownloadStatus, Image} from 'app/types/debugImage';
+import {CandidateDownloadStatus, Image, ImageStatus} from 'app/types/debugImage';
+import {Event} from 'app/types/event';
+import {displayReprocessEventAction} from 'app/utils/displayReprocessEventAction';
 import theme from 'app/utils/theme';
 
 import Address from '../address';
+import Processings from '../debugImage/processings';
 import {getFileName} from '../utils';
 
 import Candidates from './candidates';
 import {INTERNAL_SOURCE, INTERNAL_SOURCE_LOCATION} from './utils';
 
-type Candidates = Image['candidates'];
+type ImageCandidates = Image['candidates'];
 
 type Props = AsyncComponent['props'] &
   ModalRenderProps & {
     projectId: Project['id'];
     organization: Organization;
-    image?: Image;
+    event: Event;
+    image?: Image & {status: ImageStatus};
+    onReprocessEvent?: () => void;
   };
 
 type State = AsyncComponent['state'] & {
@@ -45,7 +52,15 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
     };
   }
 
-  getUplodedDebugFiles(candidates: Candidates) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    if (!prevProps.image && !!this.props.image) {
+      this.remountComponent();
+    }
+
+    super.componentDidUpdate(prevProps, prevState);
+  }
+
+  getUplodedDebugFiles(candidates: ImageCandidates) {
     return candidates.find(candidate => candidate.source === INTERNAL_SOURCE);
   }
 
@@ -86,7 +101,10 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
     return endpoints;
   }
 
-  sortCandidates(candidates: Candidates, unAppliedCandidates: Candidates): Candidates {
+  sortCandidates(
+    candidates: ImageCandidates,
+    unAppliedCandidates: ImageCandidates
+  ): ImageCandidates {
     const [noPermissionCandidates, restNoPermissionCandidates] = partition(
       candidates,
       candidate => candidate.download.status === CandidateDownloadStatus.NO_PERMISSION
@@ -152,8 +170,8 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
         },
         location: `${INTERNAL_SOURCE_LOCATION}${debugFile.id}`,
         source: INTERNAL_SOURCE,
-        source_name: debugFile.objectName,
-      })) as Candidates;
+        source_name: t('Sentry'),
+      })) as ImageCandidates;
 
     // Check for deleted candidates (debug files)
     const debugFileIds = new Set(debugFiles.map(debugFile => debugFile.id));
@@ -174,9 +192,21 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
         };
       }
       return candidate;
-    }) as Candidates;
+    }) as ImageCandidates;
 
     return this.sortCandidates(convertedCandidates, unAppliedCandidates);
+  }
+
+  getDebugFilesSettingsLink() {
+    const {organization, projectId, image} = this.props;
+    const orgSlug = organization.slug;
+    const debugId = image?.debug_id;
+
+    if (!orgSlug || !projectId || !debugId) {
+      return undefined;
+    }
+
+    return `/settings/${orgSlug}/projects/${projectId}/debug-symbols/?query=${debugId}`;
   }
 
   handleDelete = async (debugId: string) => {
@@ -201,24 +231,63 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {Header, Body, Footer, image, organization, projectId} = this.props;
+    const {
+      Header,
+      Body,
+      Footer,
+      image,
+      organization,
+      projectId,
+      onReprocessEvent,
+      event,
+    } = this.props;
     const {loading, builtinSymbolSources} = this.state;
 
-    const {debug_id, debug_file, code_file, code_id, arch: architecture} = image ?? {};
+    const {
+      debug_id,
+      debug_file,
+      code_file,
+      code_id,
+      arch: architecture,
+      unwind_status,
+      debug_status,
+      status,
+    } = image ?? {};
 
     const candidates = this.getCandidates();
     const baseUrl = this.api.baseUrl;
 
-    const title = getFileName(code_file);
+    const fileName = getFileName(code_file);
     const imageAddress = image ? <Address image={image} /> : undefined;
+    const debugFilesSettingsLink = this.getDebugFilesSettingsLink();
+    const haveCandidatesUnappliedDebugFile = candidates.some(
+      candidate => candidate.download.status === CandidateDownloadStatus.UNAPPLIED
+    );
 
     return (
       <React.Fragment>
         <Header closeButton>
-          <span data-test-id="modal-title">{title ?? t('Unknown')}</span>
+          <Title>
+            {t('Image')}
+            <FileName>{fileName ?? t('Unknown')}</FileName>
+          </Title>
         </Header>
         <Body>
           <Content>
+            {haveCandidatesUnappliedDebugFile &&
+              displayReprocessEventAction(organization.features, event) &&
+              onReprocessEvent && (
+                <AlertLink
+                  priority="info"
+                  size="small"
+                  withoutMarginBottom
+                  onClick={onReprocessEvent}
+                >
+                  {t(
+                    'You’ve uploaded new debug files. Reprocess events to apply that information'
+                  )}
+                </AlertLink>
+              )}
             <GeneralInfo>
               <Label>{t('Address Range')}</Label>
               <Value>{imageAddress ?? <NotAvailable />}</Value>
@@ -237,8 +306,21 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
 
               <Label coloredBg>{t('Architecture')}</Label>
               <Value coloredBg>{architecture ?? <NotAvailable />}</Value>
+
+              <Label>{t('Processing')}</Label>
+              <Value>
+                {unwind_status || debug_status ? (
+                  <Processings
+                    unwind_status={unwind_status}
+                    debug_status={debug_status}
+                  />
+                ) : (
+                  <NotAvailable />
+                )}
+              </Value>
             </GeneralInfo>
             <Candidates
+              imageStatus={status}
               candidates={candidates}
               organization={organization}
               projectId={projectId}
@@ -250,12 +332,25 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
           </Content>
         </Body>
         <Footer>
-          <Button
-            href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
-            external
-          >
-            {t('Read the docs')}
-          </Button>
+          <ButtonBar gap={1}>
+            <Button
+              href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
+              external
+            >
+              {t('Read the docs')}
+            </Button>
+            {debugFilesSettingsLink && (
+              <Button
+                title={t(
+                  'Search for this debug file in all images for the %s project',
+                  projectId
+                )}
+                to={debugFilesSettingsLink}
+              >
+                {t('Open in Settings')}
+              </Button>
+            )}
+          </ButtonBar>
         </Footer>
       </React.Fragment>
     );
@@ -266,7 +361,7 @@ export default DebugImageDetails;
 
 const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(4)};
+  grid-gap: ${space(3)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
@@ -282,12 +377,29 @@ const Label = styled('div')<{coloredBg?: boolean}>`
 `;
 
 const Value = styled(Label)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
   padding: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
   white-space: pre-wrap;
   word-break: break-all;
+`;
+
+const Title = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-gap: ${space(1)};
+  align-items: center;
+  max-width: calc(100% - 40px);
+  word-break: break-all;
+`;
+
+const FileName = styled('span')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.gray400};
+  font-weight: 500;
 `;
 
 export const modalCss = css`

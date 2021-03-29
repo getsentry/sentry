@@ -13,7 +13,7 @@ class BaseRelation:
         self.params = params
 
     def __repr__(self):
-        return "<{}: task={} params={}>".format(type(self), self.task, self.params)
+        return f"<{type(self)}: task={self.task} params={self.params}>"
 
 
 class ModelRelation(BaseRelation):

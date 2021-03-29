@@ -6,17 +6,6 @@ from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import OptionManager
 
 
-class UserOptionValue:
-    # 'workflow:notifications'
-    all_conversations = "0"
-    participating_only = "1"
-    no_conversations = "2"
-    # 'deploy-emails
-    all_deploys = "2"
-    committed_deploys_only = "3"
-    no_deploys = "4"
-
-
 option_scope_error = "this is not a supported use case, scope to project OR organization"
 
 
@@ -44,9 +33,11 @@ class UserOptionManager(OptionManager):
         return result.get(key, default)
 
     def unset_value(self, user, project, key):
-        # this isn't implemented for user-organization scoped options yet, because
-        # it hasn't been needed
+        """
+        This isn't implemented for user-organization scoped options yet, because it hasn't been needed.
+        """
         self.filter(user=user, project=project, key=key).delete()
+
         if not hasattr(self, "_metadata"):
             return
 
@@ -116,6 +107,43 @@ class UserOption(Model):
     Keeping user feature state
     key: "feature:assignment"
     value: { updated: datetime, state: bool }
+
+    where key is one of:
+     (please add to this list if adding new keys)
+     - clock_24_hours
+        - 12hr vs. 24hr
+     - issue:defaults
+        - only used in Jira, set default reporter field
+     - issues:defaults:jira
+        - unused
+     - issues:defaults:jira_server
+        - unused
+     - language
+        - which language to display the app in
+     - mail:email
+        - which email address to send an email to
+     - reports:disabled-organizations
+        - which orgs to not send weekly reports to
+     - seen_release_broadcast
+        - unused
+     - self_assign_issue
+        - "Claim Unassigned Issues I've Resolved"
+     - self_notifications
+        - "Notify Me About My Own Activity"
+     - stacktrace_order
+        - default, most recent first, most recent last
+     - subscribe_by_default
+        - "Only On Issues I Subscribe To", "Only On Deploys With My Commits"
+     - subscribe_notes
+        - unused
+     - timezone
+        - user's timezone to display timestamps
+     - theme
+        - dark, light, or default
+     - twilio:alert
+        - unused
+     - workflow_notifications
+        - unused
     """
 
     __core__ = True

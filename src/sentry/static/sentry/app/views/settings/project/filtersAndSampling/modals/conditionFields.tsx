@@ -5,16 +5,17 @@ import Button from 'app/components/button';
 import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {DynamicSamplingInnerName} from 'app/types/dynamicSampling';
+import {DynamicSamplingInnerName, LegacyBrowser} from 'app/types/dynamicSampling';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextareaField from 'app/views/settings/components/forms/textareaField';
 
 import LegacyBrowsersField from './legacyBrowsersField';
+import {getMatchFieldPlaceholder} from './utils';
 
 type Condition = {
   category: DynamicSamplingInnerName;
   match: string;
-  legacyBrowsers?: Array<string>;
+  legacyBrowsers?: Array<LegacyBrowser>;
 };
 
 type Props = {
@@ -36,10 +37,31 @@ function ConditionFields({
   onDelete,
   onChange,
 }: Props) {
+  const availableCategoryOptions = categoryOptions.filter(
+    categoryOption =>
+      !conditions.find(condition => condition.category === categoryOption[0])
+  );
   return (
     <Wrapper>
-      {conditions.map(({match, category}, index) => {
-        const showLegacyBrowsers = category === DynamicSamplingInnerName.LEGACY_BROWSERS;
+      {conditions.map(({match, legacyBrowsers, category}, index) => {
+        const selectedCategoryOption = categoryOptions.find(
+          categoryOption => categoryOption[0] === category
+        );
+
+        // selectedCategoryOption should be always defined
+        const choices = selectedCategoryOption
+          ? [selectedCategoryOption, ...availableCategoryOptions]
+          : availableCategoryOptions;
+
+        const displayLegacyBrowsers =
+          category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER;
+
+        const isMatchesDisabled =
+          category === DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
+          category === DynamicSamplingInnerName.EVENT_LOCALHOST ||
+          category === DynamicSamplingInnerName.EVENT_WEB_CRAWLERS ||
+          displayLegacyBrowsers;
+
         return (
           <FieldsWrapper key={index}>
             <Fields>
@@ -49,7 +71,7 @@ function ConditionFields({
                 name={`category-${index}`}
                 value={category}
                 onChange={value => onChange(index, 'category', value)}
-                choices={categoryOptions}
+                choices={choices}
                 inline={false}
                 hideControlState
                 showHelpInTooltip
@@ -59,16 +81,13 @@ function ConditionFields({
               <TextareaField
                 label={t('Matches')}
                 // help={t('This is a description')} // TODO(PRISCILA): Add correct description
-                placeholder={
-                  showLegacyBrowsers
-                    ? t('No match')
-                    : t('%s (Multiline)', 'ex. 1* or [I3].[0-9].*')
-                }
+                placeholder={getMatchFieldPlaceholder(category)}
                 name={`match-${index}`}
                 value={match}
                 onChange={value => onChange(index, 'match', value)}
-                disabled={showLegacyBrowsers}
+                disabled={isMatchesDisabled}
                 inline={false}
+                rows={1}
                 autosize
                 hideControlState
                 showHelpInTooltip
@@ -85,8 +104,9 @@ function ConditionFields({
             <IconDeleteWrapper onClick={onDelete(index)}>
               <IconDelete aria-label={t('Delete Condition')} />
             </IconDeleteWrapper>
-            {showLegacyBrowsers && (
+            {displayLegacyBrowsers && (
               <LegacyBrowsersField
+                selectedLegacyBrowsers={legacyBrowsers}
                 onChange={value => {
                   onChange(index, 'legacyBrowsers', value);
                 }}
@@ -95,9 +115,11 @@ function ConditionFields({
           </FieldsWrapper>
         );
       })}
-      <StyledButton icon={<IconAdd isCircled />} onClick={onAdd} size="small">
-        {t('Add Condition')}
-      </StyledButton>
+      {!!availableCategoryOptions.length && (
+        <StyledButton icon={<IconAdd isCircled />} onClick={onAdd} size="small">
+          {t('Add Condition')}
+        </StyledButton>
+      )}
     </Wrapper>
   );
 }

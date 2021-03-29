@@ -4,7 +4,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 
 export default {
-  title: 'Core/Dropdowns/DropdownLink',
+  title: 'Core/Buttons/Dropdowns/DropdownLink',
   component: DropdownLink,
 };
 

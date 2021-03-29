@@ -8,10 +8,7 @@ import BaseChart from './baseChart';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
-export type AreaChartSeries = Series &
-  Omit<EChartOption.SeriesLine, 'data' | 'name' | 'lineStyle'> & {
-    lineStyle?: any; // TODO(ts): Fix when echarts type is updated so that EchartOption.LineStyle matches SeriesLine['lineStyle']
-  };
+export type AreaChartSeries = Series & Omit<EChartOption.SeriesLine, 'data' | 'name'>;
 
 type Props = Omit<ChartProps, 'series'> & {
   stacked?: boolean;
@@ -25,18 +22,19 @@ class AreaChart extends React.Component<Props> {
     return (
       <BaseChart
         {...props}
+        colors={colors}
         series={series.map(({seriesName, data, ...otherSeriesProps}, i) =>
           AreaSeries({
             stack: stacked ? 'area' : undefined,
             name: seriesName,
             data: data.map(({name, value}) => [name, value]),
-            color: colors && colors[i],
             lineStyle: {
+              color: colors?.[i],
               opacity: 1,
               width: 0.4,
             },
             areaStyle: {
-              color: colors && colors[i],
+              color: colors?.[i],
               opacity: 1.0,
             },
             animation: false,

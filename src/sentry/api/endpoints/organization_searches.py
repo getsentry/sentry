@@ -5,7 +5,7 @@ from django.db.models import Q
 from sentry import analytics
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.serializers import serialize
-from sentry.models.savedsearch import SavedSearch
+from sentry.models.savedsearch import SavedSearch, SortOptions
 from sentry.models.search_common import SearchType
 
 
@@ -13,6 +13,9 @@ class OrganizationSearchSerializer(serializers.Serializer):
     type = serializers.IntegerField(required=True)
     name = serializers.CharField(required=True)
     query = serializers.CharField(required=True, min_length=1)
+    sort = serializers.ChoiceField(
+        choices=SortOptions.as_choices(), default=SortOptions.DATE, required=False
+    )
 
 
 class OrganizationSearchesEndpoint(OrganizationEndpoint):
@@ -50,9 +53,13 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
             if saved_searches[0].is_pinned:
                 pinned_search = saved_searches[0]
             for saved_search in saved_searches[1:]:
-                # If a search has the same query as the pinned search we
+                # If a search has the same query and sort as the pinned search we
                 # want to use that search as the pinned search
-                if pinned_search and saved_search.query == pinned_search.query:
+                if (
+                    pinned_search
+                    and saved_search.query == pinned_search.query
+                    and saved_search.sort == pinned_search.sort
+                ):
                     saved_search.is_pinned = True
                     results[0] = saved_search
                 else:
@@ -79,6 +86,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
                 type=result["type"],
                 name=result["name"],
                 query=result["query"],
+                sort=result["sort"],
             )
             analytics.record(
                 "organization_saved_search.created",

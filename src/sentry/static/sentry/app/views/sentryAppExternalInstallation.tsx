@@ -251,7 +251,6 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
         <Field label={t('Organization')} inline={false} stacked required>
           {() => (
             <SelectControl
-              deprecatedSelectControl
               onChange={({value}) => this.onSelectOrg(value)}
               value={selectedOrgSlug}
               placeholder={t('Select an organization')}

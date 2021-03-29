@@ -3,6 +3,7 @@ import {Location} from 'history';
 
 import {EventQuery} from 'app/actionCreators/events';
 import {Client} from 'app/api';
+import {t} from 'app/locale';
 import EventView, {
   isAPIPayloadSimilar,
   LocationQuery,
@@ -37,6 +38,10 @@ export type DiscoverQueryProps = {
    * passed, but cursor will be ignored.
    */
   noPagination?: boolean;
+  /**
+   * A callback to set an error so that the error can be rendered in parent components
+   */
+  setError?: (msg: string | undefined) => void;
 };
 
 type RequestProps<P> = DiscoverQueryProps & P;
@@ -67,10 +72,6 @@ type Props<T, P> = RequestProps<P> &
      * A hook to modify data into the correct output after data has been received
      */
     afterFetch?: (data: any, props: Props<T, P>) => T;
-    /**
-     * A callback to set an error so that the error can be rendered in parent components
-     */
-    setError?: (msg: string | undefined) => void;
   };
 
 type State<T> = {
@@ -185,7 +186,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
         tableData,
       }));
     } catch (err) {
-      const error = err?.responseJSON?.detail ?? null;
+      const error = err?.responseJSON?.detail || t('An unknown error occurred.');
       this.setState({
         isLoading: false,
         tableFetchID: undefined,

@@ -41,6 +41,9 @@ const SidebarHelp = ({orientation, collapsed, hidePanel, organization}: Props) =
             <SidebarMenuItem href="https://forum.sentry.io/">
               {t('Community Discussions')}
             </SidebarMenuItem>
+            <SidebarMenuItem href="https://discord.com/invite/sentry/">
+              {t('Join the Sentry Discord')}
+            </SidebarMenuItem>
             <SidebarMenuItem href="https://status.sentry.io/">
               {t('Service Status')}
             </SidebarMenuItem>

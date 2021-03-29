@@ -1,13 +1,13 @@
-import click
-import pytz
-
 from collections import OrderedDict
 from datetime import datetime, timedelta
+
+import click
+import pytz
 from dateutil.parser import parse
 
 from sentry.runner.decorators import configuration
-from sentry.utils.iterators import chunked
 from sentry.utils.compat import map
+from sentry.utils.iterators import chunked
 
 
 class DateTimeParamType(click.ParamType):
@@ -63,6 +63,7 @@ def organizations(metrics, since, until):
     Fetch metrics for organizations.
     """
     from django.utils import timezone
+
     from sentry.app import tsdb
     from sentry.models import Organization
 

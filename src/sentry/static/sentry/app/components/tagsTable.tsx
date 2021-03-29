@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
 import {SectionHeading} from 'app/components/charts/styles';
+import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import Version from 'app/components/version';
 import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Event, EventTag} from 'app/types/event';
 
@@ -29,69 +29,43 @@ const TagsTable = ({
   return (
     <StyledTagsTable>
       <SectionHeading>{title}</SectionHeading>
-      <StyledTable>
-        <tbody>
-          {tags.map(tag => {
-            const tagInQuery = query.includes(`${tag.key}:`);
-            const target = tagInQuery ? undefined : generateUrl(tag);
+      <KeyValueTable>
+        {tags.map(tag => {
+          const tagInQuery = query.includes(`${tag.key}:`);
+          const target = tagInQuery ? undefined : generateUrl(tag);
 
-            const renderTagValue = () => {
-              switch (tag.key) {
-                case 'release':
-                  return <Version version={tag.value} anchor={false} withPackage />;
-                default:
-                  return tag.value;
+          const renderTagValue = () => {
+            switch (tag.key) {
+              case 'release':
+                return <Version version={tag.value} anchor={false} withPackage />;
+              default:
+                return tag.value;
+            }
+          };
+
+          return (
+            <KeyValueTableRow
+              key={tag.key}
+              keyName={tag.key}
+              value={
+                tagInQuery ? (
+                  <Tooltip title={t('This tag is in the current filter conditions')}>
+                    <span>{renderTagValue()}</span>
+                  </Tooltip>
+                ) : (
+                  <Link to={target || ''}>{renderTagValue()}</Link>
+                )
               }
-            };
-
-            return (
-              <StyledTr key={tag.key}>
-                <TagKey>{tag.key}</TagKey>
-                <TagValue>
-                  {tagInQuery ? (
-                    <Tooltip title={t('This tag is in the current filter conditions')}>
-                      <span>{renderTagValue()}</span>
-                    </Tooltip>
-                  ) : (
-                    <Link to={target || ''}>{renderTagValue()}</Link>
-                  )}
-                </TagValue>
-              </StyledTr>
-            );
-          })}
-        </tbody>
-      </StyledTable>
+            />
+          );
+        })}
+      </KeyValueTable>
     </StyledTagsTable>
   );
 };
 
 const StyledTagsTable = styled('div')`
   margin-bottom: ${space(3)};
-`;
-
-const StyledTable = styled('table')`
-  table-layout: fixed;
-  width: 100%;
-  max-width: 100%;
-`;
-
-const StyledTr = styled('tr')`
-  &:nth-child(2n + 1) td {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-`;
-
-const TagKey = styled('td')`
-  padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const TagValue = styled(TagKey)`
-  text-align: right;
-  ${overflowEllipsis};
 `;
 
 export default TagsTable;

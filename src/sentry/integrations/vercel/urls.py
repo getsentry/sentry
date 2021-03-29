@@ -7,8 +7,12 @@ from sentry.web.frontend.vercel_extension_configuration import VercelExtensionCo
 
 
 urlpatterns = [
-    url(r"^webhook/$", VercelWebhookEndpoint.as_view()),
-    url(r"^configure/$", VercelExtensionConfigurationView.as_view()),
-    url(r"^delete/$", VercelUninstallEndpoint.as_view()),
-    url(r"^ui-hook/$", VercelUIHook.as_view()),
+    url(r"^webhook/$", VercelWebhookEndpoint.as_view(), name="sentry-extensions-vercel-webhook"),
+    url(
+        r"^configure/$",
+        VercelExtensionConfigurationView.as_view(),
+        name="sentry-extensions-vercel-configure",
+    ),
+    url(r"^delete/$", VercelUninstallEndpoint.as_view(), name="sentry-extensions-vercel-delete"),
+    url(r"^ui-hook/$", VercelUIHook.as_view(), name="sentry-extensions-vercel-ui-hook"),
 ]

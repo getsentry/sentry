@@ -8,7 +8,6 @@ import isEqual from 'lodash/isEqual';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
@@ -17,8 +16,8 @@ import {GlobalSelection, Organization, Project} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {
+  AggregationKey,
   Column,
-  getAggregateAlias,
   isAggregateField,
   WebVital,
 } from 'app/utils/discover/fields';
@@ -59,16 +58,18 @@ class TransactionSummary extends React.Component<Props, State> {
   state: State = {
     eventView: generateSummaryEventView(
       this.props.location,
-      getTransactionName(this.props.location)
+      getTransactionName(this.props.location),
+      this.props.organization
     ),
   };
 
-  static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
       eventView: generateSummaryEventView(
         nextProps.location,
-        getTransactionName(nextProps.location)
+        getTransactionName(nextProps.location),
+        nextProps.organization
       ),
     };
   }
@@ -103,10 +104,7 @@ class TransactionSummary extends React.Component<Props, State> {
     return [t('Summary'), t('Performance')].join(' - ');
   }
 
-  getTotalsEventView(
-    organization: Organization,
-    eventView: EventView
-  ): [EventView, TotalValues] {
+  getTotalsEventView(organization: Organization, eventView: EventView): EventView {
     const threshold = organization.apdexThreshold.toString();
 
     const vitals = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce(
@@ -117,7 +115,7 @@ class TransactionSummary extends React.Component<Props, State> {
       []
     );
 
-    const totalsView = eventView.withColumns([
+    return eventView.withColumns([
       {
         kind: 'function',
         function: ['apdex', threshold, undefined],
@@ -138,6 +136,18 @@ class TransactionSummary extends React.Component<Props, State> {
         kind: 'function',
         function: ['count_unique', 'user', undefined],
       },
+      {
+        kind: 'function',
+        function: ['failure_rate', '', undefined],
+      },
+      {
+        kind: 'function',
+        function: ['tpm', '', undefined],
+      },
+      {
+        kind: 'function',
+        function: ['user_misery_prototype' as AggregationKey, threshold, undefined],
+      },
       ...vitals.map(
         vital =>
           ({
@@ -146,11 +156,6 @@ class TransactionSummary extends React.Component<Props, State> {
           } as Column)
       ),
     ]);
-    const emptyValues = totalsView.fields.reduce((values, field) => {
-      values[getAggregateAlias(field.field)] = 0;
-      return values;
-    }, {});
-    return [totalsView, emptyValues];
   }
 
   render() {
@@ -168,19 +173,24 @@ class TransactionSummary extends React.Component<Props, State> {
       });
       return null;
     }
-    const [totalsView, emptyValues] = this.getTotalsEventView(organization, eventView);
+    const totalsView = this.getTotalsEventView(organization, eventView);
 
     const shouldForceProject = eventView.project.length === 1;
     const forceProject = shouldForceProject
       ? projects.find(p => parseInt(p.id, 10) === eventView.project[0])
       : undefined;
+
     const projectSlugs = eventView.project
       .map(projectId => projects.find(p => parseInt(p.id, 10) === projectId))
       .filter((p: Project | undefined): p is Project => p !== undefined)
       .map(p => p.slug);
 
     return (
-      <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
+      <SentryDocumentTitle
+        title={this.getDocumentTitle()}
+        orgSlug={organization.slug}
+        projectSlug={forceProject?.slug}
+      >
         <GlobalSelectionHeader
           lockedMessageSubject={t('transaction')}
           shouldForceProject={shouldForceProject}
@@ -196,19 +206,16 @@ class TransactionSummary extends React.Component<Props, State> {
                 orgSlug={organization.slug}
                 location={location}
               >
-                {({tableData, isLoading}) => {
-                  if (isLoading) {
-                    return <LoadingIndicator />;
-                  }
-                  const totals = (tableData && tableData.data.length
-                    ? tableData.data[0]
-                    : emptyValues) as TotalValues;
+                {({isLoading, error, tableData}) => {
+                  const totals: TotalValues | null = tableData?.data?.[0] ?? null;
                   return (
                     <SummaryContent
                       location={location}
                       organization={organization}
                       eventView={eventView}
                       transactionName={transactionName}
+                      isLoading={isLoading}
+                      error={error}
                       totalValues={totals}
                     />
                   );
@@ -228,7 +235,8 @@ const StyledPageContent = styled(PageContent)`
 
 function generateSummaryEventView(
   location: Location,
-  transactionName: string | undefined
+  transactionName: string | undefined,
+  organization: Organization
 ): EventView | undefined {
   if (transactionName === undefined) {
     return undefined;
@@ -263,7 +271,9 @@ function generateSummaryEventView(
       id: undefined,
       version: 2,
       name: transactionName,
-      fields: ['id', 'user.display', 'transaction.duration', 'timestamp'],
+      fields: organization.features.includes('trace-view-summary')
+        ? ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp']
+        : ['id', 'user.display', 'transaction.duration', 'timestamp'],
       query: stringifyQueryObject(conditions),
       projects: [],
     },

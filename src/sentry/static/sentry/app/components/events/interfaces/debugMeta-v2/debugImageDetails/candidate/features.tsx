@@ -10,7 +10,7 @@ import {
   CandidateFeatures,
 } from 'app/types/debugImage';
 
-import {getCandidateFeatureLabel} from './utils';
+import {getFeatureLabel} from './utils';
 
 type Props = {
   download: CandidateDownload;
@@ -33,9 +33,7 @@ function Features({download}: Props) {
   return (
     <Wrapper>
       {features.map(([key]) => {
-        const {label, description} = getCandidateFeatureLabel(
-          key as keyof CandidateFeatures
-        );
+        const {label, description} = getFeatureLabel(key as keyof CandidateFeatures);
         return (
           <Feature key={key}>
             {label}

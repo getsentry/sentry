@@ -17,6 +17,7 @@ type Props = {
   savedSearchList: SavedSearch[];
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
   onSavedSearchDelete: (savedSearch: SavedSearch) => void;
+  sort: string;
   isActive?: boolean;
   query?: string;
   queryCount?: number;
@@ -30,8 +31,11 @@ function SavedSearchTab({
   onSavedSearchDelete,
   query,
   queryCount,
+  sort,
 }: Props) {
-  const savedSearch = savedSearchList.find(search => query === search.query);
+  const savedSearch = savedSearchList.find(
+    search => search.query === query && search.sort === sort
+  );
   const tooltipTitle = tct(
     `Create [link:saved searches] to quickly access other types of issues that you care about.`,
     {
@@ -73,6 +77,7 @@ function SavedSearchTab({
           onSavedSearchSelect={onSavedSearchSelect}
           onSavedSearchDelete={onSavedSearchDelete}
           query={query}
+          sort={sort}
         />
       </StyledDropdownLink>
     </TabWrapper>
@@ -90,20 +95,20 @@ const TabWrapper = styled('li')<{isActive?: boolean}>`
   }
   & > span > .dropdown-menu {
     margin-top: ${space(1)};
-    min-width: 30vw;
-    max-width: 35vw;
+    min-width: 20vw;
+    max-width: 25vw;
     z-index: ${p => p.theme.zIndex.globalSelectionHeader};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[4]}) {
+    & > span > .dropdown-menu {
+      max-width: 35vw;
+    }
   }
 
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
     & > span > .dropdown-menu {
       max-width: 50vw;
-    }
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    & > span > .dropdown-menu {
-      max-width: 55vw;
     }
   }
 

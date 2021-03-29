@@ -138,9 +138,9 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed}: Props) => {
       defined(pathNameOrModule)
     ) {
       title.push(
-        <span className="in-at" key="in">
+        <InFramePosition className="in-at" key="in">
           {` ${t('in')} `}
-        </span>
+        </InFramePosition>
       );
     }
   }
@@ -154,9 +154,9 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed}: Props) => {
   // TODO(mitsuhiko): only do this for events from native platforms?
   if (defined(frame.lineNo) && frame.lineNo !== 0) {
     title.push(
-      <span className="in-at in-at-line" key="no">
+      <InFramePosition className="in-at in-at-line" key="no">
         {` ${t('at line')} `}
-      </span>
+      </InFramePosition>
     );
     title.push(
       <code key="line" className="lineno">
@@ -166,11 +166,7 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed}: Props) => {
   }
 
   if (defined(frame.package) && !isDotnet(framePlatform)) {
-    title.push(
-      <span className="within" key="within">
-        {` ${t('within')} `}
-      </span>
-    );
+    title.push(<InFramePosition key="within">{` ${t('within')} `}</InFramePosition>);
     title.push(
       <code title={frame.package} className="package" key="package">
         {trimPackage(frame.package)}
@@ -195,10 +191,15 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed}: Props) => {
   return <React.Fragment>{title}</React.Fragment>;
 };
 
+export default DefaultTitle;
+
 const StyledExternalLink = styled(ExternalLink)`
   position: relative;
-  top: 2px;
+  top: ${space(0.25)};
   margin-left: ${space(0.5)};
 `;
 
-export default DefaultTitle;
+const InFramePosition = styled('span')`
+  color: ${p => p.theme.textColor};
+  opacity: 0.6;
+`;

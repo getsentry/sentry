@@ -38,7 +38,7 @@ export function getTabs(organization: Organization) {
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
-        tooltipTitle: t(`All unresolved issues, including those that need review.`),
+        tooltipTitle: t(`All unresolved issues.`),
       },
     ],
     [
@@ -48,9 +48,9 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: organization.features.includes('inbox-owners-query'),
-        tooltipTitle: t(`New and reopened issues that you can review, ignore, or resolve
-        to move them out of this list. After seven days these issues are
-        automatically marked as reviewed.`),
+        tooltipTitle: t(`Unresolved issues that are new or have reopened. Review, ignore,
+        or resolve an issue to move it out of this list. After 7 days these
+        issues are automatically marked as reviewed.`),
       },
     ],
     [
@@ -60,9 +60,9 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: !organization.features.includes('inbox-owners-query'),
-        tooltipTitle: t(`New and reopened issues that you can review, ignore, or resolve
-        to move them out of this list. After seven days these issues are
-        automatically marked as reviewed.`),
+        tooltipTitle: t(`Unresolved issues that are new or have reopened. Review, ignore,
+        or resolve an issue to move it out of this list. After 7 days these
+        issues are automatically marked as reviewed.`),
       },
     ],
     [
@@ -133,4 +133,24 @@ export enum IssueSortOptions {
   USER = 'user',
   TREND = 'trend',
   INBOX = 'inbox',
+}
+
+export function getSortLabel(key: string) {
+  switch (key) {
+    case IssueSortOptions.NEW:
+      return t('First Seen');
+    case IssueSortOptions.PRIORITY:
+      return t('Priority');
+    case IssueSortOptions.FREQ:
+      return t('Events');
+    case IssueSortOptions.USER:
+      return t('Users');
+    case IssueSortOptions.TREND:
+      return t('Relative Change');
+    case IssueSortOptions.INBOX:
+      return t('Date Added');
+    case IssueSortOptions.DATE:
+    default:
+      return t('Last Seen');
+  }
 }

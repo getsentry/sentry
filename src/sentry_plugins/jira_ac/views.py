@@ -7,6 +7,7 @@ from django.views.generic import View
 from django.core.urlresolvers import reverse
 from django.utils.decorators import method_decorator
 
+from sentry import options
 from sentry.utils import json
 from sentry.models import Organization
 from sentry.utils.http import absolute_uri
@@ -19,7 +20,7 @@ from jwt.exceptions import ExpiredSignatureError
 from sentry.utils.sdk import bind_organization_context, configure_scope
 from sentry.web.decorators import transaction_start
 
-JIRA_KEY = "{}.jira_ac".format(urlparse(absolute_uri()).hostname)
+JIRA_KEY = f"{urlparse(absolute_uri()).hostname}.jira_ac"
 
 
 class BaseJiraWidgetView(View):
@@ -40,7 +41,14 @@ class BaseJiraWidgetView(View):
     def get_response(self, template, context=None):
         context = context or self.get_context()
         res = render_to_response(template, context, self.request)
-        res["X-Frame-Options"] = "ALLOW-FROM %s" % self.request.GET["xdm_e"]
+
+        sources = [
+            self.request.GET.get("xdm_e"),
+            options.get("system.url-prefix"),
+        ]
+        sources_string = " ".join([s for s in sources if s])
+        res["Content-Security-Policy"] = "frame-ancestors 'self' %s" % sources_string
+
         return res
 
 

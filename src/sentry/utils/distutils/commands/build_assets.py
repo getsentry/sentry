@@ -119,7 +119,7 @@ class BuildAssetsCommand(BaseBuildCommand):
 
         log.info("writing version manifest")
         manifest = self._write_version_file(version_info)
-        log.info("recorded manifest\n{}".format(json.dumps(manifest, indent=2)))
+        log.info(f"recorded manifest\n{json.dumps(manifest, indent=2)}")
 
     def _build_static(self):
         # By setting NODE_ENV=production, a few things happen

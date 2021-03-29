@@ -58,6 +58,7 @@ type IntegrationInstalltionInputValueChangeEventParams = {
 
 //define the event key to payload mappings
 export type IntegrationEventParameters = {
+  'integrations.upgrade_plan_modal_opened': SingleIntegrationEventParams;
   'integrations.install_modal_opened': SingleIntegrationEventParams;
   'integrations.integration_viewed': SingleIntegrationEventParams;
   'integrations.installation_start': SingleIntegrationEventParams;
@@ -76,6 +77,7 @@ export type IntegrationEventParameters = {
   'integrations.index_viewed': MultipleIntegrationsEventParams;
   'integrations.directory_item_searched': IntegrationSearchEventParams;
   'integrations.directory_category_selected': IntegrationCategorySelectEventParams;
+  'integrations.stacktrace_link_cta_dismissed': IntegrationStacktraceLinkEventParams;
   'integrations.stacktrace_start_setup': IntegrationStacktraceLinkEventParams;
   'integrations.stacktrace_submit_config': IntegrationStacktraceLinkEventParams;
   'integrations.stacktrace_complete_setup': IntegrationStacktraceLinkEventParams;
@@ -94,6 +96,7 @@ export type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
 
 //define the event key to event name mappings
 export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
+  'integrations.upgrade_plan_modal_opened': 'Integrations: Upgrade Plan Modal Opened',
   'integrations.install_modal_opened': 'Integrations: Install Modal Opened',
   'integrations.integration_viewed': 'Integrations: Integration Viewed',
   'integrations.installation_start': 'Integrations: Installation Start',
@@ -113,6 +116,8 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.index_viewed': 'Integrations: Index Page Viewed',
   'integrations.directory_item_searched': 'Integrations: Directory Item Searched',
   'integrations.directory_category_selected': 'Integrations: Directory Category Selected',
+  'integrations.stacktrace_link_cta_dismissed':
+    'Integrations: Stacktrace Link CTA Dismissed',
   'integrations.stacktrace_start_setup': 'Integrations: Stacktrace Start Setup',
   'integrations.stacktrace_submit_config': 'Integrations: Stacktrace Submit Config',
   'integrations.stacktrace_complete_setup': 'Integrations: Stacktrace Complete Setup',

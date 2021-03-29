@@ -12,6 +12,7 @@ describe('IssueListSavedSearchMenu', () => {
     {
       id: '789',
       query: 'is:unresolved',
+      sort: 'date',
       name: 'Unresolved',
       isPinned: false,
       isGlobal: true,
@@ -19,6 +20,7 @@ describe('IssueListSavedSearchMenu', () => {
     {
       id: '122',
       query: 'is:unresolved assigned:me',
+      sort: 'date',
       name: 'Assigned to me',
       isPinned: false,
       isGlobal: false,

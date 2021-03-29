@@ -108,11 +108,11 @@ class SlackIntegrationProvider(IntegrationProvider):
         return [identity_pipeline_view]
 
     def get_team_info(self, access_token):
-        payload = {"token": access_token}
+        headers = {"Authorization": "Bearer %s" % access_token}
 
         client = SlackClient()
         try:
-            resp = client.get("/team.info", params=payload)
+            resp = client.get("/team.info", headers=headers)
         except ApiError as e:
             logger.error("slack.team-info.response-error", extra={"error": str(e)})
             raise IntegrationError("Could not retrieve Slack team information.")

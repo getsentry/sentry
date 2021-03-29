@@ -44,6 +44,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": self.user.actor.get_actor_identifier(),
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
@@ -55,6 +56,7 @@ class CreateProjectRuleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["id"]
+        assert response.data["owner"] == self.user.actor.get_actor_identifier()
         assert response.data["createdBy"] == {
             "id": self.user.id,
             "name": self.user.get_display_name(),
@@ -63,6 +65,7 @@ class CreateProjectRuleTest(APITestCase):
 
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == "hello world"
+        assert rule.owner == self.user.actor
         assert rule.data["action_match"] == "any"
         assert rule.data["filter_match"] == "any"
         assert rule.data["actions"] == actions
@@ -128,6 +131,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "environment": None,
                 "conditions": conditions,
                 "actions": actions,
@@ -166,6 +170,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "environment": None,
                 "actionMatch": "any",
                 "frequency": 5,
@@ -204,6 +209,7 @@ class CreateProjectRuleTest(APITestCase):
         response = self.client.post(
             url,
             data={
+                "owner": f"user:{self.user.id}",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
@@ -237,6 +243,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
@@ -261,6 +268,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
@@ -291,6 +299,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "conditions": conditions,
                 "filters": filters,
                 "actions": actions,
@@ -325,6 +334,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "conditions": conditions,
                 "actions": actions,
                 "actionMatch": "any",
@@ -358,6 +368,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "hello world",
+                "owner": f"user:{self.user.id}",
                 "conditions": conditions,
                 "filters": filters,
                 "actions": actions,
@@ -387,6 +398,7 @@ class CreateProjectRuleTest(APITestCase):
             url,
             data={
                 "name": "no action rule",
+                "owner": f"user:{self.user.id}",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "conditions": conditions,
@@ -423,14 +435,9 @@ class CreateProjectRuleTest(APITestCase):
     def test_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
-        the_uuid = "abc123"
-
-        class uuid:
-            hex = the_uuid
-
         project = self.create_project()
 
-        mock_uuid4.return_value = uuid
+        mock_uuid4.return_value = self.get_mock_uuid()
         self.login_as(self.user)
 
         integration = Integration.objects.create(
@@ -450,6 +457,7 @@ class CreateProjectRuleTest(APITestCase):
         )
         data = {
             "name": "hello world",
+            "owner": f"user:{self.user.id}",
             "environment": None,
             "actionMatch": "any",
             "frequency": 5,
@@ -475,6 +483,7 @@ class CreateProjectRuleTest(APITestCase):
         assert not Rule.objects.filter(label="hello world").exists()
         kwargs = {
             "name": data["name"],
+            "owner": self.user.actor.id,
             "environment": data.get("environment"),
             "action_match": data["actionMatch"],
             "filter_match": data.get("filterMatch"),
@@ -482,7 +491,7 @@ class CreateProjectRuleTest(APITestCase):
             "actions": data.get("actions", []),
             "frequency": data.get("frequency"),
             "user_id": self.user.id,
-            "uuid": the_uuid,
+            "uuid": "abc123",
         }
         call_args = mock_find_channel_id_for_alert_rule.call_args[1]["kwargs"]
         assert call_args.pop("project").id == project.id

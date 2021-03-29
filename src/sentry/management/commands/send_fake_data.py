@@ -28,16 +28,14 @@ def funcs():
         )
         try:
             raise next(exceptions)
-        except Exception:
+        except Exception as exc:
             email = next(emails)
-            return client.captureException(
-                data={
-                    "logger": next(loggers),
-                    "site": "web",
-                    "user": {"id": email, "email": email},
-                },
-                date=timestamp,
-            )
+            with client.configure_scope() as scope:
+                scope.user = {"id": email, "email": email}
+                scope.logger = next(loggers)
+                scope.site = "web"
+                scope.date = timestamp
+                return client.captureException(exc)
 
     return [exception]
 
@@ -53,7 +51,7 @@ class Command(BaseCommand):
 
     def handle(self, **options):
         from django.conf import settings
-        from raven.contrib.django.models import client
+        from sentry.app import client
         from sentry.models import Project
 
         if not options["project"]:

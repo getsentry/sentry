@@ -104,6 +104,11 @@ class BuildIncidentAttachmentTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Resolved: {alert_rule.name}"
+        incident_footer_ts = (
+            "<!date^{:.0f}^Sentry Incident - Started {} at {} | Sentry Incident>".format(
+                to_timestamp(incident.date_started), "{date_pretty}", "{time}"
+            )
+        )
         assert build_incident_attachment(action, incident) == {
             "fallback": title,
             "title": title,
@@ -120,8 +125,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "fields": [],
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,
-            "footer": "Sentry Incident",
-            "ts": to_timestamp(incident.date_started),
+            "footer": incident_footer_ts,
             "color": RESOLVED_COLOR,
             "actions": [],
         }
@@ -135,6 +139,11 @@ class BuildIncidentAttachmentTest(TestCase):
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
         action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        incident_footer_ts = (
+            "<!date^{:.0f}^Sentry Incident - Started {} at {} | Sentry Incident>".format(
+                to_timestamp(incident.date_started), "{date_pretty}", "{time}"
+            )
         )
         # This should fail because it pulls status from `action` instead of `incident`
         assert build_incident_attachment(
@@ -155,8 +164,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "fields": [],
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,
-            "footer": "Sentry Incident",
-            "ts": to_timestamp(incident.date_started),
+            "footer": incident_footer_ts,
             "color": LEVEL_TO_COLOR["fatal"],
             "actions": [],
         }
@@ -325,7 +333,7 @@ class BuildIncidentAttachmentTest(TestCase):
         assert build_group_attachment(warning_event.group, warning_event)["color"] == "#FFC227"
 
     def test_parse_link(self):
-        link = "https://meowlificent.ngrok.io/organizations/sentry/issues/167/?project=2&amp;query=is%3Aunresolved"
+        link = "https://meowlificent.ngrok.io/organizations/sentry/issues/167/?project=2&query=is%3Aunresolved"
         link2 = "https://meowlificent.ngrok.io/organizations/sentry/issues/1/events/2d113519854c4f7a85bae8b69c7404ad/?project=2"
         link3 = "https://meowlificent.ngrok.io/organizations/sentry/issues/9998089891/events/198e93sfa99d41b993ac8ae5dc384642/events/"
         assert (
