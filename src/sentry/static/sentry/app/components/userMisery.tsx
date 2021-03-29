@@ -10,7 +10,7 @@ type Props = {
   bars: number;
   barHeight: number;
   userMisery: number;
-  miseryLimit: number;
+  miseryLimit: number | undefined;
   totalUsers: number | undefined;
   miserableUsers: number | undefined;
 };
@@ -27,7 +27,7 @@ function UserMisery(props: Props) {
   const score = Math.round(adjustedMisery * palette.length);
 
   let title: React.ReactNode;
-  if (defined(miserableUsers) && defined(totalUsers)) {
+  if (defined(miserableUsers) && defined(totalUsers) && defined(miseryLimit)) {
     title = tct(
       '[miserableUsers] out of [totalUsers] unique users waited more than [duration]ms',
       {
@@ -36,7 +36,7 @@ function UserMisery(props: Props) {
         duration: 4 * miseryLimit,
       }
     );
-  } else {
+  } else if (defined(miseryLimit)) {
     title = tct(
       'User Misery score is [userMisery], representing users who waited more than more than [duration]ms.',
       {
@@ -44,6 +44,10 @@ function UserMisery(props: Props) {
         userMisery: userMisery.toFixed(3),
       }
     );
+  } else {
+    title = tct('User Misery score is [userMisery].', {
+      userMisery: userMisery.toFixed(3),
+    });
   }
   return (
     <Tooltip title={title} containerDisplayMode="block">

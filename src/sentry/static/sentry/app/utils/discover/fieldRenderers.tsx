@@ -406,7 +406,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     const uniqueUsers = data.count_unique_user;
     const userMisery = data[userMiseryField];
 
-    const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
+    const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10) || undefined;
 
     let miserableUsers: number | undefined;
 
