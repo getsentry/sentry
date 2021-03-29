@@ -31,7 +31,7 @@ class DemoMiddleware:
             )
 
         # backdoor to allow logins
-        allow_login = request.GET.get("allow_login") != "1"
+        allow_login = request.GET.get("allow_login") == "1"
         # don't want people to see the login page in demo mode
         if path == login_route and allow_login and method == "GET":
             return HttpResponseRedirect(login_redirect_route)
