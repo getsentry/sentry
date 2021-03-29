@@ -829,7 +829,7 @@ class QueryTransformTest(TestCase):
     def test_selected_columns_user_misery_alias(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "user_misery_300"}],
-            "data": [{"transaction": "api.do_things", "user_misery_300": 15}],
+            "data": [{"transaction": "api.do_things", "user_misery_300": 0.15}],
         }
         discover.query(
             selected_columns=["transaction", "user_misery(300)"],
@@ -839,7 +839,13 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            aggregations=[["uniqIf(user, greater(duration, 1200))", None, "user_misery_300"]],
+            aggregations=[
+                [
+                    "ifNull(divide(plus(uniqIf(user, greater(duration, 1200)), 5.8875), plus(uniq(user), 117.75)), 0)",
+                    None,
+                    "user_misery_300",
+                ]
+            ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["transaction"],
