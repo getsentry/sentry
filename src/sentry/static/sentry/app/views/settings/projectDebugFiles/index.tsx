@@ -179,7 +179,12 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
               apiMethod="PUT"
               apiEndpoint={`/projects/${orgId}/${projectId}/`}
               onSubmitSuccess={ProjectActions.updateSuccess}
-              key={project.builtinSymbolSources?.join() || project.id}
+              key={
+                [
+                  ...(project.builtinSymbolSources ?? []),
+                  ...(builtinSymbolSources ?? []),
+                ].join() || project.id
+              }
             >
               <JsonForm
                 features={new Set(features)}
