@@ -25,6 +25,9 @@ import {lightTheme as theme} from 'app/utils/theme';
 /**
  * Defines the keys which may be passed into the chartcuterie chart rendering
  * service.
+ *
+ * When adding or removing from this list, please also update the
+ * sentry/charts/types.py file
  */
 export enum ChartType {
   SLACK_DISCOVER_TOTAL_PERIOD = 'slack:discover.totalPeriod',
@@ -48,16 +51,13 @@ register({
   key: ChartType.SLACK_DISCOVER_TOTAL_PERIOD,
   height: 150,
   width: 450,
-  getOption: (data: EventsStatsData) => {
-    const color = getColorPalette(theme, data.length);
+  getOption: (data: {seriesName: string; series: EventsStatsData}) => {
+    const color = getColorPalette(theme, data.series.length);
 
-    const series = {
-      seriesName: 'Current',
-      data: data.map(([timestamp, countsForTimestamp]) => ({
-        name: timestamp * 1000,
-        value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-      })),
-    };
+    const series = data.series.map(([timestamp, countsForTimestamp]) => ({
+      name: timestamp * 1000,
+      value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+    }));
 
     return {
       useUTC: true,
@@ -77,8 +77,8 @@ register({
       }),
       series: [
         AreaSeries({
-          name: 'Current',
-          data: series.data.map(({name, value}) => [name, value]),
+          name: data.seriesName,
+          data: series.map(({name, value}) => [name, value]),
           lineStyle: {
             color: color?.[0],
             opacity: 1,

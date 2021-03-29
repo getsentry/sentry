@@ -271,7 +271,9 @@ let appConfig = {
           {
             loader: 'file-loader',
             options: {
-              name: '[name].[hash:6].[ext]',
+              // This needs to be `false` because of platformicons package
+              esModule: false,
+              name: '[folder]/[name].[hash:6].[ext]',
             },
           },
         ],

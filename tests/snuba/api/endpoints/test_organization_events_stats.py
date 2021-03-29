@@ -1,4 +1,5 @@
 import uuid
+import pytest
 
 from pytz import utc
 from datetime import timedelta
@@ -864,6 +865,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "orderby": ["-count()"],
                     "field": ["count()", "message", "issue"],
                     "topEvents": 5,
+                    "query": "!event.type:transaction",
                 },
                 format="json",
             )
@@ -873,8 +875,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        for index, event in enumerate(self.events[:5]):
-            message = event.message or event.transaction
+        for index, event in enumerate(self.events[:4]):
+            message = event.message
             # Because we deleted the group for event 0
             if index == 0 or event.group is None:
                 issue = "unknown"
@@ -1220,6 +1222,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             [{"count": 0}],
         ]
 
+    @pytest.mark.skip(reason="A query with group_id will not return transactions")
     def test_top_events_none_filter(self):
         """When a field is None in one of the top events, make sure we filter by it
 
@@ -1257,6 +1260,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 attrs for time, attrs in results["data"]
             ]
 
+    @pytest.mark.skip(reason="Invalid query - transaction events don't have group_id field")
     def test_top_events_one_field_with_none(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -1317,6 +1321,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "orderby": ["-count()"],
                     "field": ["count()", "error.handled"],
                     "topEvents": 5,
+                    "query": "!event.type:transaction",
                 },
                 format="json",
             )
@@ -1326,7 +1331,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert len(data) == 3
 
         results = data[""]
-        assert [attrs for time, attrs in results["data"]] == [[{"count": 22}], [{"count": 6}]]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 19}], [{"count": 6}]]
         assert results["order"] == 0
 
         results = data["1"]

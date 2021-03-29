@@ -19,17 +19,18 @@ import MenuItemActionLink from '../actions/menuItemActionLink';
 
 type Props = {
   api: Client;
-  orgId: string;
+  orgSlug: string;
   group: Group;
   selection: GlobalSelection;
   query?: string;
   onMarkReviewed?: (itemIds: string[]) => void;
+  onDelete?: () => void;
 };
 
 class GroupRowActions extends React.Component<Props> {
   handleUpdate = (data?: any, event?: React.MouseEvent) => {
     event?.stopPropagation();
-    const {api, group, orgId, query, selection, onMarkReviewed} = this.props;
+    const {api, group, orgSlug, query, selection, onMarkReviewed} = this.props;
 
     addLoadingMessage(t('Saving changes\u2026'));
 
@@ -40,7 +41,7 @@ class GroupRowActions extends React.Component<Props> {
     bulkUpdate(
       api,
       {
-        orgId,
+        orgId: orgSlug,
         itemIds: [group.id],
         data,
         query,
@@ -57,14 +58,14 @@ class GroupRowActions extends React.Component<Props> {
   };
 
   handleDelete = () => {
-    const {api, group, orgId, query, selection} = this.props;
+    const {api, group, orgSlug, query, selection, onDelete} = this.props;
 
     addLoadingMessage(t('Removing events\u2026'));
 
     bulkDelete(
       api,
       {
-        orgId,
+        orgId: orgSlug,
         itemIds: [group.id],
         query,
         project: selection.projects,
@@ -74,13 +75,14 @@ class GroupRowActions extends React.Component<Props> {
       {
         complete: () => {
           clearIndicators();
+          onDelete?.();
         },
       }
     );
   };
 
   render() {
-    const {orgId, group} = this.props;
+    const {orgSlug, group} = this.props;
 
     return (
       <Wrapper>
@@ -112,7 +114,7 @@ class GroupRowActions extends React.Component<Props> {
           </MenuItemActionLink>
 
           <StyledMenuItem noAnchor>
-            <Projects orgId={orgId} slugs={[group.project.slug]}>
+            <Projects orgId={orgSlug} slugs={[group.project.slug]}>
               {({projects, initiallyLoaded, fetchError}) => {
                 const project = projects[0];
                 return (
@@ -127,8 +129,8 @@ class GroupRowActions extends React.Component<Props> {
                         ? ((project as Project).latestRelease as Release)
                         : undefined
                     }
-                    orgId={orgId}
-                    projectId={group.project.id}
+                    orgSlug={orgSlug}
+                    projectSlug={group.project.slug}
                     onUpdate={this.handleUpdate}
                     shouldConfirm={false}
                     hasInbox

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 import omit from 'lodash/omit';
 
+import Feature from 'app/components/acl/feature';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
 import SearchBar from 'app/components/events/searchBar';
@@ -39,6 +40,7 @@ import TransactionHeader, {Tab} from './header';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
+import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
 import {SidebarSpacer, TransactionFilterOptions} from './utils';
 
@@ -231,6 +233,15 @@ class SummaryContent extends React.Component<Props, State> {
               })}
               forceLoading={isLoading}
             />
+            <Feature features={['performance-tag-explorer']}>
+              <TagExplorer
+                eventView={eventView}
+                organization={organization}
+                location={location}
+                projects={projects}
+                transactionName={transactionName}
+              />
+            </Feature>
             <RelatedIssues
               organization={organization}
               location={location}
@@ -250,6 +261,11 @@ class SummaryContent extends React.Component<Props, State> {
               transactionName={transactionName}
               eventView={eventView}
             />
+            <StatusBreakdown
+              eventView={eventView}
+              organization={organization}
+              location={location}
+            />
             <SidebarSpacer />
             <SidebarCharts
               organization={organization}
@@ -257,12 +273,6 @@ class SummaryContent extends React.Component<Props, State> {
               error={error}
               totals={totalValues}
               eventView={eventView}
-            />
-            <SidebarSpacer />
-            <StatusBreakdown
-              eventView={eventView}
-              organization={organization}
-              location={location}
             />
             <SidebarSpacer />
             <Tags

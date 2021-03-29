@@ -13,7 +13,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
-import {Panel, PanelBody} from 'app/components/panels';
+import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -68,7 +68,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
     const {orgId} = this.props.params;
 
     return (
-      <div data-test-id="user-feedback-list">
+      <Panel className="issue-list" data-test-id="user-feedback-list">
         {this.state.reportList.map(item => {
           const issue = item.issue;
           return (
@@ -77,7 +77,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
             </CompactIssue>
           );
         })}
-      </div>
+      </Panel>
     );
   }
 
@@ -93,7 +93,11 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
     const {loading, reportList} = this.state;
 
     if (loading) {
-      return <LoadingIndicator />;
+      return (
+        <Panel>
+          <LoadingIndicator />
+        </Panel>
+      );
     }
 
     if (!reportList.length) {
@@ -133,9 +137,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
                   </Button>
                 </ButtonBar>
               </Header>
-              <Panel>
-                <PanelBody className="issue-list">{this.renderStreamBody()}</PanelBody>
-              </Panel>
+              {this.renderStreamBody()}
               <Pagination pageLinks={reportListPageLinks} />
             </div>
           </LightWeightNoProjectMessage>

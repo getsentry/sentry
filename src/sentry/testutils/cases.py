@@ -80,11 +80,13 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
 from sentry.tagstore.snuba import SnubaTagStorage
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
+from . import assert_status_code
 from .fixtures import Fixtures
 from .factories import Factories
 from .skips import requires_snuba
@@ -274,6 +276,13 @@ class BaseTestCase(Fixtures, Exam):
         with context:
             func(*args, **kwargs)
 
+    def get_mock_uuid(self):
+        class uuid:
+            hex = "abc123"
+            bytes = b"\x00\x01\x02"
+
+        return uuid
+
 
 class _AssertQueriesContext(CaptureQueriesContext):
     def __init__(self, test_case, queries, debug, connection):
@@ -331,10 +340,27 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
+    """
+    Extend APITestCase to inherit access to `client`, an object with methods
+    that simulate API calls to Sentry, and the helper `get_response`, which
+    combines and simplify a lot of tedious parts of making API calls in tests.
+    When creating API tests, use a new class per endpoint-method pair. The class
+    must set the string `endpoint`.
+    """
+
     endpoint = None
     method = "get"
 
     def get_response(self, *args, **params):
+        """
+        Simulate an API call to the test case's URI and method.
+
+        :param params:
+            * qs_params: (Optional) Dict mapping keys to values that will be
+             url-encoded into a API call's query string. Note: The name is
+             intentionally a little funny to prevent name collisions.
+        :returns Response object
+        """
         if self.endpoint is None:
             raise Exception("Implement self.endpoint to use this method.")
 
@@ -350,10 +376,58 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         return getattr(self.client, method)(url, format="json", data=params)
 
     def get_valid_response(self, *args, **params):
+        """ Deprecated. Calls `get_response` (see above) and asserts a specific status code. """
         status_code = params.pop("status_code", 200)
         resp = self.get_response(*args, **params)
         assert resp.status_code == status_code, (resp.status_code, resp.content)
         return resp
+
+    def get_success_response(self, *args, **params):
+        """
+        Call `get_response` (see above) and assert the response's status code.
+
+        :param params:
+            * status_code: (Optional) Assert that the response's status code is
+            a specific code. Omit to assert any successful status_code.
+        :returns Response object
+        """
+        status_code = params.pop("status_code", None)
+
+        if status_code >= 400:
+            raise Exception("status_code must be < 400")
+
+        response = self.get_response(*args, **params)
+
+        if status_code:
+            assert_status_code(response, status_code)
+        else:
+            assert_status_code(response, 200, 300)
+
+        return response
+
+    def get_error_response(self, *args, **params):
+        """
+        Call `get_response` (see above) and assert that the response's status
+        code is an error code. Basically it's syntactic sugar.
+
+        :param params:
+            * status_code: (Optional) Assert that the response's status code is
+            a specific error code. Omit to assert any error status_code.
+        :returns Response object
+        """
+        status_code = params.pop("status_code", None)
+
+        if status_code < 400:
+            raise Exception("status_code must be >= 400 (an error status code)")
+
+        response = self.get_response(*args, **params)
+
+        if status_code:
+            assert_status_code(response, status_code)
+        else:
+            assert_status_code(response, 400, 600)
+
+        return response
 
 
 class TwoFactorAPITestCase(APITestCase):
@@ -587,6 +661,8 @@ class CliTestCase(TestCase):
 
 @pytest.mark.usefixtures("browser")
 class AcceptanceTestCase(TransactionTestCase):
+    browser: Browser
+
     def setUp(self):
         patcher = patch(
             "django.utils.timezone.now",

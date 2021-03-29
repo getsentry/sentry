@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.core.urlresolvers import reverse
 
+from sentry.models import Group
 from sentry.utils.samples import load_data
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -26,9 +27,11 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         spans,
         parent_span_id,
         project_id,
+        tags=None,
         duration=4000,
         span_id=None,
         measurements=None,
+        **kwargs,
     ):
         start, end = self.get_start_end(duration)
         data = load_data(
@@ -45,7 +48,12 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         if measurements:
             for key, value in measurements.items():
                 data["measurements"][key]["value"] = value
-        return self.store_event(data, project_id=project_id)
+        if tags is not None:
+            data["tags"] = tags
+        return self.store_event(data, project_id=project_id, **kwargs)
+
+    def get_error_url(self, error):
+        return Group.objects.get(id=error.group_id).get_absolute_url()
 
     def setUp(self):
         """
@@ -269,7 +277,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             child_event_id = child_event.event_id
             assert child_event_id in events
             event = events[child_event_id]
-            assert event["generation"] is None
+            assert event["generation"] == 1
             assert event["parent_event_id"] == root_event_id
             assert event["parent_span_id"] == self.root_span_ids[i]
 
@@ -304,7 +312,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 
         assert child_event_id in events
         event = events[child_event_id]
-        assert event["generation"] is None
+        assert event["generation"] == 2
         assert event["parent_event_id"] == current_event
         assert event["parent_span_id"] == self.gen1_span_ids[0]
 
@@ -415,6 +423,62 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             assert event["parent_event_id"] == current_event
             assert event["parent_span_id"] == self.gen2_span_ids[1]
 
+    def test_with_error_event(self):
+        root_event_id = self.root_event.event_id
+        current_transaction_event = self.gen1_events[0].event_id
+
+        start, _ = self.get_start_end(1000)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": self.gen1_span_ids[0],
+        }
+        error_data["tags"] = [["transaction", "/transaction/gen1-0"]]
+        error = self.store_event(error_data, project_id=self.gen1_project.id)
+
+        def assertions(response):
+            assert response.status_code == 200, response.content
+            assert len(response.data) == 3
+            events = {item["event_id"]: item for item in response.data}
+
+            assert root_event_id in events
+            event = events[root_event_id]
+            assert event["generation"] == 0
+            assert event["parent_event_id"] is None
+            assert event["parent_span_id"] is None
+            assert len(event["errors"]) == 0
+
+            assert current_transaction_event in events
+            event = events[current_transaction_event]
+            assert event["generation"] == 1
+            assert event["parent_event_id"] == root_event_id
+            assert event["parent_span_id"] == self.root_span_ids[0]
+            assert len(event["errors"]) == 1
+            assert event["errors"][0]["event_id"] == error.event_id
+            assert event["errors"][0]["url"] == self.get_error_url(error)
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"event_id": error.event_id, "project": -1},
+                format="json",
+            )
+
+        assertions(response)
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"event_id": current_transaction_event, "project": -1},
+                format="json",
+            )
+
+        assertions(response)
+
 
 class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace"
@@ -504,10 +568,45 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.assert_trace_data(response.data[0])
         root = response.data[0]
         assert root["transaction.status"] == "ok"
+        root_tags = {tag["key"]: tag["value"] for tag in root["tags"]}
         for [key, value] in self.root_event.tags:
-            assert root["tags"][key] == value, f"tags - {key}"
+            if not key.startswith("sentry:"):
+                assert root_tags[key] == value, f"tags - {key}"
+            else:
+                assert root_tags[key[7:]] == value, f"tags - {key}"
         assert root["measurements"]["lcp"]["value"] == 1000
         assert root["measurements"]["fcp"]["value"] == 750
+
+    def test_detailed_trace_with_bad_tags(self):
+        """ Basically test that we're actually using the event serializer's method for tags """
+        trace = uuid4().hex
+        self.create_event(
+            trace=trace,
+            transaction="bad-tags",
+            parent_span_id=None,
+            spans=[],
+            project_id=self.project.id,
+            tags=[["somethinglong" * 250, "somethinglong" * 250]],
+            duration=3000,
+            assert_no_errors=False,
+        )
+
+        url = reverse(
+            self.url_name,
+            kwargs={"organization_slug": self.project.organization.slug, "trace_id": trace},
+        )
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                url,
+                data={"project": -1, "detailed": 1},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        root = response.data[0]
+        assert root["transaction.status"] == "ok"
+        assert {"key": None, "value": None} in root["tags"]
 
     def test_bad_span_loop(self):
         """Maliciously create a loop in the span structure
@@ -740,12 +839,14 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "span": self.gen1_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
+            "url": self.get_error_url(error),
         } in gen1_event["errors"]
         assert {
             "event_id": error1.event_id,
             "span": self.gen1_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
+            "url": self.get_error_url(error1),
         } in gen1_event["errors"]
 
     def test_with_default(self):
@@ -779,4 +880,5 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "span": self.root_span_ids[0],
             "project_id": self.gen1_project.id,
             "project_slug": self.gen1_project.slug,
+            "url": self.get_error_url(default_event),
         } in root_event["errors"]

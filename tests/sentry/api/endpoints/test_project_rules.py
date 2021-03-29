@@ -435,14 +435,9 @@ class CreateProjectRuleTest(APITestCase):
     def test_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
-        the_uuid = "abc123"
-
-        class uuid:
-            hex = the_uuid
-
         project = self.create_project()
 
-        mock_uuid4.return_value = uuid
+        mock_uuid4.return_value = self.get_mock_uuid()
         self.login_as(self.user)
 
         integration = Integration.objects.create(
@@ -496,7 +491,7 @@ class CreateProjectRuleTest(APITestCase):
             "actions": data.get("actions", []),
             "frequency": data.get("frequency"),
             "user_id": self.user.id,
-            "uuid": the_uuid,
+            "uuid": "abc123",
         }
         call_args = mock_find_channel_id_for_alert_rule.call_args[1]["kwargs"]
         assert call_args.pop("project").id == project.id

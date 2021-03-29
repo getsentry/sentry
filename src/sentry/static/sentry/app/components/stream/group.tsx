@@ -78,7 +78,9 @@ type Props = {
   hasGuideAnchor?: boolean;
   memberList?: User[];
   onMarkReviewed?: (itemIds: string[]) => void;
+  onDelete?: () => void;
   showInboxTime?: boolean;
+  index?: number;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -332,6 +334,7 @@ class StreamGroup extends React.Component<Props, State> {
   render() {
     const {data, reviewed} = this.state;
     const {
+      index,
       query,
       hasGuideAnchor,
       canSelect,
@@ -343,6 +346,8 @@ class StreamGroup extends React.Component<Props, State> {
       displayReprocessingLayout,
       showInboxTime,
       onMarkReviewed,
+      useFilteredStats,
+      onDelete,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -351,13 +356,16 @@ class StreamGroup extends React.Component<Props, State> {
         ? 'time range'
         : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
 
+    // Use data.filtered to decide on which value to use
+    // In case of the query has filters but we avoid showing both sets of filtered/unfiltered stats
+    // we use useFilteredStats param passed to Group for deciding
     const primaryCount = data.filtered ? data.filtered.count : data.count;
     const secondaryCount = data.filtered ? data.count : undefined;
     const primaryUserCount = data.filtered ? data.filtered.userCount : data.userCount;
     const secondaryUserCount = data.filtered ? data.userCount : undefined;
 
     const showSecondaryPoints = Boolean(
-      withChart && data && data.filtered && statsPeriod
+      withChart && data && data.filtered && statsPeriod && useFilteredStats
     );
 
     const hasInbox = organization.features.includes('inbox');
@@ -381,6 +389,7 @@ class StreamGroup extends React.Component<Props, State> {
           flex="1"
         >
           <EventOrGroupHeader
+            index={index}
             organization={organization}
             includeLink
             data={data}
@@ -434,41 +443,43 @@ class StreamGroup extends React.Component<Props, State> {
                           <span {...getActorProps({})}>
                             <div className="dropdown-actor-title">
                               <PrimaryCount value={primaryCount} />
-                              {secondaryCount !== undefined && (
+                              {secondaryCount !== undefined && useFilteredStats && (
                                 <SecondaryCount value={secondaryCount} />
                               )}
                             </div>
                           </span>
-                          <StyledDropdownList
-                            {...getMenuProps({className: 'dropdown-menu inverted'})}
-                          >
-                            {data.filtered && (
-                              <React.Fragment>
-                                <StyledMenuItem to={this.getDiscoverUrl(true)}>
-                                  <MenuItemText>
-                                    {t('Matching search filters')}
-                                  </MenuItemText>
-                                  <MenuItemCount value={data.filtered.count} />
-                                </StyledMenuItem>
-                                <MenuItem divider />
-                              </React.Fragment>
-                            )}
+                          {useFilteredStats && (
+                            <StyledDropdownList
+                              {...getMenuProps({className: 'dropdown-menu inverted'})}
+                            >
+                              {data.filtered && (
+                                <React.Fragment>
+                                  <StyledMenuItem to={this.getDiscoverUrl(true)}>
+                                    <MenuItemText>
+                                      {t('Matching search filters')}
+                                    </MenuItemText>
+                                    <MenuItemCount value={data.filtered.count} />
+                                  </StyledMenuItem>
+                                  <MenuItem divider />
+                                </React.Fragment>
+                              )}
 
-                            <StyledMenuItem to={this.getDiscoverUrl()}>
-                              <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
-                              <MenuItemCount value={data.count} />
-                            </StyledMenuItem>
+                              <StyledMenuItem to={this.getDiscoverUrl()}>
+                                <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                                <MenuItemCount value={data.count} />
+                              </StyledMenuItem>
 
-                            {data.lifetime && (
-                              <React.Fragment>
-                                <MenuItem divider />
-                                <StyledMenuItem>
-                                  <MenuItemText>{t('Since issue began')}</MenuItemText>
-                                  <MenuItemCount value={data.lifetime.count} />
-                                </StyledMenuItem>
-                              </React.Fragment>
-                            )}
-                          </StyledDropdownList>
+                              {data.lifetime && (
+                                <React.Fragment>
+                                  <MenuItem divider />
+                                  <StyledMenuItem>
+                                    <MenuItemText>{t('Since issue began')}</MenuItemText>
+                                    <MenuItemCount value={data.lifetime.count} />
+                                  </StyledMenuItem>
+                                </React.Fragment>
+                              )}
+                            </StyledDropdownList>
+                          )}
                         </span>
                       </GuideAnchor>
                     );
@@ -496,41 +507,43 @@ class StreamGroup extends React.Component<Props, State> {
                         <span {...getActorProps({})}>
                           <div className="dropdown-actor-title">
                             <PrimaryCount value={primaryUserCount} />
-                            {secondaryUserCount !== undefined && (
+                            {secondaryUserCount !== undefined && useFilteredStats && (
                               <SecondaryCount dark value={secondaryUserCount} />
                             )}
                           </div>
                         </span>
-                        <StyledDropdownList
-                          {...getMenuProps({className: 'dropdown-menu inverted'})}
-                        >
-                          {data.filtered && (
-                            <React.Fragment>
-                              <StyledMenuItem to={this.getDiscoverUrl(true)}>
-                                <MenuItemText>
-                                  {t('Matching search filters')}
-                                </MenuItemText>
-                                <MenuItemCount value={data.filtered.userCount} />
-                              </StyledMenuItem>
-                              <MenuItem divider />
-                            </React.Fragment>
-                          )}
+                        {useFilteredStats && (
+                          <StyledDropdownList
+                            {...getMenuProps({className: 'dropdown-menu inverted'})}
+                          >
+                            {data.filtered && (
+                              <React.Fragment>
+                                <StyledMenuItem to={this.getDiscoverUrl(true)}>
+                                  <MenuItemText>
+                                    {t('Matching search filters')}
+                                  </MenuItemText>
+                                  <MenuItemCount value={data.filtered.userCount} />
+                                </StyledMenuItem>
+                                <MenuItem divider />
+                              </React.Fragment>
+                            )}
 
-                          <StyledMenuItem to={this.getDiscoverUrl()}>
-                            <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
-                            <MenuItemCount value={data.userCount} />
-                          </StyledMenuItem>
+                            <StyledMenuItem to={this.getDiscoverUrl()}>
+                              <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                              <MenuItemCount value={data.userCount} />
+                            </StyledMenuItem>
 
-                          {data.lifetime && (
-                            <React.Fragment>
-                              <MenuItem divider />
-                              <StyledMenuItem>
-                                <MenuItemText>{t('Since issue began')}</MenuItemText>
-                                <MenuItemCount value={data.lifetime.userCount} />
-                              </StyledMenuItem>
-                            </React.Fragment>
-                          )}
-                        </StyledDropdownList>
+                            {data.lifetime && (
+                              <React.Fragment>
+                                <MenuItem divider />
+                                <StyledMenuItem>
+                                  <MenuItemText>{t('Since issue began')}</MenuItemText>
+                                  <MenuItemCount value={data.lifetime.userCount} />
+                                </StyledMenuItem>
+                              </React.Fragment>
+                            )}
+                          </StyledDropdownList>
+                        )}
                       </span>
                     );
                   }}
@@ -548,8 +561,9 @@ class StreamGroup extends React.Component<Props, State> {
               <ActionsWrapper>
                 <GroupRowActions
                   group={data}
-                  orgId={organization.slug}
+                  orgSlug={organization.slug}
                   selection={selection}
+                  onDelete={onDelete}
                   onMarkReviewed={onMarkReviewed}
                   query={query}
                 />

@@ -32,7 +32,7 @@ function Actions({
 }: Props) {
   const {download, location: debugFileId} = candidate;
 
-  if (!debugFileId || isInternalSource) {
+  if (!debugFileId || !isInternalSource) {
     return <NotAvailable />;
   }
 

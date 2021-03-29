@@ -17,6 +17,7 @@ type Props = {
   savedSearchList: SavedSearch[];
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
   onSavedSearchDelete: (savedSearch: SavedSearch) => void;
+  sort: string;
   isActive?: boolean;
   query?: string;
   queryCount?: number;
@@ -30,8 +31,11 @@ function SavedSearchTab({
   onSavedSearchDelete,
   query,
   queryCount,
+  sort,
 }: Props) {
-  const savedSearch = savedSearchList.find(search => query === search.query);
+  const savedSearch = savedSearchList.find(
+    search => search.query === query && search.sort === sort
+  );
   const tooltipTitle = tct(
     `Create [link:saved searches] to quickly access other types of issues that you care about.`,
     {
@@ -73,6 +77,7 @@ function SavedSearchTab({
           onSavedSearchSelect={onSavedSearchSelect}
           onSavedSearchDelete={onSavedSearchDelete}
           query={query}
+          sort={sort}
         />
       </StyledDropdownLink>
     </TabWrapper>

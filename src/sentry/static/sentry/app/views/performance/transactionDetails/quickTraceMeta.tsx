@@ -15,7 +15,10 @@ import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/typ
 
 import {MetaData} from './styles';
 
-type Props = {
+type Props = Pick<
+  React.ComponentProps<typeof QuickTrace>,
+  'errorDest' | 'transactionDest'
+> & {
   event: Event;
   location: Location;
   organization: OrganizationSummary;
@@ -27,6 +30,7 @@ function handleTraceLink(organization: OrganizationSummary) {
     eventKey: 'quick_trace.trace_id.clicked',
     eventName: 'Quick Trace: Trace ID clicked',
     organization_id: parseInt(organization.id, 10),
+    source: 'events',
   });
 }
 
@@ -35,6 +39,8 @@ export default function QuickTraceMeta({
   location,
   organization,
   quickTrace: {isLoading, error, trace, type},
+  errorDest,
+  transactionDest,
 }: Props) {
   const traceId = event.contexts?.trace?.trace_id ?? null;
   const traceTarget = generateTraceTarget(event, organization);
@@ -50,6 +56,9 @@ export default function QuickTraceMeta({
         quickTrace={{type, trace}}
         location={location}
         organization={organization}
+        anchor="right"
+        errorDest={errorDest}
+        transactionDest={transactionDest}
       />
     </ErrorBoundary>
   );

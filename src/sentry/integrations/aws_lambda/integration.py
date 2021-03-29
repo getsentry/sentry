@@ -91,6 +91,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
     def serialize_lambda_function(self, function):
         layers = get_function_layer_arns(function)
         layer_arn = get_latest_layer_for_function(function)
+        function_runtime = function["Runtime"]
 
         # find our sentry layer
         sentry_layer_index = get_index_of_sentry_layer(layers, layer_arn)
@@ -102,13 +103,21 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             latest_version = get_latest_layer_version(function)
             current_version = get_version_of_arn(sentry_layer)
             out_of_date = latest_version > current_version
+
+            if function_runtime.startswith("python"):
+                # If env variable "SENTRY_INITIAL_HANDLER" is not present, then
+                # it is should be assumed that this function is not enabled!
+                env_variables = function.get("Environment", {}).get("Variables", {})
+                if "SENTRY_INITIAL_HANDLER" not in env_variables:
+                    current_version = -1
+                    out_of_date = False
         else:
             current_version = -1
             out_of_date = False
 
         return {
             "name": function["FunctionName"],
-            "runtime": function["Runtime"],
+            "runtime": function_runtime,
             "version": current_version,
             "outOfDate": out_of_date,
             "enabled": current_version > -1,

@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import {Panel} from 'app/components/panels';
 import ReleaseStats from 'app/components/releaseStats';
@@ -72,9 +73,11 @@ const ReleaseCard = ({
               query: {project: getReleaseProjectId(release, selection)},
             }}
           >
-            <VersionWrapper>
-              <StyledVersion version={version} tooltipRawVersion anchor={false} />
-            </VersionWrapper>
+            <GuideAnchor disabled={!isTopRelease} target="release_version">
+              <VersionWrapper>
+                <StyledVersion version={version} tooltipRawVersion anchor={false} />
+              </VersionWrapper>
+            </GuideAnchor>
           </GlobalSelectionLink>
           {commitCount > 0 && <ReleaseStats release={release} withHeading={false} />}
         </ReleaseInfoHeader>

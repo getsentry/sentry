@@ -4,8 +4,12 @@ import {GuidesContent} from 'app/components/assistant/types';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import {t, tct} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 
 export default function getGuidesContent(orgSlug: string | null): GuidesContent {
+  if (ConfigStore.get('demoMode')) {
+    return getDemoModeGuides();
+  }
   return [
     {
       guide: 'issue',
@@ -204,6 +208,196 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           target: 'release_adoption',
           description: t(
             `Adoption now compares the sessions or users of a release with the total sessions or users for this project in the last 24 hours.`
+          ),
+        },
+      ],
+    },
+  ];
+}
+
+function getDemoModeGuides(): GuidesContent {
+  return [
+    {
+      guide: 'sidebar',
+      requiredTargets: ['projects', 'issues'],
+      priority: 1, //lower number means higher priority
+      steps: [
+        {
+          title: t('Projects'),
+          target: 'projects',
+          description: t(
+            `Projects allow you to scope events to a distinct application in your organization.`
+          ),
+        },
+        {
+          title: t('Issues'),
+          target: 'issues',
+          description: t(
+            `A collection of error events reported as your customers experience them.`
+          ),
+        },
+        {
+          title: t('Performance'),
+          target: 'performance',
+          description: t(
+            `Sentry tracks your software performance, measuring metrics like throughput and latency, and displaying the impact of errors across multiple systems.`
+          ),
+        },
+        {
+          title: t('Releases'),
+          target: 'releases',
+          description: t(
+            `Track the health of your releases down to the moment it starts to erode.`
+          ),
+        },
+        {
+          title: t('Discover'),
+          target: 'discover',
+          description: t(
+            `Query and unlock insights into the health of your entire system and get answers to critical business questions -- all in one place.`
+          ),
+          nextText: t(`Got it`),
+        },
+      ],
+    },
+    {
+      guide: 'issue_stream_v2',
+      requiredTargets: ['issue_stream_title'],
+      steps: [
+        {
+          title: t('Issue'),
+          target: 'issue_stream_title',
+          description: t(
+            `Click here to see a full error report down to the line of code that caused the issue.`
+          ),
+        },
+      ],
+    },
+    {
+      guide: 'issue_v2',
+      requiredTargets: ['issue_details', 'exception'],
+      steps: [
+        {
+          title: t('Details'),
+          target: 'issue_details',
+          description: t(`Quickly see user and client data for each event.`),
+        },
+        {
+          title: t('Exception'),
+          target: 'exception',
+          description: t(`Get a full stack trace to see exact line of broken code.`),
+        },
+        {
+          title: t('Tags'),
+          target: 'tags',
+          description: t(
+            `Tags help you quickly access related events and view the tag distribution for a set of events.`
+          ),
+        },
+        {
+          title: t('Breadcrumbs'),
+          target: 'breadcrumbs',
+          description: t(
+            `Check out the play by play of what your user experienced till they encountered the exception.`
+          ),
+        },
+        {
+          title: t('Discover'),
+          target: 'open_in_discover',
+          description: t(
+            `Click here to analyze new errors by URL, geography, device, browser, etc.`
+          ),
+        },
+      ],
+    },
+    {
+      guide: 'releases',
+      requiredTargets: ['release_version'],
+      steps: [
+        {
+          title: t('Release'),
+          target: 'release_version',
+          description: t(`See the details of your release and how it's performing.`),
+        },
+        {
+          title: t('View'),
+          target: 'view_release',
+          description: t(`You can also get release details by clicking here.`),
+        },
+      ],
+    },
+    {
+      guide: 'release_details',
+      requiredTargets: ['release_chart'],
+      steps: [
+        {
+          title: t('Chart'),
+          target: 'release_chart',
+          description: t(
+            `Click and drag to zoom in on a specific section of the histogram.`
+          ),
+        },
+        {
+          title: t('Discover'),
+          target: 'release_issues_open_in_discover',
+          description: t(
+            `Click here to analyze new errors by URL, geography, device, browser, etc.`
+          ),
+        },
+        {
+          title: t('Discover'),
+          target: 'release_transactions_open_in_discover',
+          description: t(
+            `Click here to analyze new performance issues by URL, geography, device, browser, etc.`
+          ),
+        },
+      ],
+    },
+    {
+      guide: 'discover_landing',
+      requiredTargets: ['discover_landing_header'],
+      steps: [
+        {
+          title: t('Discover'),
+          target: 'discover_landing_header',
+          description: t(
+            `Click into any of the queries below to analyze trends in event data.`
+          ),
+        },
+      ],
+    },
+    {
+      guide: 'discover_event_view',
+      requiredTargets: ['create_alert_from_discover'],
+      steps: [
+        {
+          title: t('Create Alert'),
+          target: 'create_alert_from_discover',
+          description: t(
+            `Create an alert based on this query to get notified when an event exceeds user-defined thresholds.`
+          ),
+        },
+        {
+          title: t('Columns'),
+          target: 'columns_header_button',
+          description: t(`View all query conditions.`),
+        },
+      ],
+    },
+    {
+      guide: 'transaction_details',
+      requiredTargets: ['span_tree'],
+      steps: [
+        {
+          title: t('Span Tree'),
+          target: 'span_tree',
+          description: t(`Click to expand the spans and see dependencies.`),
+        },
+        {
+          title: t('Breadcrumbs'),
+          target: 'breadcrumbs',
+          description: t(
+            `Check out the play by play of what your user experienced till they encountered the performance issue.`
           ),
         },
       ],

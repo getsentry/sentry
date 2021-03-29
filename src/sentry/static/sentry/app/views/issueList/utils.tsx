@@ -38,7 +38,7 @@ export function getTabs(organization: Organization) {
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
-        tooltipTitle: t(`All unresolved issues, including those that need review.`),
+        tooltipTitle: t(`All unresolved issues.`),
       },
     ],
     [
@@ -48,9 +48,9 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: organization.features.includes('inbox-owners-query'),
-        tooltipTitle: t(`New and reopened issues that you can review, ignore, or resolve
-        to move them out of this list. After seven days these issues are
-        automatically marked as reviewed.`),
+        tooltipTitle: t(`Unresolved issues that are new or have reopened. Review, ignore,
+        or resolve an issue to move it out of this list. After 7 days these
+        issues are automatically marked as reviewed.`),
       },
     ],
     [
@@ -60,9 +60,9 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: !organization.features.includes('inbox-owners-query'),
-        tooltipTitle: t(`New and reopened issues that you can review, ignore, or resolve
-        to move them out of this list. After seven days these issues are
-        automatically marked as reviewed.`),
+        tooltipTitle: t(`Unresolved issues that are new or have reopened. Review, ignore,
+        or resolve an issue to move it out of this list. After 7 days these
+        issues are automatically marked as reviewed.`),
       },
     ],
     [
