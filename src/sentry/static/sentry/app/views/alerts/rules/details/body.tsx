@@ -293,7 +293,7 @@ export default class DetailsBody extends React.Component<Props> {
             <Layout.Body>
               <Alert type="info" icon={<IconInfo size="md" />}>
                 {t(
-                  'You’re viewing the new alert details page. To view the old experience, select an alert below.'
+                  'You’re viewing the new alert details page. To view the old experience, select an alert on the chart or in the history.'
                 )}
               </Alert>
               <Layout.Main>
