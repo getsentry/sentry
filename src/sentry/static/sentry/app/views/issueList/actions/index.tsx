@@ -25,6 +25,7 @@ type Props = {
   organization: Organization;
   selection: GlobalSelection;
   groupIds: string[];
+  onDelete: () => void;
   onRealtimeChange: (realtime: boolean) => void;
   onSelectStatsPeriod: (period: string) => void;
   realtimeActive: boolean;
@@ -180,7 +181,7 @@ class IssueListActions extends React.Component<Props, State> {
   };
 
   handleDelete = () => {
-    const {selection, api, organization, query} = this.props;
+    const {selection, api, organization, query, onDelete} = this.props;
     const orgId = organization.slug;
 
     addLoadingMessage(t('Removing events\u2026'));
@@ -199,6 +200,7 @@ class IssueListActions extends React.Component<Props, State> {
         {
           complete: () => {
             clearIndicators();
+            onDelete();
           },
         }
       );

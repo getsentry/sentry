@@ -24,6 +24,7 @@ type Props = {
   selection: GlobalSelection;
   query?: string;
   onMarkReviewed?: (itemIds: string[]) => void;
+  onDelete?: () => void;
 };
 
 class GroupRowActions extends React.Component<Props> {
@@ -57,7 +58,7 @@ class GroupRowActions extends React.Component<Props> {
   };
 
   handleDelete = () => {
-    const {api, group, orgSlug, query, selection} = this.props;
+    const {api, group, orgSlug, query, selection, onDelete} = this.props;
 
     addLoadingMessage(t('Removing events\u2026'));
 
@@ -74,6 +75,7 @@ class GroupRowActions extends React.Component<Props> {
       {
         complete: () => {
           clearIndicators();
+          onDelete?.();
         },
       }
     );
