@@ -71,7 +71,7 @@ class CategorizationInput:
     @cached_property
     def data(self):
         with open(os.path.join(_fixture_path, self.filename)) as f:
-            return json.load(f)
+            return _pre_scrub_event(json.load(f))
 
 
 CONFIG = load_grouping_config(get_default_grouping_config_dict())
@@ -272,3 +272,15 @@ def _strip_sensitive_keys(data, keys):
             rv = True
 
     return rv
+
+
+def _pre_scrub_event(data):
+    # Make sure rules are only applied in exception interface. Otherwise one can:
+    #
+    # 1. Check in an event with a thread interface in event A1-4 and use it to exercise rules
+    # 2. Later see that rule has been sufficiently exercised and remove event B
+    # 3. Scrub events A1-4
+    # 4. Now you have an unused rule to delete
+    data.pop("stacktrace", None)
+    data.pop("threads", None)
+    return data
