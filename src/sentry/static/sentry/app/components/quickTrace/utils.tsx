@@ -16,13 +16,8 @@ export type ErrorDestination = 'discover' | 'issue';
 
 export type TransactionDestination = 'discover' | 'performance';
 
-function generateIssueEventTarget(
-  event: TraceError,
-  organization: OrganizationSummary,
-  location: Location
-): LocationDescriptor {
-  // TODO(txiao): This requires the group permalink, linking to discover for now.
-  return generateDiscoverEventTarget(event, organization, location);
+function generateIssueEventTarget(event: TraceError): LocationDescriptor {
+  return `${event.url}events/${event.event_id}/`;
 }
 
 function generatePerformanceEventTarget(
@@ -66,7 +61,7 @@ export function generateSingleErrorTarget(
 ): LocationDescriptor {
   switch (destination) {
     case 'issue':
-      return generateIssueEventTarget(event, organization, location);
+      return generateIssueEventTarget(event);
     case 'discover':
     default:
       return generateDiscoverEventTarget(event, organization, location);

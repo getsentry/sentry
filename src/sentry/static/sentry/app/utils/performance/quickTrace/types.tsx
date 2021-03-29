@@ -27,6 +27,7 @@ export type TraceError = {
   transaction: string;
   project_id: number;
   project_slug: string;
+  url: string;
 };
 
 export type TraceLite = EventLite[];
