@@ -22,7 +22,6 @@ import {formatUsageWithUnits} from './utils';
 
 type Props = {
   organization: Organization;
-
   dataCategory: DataCategory;
   dataCategoryName: string;
   onChangeDataCategory: (dataCategory: DataCategory) => void;
