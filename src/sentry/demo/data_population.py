@@ -112,7 +112,7 @@ distrubtion_fns = [distribution_v1, distribution_v2, distribution_v3]
 def gen_measurements(full_duration):
     duration_ms = full_duration * 1000.0
     """
-    Generate measurements that are random but distribution changs based on the day
+    Generate measurements that are random but based on the full duration
     """
     return {
         "fp": {"value": duration_ms - random_normal(400, 100, 100)},
@@ -123,6 +123,10 @@ def gen_measurements(full_duration):
 
 
 def gen_frontend_duration(day, quick):
+    """
+    Generates the length of the front-end transaction based on our config,
+    the day, and some randomness
+    """
     config = get_config(quick)
     DAY_DURATION_IMPACT = config["DAY_DURATION_IMPACT"]
     MAX_DAYS = config["MAX_DAYS"]
@@ -191,6 +195,9 @@ def gen_random_author():
 
 
 def gen_base_context():
+    """
+    Generates a base context from pure randomness
+    """
     browser_list = get_list_of_browsers()
     os_list = get_list_of_os()
     browser = random.choice(browser_list)
