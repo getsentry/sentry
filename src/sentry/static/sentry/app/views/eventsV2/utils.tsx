@@ -27,7 +27,6 @@ import {
 import {getTitle} from 'app/utils/events';
 import localStorage from 'app/utils/localStorage';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
-import {disableMacros} from 'app/views/discover/result/utils';
 
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';
 import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
@@ -139,6 +138,16 @@ export function getPrebuiltQueries(organization: LightWeightOrganization) {
   }
 
   return views;
+}
+
+function disableMacros(value: string | null | boolean | number) {
+  const unsafeCharacterRegex = /^[\=\+\-\@]/;
+
+  if (typeof value === 'string' && `${value}`.match(unsafeCharacterRegex)) {
+    return `'${value}`;
+  }
+
+  return value;
 }
 
 export function downloadAsCsv(tableData, columnOrder, filename) {
