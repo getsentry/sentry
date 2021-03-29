@@ -1,3 +1,4 @@
+from functools import lru_cache
 import re
 
 from sentry.stacktraces.platform import get_behavior_family_for_platform
@@ -92,6 +93,7 @@ def split_func_tokens(s):
     return ["".join(x) for x in rv]
 
 
+@lru_cache(maxsize=4096)
 def trim_function_name(function, platform, normalize_lambdas=True):
     """Given a function value from the frame's function attribute this returns
     a trimmed version that can be stored in `function_name`.  This is only used

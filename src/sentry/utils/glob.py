@@ -1,6 +1,9 @@
+from functools import lru_cache
+
 import sentry_relay
 
 
+@lru_cache(maxsize=4096)
 def glob_match(
     value, pat, doublestar=False, ignorecase=False, path_normalize=False, allow_newline=True
 ):
