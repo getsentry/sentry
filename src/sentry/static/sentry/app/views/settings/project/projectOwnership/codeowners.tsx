@@ -95,7 +95,6 @@ const Container = styled('div')`
   display: grid;
   grid-template-columns: 1fr 2fr;
   grid-template-areas: 'rules-header rules-view';
-  height: 400px;
   margin-bottom: ${space(3)};
 `;
 
