@@ -223,6 +223,7 @@ const StyledCard = styled(Card)`
   padding: ${space(2)} ${space(3)};
   color: ${p => p.theme.textColor};
 `;
+
 const CardContent = styled('div')`
   margin-top: ${space(1)};
   font-size: 32px;
