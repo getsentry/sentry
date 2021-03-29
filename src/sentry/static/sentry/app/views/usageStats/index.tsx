@@ -15,12 +15,10 @@ import UsageStatsProjects from './usageStatsProjects';
 type Props = {
   api: Client;
   organization: Organization;
-
   orgStatsLoading: boolean;
+  projectStatsLoading: boolean;
   orgStats?: OrganizationUsageStats;
   orgStatsError?: Error;
-
-  projectStatsLoading: boolean;
   projectStats?: ProjectUsageStats[];
   projectStatsError?: Error;
 } & RouteComponentProps<{orgId: string}, {}>;
