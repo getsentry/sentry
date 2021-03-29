@@ -20,7 +20,8 @@ def serialize(objects, user=None, serializer=None, **kwargs):
         # find the first object that is in the registry
         for o in objects:
             try:
-                serializer = registry[type(o)]
+                # use __class__ instead of type(o) to properly serialize django LazyObject(User)
+                serializer = registry[o.__class__]
                 break
             except KeyError:
                 pass
