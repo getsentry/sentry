@@ -8,7 +8,7 @@ from django.core.cache import cache
 
 import sentry_sdk
 
-from sentry import eventstore, features
+from sentry import eventstore, features, options
 
 from sentry.models import Project
 from sentry.signals import event_accepted
@@ -130,6 +130,11 @@ def _do_process_event(message, projects):
             project_id,
         )
         return  # message already processed do not reprocess
+
+    if project_id in (options.get("store.load-shed-pipeline-projects") or ()):
+        # This killswitch is for the worst of scenarios and should probably not
+        # cause additional load on our logging infrastructure
+        return
 
     try:
         project = projects[project_id]
