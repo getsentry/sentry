@@ -197,8 +197,7 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
         for action in trigger["actions"]:
             if action["type"] == "slack":
                 if action["targetIdentifier"] in mapped_ids:
-                    action["input_channel_id"] = (mapped_ids[action["targetIdentifier"]], False)
-                    # this is a tuple here ONLY to detect in the serializer when it was not added by a user via the API
+                    action["input_channel_id"] = mapped_ids[action["targetIdentifier"]]
                 else:
                     # We can early exit because we couldn't map this action's slack channel name to a slack id
                     # This is a fail safe, but I think we shouldn't really hit this.
@@ -215,6 +214,7 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
             "access": SystemAccess(),
             "user": user,
             "use_async_lookup": True,
+            "validate_channel_id": False,
         },
         data=data,
         instance=alert_rule,

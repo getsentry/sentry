@@ -394,8 +394,8 @@ def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -
         integration = Integration.objects.get(id=integration_id)
     except Integration.DoesNotExist:
         raise Http404
-
-    headers = {"Authorization": "Bearer %s" % integration.metadata["access_token"]}
+    token = integration.metadata["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
     payload = {"channel": input_channel_id}
     client = SlackClient()
     try:
@@ -405,10 +405,11 @@ def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -
             raise ValidationError("Channel not found. Invalid ID provided.")
         logger.info("rule.slack.conversation_info_failed", extra={"error": str(e)})
         raise IntegrationError("Could not retrieve Slack channel information.")
-    if not strip_channel_name(name) == results["channel"]["name"]:
+    stripped_channel_name = strip_channel_name(name)
+    if not stripped_channel_name == results["channel"]["name"]:
+        channel_name = results["channel"]["name"]
         raise ValidationError(
-            "Received channel name %s does not match inputted channel name %s."
-            % (results["channel"]["name"], strip_channel_name(name))
+            f"Received channel name {channel_name} does not match inputted channel name {stripped_channel_name}"
         )
 
 
