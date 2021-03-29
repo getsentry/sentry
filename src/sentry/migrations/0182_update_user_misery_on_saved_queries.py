@@ -13,17 +13,20 @@ def update_user_misery_column_on_saved_queries(apps, schema_editor):
 
     for saved_query in RangeQuerySetWrapperWithProgressBar(DiscoverSavedQuery.objects.all()):
         query = saved_query.query
-        if "fields" not in query:
+        fields = query.get("fields")
+        if not fields:
             continue
 
-        fields = query["fields"]
+        updated = False
         for i, field in enumerate(fields):
             match = re.match(USER_MISERY_REGEX, field)
             if match and "count_unique(user)" not in fields:
                 fields[i] = f"count_miserable(user, {match.group(1)})"
-                saved_query.query["fields"] = fields
-                saved_query.save()
-                break
+                updated = True
+
+        if updated:
+            saved_query.query["fields"] = fields
+            saved_query.save()
 
 
 class Migration(migrations.Migration):
