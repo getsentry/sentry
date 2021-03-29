@@ -6,7 +6,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardSerializer
-from sentry.api.serializers.rest_framework import DashboardSerializer as DashboardRESTSerializer
+from sentry.api.serializers.rest_framework import DashboardSerializer as DashboardDRFSerializer
 from sentry.models import Dashboard
 from sentry import features
 from rest_framework.response import Response
@@ -89,7 +89,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
 
-        serializer = DashboardRESTSerializer(
+        serializer = DashboardDRFSerializer(
             data=request.data,
             context={
                 "organization": organization,
