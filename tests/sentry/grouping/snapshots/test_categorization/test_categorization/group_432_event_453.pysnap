@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:27:54.033290Z'
+created: '2021-03-29T15:40:54.531324Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -18,8 +18,8 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
                        function_template.hpp  boost::function0<T>::operator() category=indirection
                                               stripped_application_code
-                                       xtree  std::_Tree<T>::insert<T> category=std
-                                       xtree  std::_Tree<T>::_Emplace category=std
+                                       xtree  std::_Tree<T>::insert<T> category=internals
+                                       xtree  std::_Tree<T>::_Emplace category=internals
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code

@@ -1,5 +1,5 @@
 ---
-created: '2020-11-12T10:56:53.043078Z'
+created: '2021-03-29T21:59:11.504688Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -546,7 +546,7 @@ app:
           "Error occurred during request handling, status: 500 Internal Server Error Something went really wrong here"
 --------------------------------------------------------------------------
 system:
-  hash: "4796dda6f2cfa81ec7862cd24bcfb58e"
+  hash: "56d44009eb57b207ace93cbdbe56fd1a"
   component:
     system*
       exception*
@@ -578,14 +578,14 @@ system:
               "std::thread::Builder::spawn_unchecked::{{closure}}"
             lineno (function takes precedence)
               476
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "panic.rs"
             function*
               "std::panic::catch_unwind"
             lineno (function takes precedence)
               398
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "panicking.rs"
             function*
@@ -606,21 +606,21 @@ system:
               "std::panicking::try::do_call"
             lineno (function takes precedence)
               310
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "panic.rs"
             function*
               "<std::panic::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once"
             lineno (function takes precedence)
               319
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"
             lineno (function takes precedence)
               477
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "backtrace.rs"
             function*
@@ -662,7 +662,7 @@ system:
               "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function*
@@ -697,7 +697,7 @@ system:
               "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function*
@@ -732,7 +732,7 @@ system:
               "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function*
@@ -767,7 +767,7 @@ system:
               "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function*
@@ -830,7 +830,7 @@ system:
               "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function*
@@ -1061,7 +1061,7 @@ system:
               "<std::thread::local::LocalKey<T>>::with"
             lineno (function takes precedence)
               255
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function*

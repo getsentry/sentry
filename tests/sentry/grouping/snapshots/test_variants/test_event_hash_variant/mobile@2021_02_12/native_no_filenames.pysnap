@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T11:30:04.172870Z'
+created: '2021-03-29T21:59:27.518130Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -44,15 +44,15 @@ app-depth-2:
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 app-depth-3:
-  hash: "7b1c864b21801cc624a3734761cfbc48"
-  tree_label: "std::rt::lang_start::{{closure}} | ... | sentry::hub::Hub::with_active"
+  hash: "833d4f5b442ef5432a634e68338ee495"
+  tree_label: "std::panicking::try::do_call | ... | sentry::hub::Hub::with_active"
   component:
     app-depth-3*
       exception*
         stacktrace*
           frame*
             function*
-              "std::rt::lang_start::{{closure}}"
+              "std::panicking::try::do_call"
             package (ignored because function takes precedence)
               "std"
           frame*
@@ -79,20 +79,18 @@ app-depth-3:
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 app-depth-4:
-  hash: "8484da08545a2177db5f2d6cc56ef47a"
-  tree_label: "std::panicking::try::do_call | ... | sentry::hub::Hub::with"
+  hash: "05b386226c903021d3797c9800e3ef5d"
+  tree_label: "___rust_maybe_catch_panic | ... | sentry::hub::Hub::with"
   component:
     app-depth-4*
       exception*
         stacktrace*
           frame*
             function*
-              "std::panicking::try::do_call"
-            package (ignored because function takes precedence)
-              "std"
+              "___rust_maybe_catch_panic"
           frame*
             function*
-              "std::rt::lang_start::{{closure}}"
+              "std::panicking::try::do_call"
             package (ignored because function takes precedence)
               "std"
           frame*
@@ -124,23 +122,23 @@ app-depth-4:
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 app-depth-5:
-  hash: "88d63e9701c93e98832eb50d7e5e9d4a"
-  tree_label: "___rust_maybe_catch_panic | ... | sentry::hub::Hub::with_active::{{closure}}"
+  hash: "5c76070b3447d5bdd0f418005d190395"
+  tree_label: "std::rt::lang_start | ... | sentry::hub::Hub::with_active::{{closure}}"
   component:
     app-depth-5*
       exception*
         stacktrace*
           frame*
             function*
-              "___rust_maybe_catch_panic"
-          frame*
-            function*
-              "std::panicking::try::do_call"
+              "std::rt::lang_start"
             package (ignored because function takes precedence)
               "std"
           frame*
             function*
-              "std::rt::lang_start::{{closure}}"
+              "___rust_maybe_catch_panic"
+          frame*
+            function*
+              "std::panicking::try::do_call"
             package (ignored because function takes precedence)
               "std"
           frame*
@@ -177,7 +175,7 @@ app-depth-5:
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "c2cc4110b3cf1cf35873a39525994f02"
+  hash: "a12f03cf6be0c16305a3c6c5c69538e8"
   tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
@@ -191,7 +189,7 @@ app-depth-max:
               "std::rt::lang_start"
             package (ignored because function takes precedence)
               "std"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start_internal"
             package (ignored because function takes precedence)
@@ -204,7 +202,7 @@ app-depth-max:
               "std::panicking::try::do_call"
             package (ignored because function takes precedence)
               "std"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start::{{closure}}"
             package (ignored because function takes precedence)
@@ -253,7 +251,7 @@ app-depth-max:
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
-  hash: "c2cc4110b3cf1cf35873a39525994f02"
+  hash: "a12f03cf6be0c16305a3c6c5c69538e8"
   tree_label: "<entire stacktrace>"
   component:
     system*
@@ -267,7 +265,7 @@ system:
               "std::rt::lang_start"
             package (ignored because function takes precedence)
               "std"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start_internal"
             package (ignored because function takes precedence)
@@ -280,7 +278,7 @@ system:
               "std::panicking::try::do_call"
             package (ignored because function takes precedence)
               "std"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start::{{closure}}"
             package (ignored because function takes precedence)

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T11:30:02.756364Z'
+created: '2021-03-29T21:59:21.586999Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -120,19 +120,19 @@ app-depth-4:
           "/ by zero"
 --------------------------------------------------------------------------
 app-depth-5:
-  hash: "44a7bd6bf1a716b6d20615191a4fd11e"
-  tree_label: "invoke | ..."
+  hash: "90de1f0caf1150bfdc92d957fdbb1fea"
+  tree_label: "doInvoke | ..."
   component:
     app-depth-5*
       exception*
         stacktrace*
           frame*
             module*
-              "java.lang.reflect.Method"
+              "org.springframework.web.method.support.InvocableHandlerMethod"
             filename (module takes precedence)
-              "method.java"
+              "invocablehandlermethod.java"
             function*
-              "invoke"
+              "doInvoke"
           frame*
             module*
               "jdk.internal.reflect.DelegatingMethodAccessorImpl"
@@ -167,34 +167,34 @@ app-depth-5:
           "/ by zero"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "ec87dd10e4f7512ecccb4a068c5774ae"
+  hash: "12f3d3df2e7804af98f4b56c602d17b0"
   tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.lang.Thread"
             filename (module takes precedence)
               "thread.java"
             function*
               "run"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
             filename (module takes precedence)
               "taskthread.java"
             function*
               "run"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.util.concurrent.ThreadPoolExecutor$Worker"
             filename (module takes precedence)
               "threadpoolexecutor.java"
             function*
               "run"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.util.concurrent.ThreadPoolExecutor"
             filename (module takes precedence)
@@ -523,7 +523,7 @@ app-depth-max:
               "invocablehandlermethod.java"
             function*
               "doInvoke"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)
@@ -580,34 +580,34 @@ exception-type:
           "ArithmeticException"
 --------------------------------------------------------------------------
 system:
-  hash: "ec87dd10e4f7512ecccb4a068c5774ae"
+  hash: "12f3d3df2e7804af98f4b56c602d17b0"
   tree_label: "<entire stacktrace>"
   component:
     system*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.lang.Thread"
             filename (module takes precedence)
               "thread.java"
             function*
               "run"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
             filename (module takes precedence)
               "taskthread.java"
             function*
               "run"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.util.concurrent.ThreadPoolExecutor$Worker"
             filename (module takes precedence)
               "threadpoolexecutor.java"
             function*
               "run"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.util.concurrent.ThreadPoolExecutor"
             filename (module takes precedence)
@@ -936,7 +936,7 @@ system:
               "invocablehandlermethod.java"
             function*
               "doInvoke"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)

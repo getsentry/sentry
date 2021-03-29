@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:19:13.993795Z'
+created: '2021-03-29T16:34:09.431456Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -13,8 +13,8 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
         abccore.framework/Versions/A/abccore  boost::function0<T>::operator() category=indirection
                                               stripped_application_code
-        abccore.framework/Versions/A/abccore  std::__1::auto_ptr<T>::~auto_ptr category=std
-        abccore.framework/Versions/A/abccore  std::__1::auto_ptr<T>::~auto_ptr category=std
+        abccore.framework/Versions/A/abccore  std::__1::auto_ptr<T>::~auto_ptr category=internals
+        abccore.framework/Versions/A/abccore  std::__1::auto_ptr<T>::~auto_ptr category=internals
                                               stripped_application_code
                                               stripped_application_code
         abccore.framework/Versions/A/abccore  boost::function<T>::~function category=indirection

@@ -1,0 +1,144 @@
+{
+  "event_id": "cbd43f217fdc414081364ac8c6fb77f6",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "mach_exception": {
+              "code": 0,
+              "exception": 10,
+              "name": "EXC_CRASH",
+              "subcode": 0
+            },
+            "signal": {
+              "code": 0,
+              "name": "SIGABRT",
+              "number": 6
+            }
+          },
+          "synthetic": null,
+          "type": "nsexception"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIApplication _run]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopDoSources0",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopDoSource0",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__eventFetcherSourceCallback",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "__processEventQueue",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "__dispatchPreprocessedEventFromEventQueue",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIApplication sendEvent:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIWindow sendEvent:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIGestureEnvironment _updateForEvent:window:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "_UIGestureEnvironmentUpdate",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIGestureRecognizer _updateGestureForActiveEvents]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "_UIGestureRecognizerSendActions",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "_UIGestureRecognizerSendTargetActions",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIGestureRecognizerTarget _sendActionWithGestureRecognizer:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "-[__NSArrayM insertObject:atIndex:]",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "-[__NSArrayM insertObject:atIndex:].cold.1",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "_CFThrowFormattedException",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "objc_exception_throw",
+              "package": "libobjc.A.dylib"
+            },
+            {
+              "function": "__exceptionPreprocess",
+              "package": "CoreFoundation"
+            }
+          ]
+        },
+        "type": "NSInvalidArgumentException",
+        "value": "*** -[__NSArrayM insertObject:atIndex:]: object cannot be nil"
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

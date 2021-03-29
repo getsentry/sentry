@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:19:10.883560Z'
+created: '2021-03-29T20:24:22.822514Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -17,10 +17,10 @@ EXC_BAD_ACCESS / KERN_INVALID_ADDRESS:Fatal Error: EXC_BAD_ACCESS / KERN_INVALID
                                               stripped_application_code
                                               stripped_application_code
         abccore.framework/Versions/A/abccore  boost::get_system_time category=std
-        abccore.framework/Versions/A/abccore  boost::date_time::microsec_clock<T>::universal_time category=std
-        abccore.framework/Versions/A/abccore  boost::date_time::microsec_clock<T>::create_time category=std
-        abccore.framework/Versions/A/abccore  boost::date_time::c_time::gmtime category=std
-           /usr/lib/system/libsystem_c.dylib  gmtsub category=system
+        abccore.framework/Versions/A/abccore  boost::date_time::microsec_clock<T>::universal_time category=internals
+        abccore.framework/Versions/A/abccore  boost::date_time::microsec_clock<T>::create_time category=internals
+        abccore.framework/Versions/A/abccore  boost::date_time::c_time::gmtime category=internals
+           /usr/lib/system/libsystem_c.dylib  gmtsub category=internals
            /usr/lib/system/libsystem_c.dylib  notify_check_tz category=internals
       /usr/lib/system/libsystem_notify.dylib  notify_check category=internals
       /usr/lib/system/libsystem_notify.dylib  notify_monitor_file category=internals

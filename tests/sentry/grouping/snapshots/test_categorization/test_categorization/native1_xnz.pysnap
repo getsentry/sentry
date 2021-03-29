@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:36:05.498336Z'
+created: '2021-03-29T20:00:34.302737Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -35,7 +35,7 @@ EXC_BAD_ACCESS / 0x00000032:Fatal Error: EXC_BAD_ACCESS / 0x00000032 (thread_id:
   /System/Library/Frameworks/CoreFoundation.  CFBundleGetFunctionPointerForName category=indirection
   /System/Library/Frameworks/CoreFoundation.  _CFBundleLoadExecutableAndReturnError category=internals
   /System/Library/Frameworks/CoreFoundation.  _CFBundleDlfcnLoadBundle category=internals
-               /usr/lib/system/libdyld.dylib  dlopen category=dyld
+               /usr/lib/system/libdyld.dylib  dlopen category=load
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code

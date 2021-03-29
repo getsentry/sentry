@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:19:15.547365Z'
+created: '2021-03-29T16:34:16.704993Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -18,7 +18,7 @@ EXC_BAD_INSTRUCTION / EXC_I386_INVOP:Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386
   /System/Library/Frameworks/AppKit.framewor  -[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] category=internals
   /System/Library/Frameworks/AppKit.framewor  _DPSNextEvent category=internals
   /System/Library/Frameworks/Carbon.framewor  _BlockUntilNextEventMatchingListInModeWithFilter category=internals
-  /System/Library/Frameworks/Carbon.framewor  ReceiveNextEventCommon category=system
+  /System/Library/Frameworks/Carbon.framewor  ReceiveNextEventCommon category=internals
   /System/Library/Frameworks/Carbon.framewor  RunCurrentEventLoopInMode category=internals
   /System/Library/Frameworks/CoreFoundation.  CFRunLoopRunSpecific category=internals
   /System/Library/Frameworks/CoreFoundation.  __CFRunLoopRun category=internals
@@ -52,12 +52,12 @@ EXC_BAD_INSTRUCTION / EXC_I386_INVOP:Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
-  abcaudiofilterhost.framework/Versions/A/ab  std::__1::vector<T>::vector category=std
-  abcaudiofilterhost.framework/Versions/A/ab  std::__1::vector<T>::vector category=std
-  abcaudiofilterhost.framework/Versions/A/ab  std::__1::vector<T>::__vallocate category=std
+  abcaudiofilterhost.framework/Versions/A/ab  std::__1::vector<T>::vector category=internals
+  abcaudiofilterhost.framework/Versions/A/ab  std::__1::vector<T>::vector category=internals
+  abcaudiofilterhost.framework/Versions/A/ab  std::__1::vector<T>::__vallocate category=internals
   abcaudiofilterhost.framework/Versions/A/ab  std::__1::allocator_traits<T>::allocate category=malloc
-  abcaudiofilterhost.framework/Versions/A/ab  std::__1::allocator<T>::allocate category=std
-  abcaudiofilterhost.framework/Versions/A/ab  std::__1::__libcpp_allocate category=std
+  abcaudiofilterhost.framework/Versions/A/ab  std::__1::allocator<T>::allocate category=internals
+  abcaudiofilterhost.framework/Versions/A/ab  std::__1::__libcpp_allocate category=internals
                                               stripped_application_code
       /usr/lib/system/libsystem_malloc.dylib  malloc category=malloc
       /usr/lib/system/libsystem_malloc.dylib  malloc_zone_malloc category=internals

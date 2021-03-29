@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:36:04.547613Z'
+created: '2021-03-29T20:24:32.546543Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -17,7 +17,7 @@ source: tests/sentry/grouping/test_categorization.py
   /System/Library/Frameworks/AppKit.framewor  -[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] category=internals
   /System/Library/Frameworks/AppKit.framewor  _DPSNextEvent category=internals
   /System/Library/Frameworks/Carbon.framewor  _BlockUntilNextEventMatchingListInModeWithFilter category=internals
-  /System/Library/Frameworks/Carbon.framewor  ReceiveNextEventCommon category=system
+  /System/Library/Frameworks/Carbon.framewor  ReceiveNextEventCommon category=internals
   /System/Library/Frameworks/Carbon.framewor  RunCurrentEventLoopInMode category=internals
   /System/Library/Frameworks/CoreFoundation.  CFRunLoopRunSpecific category=internals
   /System/Library/Frameworks/CoreFoundation.  __CFRunLoopRun category=internals
@@ -48,7 +48,7 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
   /System/Library/Frameworks/AppKit.framewor  NSRunAlertPanel category=indirection
   /System/Library/Frameworks/AppKit.framewor  _NSTryRunModal category=internals
-  /System/Library/Frameworks/QuartzCore.fram  CA::Transaction::commit category=system
+  /System/Library/Frameworks/QuartzCore.fram  CA::Transaction::commit category=internals
   /System/Library/Frameworks/QuartzCore.fram  CA::Context::commit_transaction category=internals
   /System/Library/Frameworks/QuartzCore.fram  CA::Layer::display_if_needed category=internals
   /System/Library/Frameworks/AppKit.framewor  -[_NSOpenGLViewBackingLayer display] category=internals

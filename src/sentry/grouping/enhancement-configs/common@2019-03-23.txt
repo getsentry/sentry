@@ -84,10 +84,55 @@ family:native package:"/System/Library/Frameworks/**" category=system
 family:native package:"C:/Windows/**" category=system
 family:native package:/usr/lib/** category=system
 family:native function:memset category=system
+family:native function:memcpy category=system
+family:native function:__memcpy category=system
 family:native function:memcmp category=system
+family:native package:CoreFoundation category=system
+family:native package:IOKit category=system
+family:native package:QuartzCore category=system
+family:native package:IOMobileFramebuffer category=system
+family:native package:libobjc* category=system
+family:native package:/system/** category=system
+family:native package:/vendor/** category=system
+module:dalvik.system.* category=system
+module:com.android.* category=system
+family:native package:libdispatch.dylib category=system
+family:native package:WebKit category=system
+package:/apex/com.android.*/lib*/** category=system
+
+# (Presumably) preinstalled stuff on Lenovo Android devices
+module:com.lenovo.lsf.* category=system
+module:com.lenovo.payplus.* category=system
 
 family:native function:boost::* category=std
 family:native function:std::* category=std
+module:java.* category=std
+# common crypto library on android
+module:com.google.crypto.* category=std
+module:com.google.android.* category=std
+module:javax.crypto.* category=std
+
+module:android.database.* category=std
+module:androidx.* category=std
+module:android.* category=std
+module:android.os.* category=system
+
+family:native package:UIKit category=ui
+family:native package:UIKitCore category=ui
+family:native package:UIKitCore category=ui
+module:android.view.* category=ui
+module:android.text.* category=ui
+module:android.widget.* category=ui
+module:android.app.Dialog category=ui
+category:ui function:handleMessage category=indirection
+category:ui function:run category=indirection
+
+family:native package:**/libart.so category=gc
+
+family:native package:/system/lib/libmedia.so category=av
+family:native package:/System/lib/libaudioclient.so category=av
+family:native package:AudioToolbox* category=av
+family:native package:libAudioToolboxUtility.dylib category=av
 
 family:native function:std::_* category=internals
 
@@ -98,6 +143,7 @@ family:native function:BaseThreadInitThunk category=threadbase
 family:native function:RtlUserThreadStart category=threadbase
 family:native function:thread_start category=threadbase
 family:native function:_pthread_start category=threadbase
+family:native function:__pthread_start category=threadbase
 family:native function:_pthread_body category=threadbase
 family:native function:_dispatch_worker_thread2 category=threadbase
 family:native function:_dispatch_client_callout category=threadbase
@@ -105,6 +151,12 @@ family:native function:start_wqthread category=threadbase
 family:native function:_pthread_wqthread category=threadbase
 family:native function:boost::*::thread_proxy category=threadbase
 family:native package:/usr/lib/system/libsystem_pthread.dylib function:"<unknown>" category=threadbase
+module:android.os.AsyncTask* function:call category=threadbase
+module:java.lang.Thread category=threadbase
+family:native package:UIKit function:UIApplicationMain category=threadbase
+module:java.util.concurrent.ThreadPoolExecutor* function:runWorker category=threadbase
+module:android.os.* function:call category=threadbase
+module:android.app.ActivityThread function:main category=threadbase
 
 family:native package:"/usr/lib/system/libsystem_malloc.dylib" category=malloc
 family:native function:malloc category=malloc
@@ -121,6 +173,9 @@ family:native function:__dynamic_cast category=indirection
 family:native function:boost::function* category=indirection
 family:native function:boost::_bi::* category=indirection
 family:native function:boost::detail::function::functor_manager* category=indirection
+module:java.lang.reflect.* category=indirection
+module:java.lang.Class function:getMethod category=indirection
+module:androidx.work.impl.utils.ForceStopRunnable category=indirection
 
 family:native function:"*::\{dtor\}" category=dtor
 family:native function:"destructor'" category=dtor
@@ -143,6 +198,8 @@ family:native function:TppRaiseInvalidParameter category=throw
 family:native function:_CxxThrowException category=throw
 family:native function:RaiseException category=throw
 family:native function:RaiseComPlusException category=throw
+family:native function:_CFThrowFormattedException category=throw
+family:native function:objc_exception_throw category=throw
 
 family:native package:"C:/WINDOWS/system32/DriverStore\**" category=driver
 family:native package:"/System/Library/Extensions/AppleIntel*GraphicsGLDriver.bundle/**" category=driver
@@ -152,6 +209,8 @@ family:native package:"C:\Program Files\NVIDIA Corporation\**" category=driver
 family:native package:/System/Library/Extensions/GeForceGLDriver.bundle/** category=driver
 family:native package:/System/Library/Extensions/AMDRadeon*/** category=driver
 family:native package:/System/Library/PrivateFrameworks/GPUSupport.framework/** category=driver
+family:native package:libGPUSupportMercury.dylib category=driver
+family:native package:AGXGLDriver category=driver
 
 # If there is a singular frame wedged between two driver frames, consider it a driver frame
 # TODO
@@ -165,14 +224,31 @@ family:native category:system function:free category=free
 
 family:native package:C:\Windows\SYSTEM32\OPENGL32.dll category=gl
 family:native package:/System/Library/Frameworks/OpenGL.framework/** category=gl
+family:native package:OpenGLES category=gl
+family:native package:GLEngine category=gl
+family:native package:/system/lib/libEGL.so category=gl
+family:native package:**/libGLES*.so category=gl
+family:native package:**/libESXGLES*.so category=gl
+family:native package:/system/lib/libskia.so category=gl
 # Not a graphics library but we've seen it be interchangeable with OpenGL in stacktraces.
 family:native package:/System/Library/Frameworks/OpenCL.framework/** category=gl
 
 family:native package:"/System/Library/PrivateFrameworks/GPUSupport.framework/**" function:gpusGenerateCrashLog* category=telemetry
 family:native function:gpusKillClientExt category=telemetry
 family:native function:crashpad::* category=telemetry
+# Presumably some chinese user-tracking SDK. Wraps activity creation in Android.
+module:cn.gundam.sdk.* category=telemetry
 
-family:native function:dlopen category=dyld
+# No app actually uses this. This appears to be some type of framework that
+# comes up as part of some "Lenovo ID" activity (user login prompt?). Not
+# entirely sure if any of that is linked into the app, it's probably something
+# preinstalled on Lenovo devices.
+module:com.lenovo.payplus.analytics.* category=telemetry
+
+family:native function:dlopen category=load
+family:native package:/system/lib/libnativeloader.so function:android::OpenNativeLibrary category=load
+module:java.lang.System function:loadLibrary category=load
+module:java.lang.Runtime function:loadLibrary* category=load
 
 family:native function:pthread_mutex_lock category=lock
 
@@ -181,8 +257,10 @@ category:driver +sentinel +prefix
 category:free +sentinel +prefix
 category:malloc +sentinel +prefix
 category:lock +sentinel +prefix
-category:dyld +sentinel +prefix
+category:load +sentinel +prefix
 category:gl +sentinel
+category:gc +sentinel
+category:ui +sentinel +prefix
 
 # Ignore driver frame if it is directly calling another driver frame. This
 # removes a lot of noise from the stack especially if most of the called frames
@@ -192,6 +270,7 @@ category:gl +sentinel
 
 # Only group by top-level GL operaton, not any helper functions it may have called.
 [ .. | category:gl ] category:gl category=internals
+[ .. | category:av ] category:av category=internals
 # If we have a GL frame, its symbolication is more reliable than any driver frame to group by.
 # todo: find testcase
 # [ .. | category:gl ] category:driver category=internals
@@ -243,15 +322,23 @@ family:native function:_INTERNAL* category=internals
 family:native function:*.cold.1 category=indirection
 
 # System frame wedged between two other frames is just noise.
+# TODO: consider removal
 [ !category:system | .. | !category:system ] category:system category=indirection
 
 # TODO: multi-category / category inheritance
 category:system [ .. | category:free ] category=internals
 category:system [ .. | category:system ] category=internals
-category:system [ .. | category:dyld ] category=internals
+category:system [ .. | category:std ] category=internals
+category:std [ .. | category:std ] category=internals
+category:ui [ .. | category:ui ] category=internals
+category:system [ .. | category:ui ] category=internals
 category:system [ .. | category:internals ] category=internals
-category:throw [ .. | category:dyld ] category=internals
+category:system [ .. | category:load ] category=internals
+category:load [ .. | category:load ] category=internals
 # TODO: findtestcase
 # category:system [ .. | category:driver ] category=internals
+category:system [ .. | category:throw ] category=internals
+category:system [ .. | category:gc ] category=internals
+category:gc [ .. | category:gc ] category=internals
 
 category:dtor [ .. | category:dtor ] category=internals

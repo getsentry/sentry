@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:19:15.022211Z'
+created: '2021-03-29T20:31:58.324051Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -22,7 +22,7 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
             C:\WINDOWS\SYSTEM32\MSVCP120.dll  _Call_onceEx category=internals
             C:\WINDOWS\SYSTEM32\MSVCP120.dll  _Mtx_guard::{ctor} category=internals
-            C:\WINDOWS\SYSTEM32\MSVCP120.dll  mtx_do_lock category=system
+            C:\WINDOWS\SYSTEM32\MSVCP120.dll  mtx_do_lock category=internals
             C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::critical_section::lock category=internals
             C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::LockQueueNode::{ctor} category=internals
             C:\WINDOWS\SYSTEM32\MSVCR120.dll  Concurrency::details::SchedulerBase::CurrentContext category=internals

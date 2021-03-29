@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T19:08:05.965304Z'
+created: '2021-03-29T21:59:41.161360Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -150,7 +150,7 @@ app:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "aeab14a51b0f707071162f26db78c82a"
+  hash: "15526a7b64e9b5dc6d89e7ebec864260"
   component:
     system*
       exception*
@@ -179,7 +179,7 @@ system:
               "xstring"
             function*
               "std::basic_string<T>::{ctor}"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "xstring"
             function*
@@ -189,7 +189,7 @@ system:
               "xstring"
             function*
               "std::basic_string<T>::assign"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "xstring"
             function*

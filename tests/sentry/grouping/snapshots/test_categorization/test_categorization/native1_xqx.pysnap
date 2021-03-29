@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:19:12.543861Z'
+created: '2021-03-29T19:24:18.830755Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -17,7 +17,7 @@ EXC_BAD_INSTRUCTION / EXC_I386_INVOP:Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386
   /System/Library/Frameworks/AppKit.framewor  ??? category=internals
   /System/Library/Frameworks/AppKit.framewor  ??? category=internals
   /System/Library/Frameworks/Carbon.framewor  _BlockUntilNextEventMatchingListInModeWithFilter category=internals
-  /System/Library/Frameworks/Carbon.framewor  ReceiveNextEventCommon category=system
+  /System/Library/Frameworks/Carbon.framewor  ReceiveNextEventCommon category=internals
   /System/Library/Frameworks/Carbon.framewor  RunCurrentEventLoopInMode category=internals
   /System/Library/Frameworks/CoreFoundation.  ??? category=internals
   /System/Library/Frameworks/CoreFoundation.  ??? category=internals
@@ -25,7 +25,7 @@ EXC_BAD_INSTRUCTION / EXC_I386_INVOP:Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386
            /usr/lib/system/libdispatch.dylib  _dispatch_main_queue_callback_4CF category=internals
            /usr/lib/system/libdispatch.dylib  _dispatch_client_callout category=threadbase
                     /usr/lib/libc++abi.dylib  std::terminate category=throw
-                    /usr/lib/libc++abi.dylib  std::__terminate category=std
+                    /usr/lib/libc++abi.dylib  std::__terminate category=internals
                     /usr/lib/libobjc.A.dylib  _objc_terminate category=internals
   /System/Library/Frameworks/CoreFoundation.  ??? category=internals
   /System/Library/Frameworks/AppKit.framewor  ??? category=internals

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-23T22:22:27.812826Z'
+created: '2021-03-29T21:59:29.167238Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -41,7 +41,7 @@ app-depth-2:
               "std::panicking::try::do_call"
             package (ignored because function takes precedence)
               "std"
-          frame (ignored by stack trace rule (function:log_demo::* -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start::{{closure}}"
             package (ignored because function takes precedence)
@@ -93,7 +93,7 @@ system:
               "std::panicking::try::do_call"
             package (ignored because function takes precedence)
               "std"
-          frame (ignored by stack trace rule (function:log_demo::* -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start::{{closure}}"
             package (ignored because function takes precedence)

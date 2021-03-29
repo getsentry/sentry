@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:27:57.498088Z'
+created: '2021-03-29T17:02:33.100344Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -51,9 +51,9 @@ EXC_BAD_ACCESS / KERN_INVALID_ADDRESS:Fatal Error: EXC_BAD_ACCESS / KERN_INVALID
                                               stripped_application_code
                                               stripped_application_code
   ../../../../../../../artifacts/boost_sourc  boost::shared_ptr<T>::shared_ptr category=std
-  ../../../../../../../artifacts/boost_sourc  boost::shared_ptr<T>::shared_ptr category=std
-  ../../../../../../../artifacts/boost_sourc  boost::detail::shared_count::shared_count category=std
-  ../../../../../../../artifacts/boost_sourc  boost::detail::shared_count::shared_count category=std
+  ../../../../../../../artifacts/boost_sourc  boost::shared_ptr<T>::shared_ptr category=internals
+  ../../../../../../../artifacts/boost_sourc  boost::detail::shared_count::shared_count category=internals
+  ../../../../../../../artifacts/boost_sourc  boost::detail::shared_count::shared_count category=internals
                                               stripped_application_code
   /System/Library/Frameworks/OpenCL.framewor  clEnqueueMapBuffer category=gl
   /System/Library/Frameworks/OpenCL.framewor  clCreateCommandQueueWithPropertiesAPPLE category=internals

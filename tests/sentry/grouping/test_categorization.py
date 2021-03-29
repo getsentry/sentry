@@ -217,9 +217,11 @@ def cleanup_unused_data():
                 # the following fields are inserted as part of the test,
                 # they should not be written back, but we should also not
                 # count removing them as modification
-                category = frame["data"].pop("category", None)
-                frame.pop("in_app", None)
-                frame["data"].pop("orig_in_app", None)
+                category = None
+                if frame["data"]:
+                    category = frame["data"].pop("category", None)
+                    frame.pop("in_app", None)
+                    frame["data"].pop("orig_in_app", None)
 
                 if not frame["data"]:
                     del frame["data"]

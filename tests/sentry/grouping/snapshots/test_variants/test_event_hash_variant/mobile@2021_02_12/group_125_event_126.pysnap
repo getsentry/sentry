@@ -1,16 +1,16 @@
 ---
-created: '2021-03-26T18:53:51.410501Z'
+created: '2021-03-29T21:59:24.364714Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "05526eb3e37b799f775acd2a31b13dd1"
-  tree_label: "dlopen | stripped_application_code [dyld]"
+  tree_label: "dlopen | stripped_application_code [load]"
   component:
     app-depth-1*
       exception*
         stacktrace*
-          frame* (marked as prefix frame by stack trace rule (category:dyld +sentinel +prefix))
+          frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
             function*
               "dlopen"
             package (ignored because function takes precedence)
@@ -148,7 +148,7 @@ system:
               "_CFBundleDlfcnLoadBundle"
             package (ignored because function takes precedence)
               "corefoundation"
-          frame* (marked as prefix frame by stack trace rule (category:dyld +sentinel +prefix))
+          frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
             function*
               "dlopen"
             package (ignored because function takes precedence)

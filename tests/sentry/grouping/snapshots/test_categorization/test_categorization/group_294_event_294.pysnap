@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:27:55.727269Z'
+created: '2021-03-29T20:18:46.852622Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -20,15 +20,15 @@ source: tests/sentry/grouping/test_categorization.py
   ../../../../../artifacts/boost_source_libr  boost::function0<T>::operator() category=indirection
                                               stripped_application_code
                                               stripped_application_code
-                                         mac  std::__1::map<T>::~map category=std
-                                         map  std::__1::map<T>::~map category=std
-                                      __tree  std::__1::__tree<T>::~__tree category=std
-                                      __tree  std::__1::__tree<T>::~__tree category=std
-                                      __tree  std::__1::__tree<T>::destroy category=std
+                                         mac  std::__1::map<T>::~map category=internals
+                                         map  std::__1::map<T>::~map category=internals
+                                      __tree  std::__1::__tree<T>::~__tree category=internals
+                                      __tree  std::__1::__tree<T>::~__tree category=internals
+                                      __tree  std::__1::__tree<T>::destroy category=internals
                                       memory  std::__1::allocator_traits<T>::destroy<T> category=malloc
                                       memory  std::__1::allocator_traits<T>::__destroy<T> category=internals
-                                         mac  std::__1::pair<T>::~pair category=std
-                                     utility  std::__1::pair<T>::~pair category=std
+                                         mac  std::__1::pair<T>::~pair category=internals
+                                     utility  std::__1::pair<T>::~pair category=internals
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
@@ -37,10 +37,10 @@ source: tests/sentry/grouping/test_categorization.py
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
-                     /usr/lib/libc++.1.dylib  std::__1::thread::~thread category=std
+                     /usr/lib/libc++.1.dylib  std::__1::thread::~thread category=internals
                     /usr/lib/libc++abi.dylib  std::terminate category=throw
-                    /usr/lib/libc++abi.dylib  std::__terminate category=std
-                    /usr/lib/libc++abi.dylib  default_terminate_handler category=system
+                    /usr/lib/libc++abi.dylib  std::__terminate category=internals
+                    /usr/lib/libc++abi.dylib  default_terminate_handler category=internals
                     /usr/lib/libc++abi.dylib  abort_message category=internals
            /usr/lib/system/libsystem_c.dylib  abort category=throw
            /usr/lib/system/libsystem_c.dylib  __abort category=internals

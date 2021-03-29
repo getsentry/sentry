@@ -1,15 +1,15 @@
 ---
-created: '2020-11-12T10:57:01.630956Z'
+created: '2021-03-29T21:59:30.741217Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "703d3dd9cb763e3f5037f659d27da947"
+  hash: "738e7d2503464bc264b4f791286f5122"
   component:
     app*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__pthread_start"
           frame*
@@ -394,12 +394,12 @@ app:
           "actix_web::pipeline"
 --------------------------------------------------------------------------
 system:
-  hash: "1df163ce3be65319df4fcc9cb34b60c1"
+  hash: "19a96e0438d28e48355653def82f887a"
   component:
     system*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__pthread_start"
           frame*
@@ -420,12 +420,12 @@ system:
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "panic.rs"
             function*
               "std::panic::catch_unwind"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "panicking.rs"
             function*
@@ -440,17 +440,17 @@ system:
               "panicking.rs"
             function*
               "std::panicking::try::do_call"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "panic.rs"
             function* (isolated function)
               "std::panic::AssertUnwindSafe<T>::call_once"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "backtrace.rs"
             function*
@@ -480,7 +480,7 @@ system:
               "local.rs"
             function* (isolated function)
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function* (isolated function)
@@ -505,7 +505,7 @@ system:
               "local.rs"
             function* (isolated function)
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function* (isolated function)
@@ -530,7 +530,7 @@ system:
               "local.rs"
             function* (isolated function)
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function* (isolated function)
@@ -555,7 +555,7 @@ system:
               "local.rs"
             function* (isolated function)
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function* (isolated function)
@@ -600,7 +600,7 @@ system:
               "local.rs"
             function* (isolated function)
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function* (isolated function)
@@ -765,7 +765,7 @@ system:
               "local.rs"
             function* (isolated function)
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function* (isolated function)

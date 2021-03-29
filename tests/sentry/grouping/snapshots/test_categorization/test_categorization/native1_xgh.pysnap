@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:19:12.232102Z'
+created: '2021-03-29T19:24:19.086079Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -17,7 +17,7 @@ source: tests/sentry/grouping/test_categorization.py
   /System/Library/Frameworks/AppKit.framewor  ??? category=internals
   /System/Library/Frameworks/AppKit.framewor  ??? category=internals
   /System/Library/Frameworks/Carbon.framewor  _BlockUntilNextEventMatchingListInModeWithFilter category=internals
-  /System/Library/Frameworks/Carbon.framewor  ReceiveNextEventCommon category=system
+  /System/Library/Frameworks/Carbon.framewor  ReceiveNextEventCommon category=internals
   /System/Library/Frameworks/Carbon.framewor  RunCurrentEventLoopInMode category=internals
   /System/Library/Frameworks/CoreFoundation.  ??? category=internals
   /System/Library/Frameworks/CoreFoundation.  ??? category=internals

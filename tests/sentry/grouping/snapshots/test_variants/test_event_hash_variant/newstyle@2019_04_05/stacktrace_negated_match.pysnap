@@ -1,5 +1,5 @@
 ---
-created: '2020-11-12T10:57:04.515579Z'
+created: '2021-03-29T21:59:29.588755Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -51,7 +51,7 @@ system:
           frame (ignored by stack trace rule (function:log_demo::* -group))
             function*
               "std::panicking::try::do_call"
-          frame (ignored by stack trace rule (function:log_demo::* -group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start::{{closure}}"
           frame*

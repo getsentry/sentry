@@ -1,5 +1,5 @@
 ---
-created: '2020-11-12T10:57:03.006314Z'
+created: '2021-03-29T21:59:27.627653Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -34,7 +34,7 @@ app:
           "log_demo"
 --------------------------------------------------------------------------
 system:
-  hash: "e0b4eea234ff891472cb927c00153bbe"
+  hash: "cb57cfc73cc622c2ac1386c9ea531fb9"
   component:
     system*
       exception*
@@ -51,7 +51,7 @@ system:
           frame* (marked out of app by stack trace rule (family:native function:std::* -app))
             function*
               "std::panicking::try::do_call"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start::{{closure}}"
           frame* (marked in-app by stack trace rule (family:native function:log_demo::* +app))

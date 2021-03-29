@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:19:11.636030Z'
+created: '2021-03-29T19:24:18.462542Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -16,7 +16,7 @@ Unhandled C++ Exception:Fatal Error: Unhandled C++ Exception (thread_id:_, crash
              C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::_SafeAppCallback category=internals
                                               stripped_application_code
              C:\WINDOWS\SYSTEM32\WINHTTP.dll  ??? category=internals
-             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::IndicateCompletionStatusCommon category=system
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::IndicateCompletionStatusCommon category=internals
              C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::_SafeAppCallback category=internals
                                               stripped_application_code
              C:\WINDOWS\SYSTEM32\WINHTTP.dll  WinHttpReadData category=system

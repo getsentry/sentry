@@ -1,5 +1,5 @@
 ---
-created: '2020-11-12T10:57:03.223977Z'
+created: '2021-03-29T21:59:33.601117Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -55,7 +55,7 @@ app:
           "log_demo"
 --------------------------------------------------------------------------
 system:
-  hash: "00719910980352c06ba93641057012e0"
+  hash: "bbcdb2e1d8df09ffe0fffd30fb361d4b"
   component:
     system*
       exception*
@@ -66,7 +66,7 @@ system:
           frame*
             function*
               "std::rt::lang_start"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start_internal"
           frame*
@@ -75,7 +75,7 @@ system:
           frame*
             function*
               "std::panicking::try::do_call"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start::{{closure}}"
           frame*

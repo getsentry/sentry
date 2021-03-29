@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:54:01.372466Z'
+created: '2021-03-29T21:59:36.307643Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -119,7 +119,7 @@ app:
           frame (non app frame)
             function*
               "_CFBundleDlfcnLoadBundle"
-          frame (marked as prefix frame by stack trace rule (category:dyld +sentinel +prefix))
+          frame (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
             function*
               "dlopen"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -258,7 +258,7 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "_CFBundleDlfcnLoadBundle"
-          frame* (marked as prefix frame by stack trace rule (category:dyld +sentinel +prefix))
+          frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
             function*
               "dlopen"
           frame (ignored by stack trace rule (category:internals -group))

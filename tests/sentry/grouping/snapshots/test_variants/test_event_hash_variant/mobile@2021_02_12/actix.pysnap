@@ -1,5 +1,5 @@
 ---
-created: '2021-03-18T11:30:03.184879Z'
+created: '2021-03-29T21:59:31.399762Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -207,13 +207,13 @@ app-depth-5:
           "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "06b56949c15328f2e72506a2259c3ae5"
+  hash: "3b6eaff1ca55deef09b01def1b407956"
   tree_label: "<entire stacktrace>"
   component:
     app-depth-max*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__pthread_start"
           frame*
@@ -238,14 +238,14 @@ app-depth-max:
               "std::thread::Builder::spawn_unchecked::{{closure}}"
             package (ignored because function takes precedence)
               "std"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "panic.rs"
             function*
               "std::panic::catch_unwind"
             package (ignored because function takes precedence)
               "std"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "panicking.rs"
             function*
@@ -264,19 +264,19 @@ app-depth-max:
               "std::panicking::try::do_call"
             package (ignored because function takes precedence)
               "std"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "panic.rs"
             function*
               "std::panic::AssertUnwindSafe<T>::call_once"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"
             package (ignored because function takes precedence)
               "std"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "backtrace.rs"
             function*
@@ -316,7 +316,7 @@ app-depth-max:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "local.rs"
             function*
@@ -347,7 +347,7 @@ app-depth-max:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "local.rs"
             function*
@@ -378,7 +378,7 @@ app-depth-max:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "local.rs"
             function*
@@ -409,7 +409,7 @@ app-depth-max:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "local.rs"
             function*
@@ -460,7 +460,7 @@ app-depth-max:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "local.rs"
             function*
@@ -635,7 +635,7 @@ app-depth-max:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "local.rs"
             function*
@@ -669,13 +669,13 @@ exception-type:
           "actix_web::pipeline"
 --------------------------------------------------------------------------
 system:
-  hash: "06b56949c15328f2e72506a2259c3ae5"
+  hash: "3b6eaff1ca55deef09b01def1b407956"
   tree_label: "<entire stacktrace>"
   component:
     system*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__pthread_start"
           frame*
@@ -700,14 +700,14 @@ system:
               "std::thread::Builder::spawn_unchecked::{{closure}}"
             package (ignored because function takes precedence)
               "std"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "panic.rs"
             function*
               "std::panic::catch_unwind"
             package (ignored because function takes precedence)
               "std"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "panicking.rs"
             function*
@@ -726,19 +726,19 @@ system:
               "std::panicking::try::do_call"
             package (ignored because function takes precedence)
               "std"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "panic.rs"
             function*
               "std::panic::AssertUnwindSafe<T>::call_once"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"
             package (ignored because function takes precedence)
               "std"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "backtrace.rs"
             function*
@@ -778,7 +778,7 @@ system:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "local.rs"
             function*
@@ -809,7 +809,7 @@ system:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "local.rs"
             function*
@@ -840,7 +840,7 @@ system:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "local.rs"
             function*
@@ -871,7 +871,7 @@ system:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "local.rs"
             function*
@@ -922,7 +922,7 @@ system:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "local.rs"
             function*
@@ -1097,7 +1097,7 @@ system:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "local.rs"
             function*

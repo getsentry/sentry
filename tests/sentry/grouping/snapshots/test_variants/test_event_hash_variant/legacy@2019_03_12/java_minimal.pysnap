@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:27.284036Z'
+created: '2021-03-29T21:59:06.040426Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,7 +9,7 @@ app:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
         stacktrace*
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.lang.Thread"
             filename (module takes precedence)
@@ -18,7 +18,7 @@ app:
               "run"
             lineno (function takes precedence)
               844
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
             filename (module takes precedence)
@@ -27,7 +27,7 @@ app:
               "run"
             lineno (function takes precedence)
               61
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.util.concurrent.ThreadPoolExecutor$Worker"
             filename (module takes precedence)
@@ -36,7 +36,7 @@ app:
               "run"
             lineno (function takes precedence)
               641
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.util.concurrent.ThreadPoolExecutor"
             filename (module takes precedence)
@@ -459,7 +459,7 @@ app:
               "doInvoke"
             lineno (function takes precedence)
               205
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:indirection -group))
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)
@@ -515,12 +515,12 @@ default:
         "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause"
 --------------------------------------------------------------------------
 system:
-  hash: "ec87dd10e4f7512ecccb4a068c5774ae"
+  hash: "12f3d3df2e7804af98f4b56c602d17b0"
   component:
     system*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.lang.Thread"
             filename (module takes precedence)
@@ -529,7 +529,7 @@ system:
               "run"
             lineno (function takes precedence)
               844
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
             filename (module takes precedence)
@@ -538,7 +538,7 @@ system:
               "run"
             lineno (function takes precedence)
               61
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.util.concurrent.ThreadPoolExecutor$Worker"
             filename (module takes precedence)
@@ -547,7 +547,7 @@ system:
               "run"
             lineno (function takes precedence)
               641
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.util.concurrent.ThreadPoolExecutor"
             filename (module takes precedence)
@@ -970,7 +970,7 @@ system:
               "doInvoke"
             lineno (function takes precedence)
               205
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)

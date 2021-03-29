@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:36:03.508466Z'
+created: '2021-03-29T14:31:44.810971Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -29,9 +29,9 @@ EXCEPTION_ACCESS_VIOLATION_READ:Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ (th
                                               stripped_application_code
                                               stripped_application_code
   C:\Program Files\Company\Example App 2020\  boost::bimaps::container_adaptor::associative_container_adaptor category=std
-  C:\Program Files\Company\Example App 2020\  boost::multi_index::detail::ordered_index_impl<T>::find<T> category=std
-  C:\Program Files\Company\Example App 2020\  boost::multi_index::detail::ordered_index_find category=std
-  C:\Program Files\Company\Example App 2020\  boost::multi_index::detail::ordered_index_find category=std
+  C:\Program Files\Company\Example App 2020\  boost::multi_index::detail::ordered_index_impl<T>::find<T> category=internals
+  C:\Program Files\Company\Example App 2020\  boost::multi_index::detail::ordered_index_find category=internals
+  C:\Program Files\Company\Example App 2020\  boost::multi_index::detail::ordered_index_find category=internals
   C:\Program Files\Company\Example App 2020\  std::less<T>::operator() category=indirection
                                               stripped_application_code
                                               stripped_application_code

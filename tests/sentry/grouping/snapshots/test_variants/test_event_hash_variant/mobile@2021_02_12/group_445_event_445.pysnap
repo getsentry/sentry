@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T19:07:50.066315Z'
+created: '2021-03-29T21:59:22.071859Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app-depth-1:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "59b1936bb0b54abcaaf7cbf2b7ab6a08"
+  hash: "e964d1e7cfec1ffbfe73559e02f9ac1b"
   tree_label: "<entire stacktrace>"
   component:
     system*
@@ -56,7 +56,7 @@ system:
               "xstring"
             function*
               "std::basic_string<T>::{ctor}"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "xstring"
             function*
@@ -66,7 +66,7 @@ system:
               "xstring"
             function*
               "std::basic_string<T>::assign"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "xstring"
             function*

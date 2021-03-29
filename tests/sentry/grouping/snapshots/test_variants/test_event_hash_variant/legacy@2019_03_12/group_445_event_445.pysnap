@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T19:07:40.751051Z'
+created: '2021-03-29T21:59:08.043624Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -33,7 +33,7 @@ app:
               "xstring"
             function*
               "std::basic_string<T>::{ctor}"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "xstring"
             function*
@@ -43,7 +43,7 @@ app:
               "xstring"
             function*
               "std::basic_string<T>::assign"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "xstring"
             function*
@@ -150,7 +150,7 @@ app:
           "Fatal Error: 0x40000015 / 0x00000001"
 --------------------------------------------------------------------------
 system:
-  hash: "61257b2ed5e05a804891975d8550d876"
+  hash: "9be643d1ddb9d3b6218325ffbb084b03"
   component:
     system*
       exception*
@@ -179,7 +179,7 @@ system:
               "xstring"
             function*
               "std::basic_string<T>::{ctor}"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "xstring"
             function*
@@ -189,7 +189,7 @@ system:
               "xstring"
             function*
               "std::basic_string<T>::assign"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "xstring"
             function*

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-11T13:01:47.683723Z'
+created: '2021-03-29T21:59:09.734949Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,7 +9,7 @@ app:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
         stacktrace*
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "com.android.internal.os.ZygoteInit"
             filename (module takes precedence)
@@ -18,7 +18,7 @@ app:
               "main"
             lineno (function takes precedence)
               698
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
             filename (module takes precedence)
@@ -27,7 +27,7 @@ app:
               "run"
             lineno (function takes precedence)
               903
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)
@@ -36,14 +36,14 @@ app:
               "invoke"
             lineno (function takes precedence)
               372
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)
               "Method.java"
             function*
               "invoke"
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "android.app.ActivityThread"
             filename (module takes precedence)
@@ -61,7 +61,7 @@ app:
               "loop"
             lineno (function takes precedence)
               135
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.os.Handler"
             filename (module takes precedence)
@@ -70,7 +70,7 @@ app:
               "dispatchMessage"
             lineno (function takes precedence)
               95
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.os.Handler"
             filename (module takes precedence)
@@ -79,7 +79,7 @@ app:
               "handleCallback"
             lineno (function takes precedence)
               739
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:indirection -group))
             module*
               "android.view.Choreographer$FrameDisplayEventReceiver"
             filename (module takes precedence)
@@ -88,7 +88,7 @@ app:
               "run"
             lineno (function takes precedence)
               753
-          frame* (frame considered in-app because no frame is in-app)
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             module*
               "android.view.Choreographer"
             filename (module takes precedence)
@@ -97,7 +97,7 @@ app:
               "doFrame"
             lineno (function takes precedence)
               550
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.Choreographer"
             filename (module takes precedence)
@@ -106,7 +106,7 @@ app:
               "doCallbacks"
             lineno (function takes precedence)
               580
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:indirection -group))
             module*
               "android.view.Choreographer$CallbackRecord"
             filename (module takes precedence)
@@ -115,7 +115,7 @@ app:
               "run"
             lineno (function takes precedence)
               767
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:indirection -group))
             module*
               "android.view.ViewRootImpl$TraversalRunnable"
             filename (module takes precedence)
@@ -124,7 +124,7 @@ app:
               "run"
             lineno (function takes precedence)
               5891
-          frame* (frame considered in-app because no frame is in-app)
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             module*
               "android.view.ViewRootImpl"
             filename (module takes precedence)
@@ -133,7 +133,7 @@ app:
               "doTraversal"
             lineno (function takes precedence)
               1061
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewRootImpl"
             filename (module takes precedence)
@@ -142,7 +142,7 @@ app:
               "performTraversals"
             lineno (function takes precedence)
               1843
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewRootImpl"
             filename (module takes precedence)
@@ -151,7 +151,7 @@ app:
               "performLayout"
             lineno (function takes precedence)
               2086
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -160,7 +160,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -169,7 +169,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -178,7 +178,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -187,7 +187,7 @@ app:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -196,7 +196,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -205,7 +205,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -214,7 +214,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               1466
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -223,7 +223,7 @@ app:
               "layoutVertical"
             lineno (function takes precedence)
               1557
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -232,7 +232,7 @@ app:
               "setChildFrame"
             lineno (function takes precedence)
               1703
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -241,7 +241,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -250,7 +250,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -259,7 +259,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -268,7 +268,7 @@ app:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -277,7 +277,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -286,7 +286,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -295,7 +295,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               1466
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -304,7 +304,7 @@ app:
               "layoutVertical"
             lineno (function takes precedence)
               1557
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -313,7 +313,7 @@ app:
               "setChildFrame"
             lineno (function takes precedence)
               1703
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -322,7 +322,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -331,7 +331,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -340,7 +340,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -349,7 +349,7 @@ app:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -358,7 +358,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -367,7 +367,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -376,7 +376,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -385,7 +385,7 @@ app:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -394,7 +394,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -403,7 +403,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -412,7 +412,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -421,7 +421,7 @@ app:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -430,7 +430,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -439,7 +439,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -448,7 +448,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -457,7 +457,7 @@ app:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -466,7 +466,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -475,7 +475,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -484,7 +484,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -493,7 +493,7 @@ app:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -502,7 +502,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -511,7 +511,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -520,7 +520,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -529,7 +529,7 @@ app:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -538,7 +538,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -547,7 +547,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -556,7 +556,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -565,7 +565,7 @@ app:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -574,7 +574,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -583,7 +583,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -592,7 +592,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -601,7 +601,7 @@ app:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -610,7 +610,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -619,7 +619,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -628,7 +628,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               1466
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -637,7 +637,7 @@ app:
               "layoutVertical"
             lineno (function takes precedence)
               1557
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -646,7 +646,7 @@ app:
               "setChildFrame"
             lineno (function takes precedence)
               1703
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -655,7 +655,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -664,7 +664,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -673,7 +673,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -682,7 +682,7 @@ app:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -691,7 +691,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -700,7 +700,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -709,7 +709,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -718,7 +718,7 @@ app:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -727,7 +727,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -736,7 +736,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -745,7 +745,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               1466
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -754,7 +754,7 @@ app:
               "layoutVertical"
             lineno (function takes precedence)
               1557
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -763,7 +763,7 @@ app:
               "setChildFrame"
             lineno (function takes precedence)
               1703
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -772,7 +772,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -781,7 +781,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -790,7 +790,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -799,7 +799,7 @@ app:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -808,7 +808,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -817,7 +817,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -826,7 +826,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               1466
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -835,7 +835,7 @@ app:
               "layoutVertical"
             lineno (function takes precedence)
               1557
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -844,7 +844,7 @@ app:
               "setChildFrame"
             lineno (function takes precedence)
               1703
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -853,7 +853,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -862,7 +862,7 @@ app:
               "layout"
             lineno (function takes precedence)
               15679
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -871,7 +871,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -880,7 +880,7 @@ app:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -889,7 +889,7 @@ app:
               "layout"
             lineno (function takes precedence)
               5039
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -907,7 +907,7 @@ app:
               "onLayout"
             lineno (function takes precedence)
               4410
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (module takes precedence)
@@ -916,7 +916,7 @@ app:
               "dispatchLayout"
             lineno (function takes precedence)
               3851
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (module takes precedence)
@@ -925,7 +925,7 @@ app:
               "dispatchLayoutStep1"
             lineno (function takes precedence)
               4041
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (module takes precedence)
@@ -934,7 +934,7 @@ app:
               "processAdapterUpdatesAndSetAnimationFlags"
             lineno (function takes precedence)
               3797
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.AdapterHelper"
             filename (module takes precedence)
@@ -943,7 +943,7 @@ app:
               "consumeUpdatesInOnePass"
             lineno (function takes precedence)
               564
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView$6"
             filename (module takes precedence)
@@ -952,7 +952,7 @@ app:
               "offsetPositionsForAdd"
             lineno (function takes precedence)
               1034
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (module takes precedence)
@@ -961,7 +961,7 @@ app:
               "offsetPositionRecordsForInsert"
             lineno (function takes precedence)
               4607
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.ChildHelper"
             filename (module takes precedence)
@@ -970,7 +970,7 @@ app:
               "getUnfilteredChildAt"
             lineno (function takes precedence)
               273
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView$5"
             filename (module takes precedence)
@@ -985,7 +985,7 @@ app:
           "Application Not Responding for at least 5000 ms."
       threads (ignored because hash matches system variant)
         stacktrace*
-          frame* (frame considered in-app because no frame is in-app)
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.lang.Thread"
             filename (module takes precedence)
@@ -1003,12 +1003,12 @@ app:
               "getThreadStackTrace"
 --------------------------------------------------------------------------
 system:
-  hash: "2e41d71bc38b212d73f8d68415389f45"
+  hash: "81103d430ba24ccad51cdbf81de2297a"
   component:
     system*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "com.android.internal.os.ZygoteInit"
             filename (module takes precedence)
@@ -1017,7 +1017,7 @@ system:
               "main"
             lineno (function takes precedence)
               698
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
             filename (module takes precedence)
@@ -1026,7 +1026,7 @@ system:
               "run"
             lineno (function takes precedence)
               903
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)
@@ -1035,14 +1035,14 @@ system:
               "invoke"
             lineno (function takes precedence)
               372
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)
               "Method.java"
             function*
               "invoke"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "android.app.ActivityThread"
             filename (module takes precedence)
@@ -1060,7 +1060,7 @@ system:
               "loop"
             lineno (function takes precedence)
               135
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.os.Handler"
             filename (module takes precedence)
@@ -1069,7 +1069,7 @@ system:
               "dispatchMessage"
             lineno (function takes precedence)
               95
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.os.Handler"
             filename (module takes precedence)
@@ -1078,7 +1078,7 @@ system:
               "handleCallback"
             lineno (function takes precedence)
               739
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             module*
               "android.view.Choreographer$FrameDisplayEventReceiver"
             filename (module takes precedence)
@@ -1087,7 +1087,7 @@ system:
               "run"
             lineno (function takes precedence)
               753
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             module*
               "android.view.Choreographer"
             filename (module takes precedence)
@@ -1096,7 +1096,7 @@ system:
               "doFrame"
             lineno (function takes precedence)
               550
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.Choreographer"
             filename (module takes precedence)
@@ -1105,7 +1105,7 @@ system:
               "doCallbacks"
             lineno (function takes precedence)
               580
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             module*
               "android.view.Choreographer$CallbackRecord"
             filename (module takes precedence)
@@ -1114,7 +1114,7 @@ system:
               "run"
             lineno (function takes precedence)
               767
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             module*
               "android.view.ViewRootImpl$TraversalRunnable"
             filename (module takes precedence)
@@ -1123,7 +1123,7 @@ system:
               "run"
             lineno (function takes precedence)
               5891
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             module*
               "android.view.ViewRootImpl"
             filename (module takes precedence)
@@ -1132,7 +1132,7 @@ system:
               "doTraversal"
             lineno (function takes precedence)
               1061
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewRootImpl"
             filename (module takes precedence)
@@ -1141,7 +1141,7 @@ system:
               "performTraversals"
             lineno (function takes precedence)
               1843
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewRootImpl"
             filename (module takes precedence)
@@ -1150,7 +1150,7 @@ system:
               "performLayout"
             lineno (function takes precedence)
               2086
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1159,7 +1159,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1168,7 +1168,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1177,7 +1177,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1186,7 +1186,7 @@ system:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1195,7 +1195,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1204,7 +1204,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -1213,7 +1213,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               1466
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -1222,7 +1222,7 @@ system:
               "layoutVertical"
             lineno (function takes precedence)
               1557
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -1231,7 +1231,7 @@ system:
               "setChildFrame"
             lineno (function takes precedence)
               1703
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1240,7 +1240,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1249,7 +1249,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1258,7 +1258,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1267,7 +1267,7 @@ system:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1276,7 +1276,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1285,7 +1285,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -1294,7 +1294,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               1466
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -1303,7 +1303,7 @@ system:
               "layoutVertical"
             lineno (function takes precedence)
               1557
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -1312,7 +1312,7 @@ system:
               "setChildFrame"
             lineno (function takes precedence)
               1703
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1321,7 +1321,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1330,7 +1330,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1339,7 +1339,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1348,7 +1348,7 @@ system:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1357,7 +1357,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1366,7 +1366,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1375,7 +1375,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1384,7 +1384,7 @@ system:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1393,7 +1393,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1402,7 +1402,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1411,7 +1411,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1420,7 +1420,7 @@ system:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1429,7 +1429,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1438,7 +1438,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1447,7 +1447,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1456,7 +1456,7 @@ system:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1465,7 +1465,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1474,7 +1474,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1483,7 +1483,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1492,7 +1492,7 @@ system:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1501,7 +1501,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1510,7 +1510,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1519,7 +1519,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1528,7 +1528,7 @@ system:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1537,7 +1537,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1546,7 +1546,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1555,7 +1555,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1564,7 +1564,7 @@ system:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1573,7 +1573,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1582,7 +1582,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1591,7 +1591,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1600,7 +1600,7 @@ system:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1609,7 +1609,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1618,7 +1618,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -1627,7 +1627,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               1466
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -1636,7 +1636,7 @@ system:
               "layoutVertical"
             lineno (function takes precedence)
               1557
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -1645,7 +1645,7 @@ system:
               "setChildFrame"
             lineno (function takes precedence)
               1703
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1654,7 +1654,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1663,7 +1663,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1672,7 +1672,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1681,7 +1681,7 @@ system:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1690,7 +1690,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1699,7 +1699,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1708,7 +1708,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1717,7 +1717,7 @@ system:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1726,7 +1726,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1735,7 +1735,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -1744,7 +1744,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               1466
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -1753,7 +1753,7 @@ system:
               "layoutVertical"
             lineno (function takes precedence)
               1557
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -1762,7 +1762,7 @@ system:
               "setChildFrame"
             lineno (function takes precedence)
               1703
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1771,7 +1771,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1780,7 +1780,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1789,7 +1789,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1798,7 +1798,7 @@ system:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1807,7 +1807,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1816,7 +1816,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -1825,7 +1825,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               1466
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -1834,7 +1834,7 @@ system:
               "layoutVertical"
             lineno (function takes precedence)
               1557
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
@@ -1843,7 +1843,7 @@ system:
               "setChildFrame"
             lineno (function takes precedence)
               1703
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1852,7 +1852,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1861,7 +1861,7 @@ system:
               "layout"
             lineno (function takes precedence)
               15679
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1870,7 +1870,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               514
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
@@ -1879,7 +1879,7 @@ system:
               "layoutChildren"
             lineno (function takes precedence)
               579
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
@@ -1888,7 +1888,7 @@ system:
               "layout"
             lineno (function takes precedence)
               5039
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "android.view.View"
             filename (module takes precedence)
@@ -1906,7 +1906,7 @@ system:
               "onLayout"
             lineno (function takes precedence)
               4410
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (module takes precedence)
@@ -1915,7 +1915,7 @@ system:
               "dispatchLayout"
             lineno (function takes precedence)
               3851
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (module takes precedence)
@@ -1924,7 +1924,7 @@ system:
               "dispatchLayoutStep1"
             lineno (function takes precedence)
               4041
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (module takes precedence)
@@ -1933,7 +1933,7 @@ system:
               "processAdapterUpdatesAndSetAnimationFlags"
             lineno (function takes precedence)
               3797
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.AdapterHelper"
             filename (module takes precedence)
@@ -1942,7 +1942,7 @@ system:
               "consumeUpdatesInOnePass"
             lineno (function takes precedence)
               564
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView$6"
             filename (module takes precedence)
@@ -1951,7 +1951,7 @@ system:
               "offsetPositionsForAdd"
             lineno (function takes precedence)
               1034
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (module takes precedence)
@@ -1960,7 +1960,7 @@ system:
               "offsetPositionRecordsForInsert"
             lineno (function takes precedence)
               4607
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.ChildHelper"
             filename (module takes precedence)
@@ -1969,7 +1969,7 @@ system:
               "getUnfilteredChildAt"
             lineno (function takes precedence)
               273
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "androidx.recyclerview.widget.RecyclerView$5"
             filename (module takes precedence)
@@ -1984,7 +1984,7 @@ system:
           "Application Not Responding for at least 5000 ms."
       threads (exception of system takes precedence)
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.lang.Thread"
             filename (module takes precedence)

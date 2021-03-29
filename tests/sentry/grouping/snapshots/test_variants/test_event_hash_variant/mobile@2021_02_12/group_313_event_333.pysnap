@@ -1,11 +1,11 @@
 ---
-created: '2021-03-26T19:03:47.878611Z'
+created: '2021-03-29T21:59:28.073399Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "83c2aa527052d0ca889ed70770032dd8"
-  tree_label: "abort | dlopen | stripped_application_code [dyld/throw]"
+  tree_label: "abort | dlopen | stripped_application_code [load/throw]"
   component:
     app-depth-1*
       exception*
@@ -15,7 +15,7 @@ app-depth-1:
               "abort"
             package (ignored because function takes precedence)
               "libsystem_c.dylib"
-          frame* (marked as prefix frame by stack trace rule (category:dyld +sentinel +prefix))
+          frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
             function*
               "dlopen"
             package (ignored because function takes precedence)
@@ -191,7 +191,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame* (marked as prefix frame by stack trace rule (category:dyld +sentinel +prefix))
+          frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
             function*
               "dlopen"
             package (ignored because function takes precedence)
