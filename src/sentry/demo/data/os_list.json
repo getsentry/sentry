@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Mac OS X",
+    "version": "10.15.6",
+    "type": "os"
+  },
+  {
+    "name": "Mac OS X",
+    "version": "10.14.6",
+    "type": "os"
+  },
+  {
+    "name": "Windows",
+    "version": "10",
+    "type": "os"
+  }
+]
