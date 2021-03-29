@@ -7,7 +7,7 @@ import {SectionHeading} from 'app/components/charts/styles';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
-import UserMiseryPrototype from 'app/components/userMiseryPrototype';
+import UserMisery from 'app/components/userMisery';
 import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -50,11 +50,11 @@ function UserStats({
   let vitalsPassRate: React.ReactNode = null;
 
   if (!isLoading && error === null && totals) {
-    const miserableUsers = totals[`user_misery_${threshold}`];
-    const userMiseryScore = totals[`user_misery_prototype_${threshold}`];
+    const miserableUsers = totals[`count_miserable_user_${threshold}`];
+    const userMiseryScore = totals[`user_misery_${threshold}`];
     const totalUsers = totals.count_unique_user;
     userMisery = (
-      <UserMiseryPrototype
+      <UserMisery
         bars={40}
         barHeight={30}
         userMisery={userMiseryScore}
