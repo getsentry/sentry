@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 
 from sentry import features
+from sentry.utils import metrics
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import (
@@ -157,6 +158,14 @@ class ProjectCodeOwnersMixin:
             "organizations:import-codeowners", project.organization, actor=request.user
         )
 
+    def track_response_code(self, type, status):
+        if type in ["create", "update"]:
+            metrics.incr(
+                f"codeowners.{type}.http_response",
+                sample_rate=1.0,
+                tags={"status": status},
+            )
+
 
 class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin):
     def get(self, request, project):
@@ -188,6 +197,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
         :auth: required
         """
         if not self.has_feature(request, project):
+            self.track_response_code("create", PermissionDenied.status_code)
             raise PermissionDenied
 
         serializer = ProjectCodeOwnerSerializer(
@@ -196,8 +206,10 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
         )
         if serializer.is_valid():
             project_codeowners = serializer.save()
+            self.track_response_code("create", status.HTTP_201_CREATED)
             return Response(
                 serialize(project_codeowners, request.user), status=status.HTTP_201_CREATED
             )
 
+        self.track_response_code("create", status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

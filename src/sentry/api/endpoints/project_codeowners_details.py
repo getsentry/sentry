@@ -48,6 +48,7 @@ class ProjectCodeOwnersDetailsEndpoint(
         :auth: required
         """
         if not self.has_feature(request, project):
+            self.track_response_code("update", PermissionDenied.status_code)
             raise PermissionDenied
 
         serializer = ProjectCodeOwnerSerializer(
@@ -66,9 +67,10 @@ class ProjectCodeOwnersDetailsEndpoint(
                 project_id=project.id,
                 codeowners_id=updated_codeowners.id,
             )
-
+            self.track_response_code("update", status.HTTP_200_OK)
             return Response(serialize(updated_codeowners, request.user), status=status.HTTP_200_OK)
 
+        self.track_response_code("update", status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, project, codeowners):
