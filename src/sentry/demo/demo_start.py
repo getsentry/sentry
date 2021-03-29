@@ -22,7 +22,7 @@ class DemoStartView(BaseView):
 
         # move this import here so we Django doesn't discover the models
         # for demo mode except when Demo mode is actually active
-        from sentry.demo.demo_org_manager import assign_demo_org
+        from .demo_org_manager import assign_demo_org
 
         # assign the demo org and get the user
         org, user = assign_demo_org()
@@ -31,7 +31,12 @@ class DemoStartView(BaseView):
 
         auth.login(request, user)
 
-        resp = self.redirect(auth.get_login_redirect(request))
+        url = auth.get_login_redirect(request)
+        # user is logged in so will be automatically redirected
+        # after landing on login page
+        url += "?allow_login=1"
+
+        resp = self.redirect(url)
         # set a cookie of whether the user accepteed tracking so we know
         # whether to initialize analytics when accepted_tracking=1
         # 0 means don't show the footer to accept cookies (user already declined)
