@@ -1,54 +1,65 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
-import {components, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
+import set from 'lodash/set';
 
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import WidgetQueryFields from 'app/components/dashboards/widgetQueryFields';
 import SelectControl from 'app/components/forms/selectControl';
-import Highlight from 'app/components/highlight';
 import * as Layout from 'app/components/layouts/thirds';
 import List from 'app/components/list';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
+import {GlobalSelection, Organization, TagCollection} from 'app/types';
+import Measurements from 'app/utils/measurements/measurements';
 import routeTitleGen from 'app/utils/routeTitle';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withOrganization from 'app/utils/withOrganization';
+import withTags from 'app/utils/withTags';
 import AsyncView from 'app/views/asyncView';
+import {Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
+import {generateFieldOptions} from 'app/views/eventsV2/utils';
 
 import {DISPLAY_TYPE_CHOICES} from '../../data';
 
 import BuildStep from './buildStep';
 import Chart from './chart';
-import {metricMockOptions, visualizationColors} from './utils';
-
-type SelectControlOption = {
-  label: string;
-  value: string;
-};
 
 type RouteParams = {
   orgId: string;
 };
 
-type Props = AsyncView['props'] & RouteComponentProps<RouteParams, {}> & {};
+type Props = AsyncView['props'] &
+  RouteComponentProps<RouteParams, {}> & {
+    organization: Organization;
+    tags: TagCollection;
+    selection: GlobalSelection;
+  };
 
 type State = AsyncView['state'] & {
-  metrics: Array<string>;
-  visualization: {
-    type: string;
-    color: string;
-  };
+  visualization: Widget['displayType'];
+  queries: Widget['queries'];
+  errors: Record<string, any>;
+};
+
+const newQuery = {
+  name: '',
+  fields: ['count()'],
+  conditions: '',
+  orderby: '',
 };
 
 class WidgetNew extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      visualization: {
-        type: 'line',
-        color: 'purple',
-      },
+      visualization: 'line',
+      queries: [{...newQuery}],
+      errors: {},
     };
   }
 
@@ -61,9 +72,54 @@ class WidgetNew extends AsyncView<Props, State> {
     this.setState(state => ({...state, [field]: value}));
   }
 
+  handleQueryChange = (widgetQuery: WidgetQuery, index: number) => {
+    this.setState(state => {
+      const newState = cloneDeep(state);
+      set(newState, `queries.${index}`, widgetQuery);
+
+      return {...newState, errors: {}};
+    });
+  };
+
+  handleQueryRemove = (index: number) => {
+    this.setState(state => {
+      const newState = cloneDeep(state);
+      newState.queries.splice(index, index + 1);
+
+      return {...newState, errors: {}};
+    });
+  };
+
+  handleAddSearchConditions = () => {
+    this.setState(prevState => {
+      const newState = cloneDeep(prevState);
+      newState.queries.push(cloneDeep(newQuery));
+
+      return newState;
+    });
+  };
+
+  canAddSearchConditions() {
+    const {visualization, queries} = this.state;
+
+    const rightDisplayType = ['line', 'area', 'stacked_area', 'bar'].includes(
+      visualization
+    );
+    const underQueryLimit = queries.length < 3;
+
+    return rightDisplayType && underQueryLimit;
+  }
+
   render() {
-    const {params} = this.props;
-    const {visualization, metrics} = this.state;
+    const {params, organization, tags} = this.props;
+    const {visualization, queries, errors} = this.state;
+
+    const fieldOptions = (measurementKeys: string[]) =>
+      generateFieldOptions({
+        organization,
+        tagKeys: Object.values(tags).map(({key}) => key),
+        measurementKeys,
+      });
 
     return (
       <StyledPageContent>
@@ -99,72 +155,59 @@ class WidgetNew extends AsyncView<Props, State> {
         <Layout.Body>
           <BuildSteps symbol="colored-numeric">
             <BuildStep
-              title={t('Graph your data')}
-              description={t(
-                'Choose the metric to graph by searching or selecting it from the dropdown.'
-              )}
-            >
-              <SelectControl
-                name="metrics"
-                placeholder={t('Select a metric')}
-                options={metricMockOptions.map(metricMockOption => ({
-                  label: metricMockOption,
-                  value: metricMockOption,
-                }))}
-                value={metrics}
-                onChange={(options: Array<SelectControlOption>) => {
-                  this.handleFieldChange(
-                    'metrics',
-                    options.map(option => option.value)
-                  );
-                }}
-                components={{
-                  Option: (option: OptionProps<SelectControlOption>) => {
-                    const {label, selectProps} = option;
-                    const {inputValue = ''} = selectProps;
-                    return (
-                      <components.Option {...option}>
-                        <Highlight text={inputValue}>{label}</Highlight>
-                      </components.Option>
-                    );
-                  },
-                }}
-                multiple
-              />
-            </BuildStep>
-            <BuildStep
               title={t('Choose your visualization')}
               description={t(
                 'This is a preview of how your widget will appear in the dashboard.'
               )}
             >
               <VisualizationWrapper>
-                <VisualizationFields>
-                  <SelectControl
-                    name="visualizationDisplay"
-                    options={DISPLAY_TYPE_CHOICES.slice()}
-                    value={visualization.type}
-                    onChange={(option: SelectControlOption) => {
-                      this.handleFieldChange('visualization', {
-                        ...visualization,
-                        type: option.value,
-                      });
-                    }}
-                  />
-                  <SelectControl
-                    name="visualizationColor"
-                    options={visualizationColors.slice()}
-                    value={visualization.color}
-                    onChange={(option: SelectControlOption) => {
-                      this.handleFieldChange('visualization', {
-                        ...visualization,
-                        color: option.value,
-                      });
-                    }}
-                  />
-                </VisualizationFields>
+                <SelectControl
+                  name="visualization"
+                  options={DISPLAY_TYPE_CHOICES.slice()}
+                  value={visualization}
+                  onChange={(option: {label: string; value: Widget['displayType']}) => {
+                    this.handleFieldChange('visualization', option.value);
+                  }}
+                />
                 <Chart />
               </VisualizationWrapper>
+            </BuildStep>
+            <BuildStep
+              title={t('Begin your search')}
+              description={t(
+                'Add another query to compare projects, organizations, etc.'
+              )}
+            >
+              {null}
+            </BuildStep>
+            <BuildStep
+              title={t('Choose your y-axis')}
+              description={t(
+                'We’ll use this to determine what gets graphed in the y-axis and any additional overlays.'
+              )}
+            >
+              <Measurements>
+                {({measurements}) => {
+                  const measurementKeys = Object.values(measurements).map(({key}) => key);
+                  const amendedFieldOptions = fieldOptions(measurementKeys);
+                  return (
+                    <WidgetQueryFields
+                      displayType={visualization}
+                      fieldOptions={amendedFieldOptions}
+                      errors={errors.fields}
+                      fields={queries[0].fields}
+                      onChange={fields => {
+                        queries.forEach((widgetQuery, queryIndex) => {
+                          const newQueryFields = cloneDeep(widgetQuery);
+                          newQueryFields.fields = fields;
+                          this.handleQueryChange(newQueryFields, queryIndex);
+                        });
+                      }}
+                      style={{padding: 0}}
+                    />
+                  );
+                }}
+              </Measurements>
             </BuildStep>
           </BuildSteps>
         </Layout.Body>
@@ -173,7 +216,7 @@ class WidgetNew extends AsyncView<Props, State> {
   }
 }
 
-export default WidgetNew;
+export default withOrganization(withGlobalSelection(withTags(WidgetNew)));
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
@@ -182,13 +225,11 @@ const StyledPageContent = styled(PageContent)`
 const BuildSteps = styled(List)`
   display: grid;
   grid-gap: ${space(3)};
-  max-width: calc(100% - 40%);
-`;
+  max-width: 100%;
 
-const VisualizationFields = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr minmax(200px, auto);
-  grid-gap: ${space(1.5)};
+  @media (min-width: ${p => p.theme.breakpoints[4]}) {
+    max-width: 50%;
+  }
 `;
 
 const VisualizationWrapper = styled('div')`
