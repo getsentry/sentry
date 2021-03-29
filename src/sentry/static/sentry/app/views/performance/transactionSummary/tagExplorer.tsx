@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import Duration from 'app/components/duration';
 import GridEditable from 'app/components/gridEditable';
 import Link from 'app/components/links/link';
 import Pagination from 'app/components/pagination';
@@ -20,8 +19,8 @@ import SegmentExplorerQuery, {
 } from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
-import CellAction from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
+
 import {PerformanceDuration} from '../utils';
 
 const COLUMN_ORDER = [
