@@ -47,7 +47,7 @@ class TraceSummary extends React.Component<Props> {
     }: {
       isLoading: boolean;
       error: string | null;
-      trace: TraceFullDetailed | null;
+      trace: TraceFullDetailed[] | null;
     }) => (
       <TraceDetailsContent
         location={location}
@@ -59,7 +59,7 @@ class TraceSummary extends React.Component<Props> {
         statsPeriod={statsPeriod}
         isLoading={isLoading}
         error={error}
-        trace={trace}
+        traces={trace}
       />
     );
 

@@ -86,7 +86,7 @@ function GenericTraceFullQuery<T>({
           // is 204. And we want the empty string, undefined and
           // null to be converted to null.
           // TODO(tonyx): update to return the entire array
-          trace: (tableData || null)?.[0] ?? null,
+          trace: tableData || null,
           type: 'full',
           ...rest,
         })
@@ -96,13 +96,13 @@ function GenericTraceFullQuery<T>({
 }
 
 export const TraceFullQuery = withApi(
-  (props: Omit<QueryProps<TraceFull>, 'detailed'>) => (
-    <GenericTraceFullQuery<TraceFull> {...props} detailed={false} />
+  (props: Omit<QueryProps<TraceFull[]>, 'detailed'>) => (
+    <GenericTraceFullQuery<TraceFull[]> {...props} detailed={false} />
   )
 );
 
 export const TraceFullDetailedQuery = withApi(
-  (props: Omit<QueryProps<TraceFullDetailed>, 'detailed'>) => (
-    <GenericTraceFullQuery<TraceFullDetailed> {...props} detailed />
+  (props: Omit<QueryProps<TraceFullDetailed[]>, 'detailed'>) => (
+    <GenericTraceFullQuery<TraceFullDetailed[]> {...props} detailed />
   )
 );

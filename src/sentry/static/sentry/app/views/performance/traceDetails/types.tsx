@@ -1,3 +1,5 @@
+import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
+
 export type TraceInfo = {
   /**
    * The projects in the trace with an error that matched the user condition.
@@ -35,4 +37,11 @@ export type TraceInfo = {
    * The maximum generation in the trace.
    */
   maxGeneration: number;
+};
+
+export type TraceRoot = Pick<
+  TraceFullDetailed,
+  'generation' | 'transaction.duration' | 'children' | 'start_timestamp' | 'timestamp'
+> & {
+  traceSlug: string;
 };

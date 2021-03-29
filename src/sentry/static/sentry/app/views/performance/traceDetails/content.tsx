@@ -43,7 +43,7 @@ type Props = {
   statsPeriod: string | undefined;
   isLoading: boolean;
   error: string | null;
-  trace: TraceFullDetailed | null;
+  traces: TraceFullDetailed[] | null;
 };
 
 type State = {
@@ -76,10 +76,10 @@ class TraceDetailsContent extends React.Component<Props, State> {
   };
 
   filterTransactions = async () => {
-    const {trace} = this.props;
+    const {traces} = this.props;
     const {filteredTransactionIds, searchQuery} = this.state;
 
-    if (!searchQuery || trace === null) {
+    if (!searchQuery || traces === null || traces.length <= 0) {
       if (filteredTransactionIds !== undefined) {
         this.setState({
           filteredTransactionIds: undefined,
@@ -90,12 +90,14 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
     const query = searchQuery.toLowerCase();
 
-    // TODO(tonyx): this should perform a fuzzy search
-    const matched = filterTrace(
-      trace,
-      transaction =>
-        transaction['transaction.op'].toLowerCase().includes(query) ||
-        transaction.transaction.toLowerCase().includes(query)
+    const matched = traces.flatMap(trace =>
+      // TODO(tonyx): this should perform a fuzzy search
+      filterTrace(
+        trace,
+        transaction =>
+          transaction['transaction.op'].toLowerCase().includes(query) ||
+          transaction.transaction.toLowerCase().includes(query)
+      )
     );
 
     this.setState({
@@ -194,12 +196,14 @@ class TraceDetailsContent extends React.Component<Props, State> {
     transaction: TraceFullDetailed,
     {
       continuingDepths,
+      isOrphan,
       isLast,
       index,
       numberOfHiddenTransactionsAbove,
       traceInfo,
     }: {
       continuingDepths: number[];
+      isOrphan: boolean;
       isLast: boolean;
       index: number;
       numberOfHiddenTransactionsAbove: number;
@@ -207,19 +211,23 @@ class TraceDetailsContent extends React.Component<Props, State> {
     }
   ) {
     const {location, organization} = this.props;
+    const {children, event_id: eventId} = transaction;
+    // Add 1 to the generation to make room for the "root trace"
+    const generation = transaction.generation + 1;
 
     const isVisible = this.isTransactionVisible(transaction);
 
-    const accumulated: AccType = transaction.children.reduce(
+    const accumulated: AccType = children.reduce(
       (acc: AccType, child: TraceFullDetailed, idx: number) => {
-        const isLastChild = idx === transaction.children.length - 1;
+        const isLastChild = idx === children.length - 1;
         const hasChildren = child.children.length > 0;
 
         const result = this.renderTransaction(child, {
           continuingDepths:
             !isLastChild && hasChildren
-              ? [...continuingDepths, transaction.generation]
+              ? [...continuingDepths, generation]
               : continuingDepths,
+          isOrphan,
           isLast: isLastChild,
           index: acc.lastIndex + 1,
           numberOfHiddenTransactionsAbove: acc.numberOfHiddenTransactionsAbove,
@@ -243,7 +251,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
     return {
       transactionGroup: (
-        <React.Fragment key={transaction.event_id}>
+        <React.Fragment key={eventId}>
           {this.renderInfoMessage({
             isVisible,
             numberOfHiddenTransactionsAbove,
@@ -252,8 +260,12 @@ class TraceDetailsContent extends React.Component<Props, State> {
             location={location}
             organization={organization}
             traceInfo={traceInfo}
-            transaction={transaction}
+            transaction={{
+              ...transaction,
+              generation,
+            }}
             continuingDepths={continuingDepths}
+            isOrphan={isOrphan}
             isLast={isLast}
             index={index}
             isVisible={isVisible}
@@ -273,21 +285,44 @@ class TraceDetailsContent extends React.Component<Props, State> {
       description: 'trace-view-content',
     });
 
-    const {trace} = this.props;
+    const {location, organization, traces, traceSlug} = this.props;
 
-    if (trace === null) {
+    if (traces === null || traces.length <= 0) {
       return this.renderTraceNotFound();
     }
 
-    const {transactionGroup, numberOfHiddenTransactionsAbove} = this.renderTransaction(
-      trace,
-      {
-        continuingDepths: [],
-        isLast: true,
-        index: 0,
-        numberOfHiddenTransactionsAbove: 0,
-        traceInfo,
-      }
+    const accumulator: {
+      index: number;
+      numberOfHiddenTransactionsAbove: number;
+      traceInfo: TraceInfo;
+      transactionGroups: React.ReactNode[];
+    } = {
+      index: 1,
+      numberOfHiddenTransactionsAbove: 0,
+      traceInfo,
+      transactionGroups: [],
+    };
+
+    const {transactionGroups, numberOfHiddenTransactionsAbove} = traces.reduce(
+      (acc, trace, index) => {
+        const isLastTransaction = index === traces.length - 1;
+        const hasChildren = trace.children.length > 0;
+
+        const result = this.renderTransaction(trace, {
+          ...acc,
+          // we assume the first item in the trace results is the main branch
+          // while all others are orphan branches
+          isOrphan: index > 0,
+          isLast: isLastTransaction,
+          continuingDepths: !isLastTransaction && hasChildren ? [0] : [],
+        });
+
+        acc.index = result.lastIndex + 1;
+        acc.numberOfHiddenTransactionsAbove = result.numberOfHiddenTransactionsAbove;
+        acc.transactionGroups.push(result.transactionGroup);
+        return acc;
+      },
+      accumulator
     );
 
     const traceView = (
@@ -295,7 +330,26 @@ class TraceDetailsContent extends React.Component<Props, State> {
         <StyledPanel>
           <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
             <TraceViewContainer ref={this.traceViewRef}>
-              {transactionGroup}
+              <TransactionGroup
+                location={location}
+                organization={organization}
+                traceInfo={traceInfo}
+                transaction={{
+                  traceSlug,
+                  generation: 0,
+                  'transaction.duration':
+                    traceInfo.endTimestamp - traceInfo.startTimestamp,
+                  children: traces,
+                  start_timestamp: traceInfo.startTimestamp,
+                  timestamp: traceInfo.endTimestamp,
+                }}
+                continuingDepths={[]}
+                isOrphan={false}
+                isLast={false}
+                index={0}
+                isVisible
+                renderedChildren={transactionGroups}
+              />
               {this.renderInfoMessage({
                 isVisible: true,
                 numberOfHiddenTransactionsAbove,
@@ -312,16 +366,16 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderContent() {
-    const {start, end, statsPeriod, isLoading, error, trace} = this.props;
+    const {start, end, statsPeriod, isLoading, error, traces} = this.props;
 
     if (!statsPeriod && (!start || !end)) {
       return this.renderTraceRequiresDateRangeSelection();
     } else if (isLoading) {
       return this.renderTraceLoading();
-    } else if (error !== null || trace === null) {
+    } else if (error !== null || traces === null || traces.length <= 0) {
       return this.renderTraceNotFound();
     } else {
-      const traceInfo = getTraceInfo(trace, this.isTransactionVisible);
+      const traceInfo = getTraceInfo(traces, this.isTransactionVisible);
       return (
         <React.Fragment>
           {this.renderSearchBar()}
