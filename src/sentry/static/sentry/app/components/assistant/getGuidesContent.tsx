@@ -220,7 +220,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           title: t('User Misery'),
           target: 'user_misery',
           description: t(
-            `Make users less miserable. Our User Misery Index now shows unique miserable users both by number and percentage. Plus, you can sort User Misery to identify your site’s most frustrating transactions.`
+            `Make users less miserable. Our User Misery Index now combines unique miserable users both by number and percentage. Plus, you can sort User Misery to identify your site’s most frustrating transactions.`
           ),
         },
       ],
