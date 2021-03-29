@@ -540,16 +540,16 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         results = discover.query(
             selected_columns=["count()", "any(transaction)", "any(user.id)"],
-            query="",
+            query="event.type:transaction",
             params={"project_id": [self.project.id]},
             use_aggregate_conditions=True,
         )
 
         data = results["data"]
         assert len(data) == 1
-        assert data[0]["any_transaction"] in ["", "a" * 32]
-        assert data[0]["any_user_id"] in [None, "99"]
-        assert data[0]["count"] == 2
+        assert data[0]["any_transaction"] == "a" * 32
+        assert data[0]["any_user_id"] is None
+        assert data[0]["count"] == 1
 
 
 class QueryTransformTest(TestCase):
