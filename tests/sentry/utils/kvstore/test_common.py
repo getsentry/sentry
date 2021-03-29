@@ -3,11 +3,11 @@ import pytest
 from dataclasses import dataclass
 from typing import Iterator, Tuple
 
-from sentry.utils.kvstore import K, KVStorage, V
+from sentry.utils.kvstore.abstract import K, KVStorage, V
 
 
 @dataclass
-class TestProperties:
+class Properties:
     store: KVStorage[K, V]
     keys: Iterator[K]
     values: Iterator[V]
@@ -17,12 +17,38 @@ class TestProperties:
         return zip(self.keys, self.values)
 
 
-@pytest.fixture
-def properties(request) -> TestProperties:
-    raise NotImplementedError
+@pytest.fixture(params=["bigtable", "cache/default"])
+def properties(request) -> Properties:
+    if request.param == "bigtable":
+        from tests.sentry.utils.kvstore.test_bigtable import create_store, get_credentials
+
+        return Properties(
+            create_store(request, get_credentials()),
+            keys=(f"{i}" for i in itertools.count()),
+            values=(f"{i}".encode("utf-8") for i in itertools.count()),
+        )
+    elif request.param.startswith("cache/"):
+        from sentry.utils.kvstore.cache import CacheKVStorage
+
+        # XXX: Currently only testing against the default cache is supported
+        # because testing against the Redis cache requires complex mocking of
+        # global state in ``sentry.utils.redis``.
+        [backend_label] = request.param.split("/")[1:]
+        if backend_label == "default":
+            from sentry.cache import default_cache as cache
+        else:
+            raise ValueError("unknown cache backend label")
+
+        return Properties(
+            CacheKVStorage(cache),
+            keys=(f"kvstore/{i}" for i in itertools.count()),
+            values=itertools.count(),
+        )
+    else:
+        raise ValueError("unknown kvstore label")
 
 
-def test_single_key_operations(properties: TestProperties) -> None:
+def test_single_key_operations(properties: Properties) -> None:
     store = properties.store
     key, value = next(properties.keys), next(properties.values)
 
@@ -47,7 +73,7 @@ def test_single_key_operations(properties: TestProperties) -> None:
     store.delete(missing_key)
 
 
-def test_multiple_key_operations(properties: TestProperties) -> None:
+def test_multiple_key_operations(properties: Properties) -> None:
     store = properties.store
 
     items = dict(itertools.islice(properties.items, 10))

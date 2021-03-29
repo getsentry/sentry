@@ -1,15 +1,13 @@
-import itertools
+import functools
 import os
-from typing import Iterator, Optional
+from typing import Optional
 
 import pytest
 from google.oauth2.credentials import Credentials
-from sentry.utils.kvstore.abstract import KVStorage
 from sentry.utils.kvstore.bigtable import BigtableKVStorage
 
 
-@pytest.fixture
-def credentials() -> Credentials:
+def get_credentials() -> Credentials:
     if "BIGTABLE_EMULATOR_HOST" not in os.environ:
         pytest.skip(
             "Bigtable is not available, set BIGTABLE_EMULATOR_HOST environment variable to enable"
@@ -22,19 +20,25 @@ def credentials() -> Credentials:
     )
 
 
+credentials = pytest.fixture(get_credentials)
+
+
+def create_store(
+    request, credentials: Credentials, compression: Optional[str] = None
+) -> BigtableKVStorage:
+    store = BigtableKVStorage(
+        project="test",
+        compression=compression,
+        client_options={"credentials": credentials},
+    )
+    store.bootstrap()
+    request.addfinalizer(store.destroy)
+    return store
+
+
 @pytest.fixture
 def store_factory(request, credentials: Credentials):
-    def create_store(compression: Optional[str] = None) -> BigtableKVStorage:
-        store = BigtableKVStorage(
-            project="test",
-            compression=compression,
-            client_options={"credentials": credentials},
-        )
-        store.bootstrap()
-        request.addfinalizer(store.destroy)
-        return store
-
-    return create_store
+    return functools.partial(create_store, request, credentials)
 
 
 @pytest.mark.parametrize(
@@ -88,18 +92,3 @@ def test_compression_compatibility(request, store_factory) -> None:
 
         for reader in stores.values():
             assert reader.get(key) == value
-
-
-@pytest.fixture
-def store(store_factory) -> KVStorage[str, bytes]:
-    return store_factory()
-
-
-@pytest.fixture
-def keys() -> Iterator[str]:
-    return (f"{i}" for i in itertools.count())
-
-
-@pytest.fixture
-def values() -> Iterator[bytes]:
-    return (f"{i}".encode("utf-8") for i in itertools.count())
