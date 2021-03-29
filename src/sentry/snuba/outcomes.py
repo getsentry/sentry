@@ -57,7 +57,7 @@ class Field(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def aggregation(self, dataset: Dataset) -> List[str]:
+    def aggregation(self, dataset: Dataset) -> Tuple[str, str, str]:
         raise NotImplementedError()
 
 
@@ -72,8 +72,8 @@ class QuantityField(Field):
             return 0
         return int(row["quantity"])
 
-    def aggregation(self, dataset: Dataset) -> List[str]:
-        return ["sum", "quantity", "quantity"]
+    def aggregation(self, dataset: Dataset) -> Tuple[str, str, str]:
+        return ("sum", "quantity", "quantity")
 
 
 class TimesSeenField(Field):
@@ -87,12 +87,12 @@ class TimesSeenField(Field):
             return 0
         return int(row["times_seen"])
 
-    def aggregation(self, dataset: Dataset) -> List[str]:
+    def aggregation(self, dataset: Dataset) -> Tuple[str, str, str]:
         if dataset == Dataset.Outcomes:
-            return ["sum", "times_seen", "times_seen"]
+            return ("sum", "times_seen", "times_seen")
         else:
             # RawOutcomes doesnt have times_seen, do a count instead
-            return ["count()", "", "times_seen"]
+            return ("count()", "", "times_seen")
 
 
 class Dimension(SimpleGroupBy, ABC):
@@ -117,12 +117,12 @@ class CategoryDimension(Dimension):
         for category in raw_filter:
             # combine DEFAULT, ERROR, and SECURITY as errors.
             # see relay: py/sentry_relay/consts.py and relay-cabi/include/relay.h
-            if DataCategory.parse(category) == DataCategory.ERROR:
+            parsed_category = DataCategory.parse(category)
+            if parsed_category is None:
+                raise InvalidField(f'Invalid category: "{category}"')
+            elif parsed_category == DataCategory.ERROR:
                 resolved_categories.update(DataCategory.error_categories())
             else:
-                parsed_category = DataCategory.parse(category)
-                if parsed_category is None:
-                    raise InvalidField(f'Invalid category: "{category}"')
                 resolved_categories.add(parsed_category)
         if DataCategory.ATTACHMENT in resolved_categories and len(resolved_categories) > 1:
             raise InvalidQuery("if filtering by attachment no other category may be present")
@@ -140,7 +140,7 @@ class CategoryDimension(Dimension):
 
 class OutcomeDimension(Dimension):
     def resolve_filter(self, raw_filter: Sequence[str]) -> List[Outcome]:
-        def _parse_outcome(outcome):
+        def _parse_outcome(outcome: str) -> Outcome:
             try:
                 return Outcome.parse(outcome)
             except KeyError:
@@ -277,7 +277,6 @@ def run_outcomes_query(query: QueryDefinition) -> Tuple[ResultSet, ResultSet]:
         conditions=query.conditions,
         selected_columns=query.query_columns,
         referrer="outcomes.totals",
-        # orderby=query.orderby, TODO: add orderby?
     )
     result_timeseries = raw_query(
         dataset=query.dataset,

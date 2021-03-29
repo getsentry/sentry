@@ -91,7 +91,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
     def test_empty_request(self):
         response = self.do_request({})
         assert response.status_code == 400, response.content
-        assert result_sorted(response.data) == {"detail": 'Request is missing a "field"'}
+        assert result_sorted(response.data) == {"detail": 'At least one "field" is required.'}
 
     def test_inaccessible_project(self):
         response = self.do_request({"project": [self.project3.id]})
