@@ -79,10 +79,10 @@ class OutcomesQueryDefinitionTests(TestCase):
             "statsPeriod=6h&interval=10m&groupBy=category&field=sum(times_seen)",
             True,
         )
-        assert query.aggregations == [["count()", "", "times_seen"]]
+        assert query.aggregations == [("count()", "", "times_seen")]
 
         query = _make_query(
             "statsPeriod=6h&interval=1d&groupBy=category&field=sum(times_seen)",
             True,
         )
-        assert query.aggregations == [["sum", "times_seen", "times_seen"]]
+        assert query.aggregations == [("sum", "times_seen", "times_seen")]
