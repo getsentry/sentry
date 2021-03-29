@@ -547,8 +547,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         data = results["data"]
         assert len(data) == 1
-        assert data[0]["any_transaction"] == "a" * 32
-        assert data[0]["any_user_id"] == "99"
+        assert data[0]["any_transaction"] in ["", "a" * 32]
+        assert data[0]["any_user_id"] in [None, "99"]
         assert data[0]["count"] == 2
 
 
