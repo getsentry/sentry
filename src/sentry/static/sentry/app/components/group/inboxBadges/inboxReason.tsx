@@ -54,13 +54,13 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
       // If `window` is defined, than `count` events occurred in `window` minutes.
       // else `count` events occurred since it was ignored.
       if (window) {
-        return tct('Was ignored until it occurred [count] time(s) in [duration]', {
+        return tct('Occurred [count] time(s) in [duration]', {
           count: getCountText(count),
           duration: getDuration(window * 60, 0, true),
         });
       }
 
-      return tct('Was ignored until it occurred [count] time(s)', {
+      return tct('Occurred [count] time(s)', {
         count: getCountText(count),
       });
     }
@@ -70,12 +70,12 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
       // If `user_window` is defined, than `user_count` users affected in `user_window` minutes.
       // else `user_count` events occurred since it was ignored.
       if (user_window) {
-        return t('Was ignored until it affected [count] user(s) in [duration]', {
+        return t('Affected [count] user(s) in [duration]', {
           count: getCountText(user_count),
           duration: getDuration(user_window * 60, 0, true),
         });
       }
-      return t('Was ignored until it affected [count] user(s)', {
+      return t('Affected [count] user(s)', {
         count: getCountText(user_count),
       });
     }
