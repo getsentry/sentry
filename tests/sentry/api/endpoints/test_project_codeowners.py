@@ -88,6 +88,19 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp_data["codeMappingId"] == str(self.code_mapping_with_integration.id)
         assert resp_data["provider"] == self.integration.provider
 
+    def test_get_expanded_codeowners_with_integration(self):
+        self._create_codeowner_with_integration()
+        with self.feature({"organizations:import-codeowners": True}):
+            resp = self.client.get(f"{self.url}?expand=codeMapping")
+        assert resp.status_code == 200
+        resp_data = resp.data[0]
+        assert resp_data["raw"] == self.code_owner.raw
+        assert resp_data["dateCreated"] == self.code_owner.date_added
+        assert resp_data["dateUpdated"] == self.code_owner.date_updated
+        assert resp_data["codeMappingId"] == str(self.code_mapping_with_integration.id)
+        assert resp_data["provider"] == self.integration.provider
+        assert resp_data["codeMapping"]["id"] == str(self.code_mapping_with_integration.id)
+
     def test_basic_post(self):
         with self.feature({"organizations:import-codeowners": True}):
             response = self.client.post(self.url, self.data)
