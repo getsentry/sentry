@@ -16,7 +16,7 @@ import space from 'app/styles/space';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 
-import {DISPLAY_TYPE_CHOICES} from '../data';
+import {DISPLAY_TYPE_CHOICES} from '../../data';
 
 import BuildStep from './buildStep';
 import Chart from './chart';
@@ -41,7 +41,7 @@ type State = AsyncView['state'] & {
   };
 };
 
-class WidgetBuilder extends AsyncView<Props, State> {
+class WidgetNew extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -173,7 +173,7 @@ class WidgetBuilder extends AsyncView<Props, State> {
   }
 }
 
-export default WidgetBuilder;
+export default WidgetNew;
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
