@@ -34,8 +34,8 @@ export type DashboardWidgetModalOptions = {
   organization: Organization;
   dashboard: DashboardDetails;
   selection: GlobalSelection;
-  widget?: Widget;
   onAddWidget: (data: Widget) => void;
+  widget?: Widget;
   onUpdateWidget?: (nextWidget: Widget) => void;
 };
 
@@ -60,8 +60,8 @@ type State = {
   displayType: Widget['displayType'];
   interval: Widget['interval'];
   queries: Widget['queries'];
-  errors?: Record<string, any>;
   loading: boolean;
+  errors?: Record<string, any>;
 };
 
 const newQuery = {
