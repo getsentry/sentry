@@ -182,6 +182,14 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert response.status_code == 400
         assert response.data == {"codeMappingId": ["This code mapping does not exist."]}
 
+    def test_no_duplicates_allowed(self):
+        with self.feature({"organizations:import-codeowners": True}):
+            response = self.client.post(self.url, self.data)
+            assert response.status_code == 201, response.content
+            response = self.client.post(self.url, self.data)
+            assert response.status_code == 400
+            assert response.data == {"codeMappingId": ["This code mapping is already in use."]}
+
     def test_schema_is_correct(self):
         with self.feature({"organizations:import-codeowners": True}):
             response = self.client.post(self.url, self.data)
