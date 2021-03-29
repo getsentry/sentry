@@ -42,6 +42,22 @@ class ProjectOwnership(Model):
         return f"projectownership_project_id:1:{project_id}"
 
     @classmethod
+    def get_combined_schema(self, ownership, codeowners):
+        if codeowners and codeowners.schema:
+            ownership.schema = (
+                codeowners.schema
+                if not ownership.schema
+                else {
+                    **ownership.schema,
+                    "rules": [
+                        *codeowners.schema["rules"],
+                        *ownership.schema["rules"],
+                    ],
+                }
+            )
+        return ownership.schema
+
+    @classmethod
     def get_ownership_cached(cls, project_id):
         """
         Cached read access to projectownership.
@@ -101,7 +117,7 @@ class ProjectOwnership(Model):
         return ordered_actors, rules
 
     @classmethod
-    def _find_owners(cls, project_id, rules, limit):
+    def _find_actors(cls, project_id, rules, limit):
         """
         Get the last matching rule to take the most precedence.
         """
@@ -144,8 +160,8 @@ class ProjectOwnership(Model):
             if not (codeowners_rules or ownership_rules):
                 return ownership.auto_assignment, [], assigned_by_codeowners
 
-            ownership_actors = cls._find_owners(project_id, ownership_rules, limit)
-            codeowners_actors = cls._find_owners(project_id, codeowners_rules, limit)
+            ownership_actors = cls._find_actors(project_id, ownership_rules, limit)
+            codeowners_actors = cls._find_actors(project_id, codeowners_rules, limit)
 
             # Can happen if the ownership rule references a user/team that no longer
             # is assigned to the project or has been removed from the org.
