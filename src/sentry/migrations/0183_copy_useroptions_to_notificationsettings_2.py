@@ -94,7 +94,7 @@ class Migration(migrations.Migration):
     # transaction.
     atomic = False
     dependencies = [
-        ("sentry", "0181_copy_useroptions_to_notificationsettings"),
+        ("sentry", "0182_update_user_misery_on_saved_queries"),
     ]
     operations = [
         migrations.RunPython(
