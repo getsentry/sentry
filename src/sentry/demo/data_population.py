@@ -148,15 +148,8 @@ def get_list_of_names() -> List[str]:
 
 
 @functools.lru_cache(maxsize=None)
-def get_list_of_browsers():
-    file_path = get_data_file_path("browser_list.json")
-    with open(file_path) as f:
-        return json.load(f)
-
-
-@functools.lru_cache(maxsize=None)
-def get_list_of_os():
-    file_path = get_data_file_path("os_list.json")
+def get_list_of_base_contexts():
+    file_path = get_data_file_path("contexts.json")
     with open(file_path) as f:
         return json.load(f)
 
@@ -198,14 +191,8 @@ def gen_base_context():
     """
     Generates a base context from pure randomness
     """
-    browser_list = get_list_of_browsers()
-    os_list = get_list_of_os()
-    browser = random.choice(browser_list)
-    os = random.choice(os_list)
-    return {
-        "browser": browser,
-        "os": os,
-    }
+    contexts = get_list_of_base_contexts()
+    return random.choice(contexts)
 
 
 def get_release_from_time(org_id, timestamp):
