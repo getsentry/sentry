@@ -28,7 +28,7 @@ mmh3==3.0.0
 parsimonious==0.8.0
 petname==2.6
 phonenumberslite==8.11.3
-Pillow==8.1.0
+Pillow==8.1.1
 progressbar2==3.32.0
 # If we bump it to 2.8.4 or greater then Python 3.6 & 3.8 would use the same version
 psycopg2-binary==2.7.7; python_version == '3.6'
