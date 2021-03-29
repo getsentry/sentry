@@ -18,14 +18,14 @@ from sentry.search.utils import InvalidQuery
 """
 The new Outcomes API defines a "metrics"-like interface which is can be used in
 a similar way to "sessions" and "discover"
-# "Metrics"
-We have 2 "metrics" that we can query:
 
-- `quantity` (counter): The relevant stat based on category:
+We have 2 "fields" that we can query:
+
+- `sum(quantity)`: The relevant stat based on category:
         standard event: # of outcomes
         session: number of events within the session
         attachment: quantity in bytes of attachments
-- `times_seen` (counter): The number of outcomes that occurred --
+- `sum(times_seen)`: The number of outcomes that occurred --
         differs from quantity in that:
             it would count # of attachments, and sessions
             if we ever aggregate multiple events into one outcome,
@@ -223,7 +223,7 @@ class QueryDefinition:
         raw_fields = query.getlist("field", [])
         raw_groupby = query.getlist("groupBy", [])
         if len(raw_fields) == 0:
-            raise InvalidField('Request is missing a "field"')
+            raise InvalidField('At least one "field" is required.')
 
         self.fields = {}
         self.aggregations = []
