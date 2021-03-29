@@ -75,6 +75,11 @@ build-utils/        @getsentry/owners-js-build
 /tests/sentry/incidents/                                        @getsentry/workflow
 /tests/acceptance/test_incidents.py                             @getsentry/workflow
 
+/src/sentry/api/endpoints/group_events.py                       @getsentry/workflow
+/src/sentry/api/endpoints/organization_group_index.py           @getsentry/workflow
+/src/sentry/api/helpers/group_index.py                          @getsentry/workflow
+/src/sentry/api/helpers/events.py                               @getsentry/workflow
+
 /src/sentry/snuba/models.py                                     @getsentry/workflow
 /src/sentry/snuba/query_subscription_consumer.py                @getsentry/workflow
 /src/sentry/snuba/subscriptions.py                              @getsentry/workflow
@@ -109,13 +114,9 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/api/endpoints/organization_events_tends.py          @getsentry/visibility
 /src/sentry/api/endpoints/organization_events_vitals.py         @getsentry/visibility
 
-/src/sentry/api/endpoints/group_events.py                       @getsentry/visibility
-/src/sentry/api/endpoints/organization_group_index.py           @getsentry/visibility
 /src/sentry/api/endpoints/organization_tags.py                  @getsentry/visibility
 /tests/snuba/api/endpoints/                                     @getsentry/visibility
 
-/src/sentry/api/helpers/events.py                               @getsentry/visibility
-/src/sentry/api/helpers/group_index.py                          @getsentry/visibility
 /src/sentry/api/serializers/snuba.py                            @getsentry/visibility
 
 /src/sentry/search/                                             @getsentry/visibility
