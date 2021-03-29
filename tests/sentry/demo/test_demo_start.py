@@ -12,7 +12,7 @@ class AuthLoginTest(TestCase):
         return "/demo/start/"
 
     @override_settings(DEMO_MODE=True, ROOT_URLCONF="sentry.demo.urls")
-    @mock.patch("sentry.web.frontend.demo_start.auth.login")
+    @mock.patch("sentry.demo.demo_start.auth.login")
     @mock.patch("sentry.demo.demo_org_manager.assign_demo_org")
     def test_basic(self, mock_assign_demo_org, mock_auth_login):
 

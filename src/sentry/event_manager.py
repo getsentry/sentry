@@ -1105,6 +1105,9 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
         # make sure it still exists
         first_release = kwargs.pop("first_release", None)
 
+        if project.id in (options.get("store.load-shed-group-creation-projects") or ()):
+            raise HashDiscarded("Load shedding group creation")
+
         short_id = project.next_short_id()
 
         with transaction.atomic():

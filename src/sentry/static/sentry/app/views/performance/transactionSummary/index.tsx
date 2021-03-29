@@ -15,12 +15,7 @@ import {PageContent} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {
-  AggregationKey,
-  Column,
-  isAggregateField,
-  WebVital,
-} from 'app/utils/discover/fields';
+import {Column, isAggregateField, WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
@@ -122,7 +117,7 @@ class TransactionSummary extends React.Component<Props, State> {
       },
       {
         kind: 'function',
-        function: ['user_misery', threshold, undefined],
+        function: ['count_miserable', 'user', threshold],
       },
       {
         kind: 'function',
@@ -146,7 +141,7 @@ class TransactionSummary extends React.Component<Props, State> {
       },
       {
         kind: 'function',
-        function: ['user_misery_prototype' as AggregationKey, threshold, undefined],
+        function: ['user_misery', threshold, undefined],
       },
       ...vitals.map(
         vital =>
