@@ -22,6 +22,21 @@ def credentials() -> Credentials:
     )
 
 
+@pytest.fixture
+def store_factory(request, credentials: Credentials):
+    def create_store(compression: Optional[str] = None) -> BigtableKVStorage:
+        store = BigtableKVStorage(
+            project="test",
+            compression=compression,
+            client_options={"credentials": credentials},
+        )
+        store.bootstrap()
+        request.addfinalizer(store.destroy)
+        return store
+
+    return create_store
+
+
 @pytest.mark.parametrize(
     "compression,flag,expected_prefix",
     [
@@ -35,17 +50,10 @@ def test_compression_raw_values(
     compression: Optional[str],
     flag: BigtableKVStorage.Flags,
     expected_prefix: bytes,
-    credentials: Credentials,
     request,
+    store_factory,
 ) -> None:
-    store = BigtableKVStorage(
-        project="test",
-        compression=compression,
-        client_options={"credentials": credentials},
-    )
-
-    store.bootstrap()
-    request.addfinalizer(store.destroy)
+    store = store_factory(compression)
 
     key = "key"
     value = b'{"foo":"bar"}'
@@ -66,18 +74,11 @@ def test_compression_raw_values(
         assert store.flags_column not in columns
 
 
-def test_compression_compatibility(request, credentials: Credentials) -> None:
+def test_compression_compatibility(request, store_factory) -> None:
     stores = {
-        compression: BigtableKVStorage(
-            project="test",
-            compression=compression,
-            client_options={"credentials": credentials},
-        )
+        compression: store_factory(compression)
         for compression in BigtableKVStorage.compression_strategies.keys() | {None}
     }
-
-    stores[None].bootstrap()
-    request.addfinalizer(stores[None].destroy)
 
     value = b"value"
 
@@ -90,14 +91,8 @@ def test_compression_compatibility(request, credentials: Credentials) -> None:
 
 
 @pytest.fixture
-def store(credentials: Credentials) -> KVStorage[str, bytes]:
-    store = BigtableKVStorage(
-        project="test",
-        client_options={"credentials": credentials},
-    )
-    store.bootstrap()
-    yield store
-    store.destroy()
+def store(store_factory) -> KVStorage[str, bytes]:
+    return store_factory()
 
 
 @pytest.fixture
