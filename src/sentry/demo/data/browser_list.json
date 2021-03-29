@@ -5,6 +5,11 @@
     "type": "browser"
   },
   {
+    "name": "Chrome",
+    "version": "86.0.4240",
+    "type": "browser"
+  },
+  {
     "name": "Safari",
     "version": "14.0.3",
     "type": "browser"
