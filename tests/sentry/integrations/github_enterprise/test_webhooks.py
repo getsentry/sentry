@@ -52,7 +52,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 204
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_invalid_signature_event(self, mock_installation):
+    def test_invalid_sha1_signature_event(self, mock_installation):
         mock_installation.return_value = {
             "url": "35.232.149.196",
             "id": "2",
@@ -70,6 +70,29 @@ class WebhookTest(APITestCase):
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
             HTTP_X_HUB_SIGNATURE="sha1=33521abeaaf9a57c2abf486e0ccd54d23cf36fec",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 401
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_invalid_sha256_signature_event(self, mock_installation):
+        mock_installation.return_value = {
+            "url": "35.232.149.196",
+            "id": "2",
+            "name": "test-app",
+            "webhook_secret": "b3002c3e321d4b7880360d397db2ccfd",
+            "private_key": "private_key",
+            "verify_ssl": True,
+        }
+        url = "/extensions/github-enterprise/webhook/"
+
+        response = self.client.post(
+            path=url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE="sha256=33521abeaaf9a57c2abf486e0ccd54d23cf36fec",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
         assert response.status_code == 401
