@@ -431,8 +431,8 @@ class MetricChart extends React.PureComponent<Props, State> {
 
                 const timeWindowMs = rule.timeWindow * 60 * 1000;
 
-                const areaStart = moment(incident.dateStarted).valueOf();
-                const incidentStartValue = dataArr.find(point => point.name >= areaStart);
+                const incidentStartDate = moment(incident.dateStarted).valueOf();
+                const incidentStartValue = dataArr.find(point => point.name >= incidentStartDate);
                 series.push(
                   createIncidentSeries(
                     router,
@@ -444,17 +444,17 @@ class MetricChart extends React.PureComponent<Props, State> {
                       )
                       ? theme.yellow300
                       : theme.red300,
-                    areaStart,
+                    incidentStartDate,
                     incident.identifier,
                     incidentStartValue,
                     series[0].seriesName
                   )
                 );
-                const areaEnd =
-                  statusChanges?.length && statusChanges[0].dateCreated
+                const areaEnd = Math.min(statusChanges?.length && statusChanges[0].dateCreated
                     ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
-                    : moment(incidentEnd).valueOf();
+                    : moment(incidentEnd).valueOf(), lastPoint);
                 const areaColor = warningTrigger ? theme.yellow300 : theme.red300;
+                const areaStart = Math.max(moment(incident.dateStarted).valueOf(), firstPoint);
                 series.push(
                   createStatusAreaSeries(
                     areaColor,
@@ -471,21 +471,20 @@ class MetricChart extends React.PureComponent<Props, State> {
                 }
 
                 statusChanges?.forEach((activity, idx) => {
-                  const statusAreaStart =
-                    moment(activity.dateCreated).valueOf() - timeWindowMs;
+                  const statusAreaStart = Math.max(moment(activity.dateCreated).valueOf() - timeWindowMs, firstPoint);
                   const statusAreaColor =
                     activity.value === `${IncidentStatus.CRITICAL}`
                       ? theme.red300
                       : theme.yellow300;
-                  const statusAreaEnd =
+                  const statusAreaEnd = Math.min(
                     idx === statusChanges.length - 1
                       ? moment(incidentEnd).valueOf()
                       : moment(statusChanges[idx + 1].dateCreated).valueOf() -
-                        timeWindowMs;
+                        timeWindowMs, lastPoint);
                   series.push(
                     createStatusAreaSeries(
                       statusAreaColor,
-                      areaStart,
+                      statusAreaStart,
                       statusAreaEnd,
                       firstPoint,
                       lastPoint
