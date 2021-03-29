@@ -216,6 +216,7 @@ const CardWrapper = styled('div')`
     grid-auto-flow: row;
   }
 `;
+
 const StyledCard = styled(Card)`
   align-items: flex-start;
   min-height: 95px;
