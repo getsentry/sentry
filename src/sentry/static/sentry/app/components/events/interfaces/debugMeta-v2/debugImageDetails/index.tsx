@@ -168,7 +168,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
         download: {
           status: CandidateDownloadStatus.UNAPPLIED,
         },
-        location: `${INTERNAL_SOURCE_LOCATION}${debugFile.id}`,
+        location: debugFile.id,
         source: INTERNAL_SOURCE,
         source_name: t('Sentry'),
       })) as ImageCandidates;

@@ -84,6 +84,8 @@ class GroupEventToolbar extends React.Component<Props> {
                   location={location}
                   organization={organization}
                   anchor="left"
+                  errorDest="issue"
+                  transactionDest="performance"
                 />
               )
             }
