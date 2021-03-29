@@ -323,9 +323,14 @@ export function getTraceDateTimeRange(input: {
   const start = moment
     .unix(input.start)
     .subtract(12, 'hours')
+    .utc()
     .format('YYYY-MM-DDTHH:mm:ss.SSS');
 
-  const end = moment.unix(input.end).add(12, 'hours').format('YYYY-MM-DDTHH:mm:ss.SSS');
+  const end = moment
+    .unix(input.end)
+    .add(12, 'hours')
+    .utc()
+    .format('YYYY-MM-DDTHH:mm:ss.SSS');
 
   return {
     start,
