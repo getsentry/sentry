@@ -212,7 +212,6 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         event_data = {
             "contexts": {
                 "device": {"arch": "x86"},
-                "os": {"build": "", "name": "Windows", "type": "os", "version": "10.0.14393"},
             },
             "debug_meta": {
                 "images": [
@@ -229,13 +228,10 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
                 "stacktrace": {
                     "frames": [
                         {
-                            "function": "<unknown>",
                             "instruction_addr": "0x2a2a3d",
-                            "package": "C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe",
                         }
                     ]
                 },
-                "thread_id": 1636,
                 "type": "EXCEPTION_ACCESS_VIOLATION_WRITE",
                 "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE",
             },
