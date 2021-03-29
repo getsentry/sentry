@@ -360,7 +360,12 @@ class MetricChart extends React.PureComponent<Props, State> {
 
     // If the chart duration isn't as long as the rollup duration the events-stats
     // endpoint will return an invalid timeseriesData data set
-    const viableStartDate = getUtcDateString(moment.min(moment.utc(timePeriod.start), moment.utc(timePeriod.end).subtract(rule.timeWindow, 'minutes')));
+    const viableStartDate = getUtcDateString(
+      moment.min(
+        moment.utc(timePeriod.start),
+        moment.utc(timePeriod.end).subtract(rule.timeWindow, 'minutes')
+      )
+    );
 
     return (
       <EventsRequest
