@@ -7,7 +7,7 @@ class CodeownersUpdated(analytics.Event):
     attributes = (
         analytics.Attribute("user_id", required=False),
         analytics.Attribute("organization_id"),
-        analytics.Attribute("project_ids"),
+        analytics.Attribute("project_id"),
         analytics.Attribute("codeowners_id"),
     )
 
