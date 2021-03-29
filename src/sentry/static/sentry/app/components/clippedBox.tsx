@@ -179,4 +179,12 @@ const ClipFade = styled('div')`
   );
   text-align: center;
   border-bottom: ${space(1.5)} solid ${p => p.theme.background};
+
+  // Let pointer-events pass through ClipFade to visible elements underneath it
+  pointer-events: none;
+
+  // Ensure pointer-events trigger event listeners on ClipFade's child elements
+  > * {
+    pointer-events: auto;
+  }
 `;
