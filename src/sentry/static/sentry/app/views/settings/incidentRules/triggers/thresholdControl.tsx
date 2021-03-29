@@ -108,6 +108,18 @@ class ThresholdControl extends React.Component<Props, State> {
             {value: AlertRuleThresholdType.BELOW, label: t('Below')},
             {value: AlertRuleThresholdType.ABOVE, label: t('Above')},
           ]}
+          components={disableThresholdType ? {DropdownIndicator: null} : null}
+          styles={
+            disableThresholdType
+              ? {
+                  control: provided => ({
+                    ...provided,
+                    cursor: 'not-allowed',
+                    pointerEvents: 'auto',
+                  }),
+                }
+              : null
+          }
           onChange={this.handleTypeChange}
         />
         <StyledInput
