@@ -4,7 +4,7 @@ from typing import Iterator, Optional
 
 import pytest
 from google.oauth2.credentials import Credentials
-from sentry.utils.kvstore.abstract import K, KVStorage, V
+from sentry.utils.kvstore.abstract import KVStorage
 from sentry.utils.kvstore.bigtable import BigtableKVStorage
 
 
@@ -103,49 +103,3 @@ def keys() -> Iterator[str]:
 @pytest.fixture
 def values() -> Iterator[bytes]:
     return (f"{i}".encode("utf-8") for i in itertools.count())
-
-
-def test_single_key_operations(
-    store: KVStorage[K, V], keys: Iterator[K], values: Iterator[V]
-) -> None:
-    key, value = next(keys), next(values)
-
-    # Test setting a key with no prior value.
-    store.set(key, value)
-    assert store.get(key) == value
-
-    # Test overwriting a key with a prior value.
-    new_value = next(values)
-    store.set(key, new_value)
-    assert store.get(key) == new_value
-
-    # Test deleting an existing key.
-    store.delete(key)
-    assert store.get(key) is None
-
-    # Test reading a missing key.
-    missing_key = next(keys)
-    assert store.get(missing_key) is None
-
-    # Test deleting a missing key.
-    store.delete(missing_key)
-
-
-def test_multiple_key_operations(
-    store: KVStorage[K, V], keys: Iterator[K], values: Iterator[V]
-) -> None:
-    items = dict(itertools.islice(zip(keys, values), 10))
-    for key, value in items.items():
-        store.set(key, value)
-
-    missing_keys = set(itertools.islice(keys, 5))
-
-    all_keys = list(items.keys() | missing_keys)
-
-    # Test reading a combination of present and missing keys.
-    assert dict(store.get_many(all_keys)) == items
-
-    # Test deleting a combination of present and missing keys.
-    store.delete_many(all_keys)
-
-    assert dict(store.get_many(all_keys)) == {}
