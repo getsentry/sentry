@@ -2,6 +2,7 @@ import React from 'react';
 import * as ReactRouter from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
+import {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
@@ -186,7 +187,7 @@ class Table extends React.Component<Props, State> {
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort =
       isFieldSortable(field, tableMeta) && field.field !== 'key_transaction';
-    return (
+    const sortLink = (
       <SortLink
         align={align}
         title={title || field.field}
@@ -195,6 +196,14 @@ class Table extends React.Component<Props, State> {
         generateSortLink={generateSortLink}
       />
     );
+    if (field.field.startsWith('user_misery')) {
+      return (
+        <GuideAnchor target="user_misery" position="top">
+          {sortLink}
+        </GuideAnchor>
+      );
+    }
+    return sortLink;
   }
 
   renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
