@@ -115,6 +115,37 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             "detail": 'Invalid field: "summ(qarntenty)"',
         }
 
+    def test_unknown_category(self):
+        response = self.do_request(
+            {
+                "field": ["sum(quantity)"],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "category": "scoobydoo",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert result_sorted(response.data) == {
+            "detail": 'Invalid category: "scoobydoo"',
+        }
+
+    def test_unknown_outcome(self):
+        response = self.do_request(
+            {
+                "field": ["sum(quantity)"],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "category": "error",
+                "outcome": "scoobydoo",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert result_sorted(response.data) == {
+            "detail": 'Invalid outcome: "scoobydoo"',
+        }
+
     def test_unknown_groupby(self):
         response = self.do_request(
             {
@@ -127,20 +158,6 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 400, response.content
         assert result_sorted(response.data) == {"detail": 'Invalid groupBy: "cattygory"'}
-
-    def test_invalid_parameter(self):
-        response = self.do_request(
-            {
-                "project": self.project.id,
-                "statsPeriod": "1d",
-                "interval": "1d",
-                "field": ["sum(quantity)"],
-                "dragon": "smaug",
-            }
-        )
-        # TODO: should we error here?
-        assert response.status_code == 400, response.content
-        assert result_sorted(response.data) == {"detail": 'Invalid parameter: "dragon"'}
 
     def test_resolution_invalid(self):
         self.login_as(user=self.user)
@@ -315,7 +332,6 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "interval": "1d",
                 "field": ["sum(quantity)", "sum(times_seen)"],
                 "groupBy": ["category", "outcome", "reason"],
-                # "category": ["transaction", "error", "attachment"],
             }
         )
 

@@ -120,7 +120,10 @@ class CategoryDimension(Dimension):
             if DataCategory.parse(category) == DataCategory.ERROR:
                 resolved_categories.update(DataCategory.error_categories())
             else:
-                resolved_categories.add(DataCategory.parse(category))
+                parsed_category = DataCategory.parse(category)
+                if parsed_category is None:
+                    raise InvalidField(f'Invalid category: "{category}"')
+                resolved_categories.add(parsed_category)
         if DataCategory.ATTACHMENT in resolved_categories and len(resolved_categories) > 1:
             raise InvalidQuery("if filtering by attachment no other category may be present")
         return list(resolved_categories)
@@ -137,7 +140,13 @@ class CategoryDimension(Dimension):
 
 class OutcomeDimension(Dimension):
     def resolve_filter(self, raw_filter: Sequence[str]) -> List[Outcome]:
-        return [Outcome.parse(o) for o in raw_filter]
+        def _parse_outcome(outcome):
+            try:
+                return Outcome.parse(outcome)
+            except KeyError:
+                raise InvalidField(f'Invalid outcome: "{outcome}"')
+
+        return [_parse_outcome(o) for o in raw_filter]
 
     def map_row(self, row: MutableMapping[str, Any]) -> None:
         if "outcome" in row:
