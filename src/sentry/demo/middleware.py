@@ -9,6 +9,7 @@ prompt_route = reverse("sentry-api-0-prompts-activity")
 org_creation_route = reverse("sentry-api-0-organizations")
 login_route = reverse("sentry-login")
 
+# redirect to the welcome page for Sentry
 login_redirect_route = "https://sentry.io/welcome/"
 
 
@@ -31,9 +32,9 @@ class DemoMiddleware:
             )
 
         # backdoor to allow logins
-        allow_login = request.GET.get("allow_login") == "1"
+        disable_login = request.GET.get("allow_login") != "1"
         # don't want people to see the login page in demo mode
-        if path == login_route and allow_login and method == "GET":
+        if path == login_route and disable_login and method == "GET":
             return HttpResponseRedirect(login_redirect_route)
 
         # org routes only below
@@ -43,7 +44,7 @@ class DemoMiddleware:
         # don't want people to see the login page in demo mode
         if (
             path == reverse("sentry-auth-organization", kwargs=view_kwargs)
-            and allow_login
+            and disable_login
             and method == "GET"
         ):
             return HttpResponseRedirect(login_redirect_route)
