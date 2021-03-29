@@ -5,8 +5,6 @@ import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
 import {OrgExperiments, UserExperiments} from 'app/types/experiments';
-import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
-import {Query as DiscoverQuery} from 'app/views/discover/types';
 import {
   INSTALLED,
   NOT_INSTALLED,
@@ -1841,19 +1839,6 @@ export type Artifact = {
   sha1: string;
   size: number;
   headers: {'Content-Type': string};
-};
-
-// TODO(mark) remove when dashboards 1 is removed.
-export type Widget = {
-  queries: {
-    discover: DiscoverQuery[];
-  };
-  title: React.ReactNode;
-  type: WIDGET_DISPLAY;
-  fieldLabelMap?: object;
-  yAxisMapping?: [number[], number[]];
-  includeReleases?: boolean;
-  includePreviousPeriod?: boolean;
 };
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
