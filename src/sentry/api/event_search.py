@@ -317,6 +317,7 @@ class SearchVisitor(NodeVisitor):
         "p95",
         "p99",
         "failure_rate",
+        "count_miserable",
         "user_misery",
         "user_misery_prototype",
     }
@@ -2054,6 +2055,17 @@ FUNCTIONS = {
             "apdex",
             required_args=[NumberRange("satisfaction", 0, None)],
             transform="apdex(duration, {satisfaction:g})",
+            default_result_type="number",
+        ),
+        Function(
+            "count_miserable",
+            required_args=[CountColumn("column"), NumberRange("satisfaction", 0, None)],
+            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+            aggregate=[
+                "uniqIf",
+                [ArgValue("column"), ["greater", ["transaction.duration", ArgValue("tolerated")]]],
+                None,
+            ],
             default_result_type="number",
         ),
         Function(
