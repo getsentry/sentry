@@ -59,7 +59,9 @@
     <div id="blk_router">
       <div class="loading triangle">
         <div class="loading-mask"></div>
-        <div class="loading-indicator"></div>
+        <div class="loading-indicator">
+          <img src="<%=require('sentry-images/sentry-loader.svg')%>" />
+        </div>
         <div class="loading-message">
           <p>Please wait while we load an obnoxious amount of JavaScript.</p>
           <p>
@@ -75,14 +77,6 @@
           window['<%=varName%>'] = <%= JSON.stringify(htmlWebpackPlugin.options.window[varName]) %>;
         <% } %>
     </script>
-    <% } %>
-
-    <% for (var chunk in htmlWebpackPlugin.files.chunks) { %>
-    <script src="<%= htmlWebpackPlugin.files.chunks[chunk].entry %>"></script>
-    <% } %>
-
-    <% if (htmlWebpackPlugin.options.devServer) { %>
-    <script src="<%= htmlWebpackPlugin.options.devServer%>/webpack-dev-server.js"></script>
     <% } %>
   </body>
 </html>

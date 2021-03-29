@@ -34,4 +34,9 @@ if settings.DEMO_MODE:
         "sidebar": {"id": 20, "required_targets": ["projects"]},
         "issue_stream_v2": {"id": 21, "required_targets": ["issue_title"]},
         "issue_v2": {"id": 22, "required_targets": ["issue_details"]},
+        "releases": {"id": 23, "required_targets": ["release_version"]},
+        "release_details": {"id": 24, "required_targets": ["release_chart"]},
+        "discover_landing": {"id": 25, "required_targets": ["discover_landing_header"]},
+        "discover_event_view": {"id": 26, "required_targets": ["create_alert_from_discover"]},
+        "transaction_details": {"id": 27, "required_targets": ["span_tree"]},
     }

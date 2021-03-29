@@ -18,7 +18,10 @@ import Projects from 'app/utils/projects';
 import QuickTraceMeta from './quickTraceMeta';
 import {MetaData} from './styles';
 
-type Props = {
+type Props = Pick<
+  React.ComponentProps<typeof QuickTraceMeta>,
+  'errorDest' | 'transactionDest'
+> & {
   event: Event;
   organization: OrganizationSummary;
   projectId: string;
@@ -26,7 +29,15 @@ type Props = {
   quickTrace: QuickTraceQueryChildrenProps;
 };
 
-function EventMetas({event, organization, projectId, location, quickTrace}: Props) {
+function EventMetas({
+  event,
+  organization,
+  projectId,
+  location,
+  quickTrace,
+  errorDest,
+  transactionDest,
+}: Props) {
   const type = isTransaction(event) ? 'transaction' : 'event';
 
   const projectBadge = (
@@ -87,6 +98,8 @@ function EventMetas({event, organization, projectId, location, quickTrace}: Prop
           organization={organization}
           location={location}
           quickTrace={quickTrace}
+          errorDest={errorDest}
+          transactionDest={transactionDest}
         />
       </QuickTraceContainer>
     </EventDetailHeader>

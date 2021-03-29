@@ -2,12 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {fetchIncidentActivities} from 'app/actionCreators/incident';
 import {Client} from 'app/api';
 import {SectionHeading} from 'app/components/charts/styles';
 import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import Link from 'app/components/links/link';
 import {Panel, PanelBody} from 'app/components/panels';
 import SeenByList from 'app/components/seenByList';
 import TimeSince from 'app/components/timeSince';
@@ -24,8 +24,6 @@ import {
 } from 'app/views/alerts/types';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
-type Activities = Array<ActivityType>;
-
 type IncidentProps = {
   api: Client;
   orgId: string;
@@ -33,52 +31,11 @@ type IncidentProps = {
   rule: IncidentRule;
 };
 
-type IncidentState = {
-  loading: boolean;
-  error: boolean;
-  activities: null | Activities;
-};
-
-class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
-  state: IncidentState = {
-    loading: true,
-    error: false,
-    activities: null,
-  };
-
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  componentDidUpdate(prevProps: IncidentProps) {
-    // Only refetch if incidentStatus changes.
-    //
-    // This component can mount before incident details is fully loaded.
-    // In which case, `incidentStatus` is null and we will be fetching via `cDM`
-    // There's no need to fetch this gets updated due to incident details being loaded
-    if (
-      prevProps.incident.status !== null &&
-      prevProps.incident.status !== this.props.incident.status
-    ) {
-      this.fetchData();
-    }
-  }
-
-  async fetchData() {
-    const {api, orgId, incident} = this.props;
-
-    try {
-      const activities = await fetchIncidentActivities(api, orgId, incident.identifier);
-      this.setState({activities, loading: false});
-    } catch (err) {
-      this.setState({loading: false, error: !!err});
-    }
-  }
-
+class TimelineIncident extends React.Component<IncidentProps> {
   renderActivity(activity: ActivityType, idx: number) {
     const {incident, rule} = this.props;
-    const {activities} = this.state;
-    const last = this.state.activities && idx === this.state.activities.length - 1;
+    const {activities} = incident;
+    const last = activities && idx === activities.length - 1;
     const authorName = activity.user?.name ?? 'Sentry';
 
     const isDetected = activity.type === IncidentActivityType.DETECTED;
@@ -178,12 +135,15 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
   }
 
   render() {
-    const {incident} = this.props;
-    const {activities} = this.state;
+    const {incident, orgId} = this.props;
     return (
       <IncidentSection key={incident.identifier}>
         <IncidentHeader>
-          {tct('Alert #[id]', {id: incident.identifier})}
+          <Link
+            to={`/organizations/${orgId}/alerts/${incident.identifier}/?redirect=false`}
+          >
+            {tct('Alert #[id]', {id: incident.identifier})}
+          </Link>
           <SeenByTab>
             {incident && (
               <StyledSeenByList
@@ -194,9 +154,9 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
             )}
           </SeenByTab>
         </IncidentHeader>
-        {activities && (
+        {incident.activities && (
           <IncidentBody>
-            {activities
+            {incident.activities
               .filter(activity => activity.type !== IncidentActivityType.COMMENT)
               .map((activity, idx) => this.renderActivity(activity, idx))}
           </IncidentBody>

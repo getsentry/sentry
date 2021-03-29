@@ -307,7 +307,7 @@ class Candidates extends React.Component<Props, State> {
                 'These are the Debug Information Files (DIFs) corresponding to this image which have been looked up on [docLink:symbol servers] during the processing of the stacktrace.',
                 {
                   docLink: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/native/data-management/debug-files/#symbol-servers" />
+                    <ExternalLink href="https://docs.sentry.io/platforms/native/data-management/debug-files/symbol-servers/" />
                   ),
                 }
               )}

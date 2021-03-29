@@ -6,6 +6,7 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
@@ -301,15 +302,17 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {eventView, organization, projects, onIncompatibleAlertQuery} = this.props;
 
     return (
-      <CreateAlertFromViewButton
-        eventView={eventView}
-        organization={organization}
-        projects={projects}
-        onIncompatibleQuery={onIncompatibleAlertQuery}
-        onSuccess={this.handleCreateAlertSuccess}
-        referrer="discover"
-        data-test-id="discover2-create-from-discover"
-      />
+      <GuideAnchor target="create_alert_from_discover">
+        <CreateAlertFromViewButton
+          eventView={eventView}
+          organization={organization}
+          projects={projects}
+          onIncompatibleQuery={onIncompatibleAlertQuery}
+          onSuccess={this.handleCreateAlertSuccess}
+          referrer="discover"
+          data-test-id="discover2-create-from-discover"
+        />
+      </GuideAnchor>
     );
   }
 
