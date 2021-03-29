@@ -11704,10 +11704,10 @@ pkg-up@3.1.0, pkg-up@^3.1.0:
   dependencies:
     find-up "^3.0.0"
 
-platformicons@^4.1.3:
-  version "4.1.3"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-4.1.3.tgz#81a8ae70b2a36843a715a949667ba50c9464a9cb"
-  integrity sha512-OUoM66iv/uecBiXt6dBbqLYl/0VH/tPXsbiNSL7eXoS+ioIRHlpsasGUYizaXTog4ML4GNJeKGwY9T00OcTa1Q==
+platformicons@^4.1.4:
+  version "4.1.4"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-4.1.4.tgz#abc3a57a01c78066438a5ea20eec6bf7b7c02f43"
+  integrity sha512-w3TPcvOjrxUNHJzX2eFRQiv2duZtzQSyu+m10zpAjqJ5vsMtbCOJY72xM40yTp+Hz64hGv0xG3Jugf+SOFLRJA==
   dependencies:
     "@types/node" "*"
     "@types/react" "^16 || ^17"

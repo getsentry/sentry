@@ -32,14 +32,22 @@ import {
   StyledTruncate,
   TraceConnector,
 } from './styles';
-import {generateMultiEventsTarget, generateSingleEventTarget} from './utils';
+import {
+  ErrorDestination,
+  generateMultiTransactionsTarget,
+  generateSingleErrorTarget,
+  generateSingleTransactionTarget,
+  TransactionDestination,
+} from './utils';
 
-type QuickTraceProps = {
+type QuickTraceProps = Pick<
+  EventNodeSelectorProps,
+  'anchor' | 'errorDest' | 'transactionDest'
+> & {
   quickTrace: QuickTraceType;
   event: Event;
   location: Location;
   organization: OrganizationSummary;
-  anchor: 'left' | 'right';
 };
 
 export default function QuickTrace({
@@ -48,6 +56,8 @@ export default function QuickTrace({
   location,
   organization,
   anchor,
+  errorDest,
+  transactionDest,
 }: QuickTraceProps) {
   let parsedQuickTrace;
   try {
@@ -72,6 +82,8 @@ export default function QuickTrace({
         pad="right"
         anchor={anchor}
         nodeKey="root"
+        errorDest={errorDest}
+        transactionDest={transactionDest}
       />
     );
     nodes.push(<TraceConnector key="root-connector" />);
@@ -92,16 +104,17 @@ export default function QuickTrace({
         events={ancestors}
         text={tn('%s Ancestor', '%s Ancestors', ancestors.length)}
         hoverText={ancestorHoverText}
-        extrasTarget={generateMultiEventsTarget(
+        extrasTarget={generateMultiTransactionsTarget(
           event,
           ancestors,
           organization,
-          location,
           'Ancestor'
         )}
         pad="right"
         anchor={anchor}
         nodeKey="ancestors"
+        errorDest={errorDest}
+        transactionDest={transactionDest}
       />
     );
     nodes.push(<TraceConnector key="ancestors-connector" />);
@@ -119,6 +132,8 @@ export default function QuickTrace({
         pad="right"
         anchor={anchor}
         nodeKey="parent"
+        errorDest={errorDest}
+        transactionDest={transactionDest}
       />
     );
     nodes.push(<TraceConnector key="parent-connector" />);
@@ -135,6 +150,8 @@ export default function QuickTrace({
       pad="left"
       anchor={anchor}
       nodeKey="current"
+      errorDest={errorDest}
+      transactionDest={transactionDest}
     />
   );
 
@@ -154,16 +171,17 @@ export default function QuickTrace({
         events={children}
         text={tn('%s Child', '%s Children', children.length)}
         hoverText={childHoverText}
-        extrasTarget={generateMultiEventsTarget(
+        extrasTarget={generateMultiTransactionsTarget(
           event,
           children,
           organization,
-          location,
           'Children'
         )}
         pad="left"
         anchor={anchor}
         nodeKey="children"
+        errorDest={errorDest}
+        transactionDest={transactionDest}
       />
     );
   }
@@ -184,16 +202,17 @@ export default function QuickTrace({
         events={descendants}
         text={tn('%s Descendant', '%s Descendants', descendants.length)}
         hoverText={descendantHoverText}
-        extrasTarget={generateMultiEventsTarget(
+        extrasTarget={generateMultiTransactionsTarget(
           event,
           descendants,
           organization,
-          location,
           'Descendant'
         )}
         pad="left"
         anchor={anchor}
         nodeKey="descendants"
+        errorDest={errorDest}
+        transactionDest={transactionDest}
       />
     );
   }
@@ -237,6 +256,8 @@ type EventNodeSelectorProps = {
   numEvents?: number;
   anchor: 'left' | 'right';
   nodeKey: string;
+  errorDest: ErrorDestination;
+  transactionDest: TransactionDestination;
 };
 
 function EventNodeSelector({
@@ -250,6 +271,8 @@ function EventNodeSelector({
   extrasTarget,
   nodeKey,
   anchor,
+  errorDest,
+  transactionDest,
   numEvents = 5,
 }: EventNodeSelectorProps) {
   const errors: TraceError[] = [];
@@ -288,11 +311,14 @@ function EventNodeSelector({
      * When there is only 1 event, clicking the node should take the user directly to
      * the event without additional steps.
      */
-    const target = generateSingleEventTarget(
-      events[0] || errors[0],
-      organization,
-      location
-    );
+    const target = errors.length
+      ? generateSingleErrorTarget(errors[0], organization, location, errorDest)
+      : generateSingleTransactionTarget(
+          events[0],
+          organization,
+          location,
+          transactionDest
+        );
     return (
       <StyledEventNode
         text={text}
@@ -317,7 +343,12 @@ function EventNodeSelector({
         anchorRight={anchor === 'right'}
       >
         {errors.slice(0, numEvents).map((error, i) => {
-          const target = generateSingleEventTarget(error, organization, location);
+          const target = generateSingleErrorTarget(
+            error,
+            organization,
+            location,
+            errorDest
+          );
           return (
             <DropdownNodeItem
               key={error.event_id}
@@ -332,7 +363,12 @@ function EventNodeSelector({
           );
         })}
         {events.slice(0, numEvents).map((event, i) => {
-          const target = generateSingleEventTarget(event, organization, location);
+          const target = generateSingleTransactionTarget(
+            event,
+            organization,
+            location,
+            transactionDest
+          );
           return (
             <DropdownNodeItem
               key={event.event_id}
