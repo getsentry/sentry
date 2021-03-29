@@ -7,6 +7,7 @@ import {SectionHeading} from 'app/components/charts/styles';
 import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import Link from 'app/components/links/link';
 import {Panel, PanelBody} from 'app/components/panels';
 import SeenByList from 'app/components/seenByList';
 import TimeSince from 'app/components/timeSince';
@@ -134,11 +135,15 @@ class TimelineIncident extends React.Component<IncidentProps> {
   }
 
   render() {
-    const {incident} = this.props;
+    const {incident, orgId} = this.props;
     return (
       <IncidentSection key={incident.identifier}>
         <IncidentHeader>
-          {tct('Alert #[id]', {id: incident.identifier})}
+          <Link
+            to={`/organizations/${orgId}/alerts/${incident.identifier}/?redirect=false`}
+          >
+            {tct('Alert #[id]', {id: incident.identifier})}
+          </Link>
           <SeenByTab>
             {incident && (
               <StyledSeenByList

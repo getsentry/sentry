@@ -1179,16 +1179,16 @@ function routes() {
             <IndexRoute
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OverviewDashboard" */ 'app/views/dashboards/overviewDashboard'
+                  /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/detail'
                 )
               }
               component={errorHandler(LazyLoad)}
             />
             <Route
-              path="widgetBuilder"
+              path="widget/new/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "WidgetBuilder" */ 'app/views/dashboardsV2/widgetBuilder'
+                  /* webpackChunkName: "WidgetNew" */ 'app/views/dashboardsV2/widget/new'
                 )
               }
               component={errorHandler(LazyLoad)}
