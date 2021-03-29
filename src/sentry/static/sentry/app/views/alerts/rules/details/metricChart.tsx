@@ -432,7 +432,9 @@ class MetricChart extends React.PureComponent<Props, State> {
                 const timeWindowMs = rule.timeWindow * 60 * 1000;
 
                 const incidentStartDate = moment(incident.dateStarted).valueOf();
-                const incidentStartValue = dataArr.find(point => point.name >= incidentStartDate);
+                const incidentStartValue = dataArr.find(
+                  point => point.name >= incidentStartDate
+                );
                 series.push(
                   createIncidentSeries(
                     router,
@@ -450,11 +452,17 @@ class MetricChart extends React.PureComponent<Props, State> {
                     series[0].seriesName
                   )
                 );
-                const areaEnd = Math.min(statusChanges?.length && statusChanges[0].dateCreated
+                const areaEnd = Math.min(
+                  statusChanges?.length && statusChanges[0].dateCreated
                     ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
-                    : moment(incidentEnd).valueOf(), lastPoint);
+                    : moment(incidentEnd).valueOf(),
+                  lastPoint
+                );
                 const areaColor = warningTrigger ? theme.yellow300 : theme.red300;
-                const areaStart = Math.max(moment(incident.dateStarted).valueOf(), firstPoint);
+                const areaStart = Math.max(
+                  moment(incident.dateStarted).valueOf(),
+                  firstPoint
+                );
                 series.push(
                   createStatusAreaSeries(
                     areaColor,
@@ -471,7 +479,10 @@ class MetricChart extends React.PureComponent<Props, State> {
                 }
 
                 statusChanges?.forEach((activity, idx) => {
-                  const statusAreaStart = Math.max(moment(activity.dateCreated).valueOf() - timeWindowMs, firstPoint);
+                  const statusAreaStart = Math.max(
+                    moment(activity.dateCreated).valueOf() - timeWindowMs,
+                    firstPoint
+                  );
                   const statusAreaColor =
                     activity.value === `${IncidentStatus.CRITICAL}`
                       ? theme.red300
@@ -480,7 +491,9 @@ class MetricChart extends React.PureComponent<Props, State> {
                     idx === statusChanges.length - 1
                       ? moment(incidentEnd).valueOf()
                       : moment(statusChanges[idx + 1].dateCreated).valueOf() -
-                        timeWindowMs, lastPoint);
+                          timeWindowMs,
+                    lastPoint
+                  );
                   series.push(
                     createStatusAreaSeries(
                       statusAreaColor,
