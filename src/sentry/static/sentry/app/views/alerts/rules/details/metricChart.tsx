@@ -27,7 +27,7 @@ import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {getIncidentRuleMetricPreset} from '../../utils';
 
-const X_AXIS_BOUNDARY_GAP = 15;
+const X_AXIS_BOUNDARY_GAP = 20;
 const VERTICAL_PADDING = 22;
 
 type Props = WithRouterProps & {
