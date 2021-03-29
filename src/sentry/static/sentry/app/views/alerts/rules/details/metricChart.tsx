@@ -19,7 +19,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {AvatarProject, Organization, Project} from 'app/types';
 import {ReactEchartsRef} from 'app/types/echarts';
-import {getFormattedDate} from 'app/utils/dates';
+import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
 import theme from 'app/utils/theme';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
@@ -358,6 +358,10 @@ class MetricChart extends React.PureComponent<Props, State> {
     const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
     const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
 
+    // If the chart duration isn't as long as the rollup duration the events-stats
+    // endpoint will return an invalid timeseriesData data set
+    const viableStartDate = getUtcDateString(moment.min(moment.utc(timePeriod.start), moment.utc(timePeriod.end).subtract(rule.timeWindow, 'minutes')));
+
     return (
       <EventsRequest
         api={api}
@@ -366,7 +370,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         environment={rule.environment ? [rule.environment] : undefined}
         project={(projects as Project[]).map(project => Number(project.id))}
         interval={interval}
-        start={timePeriod.start}
+        start={viableStartDate}
         end={timePeriod.end}
         yAxis={rule.aggregate}
         includePrevious={false}
