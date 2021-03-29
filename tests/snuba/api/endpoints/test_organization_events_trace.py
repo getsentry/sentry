@@ -27,9 +27,11 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         spans,
         parent_span_id,
         project_id,
+        tags=None,
         duration=4000,
         span_id=None,
         measurements=None,
+        **kwargs,
     ):
         start, end = self.get_start_end(duration)
         data = load_data(
@@ -46,7 +48,9 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         if measurements:
             for key, value in measurements.items():
                 data["measurements"][key]["value"] = value
-        return self.store_event(data, project_id=project_id)
+        if tags is not None:
+            data["tags"] = tags
+        return self.store_event(data, project_id=project_id, **kwargs)
 
     def get_error_url(self, error):
         return Group.objects.get(id=error.group_id).get_absolute_url()
@@ -572,6 +576,37 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 assert root_tags[key[7:]] == value, f"tags - {key}"
         assert root["measurements"]["lcp"]["value"] == 1000
         assert root["measurements"]["fcp"]["value"] == 750
+
+    def test_detailed_trace_with_bad_tags(self):
+        """ Basically test that we're actually using the event serializer's method for tags """
+        trace = uuid4().hex
+        self.create_event(
+            trace=trace,
+            transaction="bad-tags",
+            parent_span_id=None,
+            spans=[],
+            project_id=self.project.id,
+            tags=[["somethinglong" * 250, "somethinglong" * 250]],
+            duration=3000,
+            assert_no_errors=False,
+        )
+
+        url = reverse(
+            self.url_name,
+            kwargs={"organization_slug": self.project.organization.slug, "trace_id": trace},
+        )
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                url,
+                data={"project": -1, "detailed": 1},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        root = response.data[0]
+        assert root["transaction.status"] == "ok"
+        assert {"key": None, "value": None} in root["tags"]
 
     def test_bad_span_loop(self):
         """Maliciously create a loop in the span structure

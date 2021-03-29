@@ -25,6 +25,48 @@ def get_crash_files(events):
     return []
 
 
+def get_tags_with_meta(event):
+    meta = get_path(event.data, "_meta", "tags") or {}
+
+    # If we have meta, we need to get the tags in their original order
+    # from the raw event body as the indexes need to line up with the
+    # metadata indexes. In other cases we can use event.tags
+    if meta:
+        raw_tags = event.data.get("tags") or []
+    else:
+        raw_tags = event.tags
+
+    tags = sorted(
+        [
+            {
+                "key": kv[0] and kv[0].split("sentry:", 1)[-1],
+                "value": kv[1],
+                "_meta": prune_empty_keys(
+                    {
+                        "key": get_path(meta, str(i), "0"),
+                        "value": get_path(meta, str(i), "1"),
+                    }
+                )
+                or None,
+            }
+            for i, kv in enumerate(raw_tags)
+            if kv is not None
+        ],
+        key=lambda x: x["key"] if x["key"] is not None else "",
+    )
+
+    # Add 'query' for each tag to tell the UI what to use as query
+    # params for this tag.
+    for tag in tags:
+        query = convert_user_tag_to_query(tag["key"], tag["value"])
+        if query:
+            tag["query"] = query
+
+    tags_meta = prune_empty_keys({str(i): e.pop("_meta") for i, e in enumerate(tags)})
+
+    return (tags, meta_with_chunks(tags, tags_meta))
+
+
 @register(Event)
 class EventSerializer(Serializer):
     _reserved_keys = frozenset(["user", "sdk", "device", "contexts"])
@@ -80,47 +122,6 @@ class EventSerializer(Serializer):
             return (data, None)
 
         return (data, meta_with_chunks(data, api_meta))
-
-    def _get_tags_with_meta(self, event):
-        meta = get_path(event.data, "_meta", "tags") or {}
-
-        # If we have meta, we need to get the tags in their original order
-        # from the raw event body as the indexes need to line up with the
-        # metadata indexes. In other cases we can use event.tags
-        if meta:
-            raw_tags = event.data.get("tags") or []
-        else:
-            raw_tags = event.tags
-
-        tags = sorted(
-            [
-                {
-                    "key": kv[0] and kv[0].split("sentry:", 1)[-1],
-                    "value": kv[1],
-                    "_meta": prune_empty_keys(
-                        {
-                            "key": get_path(meta, str(i), "0"),
-                            "value": get_path(meta, str(i), "1"),
-                        }
-                    )
-                    or None,
-                }
-                for i, kv in enumerate(raw_tags)
-                if kv is not None
-            ],
-            key=lambda x: x["key"] if x["key"] is not None else "",
-        )
-
-        # Add 'query' for each tag to tell the UI what to use as query
-        # params for this tag.
-        for tag in tags:
-            query = convert_user_tag_to_query(tag["key"], tag["value"])
-            if query:
-                tag["query"] = query
-
-        tags_meta = prune_empty_keys({str(i): e.pop("_meta") for i, e in enumerate(tags)})
-
-        return (tags, meta_with_chunks(tags, tags_meta))
 
     def _get_attr_with_meta(self, event, attr, default=None):
         value = event.data.get(attr, default)
@@ -220,7 +221,7 @@ class EventSerializer(Serializer):
         ]
 
         (message, message_meta) = self._get_legacy_message_with_meta(obj)
-        (tags, tags_meta) = self._get_tags_with_meta(obj)
+        (tags, tags_meta) = get_tags_with_meta(obj)
         (context, context_meta) = self._get_attr_with_meta(obj, "extra", {})
         (packages, packages_meta) = self._get_attr_with_meta(obj, "modules", {})
 
