@@ -298,9 +298,7 @@ register("store.race-free-group-creation-force-disable", default=False)
 
 
 # Killswitch for dropping events if they were to create groups
-register(
-    "store.load-shed-group-creation-projects", type=Sequence, default=[]
-)
+register("store.load-shed-group-creation-projects", type=Sequence, default=[])
 
 # Killswitch for dropping events in ingest consumer or really anywhere
 register("store.load-shed-pipeline-projects", type=Sequence, default=[])
