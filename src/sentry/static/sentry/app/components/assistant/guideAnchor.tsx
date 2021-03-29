@@ -17,7 +17,7 @@ import {Guide} from 'app/components/assistant/types';
 import Button from 'app/components/button';
 import Hovercard, {Body as HovercardBody} from 'app/components/hovercard';
 import {t, tct} from 'app/locale';
-import GuideStore from 'app/stores/guideStore';
+import GuideStore, {GuideStoreState} from 'app/stores/guideStore';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
@@ -80,10 +80,10 @@ export const GuideAnchor = createReactClass<Props, State>({
     target && unregisterAnchor(target);
   },
 
-  onGuideStateChange(data) {
+  onGuideStateChange(data: GuideStoreState) {
     const active =
       data.currentGuide &&
-      data.currentGuide.steps[data.currentStep].target === this.props.target;
+      data.currentGuide.steps[data.currentStep]?.target === this.props.target;
 
     this.setState({
       active,
