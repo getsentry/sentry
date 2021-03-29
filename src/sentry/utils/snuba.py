@@ -810,11 +810,10 @@ def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
     query = query.set_dry_run(True).set_debug(True)
     query_params["debug"] = True
 
-    legacy_future = _query_thread_pool.submit(_snuba_query, (query_data, Hub(thread_hub), headers))
     snql_future = _query_thread_pool.submit(_raw_snql_query, query, Hub(thread_hub), headers)
-
     # If this fails then there's no point doing anything else, so let any exception get reraised
-    legacy_result = legacy_future.result()
+    legacy_result = _snuba_query(params)
+
     query_params["debug"] = og_debug
     legacy_resp = legacy_result[0]
 
