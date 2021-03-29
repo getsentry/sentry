@@ -22,6 +22,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
+import {PerformanceDuration} from '../utils';
 
 const COLUMN_ORDER = [
   {
@@ -95,29 +96,24 @@ const renderBodyCell = (
   if (Array.isArray(value)) {
     return (
       // TODO(Kevan): Remove ts any
-      <CellAction column={column} dataRow={dataRow as any} handleCellAction={() => {}}>
-        <TagValueContainer>
-          {value.map(v => {
-            return (
-              <TagInner key={v.value}>
-                <Link
-                  to=""
-                  onClick={() => handleTagValueClick(location, dataRow.key, v.value)}
-                >
-                  <TagValue value={v} />
-                </Link>
-                <DurationCountSplit>
-                  <Duration
-                    seconds={v.aggregate / 1000}
-                    fixedDigits={v.aggregate > 1000 ? 2 : 0}
-                  />
-                  <div>{formatAbbreviatedNumber(v.count)}</div>
-                </DurationCountSplit>
-              </TagInner>
-            );
-          })}
-        </TagValueContainer>
-      </CellAction>
+      <TagValueContainer>
+        {value.map(v => {
+          return (
+            <TagInner key={v.value}>
+              <Link
+                to=""
+                onClick={() => handleTagValueClick(location, dataRow.key, v.value)}
+              >
+                <TagValue value={v} />
+              </Link>
+              <DurationCountSplit>
+                <PerformanceDuration milliseconds={v.aggregate} />
+                <div>{formatAbbreviatedNumber(v.count)}</div>
+              </DurationCountSplit>
+            </TagInner>
+          );
+        })}
+      </TagValueContainer>
     );
   }
   return value;
@@ -198,46 +194,44 @@ class _TagExplorer extends React.Component<Props, State> {
       columnDropdownOptions[0];
 
     return (
-      <React.Fragment>
-        <SegmentExplorerQuery
-          eventView={eventView}
-          orgSlug={organization.slug}
-          location={location}
-          tagOrder={tagOrder}
-          aggregateColumn={aggregateColumn}
-          limit={5}
-        >
-          {({isLoading, tableData, pageLinks}) => {
-            return (
-              <React.Fragment>
-                <TagsHeader
-                  selectedSort={selectedSort}
-                  sortOptions={sortDropdownOptions}
-                  selectedColumn={selectedColumn}
-                  columnOptions={columnDropdownOptions}
-                  handleSortDropdownChange={(v: string) => this.setTagOrder(v)}
-                  handleColumnDropdownChange={(v: string) => this.setAggregateColumn(v)}
-                />
-                <GridEditable
-                  isLoading={isLoading}
-                  data={tableData ? tableData : []}
-                  columnOrder={COLUMN_ORDER}
-                  columnSortBy={[]}
-                  grid={{
-                    renderBodyCell: renderBodyCellWithData(this.props) as any,
-                  }}
-                  location={location}
-                />
-                <StyledPagination
-                  pageLinks={pageLinks}
-                  onCursor={handleCursor}
-                  size="small"
-                />
-              </React.Fragment>
-            );
-          }}
-        </SegmentExplorerQuery>
-      </React.Fragment>
+      <SegmentExplorerQuery
+        eventView={eventView}
+        orgSlug={organization.slug}
+        location={location}
+        tagOrder={tagOrder}
+        aggregateColumn={aggregateColumn}
+        limit={5}
+      >
+        {({isLoading, tableData, pageLinks}) => {
+          return (
+            <React.Fragment>
+              <TagsHeader
+                selectedSort={selectedSort}
+                sortOptions={sortDropdownOptions}
+                selectedColumn={selectedColumn}
+                columnOptions={columnDropdownOptions}
+                handleSortDropdownChange={(v: string) => this.setTagOrder(v)}
+                handleColumnDropdownChange={(v: string) => this.setAggregateColumn(v)}
+              />
+              <GridEditable
+                isLoading={isLoading}
+                data={tableData ? tableData : []}
+                columnOrder={COLUMN_ORDER}
+                columnSortBy={[]}
+                grid={{
+                  renderBodyCell: renderBodyCellWithData(this.props) as any,
+                }}
+                location={location}
+              />
+              <StyledPagination
+                pageLinks={pageLinks}
+                onCursor={handleCursor}
+                size="small"
+              />
+            </React.Fragment>
+          );
+        }}
+      </SegmentExplorerQuery>
     );
   }
 }

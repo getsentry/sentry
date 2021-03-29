@@ -49,7 +49,7 @@ export function getRequestFunction(_props: QueryProps) {
   const {tagOrder, aggregateColumn} = _props;
   function getTagExplorerRequestPayload(props: DiscoverQueryProps) {
     const {eventView} = props;
-    const apiPayload: FacetQuery = eventView?.getEventsAPIPayload(props.location);
+    const apiPayload: FacetQuery = eventView.getEventsAPIPayload(props.location);
     apiPayload.order = tagOrder;
     apiPayload.aggregateColumn = aggregateColumn;
     return apiPayload;
