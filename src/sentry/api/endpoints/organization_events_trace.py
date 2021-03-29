@@ -124,9 +124,9 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             if len(result["data"]) == 0:
                 return Response(status=404)
             len_transactions = len(result["data"])
-            sentry_sdk.set_tag("trace-view.num_transactions", len_transactions)
+            sentry_sdk.set_tag("trace_view.num_transactions", len_transactions)
             sentry_sdk.set_tag(
-                "trace-view.num_transactions.grouped",
+                "trace_view.num_transactions.grouped",
                 "<10" if len_transactions < 10 else "<100" if len_transactions < 100 else ">100",
             )
 
